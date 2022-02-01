@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Link from 'sentry/components/links/link';
+import Panel from 'sentry/components/panels/panel';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -91,11 +93,20 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
+  get notificationSettingsType() {
+    const hasFeatureFlag =
+      this.props.organizations.filter(org =>
+        org.features?.includes('slack-overage-notifications')
+      ).length > 0;
+    // filter out quotas if the feature flag isn't set
+    return NOTIFICATION_SETTINGS_TYPES.filter(type => type !== 'quota' || hasFeatureFlag);
+  }
+
   getInitialData(): {[key: string]: string} {
     const {notificationSettings} = this.state;
 
     return Object.fromEntries(
-      NOTIFICATION_SETTINGS_TYPES.map(notificationType => [
+      this.notificationSettingsType.map(notificationType => [
         notificationType,
         decideDefault(notificationType, notificationSettings),
       ])
@@ -106,7 +117,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationSettings} = this.state;
 
     const fields: FieldObject[] = [];
-    for (const notificationType of NOTIFICATION_SETTINGS_TYPES) {
+    for (const notificationType of this.notificationSettingsType) {
       const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         getData: data => this.getStateToPutForDefault(data, notificationType),
         help: (
@@ -145,27 +156,26 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         <SettingsPageHeader title="Notifications" />
         <TextBlock>Personal notifications sent via email or an integration.</TextBlock>
         <FeedbackAlert />
-        <Form
+        <StyledForm
           saveOnBlur
           apiMethod="PUT"
           apiEndpoint="/users/me/notification-settings/"
           initialData={this.getInitialData()}
         >
           <JsonForm title={t('Notifications')} fields={this.getFields()} />
-        </Form>
-        <Form
+        </StyledForm>
+        <StyledLegacyForm
           initialData={legacyData}
           saveOnBlur
           apiMethod="PUT"
           apiEndpoint="/users/me/notifications/"
         >
           <JsonForm
-            title={t('My Activity')}
             fields={SELF_NOTIFICATION_SETTINGS_TYPES.map(
               type => NOTIFICATION_SETTING_FIELDS[type] as FieldObject
             )}
           />
-        </Form>
+        </StyledLegacyForm>
         <AlertLink to="/settings/account/emails" icon={<IconMail />}>
           {t('Looking to add or remove an email address? Use the emails panel.')}
         </AlertLink>
@@ -175,3 +185,20 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 }
 
 export default withOrganizations(NotificationSettings);
+
+const StyledForm = styled(Form)<Form['props']>`
+  ${Panel} {
+    margin-bottom: 0;
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+`;
+
+const StyledLegacyForm = styled(Form)<Form['props']>`
+  ${Panel} {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+`;

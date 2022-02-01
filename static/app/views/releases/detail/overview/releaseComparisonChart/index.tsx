@@ -862,7 +862,7 @@ function ReleaseComparisonChart({
         {diff}{' '}
         {defined(diffDirection) ? (
           <IconArrow direction={diffDirection} size="xs" />
-        ) : (
+        ) : diff === '0%' ? null : (
           <StyledNotAvailable />
         )}
       </Change>
@@ -985,11 +985,9 @@ function ReleaseComparisonChart({
         withExpanders={withExpanders}
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
+        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
         {additionalCharts.length > 0 && (
-          <ShowMoreWrapper
-            onClick={() => setIsOtherExpanded(!isOtherExpanded)}
-            isExpanded={isOtherExpanded}
-          >
+          <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
             <ShowMoreTitle>
               <IconActivity size="xs" />
               {isOtherExpanded
@@ -1006,7 +1004,6 @@ function ReleaseComparisonChart({
             </ShowMoreButton>
           </ShowMoreWrapper>
         )}
-        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
       </ChartTable>
     </Fragment>
   );
@@ -1054,14 +1051,13 @@ const StyledNotAvailable = styled(NotAvailable)`
   display: inline-block;
 `;
 
-const ShowMoreWrapper = styled('div')<{isExpanded: boolean}>`
+const ShowMoreWrapper = styled('div')`
   display: contents;
   &:hover {
     cursor: pointer;
   }
   > * {
     padding: ${space(1)} ${space(2)};
-    ${p => p.isExpanded && `border-bottom: 1px solid ${p.theme.border};`}
   }
 `;
 

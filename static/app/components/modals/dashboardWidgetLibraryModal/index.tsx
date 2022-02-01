@@ -1,12 +1,15 @@
 import * as React from 'react';
 import {useState} from 'react';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
 import {DashboardDetails, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
@@ -43,7 +46,7 @@ function DashboardWidgetLibraryModal({
   const [errored, setErrored] = useState(false);
 
   function handleSubmit() {
-    onAddWidget([...dashboard.widgets, ...selectedWidgets]);
+    onAddWidget([...dashboard.widgets, ...selectedWidgets.map(assignTempId)]);
     closeModal();
   }
 
@@ -74,7 +77,7 @@ function DashboardWidgetLibraryModal({
         <ButtonBar gap={1}>
           <Button
             external
-            href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+            href="https://docs.sentry.io/product/dashboards/widget-library/"
           >
             {t('Read the docs')}
           </Button>
@@ -89,7 +92,7 @@ function DashboardWidgetLibraryModal({
             )}
             disabled={!!!overLimit}
           >
-            <Button
+            <StyledButton
               data-test-id="confirm-widgets"
               priority="primary"
               disabled={overLimit}
@@ -115,8 +118,8 @@ function DashboardWidgetLibraryModal({
                 handleSubmit();
               }}
             >
-              {t('Save')}
-            </Button>
+              {t('Add')}
+            </StyledButton>
           </Tooltip>
         </ButtonBar>
       </Footer>
@@ -128,6 +131,11 @@ export const modalCss = css`
   width: 100%;
   max-width: 700px;
   margin: 70px auto;
+`;
+
+const StyledButton = styled(Button)`
+  padding-left: ${space(3)};
+  padding-right: ${space(3)};
 `;
 
 export default DashboardWidgetLibraryModal;

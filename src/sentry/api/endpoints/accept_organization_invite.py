@@ -43,6 +43,7 @@ class AcceptOrganizationInvite(Endpoint):
             "orgSlug": organization.slug,
             "needsAuthentication": not helper.user_authenticated,
             "needsSso": auth_provider is not None,
+            "hasAuthProvider": auth_provider is not None,
             "requireSso": auth_provider is not None and not auth_provider.flags.allow_unlinked,
             # If they're already a member of the organization its likely
             # they're using a shared account and either previewing this invite

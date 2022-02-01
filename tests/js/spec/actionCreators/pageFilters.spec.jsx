@@ -2,7 +2,6 @@ import {
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
-  updateParams,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
@@ -203,6 +202,64 @@ describe('PageFilters ActionCreators', function () {
       updateProjects(['1']);
       expect(PageFiltersActions.updateProjects).not.toHaveBeenCalled();
     });
+
+    it('updates history when queries are different', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '2'},
+        },
+      });
+      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
+      // however react-router will treat it as a string if there is only one param
+      updateProjects([1], router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {project: ['1']},
+      });
+    });
+    it('does not update history when queries are the same', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '1'},
+        },
+      });
+      // this can be passed w/ `project` as an array (e.g. multiple projects
+      // being selected) however react-router will treat it as a string if
+      // there is only one param
+      updateProjects([1], router);
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it('updates history when queries are different with replace', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '2'},
+        },
+      });
+      updateProjects([1], router, {replace: true});
+
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {project: ['1']},
+      });
+    });
+
+    it('does not update history when queries are the same with replace', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '1'},
+        },
+      });
+      updateProjects([1], router, {replace: true});
+
+      expect(router.replace).not.toHaveBeenCalled();
+    });
   });
 
   describe('updateEnvironments()', function () {
@@ -259,7 +316,7 @@ describe('PageFilters ActionCreators', function () {
           query: {},
         },
       });
-      updateDateTime({statsPeriod: '24h'}, router);
+      updateDateTime({period: '24h'}, router);
 
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/test/',
@@ -274,23 +331,6 @@ describe('PageFilters ActionCreators', function () {
         location: {
           pathname: '/test/',
           query: {statsPeriod: '14d'},
-        },
-      });
-      updateDateTime({statsPeriod: '24h'}, router);
-
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {
-          statsPeriod: '24h',
-        },
-      });
-    });
-
-    it('updates `statsPeriod` when given a new  `period`', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {},
         },
       });
       updateDateTime({period: '24h'}, router);
@@ -319,70 +359,6 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
         },
       });
-    });
-  });
-
-  describe('updateParams()', function () {
-    it('updates history when queries are different', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {project: '2'},
-        },
-      });
-      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
-      // however react-router will treat it as a string if there is only one param
-      updateParams({project: [1]}, router);
-
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {project: ['1']},
-      });
-    });
-    it('does not update history when queries are the same', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {project: '1'},
-        },
-      });
-      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
-      // however react-router will treat it as a string if there is only one param
-      updateParams({project: [1]}, router);
-
-      expect(router.push).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('updateParams(..., {replace: true})', function () {
-    it('updates history when queries are different', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {project: '2'},
-        },
-      });
-      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
-      // however react-router will treat it as a string if there is only one param
-      updateParams({project: [1]}, router, {replace: true});
-
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {project: ['1']},
-      });
-    });
-    it('does not update history when queries are the same', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {project: '1'},
-        },
-      });
-      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
-      // however react-router will treat it as a string if there is only one param
-      updateParams({project: [1]}, router, {replace: true});
-
-      expect(router.replace).not.toHaveBeenCalled();
     });
   });
 });

@@ -9,7 +9,7 @@ import {getFormattedDate} from 'sentry/utils/dates';
 
 import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
-import {getTooltipArrow, truncationFormatter} from './utils';
+import {truncationFormatter} from './utils';
 
 type Marker = {
   name: string;
@@ -53,6 +53,11 @@ type Props = Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> & {
   markers?: Marker[];
 
   /**
+   * Whether not we show a MarkLine label
+   */
+  showMarkLineLabel?: boolean;
+
+  /**
    * Whether timestamps are should be shown in UTC or local timezone.
    */
   utc?: boolean;
@@ -86,6 +91,7 @@ function MiniBarChart({
   colors,
   stacked = false,
   labelYAxisExtents = false,
+  showMarkLineLabel = false,
   height,
   ...props
 }: Props) {
@@ -141,7 +147,7 @@ function MiniBarChart({
           time,
           '</div>',
           '</div>',
-          getTooltipArrow(),
+          '<div class="tooltip-arrow"></div>',
         ].join('');
       },
     };
@@ -201,9 +207,9 @@ function MiniBarChart({
     grid: {
       // Offset to ensure there is room for the marker symbols at the
       // default size.
-      top: labelYAxisExtents ? 6 : 0,
-      bottom: markers || labelYAxisExtents ? 4 : 0,
-      left: markers ? 8 : 4,
+      top: labelYAxisExtents || showMarkLineLabel ? 6 : 0,
+      bottom: markers || labelYAxisExtents || showMarkLineLabel ? 4 : 0,
+      left: markers ? 8 : showMarkLineLabel ? 35 : 4,
       right: markers ? 4 : 0,
     },
     xAxis: {

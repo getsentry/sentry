@@ -1,51 +1,75 @@
 name: openapi
-
 on:
   push:
     branches:
       - master
 
 jobs:
-  deref_json:
-    runs-on: ubuntu-latest
+  build_and_deref_json:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 90
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+
     steps:
-    - name: Getsentry Token
-      id: getsentry
-      uses: getsentry/action-github-app-token@v1
-      with:
-        app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-        private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+      - name: Getsentry Token
+        id: getsentry
+        uses: getsentry/action-github-app-token@v1
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-    - name: Checkout getsentry/sentry
-      uses: actions/checkout@v2
-      with:
-        path: sentry
+      - uses: actions/checkout@v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
 
-    - name: Checkout getsentry/sentry-api-schema
-      uses: actions/checkout@v2
-      with:
-        ref: 'main'
-        repository: getsentry/sentry-api-schema
-        path: sentry-api-schema
-        token: ${{ steps.getsentry.outputs.token }}
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
 
-    - uses: volta-cli/action@v1
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        if: steps.changes.outputs.api_docs == 'true'
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
-    - name: Build OpenAPI Derefed JSON
-      run: |
-        cd sentry
-        yarn install --frozen-lockfile
-        yarn run build-derefed-docs api-docs/openapi-derefed.json
+      - name: Checkout getsentry/sentry-api-schema
+        if: steps.changes.outputs.api_docs == 'true'
+        uses: actions/checkout@v2
+        with:
+          ref: 'main'
+          repository: getsentry/sentry-api-schema
+          path: sentry-api-schema
+          token: ${{ steps.getsentry.outputs.token }}
 
-    - name: Copy artifact into getsentry/sentry-api-schema
-      run: |
-        cp sentry/api-docs/openapi-derefed.json sentry-api-schema
+      - name: Install/setup node
+        if: steps.changes.outputs.api_docs == 'true'
+        uses: volta-cli/action@v1
 
-    - name: Git Commit & Push
-      uses: stefanzweifel/git-auto-commit-action@v4
-      with:
-        repository: sentry-api-schema
-        branch: main
-        commit_message: Generated
-        commit_user_email: bot@getsentry.com
-        commit_user_name: openapi-getsentry-bot
+      - name: Build OpenAPI Derefed JSON
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          make build-api-docs
+
+      - name: Copy artifact into getsentry/sentry-api-schema
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          cp tests/apidocs/openapi-derefed.json sentry-api-schema
+
+      - name: Git Commit & Push
+        uses: stefanzweifel/git-auto-commit-action@v4
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          repository: sentry-api-schema
+          branch: main
+          commit_message: Generated
+          commit_user_email: bot@getsentry.com
+          commit_user_name: openapi-getsentry-bot

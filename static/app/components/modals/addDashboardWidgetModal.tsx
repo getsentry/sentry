@@ -15,7 +15,6 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
-import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
@@ -24,7 +23,6 @@ import {
   DateString,
   Organization,
   PageFilters,
-  RelativePeriod,
   SelectValue,
   TagCollection,
 } from 'sentry/types';
@@ -35,6 +33,7 @@ import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
+import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -77,7 +76,7 @@ export type DashboardWidgetModalOptions = {
   source: DashboardWidgetSource;
   start?: DateString;
   end?: DateString;
-  statsPeriod?: RelativePeriod | string;
+  statsPeriod?: string | null;
   selectedWidgets?: WidgetTemplate[];
   onAddLibraryWidget?: (widgets: Widget[]) => void;
 };
@@ -191,13 +190,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     } = this.props;
     this.setState({loading: true});
     let errors: FlatValidationError = {};
-    const widgetData: Widget = pick(this.state, [
-      'title',
-      'displayType',
-      'interval',
-      'queries',
-      'widgetType',
-    ]);
+    const widgetData: Widget = assignTempId(
+      pick(this.state, ['title', 'displayType', 'interval', 'queries', 'widgetType'])
+    );
+    if (previousWidget) {
+      widgetData.layout = previousWidget?.layout;
+    }
     // Only Table and Top N views need orderby
     if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
       widgetData.queries.forEach(query => {
@@ -221,6 +219,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         addSuccessMessage(t('Added widget.'));
         trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.confirm', {
           organization,
+          data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
         });
       }
       if (source === DashboardWidgetSource.DASHBOARDS) {
@@ -306,7 +305,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleSubmitFromLibrary = async (errors: FlatValidationError, widgetData: Widget) => {
-    const {closeModal, dashboard, onAddLibraryWidget} = this.props;
+    const {closeModal, dashboard, onAddLibraryWidget, organization} = this.props;
     if (!dashboard) {
       errors.dashboard = t('This field may not be blank');
       this.setState({errors});
@@ -317,6 +316,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       onAddLibraryWidget([...dashboard.widgets, widgetData]);
       closeModal();
     }
+    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.save', {
+      organization,
+      data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+    });
   };
 
   handleDefaultFields = (newDisplayType: DisplayType) => {
@@ -550,7 +553,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const querySelection: PageFilters = statsPeriod
       ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
       : start && end
-      ? {...selection, datetime: {start, end, period: '', utc: null}}
+      ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
@@ -636,7 +639,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             state.displayType === DisplayType.TABLE && (
               <React.Fragment>
                 <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
-                <FeatureBadge type="beta" />
                 <StyledRadioGroup
                   style={{flex: 1}}
                   choices={DATASET_CHOICES}

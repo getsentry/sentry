@@ -16,12 +16,7 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import type {Color} from 'sentry/utils/theme';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
-import {
-  barAxisLabel,
-  convertDaySeriesToWeeks,
-  convertDayValueObjectToSeries,
-  groupByTrend,
-} from './utils';
+import {barAxisLabel, convertDayValueObjectToSeries, groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -35,8 +30,6 @@ type ProjectReleaseCount = Record<string, Record<string, UnresolvedCount>>;
 type State = AsyncComponent['state'] & {
   /** weekly selected date range */
   periodIssues: ProjectReleaseCount | null;
-  /** Locked to last 7 days */
-  weekIssues: ProjectReleaseCount | null;
 };
 
 class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
@@ -45,7 +38,6 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      weekIssues: null,
       periodIssues: null,
     };
   }
@@ -62,15 +54,6 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
         {
           query: {
             ...normalizeDateTimeParams(datetime),
-          },
-        },
-      ],
-      [
-        'weekIssues',
-        `/teams/${organization.slug}/${teamSlug}/all-unresolved-issues/`,
-        {
-          query: {
-            statsPeriod: '7d',
           },
         },
       ],
@@ -93,12 +76,10 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
     }
   }
 
-  getTotalUnresolved(projectId: number, dataset: 'week' | 'period'): number {
-    const {periodIssues, weekIssues} = this.state;
+  getTotalUnresolved(projectId: number): number {
+    const {periodIssues} = this.state;
 
-    const period = dataset === 'week' ? weekIssues : periodIssues;
-
-    const entries = Object.values(period?.[projectId] ?? {});
+    const entries = Object.values(periodIssues?.[projectId] ?? {});
     const total = entries.reduce((acc, current) => acc + current.unresolved, 0);
 
     return Math.round(total / entries.length);
@@ -115,16 +96,18 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
 
     const projectTotals: Record<
       string,
-      {projectId: string; periodAvg: number; weekAvg: number; percentChange: number}
+      {projectId: string; periodAvg: number; today: number; percentChange: number}
     > = {};
     for (const projectId of Object.keys(periodIssues)) {
-      const periodAvg = this.getTotalUnresolved(Number(projectId), 'period');
-      const weekAvg = this.getTotalUnresolved(Number(projectId), 'week');
-      const percentChange = Math.abs((weekAvg - periodAvg) / periodAvg);
+      const periodAvg = this.getTotalUnresolved(Number(projectId));
+      const projectPeriodEntries = Object.values(periodIssues?.[projectId] ?? {});
+      const today =
+        projectPeriodEntries[projectPeriodEntries.length - 1]?.unresolved ?? 0;
+      const percentChange = Math.abs((today - periodAvg) / periodAvg);
       projectTotals[projectId] = {
         projectId,
         periodAvg,
-        weekAvg,
+        today,
         percentChange: Number.isNaN(percentChange) ? 0 : percentChange,
       };
     }
@@ -150,9 +133,9 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
       return acc;
     }, {});
 
-    const seriesData = convertDaySeriesToWeeks(
-      convertDayValueObjectToSeries(totalByDay)
-    ).map(week => ({...week, value: Math.round(week.value / 7)}));
+    const seriesData = convertDayValueObjectToSeries(totalByDay).sort(
+      (a, b) => new Date(a.name).getTime() - new Date(b.name).getTime()
+    );
 
     return (
       <div>
@@ -163,16 +146,15 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
               style={{height: 190}}
               isGroupedByDate
               useShortDate
-              period="7d"
               legend={{right: 3, top: 0}}
               yAxis={{minInterval: 1}}
-              xAxis={barAxisLabel(seriesData.length)}
+              xAxis={barAxisLabel(Math.round(seriesData.length / 7))}
               series={[
                 {
                   seriesName: t('Unresolved Issues'),
                   silent: true,
                   data: seriesData,
-                  barCategoryGap: '5%',
+                  barCategoryGap: '6%',
                 },
               ]}
             />
@@ -182,11 +164,11 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
           isEmpty={projects.length === 0}
           isLoading={loading}
           headers={[
-            t('Projects'),
+            t('Project'),
             <RightAligned key="last">
               {tct('Last [period] Average', {period})}
             </RightAligned>,
-            <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
+            <RightAligned key="curr">{t('Today')}</RightAligned>,
             <RightAligned key="diff">{t('Change')}</RightAligned>,
           ]}
         >
@@ -200,15 +182,23 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
                 </ProjectBadgeContainer>
 
                 <ScoreWrapper>{totals.periodAvg}</ScoreWrapper>
-                <ScoreWrapper>{totals.weekAvg}</ScoreWrapper>
+                <ScoreWrapper>{totals.today}</ScoreWrapper>
                 <ScoreWrapper>
-                  <SubText color={totals.percentChange >= 0 ? 'green300' : 'red300'}>
+                  <SubText
+                    color={
+                      totals.percentChange === 0
+                        ? 'gray300'
+                        : totals.percentChange > 0
+                        ? 'red300'
+                        : 'green300'
+                    }
+                  >
                     {formatPercentage(
                       Number.isNaN(totals.percentChange) ? 0 : totals.percentChange,
                       0
                     )}
                     <PaddedIconArrow
-                      direction={totals.percentChange >= 0 ? 'down' : 'up'}
+                      direction={totals.percentChange > 0 ? 'up' : 'down'}
                       size="xs"
                     />
                   </SubText>

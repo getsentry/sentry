@@ -144,6 +144,7 @@ class SelectOwners extends React.Component<Props, State> {
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
               icon={<IconAdd isCircled />}
+              aria-label={t('Add %s to project', `#${team.slug}`)}
             />
           </Tooltip>
         </Container>

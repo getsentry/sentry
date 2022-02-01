@@ -131,6 +131,7 @@ export function createDefaultRule(
     aggregate: DEFAULT_AGGREGATE,
     query: '',
     timeWindow: 1,
+    thresholdPeriod: 1,
     triggers: [createDefaultTrigger('critical'), createDefaultTrigger('warning')],
     projects: [],
     environment: null,

@@ -20,6 +20,7 @@ import {
   Field,
   FIELDS,
   getAggregateAlias,
+  getEquation,
   isAggregateEquation,
   isEquation,
   isMeasurement,
@@ -41,7 +42,7 @@ export type QueryWithColumnState =
       sort: string | string[] | null | undefined;
     };
 
-const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
+const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',
   name: '',
 
@@ -54,21 +55,21 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
-export function decodeColumnOrder(
-  fields: Readonly<Field[]>
-): TableColumn<React.ReactText>[] {
+export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
   let equations = 0;
   return fields.map((f: Field) => {
-    const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
+    const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field);
-    let columnName = f.field;
+    const columnName = f.field;
     if (isEquation(f.field)) {
-      columnName = `equation[${equations}]`;
+      column.key = `equation[${equations}]`;
+      column.name = getEquation(columnName);
       equations += 1;
+    } else {
+      column.key = columnName;
+      column.name = columnName;
     }
-    column.key = columnName;
-    column.name = columnName;
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
     if (col.kind === 'function') {
@@ -489,23 +490,6 @@ export function generateFieldOptions({
     };
   });
 
-  if (tagKeys !== undefined && tagKeys !== null) {
-    tagKeys.sort();
-    tagKeys.forEach(tag => {
-      const tagValue =
-        fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
-          ? `tags[${tag}]`
-          : tag;
-      fieldOptions[`tag:${tag}`] = {
-        label: tag,
-        value: {
-          kind: FieldValueKind.TAG,
-          meta: {name: tagValue, dataType: 'string'},
-        },
-      };
-    });
-  }
-
   if (measurementKeys !== undefined && measurementKeys !== null) {
     measurementKeys.sort();
     measurementKeys.forEach(measurement => {
@@ -527,6 +511,23 @@ export function generateFieldOptions({
         value: {
           kind: FieldValueKind.BREAKDOWN,
           meta: {name: breakdownField, dataType: 'duration'},
+        },
+      };
+    });
+  }
+
+  if (tagKeys !== undefined && tagKeys !== null) {
+    tagKeys.sort();
+    tagKeys.forEach(tag => {
+      const tagValue =
+        fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
+          ? `tags[${tag}]`
+          : tag;
+      fieldOptions[`tag:${tag}`] = {
+        label: tag,
+        value: {
+          kind: FieldValueKind.TAG,
+          meta: {name: tagValue, dataType: 'string'},
         },
       };
     });
