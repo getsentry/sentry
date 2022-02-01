@@ -30,7 +30,7 @@ export async function loadiOSDeviceListModule() {
 }
 
 interface DeviceNameProps {
-  value: string | undefined;
+  value: string;
   children?: (name: string) => React.ReactNode;
 }
 
@@ -68,16 +68,11 @@ function DeviceName({value, children}: DeviceNameProps): React.ReactElement | nu
     [value, iOSDeviceList]
   );
 
-  // If there is no value, render nothing
-  if (!deviceName) {
-    return null;
-  }
-
-  return (
+  return deviceName ? (
     <span data-test-id="loaded-device-name">
       {children ? children(deviceName) : deviceName}
     </span>
-  );
+  ) : null;
 }
 
 export {DeviceName};
