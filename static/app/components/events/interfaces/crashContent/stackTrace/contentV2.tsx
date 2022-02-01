@@ -240,7 +240,7 @@ function Content({
   }
 
   return (
-    <Wrapper className={getClassName()}>
+    <Wrapper className={getClassName()} data-test-id="stack-trace-content-v2">
       <StyledPlatformIcon
         platform={stackTracePlatformIcon(platform, frames)}
         size="20px"
