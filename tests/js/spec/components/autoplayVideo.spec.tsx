@@ -1,5 +1,6 @@
 import * as React from 'react';
-import {render} from '@testing-library/react';
+
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AutoplayVideo} from 'sentry/components/autoplayVideo';
 
@@ -38,7 +39,9 @@ describe('autoplayVideo', () => {
     // @ts-ignore we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
-    const {container} = render(<AutoplayVideo src="https://example.com/video.mp4" />);
+    const {container} = mountWithTheme(
+      <AutoplayVideo src="https://example.com/video.mp4" />
+    );
 
     // Videos sadly do not have a role
     // eslint-disable-next-line
@@ -56,12 +59,13 @@ describe('autoplayVideo', () => {
     // @ts-ignore we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
-    const {container} = render(<AutoplayVideo src="https://example.com/video.mp4" />);
+    mountWithTheme(<AutoplayVideo src="https://example.com/video.mp4" />);
 
     // Videos sadly do not have a role
     // eslint-disable-next-line
-    expect(container.querySelector('video')).toBeInTheDocument();
+    expect(screen.getByTestId('autoplay-video')).toBeInTheDocument();
     expect(mock.current.muted).toBe(true);
+
     // Seems that useEffect runs, so no mocking or tick is needed.
     // Was tested manually by removing the ?.catch safe access and the test fails
     expect(mock.current.play).toHaveBeenCalledTimes(1);

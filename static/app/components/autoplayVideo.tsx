@@ -28,9 +28,14 @@ function AutoplayVideo(props: React.VideoHTMLAttributes<HTMLVideoElement>) {
   }, []);
 
   return (
-    <video ref={videoRef} playsInline disablePictureInPicture loop {...props}>
-      <source src={props.src} type="video/mp4" />
-    </video>
+    <video
+      ref={videoRef}
+      data-test-id="autoplay-video"
+      playsInline
+      disablePictureInPicture
+      loop
+      {...props}
+    />
   );
 }
 
