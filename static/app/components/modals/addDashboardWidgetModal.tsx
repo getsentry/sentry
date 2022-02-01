@@ -219,6 +219,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         addSuccessMessage(t('Added widget.'));
         trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.confirm', {
           organization,
+          data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
         });
       }
       if (source === DashboardWidgetSource.DASHBOARDS) {
@@ -304,7 +305,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleSubmitFromLibrary = async (errors: FlatValidationError, widgetData: Widget) => {
-    const {closeModal, dashboard, onAddLibraryWidget} = this.props;
+    const {closeModal, dashboard, onAddLibraryWidget, organization} = this.props;
     if (!dashboard) {
       errors.dashboard = t('This field may not be blank');
       this.setState({errors});
@@ -315,6 +316,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       onAddLibraryWidget([...dashboard.widgets, widgetData]);
       closeModal();
     }
+    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.save', {
+      organization,
+      data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+    });
   };
 
   handleDefaultFields = (newDisplayType: DisplayType) => {
