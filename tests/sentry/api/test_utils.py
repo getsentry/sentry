@@ -60,8 +60,3 @@ class GetDateRangeFromParamsTest(TestCase):
 
         with self.assertRaises(InvalidParams):
             start, end = get_date_range_from_params({"statsPeriodStart": "14d"})
-
-    def test_failures(self):
-
-        assert False
-        assert False
