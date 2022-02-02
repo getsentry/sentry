@@ -20,16 +20,12 @@ defined_tag_set = {t["name"] for t in OPENAPI_TAGS}
 
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
-    filtered = []
     for (path, path_regex, method, callback) in endpoints:
-
         if (
             callback.__name__ in PUBLIC_ENDPOINTS
             and method in PUBLIC_ENDPOINTS[callback.__name__]["methods"]
         ):
-            filtered.append((path, path_regex, method, callback))
-
-    return filtered
+            yield (path, path_regex, method, callback)
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:

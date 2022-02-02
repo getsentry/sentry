@@ -16,7 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.decorators import public
-from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
+from sentry.apidocs.parameters import GlobalParams, ScimParams
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import (
     AuditLogEntryEvent,
@@ -88,7 +88,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Query an Individual Organization Member",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        parameters=[GlobalParams.ORG_SLUG, ScimParams.MEMBER_ID],
         request=None,
         responses={
             200: OrganizationMemberSCIMSerializer,

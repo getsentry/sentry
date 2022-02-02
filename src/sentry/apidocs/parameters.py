@@ -1,7 +1,7 @@
 from drf_spectacular.utils import OpenApiParameter
 
 
-class GLOBAL_PARAMS:
+class GlobalParams:
     ORG_SLUG = OpenApiParameter(
         name="organization_slug",
         description="The slug of the organization the resource belongs to.",
@@ -18,7 +18,7 @@ class GLOBAL_PARAMS:
     )
 
 
-class SCIM_PARAMS:
+class ScimParams:
     MEMBER_ID = OpenApiParameter(
         name="member_id",
         location="path",
