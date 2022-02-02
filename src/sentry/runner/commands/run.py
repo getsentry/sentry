@@ -247,7 +247,7 @@ def worker(ignore_unknown_queues, **options):
     if options["autoreload"]:
         from django.utils import autoreload
 
-        autoreload.run_with_reloader(run_worker, kwargs=options)
+        autoreload.run_with_reloader(run_worker, **options)
     else:
         run_worker(**options)
 
