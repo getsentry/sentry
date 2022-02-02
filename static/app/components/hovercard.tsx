@@ -162,13 +162,13 @@ function Hovercard(props: HovercardProps): React.ReactElement {
       {ReactDOM.createPortal(
         <Popper placement={props.position ?? 'top'} modifiers={popperModifiers}>
           {({ref, style, placement, arrowProps, scheduleUpdate}) => {
-            // Nothing to render
-            if (!props.body && !props.header) {
+            // Element is not visible in neither controlled and uncontrolled state (show prop is not passed and card is not hovered)
+            if (!isVisible) {
               return null;
             }
 
-            // Element is not visible in neither controlled and uncontrolled state (show prop is not passed and card is not hovered)
-            if (!isVisible) {
+            // Nothing to render
+            if (!props.body && !props.header) {
               return null;
             }
 
@@ -182,7 +182,6 @@ function Hovercard(props: HovercardProps): React.ReactElement {
                   offset={props.offset}
                   // Maintain the hovercard class name for BC with less styles
                   className={classNames('hovercard', props.className)}
-                  style={style}
                   {...hoverProps}
                 >
                   {props.header ? <Header>{props.header}</Header> : null}
@@ -211,6 +210,22 @@ export {Hovercard};
 
 const SLIDE_DISTANCE = 10;
 
+function parseTransform(transformString: string | undefined): [number, number, number] {
+  if (!transformString) {
+    return [0, 0, 0];
+  }
+
+  const matches = transformString.replace('translate3d', '').match(/(-?[0-9\.]+)/g);
+
+  if (matches === null) {
+    return [0, 0, 0];
+  }
+
+  return matches.map(s => {
+    return parseFloat(s);
+  }) as [number, number, number];
+}
+
 function SlideInAnimation({
   visible,
   placement,
@@ -223,6 +238,21 @@ function SlideInAnimation({
   style: React.CSSProperties;
 }): React.ReactElement {
   const narrowedPlacement = getTipDirection({placement});
+  const [translateX, translateY] = parseTransform(style.transform);
+
+  const x =
+    narrowedPlacement === 'left'
+      ? [translateX - SLIDE_DISTANCE, 0]
+      : narrowedPlacement === 'right'
+      ? [translateX + SLIDE_DISTANCE, 0]
+      : [0, 0];
+
+  const y =
+    narrowedPlacement === 'top'
+      ? [translateY - SLIDE_DISTANCE, 0]
+      : narrowedPlacement === 'bottom'
+      ? [translateY + SLIDE_DISTANCE, 0]
+      : [0, 0];
 
   return (
     <motion.div
@@ -233,18 +263,8 @@ function SlideInAnimation({
         },
         visible: {
           opacity: [0, 1],
-          x:
-            narrowedPlacement === 'left'
-              ? [-SLIDE_DISTANCE, 0]
-              : narrowedPlacement === 'right'
-              ? [SLIDE_DISTANCE, 0]
-              : [0, 0],
-          y:
-            narrowedPlacement === 'top'
-              ? [-SLIDE_DISTANCE, 0]
-              : narrowedPlacement === 'bottom'
-              ? [SLIDE_DISTANCE, 0]
-              : [0, 0],
+          x,
+          y,
         },
       }}
       animate={visible ? 'visible' : 'hidden'}
