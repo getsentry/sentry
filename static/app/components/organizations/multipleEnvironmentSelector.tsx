@@ -46,7 +46,7 @@ type Props = WithRouterProps & {
   /**
    * When menu is closed
    */
-  onUpdate: () => void;
+  onUpdate: (selectedEnvs?: string[]) => void;
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
     isOpen: boolean;
@@ -95,9 +95,11 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
   /**
    * Checks if "onUpdate" is callable. Only calls if there are changes
+   * @param selectedEnvs optional parameter passed to onUpdate representing
+   * an array containing a directly selected environment (not multi-selected)
    */
-  doUpdate = () => {
-    this.setState({hasChanges: false}, this.props.onUpdate);
+  doUpdate = (selectedEnvs?: string[]) => {
+    this.setState({hasChanges: false}, () => this.props.onUpdate(selectedEnvs));
   };
 
   /**
@@ -182,13 +184,18 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       org_id: parseInt(this.props.organization.id, 10),
     });
 
-    this.setState(() => {
-      this.doChange([environment]);
+    const envSelection = [environment];
 
-      return {
-        selectedEnvs: new Set([environment]),
-      };
-    }, this.doUpdate);
+    this.setState(
+      () => {
+        this.doChange(envSelection);
+
+        return {
+          selectedEnvs: new Set(envSelection),
+        };
+      },
+      () => this.doUpdate(envSelection)
+    );
   };
 
   /**
