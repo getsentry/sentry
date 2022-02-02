@@ -67,20 +67,25 @@ export default function SpanTable(props: Props) {
     return null;
   }
 
-  const data = examples.map(example => ({
-    id: example.id,
-    project: project?.slug,
-    // timestamps are in seconds but want them in milliseconds
-    timestamp: example.finishTimestamp * 1000,
-    transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,
-    spanDuration: example.nonOverlappingExclusiveTime,
-    occurrences: example.spans.length,
-    cumulativeDuration: example.spans.reduce(
-      (duration, span) => duration + span.exclusiveTime,
-      0
-    ),
-    spans: example.spans,
-  }));
+  const data = examples
+    // we assume that the span appears in each example at least once,
+    // if this assumption is broken, nothing onwards will work so
+    // filter out such examples
+    .filter(example => example.spans.length > 0)
+    .map(example => ({
+      id: example.id,
+      project: project?.slug,
+      // timestamps are in seconds but want them in milliseconds
+      timestamp: example.finishTimestamp * 1000,
+      transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,
+      spanDuration: example.nonOverlappingExclusiveTime,
+      occurrences: example.spans.length,
+      cumulativeDuration: example.spans.reduce(
+        (duration, span) => duration + span.exclusiveTime,
+        0
+      ),
+      spans: example.spans,
+    }));
 
   return (
     <Fragment>

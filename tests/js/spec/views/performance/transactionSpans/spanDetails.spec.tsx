@@ -119,6 +119,76 @@ describe('Performance > Transaction Spans > Span Details', function () {
     });
   });
 
+  describe('With Bad Span Data', function () {
+    it('filters examples missing spans', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans-performance/',
+        body: generateSuspectSpansResponse(),
+      });
+
+      // just want to get one span in the response
+      const badExamples = [generateSuspectSpansResponse({examplesOnly: true})[0]];
+      for (const example of badExamples[0].examples) {
+        // make sure that the spans array is empty
+        example.spans = [];
+      }
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans/',
+        body: badExamples,
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans-stats/',
+        body: {
+          'percentileArray(spans_exclusive_time, 0.75)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
+          'percentileArray(spans_exclusive_time, 0.95)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
+          'percentileArray(spans_exclusive_time, 0.99)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
+        },
+      });
+
+      const data = initializeData({
+        features: ['performance-view', 'performance-suspect-spans-view'],
+        query: {project: '1', transaction: 'transaction'},
+      });
+
+      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+        context: data.routerContext,
+        organization: data.organization,
+      });
+
+      expect(await screen.findByText('Event ID')).toBeInTheDocument();
+      expect(await screen.findByText('Timestamp')).toBeInTheDocument();
+      expect(await screen.findByText('Span Duration')).toBeInTheDocument();
+      expect(await screen.findByText('Count')).toBeInTheDocument();
+      expect(await screen.findByText('Cumulative Duration')).toBeInTheDocument();
+    });
+  });
+
   describe('With Span Data', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
