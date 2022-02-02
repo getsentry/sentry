@@ -175,8 +175,6 @@ export function getRelativeDate(
   if (suffix === 'ago') {
     return moment(date).fromNow();
   }
-  if (suffix === 'old') {
-    return t('%(time)s old', {time: moment(date).fromNow(true)});
-  }
-  throw new Error('Unsupported time format suffix');
+
+  return t('%(time)s %(suffix)s', {time: moment(date).fromNow(true), suffix});
 }
