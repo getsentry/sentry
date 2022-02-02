@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import space from 'sentry/styles/space';
 
 type Props = {
+  'data-test-id'?: string;
   dashedBorder?: boolean;
 };
 

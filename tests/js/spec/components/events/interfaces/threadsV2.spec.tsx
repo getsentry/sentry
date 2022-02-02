@@ -227,7 +227,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
         expect(screen.getByText('divided by 0')).toBeInTheDocument();
 
-        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(container).toSnapshot();
@@ -326,7 +326,7 @@ describe('ThreadsV2', function () {
           'false'
         );
 
-        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         // Check Full Stack Trace

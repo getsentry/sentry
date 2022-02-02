@@ -2,6 +2,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_VIEW, StacktraceType} from 'sentry/types/stacktrace';
+import {isNativePlatform} from 'sentry/utils/platform';
 
 import Content from './content';
 import ContentV2 from './contentV2';
@@ -28,23 +29,34 @@ function StackTrace({
   groupingCurrentLevel,
   nativeV2,
 }: Props) {
-  return (
-    <ErrorBoundary mini>
-      {stackView === STACK_VIEW.RAW ? (
+  if (stackView === STACK_VIEW.RAW) {
+    return (
+      <ErrorBoundary mini>
         <pre className="traceback plain">
           {rawStacktraceContent(stacktrace, event.platform)}
         </pre>
-      ) : nativeV2 ? (
+      </ErrorBoundary>
+    );
+  }
+
+  if (nativeV2 && isNativePlatform(platform)) {
+    return (
+      <ErrorBoundary mini>
         <ContentV3
           data={stacktrace}
-          className="no-exception"
           includeSystemFrames={stackView === STACK_VIEW.FULL}
           platform={platform}
           event={event}
           newestFirst={newestFirst}
           groupingCurrentLevel={groupingCurrentLevel}
         />
-      ) : hasHierarchicalGrouping ? (
+      </ErrorBoundary>
+    );
+  }
+
+  if (hasHierarchicalGrouping) {
+    return (
+      <ErrorBoundary mini>
         <ContentV2
           data={stacktrace}
           className="no-exception"
@@ -54,16 +66,20 @@ function StackTrace({
           newestFirst={newestFirst}
           groupingCurrentLevel={groupingCurrentLevel}
         />
-      ) : (
-        <Content
-          data={stacktrace}
-          className="no-exception"
-          includeSystemFrames={stackView === STACK_VIEW.FULL}
-          platform={platform}
-          event={event}
-          newestFirst={newestFirst}
-        />
-      )}
+      </ErrorBoundary>
+    );
+  }
+
+  return (
+    <ErrorBoundary mini>
+      <Content
+        data={stacktrace}
+        className="no-exception"
+        includeSystemFrames={stackView === STACK_VIEW.FULL}
+        platform={platform}
+        event={event}
+        newestFirst={newestFirst}
+      />
     </ErrorBoundary>
   );
 }
