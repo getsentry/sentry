@@ -221,7 +221,12 @@ function NativeFrame({
   const status = getStatus();
 
   return (
-    <GridRow inApp={frame.inApp} expandable={expandable} expanded={expanded}>
+    <GridRow
+      inApp={frame.inApp}
+      expandable={expandable}
+      expanded={expanded}
+      data-test-id="stack-trace-frame"
+    >
       <StrictClick onClick={handleToggleContext}>
         <Fragment>
           <StatusCell>

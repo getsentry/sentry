@@ -212,14 +212,14 @@ function Content({
     });
 
     return (
-      <Wrapper isHoverPreviewed={isHoverPreviewed}>
+      <Wrapper isHoverPreviewed={isHoverPreviewed} data-test-id="stack-trace">
         {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
       </Wrapper>
     );
   }
 
   return (
-    <Wrapper isHoverPreviewed={isHoverPreviewed}>
+    <Wrapper isHoverPreviewed={isHoverPreviewed} data-test-id="stack-trace">
       {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
     </Wrapper>
   );
