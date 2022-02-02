@@ -18,6 +18,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.jira import JiraIntegration
+from sentry.models import Identity
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.decorators import classproperty
@@ -228,7 +229,10 @@ class JiraServerIntegration(JiraIntegration):
 
     def get_client(self):
         if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+            try:
+                self.default_identity = self.get_default_identity()
+            except Identity.DoesNotExist:
+                raise IntegrationError("Identity not found.")
 
         return JiraServerClient(
             self.model.metadata["base_url"],
