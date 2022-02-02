@@ -9,12 +9,14 @@ import {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
-export function initializeData(settings?: {
+export interface initializeDataSettings {
   query?: {};
   features?: string[];
   projects?: Project[];
   project?: Project;
-}) {
+}
+
+export function initializeData(settings?: initializeDataSettings) {
   const _defaultProject = TestStubs.Project();
   const _settings = {
     query: {},
