@@ -898,9 +898,11 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
-        "PREPROCESSING_HOOKS": ["sentry.apidocs.preprocessor.custom_preprocessing_hook"],
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "DISABLE_ERRORS_AND_WARNINGS": False,
-        "COMPONENT_SPLIT_REQUEST": True,
+        "COMPONENT_SPLIT_REQUEST": False,
+        "COMPONENT_SPLIT_PATCH": False,
         "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
@@ -910,12 +912,11 @@ if os.environ.get("OPENAPIGENERATE", False):
         "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
         "SERVERS": [{"url": "https://sentry.io/"}],
+        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
     }
 
-
 CRISPY_TEMPLATE_PACK = "bootstrap3"
-
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
