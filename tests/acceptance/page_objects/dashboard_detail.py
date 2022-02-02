@@ -14,11 +14,14 @@ class DashboardDetailPage(BasePage):
         self.dashboard = kwargs.get("dashboard", None)
 
     def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="events-request-loading"]')
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def visit_default_overview(self):
         self.browser.get(f"/organizations/{self.organization.slug}/dashboard/default-overview/")
+        self.wait_until_loaded()
+        self.browser.driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
         self.wait_until_loaded()
 
     def visit_create_dashboard(self):
@@ -30,18 +33,22 @@ class DashboardDetailPage(BasePage):
         self.wait_until_loaded()
 
     def enter_edit_state(self):
+        self.browser.wait_until_clickable('[data-test-id="dashboard-edit"]')
         button = self.browser.element('[data-test-id="dashboard-edit"]')
         button.click()
 
     def click_dashboard_add_widget_button(self):
+        self.browser.wait_until_clickable('[data-test-id="widget-add"]')
         button = self.browser.element('[data-test-id="widget-add"]')
         button.click()
 
     def click_dashboard_header_add_widget_button(self):
+        self.browser.wait_until_clickable('[data-test-id="add-widget-library"]')
         button = self.browser.element('[data-test-id="add-widget-library"]')
         button.click()
 
     def click_cancel_button(self):
+        self.browser.wait_until_clickable('[data-test-id="dashboard-cancel"]')
         button = self.browser.element('[data-test-id="dashboard-cancel"]')
         button.click()
 
@@ -53,5 +60,6 @@ class DashboardDetailPage(BasePage):
         button.click()
 
     def save_dashboard(self):
+        self.browser.wait_until_clickable('[data-test-id="dashboard-commit"]')
         button = self.browser.element('[data-test-id="dashboard-commit"]')
         button.click()

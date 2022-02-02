@@ -12,7 +12,7 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import Menu from 'sentry/components/dropdownMenuV2';
 
 type TriggerProps = {
-  props: React.HTMLAttributes<HTMLButtonElement> & {
+  props: Omit<React.HTMLAttributes<Element>, 'children'> & {
     onClick?: (e: MouseEvent) => void;
   };
   ref: React.RefObject<HTMLButtonElement>;
@@ -119,14 +119,21 @@ function MenuControl({
     ref
   );
 
-  const renderTrigger = isOpen => {
+  function renderTrigger() {
     if (trigger) {
-      return trigger({props: {...buttonProps, isOpen: state.isOpen}, ref});
+      return trigger({
+        props: {
+          ...triggerProps,
+          ...buttonProps,
+          isOpen: state.isOpen,
+        },
+        ref,
+      });
     }
     return (
       <DropdownButton
         ref={ref}
-        isOpen={isOpen}
+        isOpen={state.isOpen}
         disabled={isDisabled}
         {...triggerProps}
         {...buttonProps}
@@ -134,10 +141,10 @@ function MenuControl({
         {triggerLabel}
       </DropdownButton>
     );
-  };
+  }
 
-  const renderMenu = isOpen => {
-    if (!isOpen) {
+  function renderMenu() {
+    if (!state.isOpen) {
       return null;
     }
 
@@ -165,18 +172,18 @@ function MenuControl({
         }}
       </Menu>
     );
-  };
+  }
 
   return (
-    <Wrap className={className} as={renderWrapAs} role="presentation">
-      {renderTrigger(state.isOpen)}
-      {renderMenu(state.isOpen)}
-    </Wrap>
+    <MenuControlWrap className={className} as={renderWrapAs} role="presentation">
+      {renderTrigger()}
+      {renderMenu()}
+    </MenuControlWrap>
   );
 }
 
 export default MenuControl;
 
-const Wrap = styled('div')`
+const MenuControlWrap = styled('div')`
   list-style-type: none;
 `;
