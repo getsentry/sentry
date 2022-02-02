@@ -19,7 +19,7 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import {IconArrow} from 'sentry/icons';
+import {IconResize} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -525,7 +525,7 @@ class Dashboard extends Component<Props, State> {
             className="react-resizable-handle"
             data-test-id="custom-resize-handle"
           >
-            <IconArrow />
+            <IconResize />
           </ResizeHandle>
         }
         isBounded
@@ -646,9 +646,8 @@ const GridLayout = styled(WidthProvider(Responsive))`
 `;
 
 const ResizeHandle = styled('div')`
-  transform: rotate(135deg);
   position: absolute;
   bottom: 2px;
-  right: 4px;
+  right: 2px;
   cursor: nwse-resize;
 `;
