@@ -118,8 +118,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.browser.element('[data-test-id="context-menu"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
-
             self.page.wait_until_loaded()
+
+            self.browser.elements('[data-test-id="context-menu"]')[0].click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
             self.browser.snapshot("dashboard widget - duplicate")
 
     def test_delete_widget_in_view_mode(self):
@@ -454,6 +458,54 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.wait_until_loaded()
             self.browser.snapshot("dashboards - default layout when widgets do not have layout set")
+
+    def test_duplicate_widget_in_view_mode(self):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Big Number Widget",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count_unique(issue)"], order=0
+        )
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            self.browser.elements('[data-test-id="context-menu"]')[0].click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboard widget - duplicate")
+
+    def test_delete_widget_in_view_mode(self):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Big Number Widget",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count_unique(issue)"], order=0
+        )
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="delete-widget"]').click()
+            self.browser.element('[data-test-id="confirm-button"]').click()
+
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboard widget - delete")
 
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
