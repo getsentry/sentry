@@ -374,7 +374,9 @@ class TableView extends React.Component<TableViewProps> {
       switch (action) {
         case Actions.TRANSACTION: {
           const maybeProject = projects.find(
-            project => project.slug === dataRow['project.name']
+            project =>
+              project.slug &&
+              [dataRow['project.name'], dataRow.project].includes(project.slug)
           );
           const projectID = maybeProject ? [maybeProject.id] : undefined;
 
