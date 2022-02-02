@@ -172,7 +172,15 @@ export class TagValueTable extends Component<Props, State> {
           handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
           allowActions={allowActions}
         >
-          <TagValue row={dataRow} />
+          {column.name === 'release' ? (
+            <Link
+              to={`/organizations/${organization.slug}/releases/${dataRow.tags_value}`}
+            >
+              <TagValue row={dataRow} />
+            </Link>
+          ) : (
+            <TagValue row={dataRow} />
+          )}
         </CellAction>
       );
     }
