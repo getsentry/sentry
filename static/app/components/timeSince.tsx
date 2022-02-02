@@ -169,12 +169,12 @@ export function getRelativeDate(
   if ((shorten || extraShort) && !suffix) {
     return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
   }
+  if (!suffix) {
+    return moment(date).fromNow(true);
+  }
   if (suffix === 'ago') {
     return moment(date).fromNow();
   }
-  if (suffix?.length) {
-    return t('%(time)s %(suffix)s', {time: moment(date).fromNow(true), suffix});
-  }
 
-  return moment(date).fromNow(true);
+  return t('%(time)s %(suffix)s', {time: moment(date).fromNow(true), suffix});
 }
