@@ -290,7 +290,7 @@ class BaseAuth:
         saved_kwargs = {key: ctype_to_model(val) for key, val in session_data["kwargs"].items()}
         saved_kwargs.update((key, val) for key, val in kwargs.items())
 
-        if saved_kwargs["backend"] and type(saved_kwargs["backend"]) == str:
+        if isinstance(saved_kwargs.get("backend"), str):
             backend_path = saved_kwargs["backend"]
             if backend_path in settings.AUTHENTICATION_BACKENDS:
                 saved_kwargs["backend"] = load_backend(backend_path)
