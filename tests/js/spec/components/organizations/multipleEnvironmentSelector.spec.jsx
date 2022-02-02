@@ -69,7 +69,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper
       .find('MultipleSelectorSubmitRow button[aria-label="Apply"]')
       .simulate('click');
-    expect(onUpdate).toHaveBeenCalledWith();
+    expect(onUpdate).toHaveBeenCalledWith(undefined);
   });
 
   it('selects multiple environments and uses chevron to update', async function () {
@@ -89,7 +89,7 @@ describe('MultipleEnvironmentSelector', function () {
     expect(onChange).toHaveBeenLastCalledWith(['production', 'staging']);
 
     wrapper.find('MultipleEnvironmentSelector StyledChevron').simulate('click');
-    expect(onUpdate).toHaveBeenCalledWith();
+    expect(onUpdate).toHaveBeenCalledWith(undefined);
   });
 
   it('does not update when there are no changes', async function () {
