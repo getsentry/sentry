@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import color from 'color';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -120,7 +119,8 @@ const transformAnomalyData = (_: any, results: {data: AnomalyPayload}) => {
     }),
     markArea: MarkArea({
       itemStyle: {
-        color: color(theme.red300).alpha(0.2).rgb().string(),
+        color: theme.red300,
+        opacity: 0.2,
       },
       label: {
         show: false,
@@ -149,7 +149,8 @@ const transformAnomalyData = (_: any, results: {data: AnomalyPayload}) => {
     }),
     markArea: MarkArea({
       itemStyle: {
-        color: color(theme.yellow200).alpha(0.2).rgb().string(),
+        color: theme.yellow200,
+        opacity: 0.2,
       },
       label: {
         show: false,

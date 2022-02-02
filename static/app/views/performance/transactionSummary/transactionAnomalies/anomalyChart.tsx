@@ -4,6 +4,7 @@ import {Location} from 'history';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import LineChart from 'sentry/components/charts/lineChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
 import {DateString} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
@@ -37,7 +38,7 @@ const _AnomalyChart = (props: Props) => {
   const legend = {
     right: 10,
     top: 5,
-    data: ['High Confidence', 'Low Confidence'],
+    data: [t('High Confidence'), t('Low Confidence')],
   };
 
   const chartOptions = {

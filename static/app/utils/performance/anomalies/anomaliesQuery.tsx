@@ -21,6 +21,7 @@ type Props = RequestProps & {
 
 type AnomalyConfidence = 'high' | 'low';
 
+// Should match events stats data in format.
 type AnomalyStatsData = {
   data: EventsStatsData;
   start?: number;
@@ -40,11 +41,12 @@ export type AnomalyPayload = {
   y: AnomalyStatsData;
   yhat_upper: AnomalyStatsData;
   yhat_lower: AnomalyStatsData;
-  anomalies: AnomalyInfo[];
+  anomalies: AnomalyInfo[]; // Anomaly info describes what the anomaly service determines is an 'anomaly area'.
 };
 
 function transformStatsTimes(stats: AnomalyStatsData) {
   stats.data.forEach(d => (d[0] = d[0] * 1000));
+  stats.data = stats.data.slice((stats.data.length * 4) / 6, stats.data.length);
   return stats;
 }
 function transformAnomaliesTimes(anoms: AnomalyInfo[]) {

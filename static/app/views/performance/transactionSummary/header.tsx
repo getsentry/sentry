@@ -55,6 +55,10 @@ const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
     eventKey: 'performance_views.spans.spans_tab_clicked',
     eventName: 'Performance Views: Spans tab clicked',
   },
+  [Tab.Anomalies]: {
+    eventKey: 'performance_views.anomalies.anomalies_tab_clicked',
+    eventName: 'Performance Views: Anomalies tab clicked',
+  },
 };
 
 type Props = {
