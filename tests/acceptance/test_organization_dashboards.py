@@ -1,4 +1,5 @@
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -503,15 +504,16 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             confirm_button = self.browser.element('[data-test-id="confirm-button"]')
             confirm_button.click()
 
-            # TODO: Fix this hack to wait for one widget
-            import time
-
-            time.sleep(1)
+            wait = WebDriverWait(self.browser.driver, 5)
+            wait.until_not(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//*[contains(text(),'Existing Widget 0')]")
+                )
+            )
 
             # Should not trigger confirm dialog
             self.page.enter_edit_state()
             self.page.click_cancel_button()
-            wait = WebDriverWait(self.browser.driver, 5)
             wait.until_not(EC.alert_is_present())
 
 
