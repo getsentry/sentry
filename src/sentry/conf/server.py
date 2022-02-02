@@ -1106,8 +1106,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable Rippling SSO functionality.
-    "organizations:sso-rippling": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
     # Return unhandled information on the issue level
