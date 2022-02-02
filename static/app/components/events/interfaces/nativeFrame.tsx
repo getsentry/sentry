@@ -444,7 +444,7 @@ const ToggleButton = styled(Button)`
 `;
 
 const Package = styled('span')<{color?: Color}>`
-  border-bottom: 1px dashed ${p => p.theme.gray200};
+  border-bottom: 1px dashed ${p => p.theme.border};
   ${p => p.color && `color: ${p.theme[p.color]}`};
   ${p => p.onClick && `cursor: pointer;`}
 `;
