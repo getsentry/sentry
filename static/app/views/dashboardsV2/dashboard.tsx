@@ -620,7 +620,7 @@ const WidgetContainer = styled('div')`
 
 const GridItem = styled('div')`
   .react-resizable-handle {
-    z-index: 1;
+    z-index: 2;
   }
 `;
 
