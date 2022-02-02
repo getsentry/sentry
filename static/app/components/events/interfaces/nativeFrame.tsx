@@ -1,4 +1,5 @@
 import {Fragment, MouseEvent, useContext, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
@@ -262,7 +263,7 @@ function NativeFrame({
               >
                 <Package
                   color={
-                    status === undefined
+                    status === undefined || status === 'error'
                       ? 'red300'
                       : packageClickable
                       ? 'blue300'
@@ -309,10 +310,12 @@ function NativeFrame({
                 delay={tooltipDelay}
                 containerDisplayMode="inline-flex"
               >
-                {'('}
-                {absoluteFilePaths ? frame.absPath : frame.filename}
-                {frame.lineNo && `:${frame.lineNo}`}
-                {')'}
+                <FileName>
+                  {'('}
+                  {absoluteFilePaths ? frame.absPath : frame.filename}
+                  {frame.lineNo && `:${frame.lineNo}`}
+                  {')'}
+                </FileName>
               </Tooltip>
             )}
           </FunctionNameCell>
@@ -356,26 +359,6 @@ function NativeFrame({
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
-const GridRow = styled('div')<{inApp: boolean; expandable: boolean; expanded: boolean}>`
-  ${p => p.expandable && `cursor: pointer;`};
-  ${p => p.inApp && `background: ${p.theme.surface100};`};
-
-  display: grid;
-  align-items: flex-start;
-  padding: ${space(0.5)};
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-
-  grid-template-columns: 24px 132px 138px 24px 1fr 24px;
-  grid-template-rows: 1fr;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 24px auto minmax(138px, 1fr) 24px;
-    grid-template-rows: repeat(2, auto);
-  }
-`;
-
 const Cell = styled('div')`
   padding: ${space(0.5)};
   display: flex;
@@ -392,7 +375,7 @@ const StatusCell = styled(Cell)`
 `;
 
 const PackageCell = styled(Cell)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-column: 2/2;
     grid-row: 1/1;
@@ -404,7 +387,6 @@ const PackageCell = styled(Cell)`
 
 const AddressCell = styled(Cell)`
   font-family: ${p => p.theme.text.familyMono};
-
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-column: 3/3;
     grid-row: 1/1;
@@ -419,8 +401,7 @@ const GroupingCell = styled(Cell)`
 `;
 
 const FunctionNameCell = styled(Cell)`
-  color: ${p => p.theme.gray400};
-
+  color: ${p => p.theme.textColor};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-column: 2/-1;
     grid-row: 2/2;
@@ -450,11 +431,47 @@ const Package = styled('span')<{color?: Color}>`
 `;
 
 const FunctionName = styled('div')`
+  color: ${p => p.theme.headingColor};
   margin-right: ${space(1)};
-  color: ${p => p.theme.gray500};
+`;
+
+const FileName = styled('span')`
+  color: ${p => p.theme.subText};
+  border-bottom: 1px dashed ${p => p.theme.border};
 `;
 
 const PackageStatusButton = styled(Button)`
   padding: 0;
   border: none;
+`;
+
+const GridRow = styled('div')<{inApp: boolean; expandable: boolean; expanded: boolean}>`
+  ${p => p.expandable && `cursor: pointer;`};
+  ${p => p.inApp && `background: ${p.theme.bodyBackground};`};
+  ${p =>
+    !p.inApp &&
+    css`
+      color: ${p.theme.subText};
+      ${FunctionName} {
+        color: ${p.theme.subText};
+      }
+      ${FunctionNameCell} {
+        color: ${p.theme.subText};
+      }
+    `};
+
+  display: grid;
+  align-items: flex-start;
+  padding: ${space(0.5)};
+  :not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
+
+  grid-template-columns: 24px 132px 138px 24px 1fr 24px;
+  grid-template-rows: 1fr;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 24px auto minmax(138px, 1fr) 24px;
+    grid-template-rows: repeat(2, auto);
+  }
 `;

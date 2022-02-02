@@ -203,7 +203,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
 
   // Not sure why we need to stop propagation, maybe to to prevent the hovercard from closing?
   // If we are doing this often, maybe it should be part of the hovercard component.
-  const handleStacktracePreviewClick = React.useCallback((e: React.MouseEvent) => {
+  const handleStackTracePreviewClick = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
 
@@ -223,19 +223,19 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
       <StyledHovercard
         body={
           status === 'loading' && !loadingVisible ? null : status === 'loading' ? (
-            <NoStackTraceWrapper onClick={handleStacktracePreviewClick}>
+            <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
               <LoadingIndicator hideMessage size={32} />
             </NoStackTraceWrapper>
           ) : status === 'error' ? (
-            <NoStackTraceWrapper onClick={handleStacktracePreviewClick}>
+            <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
               {t('Failed to load stack trace.')}
             </NoStackTraceWrapper>
           ) : !stacktrace ? (
-            <NoStackTraceWrapper onClick={handleStacktracePreviewClick}>
+            <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
               {t('There is no stack trace available for this issue.')}
             </NoStackTraceWrapper>
           ) : !event ? null : (
-            <div onClick={handleStacktracePreviewClick}>
+            <div onClick={handleStackTracePreviewClick}>
               <StackTracePreviewContent
                 event={event}
                 stacktrace={stacktrace}
