@@ -1,4 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
@@ -362,6 +363,14 @@ describe('Dashboards > WidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Delete Widget'));
+    // Confirm Modal
+    mountGlobalModal();
+    await screen.findByRole('dialog');
+
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    expect(mock).toHaveBeenCalled();
   });
 
   it('calls eventsV2 with a limit of 20 items', async function () {
