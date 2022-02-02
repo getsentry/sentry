@@ -12,53 +12,66 @@ class BitbucketInstalledEndpointTest(APITestCase):
     def setUp(self):
         self.provider = "bitbucket"
         self.path = "/extensions/bitbucket/installed/"
-
         self.username = "sentryuser"
         self.client_key = "connection:123"
         self.public_key = "123abcDEFg"
         self.shared_secret = "G12332434SDfsjkdfgsd"
-        self.base_url = "https://api.bitbucket.org"
+        self.base_api_url = "https://api.bitbucket.org"
+        self.base_url = "https://bitbucket.org"
         self.domain_name = "bitbucket.org/sentryuser"
-        self.display_name = "Sentry User"
+        self.user_display_name = "Sentry User"
+        self.team_display_name = self.username
         self.icon = "https://bitbucket.org/account/sentryuser/avatar/32/"
 
-        self.user_data = {
+        self.team_data = {
             "username": self.username,
-            "display_name": self.display_name,
+            "display_name": self.team_display_name,
             "account_id": "123456t256371u",
             "links": {
-                "self": {"herf": "https://api.bitbucket.org/2.0/users/sentryuser/"},
-                "html": {"href": "https://bitbucket.org/sentryuser/"},
+                "self": {"href": "https://api.bitbucket.org/2.0/users/sentryuser/"},
+                "html": {
+                    "href": "https://bitbucket.org/%8Cde3c29fa-c919-4b59-8c43-59febd16a8e7%7D/"
+                },
                 "avatar": {"href": "https://bitbucket.org/account/sentryuser/avatar/32/"},
             },
             "created_on": "2018-04-18T00:46:37.374621+00:00",
-            "is_staff": False,
-            "type": "user",
+            "type": "team",
             "uuid": "{e123-f456-g78910}",
         }
+        self.user_data = self.team_data.copy()
+        self.user_data["type"] = "user"
+        self.user_data["display_name"] = self.user_display_name
+
         self.metadata = {
             "public_key": self.public_key,
             "shared_secret": self.shared_secret,
-            "base_url": self.base_url,
+            "base_url": self.base_api_url,
             "domain_name": self.domain_name,
             "icon": self.icon,
             "scopes": list(scopes),
-            "type": self.user_data["type"],
-            "uuid": self.user_data["uuid"],
+            "type": self.team_data["type"],
+            "uuid": self.team_data["uuid"],
         }
 
-        self.data_from_bitbucket = {
+        self.user_metadata = self.metadata.copy()
+        self.user_metadata["type"] = self.user_data["type"]
+        self.user_metadata["domain_name"] = self.user_display_name
+
+        self.team_data_from_bitbucket = {
             "key": "sentry-bitbucket",
             "eventType": "installed",
             "baseUrl": self.base_url,
             "sharedSecret": self.shared_secret,
             "publicKey": self.public_key,
-            "user": self.user_data,
+            "user": self.team_data,
             "productType": "bitbucket",
-            "baseApiUrl": "https://api.bitbucket.org",
+            "baseApiUrl": self.base_api_url,
             "clientKey": self.client_key,
-            "principal": self.user_data,
+            "principal": self.team_data,
         }
+        self.user_data_from_bitbucket = self.team_data_from_bitbucket.copy()
+        self.user_data_from_bitbucket["principal"] = self.user_data
+
         self.data_without_public_key = {"identity": {"bitbucket_client_id": self.client_key}}
 
         register_mock_plugins()
@@ -73,21 +86,39 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert BitbucketInstalledEndpoint.permission_classes == ()
 
     def test_installed_with_public_key(self):
-        response = self.client.post(self.path, data=self.data_from_bitbucket)
+        response = self.client.post(self.path, data=self.team_data_from_bitbucket)
         assert response.status_code == 200
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
         assert integration.name == self.username
         assert integration.metadata == self.metadata
 
-    def test_installed_without_username(self):
-        # Remove username to simulate privacy mode.
-        del self.data_from_bitbucket["principal"]["username"]
+    def test_installed_without_public_key(self):
+        integration, created = Integration.objects.get_or_create(
+            provider=self.provider,
+            external_id=self.client_key,
+            defaults={"name": self.username, "metadata": self.user_metadata},
+        )
+        response = self.client.post(self.path, data=self.user_data_from_bitbucket)
+        assert response.status_code == 200
 
-        response = self.client.post(self.path, data=self.data_from_bitbucket)
+        # assert no changes have been made to the integration
+        integration_after = Integration.objects.get(
+            provider=self.provider, external_id=self.client_key
+        )
+        assert integration.name == integration_after.name
+        assert integration.metadata == integration_after.metadata
+
+    def test_installed_without_username(self):
+        """Test a user (not team) installation where the user has hidden their username from public view"""
+
+        # Remove username to simulate privacy mode
+        del self.user_data_from_bitbucket["principal"]["username"]
+
+        response = self.client.post(self.path, data=self.user_data_from_bitbucket)
         assert response.status_code == 200
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
-        assert integration.name == self.user_data["uuid"]
-        assert integration.metadata == self.metadata
+        assert integration.name == self.user_display_name
+        assert integration.metadata == self.user_metadata
 
     @responses.activate
     def test_plugin_migration(self):
@@ -109,7 +140,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             config={"name": "otheruser/otherrepo"},
         )
 
-        self.client.post(self.path, data=self.data_from_bitbucket)
+        self.client.post(self.path, data=self.team_data_from_bitbucket)
 
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
 
@@ -147,7 +178,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             config={"name": "sentryuser/repo"},
         )
 
-        self.client.post(self.path, data=self.data_from_bitbucket)
+        self.client.post(self.path, data=self.team_data_from_bitbucket)
 
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
 
@@ -163,20 +194,3 @@ class BitbucketInstalledEndpointTest(APITestCase):
             BitbucketIntegrationProvider().post_install(integration, self.organization)
 
             assert "bitbucket" not in [p.slug for p in plugins.for_project(project)]
-
-    def test_installed_without_public_key(self):
-        integration = Integration.objects.get_or_create(
-            provider=self.provider,
-            external_id=self.client_key,
-            defaults={"name": self.username, "metadata": self.metadata},
-        )[0]
-
-        response = self.client.post(self.path, data=self.data_from_bitbucket)
-        assert response.status_code == 200
-
-        # assert no changes have been made to the integration
-        integration_after = Integration.objects.get(
-            provider=self.provider, external_id=self.client_key
-        )
-        assert integration.name == integration_after.name
-        assert integration.metadata == integration_after.metadata

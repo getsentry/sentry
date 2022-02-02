@@ -171,13 +171,15 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         if state.get("publicKey"):
             principal_data = state["principal"]
-
-            domain = principal_data["links"]["html"]["href"].replace("https://", "").rstrip("/")
+            base_url = state["baseUrl"].replace("https://", "")
+            username = principal_data.get("display_name")
+            account_type = principal_data["type"]
+            domain = f"{base_url}/{username}" if account_type == "team" else username
 
             return {
                 "provider": self.key,
                 "external_id": state["clientKey"],
-                "name": principal_data.get("username", principal_data["uuid"]),
+                "name": principal_data.get("username", principal_data["display_name"]),
                 "metadata": {
                     "public_key": state["publicKey"],
                     "shared_secret": state["sharedSecret"],
@@ -186,7 +188,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     "icon": principal_data["links"]["avatar"]["href"],
                     "scopes": self.scopes,
                     "uuid": principal_data["uuid"],
-                    "type": principal_data["type"],  # team or user account
+                    "type": account_type,  # team or user account
                 },
             }
         else:
