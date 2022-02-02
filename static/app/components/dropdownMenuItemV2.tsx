@@ -1,4 +1,5 @@
 import {forwardRef, useEffect, useRef, useState} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
@@ -50,7 +51,7 @@ export type MenuItemProps = {
    */
   leadingItemsSpanFullHeight?: boolean;
   /*
-   * Items to be added to the right of the label
+   * Items to be added to the right of the label.
    */
   trailingItems?: React.ReactNode;
   /*
@@ -64,6 +65,11 @@ export type MenuItemProps = {
    * item's key is passed as an argument.
    */
   onAction?: (key: MenuItemProps['key']) => void;
+  /**
+   * React-router destination if menu item is a link. Note: currently only
+   * internal links (callable with `router.push()`) are supported.
+   */
+  to?: string;
   /**
    * Sub-items that are nested inside this item. By default, sub-items are
    * rendered collectively as menu sections inside the current menu. If
@@ -106,136 +112,159 @@ type Props = {
 };
 
 /**
+ * Wraps withRouter and forwardRef around Component
+ */
+const withRouterForwardRef = Component => {
+  const WithRouter = withRouter(
+    ({
+      forwardedRef,
+      ...props
+    }: Props &
+      WithRouterProps & {
+        forwardedRef: React.ForwardedRef<React.RefObject<HTMLLIElement>>;
+      }) => <Component ref={forwardedRef} {...props} />
+  );
+
+  return forwardRef<React.RefObject<HTMLLIElement>, Props>((props, ref) => (
+    <WithRouter {...props} forwardedRef={ref} />
+  ));
+};
+
+/**
  * A menu item with a label, optional details, leading and trailing elements.
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
-  (
-    {
-      node,
-      isLastNode,
-      state,
-      onClose,
-      closeOnSelect,
-      isSubmenuTrigger = false,
-      renderAs = 'li' as React.ElementType,
-      ...submenuTriggerProps
-    },
-    submenuTriggerRef
-  ) => {
-    const [isHovering, setIsHovering] = useState(false);
-    const ref = (submenuTriggerRef ?? useRef(null)) as React.RefObject<HTMLLIElement>;
-    const isDisabled = state.disabledKeys.has(node.key);
-    const isFocused = state.selectionManager.focusedKey === node.key;
-    const item = node.value;
-
-    const actionHandler = () => {
-      if (isSubmenuTrigger) {
-        state.selectionManager.select(node.key);
-        return;
-      }
-      item.onAction?.(item.key);
-    };
-
-    // Open submenu on hover
-    const {hoverProps} = useHover({onHoverChange: setIsHovering});
-    useEffect(() => {
-      if (isHovering && isFocused) {
-        if (isSubmenuTrigger) {
-          state.selectionManager.select(node.key);
-        } else {
-          state.selectionManager.clearSelection();
-        }
-      }
-    }, [isHovering, isFocused]);
-
-    // Open submenu on arrow right key press
-    const {keyboardProps} = useKeyboard({
-      onKeyDown: e => {
-        if (isSubmenuTrigger && e.key === 'ArrowRight') {
-          state.selectionManager.select(node.key);
-        } else {
-          e.continuePropagation();
-        }
-      },
-    });
-
-    // Manage interactive events & create aria- attributes
-    const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
+const MenuItem = withRouterForwardRef(
+  forwardRef<React.RefObject<HTMLLIElement>, Props & WithRouterProps>(
+    (
       {
-        key: node.key,
-        onAction: actionHandler,
+        node,
+        isLastNode,
+        state,
         onClose,
         closeOnSelect,
-        isDisabled,
+        isSubmenuTrigger = false,
+        renderAs = 'li' as React.ElementType,
+        router,
+        ...submenuTriggerProps
       },
-      state,
-      ref
-    );
+      submenuTriggerRef
+    ) => {
+      const [isHovering, setIsHovering] = useState(false);
+      const ref = (submenuTriggerRef ?? useRef(null)) as React.RefObject<HTMLLIElement>;
+      const isDisabled = state.disabledKeys.has(node.key);
+      const isFocused = state.selectionManager.focusedKey === node.key;
+      const item = node.value;
 
-    // Merged menu item props, class names are combined, event handlers chained,
-    // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
-    const props = mergeProps(
-      submenuTriggerProps,
-      menuItemProps,
-      hoverProps,
-      keyboardProps
-    );
-    const {
-      details,
-      leadingItems,
-      leadingItemsSpanFullHeight,
-      trailingItems,
-      trailingItemsSpanFullHeight,
-    } = item;
-    const label = node.rendered ?? item.label;
-    const showDividers = item.showDividers && !isLastNode;
+      const actionHandler = () => {
+        if (isSubmenuTrigger) {
+          state.selectionManager.select(node.key);
+          return;
+        }
+        item.onAction?.(item.key);
+        item.to && router.push(item.to);
+      };
 
-    return (
-      <MenuItemWrap
-        ref={ref}
-        as={renderAs}
-        isDisabled={isDisabled}
-        {...props}
-        {...(isSubmenuTrigger && {role: 'menuitemradio'})}
-      >
-        <InnerWrap isFocused={isFocused} role="presentation">
-          {leadingItems && (
-            <LeadingItems
-              isDisabled={isDisabled}
-              spanFullHeight={leadingItemsSpanFullHeight}
-            >
-              {leadingItems}
-            </LeadingItems>
-          )}
-          <ContentWrap
-            isFocused={isFocused}
-            showDividers={showDividers}
-            role="presentation"
-          >
-            <LabelWrap role="presentation">
-              <Label isDisabled={isDisabled} {...labelProps} aria-hidden="true">
-                {label}
-              </Label>
-              {details && <Details {...descriptionProps}>{details}</Details>}
-            </LabelWrap>
-            {(trailingItems || isSubmenuTrigger) && (
-              <TrailingItems
+      // Open submenu on hover
+      const {hoverProps} = useHover({onHoverChange: setIsHovering});
+      useEffect(() => {
+        if (isHovering && isFocused) {
+          if (isSubmenuTrigger) {
+            state.selectionManager.select(node.key);
+          } else {
+            state.selectionManager.clearSelection();
+          }
+        }
+      }, [isHovering, isFocused]);
+
+      // Open submenu on arrow right key press
+      const {keyboardProps} = useKeyboard({
+        onKeyDown: e => {
+          if (isSubmenuTrigger && e.key === 'ArrowRight') {
+            state.selectionManager.select(node.key);
+          } else {
+            e.continuePropagation();
+          }
+        },
+      });
+
+      // Manage interactive events & create aria- attributes
+      const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
+        {
+          key: node.key,
+          onAction: actionHandler,
+          onClose,
+          closeOnSelect,
+          isDisabled,
+        },
+        state,
+        ref
+      );
+
+      // Merged menu item props, class names are combined, event handlers chained,
+      // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
+      const props = mergeProps(
+        submenuTriggerProps,
+        menuItemProps,
+        hoverProps,
+        keyboardProps
+      );
+      const {
+        details,
+        leadingItems,
+        leadingItemsSpanFullHeight,
+        trailingItems,
+        trailingItemsSpanFullHeight,
+      } = item;
+      const label = node.rendered ?? item.label;
+      const showDividers = item.showDividers && !isLastNode;
+
+      return (
+        <MenuItemWrap
+          ref={ref}
+          as={renderAs}
+          isDisabled={isDisabled}
+          {...props}
+          {...(isSubmenuTrigger && {role: 'menuitemradio'})}
+        >
+          <InnerWrap isFocused={isFocused} role="presentation">
+            {leadingItems && (
+              <LeadingItems
                 isDisabled={isDisabled}
-                spanFullHeight={trailingItemsSpanFullHeight}
+                spanFullHeight={leadingItemsSpanFullHeight}
               >
-                {trailingItems}
-                {isSubmenuTrigger && (
-                  <IconChevron size="xs" direction="right" aria-hidden="true" />
-                )}
-              </TrailingItems>
+                {leadingItems}
+              </LeadingItems>
             )}
-          </ContentWrap>
-        </InnerWrap>
-      </MenuItemWrap>
-    );
-  }
+            <ContentWrap
+              isFocused={isFocused}
+              showDividers={showDividers}
+              role="presentation"
+            >
+              <LabelWrap role="presentation">
+                <Label isDisabled={isDisabled} {...labelProps} aria-hidden="true">
+                  {label}
+                </Label>
+                {details && <Details {...descriptionProps}>{details}</Details>}
+              </LabelWrap>
+              {(trailingItems || isSubmenuTrigger) && (
+                <TrailingItems
+                  isDisabled={isDisabled}
+                  spanFullHeight={trailingItemsSpanFullHeight}
+                >
+                  {trailingItems}
+                  {isSubmenuTrigger && (
+                    <IconChevron size="xs" direction="right" aria-hidden="true" />
+                  )}
+                </TrailingItems>
+              )}
+            </ContentWrap>
+          </InnerWrap>
+        </MenuItemWrap>
+      );
+    }
+  )
 );
 
 export default MenuItem;
