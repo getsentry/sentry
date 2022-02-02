@@ -15,15 +15,15 @@ import {
 } from '../layoutUtils';
 import {DisplayType, Preview} from '../types';
 
-import WidgetArea from './chartPreviews/area.svg';
-import WidgetBar from './chartPreviews/bar.svg';
-import WidgetLine from './chartPreviews/line.svg';
-import WidgetBigNumber from './chartPreviews/number.svg';
-import WidgetTable from './chartPreviews/table.svg';
-import WidgetWorldMap from './chartPreviews/world.svg';
+import WidgetArea from './chartPreviews/area';
+import WidgetBar from './chartPreviews/bar';
+import WidgetLine from './chartPreviews/line';
+import WidgetBigNumber from './chartPreviews/number';
+import WidgetTable from './chartPreviews/table';
+import WidgetWorldMap from './chartPreviews/world';
 
 function WidgetGrid({preview}: {preview: Preview[]}) {
-  function miniWidget(displayType: DisplayType): string {
+  function miniWidget(displayType: DisplayType): () => JSX.Element {
     switch (displayType) {
       case DisplayType.BAR:
         return WidgetBar;
@@ -73,18 +73,22 @@ function WidgetGrid({preview}: {preview: Preview[]}) {
     // TODO: Should add margin: -10px here to re-align
     <GridLayout
       cols={{lg: 6}}
-      rowHeight={40}
+      rowHeight={50}
+      margin={[4, 4]}
       isResizable={false}
       isDraggable={false}
       breakpoints={{lg: 1200}}
       useCSSTransforms={false}
       measureBeforeMount
     >
-      {renderPreview.map(({displayType, layout}) => (
-        <Chart key={uniqueId()} data-grid={{...layout}}>
-          <WidgetImage src={miniWidget(displayType)} />
-        </Chart>
-      ))}
+      {renderPreview.map(({displayType, layout}) => {
+        const WidgetPreview = miniWidget(displayType);
+        return (
+          <Chart key={uniqueId()} data-grid={{...layout}}>
+            <WidgetPreview />
+          </Chart>
+        );
+      })}
     </GridLayout>
   );
 }
@@ -94,38 +98,30 @@ export default WidgetGrid;
 const Chart = styled('div')`
   background: white;
   position: relative;
+  padding: 20px 8px 4px 12px;
 
-  // Label
   &::before {
     content: '';
     position: absolute;
     left: 12px;
     top: 10px;
-    width: max(30px, 20%);
+    width: max(30px, 30%);
     height: 4px;
     background-color: #d4d1ec;
     border-radius: 8px;
   }
 
-  // Border
   &::after {
     content: '';
     position: absolute;
-    left: 4px;
-    top: 4px;
+    left: 2px;
+    top: 2px;
     width: 100%;
     height: 100%;
     border: 2px solid #444674;
   }
-
-  padding: 20px 8px 4px 12px;
-`;
-
-const WidgetImage = styled('img')`
-  width: 100%;
-  height: 100%;
 `;
 
 const GridLayout = styled(WidthProvider(Responsive))`
-  margin: -10px;
+  margin: -4px;
 `;
