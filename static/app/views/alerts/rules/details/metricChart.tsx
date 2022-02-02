@@ -26,6 +26,7 @@ import {
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -353,6 +354,8 @@ class MetricChart extends React.PureComponent<Props, State> {
     const areaSeries: any[] = [];
     // Ensure series data appears below incident/mark lines
     series[0].z = 1;
+    series[0].color = CHART_PALETTE[0][0];
+
     const dataArr = timeseriesData[0].data;
     const maxSeriesValue = dataArr.reduce(
       (currMax, coord) => Math.max(currMax, coord.value),
