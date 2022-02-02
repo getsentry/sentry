@@ -86,6 +86,7 @@ type State = {
   isMobile: boolean;
   layouts: Layouts;
   windowWidth: number;
+  updateDashboardAfterLayoutChange: boolean;
 };
 
 class Dashboard extends Component<Props, State> {
@@ -101,6 +102,7 @@ class Dashboard extends Component<Props, State> {
         [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
       },
       windowWidth: window.innerWidth,
+      updateDashboardAfterLayoutChange: false,
     };
   }
 
@@ -171,8 +173,6 @@ class Dashboard extends Component<Props, State> {
       window.removeEventListener('resize', this.debouncedHandleResize);
     }
   }
-
-  updateDashboardAfterLayoutUpdate: boolean = false;
 
   debouncedHandleResize = debounce(() => {
     this.setState({
@@ -271,7 +271,7 @@ class Dashboard extends Component<Props, State> {
     nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
     if (!!!isEditing) {
-      this.updateDashboardAfterLayoutUpdate = true;
+      this.setState({updateDashboardAfterLayoutChange: true});
     }
   };
 
@@ -282,7 +282,7 @@ class Dashboard extends Component<Props, State> {
     onUpdate(nextList);
 
     if (!!!isEditing) {
-      this.updateDashboardAfterLayoutUpdate = true;
+      this.setState({updateDashboardAfterLayoutChange: true});
     }
     // Force check lazyLoad elements that might have shifted into view after deleting an upper widget
     // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
@@ -302,7 +302,7 @@ class Dashboard extends Component<Props, State> {
     onUpdate(nextList);
 
     if (!!!isEditing) {
-      this.updateDashboardAfterLayoutUpdate = true;
+      this.setState({updateDashboardAfterLayoutChange: true});
     }
   };
 
@@ -459,9 +459,9 @@ class Dashboard extends Component<Props, State> {
       layouts: newLayouts,
     });
     onUpdate(newWidgets);
-    if (this.updateDashboardAfterLayoutUpdate) {
+    if (this.state.updateDashboardAfterLayoutChange) {
       handleUpdateWidgetList(newWidgets);
-      this.updateDashboardAfterLayoutUpdate = false;
+      this.setState({updateDashboardAfterLayoutChange: false});
     }
   };
 
