@@ -58,13 +58,6 @@ type State = {
 class TrendsContent extends React.Component<Props, State> {
   state: State = {};
 
-  componentDidMount() {
-    const {trendParameter} = this.props.location.query;
-    if (!trendParameter) {
-      this.setDefaultTrendParameter();
-    }
-  }
-
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
@@ -132,19 +125,13 @@ class TrendsContent extends React.Component<Props, State> {
     );
   }
 
-  setDefaultTrendParameter = () => {
-    const {projects, eventView, location} = this.props;
+  getDefaultTrendParameter = (): string => {
+    const {projects, eventView} = this.props;
 
     const performanceType = platformToPerformanceType(projects, eventView.project);
     const trendParameterLabel = performanceTypeToTrendParameterLabel(performanceType);
 
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        trendParameter: trendParameterLabel,
-      },
-    });
+    return trendParameterLabel;
   };
 
   handleParameterChange = (label: string) => {
@@ -220,7 +207,9 @@ class TrendsContent extends React.Component<Props, State> {
       ['epm()', 'eps()']
     );
     const currentTrendFunction = getCurrentTrendFunction(location);
-    const currentTrendParameter = getCurrentTrendParameter(location);
+    const currentTrendParameter = location.query.trendParameter
+      ? getCurrentTrendParameter(location)
+      : this.getDefaultTrendParameter();
     const query = getTransactionSearchQuery(location);
 
     return (
