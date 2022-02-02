@@ -97,11 +97,8 @@ describe('AsyncComponentSearchInput', () => {
       context: TestStubs.routerContext(),
     });
 
-    act(() => {
-      userEvent.click(screen.getByRole('textbox'));
-      userEvent.keyboard('t');
-      userEvent.keyboard('te');
-    });
+    userEvent.click(screen.getByRole('textbox'));
+    userEvent.type(screen.getByRole('textbox'), 'te');
 
     jest.advanceTimersByTime(debounceWait);
     // Flush out promises
@@ -121,12 +118,11 @@ describe('AsyncComponentSearchInput', () => {
       context: TestStubs.routerContext(),
     });
 
-    act(() => {
-      userEvent.click(screen.getByRole('textbox'));
-      userEvent.keyboard('t');
-    });
+    userEvent.click(screen.getByRole('textbox'));
+    userEvent.keyboard('t');
 
     expect(await screen.findByPlaceholderText('Custom PlaceHolder')).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText('Custom PlaceHolder')).toHaveValue('t');
   });
   it('renders custom search bar', async () => {
     const props = makeProps({
@@ -178,7 +174,7 @@ describe('AsyncComponentSearchInput', () => {
     });
     expect(render.mock.calls[1][0].value).toBe('Te');
   });
-  it('updates route onSubmit', async () => {
+  it('updates route on form submit', async () => {
     const props = makeProps({
       url: '/endpoint',
       debounceWait: 500,
@@ -198,7 +194,8 @@ describe('AsyncComponentSearchInput', () => {
     userEvent.type(screen.getByRole('textbox'), 'test');
     userEvent.keyboard('{enter}');
 
-    jest.advanceTimersByTime(500);
+    jest.advanceTimersByTime(props.debounceWait as number);
+    await Promise.resolve();
     await Promise.resolve();
 
     await waitFor(() => expect(props.onSuccess).toHaveBeenCalledTimes(1));

@@ -18,14 +18,21 @@ type RenderProps = {
 
 function DefaultSearchBar({
   busy,
-  onSubmit,
+  handleSubmit,
   className,
   placeholder,
   handleInputChange,
   query,
+}: {
+  busy: boolean;
+  handleSubmit: React.FormEventHandler<HTMLFormElement>;
+  handleInputChange: React.ChangeEventHandler<HTMLInputElement>;
+  query: string;
+  placeholder: string;
+  className?: string;
 }): React.ReactElement {
   return (
-    <Form onSubmit={onSubmit}>
+    <Form onSubmit={handleSubmit}>
       <Input
         value={query}
         onChange={handleInputChange}
@@ -89,7 +96,6 @@ function AsyncComponentSearchInput({
 
   const queryResolver = React.useCallback(
     (searchQuery: string) => {
-      latestQuery.current = searchQuery;
       setState({query: searchQuery, busy: true});
 
       api
@@ -104,10 +110,14 @@ function AsyncComponentSearchInput({
           }
         })
         .catch(() => {
-          onError();
+          if (latestQuery.current === searchQuery) {
+            onError();
+          }
         })
         .finally(() => {
-          setState({query: searchQuery, busy: false});
+          if (latestQuery.current === searchQuery) {
+            setState({query: searchQuery, busy: false});
+          }
         });
     },
     [onSuccess, onError, api, url]
@@ -119,21 +129,20 @@ function AsyncComponentSearchInput({
 
   const handleChange = React.useCallback(
     (searchQuery: string) => {
+      latestQuery.current = searchQuery;
       debouncedQueryResolver(searchQuery);
+      // We need to immediately set state to the new query value because the handler is debounced
+      // and the input value is controlled, meaning that typing wouldnt be reflected in the UI
+      setState({query: searchQuery, busy: state.busy});
     },
-    [debouncedQueryResolver]
+    [debouncedQueryResolver, state.busy]
   );
 
   const handleInputChange = React.useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
-      debouncedQueryResolver(evt.target.value);
-      // We need to immediately set state to the new query value because the handler is debounced
-      // and the input value is controlled, meaning that typing wouldnt be reflected in the UI
-      setState(oldState => {
-        return {query: evt.target.value, busy: oldState.busy};
-      });
+      handleChange(evt.target.value);
     },
-    [debouncedQueryResolver]
+    [handleChange]
   );
 
   /**
@@ -148,17 +157,16 @@ function AsyncComponentSearchInput({
         router.push({
           pathname: location.pathname,
           query: {
-            query: state.query,
+            query: latestQuery.current,
           },
         });
       }
 
       if (typeof onSearchSubmit === 'function') {
-        onSearchSubmit(state.query, evt);
-        return;
+        onSearchSubmit(latestQuery.current, evt);
       }
     },
-    [state, router, location.pathname]
+    [router, location.pathname, updateRoute]
   );
 
   if (isRenderFunc<RenderProps>(children)) {
@@ -166,8 +174,8 @@ function AsyncComponentSearchInput({
       defaultSearchBar: (
         <DefaultSearchBar
           busy={state.busy}
-          onSubmit={handleSubmit}
           query={state.query}
+          handleSubmit={handleSubmit}
           handleInputChange={handleInputChange}
           className={className}
           placeholder={placeholder}
@@ -183,7 +191,7 @@ function AsyncComponentSearchInput({
     <DefaultSearchBar
       busy={state.busy}
       query={state.query}
-      onSubmit={handleSubmit}
+      handleSubmit={handleSubmit}
       handleInputChange={handleInputChange}
       className={className}
       placeholder={placeholder}
