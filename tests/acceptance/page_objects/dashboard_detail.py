@@ -30,18 +30,22 @@ class DashboardDetailPage(BasePage):
         self.wait_until_loaded()
 
     def enter_edit_state(self):
+        self.browser.wait_until_clickable('[data-test-id="dashboard-edit"]')
         button = self.browser.element('[data-test-id="dashboard-edit"]')
         button.click()
 
     def click_dashboard_add_widget_button(self):
+        self.browser.wait_until_clickable('[data-test-id="widget-add"]')
         button = self.browser.element('[data-test-id="widget-add"]')
         button.click()
 
     def click_dashboard_header_add_widget_button(self):
+        self.browser.wait_until_clickable('[data-test-id="add-widget-library"]')
         button = self.browser.element('[data-test-id="add-widget-library"]')
         button.click()
 
     def click_cancel_button(self):
+        self.browser.wait_until_clickable('[data-test-id="dashboard-cancel"]')
         button = self.browser.element('[data-test-id="dashboard-cancel"]')
         button.click()
 
@@ -53,5 +57,6 @@ class DashboardDetailPage(BasePage):
         button.click()
 
     def save_dashboard(self):
+        self.browser.wait_until_clickable('[data-test-id="dashboard-commit"]')
         button = self.browser.element('[data-test-id="dashboard-commit"]')
         button.click()
