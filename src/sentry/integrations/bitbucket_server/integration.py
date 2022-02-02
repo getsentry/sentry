@@ -20,7 +20,7 @@ from sentry.integrations import (
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.models import Identity, Repository
 from sentry.pipeline import PipelineView
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.compat import filter
 from sentry.web.helpers import render_to_response
@@ -224,7 +224,7 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
             try:
                 self.default_identity = self.get_default_identity()
             except Identity.DoesNotExist:
-                raise
+                raise IntegrationError("Identity not found.")
 
         return BitbucketServer(
             self.model.metadata["base_url"],

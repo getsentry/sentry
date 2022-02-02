@@ -157,10 +157,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
 
     def get_client(self) -> VstsApiClient:
         if self.default_identity is None:
-            try:
-                self.default_identity = self.get_default_identity()
-            except Identity.DoesNotExist:
-                raise
+            self.default_identity = self.get_default_identity()
 
         self.check_domain_name(self.default_identity)
         return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
