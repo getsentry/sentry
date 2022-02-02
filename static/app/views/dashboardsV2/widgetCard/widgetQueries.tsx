@@ -26,7 +26,6 @@ import {
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {DisplayType, Widget, WidgetQuery} from '../types';
 import {eventViewFromWidget} from '../utils';
@@ -428,14 +427,11 @@ class WidgetQueries extends React.Component<Props, State> {
     const {loading, timeseriesResults, tableResults, errorMessage} = this.state;
 
     const filteredTimeseriesResults = timeseriesResults?.filter(result => !!result);
-    return getDynamicText({
-      value: children({
-        loading,
-        timeseriesResults: filteredTimeseriesResults,
-        tableResults,
-        errorMessage,
-      }),
-      fixed: <div />,
+    return children({
+      loading,
+      timeseriesResults: filteredTimeseriesResults,
+      tableResults,
+      errorMessage,
     });
   }
 }
