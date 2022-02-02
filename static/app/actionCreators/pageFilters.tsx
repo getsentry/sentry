@@ -101,7 +101,7 @@ function getProjectIdFromProject(project: MinimalProject) {
  */
 function mergeDatetime(
   base: PageFilters['datetime'],
-  fallback: Partial<PageFilters['datetime']> | undefined
+  fallback?: Partial<PageFilters['datetime']>
 ) {
   const datetime: PageFilters['datetime'] = {
     start: base.start ?? fallback?.start ?? null,
