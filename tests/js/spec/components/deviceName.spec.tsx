@@ -27,7 +27,7 @@ describe('DeviceName', () => {
   });
 
   it('renders device name if module fails to load', async () => {
-    jest.spyOn(Device, 'loadiOSDeviceListModule').mockImplementation(() => {
+    jest.spyOn(Device, 'loadDeviceListModule').mockImplementation(() => {
       return Promise.reject('Cannot load module');
     });
 
