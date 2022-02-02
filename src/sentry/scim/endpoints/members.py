@@ -1,8 +1,7 @@
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
-from rest_framework import serializers
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,7 +15,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.decorators import declare_public
+from sentry.apidocs.decorators import public
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import (
@@ -55,7 +54,7 @@ def _scim_member_serializer_with_expansion(organization):
     return OrganizationMemberSCIMSerializer(expand=expand)
 
 
-@declare_public(methods={"GET"})
+@public(methods={"GET"})
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
@@ -92,24 +91,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
         request=None,
         responses={
-            200: inline_serializer(
-                "SCIMMember",
-                fields={
-                    "schemas": serializers.CharField(),
-                    "id": serializers.CharField(),
-                    "userName": serializers.CharField(),
-                    "emails": inline_serializer(
-                        "SCIMMemberEmails",
-                        fields={
-                            "primary": serializers.BooleanField(),
-                            "value": serializers.CharField(),
-                            "type": serializers.CharField(),
-                        },
-                        many=True,
-                    ),
-                },
-                many=True,
-            ),
+            200: OrganizationMemberSCIMSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
@@ -126,6 +108,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                     "active": True,
                     "meta": {"resourceType": "User"},
                 },
+                status_codes=["200"],
             ),
         ],
     )

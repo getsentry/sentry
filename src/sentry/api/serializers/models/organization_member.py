@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set
 
+from typing_extensions import TypedDict
+
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
@@ -192,15 +194,51 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
         return d
 
 
+class SCIMName(TypedDict):
+    givenName: str
+    familyName: str
+
+
+class SCIMEmail(TypedDict):
+    primary: bool
+    value: str
+    type: str
+
+
+class SCIMMeta(TypedDict):
+    resourceType: str
+
+
+class OrganizationMemberSCIMSerializerRequired(TypedDict):
+    schemas: List[str]
+    id: str
+    userName: str
+    name: SCIMName
+    emails: List[SCIMEmail]
+    meta: SCIMMeta
+
+
+class OrganizationMemberSCIMSerializerResponse(
+    OrganizationMemberSCIMSerializerRequired, total=False
+):
+    """
+    Conforming to the SCIM RFC, this represents a Sentry Org Member
+    as a SCIM user object.
+    """
+
+    active: bool
+    """Sentry doesn't use this field but is expected by SCIM"""
+
+
 class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
     def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
         self.expand = expand or []
 
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> OrganizationMemberSCIMSerializerResponse:
 
-        result = {
+        result: OrganizationMemberSCIMSerializerResponse = {
             "schemas": [SCIM_SCHEMA_USER],
             "id": str(obj.id),
             "userName": obj.get_email(),

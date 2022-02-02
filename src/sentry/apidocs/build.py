@@ -1,7 +1,7 @@
 from sentry.utils import json
 
 
-def get_old_json_paths(filename):
+def get_old_json_paths(filename: str) -> json.JSONData:
     try:
         with open(filename) as f:
             old_raw_paths = json.load(f)["paths"]
