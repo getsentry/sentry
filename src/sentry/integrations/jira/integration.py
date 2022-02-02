@@ -593,10 +593,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             defaults = self.get_defaults(group.project, user)
 
         project_id = params.get("project", defaults.get("project"))
-        try:
-            client = self.get_client()
-        except IntegrationError as e:
-            raise e
+        client = self.get_client()
         try:
             jira_projects = client.get_projects_list()
         except ApiError as e:
