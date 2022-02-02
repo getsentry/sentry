@@ -336,6 +336,9 @@ class DashboardDetail extends Component<Props, State> {
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
+          this.setState({
+            modifiedDashboard: null,
+          });
         }
         addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {
