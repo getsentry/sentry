@@ -102,6 +102,7 @@ class AccountAuthorizations extends AsyncView<Props, State> {
                       size="small"
                       onClick={() => this.handleRevoke(authorization)}
                       icon={<IconDelete />}
+                      aria-label={t('Delete')}
                     />
                   </PanelItemCenter>
                 ))}

@@ -28,7 +28,7 @@ import {
 } from '../filter';
 import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
-import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart';
+import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart/utils';
 
 import EventsContent from './content';
 import {

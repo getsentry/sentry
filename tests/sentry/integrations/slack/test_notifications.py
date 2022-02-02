@@ -11,13 +11,13 @@ from sentry.utils import json
 
 
 class DummyNotification(BaseNotification):
-    def build_attachment_title(self):
+    def build_attachment_title(self, *args):
         return "My Title"
 
-    def get_title_link(self):
+    def get_title_link(self, *args):
         return None
 
-    def get_notification_title(self):
+    def get_notification_title(self, *args):
         return "Notification Title"
 
     def record_notification_sent(self, *args):

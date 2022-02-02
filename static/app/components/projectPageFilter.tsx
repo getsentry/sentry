@@ -68,20 +68,19 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   );
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady} = useLegacyStore(PageFiltersStore);
+  const {selection, pinnedFilters, isReady} = useLegacyStore(PageFiltersStore);
 
-  const handleChangeProjects = (newProjects: number[] | null) => {
+  const handleChangeProjects = (newProjects: number[]) => {
     setCurrentSelectedProjects(newProjects);
   };
 
-  const handleUpdateProjects = () => {
-    // Clear environments when switching projects
-    updateProjects(currentSelectedProjects || [], router, {
+  const handleUpdateProjects = (newProjects?: number[]) => {
+    // Use newProjects if provided otherwise fallback to current selection
+    updateProjects(newProjects ?? (currentSelectedProjects || []), router, {
       save: true,
       resetParams: [],
-      environments: [],
+      environments: [], // Clear environments when switching projects
     });
-    setCurrentSelectedProjects(null);
   };
 
   const specifiedProjects = specificProjectSlugs
@@ -114,7 +113,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       <StyledDropdownButton isOpen={isOpen} {...getActorProps()}>
         <DropdownTitle>
           {icon}
-          {title}
+          <TitleContainer>{title}</TitleContainer>
         </DropdownTitle>
       </StyledDropdownButton>
     );
@@ -140,6 +139,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       onUpdate={handleUpdateProjects}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
+      pinned={pinnedFilters.has('projects')}
       {...otherProps}
     />
   );
@@ -148,14 +148,22 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
 const StyledDropdownButton = styled(DropdownButton)`
   width: 100%;
   height: 40px;
+  text-overflow: ellipsis;
+`;
+
+const TitleContainer = styled('div')`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1 1 0%;
+  margin-left: ${space(1)};
 `;
 
 const DropdownTitle = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
+  display: flex;
+  overflow: hidden;
   align-items: center;
-  white-space: nowrap;
+  flex: 1;
 `;
 
 export default withRouter(ProjectPageFilter);

@@ -48,7 +48,6 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -101,6 +100,8 @@ type Props = {
 
 type State = {
   groupIds: string[];
+  reviewedIds: string[];
+  forReview: boolean;
   selectAllActive: boolean;
   realtimeActive: boolean;
   pageLinks: string;
@@ -156,6 +157,8 @@ class IssueListOverview extends React.Component<Props, State> {
 
     return {
       groupIds: [],
+      reviewedIds: [],
+      forReview: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -206,6 +209,10 @@ class IssueListOverview extends React.Component<Props, State> {
       if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
         this.transitionTo({display: undefined});
       }
+    }
+
+    if (prevState.forReview !== this.state.forReview) {
+      this.fetchData();
     }
 
     // Wait for saved searches to load before we attempt to fetch stream data
@@ -510,13 +517,25 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   fetchData = (fetchAllCounts = false) => {
-    GroupStore.loadInitialData([]);
-    this._streamManager.reset();
+    const query = this.getQuery();
+
+    if (!this.state.reviewedIds.length || !isForReviewQuery(query)) {
+      GroupStore.loadInitialData([]);
+      this._streamManager.reset();
+
+      this.setState({
+        issuesLoading: true,
+        queryCount: 0,
+        itemsRemoved: 0,
+        reviewedIds: [],
+        error: null,
+      });
+    }
+
     const transaction = getCurrentSentryReactTransaction();
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      issuesLoading: true,
       queryCount: 0,
       itemsRemoved: 0,
       error: null,
@@ -578,6 +597,11 @@ class IssueListOverview extends React.Component<Props, State> {
         }
 
         this._streamManager.push(data);
+
+        if (isForReviewQuery(query)) {
+          GroupStore.remove(this.state.reviewedIds);
+        }
+
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
@@ -588,7 +612,9 @@ class IssueListOverview extends React.Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = resp.getResponseHeader('Link');
 
-        this.fetchCounts(queryCount, fetchAllCounts);
+        if (!this.state.forReview) {
+          this.fetchCounts(queryCount, fetchAllCounts);
+        }
 
         this.setState({
           error: null,
@@ -615,6 +641,8 @@ class IssueListOverview extends React.Component<Props, State> {
         this._lastRequest = null;
 
         this.resumePolling();
+
+        this.setState({forReview: false});
       },
     });
   };
@@ -940,6 +968,8 @@ class IssueListOverview extends React.Component<Props, State> {
           [query as Query]: currentQueryCount,
         },
         itemsRemoved: itemsRemoved + inInboxCount,
+        reviewedIds: itemIds,
+        forReview: true,
       });
     }
   };
@@ -1007,13 +1037,6 @@ class IssueListOverview extends React.Component<Props, State> {
         />
       ),
     });
-
-    // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
-    if (organization.features.includes('semver') && !tags['release.version']) {
-      Object.entries(SEMVER_TAGS).forEach(([key, value]) => {
-        tags[key] = value;
-      });
-    }
 
     const projectIds = selection?.projects?.map(p => p.toString());
 

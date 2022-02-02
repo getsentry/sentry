@@ -30,6 +30,7 @@ class GitLabApiClientPath:
     project_hooks = "/projects/{project}/hooks"
     project_hook = "/projects/{project}/hooks/{hook_id}"
     project_search = "/projects/{project}/search"
+    projects = "/projects"
     user = "/user"
 
     @staticmethod
@@ -134,31 +135,40 @@ class GitLabApiClient(ApiClient):
         """
         return self.get(GitLabApiClientPath.user)
 
-    def search_group_projects(self, group, query=None, simple=True):
-        """Get projects for a group
+    def search_projects(self, group=None, query=None, simple=True):
+        """Get projects
 
         See https://docs.gitlab.com/ee/api/groups.html#list-a-group-s-projects
+        and https://docs.gitlab.com/ee/api/projects.html#list-all-projects
         """
 
         def gen_params(page_number, page_size):
-            # simple param returns limited fields for the project.
+            # Simple param returns limited fields for the project.
             # Really useful, because we often don't need most of the project information
-            return {
+            params = {
                 "search": query,
                 "simple": simple,
-                "include_subgroups": self.metadata.get("include_subgroups", False),
+                "order_by": "last_activity_at",
                 "page": page_number + 1,  # page starts at 1
                 "per_page": page_size,
             }
+            if group:
+                extra_params = {"include_subgroups": self.metadata.get("include_subgroups", False)}
+            else:
+                extra_params = {"membership": True}
+
+            params.update(extra_params)
+            return params
 
         def get_results(resp):
             return resp
 
-        return self.get_with_pagination(
-            GitLabApiClientPath.group_projects.format(group=group),
-            gen_params=gen_params,
-            get_results=get_results,
-        )
+        if group:
+            path = GitLabApiClientPath.group_projects.format(group=group)
+        else:
+            path = GitLabApiClientPath.projects
+
+        return self.get_with_pagination(path, gen_params, get_results)
 
     def get_project(self, project_id):
         """Get project
@@ -284,7 +294,7 @@ class GitLabApiClient(ApiClient):
                 raise
             return None
 
-    def get_file(self, repo, path, ref):
+    def get_file(self, repo: Repository, path: str, ref: str) -> bytes:
         """Get the contents of a file
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository

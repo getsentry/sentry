@@ -9,6 +9,8 @@ from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
 
+DEFAULT_BLOCK_SIZE = int(32 * 1e6)
+
 
 class AddressParamType(click.ParamType):
     name = "address"
@@ -245,7 +247,7 @@ def worker(ignore_unknown_queues, **options):
     if options["autoreload"]:
         from django.utils import autoreload
 
-        autoreload.run_with_reloader(run_worker, kwargs=options)
+        autoreload.run_with_reloader(run_worker, **options)
     else:
         run_worker(**options)
 
@@ -528,7 +530,7 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
 @run.command("ingest-metrics-consumer")
 @log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get subscription updates from.")
+@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
 @batching_kafka_options("ingest-metrics-consumer")
 @configuration
 def metrics_consumer(**options):
@@ -536,3 +538,22 @@ def metrics_consumer(**options):
     from sentry.sentry_metrics.indexer.indexer_consumer import get_metrics_consumer
 
     get_metrics_consumer(**options).run()
+
+
+@run.command("ingest-metrics-consumer-2")
+@log_options()
+@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
+@batching_kafka_options("ingest-metrics-consumer")
+@configuration
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+def metrics_streaming_consumer(**options):
+    from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
+
+    streamer = get_streaming_metrics_consumer(**options)
+    streamer.run()

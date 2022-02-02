@@ -3,6 +3,10 @@ import {uniqueId} from 'sentry/utils/guid';
 
 import {DashboardDetails, DisplayType, WidgetType} from './types';
 
+type DashboardTemplate = DashboardDetails & {
+  description: string;
+};
+
 export const EMPTY_DASHBOARD: DashboardDetails = {
   id: '',
   dateCreated: '',
@@ -11,12 +15,13 @@ export const EMPTY_DASHBOARD: DashboardDetails = {
   widgets: [],
 };
 
-export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
+export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
   {
     id: 'default-template',
     dateCreated: '',
     createdBy: undefined,
-    title: t('Default'),
+    title: t('General Template'),
+    description: t('Various Frontend and Backend Widgets'),
     widgets: [
       {
         title: t('Number of Errors'),
@@ -214,12 +219,13 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
   },
   {
     id: 'frontend-template',
-    title: t('Frontend'),
+    title: t('Frontend Template'),
     dateCreated: '',
     createdBy: undefined,
+    description: t('Erroring URLs and Web Vitals'),
     widgets: [
       {
-        title: t('Top 5 Issues by Unique Users over Time'),
+        title: t('Top 5 Issues by Unique Users Over Time'),
         displayType: DisplayType.TOP_N,
         interval: '5m',
         queries: [
@@ -313,7 +319,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Layout Shift over Time'),
+        title: t('Layout Shift Over Time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
@@ -343,7 +349,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Page Load over Time'),
+        title: t('Page Load Over Time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
@@ -421,12 +427,13 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
   },
   {
     id: 'backend-template',
-    title: t('Backend'),
+    title: t('Backend Template'),
     dateCreated: '',
     createdBy: undefined,
+    description: t('Issues and Performance'),
     widgets: [
       {
-        title: t('Top 5 Issues by Unique Users over Time'),
+        title: t('Top 5 Issues by Unique Users Over Time'),
         displayType: DisplayType.TOP_N,
         interval: '5m',
         queries: [
@@ -521,7 +528,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('p75(duration)'),
+        title: t('p75(duration) by Country'),
         displayType: DisplayType.WORLD_MAP,
         interval: '5m',
         queries: [
@@ -572,7 +579,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Tasks Transactions with poor Apdex'),
+        title: t('Tasks Transactions with Poor Apdex'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
@@ -587,7 +594,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('HTTP Transactions with poor Apdex'),
+        title: t('HTTP Transactions with Poor Apdex'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
@@ -618,7 +625,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Overal P75'),
+        title: t('Overall p75'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
@@ -636,9 +643,10 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
   },
   {
     id: 'mobile-template',
-    title: t('Mobile'),
+    title: t('Mobile Template'),
     dateCreated: '',
     createdBy: undefined,
+    description: t('Crash Details and Performance Vitals'),
     widgets: [
       {
         title: t('Total Crashes'),

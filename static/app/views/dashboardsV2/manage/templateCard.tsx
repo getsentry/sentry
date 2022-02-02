@@ -9,19 +9,19 @@ import space from 'sentry/styles/space';
 
 type Props = {
   title: string;
-  widgetCount: number;
+  description: string;
   onPreview: () => void;
   onAdd: () => void;
 };
 
-function TemplateCard({title, widgetCount, onPreview, onAdd}: Props) {
+function TemplateCard({title, description, onPreview, onAdd}: Props) {
   return (
     <StyledCard>
       <Header>
         <IconGeneric size="48" />
         <Title>
           {title}
-          <Detail>{t('%s Starter Widgets', widgetCount)}</Detail>
+          <Detail>{description}</Detail>
         </Title>
       </Header>
       <ButtonContainer>

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from .base import GroupActivityNotification
+
+if TYPE_CHECKING:
+    from sentry.models import Team, User
 
 
 class NoteActivityNotification(GroupActivityNotification):
@@ -28,5 +31,5 @@ class NoteActivityNotification(GroupActivityNotification):
     def get_notification_title(self) -> str:
         return self.get_title()
 
-    def get_message_description(self) -> Any:
+    def get_message_description(self, recipient: Team | User) -> Any:
         return self.get_context()["text_description"]

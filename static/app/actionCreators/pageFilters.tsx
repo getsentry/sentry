@@ -9,18 +9,15 @@ import * as qs from 'query-string';
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getStateFromQuery} from 'sentry/components/organizations/pageFilters/parse';
 import {
-  PageFiltersStringified,
-  PageFiltersUpdate,
-} from 'sentry/components/organizations/pageFilters/types';
-import {
-  getDefaultSelection,
   getPageFilterStorage,
   setPageFiltersStorage,
-} from 'sentry/components/organizations/pageFilters/utils';
+} from 'sentry/components/organizations/pageFilters/persistence';
+import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
+import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
+  DateString,
   Environment,
   MinimalProject,
   Organization,
@@ -54,6 +51,19 @@ type Options = {
    * Use Location.replace instead of push when updating the URL query state
    */
   replace?: boolean;
+};
+
+/**
+ * This is the 'update' object used for updating the page filters. The types
+ * here are a bit wider to allow for easy updates.
+ */
+type PageFiltersUpdate = {
+  project?: Array<string | number> | null;
+  environment?: string[] | null;
+  start?: DateString;
+  end?: DateString;
+  utc?: string | boolean | null;
+  period?: string | null;
 };
 
 /**
@@ -153,11 +163,18 @@ export function initializeUrlState({
     const storedPageFilters = getPageFilterStorage(orgSlug);
 
     if (storedPageFilters !== null) {
-      pageFilters = {...storedPageFilters, datetime: pageFilters.datetime};
+      const {project, environment} = storedPageFilters.selection;
+
+      pageFilters = {
+        projects: project ?? [],
+        environments: environment ?? [],
+        datetime: pageFilters.datetime,
+      };
     }
   }
 
   const {projects, environments: environment, datetime} = pageFilters;
+
   let newProject: number[] | null = null;
   let project = projects;
 
@@ -209,6 +226,10 @@ export function initializeUrlState({
   });
 }
 
+function isProjectsValid(projects: ProjectId[]) {
+  return Array.isArray(projects) && projects.every(isInteger);
+}
+
 /**
  * Updates store and  selection URL param if `router` is supplied
  *
@@ -231,29 +252,7 @@ export function updateProjects(
 
   PageFiltersActions.updateProjects(projects, options?.environments);
   updateParams({project: projects, environment: options?.environments}, router, options);
-}
-
-function isProjectsValid(projects: ProjectId[]) {
-  return Array.isArray(projects) && projects.every(project => isInteger(project));
-}
-
-/**
- * Updates store and global datetime selection URL param if `router` is supplied
- *
- * @param {Object} datetime Object with start, end, range keys
- * @param {Object} [router] Router object
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
- */
-export function updateDateTime(
-  datetime: DateTimeUpdate,
-  router?: Router,
-  options?: Options
-) {
-  PageFiltersActions.updateDateTime(datetime);
-  // We only save projects/environments to local storage, do not
-  // save anything when date changes.
-  updateParams(datetime, router, {...options, save: false});
+  persistPageFilters(options);
 }
 
 /**
@@ -271,12 +270,33 @@ export function updateEnvironments(
 ) {
   PageFiltersActions.updateEnvironments(environment);
   updateParams({environment}, router, options);
+  persistPageFilters(options);
 }
 
+/**
+ * Updates store and global datetime selection URL param if `router` is supplied
+ *
+ * @param {Object} datetime Object with start, end, range keys
+ * @param {Object} [router] Router object
+ * @param {Object} [options] Options object
+ * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ */
+export function updateDateTime(
+  datetime: DateTimeUpdate,
+  router?: Router,
+  options?: Options
+) {
+  PageFiltersActions.updateDateTime(datetime);
+  updateParams(datetime, router, options);
+  persistPageFilters(options);
+}
+
+/**
+ * Pins a particular filter so that it is read out of local storage
+ */
 export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
   PageFiltersActions.pin(filter, pin);
-
-  // TODO: Persist into storage
+  persistPageFilters({save: true});
 }
 
 /**
@@ -299,17 +319,33 @@ function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options
     return;
   }
 
-  if (options?.save) {
-    const {organization} = OrganizationStore.getState();
-    const {selection} = PageFiltersStore.getState();
-    const orgSlug = organization?.slug ?? null;
-
-    setPageFiltersStorage(orgSlug, selection, newQuery);
-  }
-
   const routerAction = options?.replace ? router.replace : router.push;
 
   routerAction({pathname: router.location.pathname, query: newQuery});
+}
+
+/**
+ * Save the current page filters to local storage
+ */
+async function persistPageFilters(options?: Options) {
+  if (!options?.save) {
+    return;
+  }
+
+  // XXX(epurkhiser): Since this is called immediately after updating the
+  // store, wait for a tick since stores are not updated fully synchronously.
+  // A bit goofy, but it works fine.
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  const {organization} = OrganizationStore.getState();
+  const orgSlug = organization?.slug ?? null;
+
+  // Can't do anything if we don't have an organization
+  if (orgSlug === null) {
+    return;
+  }
+
+  setPageFiltersStorage(orgSlug);
 }
 
 /**

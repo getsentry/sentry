@@ -123,7 +123,12 @@ class ClippedBox extends React.PureComponent<Props, State> {
         {children}
         {isClipped && (
           <ClipFade>
-            <Button onClick={this.reveal} priority="primary" size="xsmall">
+            <Button
+              onClick={this.reveal}
+              priority="primary"
+              size="xsmall"
+              aria-label={btnText ?? t('Show More')}
+            >
               {btnText}
             </Button>
           </ClipFade>

@@ -45,7 +45,6 @@ describe('DatePageFilter', function () {
       expect.objectContaining({query: {statsPeriod: '7d'}})
     );
     expect(PageFiltersStore.getState()).toEqual({
-      organization: null,
       isReady: true,
       pinnedFilters: new Set(),
       selection: {
@@ -59,5 +58,35 @@ describe('DatePageFilter', function () {
         projects: [],
       },
     });
+  });
+
+  it('can pin datetime', async function () {
+    mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <DatePageFilter />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
+
+    // Confirm no filters are pinned
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(),
+      })
+    );
+
+    // Click the pin button
+    const pinButton = screen.getByRole('button', {name: 'Pin'});
+    userEvent.click(pinButton);
+
+    await screen.findByRole('button', {name: 'Pin', pressed: true});
+
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(['datetime']),
+      })
+    );
   });
 });

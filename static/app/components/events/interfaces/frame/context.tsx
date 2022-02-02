@@ -32,6 +32,7 @@ type Props = {
   emptySourceNotation?: boolean;
   hasAssembly?: boolean;
   expandable?: boolean;
+  className?: string;
 };
 
 const Context = ({
@@ -47,6 +48,7 @@ const Context = ({
   frame,
   event,
   organization,
+  className,
 }: Props) => {
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
@@ -69,7 +71,10 @@ const Context = ({
   const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
 
   return (
-    <ol start={startLineNo} className={`context ${isExpanded ? 'expanded' : ''}`}>
+    <ol
+      start={startLineNo}
+      className={`${className} context ${isExpanded ? 'expanded' : ''}`}
+    >
       {defined(frame.errors) && (
         <li className={expandable ? 'expandable error' : 'error'} key="errors">
           {frame.errors.join(', ')}

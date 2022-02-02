@@ -133,7 +133,9 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
       return acc;
     }, {});
 
-    const seriesData = convertDayValueObjectToSeries(totalByDay);
+    const seriesData = convertDayValueObjectToSeries(totalByDay).sort(
+      (a, b) => new Date(a.name).getTime() - new Date(b.name).getTime()
+    );
 
     return (
       <div>
@@ -162,7 +164,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
           isEmpty={projects.length === 0}
           isLoading={loading}
           headers={[
-            t('Projects'),
+            t('Project'),
             <RightAligned key="last">
               {tct('Last [period] Average', {period})}
             </RightAligned>,
