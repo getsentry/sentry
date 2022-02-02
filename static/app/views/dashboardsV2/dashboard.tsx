@@ -3,6 +3,7 @@ import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {compact} from 'react-grid-layout/build/utils';
 import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
@@ -86,7 +87,6 @@ type State = {
   isMobile: boolean;
   layouts: Layouts;
   windowWidth: number;
-  updateDashboardAfterLayoutChange: boolean;
 };
 
 class Dashboard extends Component<Props, State> {
@@ -102,7 +102,6 @@ class Dashboard extends Component<Props, State> {
         [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
       },
       windowWidth: window.innerWidth,
-      updateDashboardAfterLayoutChange: false,
     };
   }
 
@@ -265,24 +264,38 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing} = this.props;
+    const {isEditing, handleUpdateWidgetList} = this.props;
     const nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
     nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
     if (!!!isEditing) {
-      this.setState({updateDashboardAfterLayoutChange: true});
+      handleUpdateWidgetList(nextList);
     }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {dashboard, onUpdate, isEditing} = this.props;
+    const {layouts} = this.state;
+    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    const nextLayout = compact(
+      layouts[DESKTOP].filter(({i}) => i !== constructGridItemKey(widgetToDelete)),
+      'vertical',
+      NUM_DESKTOP_COLS
+    );
+    nextList = nextList.map(widget => {
+      const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));
+      if (!layout) {
+        return widget;
+      }
+      return {...widget, layout};
+    });
+
     onUpdate(nextList);
 
     if (!!!isEditing) {
-      this.setState({updateDashboardAfterLayoutChange: true});
+      handleUpdateWidgetList(nextList);
     }
     // Force check lazyLoad elements that might have shifted into view after deleting an upper widget
     // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
@@ -291,7 +304,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, isEditing, onUpdate} = this.props;
+    const {dashboard, isEditing, onUpdate, handleUpdateWidgetList} = this.props;
 
     const widgetCopy = cloneDeep(widget);
     widgetCopy.id = undefined;
@@ -302,7 +315,7 @@ class Dashboard extends Component<Props, State> {
     onUpdate(nextList);
 
     if (!!!isEditing) {
-      this.setState({updateDashboardAfterLayoutChange: true});
+      handleUpdateWidgetList(nextList);
     }
   };
 
@@ -405,7 +418,7 @@ class Dashboard extends Component<Props, State> {
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
     const {isMobile} = this.state;
-    const {dashboard, onUpdate, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate} = this.props;
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
@@ -459,10 +472,6 @@ class Dashboard extends Component<Props, State> {
       layouts: newLayouts,
     });
     onUpdate(newWidgets);
-    if (this.state.updateDashboardAfterLayoutChange) {
-      handleUpdateWidgetList(newWidgets);
-      this.setState({updateDashboardAfterLayoutChange: false});
-    }
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {

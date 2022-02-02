@@ -505,9 +505,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             confirm_button.click()
 
             wait = WebDriverWait(self.browser.driver, 5)
-            wait.until_not(
+            wait.until(
                 EC.presence_of_element_located(
-                    (By.XPATH, "//*[contains(text(),'Existing Widget 0')]")
+                    (By.XPATH, "//*[contains(text(),'Dashboard updated')]")
                 )
             )
 
