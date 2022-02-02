@@ -40,6 +40,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         }
         self.user_data = self.team_data.copy()
         self.user_data["type"] = "user"
+
         self.user_data["display_name"] = self.user_display_name
 
         self.metadata = {
@@ -96,8 +97,9 @@ class BitbucketInstalledEndpointTest(APITestCase):
         integration, created = Integration.objects.get_or_create(
             provider=self.provider,
             external_id=self.client_key,
-            defaults={"name": self.username, "metadata": self.user_metadata},
+            defaults={"name": self.user_display_name, "metadata": self.user_metadata},
         )
+        del self.user_data_from_bitbucket["principal"]["username"]
         response = self.client.post(self.path, data=self.user_data_from_bitbucket)
         assert response.status_code == 200
 

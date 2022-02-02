@@ -172,14 +172,15 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         if state.get("publicKey"):
             principal_data = state["principal"]
             base_url = state["baseUrl"].replace("https://", "")
-            username = principal_data.get("display_name")
+            # fall back to display name, user installations will use this primarily
+            username = principal_data.get("username", principal_data["display_name"])
             account_type = principal_data["type"]
             domain = f"{base_url}/{username}" if account_type == "team" else username
 
             return {
                 "provider": self.key,
                 "external_id": state["clientKey"],
-                "name": principal_data.get("username", principal_data["display_name"]),
+                "name": username,
                 "metadata": {
                     "public_key": state["publicKey"],
                     "shared_secret": state["sharedSecret"],
