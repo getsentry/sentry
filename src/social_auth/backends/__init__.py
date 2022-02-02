@@ -17,6 +17,7 @@ from urllib.parse import urlencode
 from urllib.request import Request
 
 import requests
+from django.conf import settings
 from django.contrib.auth import authenticate, load_backend
 from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
@@ -291,7 +292,8 @@ class BaseAuth:
 
         if saved_kwargs["backend"] and type(saved_kwargs["backend"]) == str:
             backend_path = saved_kwargs["backend"]
-            saved_kwargs["backend"] = load_backend(backend_path)
+            if backend_path in settings.AUTHENTICATION_BACKENDS:
+                saved_kwargs["backend"] = load_backend(backend_path)
 
         return (session_data["next"], args, saved_kwargs)
 
