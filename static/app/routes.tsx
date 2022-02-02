@@ -1315,11 +1315,6 @@ function buildRoutes() {
       <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
       <IndexRoute component={errorHandler(IssueListOverview)} />
       <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
-      <Route
-        path="sessionPercent"
-        componentPromise={() => import('sentry/views/issueList/testSessionPercent')}
-        component={SafeLazyLoad}
-      />
     </Route>
   );
 
