@@ -12,7 +12,7 @@ import space from 'sentry/styles/space';
 function CongratsRobots() {
   return (
     <AnimatedScene>
-      <StyledAutoplayVideo src={video} />
+      <StyledAutoplayVideo aria-label="Congratulations video" src={video} />
     </AnimatedScene>
   );
 }

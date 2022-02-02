@@ -1,5 +1,8 @@
 import * as React from 'react';
 
+interface AutoplayVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
+  'aria-label': string;
+}
 /**
  * Wrapper for autoplaying video.
  *
@@ -9,7 +12,7 @@ import * as React from 'react';
  * Note, video needs `muted` for `autoplay` to work on Chrome
  * See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video
  */
-function AutoplayVideo(props: React.VideoHTMLAttributes<HTMLVideoElement>) {
+function AutoplayVideo(props: AutoplayVideoProps) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
@@ -27,16 +30,7 @@ function AutoplayVideo(props: React.VideoHTMLAttributes<HTMLVideoElement>) {
     }
   }, []);
 
-  return (
-    <video
-      ref={videoRef}
-      data-test-id="autoplay-video"
-      playsInline
-      disablePictureInPicture
-      loop
-      {...props}
-    />
-  );
+  return <video ref={videoRef} playsInline disablePictureInPicture loop {...props} />;
 }
 
 export {AutoplayVideo};
