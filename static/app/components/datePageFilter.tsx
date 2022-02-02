@@ -306,6 +306,7 @@ const DateSelectorContainer = styled('div')`
 const PinButton = styled(Button)`
   display: block;
   color: ${p => p.theme.gray300};
+  background: transparent;
 `;
 
 const RelativePeriodButton = styled(Button)<{selected?: boolean}>`
