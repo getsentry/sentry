@@ -162,6 +162,8 @@ function Hovercard(props: HovercardProps): React.ReactElement {
       {ReactDOM.createPortal(
         <Popper placement={props.position ?? 'top'} modifiers={popperModifiers}>
           {({ref, style, placement, arrowProps, scheduleUpdate}) => {
+            scheduleUpdateRef.current = scheduleUpdate;
+
             // Element is not visible in neither controlled and uncontrolled state (show prop is not passed and card is not hovered)
             if (!isVisible) {
               return null;
@@ -172,31 +174,32 @@ function Hovercard(props: HovercardProps): React.ReactElement {
               return null;
             }
 
-            scheduleUpdateRef.current = scheduleUpdate;
             return (
-              <SlideInAnimation visible={visible} placement={placement} style={style}>
-                <StyledHovercard
-                  ref={ref}
-                  id={tooltipId}
-                  placement={placement}
-                  offset={props.offset}
-                  // Maintain the hovercard class name for BC with less styles
-                  className={classNames('hovercard', props.className)}
-                  {...hoverProps}
-                >
-                  {props.header ? <Header>{props.header}</Header> : null}
-                  {props.body ? (
-                    <Body className={props.bodyClassName}>{props.body}</Body>
-                  ) : null}
-                  <HovercardArrow
-                    ref={arrowProps.ref}
-                    style={arrowProps.style}
+              <div style={style}>
+                <SlideInAnimation visible={isVisible} placement={placement}>
+                  <StyledHovercard
+                    ref={ref}
+                    id={tooltipId}
                     placement={placement}
-                    tipColor={props.tipColor}
-                    tipBorderColor={props.tipBorderColor}
-                  />
-                </StyledHovercard>
-              </SlideInAnimation>
+                    offset={props.offset}
+                    // Maintain the hovercard class name for BC with less styles
+                    className={classNames('hovercard', props.className)}
+                    {...hoverProps}
+                  >
+                    {props.header ? <Header>{props.header}</Header> : null}
+                    {props.body ? (
+                      <Body className={props.bodyClassName}>{props.body}</Body>
+                    ) : null}
+                    <HovercardArrow
+                      ref={arrowProps.ref}
+                      style={arrowProps.style}
+                      placement={placement}
+                      tipColor={props.tipColor}
+                      tipBorderColor={props.tipBorderColor}
+                    />
+                  </StyledHovercard>
+                </SlideInAnimation>
+              </div>
             );
           }}
         </Popper>,
@@ -210,48 +213,29 @@ export {Hovercard};
 
 const SLIDE_DISTANCE = 10;
 
-function parseTransform(transformString: string | undefined): [number, number, number] {
-  if (!transformString) {
-    return [0, 0, 0];
-  }
-
-  const matches = transformString.replace('translate3d', '').match(/(-?[0-9\.]+)/g);
-
-  if (matches === null) {
-    return [0, 0, 0];
-  }
-
-  return matches.map(s => {
-    return parseFloat(s);
-  }) as [number, number, number];
-}
-
 function SlideInAnimation({
   visible,
   placement,
   children,
-  style,
 }: {
   visible: boolean;
   placement: PopperProps['placement'];
   children: React.ReactNode;
-  style: React.CSSProperties;
 }): React.ReactElement {
-  const narrowedPlacement = getTipDirection({placement});
-  const [translateX, translateY] = parseTransform(style.transform);
+  const narrowedPlacement = getTipDirection(placement);
 
   const x =
     narrowedPlacement === 'left'
-      ? [translateX - SLIDE_DISTANCE, 0]
+      ? [-SLIDE_DISTANCE, 0]
       : narrowedPlacement === 'right'
-      ? [translateX + SLIDE_DISTANCE, 0]
+      ? [SLIDE_DISTANCE, 0]
       : [0, 0];
 
   const y =
     narrowedPlacement === 'top'
-      ? [translateY - SLIDE_DISTANCE, 0]
+      ? [-SLIDE_DISTANCE, 0]
       : narrowedPlacement === 'bottom'
-      ? [translateY + SLIDE_DISTANCE, 0]
+      ? [SLIDE_DISTANCE, 0]
       : [0, 0];
 
   return (
@@ -269,16 +253,15 @@ function SlideInAnimation({
       }}
       animate={visible ? 'visible' : 'hidden'}
       transition={{duration: 0.1, ease: 'easeInOut'}}
-      style={style}
     >
       {children}
     </motion.div>
   );
 }
 
-function getTipDirection(p: HovercardArrowProps): string {
-  const placement = p.placement;
-
+function getTipDirection(
+  placement: HovercardArrowProps['placement']
+): 'top' | 'bottom' | 'left' | 'right' {
   if (!placement) {
     return 'top';
   }
@@ -287,7 +270,7 @@ function getTipDirection(p: HovercardArrowProps): string {
     return placement.startsWith(pl);
   });
 
-  return prefix || 'top';
+  return (prefix || 'top') as 'top' | 'bottom' | 'left' | 'right';
 }
 
 type StyledHovercardProps = {
@@ -359,12 +342,10 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   position: absolute;
   width: 20px;
   height: 20px;
-  z-index: -1;
-
-  ${p => (p.placement === 'top' ? 'bottom: -20px; left: 0' : '')};
-  ${p => (p.placement === 'bottom' ? 'top: -20px; left: 0' : '')};
-  ${p => (p.placement === 'left' ? 'right: -20px' : '')};
-  ${p => (p.placement === 'right' ? 'left: -20px' : '')};
+  right: ${p => (p.placement === 'left' ? '-3px' : 'auto')};
+  left: ${p => (p.placement === 'right' ? '-3px' : 'auto')};
+  bottom: ${p => (p.placement === 'top' ? '-3px' : 'auto')};
+  top: ${p => (p.placement === 'bottom' ? '-3px' : 'auto')};
 
   &::before,
   &::after {
@@ -382,7 +363,7 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   &::before {
     top: 1px;
     border: 10px solid transparent;
-    border-${getTipDirection}-color:
+    border-${p => getTipDirection(p.placement)}-color:
       ${p => p.tipBorderColor || p.tipColor || p.theme.border};
       ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
       ${p => (p.placement === 'left' ? 'top: 0; left: 1px;' : '')};
@@ -390,6 +371,7 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
     }
     &::after {
       border: 10px solid transparent;
-      border-${getTipDirection}-color: ${p => p.tipColor ?? p.theme.background};
+      border-${p => getTipDirection(p.placement)}-color: ${p =>
+  p.tipColor ?? p.theme.background};
     }
 `;
