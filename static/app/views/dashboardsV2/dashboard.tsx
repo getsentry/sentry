@@ -304,7 +304,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, isEditing, onUpdate, handleUpdateWidgetList} = this.props;
+    const {dashboard, isEditing, handleUpdateWidgetList} = this.props;
 
     const widgetCopy = cloneDeep(widget);
     widgetCopy.id = undefined;
@@ -312,7 +312,6 @@ class Dashboard extends Component<Props, State> {
 
     const nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
-    onUpdate(nextList);
 
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
