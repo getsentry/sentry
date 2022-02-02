@@ -21,16 +21,16 @@ function MenuSection({node, children}: Props) {
   });
 
   return (
-    <Section {...itemProps}>
+    <MenuSectionWrap {...itemProps}>
       {node.rendered && <Heading {...headingProps}>{node.rendered}</Heading>}
       <Group {...groupProps}>{children}</Group>
-    </Section>
+    </MenuSectionWrap>
   );
 }
 
 export default MenuSection;
 
-const Section = styled('li')`
+const MenuSectionWrap = styled('li')`
   list-style-type: none;
 `;
 
@@ -44,7 +44,7 @@ const Heading = styled('span')`
   margin: ${space(1)} ${space(1.5)} ${space(0.5)};
   padding-right: ${space(1)};
 
-  ${/* sc-selector */ Section}:first-of-type & {
+  ${/* sc-selector */ MenuSectionWrap}:first-of-type & {
     margin-top: ${space(0.5)};
   }
 `;

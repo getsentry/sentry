@@ -37,11 +37,6 @@ jobs:
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
-      - name: Install Javascript Dependencies
-        if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          cd api-docs && yarn install --frozen-lockfile
-
       - name: Run API docs tests
         if: steps.changes.outputs.api_docs == 'true'
         run: |
