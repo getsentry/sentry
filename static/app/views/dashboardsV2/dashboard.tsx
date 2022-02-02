@@ -278,6 +278,7 @@ class Dashboard extends Component<Props, State> {
     const {layouts} = this.state;
     const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
+    // Manually calculate the post-delete layout and assign those to widgets
     let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     const nextLayout = compact(
       layouts[DESKTOP].filter(({i}) => i !== constructGridItemKey(widgetToDelete)),
