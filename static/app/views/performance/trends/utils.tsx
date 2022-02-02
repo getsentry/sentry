@@ -169,10 +169,10 @@ export function performanceTypeToTrendParameterLabel(
 ): string {
   switch (performanceType) {
     case PROJECT_PERFORMANCE_TYPE.FRONTEND:
-    case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
       return 'LCP';
     case PROJECT_PERFORMANCE_TYPE.ANY:
     case PROJECT_PERFORMANCE_TYPE.BACKEND:
+    case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
     default:
       return 'Duration';
   }
