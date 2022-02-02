@@ -5,8 +5,10 @@ import TimeSince from 'sentry/components/timeSince';
 describe('TimeSince', function () {
   const tenMinAgo = new Date(new Date().getTime() - 60000 * 10);
   it('renders a relative date', () => {
-    mountWithTheme(<TimeSince date={new Date()} />);
+    const {rerender} = mountWithTheme(<TimeSince date={new Date()} />);
     expect(screen.getByText('a few seconds ago')).toBeInTheDocument();
+    rerender(<TimeSince date={tenMinAgo} />);
+    expect(screen.getByText('10 minutes ago')).toBeInTheDocument();
   });
 
   it('renders a relative date without suffix', () => {
