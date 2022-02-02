@@ -142,6 +142,7 @@ class InviteRowControl extends React.Component<Props, State> {
           size="zero"
           onClick={onRemove}
           disabled={disableRemove}
+          aria-label={t('Remove')}
         />
       </div>
     );

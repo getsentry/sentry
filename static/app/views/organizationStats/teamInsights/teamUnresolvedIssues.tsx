@@ -164,7 +164,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
           isEmpty={projects.length === 0}
           isLoading={loading}
           headers={[
-            t('Projects'),
+            t('Project'),
             <RightAligned key="last">
               {tct('Last [period] Average', {period})}
             </RightAligned>,

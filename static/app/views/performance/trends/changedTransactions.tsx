@@ -440,6 +440,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           <StyledButton
             size="xsmall"
             icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
+            aria-label={t('Actions')}
           />
         }
       >

@@ -2,6 +2,7 @@ import Reflux from 'reflux';
 
 import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
+import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -67,7 +68,7 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
   },
 
   getBuiltInTags() {
-    return {...BUILTIN_TAGS};
+    return {...BUILTIN_TAGS, ...SEMVER_TAGS};
   },
 
   getIssueAttributes() {
@@ -168,6 +169,7 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
 
       return acc;
     }, {});
+
     this.state = {...this.state, ...newTags};
     this.trigger(this.state);
   },

@@ -70,18 +70,17 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   const organization = useOrganization();
   const {selection, pinnedFilters, isReady} = useLegacyStore(PageFiltersStore);
 
-  const handleChangeProjects = (newProjects: number[] | null) => {
+  const handleChangeProjects = (newProjects: number[]) => {
     setCurrentSelectedProjects(newProjects);
   };
 
-  const handleUpdateProjects = () => {
-    // Clear environments when switching projects
-    updateProjects(currentSelectedProjects || [], router, {
+  const handleUpdateProjects = (newProjects?: number[]) => {
+    // Use newProjects if provided otherwise fallback to current selection
+    updateProjects(newProjects ?? (currentSelectedProjects || []), router, {
       save: true,
       resetParams: [],
-      environments: [],
+      environments: [], // Clear environments when switching projects
     });
-    setCurrentSelectedProjects(null);
   };
 
   const specifiedProjects = specificProjectSlugs
