@@ -15,11 +15,11 @@ describe('IgnoreActions', function () {
         <IgnoreActions onUpdate={spy} disabled />,
         routerContext
       );
-      button = component.find('button[aria-label="Ignore"]').first();
+      button = component.find('IgnoreButton');
     });
 
     it('has disabled prop', function () {
-      expect(button.props()['aria-disabled']).toBe(true);
+      expect(button.props().disabled).toBe(true);
     });
 
     it('does not call onUpdate when clicked', function () {
@@ -60,7 +60,7 @@ describe('IgnoreActions', function () {
     });
 
     it('calls spy with ignore details when clicked', function () {
-      const button = component.find('button[aria-label="Ignore"]').first();
+      const button = component.find('IgnoreButton').first();
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'ignored'});
@@ -76,7 +76,7 @@ describe('IgnoreActions', function () {
         <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="confirm me" />,
         routerContext
       );
-      button = component.find('button[aria-label="Ignore"]');
+      button = component.find('IgnoreButton');
     });
 
     it('displays confirmation modal with message provided', async function () {

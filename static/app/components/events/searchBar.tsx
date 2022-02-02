@@ -119,11 +119,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
       ? Object.assign({}, measurements, FIELD_TAGS, functionTags)
       : omit(FIELD_TAGS, TRACING_FIELDS);
 
-    const semverTags = organization.features.includes('semver')
-      ? Object.assign({}, SEMVER_TAGS, fieldTags)
-      : fieldTags;
-
-    const combined = assign({}, tags, semverTags);
+    const combined = assign({}, tags, fieldTags, SEMVER_TAGS);
     combined.has = {
       key: 'has',
       name: 'Has property',

@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
-import {IconFire} from 'sentry/icons';
+import {IconFatal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 const UnhandledTag = () => (
   <Tooltip title={t('An unhandled error was detected in this Issue.')}>
     <UnhandledTagWrapper>
-      <StyledIconFire size="xs" color="red300" />
+      <StyledIconFatal size="xs" color="red300" />
       {t('Unhandled')}
     </UnhandledTagWrapper>
   </Tooltip>
@@ -22,6 +22,6 @@ const UnhandledTagWrapper = styled('div')`
   color: ${p => p.theme.red300};
 `;
 
-const StyledIconFire = styled(IconFire)`
+const StyledIconFatal = styled(IconFatal)`
   margin-right: 3px;
 `;

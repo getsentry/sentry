@@ -10,7 +10,7 @@ import {getTitle} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import EventTitleTreeLabel from './eventTitleTreeLabel';
-import StacktracePreview from './stacktracePreview';
+import {StackTracePreview} from './stacktracePreview';
 
 type Props = Partial<DefaultProps> & {
   data: Event | BaseGroup | GroupTombstone;
@@ -50,19 +50,24 @@ function EventOrGroupTitle({
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
       <GuideAnchor disabled={!hasGuideAnchor} target={guideAnchorName} position="bottom">
-        <StyledStacktracePreview
-          organization={organization}
-          issueId={groupID ? groupID : id}
-          groupingCurrentLevel={groupingCurrentLevel}
-          // we need eventId and projectSlug only when hovering over Event, not Group
-          // (different API call is made to get the stack trace then)
-          eventId={eventID}
-          projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
-          disablePreview={!withStackTracePreview}
-          hasGroupingStacktraceUI={hasGroupingStacktraceUI}
-        >
-          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
-        </StyledStacktracePreview>
+        {withStackTracePreview ? (
+          <StyledStacktracePreview
+            organization={organization}
+            issueId={groupID ? groupID : id}
+            groupingCurrentLevel={groupingCurrentLevel}
+            // we need eventId and projectSlug only when hovering over Event, not Group
+            // (different API call is made to get the stack trace then)
+            eventId={eventID}
+            projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
+            hasGroupingStacktraceUI={hasGroupingStacktraceUI}
+          >
+            {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
+          </StyledStacktracePreview>
+        ) : treeLabel ? (
+          <EventTitleTreeLabel treeLabel={treeLabel} />
+        ) : (
+          title
+        )}
       </GuideAnchor>
       {subtitle && (
         <Fragment>
@@ -89,7 +94,7 @@ const Subtitle = styled('em')`
   font-style: normal;
 `;
 
-const StyledStacktracePreview = styled(StacktracePreview)<{
+const StyledStacktracePreview = styled(StackTracePreview)<{
   hasGroupingStacktraceUI: boolean;
 }>`
   ${p =>
