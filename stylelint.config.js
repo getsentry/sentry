@@ -1,7 +1,6 @@
 /* eslint-env node */
 module.exports = {
   customSyntax: 'postcss-jsx',
-  processors: ['stylelint-processor-styled-components'],
   extends: ['stylelint-config-recommended', 'stylelint-config-prettier'],
   rules: {
     'declaration-colon-newline-after': null,
@@ -16,7 +15,19 @@ module.exports = {
     // Does not seem useful
     'no-descending-specificity': null,
 
-    'property-no-unknown': [true, {ignoreProperties: [/\$dummyValue/]}],
+    'property-no-unknown': [
+      true,
+      {
+        // originX, orginY are used with framer motion
+        ignoreProperties: ['origin-x', 'origin-y'],
+      },
+    ],
+
+    // Allow empty template eg - styled(thing)``
+    'no-empty-source': null,
+
+    // Does not seem to be working with postcss-jsx + emotion
+    'media-feature-name-no-unknown': null,
 
     'property-disallowed-list': [
       // Prefer `gap` over `grid-gap`, it does the same thing

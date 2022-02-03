@@ -187,7 +187,6 @@
     "stylelint": "14.3.0",
     "stylelint-config-prettier": "^9.0.3",
     "stylelint-config-recommended": "^6.0.0",
-    "stylelint-processor-styled-components": "^1.10.0",
     "tocbot": "^4.13.4",
     "typescript-styled-plugin": "^0.18.1",
     "url-loader": "^4.1.0",
