@@ -1,11 +1,8 @@
 /* eslint-env node */
 module.exports = {
+  customSyntax: 'postcss-jsx',
   processors: ['stylelint-processor-styled-components'],
-  extends: [
-    'stylelint-config-recommended',
-    'stylelint-config-styled-components',
-    'stylelint-config-prettier',
-  ],
+  extends: ['stylelint-config-recommended', 'stylelint-config-prettier'],
   rules: {
     'declaration-colon-newline-after': null,
 
