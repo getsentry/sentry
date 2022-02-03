@@ -23,11 +23,30 @@ type ThreadInfo = {
 };
 
 const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
-  const {label = `<${t('unknown')}>`, filename = `<${t('unknown')}>`} = details;
+  const {label = `<${t('unknown')}>`} = details;
   const optionName = name || `<${t('unknown')}>`;
 
   return (
     <Grid>
+      <GridCell>
+        {crashed && (
+          <InnerCell isCentered>
+            {crashedInfo ? (
+              <Tooltip
+                skipWrapper
+                title={tct('Errored with [crashedInfo]', {
+                  crashedInfo: crashedInfo.values[0].type,
+                })}
+                position="top"
+              >
+                <IconFire color="red300" />
+              </Tooltip>
+            ) : (
+              <IconFire color="red300" />
+            )}
+          </InnerCell>
+        )}
+      </GridCell>
       <GridCell>
         <InnerCell>
           <Tooltip title={`#${id}`} position="top">
@@ -48,32 +67,6 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
             <TextOverflow>{label}</TextOverflow>
           </Tooltip>
         </InnerCell>
-      </GridCell>
-      <GridCell>
-        <InnerCell color="purple300">
-          <Tooltip title={filename} position="top">
-            <TextOverflow>{filename}</TextOverflow>
-          </Tooltip>
-        </InnerCell>
-      </GridCell>
-      <GridCell>
-        {crashed && (
-          <InnerCell isCentered>
-            {crashedInfo ? (
-              <Tooltip
-                skipWrapper
-                title={tct('Errored with [crashedInfo]', {
-                  crashedInfo: crashedInfo.values[0].type,
-                })}
-                position="top"
-              >
-                <IconFire color="red300" />
-              </Tooltip>
-            ) : (
-              <IconFire color="red300" />
-            )}
-          </InnerCell>
-        )}
       </GridCell>
     </Grid>
   );
