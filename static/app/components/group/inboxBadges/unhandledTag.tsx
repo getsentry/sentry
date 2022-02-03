@@ -5,7 +5,7 @@ import {IconFatal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 const UnhandledTag = () => (
-  <Tooltip title={t('An unhandled error was detected in this Issue.')}>
+  <Tooltip skipWrapper title={t('An unhandled error was detected in this Issue.')}>
     <UnhandledTagWrapper>
       <StyledIconFatal size="xs" color="red300" />
       {t('Unhandled')}
@@ -23,5 +23,6 @@ const UnhandledTagWrapper = styled('div')`
 `;
 
 const StyledIconFatal = styled(IconFatal)`
+  margin-top: -2px;
   margin-right: 3px;
 `;
