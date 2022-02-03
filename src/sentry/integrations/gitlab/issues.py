@@ -3,7 +3,7 @@ from typing import Sequence
 
 from django.urls import reverse
 
-from sentry.integrations.issues import IssueBasicMixin
+from sentry.integrations.mixins import IssueBasicMixin
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.utils.http import absolute_uri
 

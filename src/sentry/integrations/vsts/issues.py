@@ -6,7 +6,7 @@ from django.utils.translation import ugettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
-from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models import Activity, IntegrationExternalProject, OrganizationIntegration, User
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 

@@ -11,13 +11,13 @@ See also:
     src/sentry_plugins/
 """
 
-__all__ = [
-    "IntegrationInstallation",
-    "IntegrationFeatures",
-    "IntegrationProvider",
-    "IntegrationMetadata",
+__all__ = (
     "FeatureDescription",
-]
+    "IntegrationFeatures",
+    "IntegrationInstallation",
+    "IntegrationMetadata",
+    "IntegrationProvider",
+)
 
 from .analytics import register_analytics
 from .base import (
