@@ -27,7 +27,6 @@ from .deletedproject import *  # NOQA
 from .deletedteam import *  # NOQA
 from .deploy import *  # NOQA
 from .distribution import *  # NOQA
-from .docintegrationavatar import *  # NOQA
 from .email import *  # NOQA
 from .environment import *  # NOQA
 from .event import *  # NOQA
@@ -72,7 +71,6 @@ from .notificationsetting import *  # NOQA
 from .option import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
-from .organizationavatar import *  # NOQA
 from .organizationmember import *  # NOQA
 from .organizationmemberteam import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
@@ -80,7 +78,6 @@ from .organizationoption import *  # NOQA
 from .platformexternalissue import *  # NOQA
 from .processingissue import *  # NOQA
 from .project import *  # NOQA
-from .projectavatar import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
 from .projectkey import *  # NOQA
@@ -108,17 +105,14 @@ from .scheduledeletion import *  # NOQA
 from .scheduledjob import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryapp import *  # NOQA
-from .sentryappavatar import *  # NOQA
 from .sentryappcomponent import *  # NOQA
 from .sentryappinstallation import *  # NOQA
 from .sentryappinstallationforprovider import *  # NOQA
 from .sentryappinstallationtoken import *  # NOQA
 from .servicehook import *  # NOQA
 from .team import *  # NOQA
-from .teamavatar import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .user import *  # NOQA
-from .useravatar import *  # NOQA
 from .useremail import *  # NOQA
 from .userip import *  # NOQA
 from .useroption import *  # NOQA
