@@ -113,7 +113,8 @@ class BaseEventFrequencyCondition(EventCondition):
         if not interval:
             return False
 
-        current_value = self.get_rate(event, interval, self.rule.environment_id)
+        # TODO(mgaeta): Bug: Rule is optional.
+        current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
         return current_value > value
 
     def query(self, event: Event, start: datetime, end: datetime, environment_id: str) -> Any:
@@ -164,8 +165,9 @@ class BaseEventFrequencyCondition(EventCondition):
         :return:
             bool: True if rule is approximated to be created on project creation, False otherwise.
         """
-        delta = abs(self.rule.date_added - self.project.date_added)
-        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL
+        # TODO(mgaeta): Bug: Rule is optional.
+        delta = abs(self.rule.date_added - self.project.date_added)  # type: ignore
+        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL  # type: ignore
         return guess
 
 
@@ -266,7 +268,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         session_count_last_hour = cache.get(cache_key)
         if session_count_last_hour is None:
             with options_override({"consistent": False}):
-                session_count_last_hour = release_health.get_project_sessions_count(  # NOQA
+                session_count_last_hour = release_health.get_project_sessions_count(  # type: ignore
                     project_id=project_id,
                     environment_id=environment_id,
                     rollup=60,
