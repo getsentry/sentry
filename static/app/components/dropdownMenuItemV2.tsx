@@ -197,6 +197,7 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
         ref={ref}
         as={renderAs}
         isDisabled={isDisabled}
+        data-test-id={item.key}
         {...props}
         {...(isSubmenuTrigger && {role: 'menuitemradio'})}
       >
