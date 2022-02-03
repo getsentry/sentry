@@ -30,6 +30,10 @@ inputs:
   python-version:
     description: 'python version to install'
     required: false
+  pg-version:
+    description: 'postgres version to use'
+    required: false
+    default: '9.6'
   pip-cache-version:
     description: 'pip cache version in order to bust cache'
     required: false
