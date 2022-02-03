@@ -8,7 +8,6 @@ from rest_framework.response import Response
 
 from sentry import analytics, features
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -150,7 +149,7 @@ class ProjectCodeOwnersMixin:
             )
 
 
-class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):  # type: ignore
+class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # type: ignore
     def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve List of CODEOWNERS configurations for a project
@@ -195,7 +194,6 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
 
         serializer = ProjectCodeOwnerSerializer(
             context={
-                "ownership": self.get_ownership(project),
                 "project": project,
             },
             data={**request.data},
