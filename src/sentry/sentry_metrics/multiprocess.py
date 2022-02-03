@@ -13,6 +13,7 @@ from typing import (
     MutableMapping,
     NamedTuple,
     Optional,
+    Set,
     Union,
 )
 
@@ -81,6 +82,10 @@ def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapp
     return consumer_config
 
 
+class DuplicateMessage(Exception):
+    pass
+
+
 class MetricsBatchBuilder:
     """
     Batches up individual messages - type: Message[KafkaPayload] - into a
@@ -94,6 +99,7 @@ class MetricsBatchBuilder:
         self.__messages: MessageBatch = []
         self.__max_batch_size = max_batch_size
         self.__deadline = time.time() + max_batch_time
+        self.__offsets: Set[int] = set()
 
     def __len__(self) -> int:
         return len(self.__messages)
@@ -103,7 +109,10 @@ class MetricsBatchBuilder:
         return self.__messages
 
     def append(self, message: Message[KafkaPayload]) -> None:
+        if message.offset in self.__offsets:
+            raise DuplicateMessage
         self.__messages.append(message)
+        self.__offsets.add(message.offset)
 
     def ready(self) -> bool:
         if len(self.messages) >= self.__max_batch_size:
@@ -145,13 +154,31 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__next_step.poll()
 
         if self.__batch and self.__batch.ready():
-            self.__flush()
+            try:
+                self.__flush()
+            except MessageRejected:
+                # Probably means that we have received back pressure due to the
+                # ParallelTransformStep.
+                logger.debug("Attempt to flush batch failed...Re-trying in next poll")
+                pass
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         if self.__batch is None:
             self.__batch = MetricsBatchBuilder(self.__max_batch_size, self.__max_batch_time)
 
-        self.__batch.append(message)
+        try:
+            self.__batch.append(message)
+        except DuplicateMessage:
+            # If we are getting back pressure from the next_step (ParallelTransformStep),
+            # the consumer will keep trying to submit the same carried over message
+            # until it succeeds and stops throwing the MessageRejected error. In this
+            # case we don't want to keep adding the same message to the batch over and
+            # over again
+            logger.debug(f"Message already added to batch with offset: {message.offset}")
+            pass
+
+        if self.__batch and self.__batch.ready():
+            self.__flush()
 
     def __flush(self) -> None:
         if not self.__batch:
@@ -348,7 +375,7 @@ def process_messages(
 
     for message in outer_message.payload:
         parsed_payload_value = parsed_payloads_by_offset[message.offset]
-        new_payload_value = parsed_payload_value
+        new_payload_value = parsed_payload_value.copy()
 
         metric_name = parsed_payload_value["name"]
         tags = parsed_payload_value.get("tags", {})
