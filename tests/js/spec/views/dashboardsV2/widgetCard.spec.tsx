@@ -368,7 +368,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Delete Widget'));
     // Confirm Modal
-    mountGlobalModal();
+    await mountGlobalModal();
     await screen.findByRole('dialog');
 
     userEvent.click(screen.getByTestId('confirm-button'));
