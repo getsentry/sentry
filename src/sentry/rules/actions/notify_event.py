@@ -1,22 +1,19 @@
-from typing import Generator, Sequence
+"""
+Used for notifying *all* enabled plugins
+"""
 
-from sentry.eventstore.models import Event
 from sentry.plugins.base import plugins
-from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import LegacyPluginService
-from sentry.rules.base import CallbackFuture
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 
 class NotifyEventAction(EventAction):
-    """Used for notifying *all* enabled plugins."""
-
     label = "Send a notification (for all legacy integrations)"
     prompt = "Send a notification to all legacy integrations"
 
-    def get_plugins(self) -> Sequence[LegacyPluginService]:
+    def get_plugins(self):
         from sentry.plugins.bases.notify import NotificationPlugin
 
         results = []
@@ -31,12 +28,12 @@ class NotifyEventAction(EventAction):
 
         return results
 
-    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(self, event, state):
         group = event.group
 
-        for plugin_ in self.get_plugins():
+        for plugin in self.get_plugins():
             # plugin is now wrapped in the LegacyPluginService object
-            plugin = plugin_.service
+            plugin = plugin.service
             if not safe_execute(
                 plugin.should_notify, group=group, event=event, _with_transaction=False
             ):

@@ -1,4 +1,7 @@
-from typing import Any, Generator, Mapping, Optional, Sequence
+"""
+Used for notifying a *specific* sentry app with a custom webhook payload (i.e. specified UI components)
+"""
+from typing import Any, Mapping, Optional, Sequence
 
 from rest_framework import serializers
 
@@ -6,18 +9,16 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
 from sentry.eventstore.models import Event
 from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
-from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
-from sentry.rules.base import CallbackFuture
 from sentry.tasks.sentry_apps import notify_sentry_app
 
 ValidationError = serializers.ValidationError
 
 
-def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str) -> None:
+def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str):
     # Only validate synchronous select fields
     if field.get("type") == "select" and not field.get("uri"):
-        allowed_values = [option[0] for option in field.get("options", [])]
+        allowed_values = [option[0] for option in field.get("options")]
         # Reject None values and empty strings
         if value and value not in allowed_values:
             field_label = field.get("label")
@@ -27,12 +28,7 @@ def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str
             )
 
 
-class NotifyEventSentryAppAction(EventAction):
-    """
-    Used for notifying a *specific* sentry app with a custom webhook payload
-    (i.e. specified UI components).
-    """
-
+class NotifyEventSentryAppAction(EventAction):  # type: ignore
     actionType = "sentryapp"
     # Required field for EventAction, value is ignored
     label = ""
@@ -129,7 +125,7 @@ class NotifyEventSentryAppAction(EventAction):
                 f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
             )
 
-    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(self, event: Event, state: str) -> Any:
         sentry_app = self.get_sentry_app(event)
         yield self.future(
             notify_sentry_app,

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
@@ -67,7 +65,7 @@ class OrganizationMemberManager(BaseManager):
             user_id__exact=None,
         ).exclude(email__exact=None).delete()
 
-    def get_for_integration(self, integration: Integration, actor: User) -> QuerySet:
+    def get_for_integration(self, integration: "Integration", actor: "User") -> QuerySet:
         return self.filter(
             user=actor,
             organization__organizationintegration__integration=integration,

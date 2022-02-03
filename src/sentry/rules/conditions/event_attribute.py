@@ -1,10 +1,7 @@
 from collections import OrderedDict
-from typing import Any, Sequence
 
 from django import forms
 
-from sentry.eventstore.models import Event
-from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 
 
@@ -58,7 +55,7 @@ ATTR_CHOICES = [
 ]
 
 
-class EventAttributeForm(forms.Form):  # type: ignore
+class EventAttributeForm(forms.Form):
     attribute = forms.ChoiceField(choices=[(a, a) for a in ATTR_CHOICES])
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
     value = forms.CharField(widget=forms.TextInput(), required=False)
@@ -94,7 +91,7 @@ class EventAttributeCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def _get_attribute_values(self, event: Event, attr: str) -> Sequence[str]:
+    def _get_attribute_values(self, event, attr):
         # TODO(dcramer): we should validate attributes (when we can) before
         path = attr.split(".")
 
@@ -177,7 +174,7 @@ class EventAttributeCondition(EventCondition):
             return result
         return []
 
-    def render_label(self) -> str:
+    def render_label(self):
         data = {
             "attribute": self.data["attribute"],
             "value": self.data["value"],
@@ -185,7 +182,7 @@ class EventAttributeCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
+    def passes(self, event, state, **kwargs):
         attr = self.get_option("attribute")
         match = self.get_option("match")
         value = self.get_option("value")
@@ -256,5 +253,3 @@ class EventAttributeCondition(EventCondition):
 
         elif match == MatchType.NOT_SET:
             return not attribute_values
-
-        raise RuntimeError("Invalid Match")

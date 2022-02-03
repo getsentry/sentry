@@ -1,13 +1,11 @@
-from sentry.eventstore.models import Event
-from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 
 
 class EveryEventCondition(EventCondition):
     label = "The event occurs"
 
-    def passes(self, event: Event, state: EventState) -> bool:
+    def passes(self, event, state):
         return True
 
-    def is_enabled(self) -> bool:
+    def is_enabled(self):
         return False
