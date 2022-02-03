@@ -3,6 +3,7 @@ import logging
 import time
 from collections import deque
 from concurrent.futures import Future
+from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -375,7 +376,7 @@ def process_messages(
 
     for message in outer_message.payload:
         parsed_payload_value = parsed_payloads_by_offset[message.offset]
-        new_payload_value = parsed_payload_value.copy()
+        new_payload_value = deepcopy(parsed_payload_value)
 
         metric_name = parsed_payload_value["name"]
         tags = parsed_payload_value.get("tags", {})
