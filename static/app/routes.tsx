@@ -1263,6 +1263,13 @@ function buildRoutes() {
           }
           component={SafeLazyLoad}
         />
+        <Route
+          path="anomalies/"
+          componentPromise={() =>
+            import('sentry/views/performance/transactionSummary/transactionAnomalies')
+          }
+          component={SafeLazyLoad}
+        />
         <Route path="spans/">
           <IndexRoute
             componentPromise={() =>

@@ -614,14 +614,4 @@ export const icons: IconData[] = [
     groups: ['action'],
     keywords: ['scale', 'stretch'],
   },
-  {
-    id: 'boom',
-    groups: ['content'],
-    keywords: ['explode'],
-  },
-  {
-    id: 'radioactive',
-    groups: ['content'],
-    keywords: ['dangerous'],
-  },
 ];
