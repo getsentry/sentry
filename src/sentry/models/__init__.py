@@ -33,8 +33,6 @@ from .event import *  # NOQA
 from .eventattachment import *  # NOQA
 from .eventerror import *  # NOQA
 from .eventuser import *  # NOQA
-from .externalactor import *  # NOQA
-from .externalissue import *  # NOQA
 from .featureadoption import *  # NOQA
 from .file import *  # NOQA
 from .group import *  # NOQA
@@ -59,7 +57,6 @@ from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
-from .integrationfeature import *  # NOQA
 from .integrations import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
