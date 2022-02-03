@@ -6,7 +6,8 @@ from django.db import IntegrityError, models
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, EncryptedJsonField
 from sentry.db.models.manager import BaseManager
-from sentry.models import OrganizationIntegration, ProjectIntegration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.signals import integration_added
 
 logger = logging.getLogger(__name__)

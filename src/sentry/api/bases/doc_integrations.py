@@ -6,7 +6,7 @@ from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission
 from sentry.api.validators.doc_integration import METADATA_PROPERTIES
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.integration import DocIntegration
+from sentry.models import DocIntegration
 from sentry.utils.json import JSONData
 from sentry.utils.sdk import configure_scope
 
