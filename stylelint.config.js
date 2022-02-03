@@ -11,6 +11,7 @@ module.exports = {
     // Doesn't work when we use values from theme
     'unit-no-unknown': null,
     'font-family-no-missing-generic-family-keyword': null,
+    'media-feature-name-no-unknown': null,
 
     // Does not seem useful
     'no-descending-specificity': null,
@@ -25,9 +26,6 @@ module.exports = {
 
     // Allow empty template eg - styled(thing)``
     'no-empty-source': null,
-
-    // Does not seem to be working with postcss-jsx + emotion
-    'media-feature-name-no-unknown': null,
 
     'property-disallowed-list': [
       // Prefer `gap` over `grid-gap`, it does the same thing
