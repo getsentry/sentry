@@ -24,6 +24,7 @@ type Props = {
   className?: string;
   getCustomFieldRenderer?: typeof getFieldRenderer;
   fieldHeaderMap?: Record<string, string>;
+  stickyHeaders?: boolean;
 };
 
 class SimpleTableChart extends Component<Props> {
@@ -37,16 +38,24 @@ class SimpleTableChart extends Component<Props> {
 
     return columns.map(column => {
       const fieldRenderer =
-        getCustomFieldRenderer?.(column.name, tableMeta) ??
-        getFieldRenderer(column.name, tableMeta);
+        getCustomFieldRenderer?.(column.key, tableMeta) ??
+        getFieldRenderer(column.key, tableMeta);
       const rendered = fieldRenderer(row, {organization, location});
       return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
     });
   }
 
   render() {
-    const {className, loading, fields, metadata, data, title, fieldHeaderMap} =
-      this.props;
+    const {
+      className,
+      loading,
+      fields,
+      metadata,
+      data,
+      title,
+      fieldHeaderMap,
+      stickyHeaders,
+    } = this.props;
     const meta = metadata ?? {};
     const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
@@ -57,7 +66,7 @@ class SimpleTableChart extends Component<Props> {
           isLoading={loading}
           headers={columns.map((column, index) => {
             const align = fieldAlignment(column.name, column.type, meta);
-            const header = fieldHeaderMap?.[column.name] ?? column.key;
+            const header = fieldHeaderMap?.[column.key] ?? column.name;
             return (
               <HeadCell key={index} align={align}>
                 <Tooltip title={header}>
@@ -67,6 +76,7 @@ class SimpleTableChart extends Component<Props> {
             );
           })}
           isEmpty={!data?.length}
+          stickyHeaders={stickyHeaders}
           disablePadding
         >
           {data?.map((row, index) => this.renderRow(index, row, meta, columns))}

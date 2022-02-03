@@ -545,9 +545,9 @@ export const icons: IconData[] = [
     keywords: ['shape', 'round'],
   },
   {
-    id: 'rectangle',
+    id: 'diamond',
     groups: ['other'],
-    keywords: ['shape', 'rect', 'diamond'],
+    keywords: ['shape', 'alert', 'diamond'],
   },
   {
     id: 'flag',
@@ -557,6 +557,11 @@ export const icons: IconData[] = [
   {
     id: 'sound',
     groups: ['content', 'action'],
+    keywords: ['audio'],
+  },
+  {
+    id: 'mute',
+    groups: ['action'],
     keywords: ['audio'],
   },
   {
@@ -603,5 +608,10 @@ export const icons: IconData[] = [
     id: 'generic',
     groups: ['logo'],
     keywords: [],
+  },
+  {
+    id: 'resize',
+    groups: ['action'],
+    keywords: ['scale', 'stretch'],
   },
 ];

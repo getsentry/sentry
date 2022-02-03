@@ -453,6 +453,7 @@ class QueryBuilderTest(TestCase):
                 Function("count", [], "count"),
             ],
         )
+
         assert query.array_join == [Column("spans.op")]
         query.get_snql_query().validate()
 

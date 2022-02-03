@@ -63,8 +63,8 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
     const col = explodeFieldString(f.field);
     const columnName = f.field;
     if (isEquation(f.field)) {
-      column.name = `equation[${equations}]`;
-      column.key = getEquation(columnName);
+      column.key = `equation[${equations}]`;
+      column.name = getEquation(columnName);
       equations += 1;
     } else {
       column.key = columnName;

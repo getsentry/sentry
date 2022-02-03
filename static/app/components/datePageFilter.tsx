@@ -3,7 +3,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import {pinFilter, updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -17,6 +17,7 @@ import {
   DEFAULT_RELATIVE_PERIODS_PAGE_FILTER,
   DEFAULT_STATS_PERIOD,
 } from 'sentry/constants';
+import {IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -59,7 +60,7 @@ type Props = {
   /**
    * Override defaults from DEFAULT_RELATIVE_PERIODS_PAGE_FILTER
    */
-  relativeOptions?: Record<string, React.ReactNode>;
+  relativeOptions?: Record<string, React.ReactChild>;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -85,7 +86,9 @@ function DatePageFilter({
   showRelative = true,
 }: Props) {
   const organization = useOrganization();
-  const {selection} = useLegacyStore(PageFiltersStore);
+  const {selection, pinnedFilters} = useLegacyStore(PageFiltersStore);
+
+  const isDatePinned = pinnedFilters.has('datetime');
 
   const getStartFromRelativePeriod = () => {
     return defaultAbsolute?.start
@@ -218,65 +221,93 @@ function DatePageFilter({
     handleUpdate(newDateTime);
   };
 
+  const handlePinClick = () => {
+    pinFilter('datetime', !isDatePinned);
+  };
+
   return (
-    <ButtonBar merged>
-      {showRelative &&
-        Object.entries(relativeOptions ?? DEFAULT_RELATIVE_PERIODS_PAGE_FILTER).map(
-          ([value, label]) => (
-            <RelativePeriodButton
-              key={value}
-              selected={value === selection.datetime.period}
-              onClick={() => handleSelectRelative(value)}
-            >
-              {label}
-            </RelativePeriodButton>
-          )
-        )}
-      {showAbsolute && (
-        <CustomDateOption>
-          <DropdownMenu keepMenuOpen onClose={handleCloseDateSelector}>
-            {({isOpen, getActorProps, getMenuProps, actions}) => (
-              <React.Fragment>
-                <CustomPeriodButton
-                  isOpen={isOpen}
-                  {...getActorProps()}
-                  selected={!selection.datetime.period}
-                  showRelative={showRelative}
-                >
-                  {getDateSummary()}
-                </CustomPeriodButton>
-                <Content
-                  {...getMenuProps()}
-                  alignMenu="right"
-                  width="350px"
-                  isOpen={isOpen}
-                  blendCorner
-                >
-                  <DateRangeHook
-                    start={selectedTimePeriod.start ?? getStartFromRelativePeriod()}
-                    end={selectedTimePeriod.end ?? getEndFromRelativePeriod()}
-                    organization={organization}
-                    showTimePicker
-                    utc={selectedTimePeriod.utc}
-                    onChange={handleChangeDateRange}
-                    onChangeUtc={handleUseUtc}
-                    maxPickableDays={maxPickableDays}
-                  />
-                  <SubmitRow>
-                    <MultipleSelectorSubmitRow
-                      onSubmit={actions.close}
-                      disabled={!hasChanges || hasDateErrors}
+    <DateSelectorContainer>
+      <ButtonBar merged>
+        {showRelative &&
+          Object.entries(relativeOptions ?? DEFAULT_RELATIVE_PERIODS_PAGE_FILTER).map(
+            ([value, label]) => (
+              <RelativePeriodButton
+                key={value}
+                selected={value === selection.datetime.period}
+                onClick={() => handleSelectRelative(value)}
+              >
+                {label}
+              </RelativePeriodButton>
+            )
+          )}
+        {showAbsolute && (
+          <CustomDateOption>
+            <DropdownMenu keepMenuOpen onClose={handleCloseDateSelector}>
+              {({isOpen, getActorProps, getMenuProps, actions}) => (
+                <React.Fragment>
+                  <CustomPeriodButton
+                    isOpen={isOpen}
+                    {...getActorProps()}
+                    selected={!selection.datetime.period}
+                    showRelative={showRelative}
+                  >
+                    {getDateSummary()}
+                  </CustomPeriodButton>
+                  <Content
+                    {...getMenuProps()}
+                    alignMenu="right"
+                    width="350px"
+                    isOpen={isOpen}
+                    blendCorner
+                  >
+                    <DateRangeHook
+                      start={selectedTimePeriod.start ?? getStartFromRelativePeriod()}
+                      end={selectedTimePeriod.end ?? getEndFromRelativePeriod()}
+                      organization={organization}
+                      showTimePicker
+                      utc={selectedTimePeriod.utc}
+                      onChange={handleChangeDateRange}
+                      onChangeUtc={handleUseUtc}
+                      maxPickableDays={maxPickableDays}
                     />
-                  </SubmitRow>
-                </Content>
-              </React.Fragment>
-            )}
-          </DropdownMenu>
-        </CustomDateOption>
-      )}
-    </ButtonBar>
+                    <SubmitRow>
+                      <MultipleSelectorSubmitRow
+                        onSubmit={actions.close}
+                        disabled={!hasChanges || hasDateErrors}
+                      />
+                    </SubmitRow>
+                  </Content>
+                </React.Fragment>
+              )}
+            </DropdownMenu>
+          </CustomDateOption>
+        )}
+      </ButtonBar>
+      <PinButton
+        aria-pressed={isDatePinned}
+        aria-label={t('Pin')}
+        onClick={handlePinClick}
+        size="zero"
+        icon={<IconPin size="xs" isSolid={isDatePinned} />}
+        borderless
+      />
+    </DateSelectorContainer>
   );
 }
+
+const DateSelectorContainer = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  align-items: center;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+`;
+
+const PinButton = styled(Button)`
+  display: block;
+  color: ${p => p.theme.gray300};
+  background: transparent;
+`;
 
 const RelativePeriodButton = styled(Button)<{selected?: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};

@@ -109,10 +109,11 @@ class RepositoryMixin:
     def has_repo_access(self, repo: Repository) -> bool:
         raise NotImplementedError
 
-    def get_codeowner_file(self, repo: Repository, ref: str | None = None) -> Mapping[str, str]:
+    def get_codeowner_file(
+        self, repo: Repository, ref: str | None = None
+    ) -> Mapping[str, str] | None:
         """
         Find and get the contents of a CODEOWNERS file.
-        Should use client().get_file to get and decode the contents.
 
         args:
          * repo - Repository object
@@ -123,4 +124,15 @@ class RepositoryMixin:
          * filepath - full path of the file i.e. CODEOWNERS, .github/CODEOWNERS, docs/CODEOWNERS
          * raw - the decoded raw contents of the codeowner file
         """
-        raise NotImplementedError
+        if self.codeowners_locations is None:
+            raise Exception("Implement self.codeowners_locations to use this method.")
+
+        for filepath in self.codeowners_locations:
+            html_url = self.check_file(repo, filepath, ref)
+            if html_url:
+                try:
+                    contents = self.get_client().get_file(repo, filepath, ref)
+                except ApiError:
+                    continue
+                return {"filepath": filepath, "html_url": html_url, "raw": contents}
+        return None

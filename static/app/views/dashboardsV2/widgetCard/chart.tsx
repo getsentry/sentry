@@ -18,6 +18,7 @@ import {getSeriesSelection, processTableResults} from 'sentry/components/charts/
 import WorldMapChart from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -122,6 +123,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           metadata={result.meta}
           data={result.data}
           organization={organization}
+          stickyHeaders
         />
       );
     });
@@ -208,7 +210,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
             preserveAspectRatio="xMinYMin meet"
           >
             <foreignObject x="0" y="0" width="100%" height="100%">
-              {rendered}
+              <Tooltip title={rendered} showOnlyOnOverflow>
+                {rendered}
+              </Tooltip>
             </foreignObject>
           </svg>
         </BigNumber>

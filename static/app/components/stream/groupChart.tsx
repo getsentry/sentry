@@ -60,32 +60,33 @@ function GroupChart({
     series.push({
       seriesName: t('Events'),
       data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
-      markLine: showMarkLine
-        ? MarkLine({
-            silent: true,
-            lineStyle: {color: theme.gray200, type: 'solid', width: 1},
-            data: [
-              {
-                type: 'max',
+      markLine:
+        showMarkLine && Math.max(...markLinePoint) > 0
+          ? MarkLine({
+              silent: true,
+              lineStyle: {color: theme.gray200, type: 'dotted', width: 1},
+              data: [
+                {
+                  type: 'max',
+                },
+              ],
+              label: {
+                show: true,
+                position: 'start',
+                color: `${theme.gray200}`,
+                fontFamily: 'Rubik',
+                fontSize: 10,
+                formatter: `${formattedMarkLine}`,
               },
-            ],
-            label: {
-              show: true,
-              position: 'start',
-              color: `${theme.gray200}`,
-              fontFamily: 'Rubik',
-              fontSize: 10,
-              formatter: `${formattedMarkLine}`,
-            },
-          })
-        : undefined,
+            })
+          : undefined,
     });
   }
 
   return (
     <LazyLoad debounce={50} height={showMarkLine ? 30 : height}>
       <MiniBarChart
-        height={showMarkLine ? 30 : height}
+        height={showMarkLine ? 36 : height}
         isGroupedByDate
         showTimeInTooltip
         series={series}

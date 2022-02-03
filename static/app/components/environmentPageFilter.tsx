@@ -32,12 +32,11 @@ function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
     setSelectedEnvironments(environments);
   };
 
-  const handleUpdateEnvironments = () => {
-    updateEnvironments(selectedEnvironments, router, {
+  const handleUpdateEnvironments = (quickSelectedEnvs?: string[]) => {
+    updateEnvironments(quickSelectedEnvs ?? selectedEnvironments, router, {
       save: true,
       resetParams: resetParamsOnChange,
     });
-    setSelectedEnvironments(null);
   };
 
   const customDropdownButton = ({isOpen, getActorProps, summary}) => {
@@ -45,7 +44,7 @@ function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
       <StyledDropdownButton isOpen={isOpen} {...getActorProps()}>
         <DropdownTitle>
           <IconWindow />
-          {summary}
+          <TitleContainer>{summary}</TitleContainer>
         </DropdownTitle>
       </StyledDropdownButton>
     );
@@ -81,12 +80,19 @@ const StyledDropdownButton = styled(DropdownButton)`
   height: 40px;
 `;
 
-const DropdownTitle = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
-  align-items: center;
+const TitleContainer = styled('div')`
+  overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1 1 0%;
+  margin-left: ${space(1)};
+`;
+
+const DropdownTitle = styled('div')`
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  flex: 1;
 `;
 
 export default withRouter(EnvironmentPageFilter);

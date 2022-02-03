@@ -26,8 +26,8 @@ type Props = WithRouterProps & {
   value: number[];
   projects: Project[];
   nonMemberProjects: Project[];
-  onChange: (selected: number[]) => unknown;
-  onUpdate: () => unknown;
+  onChange: (selected: number[]) => void;
+  onUpdate: (newProjects?: number[]) => void;
   isGlobalSelectionReady?: boolean;
   disableMultipleProjectSelection?: boolean;
   shouldForceProject?: boolean;
@@ -42,6 +42,7 @@ type Props = WithRouterProps & {
     isOpen: boolean;
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  pinned?: boolean;
 };
 
 type State = {
@@ -64,9 +65,12 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     );
   }
 
-  // Reset "hasChanges" state and call `onUpdate` callback
-  doUpdate = () => {
-    this.setState({hasChanges: false}, this.props.onUpdate);
+  /**
+   * Reset "hasChanges" state and call `onUpdate` callback
+   * @param value optional parameter that will be passed to onUpdate callback
+   */
+  doUpdate = (value?: number[]) => {
+    this.setState({hasChanges: false}, () => this.props.onUpdate(value));
   };
 
   /**
@@ -92,7 +96,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     });
     const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
     this.props.onChange(value);
-    this.doUpdate();
+    this.doUpdate(value);
   };
 
   /**
@@ -204,6 +208,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       footerMessage,
       customDropdownButton,
       customLoadingIndicator,
+      pinned,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -290,6 +295,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 message={footerMessage}
               />
             )}
+            pinned={pinned}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
               if (customDropdownButton) {

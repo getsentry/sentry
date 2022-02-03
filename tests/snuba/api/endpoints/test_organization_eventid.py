@@ -1,6 +1,5 @@
-from unittest.mock import patch
-
 from django.urls import NoReverseMatch, reverse
+from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -49,19 +48,16 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 404, response.content
 
-    @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited",
-        autospec=True,
-        return_value=True,
-    )
-    def test_ratelimit(self, is_limited):
+    def test_ratelimit(self):
         url = reverse(
             "sentry-api-0-event-id-lookup",
             kwargs={"organization_slug": self.org.slug, "event_id": self.event.event_id},
         )
-        resp = self.client.get(url, format="json")
-
-        assert resp.status_code == 429
+        with freeze_time("2000-01-01"):
+            for i in range(10):
+                self.client.get(url, format="json")
+            resp = self.client.get(url, format="json")
+            assert resp.status_code == 429
 
     def test_invalid_event_id(self):
         with self.assertRaises(NoReverseMatch):

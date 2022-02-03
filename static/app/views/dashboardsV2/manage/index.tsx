@@ -27,6 +27,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
+import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
@@ -229,9 +230,19 @@ class ManageDashboards extends AsyncView<Props, State> {
     trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
       organization,
       dashboard_id: dashboard.id,
+      dashboard_title: dashboard.title,
+      was_previewed: false,
     });
 
-    await createDashboard(api, organization.slug, dashboard, true);
+    await createDashboard(
+      api,
+      organization.slug,
+      {
+        ...dashboard,
+        widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
+      },
+      true
+    );
     this.onDashboardsChange();
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
   }
