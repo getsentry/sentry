@@ -73,9 +73,10 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:
         if not self.user_id_team_lookup:
-            self.user_id_team_lookup = OrganizationMember.objects.get_teams_by_user(
+            lookup: Mapping[int, list[int]] = OrganizationMember.objects.get_teams_by_user(
                 self.organization
             )
+            self.user_id_team_lookup = lookup
         return self.user_id_team_lookup
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -105,9 +106,10 @@ class ReleaseActivityNotification(ActivityNotification):
         else:
             team_ids = [recipient.id]
 
-        return Project.objects.get_for_team_ids(team_ids).filter(
+        projects: set[Project] = Project.objects.get_for_team_ids(team_ids).filter(
             id__in={p.id for p in self.projects}
         )
+        return projects
 
     def get_recipient_context(
         self, recipient: Team | User, extra_context: Mapping[str, Any]
