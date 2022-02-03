@@ -1,4 +1,4 @@
-from .avatar import AvatarBase
+from .base import AvatarBase
 from .doc_integration_avatar import DocIntegrationAvatar
 from .organization_avatar import OrganizationAvatar
 from .project_avatar import ProjectAvatar
