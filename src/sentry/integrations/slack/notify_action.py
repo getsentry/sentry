@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Generator, Optional, Sequence, Tuple
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -9,8 +9,9 @@ from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.rules import EventState, RuleFuture
 from sentry.rules.actions.base import IntegrationEventAction
-from sentry.rules.processor import RuleFuture
+from sentry.rules.base import CallbackFuture
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -53,7 +54,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
         # in the task (integrations/slack/tasks.py) if the channel_id is found.
         self._pending_save = False
 
-    def clean(self) -> Mapping[str, Any]:
+    def clean(self) -> Dict[str, Any]:
         channel_id = (
             self.data.get("inputChannelId")
             or self.data.get("input_channel_id")
@@ -77,7 +78,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
 
-        cleaned_data: MutableMapping[str, Any] = super().clean()
+        cleaned_data: Dict[str, Any] = super().clean()
 
         workspace: Optional[int] = cleaned_data.get("workspace")
 
@@ -159,7 +160,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
         return cleaned_data
 
 
-class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
+class SlackNotifyServiceAction(IntegrationEventAction):
     form_cls = SlackNotifyServiceForm
     label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
     prompt = "Send a Slack notification"
@@ -178,7 +179,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
             "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
         }
 
-    def after(self, event: Event, state: str) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 

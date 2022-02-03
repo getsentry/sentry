@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 from collections import OrderedDict
+from typing import Any
 
 from django import forms
 
 from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
+from sentry.eventstore.models import Event
+from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 
 LEVEL_CHOICES = OrderedDict(
@@ -25,7 +30,7 @@ MATCH_CHOICES = OrderedDict(
 )
 
 
-class LevelEventForm(forms.Form):
+class LevelEventForm(forms.Form):  # type: ignore
     level = forms.ChoiceField(choices=list(LEVEL_CHOICES.items()))
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
 
@@ -38,18 +43,18 @@ class LevelCondition(EventCondition):
         "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
     }
 
-    def passes(self, event, state, **kwargs):
-        desired_level = self.get_option("level")
+    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
+        desired_level_raw = self.get_option("level")
         desired_match = self.get_option("match")
 
-        if not (desired_level and desired_match):
+        if not (desired_level_raw and desired_match):
             return False
 
-        desired_level = int(desired_level)
+        desired_level = int(desired_level_raw)
         # Fetch the event level from the tags since event.level is
         # event.group.level which may have changed
         try:
-            level = LOG_LEVELS_MAP[event.get_tag("level")]
+            level: int = LOG_LEVELS_MAP[event.get_tag("level")]
         except KeyError:
             return False
 
@@ -61,7 +66,7 @@ class LevelCondition(EventCondition):
             return level <= desired_level
         return False
 
-    def render_label(self):
+    def render_label(self) -> str:
         data = {
             "level": LEVEL_CHOICES[self.data["level"]],
             "match": MATCH_CHOICES[self.data["match"]],
