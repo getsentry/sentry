@@ -232,6 +232,8 @@ class Actions extends React.Component<Props, State> {
 
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
+    const hasEventsMemberAdmin =
+      !organization.eventsMemberAdmin && organization.role === 'member';
 
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
@@ -268,7 +270,7 @@ class Actions extends React.Component<Props, State> {
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
         <DeleteAction
-          disabled={disabled}
+          disabled={disabled || hasEventsMemberAdmin}
           organization={organization}
           project={project}
           onDelete={this.onDelete}
