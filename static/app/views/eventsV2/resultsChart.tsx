@@ -58,9 +58,6 @@ class ResultsChart extends Component<ResultsChartProps> {
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
     );
-    const hasConnectDiscoverAndDashboards = organization.features.includes(
-      'connect-discover-and-dashboards'
-    );
 
     const globalSelection = eventView.getPageFilters();
     const start = globalSelection.datetime.start
@@ -86,7 +83,7 @@ class ResultsChart extends Component<ResultsChartProps> {
         ? WorldMapChart
         : display === DisplayModes.BAR
         ? BarChart
-        : hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
+        : yAxisValue.length > 1 && !isDaily
         ? AreaChart
         : undefined;
     const interval =
@@ -187,9 +184,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
     } = this.props;
 
     const hasQueryFeature = organization.features.includes('discover-query');
-    const hasConnectDiscoverAndDashboards = organization.features.includes(
-      'connect-discover-and-dashboards'
-    );
     const displayOptions = eventView
       .getDisplayOptions()
       .filter(opt => {
@@ -202,9 +196,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
           ) &&
           !hasQueryFeature
         ) {
-          return false;
-        }
-        if (!hasConnectDiscoverAndDashboards && opt.value === DisplayModes.WORLDMAP) {
           return false;
         }
         return true;
@@ -231,7 +222,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
         return opt;
       });
 
-    const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
     let yAxisOptions = eventView.getYAxisOptions();
     // Hide multi y axis checkbox when in an unsupported Display Mode
     if (
@@ -256,7 +246,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
 
     return (
       <StyledPanel>
-        {(yAxisValue.length > 0 && (
+        {(yAxis.length > 0 && (
           <ResultsChart
             api={api}
             eventView={eventView}
@@ -264,13 +254,13 @@ class ResultsChartContainer extends Component<ContainerProps> {
             organization={organization}
             router={router}
             confirmedQuery={confirmedQuery}
-            yAxisValue={yAxisValue}
+            yAxisValue={yAxis}
           />
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
           organization={organization}
           total={total}
-          yAxisValue={yAxisValue}
+          yAxisValue={yAxis}
           yAxisOptions={yAxisOptions}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
