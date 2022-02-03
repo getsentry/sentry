@@ -3,7 +3,6 @@ from typing import Optional
 from django.db.models.signals import post_delete, post_save, pre_delete
 
 from sentry import tagstore
-from sentry.api.serializers.models.project import bulk_fetch_project_latest_releases
 from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProject
 from sentry.rules.filters.base import EventFilter
 from sentry.search.utils import get_latest_release
@@ -46,19 +45,20 @@ class LatestReleaseFilter(EventFilter):
         cache_key = get_project_release_cache_key(event.group.project_id, environment_id)
         latest_release = cache.get(cache_key)
         if latest_release is None:
+            organization_id = event.group.project.organization_id
             if environment_id:
-                environments = list(Environment.objects.filter(id=environment_id))
+                environments = [Environment.objects.get(id=environment_id)]
                 try:
-                    latest_release_ids = get_latest_release(
+                    latest_release_versions = get_latest_release(
                         [event.group.project],
                         environments,
-                        event.group.project.organization_id,
+                        organization_id,
                     )
                 except Release.DoesNotExist:
                     return None
-                latest_releases = list(Release.objects.filter(version=latest_release_ids[0]))
+                latest_releases = list(Release.objects.filter(version=latest_release_versions[0]))
             else:
-                latest_releases = bulk_fetch_project_latest_releases([event.group.project])
+                latest_releases = get_latest_release([event.group.project], None, organization_id)
             if latest_releases:
                 cache.set(cache_key, latest_releases[0], 600)
                 return latest_releases[0]
