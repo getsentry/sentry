@@ -1,4 +1,5 @@
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -572,10 +573,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.add_widget_through_dashboard("D")
             self.page.wait_until_loaded()
 
-            self.browser.snapshot(
-                "dashboards - pre save position when adding multiple widgets through Add Widget tile in edit"
-            )
-
             self.page.save_dashboard()
             self.capture_screenshots(
                 "dashboards - position when adding multiple widgets through Add Widget tile in edit"
@@ -596,10 +593,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.add_widget_through_dashboard("D")
             self.page.wait_until_loaded()
 
-            self.browser.snapshot(
-                "dashboards - pre save position when adding multiple widgets through Add Widget tile in create"
-            )
-
             self.page.save_dashboard()
 
             # Wait for page redirect, or else loading check passes too early
@@ -613,6 +606,54 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots(
                 "dashboards - position when adding multiple widgets through Add Widget tile in create"
             )
+
+    def test_deleting_stacked_widgets_by_context_menu_does_not_trigger_confirm_on_edit_cancel(
+        self,
+    ):
+        layouts = [{"x": 0, "y": 0, "w": 2, "h": 2}, {"x": 0, "y": 2, "w": 2, "h": 2}]
+        existing_widgets = DashboardWidget.objects.bulk_create(
+            [
+                DashboardWidget(
+                    dashboard=self.dashboard,
+                    order=i,
+                    title=f"Existing Widget {i}",
+                    display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    interval="1d",
+                    detail={"layout": layout},
+                )
+                for i, layout in enumerate(layouts)
+            ]
+        )
+        DashboardWidgetQuery.objects.bulk_create(
+            DashboardWidgetQuery(widget=widget, fields=["count()"], order=0)
+            for widget in existing_widgets
+        )
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+
+            delete_widget_menu_item = self.browser.element('[data-test-id="delete-widget"]')
+            delete_widget_menu_item.click()
+
+            confirm_button = self.browser.element('[data-test-id="confirm-button"]')
+            confirm_button.click()
+
+            wait = WebDriverWait(self.browser.driver, 5)
+            wait.until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//*[contains(text(),'Dashboard updated')]")
+                )
+            )
+
+            # Should not trigger confirm dialog
+            self.page.enter_edit_state()
+            self.page.click_cancel_button()
+            wait.until_not(EC.alert_is_present())
 
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
