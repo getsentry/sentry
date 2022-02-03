@@ -205,15 +205,14 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             # This test is flakey in that we sometimes load this page before the event is processed
             # depend on pytest-retry to reload the page
-            self.browser.wait_until_not(
-                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
-            )
+            self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
             self.browser.snapshot("events-v2 - all events query - list")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
             self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
+            self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
             self.browser.snapshot("events-v2 - all events query - list - no tags")
 
     def test_errors_query_empty_state(self):
