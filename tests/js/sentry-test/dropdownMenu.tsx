@@ -1,5 +1,5 @@
 import {act} from 'react-dom/test-utils';
-import {ReactWrapper} from 'enzyme';
+import {ReactWrapper} from 'enzyme'; // eslint-disable-line no-restricted-imports
 
 import {triggerPress} from 'sentry-test/utils';
 
