@@ -168,7 +168,7 @@ const SearchContainer = styled('div')<{
 const ProjectEnvironmentFilters = styled('div')`
   display: grid;
   gap: ${space(1)};
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 `;
 
 const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`

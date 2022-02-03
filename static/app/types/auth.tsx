@@ -148,8 +148,11 @@ export type UserIdentityConfig = {
   category: UserIdentityCategory;
   id: string;
   provider: UserIdentityProvider;
+  name: string;
   status: UserIdentityStatus;
   isLogin: boolean;
   organization: Organization | null;
-  dateAdded: string;
+  dateAdded: string | null;
+  dateVerified: string | null;
+  dateSynced: string | null;
 };

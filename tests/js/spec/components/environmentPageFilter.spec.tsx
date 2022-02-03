@@ -29,11 +29,14 @@ describe('EnvironmentPageFilter', function () {
   beforeEach(() => {
     act(() => {
       PageFiltersStore.reset();
-      PageFiltersStore.onInitializeUrlState({
-        projects: [2],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      });
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [2],
+          environments: [],
+          datetime: {start: null, end: null, period: '14d', utc: null},
+        },
+        new Set()
+      );
     });
   });
 
