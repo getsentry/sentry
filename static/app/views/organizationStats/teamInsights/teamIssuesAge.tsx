@@ -130,6 +130,7 @@ class TeamIssuesAge extends AsyncComponent<Props, State> {
                   seriesName: t('Unresolved Issues'),
                   silent: true,
                   data: seriesData,
+                  barCategoryGap: '5%',
                 },
               ]}
             />
@@ -137,7 +138,7 @@ class TeamIssuesAge extends AsyncComponent<Props, State> {
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={!oldestIssues || oldestIssues.length === 0}
-          emptyMessage={t("No Unresolved Issues For This Team's Projects")}
+          emptyMessage={t('No unresolved issues for this team’s projects')}
           headers={[
             t('Oldest Issues'),
             <RightAligned key="events">{t('Events')}</RightAligned>,

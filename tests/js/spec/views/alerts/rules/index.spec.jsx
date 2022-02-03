@@ -176,11 +176,11 @@ describe('OrganizationRuleList', () => {
 
     const {rerender} = createWrapper({organization: noAccessOrg});
 
-    expect(await screen.findByLabelText('Create Alert Rule')).toBeDisabled();
+    expect(await screen.findByLabelText('Create Alert')).toBeDisabled();
 
     // Enabled with access
     rerender(getComponent());
-    expect(await screen.findByLabelText('Create Alert Rule')).toBeEnabled();
+    expect(await screen.findByLabelText('Create Alert')).toBeEnabled();
   });
 
   it('searches by name', async () => {

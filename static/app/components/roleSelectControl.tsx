@@ -67,7 +67,7 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
 const RoleItem = styled('div')`
   display: grid;
   grid-template-columns: 80px 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 
   h1,
   div {

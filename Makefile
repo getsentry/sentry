@@ -29,7 +29,23 @@ setup-pyenv:
 
 build-js-po: node-version-check
 	mkdir -p build
+	rm -rf node_modules/.cache/babel-loader
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
+
+build-spectacular-docs:
+	@echo "--> Building drf-spectacular openapi spec (combines with deprecated docs)"
+	@OPENAPIGENERATE=1 sentry django spectacular --file tests/apidocs/openapi-spectacular.json --format openapi-json --validate --fail-on-warn
+
+build-deprecated-docs:
+	@echo "--> Building deprecated openapi spec from json files"
+	yarn build-deprecated-docs
+
+build-api-docs: build-deprecated-docs build-spectacular-docs
+	@echo "--> Dereference the json schema for ease of use"
+	yarn deref-api-docs
+
+watch-api-docs:
+	@node api-docs/watch.js
 
 build: locale
 
@@ -39,17 +55,24 @@ merge-locale-catalogs: build-js-po
 	./bin/merge-catalogs en
 
 compile-locale:
+	$(PIP) install Babel
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
-locale: merge-locale-catalogs compile-locale
-
-sync-transifex: merge-locale-catalogs
+install-transifex:
 	$(PIP) install transifex-client
+
+push-transifex: merge-locale-catalogs install-transifex
 	tx push -s
+
+pull-transifex: install-transifex
 	tx pull -a
 
-update-transifex: sync-transifex compile-locale
+# Update transifex with new strings that need to be translated
+update-transifex: push-transifex
+
+# Pulls new translations from transifex and compiles for usage
+update-local-locales: pull-transifex compile-locale
 
 build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
@@ -104,7 +127,7 @@ test-python-ci:
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 backend-typing:
@@ -137,10 +160,7 @@ test-relay-integration:
 	pytest tests/relay_integration -vv
 	@echo ""
 
-test-api-docs:
-	@echo "--> Generating testing api doc schema"
-	yarn run build-derefed-docs
-	@echo "--> Validating endpoints' examples against schemas"
+test-api-docs: build-api-docs
 	yarn run validate-api-examples
 	pytest tests/apidocs/endpoints
 	@echo ""

@@ -26,7 +26,7 @@ export default BuildStep;
 
 const StyledListItem = styled(ListItem)`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const Description = styled('h4')`
@@ -41,7 +41,7 @@ const SubDescription = styled('div')`
 
 const Header = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
 `;
 
 const Content = styled('div')`

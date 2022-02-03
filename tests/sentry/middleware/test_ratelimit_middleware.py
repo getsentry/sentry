@@ -1,22 +1,26 @@
+from time import time
 from unittest.mock import patch
 
+from before_after import before
 from django.conf import settings
+from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
+from django.urls import reverse
 from exam import fixture
 from freezegun import freeze_time
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import (
     RatelimitMiddleware,
-    above_rate_limit_check,
     get_rate_limit_key,
     get_rate_limit_value,
 )
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
-from sentry.testutils import TestCase
+from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -105,11 +109,6 @@ class RatelimitMiddlewareTest(TestCase):
         self.populate_sentry_app_request(request)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category == "org"
-
-    def test_above_rate_limit_check(self):
-
-        return_val = above_rate_limit_check("foo", RateLimit(10, 100))
-        assert return_val == dict(is_limited=False, current=1, limit=10, window=100)
 
     def test_get_rate_limit_key(self):
         # Import an endpoint
@@ -215,3 +214,93 @@ class TestGetRateLimitValue(TestCase):
             pass
 
         assert get_rate_limit_value("GET", TestEndpoint, "ip") is None
+
+
+class RateLimitHeaderTestEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    enforce_rate_limit = True
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(2, 100)}}
+
+    def inject_call(self):
+        return
+
+    def get(self, request):
+        self.inject_call()
+        return Response({"ok": True})
+
+
+class RaceConditionEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    enforce_rate_limit = False
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(40, 100)}}
+
+    def get(self, request):
+        return Response({"ok": True})
+
+
+urlpatterns = [
+    url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"),
+    url(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
+]
+
+
+@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
+class TestRatelimitHeader(APITestCase):
+
+    endpoint = "ratelimit-header-endpoint"
+
+    def test_header_counts(self):
+        """Ensure that the header remainder counts decrease properly"""
+        with freeze_time("2000-01-01"):
+            expected_reset_time = int(time() + 100)
+            response = self.get_success_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 1
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+            response = self.get_success_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+            response = self.get_error_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+            response = self.get_error_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+    @patch("sentry.ratelimits.utils.can_be_ratelimited")
+    def test_omit_header(self, can_be_ratelimited_patch):
+        """
+        Ensure that functions that can't be rate limited don't have rate limit headers
+
+        These functions include, but are not limited to:
+            - UI Statistics Endpoints
+            - Endpoints that don't inherit api.base.Endpoint
+        """
+        can_be_ratelimited_patch.return_value = False
+        response = self.get_response()
+        assert "X-Sentry-Rate-Limit-Remaining" not in response._headers
+        assert "X-Sentry-Rate-Limit-Limit" not in response._headers
+        assert "X-Sentry-Rate-Limit-Reset" not in response._headers
+
+    def test_header_race_condition(self):
+        """Make sure concurrent requests don't affect each other's rate limit"""
+
+        def parallel_request(*args, **kwargs):
+            self.client.get(reverse("race-condition-endpoint"))
+
+        with before(
+            "tests.sentry.middleware.test_ratelimit_middleware.RateLimitHeaderTestEndpoint.inject_call",
+            parallel_request,
+        ):
+            response = self.get_success_response()
+
+        assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 1
+        assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2

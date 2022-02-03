@@ -9,11 +9,13 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, SelectValue} from 'sentry/types';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
+  isEquation,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -24,17 +26,24 @@ import WidgetQueryFields from './widgetQueryFields';
 
 const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   const options: SelectValue<string>[] = [];
+  let equations = 0;
   fields.forEach(field => {
-    const alias = getAggregateAlias(field);
-    options.push({label: t('%s asc', field), value: alias});
-    options.push({label: t('%s desc', field), value: `-${alias}`});
+    let alias = getAggregateAlias(field);
+    const label = stripEquationPrefix(field);
+    // Equations are referenced via a standard alias following this pattern
+    if (isEquation(field)) {
+      alias = `equation[${equations}]`;
+      equations += 1;
+    }
+    options.push({label: t('%s asc', label), value: alias});
+    options.push({label: t('%s desc', label), value: `-${alias}`});
   });
   return options;
 };
 
 type Props = {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   displayType: Widget['displayType'];
   queries: WidgetQuery[];
   errors?: Array<Record<string, any>>;
@@ -152,7 +161,7 @@ class WidgetQueriesForm extends React.Component<Props> {
                     }}
                     icon={<IconDelete />}
                     title={t('Remove query')}
-                    label={t('Remove query')}
+                    aria-label={t('Remove query')}
                   />
                 )}
               </SearchConditionsWrapper>

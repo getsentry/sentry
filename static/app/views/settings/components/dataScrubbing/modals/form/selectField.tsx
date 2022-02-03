@@ -70,5 +70,5 @@ const Description = styled('div')`
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;

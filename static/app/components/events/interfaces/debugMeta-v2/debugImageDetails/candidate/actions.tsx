@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import Button from 'sentry/components/button';
@@ -62,7 +62,7 @@ function Actions({
                 caret={false}
                 customTitle={
                   <ActionButton
-                    label={t('Actions')}
+                    aria-label={t('Actions')}
                     disabled={deleted}
                     icon={<IconEllipsis size="sm" />}
                   />
@@ -120,6 +120,7 @@ function Actions({
                       icon={<IconDelete size="xs" />}
                       size="xsmall"
                       disabled={!hasAccess}
+                      aria-label={t('Delete')}
                     />
                   </Confirm>
                 </Tooltip>

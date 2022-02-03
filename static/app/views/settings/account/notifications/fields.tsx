@@ -13,7 +13,7 @@ export type FineTuneField = {
 // TODO: clean up unused fields
 export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   alerts: {
-    title: 'Project Alerts',
+    title: 'Issue Alert Notifications',
     description: t(
       'Notifications from Alert Rules that your team has setup. You’ll always receive notifications from Alerts configured to be sent directly to you.'
     ),
@@ -73,6 +73,15 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   approval: {
     title: t('Approvals'),
     description: t('Notifications from teammates that require review or approval.'),
+    type: 'select',
+    // No choices here because it's going to have dynamic content
+    // Component will create choices,
+  },
+  quota: {
+    title: t('Quota Notifications'),
+    description: t(
+      'Control the notifications you receive for error, transaction, and attachment quota limits.'
+    ),
     type: 'select',
     // No choices here because it's going to have dynamic content
     // Component will create choices,

@@ -208,7 +208,7 @@ class AdminUserEdit extends AsyncView<Props, State> {
 const ModalFooter = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-content: end;
   padding: 20px 30px;
   margin: 20px -30px -30px;

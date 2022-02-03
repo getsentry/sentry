@@ -363,6 +363,7 @@ class AlertRule(Model):
     include_all_projects = models.BooleanField(default=False)
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
+    # How many times an alert value must exceed the threshold to fire/resolve the alert
     threshold_period = models.IntegerField()
     # This represents a time delta, in seconds. If not null, this is used to determine which time
     # window to query to compare the result from the current time_window to.
@@ -375,12 +376,6 @@ class AlertRule(Model):
         db_table = "sentry_alertrule"
         base_manager_name = "objects_with_snapshots"
         default_manager_name = "objects_with_snapshots"
-        # This constraint does not match what is in migration 0061, since there is no
-        # way to declare an index on an expression. Therefore, tests would break depending
-        # on whether we run migrations - to work around this, we skip some tests if
-        # migrations have not been run. In migration 0061, this index is set to
-        # a partial index where status=0
-        unique_together = (("organization", "name", "status"),)
 
     __repr__ = sane_repr("id", "name", "date_added")
 

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {HTMLProps, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {HeaderTitle} from 'sentry/styles/organization';
@@ -6,63 +6,63 @@ import space from 'sentry/styles/space';
 
 type Props = {
   // Icon left of title
-  icon?: React.ReactNode;
+  icon?: ReactNode;
 
   // The title
-  title: React.ReactNode;
-  subtitle?: React.ReactNode;
+  title: ReactNode;
+  subtitle?: ReactNode;
 
   // Disables font styles in the title. Allows for more custom titles.
   noTitleStyles?: boolean;
   className?: string;
 
   // CTA button
-  action?: React.ReactNode;
+  action?: ReactNode;
 
-  body?: React.ReactNode;
+  body?: ReactNode;
 
-  tabs?: React.ReactNode;
+  tabs?: ReactNode;
 };
 
-class UnstyledSettingsPageHeader extends React.Component<Props> {
-  static defaultProps = {
-    noTitleStyles: false,
-  };
+function UnstyledSettingsPageHeader({
+  icon,
+  title,
+  subtitle,
+  action,
+  body,
+  tabs,
+  noTitleStyles = false,
+  ...props
+}: Props) {
+  // If Header is narrow, use align-items to center <Action>.
+  // Otherwise, use a fixed margin to prevent an odd alignment.
+  // This is needed as Actions could be a button or a dropdown.
+  const isNarrow = !subtitle;
 
-  render() {
-    const {icon, title, subtitle, action, tabs, noTitleStyles, body, ...props} =
-      this.props;
+  return (
+    <div {...props}>
+      <TitleAndActions isNarrow={isNarrow}>
+        <TitleWrapper>
+          {icon && <Icon>{icon}</Icon>}
+          {title && (
+            <Title tabs={tabs} styled={noTitleStyles}>
+              <HeaderTitle>{title}</HeaderTitle>
+              {subtitle && <Subtitle>{subtitle}</Subtitle>}
+            </Title>
+          )}
+        </TitleWrapper>
+        {action && <Action isNarrow={isNarrow}>{action}</Action>}
+      </TitleAndActions>
 
-    // If Header is narrow, use align-items to center <Action>.
-    // Otherwise, use a fixed margin to prevent an odd alignment.
-    // This is needed as Actions could be a button or a dropdown.
-    const isNarrow = !subtitle;
-
-    return (
-      <div {...props}>
-        <TitleAndActions isNarrow={isNarrow}>
-          <TitleWrapper>
-            {icon && <Icon>{icon}</Icon>}
-            {title && (
-              <Title tabs={tabs} styled={noTitleStyles}>
-                <HeaderTitle>{title}</HeaderTitle>
-                {subtitle && <Subtitle>{subtitle}</Subtitle>}
-              </Title>
-            )}
-          </TitleWrapper>
-          {action && <Action isNarrow={isNarrow}>{action}</Action>}
-        </TitleAndActions>
-
-        {body && <BodyWrapper>{body}</BodyWrapper>}
-        {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
-      </div>
-    );
-  }
+      {body && <BodyWrapper>{body}</BodyWrapper>}
+      {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
+    </div>
+  );
 }
 
 type TitleProps = {
   styled?: boolean;
-  tabs?: React.ReactNode;
+  tabs?: ReactNode;
 };
 
 const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
@@ -93,7 +93,7 @@ const Action = styled('div')<{isNarrow?: boolean}>`
 `;
 
 const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
-  Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
+  Omit<HTMLProps<HTMLDivElement>, keyof Props> & Props
 >`
   font-size: 14px;
   margin-top: -${space(4)};

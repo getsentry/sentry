@@ -108,7 +108,7 @@ function Queries({
                   }}
                   icon={<IconDelete />}
                   title={t('Remove query')}
-                  label={t('Remove query')}
+                  aria-label={t('Remove query')}
                 />
               )}
             </Fields>
@@ -155,7 +155,7 @@ const fieldsColumns = (p: {
 const Fields = styled('div')<{displayDeleteButton: boolean; displayLegendAlias: boolean}>`
   display: grid;
   grid-template-columns: ${fieldsColumns};
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 

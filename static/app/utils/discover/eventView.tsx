@@ -9,11 +9,11 @@ import moment from 'moment';
 
 import {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'sentry/types';
+import {NewQuery, PageFilters, SavedQuery, SelectValue, User} from 'sentry/types';
 import {
   aggregateOutputType,
   Column,
@@ -58,11 +58,11 @@ export type MetaType = Record<string, ColumnType>;
 export type EventData = Record<string, any>;
 
 export type LocationQuery = {
-  start?: string | string[];
-  end?: string | string[];
-  utc?: string | string[];
-  statsPeriod?: string | string[];
-  cursor?: string | string[];
+  start?: string | string[] | null;
+  end?: string | string[] | null;
+  utc?: string | string[] | null;
+  statsPeriod?: string | string[] | null;
+  cursor?: string | string[] | null;
 };
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
@@ -181,7 +181,7 @@ const decodeSorts = (location: Location): Array<Sort> => {
   return fromSorts(sorts);
 };
 
-const encodeSort = (sort: Sort): string => {
+export const encodeSort = (sort: Sort): string => {
   switch (sort.kind) {
     case 'desc': {
       return `-${sort.field}`;
@@ -347,7 +347,7 @@ class EventView {
   }
 
   static fromLocation(location: Location): EventView {
-    const {start, end, statsPeriod} = getParams(location.query);
+    const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
 
     return new EventView({
       id: decodeScalar(location.query.id),
@@ -411,7 +411,7 @@ class EventView {
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
     const fields = EventView.getFields(saved);
     // normalize datetime selection
-    const {start, end, statsPeriod} = getParams({
+    const {start, end, statsPeriod} = normalizeDateTimeParams({
       start: saved.start,
       end: saved.end,
       statsPeriod: saved.range,
@@ -449,7 +449,7 @@ class EventView {
     location: Location
   ): EventView {
     let fields = decodeFields(location);
-    const {start, end, statsPeriod} = getParams(location.query);
+    const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
     const id = decodeScalar(location.query.id);
     const teams = decodeTeams(location);
     const projects = decodeProjects(location);
@@ -573,28 +573,28 @@ class EventView {
     return newQuery;
   }
 
-  getGlobalSelection(): GlobalSelection {
+  getPageFilters(): PageFilters {
     return {
       projects: this.project as number[],
       environments: this.environment as string[],
       datetime: {
         start: this.start ?? null,
         end: this.end ?? null,
-        period: this.statsPeriod ?? '',
-        // TODO(tony) Add support for the Use UTC option from
-        // the global headers, currently, that option is not
-        // supported and all times are assumed to be UTC
+        period: this.statsPeriod ?? null,
+        // TODO(tony) Add support for the Use UTC option from the global
+        // headers, currently, that option is not supported and all times are
+        // assumed to be UTC
         utc: true,
       },
     };
   }
 
-  getGlobalSelectionQuery(): Query {
+  getPageFiltersQuery(): Query {
     const {
       environments: environment,
       projects,
       datetime: {start, end, period, utc},
-    } = this.getGlobalSelection();
+    } = this.getPageFilters();
     return {
       project: projects.map(proj => proj.toString()),
       environment,
@@ -1083,7 +1083,7 @@ class EventView {
         };
 
     // normalize datetime selection
-    return getParams({
+    return normalizeDateTimeParams({
       ...dateSelection,
       utc: decodeScalar(query.utc),
     });

@@ -216,9 +216,9 @@ const DashboardGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
   grid-template-rows: repeat(3, max-content);
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
@@ -231,7 +231,7 @@ const WidgetGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-flow: row dense;
-  grid-gap: ${space(0.25)};
+  gap: ${space(0.25)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -20,6 +20,10 @@ class Feature:
     INCIDENT_MANAGEMENT = 5
     FEATURE_FLAG = 6
     ALERTS = 7
+    RELEASE_MANAGEMENT = 8
+    VISUALIZATION = 9
+    CHAT = 11
+    SESSION_REPLAY = 12
 
     @classmethod
     def as_choices(cls):
@@ -32,6 +36,10 @@ class Feature:
             (cls.INCIDENT_MANAGEMENT, "integrations-incident-management"),
             (cls.FEATURE_FLAG, "integrations-feature-flag"),
             (cls.ALERTS, "integrations-alert-rule"),
+            (cls.RELEASE_MANAGEMENT, "integrations-release-management"),
+            (cls.VISUALIZATION, "integrations-visualization"),
+            (cls.CHAT, "integrations-chat"),
+            (cls.SESSION_REPLAY, "integrations-session-replay"),
         )
 
     @classmethod
@@ -50,6 +58,14 @@ class Feature:
             return "integrations-feature-flag"
         if feature == cls.ALERTS:
             return "integrations-alert-rule"
+        if feature == cls.RELEASE_MANAGEMENT:
+            return "integrations-release-management"
+        if feature == cls.VISUALIZATION:
+            return "integrations-visualization"
+        if feature == cls.CHAT:
+            return "integrations-chat"
+        if feature == cls.SESSION_REPLAY:
+            return "integrations-session-replay"
         return "integrations-api"
 
     @classmethod
@@ -68,6 +84,14 @@ class Feature:
             return "%s allows organizations to **forward events to another service**." % name
         if feature == cls.ALERTS:
             return "Configure Sentry alerts to trigger notifications in %s." % name
+        if feature == cls.RELEASE_MANAGEMENT:
+            return "Notify Sentry of new releases being deployed in %s." % name
+        if feature == cls.VISUALIZATION:
+            return "Visualize Sentry data in %s." % name
+        if feature == cls.CHAT:
+            return "Get Sentry notifications in %s." % name
+        if feature == cls.SESSION_REPLAY:
+            return "Link Sentry errors to the session replay in %s." % name
         # default
         return (
             "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."
@@ -125,6 +149,25 @@ class IntegrationFeatureManager(BaseManager):
             )
             for feature in features
         }
+
+    def clean_update(
+        self,
+        incoming_features: List[int],
+        target: Union[SentryApp, DocIntegration],
+        target_type: IntegrationTypes,
+    ):
+        # Delete any unused features
+        IntegrationFeature.objects.filter(
+            target_id=target.id, target_type=target_type.value
+        ).exclude(feature__in=incoming_features).delete()
+
+        # Create any new features
+        for feature in incoming_features:
+            IntegrationFeature.objects.get_or_create(
+                target_id=target.id,
+                target_type=target_type.value,
+                feature=feature,
+            )
 
 
 class IntegrationFeature(Model):

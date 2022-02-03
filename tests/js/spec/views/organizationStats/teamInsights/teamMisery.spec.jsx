@@ -85,7 +85,7 @@ describe('TeamMisery', () => {
       {context: routerContext}
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(weekMisery).toHaveBeenCalledTimes(1);
     expect(periodMisery).toHaveBeenCalledTimes(1);
@@ -115,7 +115,7 @@ describe('TeamMisery', () => {
     );
 
     expect(
-      screen.getByText('No Key Transactions Starred By This Team')
+      screen.getByText('No key transactions starred by this team')
     ).toBeInTheDocument();
   });
 
@@ -137,7 +137,7 @@ describe('TeamMisery', () => {
       {context: routerContext}
     );
 
-    await waitForElementToBeRemoved(screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('There was an error loading data.')).toBeInTheDocument();
   });

@@ -60,7 +60,7 @@ export const ScorePanel = styled(Panel)`
 export const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   width: fit-content;
 `;
@@ -80,6 +80,7 @@ export const Score = styled('span')`
   flex-shrink: 1;
   font-size: 32px;
   line-height: 1;
+  color: ${p => p.theme.headingColor};
   white-space: nowrap;
 `;
 

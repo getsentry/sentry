@@ -16,7 +16,7 @@ export default BuildSteps;
 
 const StyledList = styled(List)`
   display: grid;
-  grid-gap: ${space(4)};
+  gap: ${space(4)};
   max-width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[4]}) {

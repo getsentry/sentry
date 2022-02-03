@@ -11,6 +11,7 @@ import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import space from 'sentry/styles/space';
 import {domId} from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
+import {isOverflown} from 'sentry/utils/tooltip';
 
 export const OPEN_DELAY = 50;
 
@@ -79,6 +80,11 @@ type Props = DefaultProps & {
    */
   forceShow?: boolean;
 
+  /**
+   * Only display the tooltip only if the content overflows
+   */
+  showOnlyOnOverflow?: boolean;
+
   className?: string;
 };
 
@@ -143,6 +149,7 @@ class Tooltip extends React.Component<Props, State> {
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
+  triggerEl: Element | null = null;
 
   getPortal = memoize((usesGlobalPortal): HTMLElement => {
     if (usesGlobalPortal) {
@@ -168,7 +175,11 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
-    const {delay} = this.props;
+    const {delay, showOnlyOnOverflow} = this.props;
+
+    if (this.triggerEl && showOnlyOnOverflow && !isOverflown(this.triggerEl)) {
+      return;
+    }
 
     if (this.delayHideTimeout) {
       window.clearTimeout(this.delayHideTimeout);
@@ -207,6 +218,13 @@ class Tooltip extends React.Component<Props, State> {
       onPointerLeave: this.handleClose,
     };
 
+    const setRef = el => {
+      if (typeof ref === 'function') {
+        ref(el);
+      }
+      this.triggerEl = el;
+    };
+
     // Use the `type` property of the react instance to detect whether we
     // have a basic element (type=string) or a class/function component (type=function or object)
     // Because we can't rely on the child element implementing forwardRefs we wrap
@@ -219,13 +237,13 @@ class Tooltip extends React.Component<Props, State> {
       // Basic DOM nodes can be cloned and have more props applied.
       return React.cloneElement(children, {
         ...propList,
-        ref,
+        ref: setRef,
       });
     }
 
     propList.containerDisplayMode = this.props.containerDisplayMode;
     return (
-      <Container {...propList} className={this.props.className} ref={ref}>
+      <Container {...propList} className={this.props.className} ref={setRef}>
         {children}
       </Container>
     );
@@ -328,8 +346,7 @@ const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
   background: ${p => p.theme.backgroundElevated};
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
-  border: solid 1px ${p => p.theme.border};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   overflow-wrap: break-word;
   max-width: 225px;
 
@@ -355,7 +372,7 @@ const TooltipArrow = styled('span')`
     position: absolute;
     width: 0;
     height: 0;
-    border: solid 7px transparent;
+    border: solid 6px transparent;
     z-index: -1;
   }
 
@@ -364,9 +381,9 @@ const TooltipArrow = styled('span')`
     margin-top: -12px;
     border-bottom-color: ${p => p.theme.backgroundElevated};
     &::before {
-      bottom: -6px;
-      left: -7px;
-      border-bottom-color: ${p => p.theme.border};
+      bottom: -5px;
+      left: -6px;
+      border-bottom-color: ${p => p.theme.translucentBorder};
     }
   }
 
@@ -375,9 +392,9 @@ const TooltipArrow = styled('span')`
     margin-bottom: -12px;
     border-top-color: ${p => p.theme.backgroundElevated};
     &::before {
-      top: -6px;
-      left: -7px;
-      border-top-color: ${p => p.theme.border};
+      top: -5px;
+      left: -6px;
+      border-top-color: ${p => p.theme.translucentBorder};
     }
   }
 
@@ -386,9 +403,9 @@ const TooltipArrow = styled('span')`
     margin-left: -12px;
     border-right-color: ${p => p.theme.backgroundElevated};
     &::before {
-      top: -7px;
-      right: -6px;
-      border-right-color: ${p => p.theme.border};
+      top: -6px;
+      right: -5px;
+      border-right-color: ${p => p.theme.translucentBorder};
     }
   }
 
@@ -397,9 +414,9 @@ const TooltipArrow = styled('span')`
     margin-right: -12px;
     border-left-color: ${p => p.theme.backgroundElevated};
     &::before {
-      top: -7px;
-      left: -6px;
-      border-left-color: ${p => p.theme.border};
+      top: -6px;
+      left: -5px;
+      border-left-color: ${p => p.theme.translucentBorder};
     }
   }
 `;

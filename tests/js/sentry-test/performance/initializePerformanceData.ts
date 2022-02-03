@@ -9,12 +9,14 @@ import {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
-export function initializeData(settings?: {
+export interface initializeDataSettings {
   query?: {};
   features?: string[];
   projects?: Project[];
   project?: Project;
-}) {
+}
+
+export function initializeData(settings?: initializeDataSettings) {
   const _defaultProject = TestStubs.Project();
   const _settings = {
     query: {},
@@ -51,6 +53,7 @@ export const SAMPLE_SPANS = [
   {
     op: 'op1',
     group: 'aaaaaaaaaaaaaaaa',
+    description: 'span-1',
     examples: [
       {
         id: 'abababababababab',
@@ -72,6 +75,7 @@ export const SAMPLE_SPANS = [
   {
     op: 'op2',
     group: 'bbbbbbbbbbbbbbbb',
+    description: 'span-4',
     examples: [
       {
         id: 'bcbcbcbcbcbcbcbc',
@@ -105,6 +109,7 @@ type ExampleOpt = {
 type SuspectOpt = {
   op: string;
   group: string;
+  description: string;
   examples: ExampleOpt[];
 };
 
@@ -130,14 +135,12 @@ function makeExample(opt: ExampleOpt): ExampleTransaction {
   };
 }
 
-function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
-  const {op, group, examples} = opt;
+export function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
+  const {op, group, description, examples} = opt;
   return {
-    projectId: 1,
-    project: 'bar',
-    transaction: 'transaction-1',
     op,
     group,
+    description,
     frequency: 1,
     count: 1,
     avgOccurrences: 1,

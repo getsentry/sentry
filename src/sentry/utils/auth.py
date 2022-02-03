@@ -17,7 +17,6 @@ logger = logging.getLogger("sentry.auth")
 
 _LOGIN_URL = None
 
-DEPRECATED_SSO_SESSION_KEY = "sso"
 from typing import Any, Dict, Mapping
 
 MFA_SESSION_KEY = "mfa"
@@ -187,7 +186,7 @@ def mark_sso_complete(request, organization_id):
     request.session.modified = True
 
 
-def has_completed_sso(request, organization_id):
+def has_completed_sso(request, organization_id) -> bool:
     """
     look for the org id under the sso session key, and check that the timestamp isn't past our expiry limit
     """
@@ -196,24 +195,20 @@ def has_completed_sso(request, organization_id):
     )
 
     if not sso_session_in_request:
-        # TODO: remove this old logic after two weeks
-        deprecated_sso = request.session.get(DEPRECATED_SSO_SESSION_KEY, "").split(",")
-        has_sso_session_for_org = str(organization_id) in deprecated_sso
-
-        metrics.incr(
-            "sso.deprecated-session-checked",
-            tags={"success": has_sso_session_for_org},
-            sample_rate=0.1,
-        )
-        return has_sso_session_for_org
+        metrics.incr("sso.no-value-in-session")
+        return False
 
     django_session_value = SsoSession.from_django_session_value(
         organization_id, sso_session_in_request
     )
 
-    if django_session_value and django_session_value.is_sso_authtime_fresh():
-        metrics.incr("sso.new-session-checked-success", sample_rate=0.1)
-        return True
+    if not django_session_value.is_sso_authtime_fresh():
+        metrics.incr("sso.session-timed-out")
+        return False
+
+    metrics.incr("sso.session-verify-success")
+
+    return True
 
 
 def find_users(username, with_valid_password=True, is_active=None):
@@ -337,6 +332,13 @@ def is_user_signed_request(request):
         return request.user_from_signed_request
     except AttributeError:
         return False
+
+
+def set_active_org(request: Request, org_slug: str) -> None:
+    # even if the value being set is the same this will trigger a session
+    # modification and reset the users expiry, so check if they are different first.
+    if request.session.get("activeorg") != org_slug:
+        request.session["activeorg"] = org_slug
 
 
 class EmailAuthBackend(ModelBackend):

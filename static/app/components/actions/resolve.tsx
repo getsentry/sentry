@@ -1,10 +1,12 @@
 import * as React from 'react';
+import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ActionLink from 'sentry/components/actions/actionLink';
+import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {openConfirmModal} from 'sentry/components/confirm';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
-import DropdownLink from 'sentry/components/dropdownLink';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,10 +20,6 @@ import {
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatVersion} from 'sentry/utils/formatters';
 import withOrganization from 'sentry/utils/withOrganization';
-
-import ActionButton from './button';
-import MenuHeader from './menuHeader';
-import MenuItemActionLink from './menuItemActionLink';
 
 const defaultProps = {
   isResolved: false,
@@ -101,10 +99,11 @@ class ResolveActions extends React.Component<Props> {
             : t('Unresolve')
         }
       >
-        <ActionButton
+        <Button
           priority="primary"
+          size="xsmall"
           icon={<IconCheckmark size="xs" />}
-          label={t('Unresolve')}
+          aria-label={t('Unresolve')}
           disabled={isAutoResolved}
           onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
         />
@@ -133,61 +132,59 @@ class ResolveActions extends React.Component<Props> {
       ? t('Set up release tracking in order to use this feature.')
       : '';
 
-    const actionLinkProps = {
-      shouldConfirm,
-      message: confirmMessage,
-      confirmLabel,
-      disabled: disabled || !hasRelease,
+    const onActionOrConfirm = onAction => {
+      openConfirmModal({
+        bypass: !shouldConfirm,
+        onConfirm: onAction,
+        message: confirmMessage,
+        confirmText: confirmLabel,
+      });
     };
 
+    const items = [
+      {
+        key: 'next-release',
+        label: t('The next release'),
+        details: actionTitle,
+        onAction: () => onActionOrConfirm(this.handleNextReleaseResolution),
+        showDividers: !hasRelease,
+      },
+      {
+        key: 'current-release',
+        label: latestRelease
+          ? t('The current release (%s)', formatVersion(latestRelease.version))
+          : t('The current release'),
+        details: actionTitle,
+        onAction: () => onActionOrConfirm(this.handleCurrentReleaseResolution),
+        showDividers: !hasRelease,
+      },
+      {
+        key: 'another-release',
+        label: t('Another existing release\u2026'),
+        onAction: () => this.openCustomReleaseModal(),
+      },
+    ];
+
     return (
-      <DropdownLink
-        customTitle={
-          <ActionButton
-            label={t('More resolve options')}
-            disabled={!projectSlug ? disabled : disableDropdown}
+      <DropdownMenuControlV2
+        items={items}
+        trigger={({props: triggerProps, ref: triggerRef}) => (
+          <DropdownTrigger
+            ref={triggerRef}
+            {...triggerProps}
+            aria-label={t('More resolve options')}
+            size="xsmall"
             icon={<IconChevron direction="down" size="xs" />}
+            disabled={!projectSlug ? disabled : disableDropdown}
           />
+        )}
+        disabledKeys={
+          disabled || !hasRelease
+            ? ['next-release', 'current-release', 'another-release']
+            : []
         }
-        caret={false}
-        alwaysRenderMenu
-        disabled={!projectSlug ? disabled : disableDropdown}
-      >
-        <MenuHeader>{t('Resolved In')}</MenuHeader>
-
-        <MenuItemActionLink
-          {...actionLinkProps}
-          title={t('The next release')}
-          onAction={this.handleNextReleaseResolution}
-        >
-          <Tooltip disabled={hasRelease} title={actionTitle}>
-            {t('The next release')}
-          </Tooltip>
-        </MenuItemActionLink>
-
-        <MenuItemActionLink
-          {...actionLinkProps}
-          title={t('The current release')}
-          onAction={this.handleCurrentReleaseResolution}
-        >
-          <Tooltip disabled={hasRelease} title={actionTitle}>
-            {latestRelease
-              ? t('The current release (%s)', formatVersion(latestRelease.version))
-              : t('The current release')}
-          </Tooltip>
-        </MenuItemActionLink>
-
-        <MenuItemActionLink
-          {...actionLinkProps}
-          title={t('Another existing release')}
-          onAction={() => hasRelease && this.openCustomReleaseModal()}
-          shouldConfirm={false}
-        >
-          <Tooltip disabled={hasRelease} title={actionTitle}>
-            {t('Another existing release')}
-          </Tooltip>
-        </MenuItemActionLink>
-      </DropdownLink>
+        menuTitle={t('Resolved In')}
+      />
     );
   }
 
@@ -221,33 +218,29 @@ class ResolveActions extends React.Component<Props> {
       return this.renderResolved();
     }
 
-    const actionLinkProps = {
-      shouldConfirm,
-      message: confirmMessage,
-      confirmLabel,
-      disabled,
-    };
+    const onResolve = () =>
+      openConfirmModal({
+        bypass: !shouldConfirm,
+        onConfirm: () => onUpdate({status: ResolutionStatus.RESOLVED}),
+        message: confirmMessage,
+        confirmText: confirmLabel,
+      });
 
     return (
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
-          <Tooltip
-            disabled={actionLinkProps.disabled}
+          <ResolveButton
+            size="xsmall"
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
-            delay={300}
+            tooltipProps={{delay: 300}}
+            icon={<IconCheckmark size="xs" />}
+            onClick={onResolve}
+            disabled={disabled}
           >
-            <ActionLink
-              {...actionLinkProps}
-              type="button"
-              title={t('Resolve')}
-              icon={<IconCheckmark size="xs" />}
-              onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
-            >
-              {t('Resolve')}
-            </ActionLink>
-          </Tooltip>
+            {t('Resolve')}
+          </ResolveButton>
           {this.renderDropdownMenu()}
         </ButtonBar>
       </Tooltip>
@@ -256,3 +249,14 @@ class ResolveActions extends React.Component<Props> {
 }
 
 export default withOrganization(ResolveActions);
+
+const ResolveButton = styled(Button)`
+  box-shadow: none;
+  border-radius: ${p => p.theme.borderRadiusLeft};
+`;
+
+const DropdownTrigger = styled(Button)`
+  box-shadow: none;
+  border-radius: ${p => p.theme.borderRadiusRight};
+  border-left: none;
+`;

@@ -1,69 +1,107 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import Tooltip from 'sentry/components/tooltip';
+import * as utils from 'sentry/utils/tooltip';
 
 describe('Tooltip', function () {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('renders', function () {
-    const wrapper = mountWithTheme(
-      <Tooltip title="test">
+    const {container} = mountWithTheme(
+      <Tooltip delay={0} title="test">
         <span>My Button</span>
       </Tooltip>
     );
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
-  it('updates title', function () {
-    const wrapper = mountWithTheme(
+  it('updates title', async function () {
+    const context = TestStubs.routerContext();
+    const {rerender} = mountWithTheme(
       <Tooltip delay={0} title="test">
         <span>My Button</span>
       </Tooltip>,
-      TestStubs.routerContext()
+      {context}
     );
 
-    wrapper.setProps({title: 'bar'});
-    wrapper.update();
-    const trigger = wrapper.find('span');
-    trigger.simulate('pointerEnter');
+    // Change title
+    rerender(
+      <Tooltip delay={0} title="bar">
+        <span>My Button</span>
+      </Tooltip>
+    );
 
-    const tooltip = document.querySelector('#tooltip-portal .tooltip-content');
-    // Check the text node.
-    expect(tooltip.childNodes[0].nodeValue).toEqual('bar');
+    userEvent.hover(screen.getByText('My Button'));
+    expect(screen.getByText('bar')).toBeInTheDocument();
 
-    trigger.simulate('pointerLeave');
-
-    // XXX(epurkhiser): AnimatePresence will remove the element, but for
-    // testing it's easier to just remove it
-    tooltip.remove();
+    userEvent.unhover(screen.getByText('My Button'));
+    await waitForElementToBeRemoved(() => screen.queryByText('bar'));
   });
 
   it('disables and does not render', function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <Tooltip delay={0} title="test" disabled>
         <span>My Button</span>
       </Tooltip>,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
-    const trigger = wrapper.find('span');
-    trigger.simulate('pointerEnter');
 
-    const tooltip = document.querySelector('#tooltip-portal .tooltip-content');
-    expect(tooltip).toBeFalsy();
+    userEvent.hover(screen.getByText('My Button'));
 
-    trigger.simulate('pointerLeave');
+    expect(screen.queryByText('test')).not.toBeInTheDocument();
+
+    userEvent.unhover(screen.getByText('My Button'));
   });
 
   it('does not render an empty tooltip', function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <Tooltip delay={0} title="">
         <span>My Button</span>
       </Tooltip>,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
-    const trigger = wrapper.find('span');
-    trigger.simulate('pointerEnter');
+    userEvent.hover(screen.getByText('My Button'));
 
-    expect(wrapper.find('TooltipContent')).toHaveLength(0);
+    expect(screen.getByText('My Button')).not.toHaveAttribute('aria-describedby');
 
-    trigger.simulate('pointerLeave');
+    userEvent.unhover(screen.getByText('My Button'));
+  });
+
+  it('displays a tooltip if the content overflows with showOnlyOnOverflow', async function () {
+    // Mock this to return true because scrollWidth and clientWidth are 0 in JSDOM
+    jest.spyOn(utils, 'isOverflown').mockReturnValue(true);
+    mountWithTheme(
+      <Tooltip delay={0} title="test" showOnlyOnOverflow>
+        <div>This text overflows</div>
+      </Tooltip>,
+      {context: TestStubs.routerContext()}
+    );
+
+    userEvent.hover(screen.getByText('This text overflows'));
+
+    expect(screen.getByText('test')).toBeInTheDocument();
+
+    userEvent.unhover(screen.getByText('This text overflows'));
+  });
+
+  it('does not display a tooltip if the content does not overflow with showOnlyOnOverflow', function () {
+    jest.spyOn(utils, 'isOverflown').mockReturnValue(false);
+    mountWithTheme(
+      <Tooltip delay={0} title="test" showOnlyOnOverflow>
+        <div>This text does not overflow</div>
+      </Tooltip>,
+      {context: TestStubs.routerContext()}
+    );
+
+    userEvent.hover(screen.getByText('This text does not overflow'));
+
+    expect(screen.queryByText('test')).not.toBeInTheDocument();
   });
 });

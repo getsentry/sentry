@@ -9,7 +9,7 @@ import EventUserFeedback from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
@@ -117,7 +117,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const allIssuesQuery = {...query, status: ''};
 
     return (
-      <GlobalSelectionHeader>
+      <PageFiltersContainer>
         <PageContent>
           <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">
@@ -141,7 +141,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
             </div>
           </NoProjectMessage>
         </PageContent>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 }

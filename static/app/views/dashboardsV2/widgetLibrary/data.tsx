@@ -11,7 +11,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     id: undefined,
     title: t('Duration Distribution'),
     description: t('Compare transaction durations across different percentiles.'),
-    displayType: DisplayType.AREA,
+    displayType: DisplayType.LINE,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
     queries: [
@@ -77,7 +77,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
   {
     id: undefined,
-    title: t('Slow vs Fast Transactions'),
+    title: t('Slow vs. Fast Transactions'),
     description: t('Percentage breakdown of transaction durations over and under 300ms.'),
     displayType: DisplayType.BAR,
     widgetType: WidgetType.DISCOVER,
@@ -96,17 +96,17 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
   {
     id: undefined,
-    title: t('Top Issues'),
-    description: t('Issues with the most error events.'),
+    title: t('Issues For Review'),
+    description: t('Most recently seen unresolved issues for review.'),
     displayType: DisplayType.TABLE,
-    widgetType: WidgetType.DISCOVER,
+    widgetType: WidgetType.ISSUE,
     interval: '5m',
     queries: [
       {
         name: '',
-        conditions: 'event.type:error',
-        fields: ['issue', 'count()', 'any(message)'],
-        orderby: '-count',
+        conditions: 'is:unresolved is:for_review',
+        fields: ['issue', 'assignee', 'events', 'title'],
+        orderby: 'date',
       },
     ],
   },

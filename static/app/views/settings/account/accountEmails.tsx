@@ -186,7 +186,7 @@ const EmailRow = ({
       )}
       {!hideRemove && !isPrimary && (
         <Button
-          label={t('Remove email')}
+          aria-label={t('Remove email')}
           data-test-id="remove"
           priority="danger"
           size="small"
@@ -201,7 +201,7 @@ const EmailRow = ({
 const EmailTags = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 

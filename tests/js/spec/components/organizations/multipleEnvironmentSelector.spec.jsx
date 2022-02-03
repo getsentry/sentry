@@ -69,7 +69,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper
       .find('MultipleSelectorSubmitRow button[aria-label="Apply"]')
       .simulate('click');
-    expect(onUpdate).toHaveBeenCalledWith();
+    expect(onUpdate).toHaveBeenCalledWith(undefined);
   });
 
   it('selects multiple environments and uses chevron to update', async function () {
@@ -89,7 +89,7 @@ describe('MultipleEnvironmentSelector', function () {
     expect(onChange).toHaveBeenLastCalledWith(['production', 'staging']);
 
     wrapper.find('MultipleEnvironmentSelector StyledChevron').simulate('click');
-    expect(onUpdate).toHaveBeenCalledWith();
+    expect(onUpdate).toHaveBeenCalledWith(undefined);
   });
 
   it('does not update when there are no changes', async function () {
@@ -104,7 +104,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+    const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
     expect(items.length).toEqual(1);
     expect(items.at(0).text()).toBe('dev');
   });
@@ -114,7 +114,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+    const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
 
     expect(items.length).toEqual(1);
     expect(items.at(0).text()).toBe('no-env');
@@ -125,7 +125,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+    const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
 
     expect(items.length).toEqual(3);
     expect(items.at(0).text()).toBe('production');
@@ -161,7 +161,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+    const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
 
     expect(items.length).toEqual(3);
     expect(items.at(0).text()).toBe('production');
@@ -198,7 +198,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+    const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
 
     expect(items.length).toEqual(3);
     expect(items.at(0).text()).toBe('production');
@@ -233,7 +233,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+    const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
 
     expect(items.length).toEqual(3);
     expect(items.at(0).text()).toBe('production');
@@ -270,7 +270,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+    const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
 
     expect(items.length).toEqual(3);
     expect(items.at(0).text()).toBe('production');
@@ -283,7 +283,7 @@ describe('MultipleEnvironmentSelector', function () {
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+    const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
 
     expect(items.length).toEqual(4);
     expect(items.at(0).text()).toBe('production');
@@ -295,7 +295,7 @@ describe('MultipleEnvironmentSelector', function () {
   it('shows the distinct union of environments across all projects', async function () {
     wrapper.setProps({selectedProjects: [1, 2]});
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+    const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
 
     expect(items.length).toEqual(3);
     expect(items.at(0).text()).toBe('production');

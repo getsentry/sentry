@@ -79,6 +79,32 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
+interface TooltipOption
+  extends Omit<TooltipComponentOption, 'valueFormatter'>,
+    Truncateable {
+  filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
+  formatAxisLabel?: (
+    value: number,
+    isTimestamp: boolean,
+    utc: boolean,
+    showTimeInTooltip: boolean,
+    addSecondsToTimeFormat: boolean,
+    bucketSize: number | undefined,
+    seriesParamsOrParam: TooltipComponentFormatterCallbackParams
+  ) => string;
+  valueFormatter?: (
+    value: number,
+    label?: string,
+    seriesParams?: TooltipComponentFormatterCallback<any>
+  ) => string;
+  nameFormatter?: (name: string) => string;
+  markerFormatter?: (marker: string, label?: string) => string;
+  /**
+   * Array containing seriesNames that need to be indented
+   */
+  indentLabels?: string[];
+}
+
 type Props = {
   options?: EChartsOption;
   /**
@@ -120,33 +146,7 @@ type Props = {
   /**
    * Tooltip options
    */
-  tooltip?: TooltipComponentOption &
-    Truncateable & {
-      filter?: (
-        value: number,
-        seriesParam: TooltipComponentOption['formatter']
-      ) => boolean;
-      formatAxisLabel?: (
-        value: number,
-        isTimestamp: boolean,
-        utc: boolean,
-        showTimeInTooltip: boolean,
-        addSecondsToTimeFormat: boolean,
-        bucketSize: number | undefined,
-        seriesParamsOrParam: TooltipComponentFormatterCallbackParams
-      ) => string;
-      valueFormatter?: (
-        value: number,
-        label?: string,
-        seriesParams?: TooltipComponentFormatterCallback<any>
-      ) => string | number;
-      nameFormatter?: (name: string) => string;
-      markerFormatter?: (marker: string, label?: string) => string;
-      /**
-       * Array containing seriesNames that need to be indented
-       */
-      indentLabels?: string[];
-    };
+  tooltip?: TooltipOption;
   /**
    * DataZoom (allows for zooming of chart)
    */
@@ -256,7 +256,7 @@ type Props = {
   /**
    * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
    */
-  period?: string;
+  period?: string | null;
   /**
    * Formats dates as UTC?
    */
@@ -279,6 +279,11 @@ type Props = {
    * Inline styles
    */
   style?: React.CSSProperties;
+
+  /**
+   * If true, ignores height value and auto-scales chart to fit container height.
+   */
+  autoHeightResize?: boolean;
 };
 
 function BaseChartUnwrapped({
@@ -322,6 +327,7 @@ function BaseChartUnwrapped({
   yAxis = {},
   xAxis = {},
 
+  autoHeightResize = false,
   height = 200,
   width = 'auto',
   renderer = 'svg',
@@ -446,13 +452,11 @@ function BaseChartUnwrapped({
       )
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
-  // Maybe changing the series type to types/echarts Series[] would be a better
-  // solution and can't use ignore for multiline blocks
-  const seriesValid = series && series[0]?.data && (series[0].data as any[]).length > 1;
-  const seriesData = seriesValid ? series[0].data : undefined;
-  const bucketSize = seriesData
-    ? (seriesData as any[])[1][0] - (seriesData as any[])[0][0]
-    : undefined;
+  const seriesData =
+    Array.isArray(series?.[0]?.data) && series[0].data.length > 1
+      ? series[0].data
+      : undefined;
+  const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
   const tooltipOrNone =
     tooltip !== null
@@ -484,7 +488,7 @@ function BaseChartUnwrapped({
   };
 
   const chartStyles = {
-    height: getDimensionValue(height),
+    height: autoHeightResize ? '100%' : getDimensionValue(height),
     width: getDimensionValue(width),
     ...style,
   };
@@ -515,7 +519,7 @@ function BaseChartUnwrapped({
   );
 
   return (
-    <ChartContainer>
+    <ChartContainer autoHeightResize={autoHeightResize}>
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
@@ -525,7 +529,12 @@ function BaseChartUnwrapped({
         onChartReady={onChartReady}
         onEvents={eventsMap}
         style={chartStyles}
-        opts={{height, width, renderer, devicePixelRatio}}
+        opts={{
+          height: autoHeightResize ? 'auto' : height,
+          width,
+          renderer,
+          devicePixelRatio,
+        }}
         option={chartOption}
       />
     </ChartContainer>
@@ -534,7 +543,9 @@ function BaseChartUnwrapped({
 
 // Contains styling for chart elements as we can't easily style those
 // elements directly
-const ChartContainer = styled('div')`
+const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
+  ${p => p.autoHeightResize && 'height: 100%;'}
+
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {
@@ -582,14 +593,14 @@ const ChartContainer = styled('div')`
     border-top: 8px solid ${p => p.theme.backgroundElevated};
     margin-left: -8px;
     &:before {
-      border-left: 9px solid transparent;
-      border-right: 9px solid transparent;
-      border-top: 9px solid ${p => p.theme.border};
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid ${p => p.theme.translucentBorder};
       content: '';
       display: block;
       position: absolute;
-      top: -8px;
-      left: -9px;
+      top: -7px;
+      left: -8px;
       z-index: -1;
     }
   }

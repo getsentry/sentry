@@ -311,6 +311,9 @@ const HeaderRow = styled('div')`
   grid-template-columns: 1fr auto;
   justify-content: space-between;
   align-items: center;
+
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
 `;
 
 const StyledProjectCard = styled('div')`
@@ -439,7 +442,7 @@ const NotAvailable = styled('div')`
   font-weight: normal;
   display: grid;
   grid-template-columns: auto auto;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
 `;
 

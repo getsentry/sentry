@@ -9,10 +9,9 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import BarChart from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -21,6 +20,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Color, Theme} from 'sentry/utils/theme';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
@@ -65,7 +65,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/release-count/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -219,6 +219,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                     show: false,
                   },
                 }),
+                barCategoryGap: '5%',
               },
             ]}
             tooltip={{
@@ -237,7 +238,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                   `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                   '</div>',
                   `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
-                  getTooltipArrow(),
+                  '<div class="tooltip-arrow"></div>',
                 ].join('');
               },
             }}
@@ -245,7 +246,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={projects.length === 0}
-          emptyMessage={t("No Releases Were Setup For This Team's Projects")}
+          emptyMessage={t('No releases were setup for this team’s projects')}
           emptyAction={
             <Button
               size="small"
@@ -342,12 +343,4 @@ const PaddedIconArrow = styled(IconArrow)`
 
 const SubText = styled('div')<{color: Color}>`
   color: ${p => p.theme[p.color]};
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;

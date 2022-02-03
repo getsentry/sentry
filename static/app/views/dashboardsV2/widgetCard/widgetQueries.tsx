@@ -9,13 +9,13 @@ import {
   getInterval,
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
-import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import {
   EventsStats,
-  GlobalSelection,
   MultiSeriesEventsStats,
   OrganizationSummary,
+  PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {parsePeriodToHours} from 'sentry/utils/dates';
@@ -32,10 +32,11 @@ import {eventViewFromWidget} from '../utils';
 
 // Don't fetch more than 66 bins as we're plotting on a small area.
 const MAX_BIN_COUNT = 66;
+const DEFAULT_ITEM_LIMIT = 5;
 
 function getWidgetInterval(
   widget: Widget,
-  datetimeObj: Partial<GlobalSelection['datetime']>
+  datetimeObj: Partial<PageFilters['datetime']>
 ): string {
   // Bars charts are daily totals to aligned with discover. It also makes them
   // usefully different from line/area charts until we expose the interval control, or remove it.
@@ -64,10 +65,11 @@ type RawResult = EventsStats | MultiSeriesEventsStats;
 function transformSeries(stats: EventsStats, seriesName: string): Series {
   return {
     seriesName,
-    data: stats.data.map(([timestamp, counts]) => ({
-      name: timestamp * 1000,
-      value: counts.reduce((acc, {count}) => acc + count, 0),
-    })),
+    data:
+      stats?.data.map(([timestamp, counts]) => ({
+        name: timestamp * 1000,
+        value: counts.reduce((acc, {count}) => acc + count, 0),
+      })) ?? [],
   };
 }
 
@@ -107,7 +109,8 @@ type Props = {
   api: Client;
   organization: OrganizationSummary;
   widget: Widget;
-  selection: GlobalSelection;
+  selection: PageFilters;
+  limit?: number;
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;
@@ -206,7 +209,7 @@ class WidgetQueries extends React.Component<Props, State> {
   private _isMounted: boolean = false;
 
   fetchEventData(queryFetchID: symbol) {
-    const {selection, api, organization, widget} = this.props;
+    const {selection, api, organization, widget, limit} = this.props;
 
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
@@ -218,7 +221,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
-        per_page: 5,
+        per_page: limit ?? DEFAULT_ITEM_LIMIT,
         noPagination: true,
       };
       if (widget.displayType === 'table') {

@@ -85,5 +85,5 @@ const Grid = styled('div')`
   grid-template-columns: repeat(auto-fit, 50px);
   align-items: center;
   justify-content: center;
-  grid-gap: 8px;
+  gap: 8px;
 `;

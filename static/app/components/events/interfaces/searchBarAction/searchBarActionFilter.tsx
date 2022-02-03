@@ -128,7 +128,7 @@ const Header = styled('div')`
 `;
 
 const StyledList = styled(List)`
-  grid-gap: 0;
+  gap: 0;
 `;
 
 const StyledListItem = styled(ListItem)<{isChecked: boolean; hasDescription: boolean}>`

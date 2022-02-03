@@ -1579,7 +1579,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "orderby": ["-count()"],
+                    "orderby": ["-count()", "user"],
                     "field": ["user", "count()"],
                     "topEvents": 5,
                 },
@@ -1590,7 +1590,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["email:bar@example.com"]["order"] == 0
+        assert data["email:bar@example.com"]["order"] == 1
         assert [attrs for time, attrs in data["email:bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],
@@ -1609,7 +1609,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "orderby": ["-count()"],
+                    "orderby": ["-count()", "user"],
                     "field": ["user", "user.email", "count()"],
                     "topEvents": 5,
                 },
@@ -1620,7 +1620,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["email:bar@example.com,bar@example.com"]["order"] == 0
+        assert data["email:bar@example.com,bar@example.com"]["order"] == 1
         assert [attrs for time, attrs in data["email:bar@example.com,bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],
@@ -2087,7 +2087,9 @@ class OrganizationEventsStatsTopNEventsWithSnql(OrganizationEventsStatsTopNEvent
 
     # Separate test for now to keep the patching simpler
     @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": [], "meta": []}])
-    @mock.patch("sentry.snuba.discover.raw_snql_query", return_value={"data": [], "meta": []})
+    @mock.patch(
+        "sentry.search.events.builder.raw_snql_query", return_value={"data": [], "meta": []}
+    )
     def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2166,7 +2168,7 @@ class OrganizationEventsStatsTopNEventsWithSnql(OrganizationEventsStatsTopNEvent
         assert mock_raw_query.mock_calls[5].args[0].granularity.granularity == 300
 
     @mock.patch(
-        "sentry.snuba.discover.raw_snql_query",
+        "sentry.search.events.builder.raw_snql_query",
         side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
     )
     def test_top_events_with_issue_check_query_conditions(self, mock_query):

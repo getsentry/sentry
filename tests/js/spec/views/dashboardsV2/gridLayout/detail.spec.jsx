@@ -1,11 +1,17 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  mountWithTheme as rtlMountWithTheme,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {constructGridItemKey} from 'sentry/views/dashboardsV2/dashboard';
+import {constructGridItemKey} from 'sentry/views/dashboardsV2/layoutUtils';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -54,6 +60,11 @@ describe('Dashboards > Detail', function () {
         method: 'POST',
         body: [],
         statusCode: 200,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
       });
     });
 
@@ -124,11 +135,11 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockVisit;
+    let wrapper, initialData, widgets, mockVisit, mockPut;
 
-    const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
     const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
     beforeEach(function () {
+      window.confirm = jest.fn();
       initialData = initializeOrg({organization});
       widgets = [
         TestStubs.Widget(
@@ -195,7 +206,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
-      MockApiClient.addMockResponse({
+      mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
@@ -224,6 +235,11 @@ describe('Dashboards > Detail', function () {
         method: 'GET',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -231,6 +247,7 @@ describe('Dashboards > Detail', function () {
       jest.clearAllMocks();
       if (wrapper) {
         wrapper.unmount();
+        wrapper = null;
       }
     });
 
@@ -280,7 +297,7 @@ describe('Dashboards > Detail', function () {
         expect.objectContaining({
           data: expect.objectContaining({
             title: 'Custom Errors',
-            widgets: [widgets[0]],
+            widgets: [expect.objectContaining(widgets[0])],
           }),
         })
       );
@@ -319,7 +336,9 @@ describe('Dashboards > Detail', function () {
       await wrapper.update();
       const modal = await mountGlobalModal();
 
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(
+        expect.objectContaining(widgets[0])
+      );
     });
 
     it('shows add widget option', async function () {
@@ -391,7 +410,12 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
-      expect(openLibraryModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: types.DashboardWidgetSource.LIBRARY,
+        })
+      );
     });
 
     it('hides add widget option', async function () {
@@ -413,6 +437,156 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
+    });
+
+    it('renders successfully if more widgets than stored layouts', async function () {
+      // A case where someone has async added widgets to a dashboard
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              }
+            ),
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'Second Widget',
+                interval: '1d',
+                id: '2',
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      await screen.findByText('First Widget');
+      await screen.findByText('Second Widget');
+    });
+
+    it('does not trigger request if layout not updated', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(screen.getByText('Edit Dashboard'));
+      userEvent.click(screen.getByText('Save and Finish'));
+      await tick();
+
+      expect(screen.getByText('Edit Dashboard')).toBeInTheDocument();
+      expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('renders the custom resize handler for a widget', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(await screen.findByText('Edit Dashboard'));
+      const widget = screen.getByText('First Widget').closest('.react-grid-item');
+      const resizeHandle = within(widget).getByTestId('custom-resize-handle');
+
+      expect(resizeHandle).toBeVisible();
+    });
+
+    it('does not trigger an alert when the widgets have no layout and user cancels without changes', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: null,
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(await screen.findByText('Edit Dashboard'));
+      userEvent.click(await screen.findByText('Cancel'));
+
+      expect(window.confirm).not.toHaveBeenCalled();
     });
   });
 });

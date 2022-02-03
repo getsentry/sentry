@@ -147,7 +147,7 @@ function GenericCards(props: GenericCardsProps) {
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
-  const globalSelection = eventView.getGlobalSelection();
+  const globalSelection = eventView.getPageFilters();
   const start = globalSelection.datetime.start
     ? getUtcToLocalDateObject(globalSelection.datetime.start)
     : undefined;
@@ -428,7 +428,7 @@ export function VitalBar(props: VitalBarProps) {
       {showDetail && (
         <BarDetail>
           {showDurationDetail && p75 && (
-            <div data-test-id="vital-bar-p75">
+            <div>
               {t('The p75 for all transactions is ')}
               <strong>{p75}</strong>
             </div>

@@ -37,7 +37,7 @@ function renderEmailValue<Option>(
 const EmailLabel = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
 `;
 

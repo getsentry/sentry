@@ -29,20 +29,9 @@ type Props = {
 };
 
 class Controls extends React.Component<Props> {
-  render() {
-    const {
-      organization,
-      dashboardState,
-      dashboards,
-      widgetLimitReached,
-      onEdit,
-      onCancel,
-      onCommit,
-      onDelete,
-      onAddWidget,
-    } = this.props;
-
-    const cancelButton = (
+  renderCancelButton(label = t('Cancel')) {
+    const {onCancel} = this.props;
+    return (
       <Button
         data-test-id="dashboard-cancel"
         onClick={e => {
@@ -50,14 +39,27 @@ class Controls extends React.Component<Props> {
           onCancel();
         }}
       >
-        {t('Cancel')}
+        {label}
       </Button>
     );
+  }
+
+  render() {
+    const {
+      organization,
+      dashboardState,
+      dashboards,
+      widgetLimitReached,
+      onEdit,
+      onCommit,
+      onDelete,
+      onAddWidget,
+    } = this.props;
 
     if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
       return (
         <StyledButtonBar gap={1} key="edit-controls">
-          {cancelButton}
+          {this.renderCancelButton()}
           <Confirm
             priority="danger"
             message={t('Are you sure you want to delete this dashboard?')}
@@ -82,10 +84,10 @@ class Controls extends React.Component<Props> {
       );
     }
 
-    if (dashboardState === 'create') {
+    if (dashboardState === DashboardState.CREATE) {
       return (
         <StyledButtonBar gap={1} key="create-controls">
-          {cancelButton}
+          {this.renderCancelButton()}
           <Button
             data-test-id="dashboard-commit"
             onClick={e => {
@@ -95,6 +97,24 @@ class Controls extends React.Component<Props> {
             priority="primary"
           >
             {t('Save and Finish')}
+          </Button>
+        </StyledButtonBar>
+      );
+    }
+
+    if (dashboardState === DashboardState.PREVIEW) {
+      return (
+        <StyledButtonBar gap={1} key="preview-controls">
+          {this.renderCancelButton(t('Go Back'))}
+          <Button
+            data-test-id="dashboard-commit"
+            onClick={e => {
+              e.preventDefault();
+              onCommit();
+            }}
+            priority="primary"
+          >
+            {t('Add Dashboard')}
           </Button>
         </StyledButtonBar>
       );
@@ -111,7 +131,7 @@ class Controls extends React.Component<Props> {
                   e.preventDefault();
                   onEdit();
                 }}
-                icon={<IconEdit size="xs" />}
+                icon={<IconEdit />}
                 disabled={!hasFeature}
                 priority={
                   organization.features.includes('widget-library') ? 'default' : 'primary'

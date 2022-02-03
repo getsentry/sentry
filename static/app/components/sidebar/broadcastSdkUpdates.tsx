@@ -153,13 +153,13 @@ const UpdatesList = styled('div')`
   margin-top: ${space(3)};
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;
 
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   margin-bottom: ${space(0.25)};
   align-items: center;
 `;

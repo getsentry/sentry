@@ -44,17 +44,25 @@ class RatelimitMiddleware(MiddlewareMixin):
         if rate_limit is None:
             return
 
-        rate_limit_check_dict = above_rate_limit_check(key, rate_limit)
-        if rate_limit_check_dict["is_limited"]:
+        request.rate_limit_metadata = above_rate_limit_check(key, rate_limit)
+
+        if request.rate_limit_metadata.is_limited:
             request.will_be_rate_limited = True
             enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
             if enforce_rate_limit:
                 return HttpResponse(
                     {
                         "detail": DEFAULT_ERROR_MESSAGE.format(
-                            limit=rate_limit_check_dict["limit"],
-                            window=rate_limit_check_dict["window"],
+                            limit=request.rate_limit_metadata.limit,
+                            window=request.rate_limit_metadata.window,
                         )
                     },
                     status=429,
                 )
+
+    def process_response(self, request: Request, response: Response) -> Response:
+        if hasattr(request, "rate_limit_metadata"):
+            response["X-Sentry-Rate-Limit-Remaining"] = request.rate_limit_metadata.remaining
+            response["X-Sentry-Rate-Limit-Limit"] = request.rate_limit_metadata.limit
+            response["X-Sentry-Rate-Limit-Reset"] = request.rate_limit_metadata.reset_time
+        return response

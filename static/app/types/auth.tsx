@@ -2,7 +2,6 @@ import u2f from 'u2f-api';
 
 import {Field} from 'sentry/views/settings/components/forms/type';
 
-import {DateString} from './core';
 import {Organization} from './organization';
 
 export type AuthenticatorDevice = {
@@ -149,8 +148,11 @@ export type UserIdentityConfig = {
   category: UserIdentityCategory;
   id: string;
   provider: UserIdentityProvider;
+  name: string;
   status: UserIdentityStatus;
   isLogin: boolean;
   organization: Organization | null;
-  dateAdded: DateString;
+  dateAdded: string | null;
+  dateVerified: string | null;
+  dateSynced: string | null;
 };

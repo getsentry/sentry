@@ -7,7 +7,7 @@ import EventsRequest from 'sentry/components/charts/eventsRequest';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -46,7 +46,7 @@ class Container extends Component<Props> {
     const {api, organization, location, eventView, router} = this.props;
 
     // construct request parameters for fetching chart data
-    const globalSelection = eventView.getGlobalSelection();
+    const globalSelection = eventView.getPageFilters();
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : null;
@@ -54,7 +54,7 @@ class Container extends Component<Props> {
       ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : null;
 
-    const {utc} = getParams(location.query);
+    const {utc} = normalizeDateTimeParams(location.query);
     const axisOptions = this.getChartParameters();
 
     const apiPayload = eventView.getEventsAPIPayload(location);

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 import {DisplayType} from './types';
@@ -24,7 +25,10 @@ type Props = {
 };
 
 function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
-  const onClick = orgFeatures.includes('metrics') ? onOpenWidgetBuilder : onAddWidget;
+  const onClick =
+    orgFeatures.includes('metrics') && orgFeatures.includes('metrics-dashboards-ui')
+      ? onOpenWidgetBuilder
+      : onAddWidget;
 
   const {setNodeRef, transform} = useSortable({
     disabled: true,
@@ -57,6 +61,7 @@ function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
         <AddButton
           data-test-id="widget-add"
           icon={<IconAdd size="lg" isCircled color="inactive" />}
+          aria-label={t('Add widget')}
         />
       </InnerWrapper>
     </WidgetWrapper>

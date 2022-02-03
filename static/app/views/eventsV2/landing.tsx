@@ -10,6 +10,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -293,9 +294,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  <GuideAnchor target="discover_landing_header">
-                    {t('Discover')}
-                  </GuideAnchor>
+                  <Title>
+                    <GuideAnchor target="discover_landing_header">
+                      {t('Discover')}
+                    </GuideAnchor>
+                  </Title>
                   <StyledButton
                     data-test-id="build-new-query"
                     to={to}
@@ -350,7 +353,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledActions = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: auto max-content min-content;
   align-items: center;
   margin-bottom: ${space(2)};

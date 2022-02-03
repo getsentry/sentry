@@ -4,21 +4,21 @@ import * as Sentry from '@sentry/react';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import EventsChart, {EventsChartProps} from 'sentry/components/charts/eventsChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
-import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {GlobalSelection} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 type Props = Omit<
   EventsChartProps,
-  keyof Omit<GlobalSelection, 'datetime'> | keyof GlobalSelection['datetime']
+  keyof Omit<PageFilters, 'datetime'> | keyof PageFilters['datetime']
 > & {
   title: string;
-  selection: GlobalSelection;
+  selection: PageFilters;
   onTotalValuesChange: (value: number | null) => void;
   help?: string;
   yAxis: string;
@@ -45,7 +45,7 @@ class ProjectBaseEventsChart extends Component<Props> {
         query,
         environment: environments,
         project: projects.map(proj => String(proj)),
-        ...getParams(datetime),
+        ...normalizeDateTimeParams(datetime),
       });
       onTotalValuesChange(totals);
     } catch (err) {
@@ -113,4 +113,4 @@ class ProjectBaseEventsChart extends Component<Props> {
   }
 }
 
-export default withGlobalSelection(ProjectBaseEventsChart);
+export default withPageFilters(ProjectBaseEventsChart);

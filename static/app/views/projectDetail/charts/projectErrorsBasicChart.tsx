@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-const ALLOWED_TIME_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
+export const ERRORS_BASIC_CHART_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -56,7 +56,7 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
 
   componentDidMount() {
     const {location} = this.props;
-    if (!ALLOWED_TIME_PERIODS.includes(location.query.statsPeriod)) {
+    if (!ERRORS_BASIC_CHART_PERIODS.includes(location.query.statsPeriod)) {
       browserHistory.replace({
         pathname: location.pathname,
         query: {
@@ -79,7 +79,7 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
     const {location} = this.props;
     const statsPeriod = location.query.statsPeriod;
 
-    if (ALLOWED_TIME_PERIODS.includes(statsPeriod)) {
+    if (ERRORS_BASIC_CHART_PERIODS.includes(statsPeriod)) {
       return statsPeriod;
     }
 

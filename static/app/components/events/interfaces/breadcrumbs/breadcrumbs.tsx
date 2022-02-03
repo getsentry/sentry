@@ -229,7 +229,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
 const Time = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   cursor: pointer;
 `;
 

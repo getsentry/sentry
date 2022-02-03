@@ -144,7 +144,7 @@ export const QuickTraceValue = styled(Truncate)`
 export const ErrorNodeContent = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  grid-gap: ${space(0.25)};
+  gap: ${space(0.25)};
   align-items: center;
 `;
 

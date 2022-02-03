@@ -108,7 +108,7 @@ class QueryBuilderTest(TestCase):
             limit=4,
         )
 
-        assert query.limitby == LimitBy(Column("message"), 1)
+        assert query.limitby == LimitBy([Column("message")], 1)
 
     def test_environment_filter(self):
         query = QueryBuilder(
@@ -453,7 +453,8 @@ class QueryBuilderTest(TestCase):
                 Function("count", [], "count"),
             ],
         )
-        assert query.array_join == Column("spans.op")
+
+        assert query.array_join == [Column("spans.op")]
         query.get_snql_query().validate()
 
     def test_sample_rate(self):
@@ -485,3 +486,82 @@ class QueryBuilderTest(TestCase):
         snql_query = query.get_snql_query()
         snql_query.validate()
         assert snql_query.turbo.value
+
+    def test_auto_aggregation(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "count_unique(user):>10",
+            selected_columns=[
+                "count()",
+            ],
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+        )
+        snql_query = query.get_snql_query()
+        snql_query.validate()
+        self.assertCountEqual(
+            snql_query.having,
+            [
+                Condition(Function("uniq", [Column("user")], "count_unique_user"), Op.GT, 10),
+            ],
+        )
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                Function("uniq", [Column("user")], "count_unique_user"),
+                Function("count", [], "count"),
+            ],
+        )
+
+    def test_auto_aggregation_with_boolean(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            # Nonsense query but doesn't matter
+            "count_unique(user):>10 OR count_unique(user):<10",
+            selected_columns=[
+                "count()",
+            ],
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+        )
+        snql_query = query.get_snql_query()
+        snql_query.validate()
+        self.assertCountEqual(
+            snql_query.having,
+            [
+                Or(
+                    [
+                        Condition(
+                            Function("uniq", [Column("user")], "count_unique_user"), Op.GT, 10
+                        ),
+                        Condition(
+                            Function("uniq", [Column("user")], "count_unique_user"), Op.LT, 10
+                        ),
+                    ]
+                )
+            ],
+        )
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                Function("uniq", [Column("user")], "count_unique_user"),
+                Function("count", [], "count"),
+            ],
+        )
+
+    def test_disable_auto_aggregation(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "count_unique(user):>10",
+            selected_columns=[
+                "count()",
+            ],
+            auto_aggregations=False,
+            use_aggregate_conditions=True,
+        )
+        # With count_unique only in a condition and no auto_aggregations this should raise a invalid search query
+        with self.assertRaises(InvalidSearchQuery):
+            query.get_snql_query()

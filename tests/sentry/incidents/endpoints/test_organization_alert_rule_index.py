@@ -856,7 +856,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
-        assert response.status_code == 400
+        assert response.status_code == 403
 
     def test_name_filter(self):
         self.setup_project_and_rules()

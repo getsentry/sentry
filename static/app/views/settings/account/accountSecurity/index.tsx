@@ -192,7 +192,7 @@ class AccountSecurity extends AsyncView<Props> {
                             >
                               <Button
                                 size="small"
-                                label={t('delete')}
+                                aria-label={t('delete')}
                                 icon={<IconDelete />}
                               />
                             </RemoveConfirm>
@@ -235,7 +235,7 @@ const AuthenticatorTitle = styled('div')`
 const Actions = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const AuthenticatorStatus = styled(CircleIndicator)`

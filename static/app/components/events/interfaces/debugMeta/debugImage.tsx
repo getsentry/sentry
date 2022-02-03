@@ -247,13 +247,13 @@ const DebugImage = React.memo(
 
             return (
               <ImageActions>
-                <Tooltip title={t('Search for debug files in settings')}>
-                  <Button
-                    size="xsmall"
-                    icon={<IconSearch size="xs" />}
-                    to={settingsUrl}
-                  />
-                </Tooltip>
+                <Button
+                  size="xsmall"
+                  icon={<IconSearch size="xs" />}
+                  to={settingsUrl}
+                  title={t('Search for debug files in settings')}
+                  aria-label={t('Search for debug files in settings')}
+                />
               </ImageActions>
             );
           }}
@@ -269,7 +269,7 @@ const DebugImageItem = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeSmall};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
-    grid-gap: ${space(1)};
+    gap: ${space(1)};
     position: relative;
   }
 `;

@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import BarChart from 'sentry/components/charts/barChart';
+import BarChart, {BarChartSeries} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -15,6 +14,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
   barAxisLabel,
   convertDaySeriesToWeeks,
@@ -68,7 +68,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/issue-breakdown/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
             statuses,
           },
         },
@@ -140,13 +140,18 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
       .map(([projectId, {total}]) => ({projectId, total}))
       .sort((a, b) => b.total - a.total);
 
-    const allSeries = Object.keys(allReviewedByDay).map(projectId => ({
-      seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
-      data: convertDaySeriesToWeeks(
-        convertDayValueObjectToSeries(allReviewedByDay[projectId])
-      ),
-      silent: true,
-    }));
+    const allSeries = Object.keys(allReviewedByDay).map(
+      (projectId, idx): BarChartSeries => ({
+        seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
+        data: convertDaySeriesToWeeks(
+          convertDayValueObjectToSeries(allReviewedByDay[projectId])
+        ),
+        animationDuration: 500,
+        animationDelay: idx * 500,
+        silent: true,
+        barCategoryGap: '5%',
+      })
+    );
 
     return (
       <Fragment>
@@ -217,14 +222,6 @@ const StyledPanelTable = styled(PanelTable)<{numActions: number}>`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;
 
 const AlignRight = styled('div')`

@@ -1,35 +1,42 @@
 import styled from '@emotion/styled';
 
+import AsyncComponent from 'sentry/components/asyncComponent';
+import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DocumentIntegration} from 'sentry/types';
+import {DocIntegration} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import {documentIntegrations} from './constants';
 
 type Tab = AbstractIntegrationDetailedView['state']['tab'];
 
-class SentryAppDetailedView extends AbstractIntegrationDetailedView<
+type State = {
+  doc: DocIntegration;
+};
+
+class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
   AbstractIntegrationDetailedView['props'],
-  AbstractIntegrationDetailedView['state']
+  State & AbstractIntegrationDetailedView['state']
 > {
   tabs: Tab[] = ['overview'];
+
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {
+      params: {integrationSlug},
+    } = this.props;
+    return [['doc', `/doc-integrations/${integrationSlug}/`]];
+  }
 
   get integrationType() {
     return 'document' as const;
   }
 
-  get integration(): DocumentIntegration {
-    const {integrationSlug} = this.props.params;
-    const documentIntegration = documentIntegrations[integrationSlug];
-    if (!documentIntegration) {
-      throw new Error(`No document integration of slug ${integrationSlug} exists`);
-    }
-    return documentIntegration;
+  get integration(): DocIntegration {
+    return this.state.doc;
   }
 
   get description() {
@@ -41,7 +48,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get resourceLinks() {
-    return this.integration.resourceLinks;
+    return this.integration.resources ?? [];
   }
 
   get installationStatus() {
@@ -53,7 +60,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get featureData() {
-    return this.integration.features;
+    return this.integration.features ?? [];
   }
 
   componentDidMount() {
@@ -69,18 +76,25 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   renderTopButton() {
     return (
-      <ExternalLink href={this.integration.docUrl} onClick={this.trackClick}>
+      <ExternalLink
+        href={this.integration.url}
+        onClick={this.trackClick}
+        data-test-id="learn-more"
+      >
         <LearnMoreButton
           size="small"
           priority="primary"
           style={{marginLeft: space(1)}}
-          data-test-id="learn-more"
           icon={<StyledIconOpen size="xs" />}
         >
           {t('Learn More')}
         </LearnMoreButton>
       </ExternalLink>
     );
+  }
+
+  renderIntegrationIcon() {
+    return <DocIntegrationAvatar docIntegration={this.integration} size={50} />;
   }
 
   // No configurations.
@@ -100,4 +114,4 @@ const StyledIconOpen = styled(IconOpen)`
   top: 1px;
 `;
 
-export default withOrganization(SentryAppDetailedView);
+export default withOrganization(DocIntegrationDetailedView);

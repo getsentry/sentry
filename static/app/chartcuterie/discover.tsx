@@ -13,7 +13,12 @@ import {t} from 'sentry/locale';
 import {EventsGeoData, EventsStats} from 'sentry/types';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
-import {slackChartDefaults, slackChartSize, slackGeoChartSize} from './slack';
+import {
+  DEFAULT_FONT_FAMILY,
+  slackChartDefaults,
+  slackChartSize,
+  slackGeoChartSize,
+} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
 const discoverxAxis = XAxis({
@@ -22,7 +27,7 @@ const discoverxAxis = XAxis({
   boundaryGap: true,
   splitNumber: 3,
   isGroupedByDate: true,
-  axisLabel: {fontSize: 11},
+  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
 });
 
 export const discoverCharts: RenderDescriptor<ChartType>[] = [];
@@ -427,7 +432,7 @@ discoverCharts.push({
       itemStyle: {
         areaColor: theme.gray200,
         borderColor: theme.backgroundSecondary,
-      } as any, // TODO(ts): Echarts types aren't correct for these colors as they don't allow for basic strings
+      },
     });
 
     // For absolute values, we want min/max to based on min/max of series

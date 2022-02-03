@@ -238,7 +238,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   orgSlug: props.organization.slug,
                   projectID: listItem['project.id'] as string,
                   transaction,
-                  query: props.eventView.getGlobalSelectionQuery(),
+                  query: props.eventView.getPageFiltersQuery(),
                   additionalQuery,
                 });
 
@@ -257,7 +257,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget} className="truncate">
+                        <GrowLink to={transactionTarget}>
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>
@@ -278,7 +278,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget} className="truncate">
+                        <GrowLink to={transactionTarget}>
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>
@@ -296,7 +296,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     if (typeof rightValue === 'number') {
                       return (
                         <Fragment>
-                          <GrowLink to={transactionTarget} className="truncate">
+                          <GrowLink to={transactionTarget}>
                             <Truncate value={transaction} maxLength={40} />
                           </GrowLink>
                           <RightAlignedCell>
@@ -313,7 +313,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     }
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget} className="truncate">
+                        <GrowLink to={transactionTarget}>
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>{rightValue}</RightAlignedCell>

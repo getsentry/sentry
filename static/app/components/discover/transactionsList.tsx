@@ -177,13 +177,12 @@ class TransactionsList extends React.Component<Props> {
       <React.Fragment>
         <div>
           <DropdownControl
-            data-test-id="filter-transactions"
             button={({isOpen, getActorProps}) => (
               <StyledDropdownButton
                 {...getActorProps()}
                 isOpen={isOpen}
                 prefix={t('Filter')}
-                size="small"
+                size="xsmall"
               >
                 {selected.label}
               </StyledDropdownButton>
@@ -214,7 +213,7 @@ class TransactionsList extends React.Component<Props> {
                     breakdown,
                   }
                 )}
-                size="small"
+                size="xsmall"
                 data-test-id="transaction-events-open"
               >
                 {t('View All Events')}
@@ -227,7 +226,7 @@ class TransactionsList extends React.Component<Props> {
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
                   organization.slug
                 )}
-                size="small"
+                size="xsmall"
                 data-test-id="discover-open"
               >
                 {t('Open in Discover')}
@@ -261,7 +260,7 @@ class TransactionsList extends React.Component<Props> {
           <StyledPagination
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
-            size="small"
+            size="xsmall"
           />
         </Header>
         <TransactionsTable
@@ -370,6 +369,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
+  align-items: center;
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`

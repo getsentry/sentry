@@ -313,7 +313,7 @@ const HeaderContent = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content 1fr;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const NumericSymbol = styled('div')`
@@ -356,7 +356,7 @@ const StyledButton = styled(Button)`
 
 const Alerts = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   margin-bottom: ${space(3)};
 `;
 

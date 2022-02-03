@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -31,9 +31,9 @@ function IssueListContainer({organization, children}: Props) {
     <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
       <Fragment>
         {showSampleEventBanner && <SampleEventAlert />}
-        <GlobalSelectionHeader>
+        <PageFiltersContainer>
           <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
-        </GlobalSelectionHeader>
+        </PageFiltersContainer>
       </Fragment>
     </SentryDocumentTitle>
   );

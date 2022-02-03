@@ -206,7 +206,7 @@ class SuggestProjectModal extends Component<Props, State> {
 
 const ModalContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   code {
     word-break: break-word;

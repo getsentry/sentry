@@ -15,11 +15,10 @@ namespace JSSelfProfiling {
 
   type Frame = {
     name: string;
-    resourceId: number;
-    line: number;
-    column: number;
+    resourceId?: number;
+    line?: number;
+    column?: number;
   };
-
 
   type Trace = {
     resources: string[];

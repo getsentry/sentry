@@ -1,36 +1,23 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AwsLambdaFunctionSelect from 'sentry/views/integrationPipeline/awsLambdaFunctionSelect';
 
 describe('AwsLambdaFunctionSelect', () => {
-  let wrapper;
-  let lambdaFunctions;
-  let mockRequest;
+  let lambdaFunctions, container;
   beforeEach(() => {
-    mockRequest = Client.addMockResponse({
-      url: '/extensions/aws_lambda/setup/',
-      body: {},
-    });
-
     lambdaFunctions = [
       {FunctionName: 'lambdaA', Runtime: 'nodejs12.x'},
       {FunctionName: 'lambdaB', Runtime: 'nodejs10.x'},
       {FunctionName: 'lambdaC', Runtime: 'nodejs10.x'},
     ];
-    wrapper = mountWithTheme(
+    ({container} = mountWithTheme(
       <AwsLambdaFunctionSelect lambdaFunctions={lambdaFunctions} />
-    );
+    ));
   });
   it('choose lambdas', () => {
-    wrapper.find('button[name="lambdaB"]').simulate('click');
-    wrapper.find('StyledButton[aria-label="Finish Setup"]').simulate('click');
-
-    expect(mockRequest).toHaveBeenCalledWith(
-      '/extensions/aws_lambda/setup/',
-      expect.objectContaining({
-        data: {lambdaA: true, lambdaB: false, lambdaC: true},
-      })
-    );
+    expect(container).toSnapshot();
+    expect(screen.getByLabelText('lambdaB')).toBeInTheDocument();
+    expect(screen.getByLabelText('Finish Setup')).toBeInTheDocument();
+    // TODO: add assertion for form post
   });
 });

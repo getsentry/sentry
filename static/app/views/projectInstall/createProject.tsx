@@ -11,7 +11,6 @@ import Button from 'sentry/components/button';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import PageHeading from 'sentry/components/pageHeading';
 import PlatformPicker from 'sentry/components/platformPicker';
-import Tooltip from 'sentry/components/tooltip';
 import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -115,20 +114,20 @@ class CreateProject extends React.Component<Props, State> {
               onChange={choice => this.setState({team: choice.value})}
               teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
             />
-            <Tooltip title={t('Create a team')}>
-              <Button
-                borderless
-                data-test-id="create-team"
-                type="button"
-                icon={<IconAdd isCircled />}
-                onClick={() =>
-                  openCreateTeamModal({
-                    organization,
-                    onClose: ({slug}) => this.setState({team: slug}),
-                  })
-                }
-              />
-            </Tooltip>
+            <Button
+              borderless
+              data-test-id="create-team"
+              type="button"
+              icon={<IconAdd isCircled />}
+              onClick={() =>
+                openCreateTeamModal({
+                  organization,
+                  onClose: ({slug}) => this.setState({team: slug}),
+                })
+              }
+              title={t('Create a team')}
+              aria-label={t('Create a team')}
+            />
           </TeamSelectInput>
         </div>
         <div>
@@ -325,7 +324,7 @@ export {CreateProject};
 const CreateProjectForm = styled('form')`
   display: grid;
   grid-template-columns: 300px minmax(250px, max-content) max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: end;
   padding: ${space(3)} 0;
   box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);

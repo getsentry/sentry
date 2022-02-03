@@ -133,7 +133,7 @@ _Count.parameters = {
 export const _Version = ({
   version,
   anchor,
-  preserveGlobalSelection,
+  preservePageFilters,
   tooltipRawVersion,
   withPackage,
   projectId,
@@ -146,7 +146,7 @@ export const _Version = ({
       <Version
         version={version}
         anchor={anchor}
-        preserveGlobalSelection={preserveGlobalSelection}
+        preservePageFilters={preservePageFilters}
         tooltipRawVersion={tooltipRawVersion}
         withPackage={withPackage}
         projectId={projectId}
@@ -159,7 +159,7 @@ export const _Version = ({
 _Version.args = {
   version: 'foo.bar.Baz@1.0.0+20200101',
   anchor: true,
-  preserveGlobalSelection: false,
+  preservePageFilters: false,
   tooltipRawVersion: true,
   withPackage: false,
   projectId: '',

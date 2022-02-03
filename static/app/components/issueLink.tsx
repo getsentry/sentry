@@ -121,7 +121,7 @@ const Section = styled('section')`
 const Grid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 const HovercardEventMessage = styled(EventMessage)`
   font-size: 12px;

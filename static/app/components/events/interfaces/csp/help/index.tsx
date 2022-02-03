@@ -64,7 +64,7 @@ const StyledP = styled('p')`
   text-align: right;
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  grid-gap: ${space(0.25)};
+  gap: ${space(0.25)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

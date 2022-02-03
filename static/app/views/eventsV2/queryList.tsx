@@ -5,8 +5,8 @@ import classNames from 'classnames';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
-import {resetGlobalSelection} from 'sentry/actionCreators/globalSelection';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import DropdownMenu from 'sentry/components/dropdownMenu';
@@ -25,7 +25,11 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
-import {DashboardWidgetSource, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
 
 import {
   displayModeToDisplayType,
@@ -53,7 +57,7 @@ class QueryList extends React.Component<Props> {
      * We need to reset global selection here because the saved queries can define their own projects
      * in the query. This can lead to mismatched queries for the project
      */
-    resetGlobalSelection();
+    resetPageFilters();
   }
 
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
@@ -100,13 +104,17 @@ class QueryList extends React.Component<Props> {
       event.preventDefault();
       event.stopPropagation();
 
+      const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+      const defaultTableColumns = eventView.fields.map(({field}) => field);
       const sort = eventView.sorts[0];
       const defaultWidgetQuery: WidgetQuery = {
         name: '',
-        fields:
-          typeof savedQuery?.yAxis === 'string'
+        fields: [
+          ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+          ...(typeof savedQuery?.yAxis === 'string'
             ? [savedQuery?.yAxis]
-            : savedQuery?.yAxis ?? ['count()'],
+            : savedQuery?.yAxis ?? ['count()']),
+        ],
         conditions: eventView.query,
         orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
       };
@@ -123,11 +131,11 @@ class QueryList extends React.Component<Props> {
         statsPeriod: eventView.statsPeriod,
         source: DashboardWidgetSource.DISCOVERV2,
         defaultWidgetQuery,
-        defaultTableColumns: eventView.fields.map(({field}) => field),
+        defaultTableColumns,
         defaultTitle:
           savedQuery?.name ??
           (eventView.name !== 'All Events' ? eventView.name : undefined),
-        displayType: displayModeToDisplayType(eventView.display as DisplayModes),
+        displayType,
       });
     };
 
@@ -364,7 +372,7 @@ const PaginationRow = styled(Pagination)`
 const QueryGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));

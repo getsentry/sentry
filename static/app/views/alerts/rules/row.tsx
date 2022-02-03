@@ -186,7 +186,9 @@ function RuleListRow({
         </FlexCenter>
         <AlertNameAndStatus>
           <AlertName>{alertLink}</AlertName>
-          {!isIssueAlert(rule) && renderLastIncidentDate()}
+          <AlertIncidentDate>
+            {!isIssueAlert(rule) && renderLastIncidentDate()}
+          </AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
@@ -276,16 +278,17 @@ function RuleListRow({
                     icon={<IconDelete />}
                     size="small"
                     title={t('Delete')}
+                    aria-label={t('Delete')}
                   />
                 </Confirm>
-                <Tooltip title={t('Edit')}>
-                  <Button
-                    size="small"
-                    type="button"
-                    icon={<IconSettings />}
-                    to={editLink}
-                  />
-                </Tooltip>
+                <Button
+                  size="small"
+                  type="button"
+                  icon={<IconSettings />}
+                  to={editLink}
+                  title={t('Edit')}
+                  aria-label={t('Edit')}
+                />
               </StyledButtonBar>
             </React.Fragment>
           )}
@@ -329,6 +332,10 @@ const AlertName = styled('div')`
   }
 `;
 
+const AlertIncidentDate = styled('div')`
+  color: ${p => p.theme.gray300};
+`;
+
 const ProjectBadgeContainer = styled('div')`
   width: 100%;
 `;
@@ -339,6 +346,7 @@ const ProjectBadge = styled(IdBadge)`
 
 const StyledDateTime = styled(DateTime)`
   font-variant-numeric: tabular-nums;
+  color: ${p => p.theme.gray300};
 `;
 
 const TriggerText = styled('div')`

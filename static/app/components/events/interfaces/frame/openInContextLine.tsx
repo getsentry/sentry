@@ -58,7 +58,7 @@ export const OpenInContainer = styled('div')<{columnQuantity: number}>`
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(${p => p.columnQuantity}, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   color: ${p => p.theme.subText};
   background-color: ${p => p.theme.background};
   font-family: ${p => p.theme.text.family};
@@ -74,7 +74,7 @@ export const OpenInLink = styled(ExternalLink)`
   display: inline-grid;
   align-items: center;
   grid-template-columns: max-content auto;
-  grid-gap: ${space(0.75)};
+  gap: ${space(0.75)};
   color: ${p => p.theme.gray300};
 `;
 

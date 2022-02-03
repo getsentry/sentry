@@ -10,21 +10,21 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
-import {GlobalSelection} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import LandingContent from './landing/content';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
@@ -34,7 +34,7 @@ import Onboarding from './onboarding';
 import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
 type Props = {
-  selection: GlobalSelection;
+  selection: PageFilters;
   location: Location;
   router: InjectedRouter;
   demoMode?: boolean;
@@ -218,7 +218,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
-        <GlobalSelectionHeader
+        <PageFiltersContainer
           defaultSelection={{
             datetime: {
               start: null,
@@ -231,10 +231,10 @@ function PerformanceContent({selection, location, demoMode}: Props) {
           <Feature features={['organizations:performance-landing-widgets']}>
             {({hasFeature}) => (hasFeature ? renderLandingV3() : renderBody())}
           </Feature>
-        </GlobalSelectionHeader>
+        </PageFiltersContainer>
       </PerformanceEventViewProvider>
     </SentryDocumentTitle>
   );
 }
 
-export default withGlobalSelection(PerformanceContent);
+export default withPageFilters(PerformanceContent);

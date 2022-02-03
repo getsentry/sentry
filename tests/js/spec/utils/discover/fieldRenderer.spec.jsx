@@ -24,6 +24,7 @@ describe('getFieldRenderer', function () {
       query: {},
     };
     data = {
+      id: '1',
       team_key_transaction: 1,
       title: 'ValueError: something bad',
       transaction: 'api.do_things',
@@ -42,6 +43,10 @@ describe('getFieldRenderer', function () {
       'spans.total.time': 75,
       'transaction.duration': 75,
       'timestamp.to_day': '2021-09-05T00:00:00+00:00',
+      lifetimeCount: 10000,
+      filteredCount: 3000,
+      count: 6000,
+      selectionDateString: 'last 7 days',
     };
 
     MockApiClient.addMockResponse({
@@ -231,24 +236,6 @@ describe('getFieldRenderer', function () {
 
     // Since there is no project column, it is not wrapped with the dropdown
     expect(wrapper.find('TeamKeyTransaction')).toHaveLength(0);
-  });
-
-  it('can render issue assignees', function () {
-    const renderer = getFieldRenderer('assignee');
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mountWithTheme(
-      renderer(
-        {
-          'assignee.type': 'user',
-          'assignee.id': '1',
-          'assignee.name': 'sentry user',
-          'assignee.email': 'user@sentry.io',
-        },
-        {location, organization}
-      )
-    );
-
-    expect(wrapper.find('Tooltip').props().title).toEqual('Assigned to sentry user');
   });
 
   describe('ops breakdown', () => {

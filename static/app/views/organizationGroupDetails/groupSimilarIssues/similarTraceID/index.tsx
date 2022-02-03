@@ -22,5 +22,5 @@ export default SimilarTraceID;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;

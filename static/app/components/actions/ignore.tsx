@@ -1,27 +1,23 @@
 import * as React from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ActionLink from 'sentry/components/actions/actionLink';
+import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
-import DropdownLink from 'sentry/components/dropdownLink';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import Duration from 'sentry/components/duration';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {
   ResolutionStatus,
   ResolutionStatusDetails,
   SelectValue,
   UpdateResolutionStatus,
 } from 'sentry/types';
-
-import ActionButton from './button';
-import MenuHeader from './menuHeader';
 
 const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
@@ -48,10 +44,16 @@ const IgnoreActions = ({
   confirmLabel = t('Ignore'),
   isIgnored = false,
 }: Props) => {
-  const onIgnore = (statusDetails: ResolutionStatusDetails) => {
-    return onUpdate({
-      status: ResolutionStatus.IGNORED,
-      statusDetails: statusDetails || {},
+  const onIgnore = (statusDetails?: ResolutionStatusDetails) => {
+    openConfirmModal({
+      bypass: !shouldConfirm,
+      onConfirm: () =>
+        onUpdate({
+          status: ResolutionStatus.IGNORED,
+          statusDetails,
+        }),
+      message: confirmMessage,
+      confirmText: confirmLabel,
     });
   };
 
@@ -59,21 +61,14 @@ const IgnoreActions = ({
     onIgnore(statusDetails);
   };
 
-  const actionLinkProps = {
-    shouldConfirm,
-    title: t('Ignore'),
-    message: confirmMessage,
-    confirmLabel,
-    disabled,
-  };
-
   if (isIgnored) {
     return (
       <Tooltip title={t('Change status to unresolved')}>
-        <ActionButton
+        <Button
           priority="primary"
+          size="xsmall"
           onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
-          label={t('Unignore')}
+          aria-label={t('Unignore')}
           icon={<IconMute size="xs" />}
         />
       </Tooltip>
@@ -114,272 +109,139 @@ const IgnoreActions = ({
       />
     ));
 
+  const dropdownItems = [
+    {
+      key: 'for',
+      label: t('For\u2026'),
+      isSubmenu: true,
+      children: [
+        ...IGNORE_DURATIONS.map(duration => ({
+          key: `for-${duration}`,
+          label: <Duration seconds={duration * 60} />,
+          onAction: () => onIgnore({ignoreDuration: duration}),
+        })),
+        {
+          key: 'for-custom',
+          label: t('Custom'),
+          onAction: () => openCustomIgnoreDuration(),
+        },
+      ],
+    },
+    {
+      key: 'until-reoccur',
+      label: t('Until this occurs again\u2026'),
+      isSubmenu: true,
+      children: [
+        ...IGNORE_COUNTS.map(count => ({
+          key: `until-reoccur-${count}-times`,
+          label:
+            count === 1
+              ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
+              : tn('%s time\u2026', '%s times\u2026', count),
+          isSubmenu: true,
+          children: [
+            {
+              key: `until-reoccur-${count}-times-from-now`,
+              label: t('from now'),
+              onAction: () => onIgnore({ignoreCount: count}),
+            },
+            ...IGNORE_WINDOWS.map(({value, label}) => ({
+              key: `until-reoccur-${count}-times-from-${label}`,
+              label,
+              onAction: () =>
+                onIgnore({
+                  ignoreCount: count,
+                  ignoreWindow: value,
+                }),
+            })),
+          ],
+        })),
+        {
+          key: 'for-custom',
+          label: t('Custom'),
+          onAction: () => openCustomIgnoreCount(),
+        },
+      ],
+    },
+    {
+      key: 'until-affect',
+      label: t('Until this affects an additional\u2026'),
+      isSubmenu: true,
+      children: [
+        ...IGNORE_COUNTS.map(count => ({
+          key: `until-affect-${count}-users`,
+          label:
+            count === 1
+              ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
+              : tn('%s user\u2026', '%s users\u2026', count),
+          isSubmenu: true,
+          children: [
+            {
+              key: `until-affect-${count}-users-from-now`,
+              label: t('from now'),
+              onAction: () => onIgnore({ignoreUserCount: count}),
+            },
+            ...IGNORE_WINDOWS.map(({value, label}) => ({
+              key: `until-affect-${count}-users-from-${label}`,
+              label,
+              onAction: () =>
+                onIgnore({
+                  ignoreUserCount: count,
+                  ignoreUserWindow: value,
+                }),
+            })),
+          ],
+        })),
+        {
+          key: 'for-custom',
+          label: t('Custom'),
+          onAction: () => openCustomIgnoreUserCount(),
+        },
+      ],
+    },
+  ];
+
   return (
     <ButtonBar merged>
-      <Tooltip
-        disabled={actionLinkProps.disabled}
+      <IgnoreButton
+        size="xsmall"
+        tooltipProps={{delay: 300}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        delay={300}
-      >
-        <ActionLink
-          {...actionLinkProps}
-          type="button"
-          title={t('Ignore')}
-          onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
-          icon={<IconMute size="xs" />}
-        >
-          {t('Ignore')}
-        </ActionLink>
-      </Tooltip>
-      <StyledDropdownLink
-        customTitle={
-          <ActionButton
-            disabled={disabled}
-            icon={<IconChevron direction="down" size="xs" />}
-          />
-        }
-        alwaysRenderMenu
+        icon={<IconMute size="xs" />}
+        onClick={() => onIgnore()}
         disabled={disabled}
       >
-        <MenuHeader>{t('Ignore')}</MenuHeader>
-
-        <DropdownMenuItem>
-          <DropdownLink
-            title={
-              <ActionSubMenu>
-                {t('For\u2026')}
-                <SubMenuChevron>
-                  <IconChevron direction="right" size="xs" />
-                </SubMenuChevron>
-              </ActionSubMenu>
-            }
-            caret={false}
-            isNestedDropdown
-            alwaysRenderMenu
-          >
-            {IGNORE_DURATIONS.map(duration => (
-              <DropdownMenuItem key={duration}>
-                <StyledForActionLink
-                  {...actionLinkProps}
-                  onAction={() => onIgnore({ignoreDuration: duration})}
-                >
-                  <ActionSubMenu>
-                    <Duration seconds={duration * 60} />
-                  </ActionSubMenu>
-                </StyledForActionLink>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuItem>
-              <ActionSubMenu>
-                <a onClick={openCustomIgnoreDuration}>{t('Custom')}</a>
-              </ActionSubMenu>
-            </DropdownMenuItem>
-          </DropdownLink>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem>
-          <DropdownLink
-            title={
-              <ActionSubMenu>
-                {t('Until this occurs again\u2026')}
-                <SubMenuChevron>
-                  <IconChevron direction="right" size="xs" />
-                </SubMenuChevron>
-              </ActionSubMenu>
-            }
-            caret={false}
-            isNestedDropdown
-            alwaysRenderMenu
-          >
-            {IGNORE_COUNTS.map(count => (
-              <DropdownMenuItem key={count}>
-                <DropdownLink
-                  title={
-                    <ActionSubMenu>
-                      {count === 1
-                        ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
-                        : tn('%s time\u2026', '%s times\u2026', count)}
-                      <SubMenuChevron>
-                        <IconChevron direction="right" size="xs" />
-                      </SubMenuChevron>
-                    </ActionSubMenu>
-                  }
-                  caret={false}
-                  isNestedDropdown
-                  alwaysRenderMenu
-                >
-                  <DropdownMenuItem>
-                    <StyledActionLink
-                      {...actionLinkProps}
-                      onAction={() => onIgnore({ignoreCount: count})}
-                    >
-                      {t('from now')}
-                    </StyledActionLink>
-                  </DropdownMenuItem>
-                  {IGNORE_WINDOWS.map(({value, label}) => (
-                    <DropdownMenuItem key={value}>
-                      <StyledActionLink
-                        {...actionLinkProps}
-                        onAction={() =>
-                          onIgnore({
-                            ignoreCount: count,
-                            ignoreWindow: value,
-                          })
-                        }
-                      >
-                        {label}
-                      </StyledActionLink>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownLink>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuItem>
-              <ActionSubMenu>
-                <a onClick={openCustomIgnoreCount}>{t('Custom')}</a>
-              </ActionSubMenu>
-            </DropdownMenuItem>
-          </DropdownLink>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <DropdownLink
-            title={
-              <ActionSubMenu>
-                {t('Until this affects an additional\u2026')}
-                <SubMenuChevron>
-                  <IconChevron direction="right" size="xs" />
-                </SubMenuChevron>
-              </ActionSubMenu>
-            }
-            caret={false}
-            isNestedDropdown
-            alwaysRenderMenu
-          >
-            {IGNORE_COUNTS.map(count => (
-              <DropdownMenuItem key={count}>
-                <DropdownLink
-                  title={
-                    <ActionSubMenu>
-                      {tn('one user\u2026', '%s users\u2026', count)}
-                      <SubMenuChevron>
-                        <IconChevron direction="right" size="xs" />
-                      </SubMenuChevron>
-                    </ActionSubMenu>
-                  }
-                  caret={false}
-                  isNestedDropdown
-                  alwaysRenderMenu
-                >
-                  <DropdownMenuItem>
-                    <StyledActionLink
-                      {...actionLinkProps}
-                      onAction={() => onIgnore({ignoreUserCount: count})}
-                    >
-                      {t('from now')}
-                    </StyledActionLink>
-                  </DropdownMenuItem>
-                  {IGNORE_WINDOWS.map(({value, label}) => (
-                    <DropdownMenuItem key={value}>
-                      <StyledActionLink
-                        {...actionLinkProps}
-                        onAction={() =>
-                          onIgnore({
-                            ignoreUserCount: count,
-                            ignoreUserWindow: value,
-                          })
-                        }
-                      >
-                        {label}
-                      </StyledActionLink>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownLink>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuItem>
-              <ActionSubMenu>
-                <a onClick={openCustomIgnoreUserCount}>{t('Custom')}</a>
-              </ActionSubMenu>
-            </DropdownMenuItem>
-          </DropdownLink>
-        </DropdownMenuItem>
-      </StyledDropdownLink>
+        {t('Ignore')}
+      </IgnoreButton>
+      <DropdownMenuControlV2
+        trigger={({props: triggerProps, ref: triggerRef}) => (
+          <DropdownTrigger
+            ref={triggerRef}
+            {...triggerProps}
+            aria-label={t('Ignore options')}
+            size="xsmall"
+            icon={<IconChevron direction="down" size="xs" />}
+            disabled={disabled}
+          />
+        )}
+        menuTitle={t('Ignore')}
+        items={dropdownItems}
+      />
     </ButtonBar>
   );
 };
 
 export default IgnoreActions;
 
-const actionLinkCss = p => css`
-  color: ${p.theme.subText};
-  &:hover {
-    border-radius: ${p.theme.borderRadius};
-    background: ${p.theme.bodyBackground} !important;
-  }
+const IgnoreButton = styled(Button)`
+  box-shadow: none;
+  border-radius: ${p => p.theme.borderRadiusLeft};
 `;
 
-const StyledActionLink = styled(ActionLink)`
-  padding: 7px 10px !important;
-  ${actionLinkCss};
-`;
-
-const StyledForActionLink = styled(ActionLink)`
-  padding: ${space(0.5)} 0;
-  ${actionLinkCss};
-`;
-
-const StyledDropdownLink = styled(DropdownLink)`
-  transition: none;
-  border-top-left-radius: 0 !important;
-  border-bottom-left-radius: 0 !important;
-`;
-
-const DropdownMenuItem = styled('li')`
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-  }
-  > span {
-    display: block;
-    > ul {
-      border-radius: ${p => p.theme.borderRadius};
-      top: 5px;
-      left: 100%;
-      margin-top: -5px;
-      margin-left: -1px;
-      &:after,
-      &:before {
-        display: none !important;
-      }
-    }
-  }
-  &:hover > span {
-    background: ${p => p.theme.hover};
-  }
-`;
-
-const ActionSubMenu = styled('span')`
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  grid-column-start: 1;
-  grid-column-end: 4;
-  gap: ${space(1)};
-  padding: ${space(0.5)} 0;
-  color: ${p => p.theme.textColor};
-  a {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
-const SubMenuChevron = styled('span')`
-  display: grid;
-  align-self: center;
-  color: ${p => p.theme.gray300};
-  transition: 0.1s color linear;
-
-  &:hover,
-  &:active {
-    color: ${p => p.theme.subText};
-  }
+const DropdownTrigger = styled(Button)`
+  box-shadow: none;
+  border-radius: ${p => p.theme.borderRadiusRight};
+  border-left: none;
 `;

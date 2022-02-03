@@ -10,21 +10,23 @@ import momentTimezone from 'moment-timezone';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
+import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {SectionHeading} from 'sentry/components/charts/styles';
-import {getTooltipArrow} from 'sentry/components/charts/utils';
+import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
-} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import Truncate from 'sentry/components/truncate';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -67,8 +69,8 @@ type Props = WithRouterProps & {
   organization: Organization;
   projects: Project[] | AvatarProject[];
   interval: string;
-  filter: React.ReactNode;
   query: string;
+  filter: string[] | null;
   orgId: string;
   handleZoom: (start: DateString, end: DateString) => void;
 };
@@ -85,7 +87,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   return momentTimezone.tz(date, timezone).format(format);
 }
 
-function createThresholdSeries(lineColor: string, threshold: number): LineChartSeries {
+function createThresholdSeries(lineColor: string, threshold: number): AreaChartSeries {
   return {
     seriesName: 'Threshold Line',
     type: 'line',
@@ -106,7 +108,7 @@ function createStatusAreaSeries(
   startTime: number,
   endTime: number,
   yPosition: number
-): LineChartSeries {
+): AreaChartSeries {
   return {
     seriesName: '',
     type: 'line',
@@ -125,10 +127,10 @@ function createIncidentSeries(
   lineColor: string,
   incidentTimestamp: number,
   incident: Incident,
-  dataPoint?: LineChartSeries['data'][0],
+  dataPoint?: AreaChartSeries['data'][0],
   seriesName?: string,
   aggregate?: string
-): LineChartSeries {
+): AreaChartSeries {
   const formatter = ({value, marker}: any) => {
     const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
     return [
@@ -146,7 +148,7 @@ function createIncidentSeries(
       }`,
       `</div></div>`,
       `<div class="tooltip-date">${time}</div>`,
-      getTooltipArrow(),
+      '<div class="tooltip-arrow"></div>',
     ].join('');
   };
 
@@ -230,7 +232,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleChangeSeries = (data: LineChartSeries[]): LineSeriesOption[] => {
+  getRuleChangeSeries = (data: AreaChartSeries[]): LineSeriesOption[] => {
     const {dateModified} = this.props.rule || {};
 
     if (!data.length || !data[0].data.length || !dateModified) {
@@ -281,6 +283,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       eventType: query,
       start: timePeriod.start,
       end: timePeriod.end,
+      fields: ['issue', 'title', 'count()', 'count_unique(user)'],
     };
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
@@ -333,7 +336,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       interval,
       handleZoom,
       filter,
-      query,
       incidents,
       rule,
       organization,
@@ -348,10 +350,12 @@ class MetricChart extends React.PureComponent<Props, State> {
     const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
 
-    const series: LineChartSeries[] = [...timeseriesData];
+    const series: AreaChartSeries[] = [...timeseriesData];
     const areaSeries: any[] = [];
-    // Ensure series data appears above incident lines
-    series[0].z = 100;
+    // Ensure series data appears below incident/mark lines
+    series[0].z = 1;
+    series[0].color = CHART_PALETTE[0][0];
+
     const dataArr = timeseriesData[0].data;
     const maxSeriesValue = dataArr.reduce(
       (currMax, coord) => Math.max(currMax, coord.value),
@@ -534,15 +538,21 @@ class MetricChart extends React.PureComponent<Props, State> {
         ''
     );
 
+    const queryFilter = filter?.join(' ');
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
           <ChartHeader>
-            <ChartTitle>
+            <HeaderTitleLegend>
               {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
-            </ChartTitle>
-            {query ? filter : null}
+            </HeaderTitleLegend>
           </ChartHeader>
+          <ChartFilters>
+            <StyledCircleIndicator size={8} />
+            <Filters>{rule.aggregate}</Filters>
+            <Truncate value={queryFilter ?? ''} maxLength={75} />
+          </ChartFilters>
           {getDynamicText({
             value: (
               <ChartZoom
@@ -552,7 +562,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
               >
                 {zoomRenderProps => (
-                  <LineChart
+                  <AreaChart
                     {...zoomRenderProps}
                     isGroupedByDate
                     showTimeInTooltip
@@ -561,7 +571,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                     grid={{
                       left: space(0.25),
                       right: space(2),
-                      top: space(2),
+                      top: space(3),
                       bottom: 0,
                     }}
                     yAxis={{
@@ -682,7 +692,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                               Math.sign(changePercentage) === 1 ? '+' : '-'
                             }${Math.abs(changePercentage).toFixed(2)}%</span>`,
                           `</div>`,
-                          getTooltipArrow(),
+                          '<div class="tooltip-arrow"></div>',
                         ]
                           .filter(e => e)
                           .join('');
@@ -805,9 +815,28 @@ const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const ChartTitle = styled('header')`
-  display: flex;
-  flex-direction: row;
+const StyledCircleIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.formText};
+  height: ${space(1)};
+  margin-right: ${space(0.5)};
+`;
+
+const ChartFilters = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.textColor};
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+`;
+
+const Filters = styled('span')`
+  margin-right: ${space(1)};
 `;
 
 const ChartActions = styled(PanelFooter)`

@@ -6,12 +6,12 @@ import {
   getDiffInMinutes,
   shouldFetchPreviousPeriod,
 } from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GlobalSelection, Organization, SessionApiResponse} from 'sentry/types';
+import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';
@@ -25,7 +25,7 @@ import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButt
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   isProjectStabilized: boolean;
   hasSessions: boolean | null;
   query?: string;
@@ -75,7 +75,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
         {
           query: {
             ...commonQuery,
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],

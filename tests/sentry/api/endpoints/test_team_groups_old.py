@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 
@@ -39,6 +39,14 @@ class TeamGroupsOldTest(APITestCase):
             project=project2,
             first_seen=datetime(2015, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
         )
+
+        # Should be excluded since it hasn't been seen for over 90 days.
+        last_seen_too_old_group = self.create_group(
+            project=project1,
+            first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
+            last_seen=datetime.now() - timedelta(days=91),
+        )
+        GroupAssignee.objects.assign(last_seen_too_old_group, self.user)
 
         self.login_as(user=self.user)
         response = self.get_success_response(self.organization.slug, self.team.slug)

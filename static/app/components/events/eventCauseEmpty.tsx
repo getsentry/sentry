@@ -7,7 +7,7 @@ import codesworth from 'sentry-images/spot/codesworth.svg';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
-import CommitRow from 'sentry/components/commitRow';
+import {CommitRow} from 'sentry/components/commitRow';
 import {DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -243,7 +243,7 @@ const Description = styled('div')`
 const ButtonList = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   justify-self: end;
   margin-bottom: 16px;

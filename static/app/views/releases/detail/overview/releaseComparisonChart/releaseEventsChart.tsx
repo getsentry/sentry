@@ -11,7 +11,6 @@ import {getInterval} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {
-  DateString,
   Organization,
   ReleaseComparisonChartType,
   ReleaseProject,
@@ -36,7 +35,7 @@ type Props = WithRouterProps & {
   value: React.ReactNode;
   diff: React.ReactNode;
   organization: Organization;
-  period?: string;
+  period?: string | null;
   start?: string;
   end?: string;
   utc?: boolean;
@@ -175,9 +174,9 @@ function ReleaseEventsChart({
           showLegend
           projects={projects}
           environments={environments}
-          start={start as DateString}
-          end={end as DateString}
-          period={period ?? undefined}
+          start={start ?? null}
+          end={end ?? null}
+          period={period}
           utc={utc}
           currentSeriesName={t('This Release') + (loading || reloading ? ' ' : '')} // HACK: trigger echarts rerender without remounting
           previousSeriesName={t('All Releases')}

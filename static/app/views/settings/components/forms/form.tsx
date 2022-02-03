@@ -82,6 +82,10 @@ type Props = {
    */
   onSubmit?: OnSubmitCallback;
   onPreSubmit?: () => void;
+  /**
+   * Ensure the form model isn't reset when the form unmounts
+   */
+  preventFormResetOnUnmount?: boolean;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
 export default class Form extends React.Component<Props> {
@@ -113,7 +117,7 @@ export default class Form extends React.Component<Props> {
   }
 
   componentWillUnmount() {
-    this.model.reset();
+    !this.props.preventFormResetOnUnmount && this.model.reset();
   }
 
   model: FormModel = this.props.model || new FormModel();
@@ -276,7 +280,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
 
 const DefaultButtons = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-auto-flow: column;
   justify-content: flex-end;
   flex: 1;

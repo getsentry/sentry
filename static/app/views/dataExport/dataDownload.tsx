@@ -56,6 +56,8 @@ type State = {
 } & AsyncView['state'];
 
 class DataDownload extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getTitle(): string {
     return t('Download Center');
   }

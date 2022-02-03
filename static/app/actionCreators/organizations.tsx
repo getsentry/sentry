@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
-import {resetGlobalSelection} from 'sentry/actionCreators/globalSelection';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import {Client} from 'sentry/api';
@@ -91,7 +91,7 @@ export function remove(api: Client, {successMessage, errorMessage, orgId}: Remov
 }
 
 export function switchOrganization() {
-  resetGlobalSelection();
+  resetPageFilters();
 }
 
 export function removeAndRedirectToRemainingOrganization(

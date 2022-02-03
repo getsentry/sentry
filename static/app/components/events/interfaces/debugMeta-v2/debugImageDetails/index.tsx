@@ -352,14 +352,14 @@ export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Title = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   max-width: calc(100% - 40px);

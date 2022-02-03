@@ -2,6 +2,8 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {t} from 'sentry/locale';
+
 import ActionButton from './button';
 import ConfirmableAction from './confirmableAction';
 
@@ -11,22 +13,27 @@ const StyledAction = styled('a')<{disabled?: boolean}>`
   ${p => p.disabled && 'cursor: not-allowed;'}
 `;
 
-const StyledActionButton = styled(ActionButton)`
+const StyledActionButton = styled(ActionButton)<{
+  disabled?: boolean;
+  hasDropdown?: boolean;
+}>`
   display: flex;
   align-items: center;
-  ${p => p.disabled && 'cursor: not-allowed;'}
   pointer-events: ${p => (p.disabled ? 'none' : 'auto')};
+
+  ${p => p.disabled && 'cursor: not-allowed;'}
+  ${p => p.hasDropdown && `border-radius: ${p.theme.borderRadiusLeft}`};
 `;
 
 type ConfirmableActionProps = React.ComponentProps<typeof ConfirmableAction>;
 
 type CommonProps = Omit<
   ConfirmableActionProps,
-  'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority'
+  'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority' | 'children'
 > & {
   title: string;
+  children: React.ReactChild;
   onAction?: () => void;
-  children?: React.ReactNode;
   disabled?: boolean;
   className?: string;
   shouldConfirm?: boolean;
@@ -36,7 +43,7 @@ type CommonProps = Omit<
 
 type Props = CommonProps &
   ({type?: 'button'} & Partial<
-    Omit<React.ComponentProps<typeof StyledActionButton>, 'as'>
+    Omit<React.ComponentProps<typeof StyledActionButton>, 'as' | 'children'>
   >);
 
 export default function ActionLink({
@@ -54,7 +61,7 @@ export default function ActionLink({
   ...props
 }: Props) {
   const actionCommonProps = {
-    ['aria-label']: title,
+    ['aria-label']: typeof title === 'string' ? title : t('Actions'),
     className: classNames(className, {disabled}),
     onClick: disabled ? undefined : onAction,
     disabled,

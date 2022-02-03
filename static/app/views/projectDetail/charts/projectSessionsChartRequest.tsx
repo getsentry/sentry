@@ -6,11 +6,11 @@ import omit from 'lodash/omit';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {
-  GlobalSelection,
   Organization,
+  PageFilters,
   SessionApiResponse,
   SessionField,
   SessionStatus,
@@ -45,7 +45,7 @@ type ProjectSessionsChartRequestRenderProps = {
 type Props = {
   api: Client;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
   onTotalValuesChange: (value: number | null) => void;
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
@@ -174,7 +174,7 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
     if (!shouldFetchWithPrevious) {
       return {
         ...baseParams,
-        ...getParams(datetime),
+        ...normalizeDateTimeParams(datetime),
       };
     }
 

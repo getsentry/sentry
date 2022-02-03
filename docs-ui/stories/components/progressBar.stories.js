@@ -23,5 +23,5 @@ _ProgressBar.storyName = 'Progress Bar';
 const Wrapper = styled('div')`
   width: 200px;
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;

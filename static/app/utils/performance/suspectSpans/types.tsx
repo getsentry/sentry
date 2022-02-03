@@ -17,13 +17,11 @@ export type ExampleTransaction = {
 export type SpanExample = {
   op: string;
   group: string;
+  description: string | null;
   examples: ExampleTransaction[];
 };
 
 export type SuspectSpan = SpanExample & {
-  projectId: number;
-  project: string;
-  transaction: string;
   frequency?: number;
   count?: number;
   avgOccurrences?: number;
@@ -41,3 +39,8 @@ export type SpanOp = {
 };
 
 export type SpanOps = SpanOp[];
+
+export type SpanSlug = {
+  op: string;
+  group: string;
+};

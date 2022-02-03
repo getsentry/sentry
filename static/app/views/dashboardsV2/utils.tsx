@@ -9,7 +9,7 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
-import {GlobalSelection} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -27,7 +27,7 @@ export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
 export function eventViewFromWidget(
   title: string,
   query: WidgetQuery,
-  selection: GlobalSelection,
+  selection: PageFilters,
   widgetDisplayType?: DisplayType
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;
@@ -35,12 +35,14 @@ export function eventViewFromWidget(
 
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
   const fields =
-    widgetDisplayType === DisplayType.WORLD_MAP
+    widgetDisplayType === DisplayType.WORLD_MAP &&
+    !query.fields.includes('geo.country_code')
       ? ['geo.country_code', ...query.fields]
       : query.fields;
   const conditions =
-    widgetDisplayType === DisplayType.WORLD_MAP
-      ? `${query.conditions} has:geo.country_code`
+    widgetDisplayType === DisplayType.WORLD_MAP &&
+    !query.conditions.includes('has:geo.country_code')
+      ? `${query.conditions} has:geo.country_code`.trim()
       : query.conditions;
 
   return EventView.fromSavedQuery({
@@ -51,7 +53,7 @@ export function eventViewFromWidget(
     query: conditions,
     orderby: query.orderby,
     projects,
-    range: statsPeriod,
+    range: statsPeriod ?? undefined,
     start: start ? getUtcDateString(start) : undefined,
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,

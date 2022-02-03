@@ -31,6 +31,16 @@ export type ExternalActorMapping = {
   sentryName: string;
 };
 
+export type ExternalActorSuggestion = {
+  externalName: string;
+  userId?: string;
+  teamId?: string;
+};
+
+export type ExternalActorMappingOrSuggestion =
+  | ExternalActorMapping
+  | ExternalActorSuggestion;
+
 export type ExternalUser = {
   id: string;
   memberId: string;
@@ -233,20 +243,6 @@ type IntegrationDialog = {
   body: string;
 };
 
-/**
- * @deprecated This type is being removed in favor of DocIntegration
- * and is will actually coordinate with the backend
- */
-export type DocumentIntegration = {
-  slug: string;
-  name: string;
-  author: string;
-  docUrl: string;
-  description: string;
-  features: IntegrationFeature[];
-  resourceLinks: Array<{title: string; url: string}>;
-};
-
 export type DocIntegration = {
   name: string;
   slug: string;
@@ -255,7 +251,7 @@ export type DocIntegration = {
   popularity: number;
   description: string;
   isDraft: boolean;
-  avatar: Avatar;
+  avatar?: Avatar;
   features?: IntegrationFeature[];
   resources?: Array<{title: string; url: string}>;
 };
@@ -445,7 +441,7 @@ export type AppOrProviderOrPlugin =
   | SentryApp
   | IntegrationProvider
   | PluginWithProjectList
-  | DocumentIntegration;
+  | DocIntegration;
 
 /**
  * Webhooks and servicehooks

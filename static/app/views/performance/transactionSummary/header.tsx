@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -19,7 +20,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
+import {MetricsSwitch} from '../metricsSwitch';
 
+import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
@@ -51,6 +54,10 @@ const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
   [Tab.Spans]: {
     eventKey: 'performance_views.spans.spans_tab_clicked',
     eventName: 'Performance Views: Spans tab clicked',
+  },
+  [Tab.Anomalies]: {
+    eventKey: 'performance_views.anomalies.anomalies_tab_clicked',
+    eventName: 'Performance Views: Anomalies tab clicked',
   },
 };
 
@@ -211,6 +218,17 @@ class TransactionHeader extends React.Component<Props> {
     }
   }
 
+  handleSwitchMetrics = () => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: undefined,
+      },
+    });
+  };
+
   render() {
     const {organization, location, projectId, transactionName, currentTab} = this.props;
 
@@ -225,6 +243,7 @@ class TransactionHeader extends React.Component<Props> {
     const tagsTarget = tagsRouteWithQuery(routeQuery);
     const eventsTarget = eventsRouteWithQuery(routeQuery);
     const spansTarget = spansRouteWithQuery(routeQuery);
+    const anomaliesTarget = anomaliesRouteWithQuery(routeQuery);
 
     return (
       <Layout.Header>
@@ -242,6 +261,7 @@ class TransactionHeader extends React.Component<Props> {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            <MetricsSwitch onSwitch={this.handleSwitchMetrics} />
             <Feature organization={organization} features={['incidents']}>
               {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
             </Feature>
@@ -285,6 +305,20 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTabClick(Tab.Spans)}
               >
                 {t('Spans')}
+                <FeatureBadge type="new" noTooltip />
+              </ListLink>
+            </Feature>
+            <Feature
+              organization={organization}
+              features={['organizations:performance-anomaly-detection-ui']}
+            >
+              <ListLink
+                data-test-id="anomalies-tab"
+                to={anomaliesTarget}
+                isActive={() => currentTab === Tab.Anomalies}
+                onClick={this.trackTabClick(Tab.Anomalies)}
+              >
+                {t('Anomalies')}
                 <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>

@@ -21,7 +21,7 @@ type DataType = {
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const {ContainerActions} = props;
-  const globalSelection = props.eventView.getGlobalSelection();
+  const globalSelection = props.eventView.getPageFilters();
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);

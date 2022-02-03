@@ -3,7 +3,7 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'sentry/types';
+import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
 import {defined, escape} from 'sentry/utils';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -25,7 +25,7 @@ export const ONE_HOUR = 60;
  */
 export const RELEASE_LINES_THRESHOLD = 50;
 
-export type DateTimeObject = Partial<GlobalSelection['datetime']>;
+export type DateTimeObject = Partial<PageFilters['datetime']>;
 
 export function truncationFormatter(
   value: string,
@@ -156,7 +156,7 @@ const MAX_PERIOD_HOURS_INCLUDE_PREVIOUS = 45 * 24;
 
 export function canIncludePreviousPeriod(
   includePrevious: boolean | undefined,
-  period: string | undefined
+  period: string | null | undefined
 ) {
   if (!includePrevious) {
     return false;
@@ -185,10 +185,9 @@ export function shouldFetchPreviousPeriod({
  * Generates a series selection based on the query parameters defined by the location.
  */
 export function getSeriesSelection(
-  location: Location,
-  parameter = 'unselectedSeries'
+  location: Location
 ): LegendComponentOption['selected'] {
-  const unselectedSeries = decodeList(location?.query[parameter]);
+  const unselectedSeries = decodeList(location?.query.unselectedSeries);
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;
     return selection;
@@ -261,16 +260,3 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     }),
   };
 };
-
-// This is not in a react store/context because the tooltips are rendered as plain html
-let tooltipArrowLeft = '50%';
-export function setTooltipPosition(arrowLeft: string) {
-  tooltipArrowLeft = arrowLeft;
-  return tooltipArrowLeft;
-}
-
-export function getTooltipArrow(): string {
-  return `<div class="tooltip-arrow" ${
-    tooltipArrowLeft ? `style="left: ${tooltipArrowLeft}"` : ''
-  }"></div>`;
-}

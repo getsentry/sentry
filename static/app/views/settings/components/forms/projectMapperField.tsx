@@ -264,6 +264,7 @@ export class RenderField extends Component<RenderProps, State> {
               priority="primary"
               onClick={handleAdd}
               icon={<IconAdd />}
+              aria-label={t('Add project')}
             />
           </AddProjectWrapper>
           <FieldControlWrapper>
@@ -336,7 +337,7 @@ const MappedItemValue = styled('div')`
   grid-auto-flow: column;
   grid-auto-columns: max-content;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   width: 100%;
 `;
 
@@ -385,7 +386,7 @@ const NextButtonPanelAlert = styled(PanelAlert)`
 const NextButtonWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 

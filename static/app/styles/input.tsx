@@ -21,9 +21,9 @@ const inputStyles = (props: Props) =>
     border-radius: ${props.theme.borderRadius};
     box-shadow: inset ${props.theme.dropShadowLight};
     padding: ${INPUT_PADDING}px;
-    transition: border 0.1s linear;
     resize: vertical;
     height: 40px;
+    transition: border 0.1s, box-shadow 0.1s;
 
     ${props.monospace ? `font-family: ${props.theme.text.familyMono}` : ''};
 
@@ -32,16 +32,6 @@ const inputStyles = (props: Props) =>
           cursor: default;
         `
       : ''};
-
-    &:focus {
-      outline: none;
-    }
-
-    &:hover,
-    &:focus,
-    &:active {
-      border: 1px solid ${props.theme.border};
-    }
 
     &::placeholder {
       color: ${props.theme.formPlaceholder};
@@ -58,8 +48,11 @@ const inputStyles = (props: Props) =>
       }
     }
 
+    &:focus,
     &.focus-visible {
-      box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
+      outline: none;
+      border-color: ${props.theme.focusBorder};
+      box-shadow: ${props.theme.focusBorder} 0 0 0 1px;
     }
   `;
 

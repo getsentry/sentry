@@ -55,7 +55,7 @@ const ResourcesWrapper = styled('div')`
 const ResourceCards = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));

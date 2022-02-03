@@ -104,8 +104,7 @@ class OrganizationMixin:
                 logger.info("User is not a member of any organizations")
 
         if active_organization and self._is_org_member(request.user, active_organization):
-            if active_organization.slug != request.session.get("activeorg"):
-                request.session["activeorg"] = active_organization.slug
+            auth.set_active_org(request, active_organization.slug)
 
         self._active_org = (active_organization, request.user)
 
@@ -429,60 +428,6 @@ class OrganizationView(BaseView):
         elif is_active_superuser(request):
             allowed_roles = roles.get_all()
         return (can_admin, allowed_roles)
-
-
-class TeamView(OrganizationView):
-    """
-    Any view acting on behalf of a team should inherit from this base and the
-    matching URL pattern must pass 'team_slug'.
-
-    Two keyword arguments are added to the resulting dispatch:
-
-    - organization
-    - team
-    """
-
-    def get_context_data(self, request: Request, organization, team, **kwargs):
-        context = super().get_context_data(request, organization)
-        context["team"] = team
-        return context
-
-    def has_permission(self, request: Request, organization, team, *args, **kwargs):
-        if team is None:
-            return False
-        rv = super().has_permission(request, organization)
-        if not rv:
-            return rv
-        if self.required_scope:
-            if not request.access.has_team_scope(team, self.required_scope):
-                logger.info(
-                    "User %s does not have %s permission to access team %s",
-                    request.user,
-                    self.required_scope,
-                    team,
-                )
-                return False
-        elif not request.access.has_team(team):
-            logger.info("User %s does not have access to team %s", request.user, team)
-            return False
-        return True
-
-    def convert_args(self, request: Request, organization_slug, team_slug, *args, **kwargs):
-        active_organization = self.get_active_organization(
-            request=request, organization_slug=organization_slug
-        )
-
-        if active_organization:
-            active_team = self.get_active_team(
-                request=request, team_slug=team_slug, organization=active_organization
-            )
-        else:
-            active_team = None
-
-        kwargs["organization"] = active_organization
-        kwargs["team"] = active_team
-
-        return (args, kwargs)
 
 
 class ProjectView(OrganizationView):

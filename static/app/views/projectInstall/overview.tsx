@@ -83,7 +83,13 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
           <p>
             <small>
               {tct('Already have things setup? [link:Get your DSN]', {
-                link: <Button priority="link" onClick={this.toggleDsn} />,
+                link: (
+                  <Button
+                    priority="link"
+                    onClick={this.toggleDsn}
+                    aria-label={t('Get your DSN')}
+                  />
+                ),
               })}
               .
             </small>
@@ -121,7 +127,7 @@ const DsnInfo = styled('div')`
 const DsnContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1.5)} ${space(2)};
+  gap: ${space(1.5)} ${space(2)};
   align-items: center;
   margin-bottom: ${space(2)};
 `;

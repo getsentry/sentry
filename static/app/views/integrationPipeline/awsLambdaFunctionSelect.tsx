@@ -39,12 +39,11 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
     super(props);
     makeObservable(this, {allStatesToggled: computed});
   }
-
   state: State = {
     submitting: false,
   };
 
-  model = new FormModel({apiOptions: {baseUrl: window.location.origin}});
+  model = new FormModel();
 
   get initialData() {
     const {lambdaFunctions} = this.props;
@@ -72,8 +71,12 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
     return Object.values(this.model.getData()).every(val => val);
   }
 
+  get formFields() {
+    const data = this.model.getTransformedData();
+    return Object.entries(data).map(([name, value]) => ({name, value}));
+  }
+
   handleSubmit = () => {
-    this.model.saveForm();
     this.setState({submitting: true});
   };
 
@@ -155,10 +158,10 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
           {t('Decide which functions you would like to enable for Sentry monitoring')}
           <StyledForm
             initialData={this.initialData}
-            skipPreventDefault
             model={this.model}
             apiEndpoint="/extensions/aws_lambda/setup/"
             hideFooter
+            preventFormResetOnUnmount
           >
             <JsonForm renderHeader={() => FormHeader} forms={[formFields]} />
           </StyledForm>
@@ -178,9 +181,16 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
         <Observer>
           {() => (
             <FooterWithButtons
+              formProps={{
+                action: '/extensions/aws_lambda/setup/',
+                method: 'post',
+                onSubmit: this.handleSubmit,
+              }}
+              formFields={this.formFields}
               buttonText={t('Finish Setup')}
-              onClick={this.handleSubmit}
-              disabled={this.model.isError || this.model.isSaving}
+              disabled={
+                this.model.isError || this.model.isSaving || this.state.submitting
+              }
             />
           )}
         </Observer>

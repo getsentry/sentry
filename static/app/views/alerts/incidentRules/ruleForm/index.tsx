@@ -76,6 +76,7 @@ type State = {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
   comparisonType: AlertRuleComparisonType;
   comparisonDelta?: number;
   projects: Project[];
@@ -127,6 +128,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
+      thresholdPeriod: rule.thresholdPeriod ?? 1,
       comparisonDelta: rule.comparisonDelta ?? undefined,
       comparisonType: !rule.comparisonDelta
         ? AlertRuleComparisonType.COUNT
@@ -389,6 +391,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
+    const {aggregate: _aggregate} = this.state;
     if (
       [
         'dataset',
@@ -399,7 +402,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         'comparisonDelta',
       ].includes(name)
     ) {
-      this.setState({[name]: value});
+      const aggregate = name === 'aggregate' ? value : _aggregate;
+      this.setState({aggregate, [name]: value});
     }
   };
 
@@ -447,9 +451,16 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
-    const {resolveThreshold, triggers, thresholdType, comparisonDelta, uuid, timeWindow} =
-      this.state;
-
+    const {
+      aggregate,
+      resolveThreshold,
+      triggers,
+      thresholdType,
+      thresholdPeriod,
+      comparisonDelta,
+      uuid,
+      timeWindow,
+    } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
       trigger => trigger.label !== 'warning' || !isEmpty(trigger.alertThreshold)
@@ -485,8 +496,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
+          thresholdPeriod,
           comparisonDelta,
           timeWindow,
+          aggregate,
         },
         {
           referrer: location?.query?.referrer,
@@ -555,6 +568,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       thresholdType,
       triggerErrors: new Map([...triggerErrors, ...state.triggerErrors]),
     }));
+  };
+
+  handleThresholdPeriodChange = (value: number) => {
+    this.setState({thresholdPeriod: value});
   };
 
   handleResolveThresholdChange = (
@@ -633,6 +650,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       aggregate,
       environment,
       thresholdType,
+      thresholdPeriod,
       comparisonDelta,
       comparisonType,
       resolveThreshold,
@@ -687,6 +705,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         triggers={triggers}
         aggregate={aggregate}
         resolveThreshold={resolveThreshold}
+        thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
         comparisonType={comparisonType}
         currentProject={params.projectId}
@@ -695,6 +714,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         availableActions={this.state.availableActions}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
+        onThresholdPeriodChange={this.handleThresholdPeriodChange}
         onResolveThresholdChange={this.handleResolveThresholdChange}
       />
     );

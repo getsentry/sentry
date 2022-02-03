@@ -8,7 +8,7 @@ describe('MetricsRequest', () => {
   const childrenMock = jest.fn(() => null);
   const props = {
     api: new MockApiClient(),
-    organization,
+    orgSlug: organization.slug,
     field: ['fieldA'],
     project: [project.id],
     environment: ['prod'],
@@ -34,10 +34,14 @@ describe('MetricsRequest', () => {
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
+      error: null,
       loading: true,
+      isLoading: true,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
+      pageLinks: null,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
@@ -50,7 +54,7 @@ describe('MetricsRequest', () => {
           field: ['fieldA'],
           groupBy: ['status'],
           interval: '1h',
-          limit: 3,
+          per_page: 3,
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
@@ -63,10 +67,14 @@ describe('MetricsRequest', () => {
     await waitFor(() =>
       expect(childrenMock).toHaveBeenLastCalledWith({
         errored: false,
+        error: null,
         loading: false,
+        isLoading: false,
         reloading: false,
         response: {groups: [], intervals: []},
         responsePrevious: null,
+        tableData: undefined,
+        pageLinks: null,
       })
     );
   });
@@ -83,10 +91,14 @@ describe('MetricsRequest', () => {
     expect(childrenMock).toHaveBeenCalledTimes(1);
     expect(childrenMock).toHaveBeenCalledWith({
       errored: false,
+      error: null,
       loading: false,
+      isLoading: false,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
+      pageLinks: null,
     });
   });
 
@@ -132,10 +144,14 @@ describe('MetricsRequest', () => {
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
+      error: null,
       loading: true,
+      isLoading: true,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
+      pageLinks: null,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(2);
@@ -150,7 +166,7 @@ describe('MetricsRequest', () => {
           field: ['fieldA'],
           groupBy: ['status'],
           interval: '1h',
-          limit: 3,
+          per_page: 3,
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
@@ -170,7 +186,7 @@ describe('MetricsRequest', () => {
           query: 'abc',
           groupBy: ['status'],
           orderBy: 'fieldA',
-          limit: 3,
+          per_page: 3,
           interval: '1h',
           statsPeriodStart: '28d',
           statsPeriodEnd: '14d',
@@ -181,10 +197,14 @@ describe('MetricsRequest', () => {
     await waitFor(() =>
       expect(childrenMock).toHaveBeenLastCalledWith({
         errored: false,
+        error: null,
         loading: false,
+        isLoading: false,
         reloading: false,
         response: {groups: [], intervals: []},
         responsePrevious: {groups: [], intervals: []},
+        tableData: undefined,
+        pageLinks: null,
       })
     );
   });
@@ -204,10 +224,14 @@ describe('MetricsRequest', () => {
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
+      error: null,
       loading: true,
+      isLoading: true,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
+      pageLinks: null,
     });
 
     // if start and end are provided, it will not perform a request to fetch previous data
@@ -222,7 +246,7 @@ describe('MetricsRequest', () => {
           field: ['fieldA'],
           groupBy: ['status'],
           interval: '1h',
-          limit: 3,
+          per_page: 3,
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',

@@ -97,6 +97,14 @@ class AsyncComponent<
    */
   shouldRenderBadRequests = false;
 
+  /**
+   * If a request fails and is not a bad request, and if `disableErrorReport` is set to false,
+   * the UI will display an error modal.
+   *
+   * It is recommended to enable this property ideally only when the subclass is used by a top level route.
+   */
+  disableErrorReport = true;
+
   constructor(props: P, context: any) {
     super(props, context);
 
@@ -377,7 +385,7 @@ class AsyncComponent<
     return <LoadingIndicator />;
   }
 
-  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+  renderError(error?: Error, disableLog = false): React.ReactNode {
     const {errors} = this.state;
 
     // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
@@ -415,7 +423,7 @@ class AsyncComponent<
       <RouteError
         error={error}
         disableLogSentry={!shouldLogSentry}
-        disableReport={disableReport}
+        disableReport={this.disableErrorReport}
       />
     );
   }

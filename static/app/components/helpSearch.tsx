@@ -62,7 +62,7 @@ const HelpSearch = props => (
 const SectionHeading = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
   padding: ${space(1)} ${space(2)};

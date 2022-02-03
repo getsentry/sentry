@@ -1,8 +1,10 @@
 import logging
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Any, Dict, Mapping, Optional, Tuple, Union
 from uuid import uuid4
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
@@ -19,6 +21,7 @@ from django.views import View
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
+from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
     get_verification_value_from_key,
@@ -35,7 +38,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     User,
-    UserEmail,
 )
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
@@ -100,10 +102,27 @@ class AuthIdentityHandler:
     request: HttpRequest
     identity: Mapping[str, Any]
 
-    def __post_init__(self) -> None:
-        self.user: Union[User, AnonymousUser] = (
-            self._find_user_from_email(self.identity.get("email")) or self.request.user
-        )
+    @cached_property
+    def user(self) -> Union[User, AnonymousUser]:
+        email = self.identity.get("email")
+        if email:
+            try:
+                user = resolve_email_to_user(email)
+            except AmbiguousUserFromEmail as e:
+                user = e.users[0]
+                self.warn_about_ambiguous_email(email, e.users, user)
+            if user is not None:
+                return user
+        return self.request.user
+
+    @staticmethod
+    def warn_about_ambiguous_email(email: str, users: Tuple[User], chosen_user: User):
+        with sentry_sdk.push_scope() as scope:
+            scope.level = "warning"
+            scope.set_tag("email", email)
+            scope.set_extra("user_ids", [user.id for user in users])
+            scope.set_extra("chosen_user", chosen_user.id)
+            sentry_sdk.capture_message("Handling identity from ambiguous email address")
 
     class _NotCompletedSecurityChecks(Exception):
         pass
@@ -165,7 +184,7 @@ class AuthIdentityHandler:
             tags={
                 "provider": self.provider.key,
                 "organization_id": self.organization.id,
-                "user_id": self.user.id,
+                "user_id": user.id,
             },
             skip_internal=False,
             sample_rate=1.0,
@@ -173,7 +192,7 @@ class AuthIdentityHandler:
 
         if not is_active_superuser(self.request):
             # set activeorg to ensure correct redirect upon logging in
-            self.request.session["activeorg"] = self.organization.slug
+            auth.set_active_org(self.request, self.organization.slug)
         return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
     def _handle_new_membership(self, auth_identity: AuthIdentity) -> Optional[OrganizationMember]:
@@ -341,17 +360,6 @@ class AuthIdentityHandler:
             return OrganizationMember.objects.get(user=self.user, organization=self.organization)
         except OrganizationMember.DoesNotExist:
             return self._handle_new_membership(auth_identity)
-
-    @staticmethod
-    def _find_user_from_email(email: Optional[str]) -> Optional[User]:
-        if email is None:
-            return None
-
-        # TODO(dcramer): its possible they have multiple accounts and at
-        # least one is managed (per the check below)
-        return User.objects.filter(
-            id__in=UserEmail.objects.filter(email__iexact=email).values("user"), is_active=True
-        ).first()
 
     def _respond(
         self,
@@ -526,8 +534,7 @@ class AuthIdentityHandler:
         state.clear()
 
         if not is_active_superuser(self.request):
-            # set activeorg to ensure correct redirect upon logging in
-            self.request.session["activeorg"] = self.organization.slug
+            auth.set_active_org(self.request, self.organization.slug)
         return self._post_login_redirect()
 
     @property

@@ -162,7 +162,7 @@ class LoginForm extends Component<Props, State> {
 
 const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
   display: grid;
-  grid-gap: 60px;
+  gap: 60px;
   grid-template-columns: ${p => (p.hasLoginProvider ? '1fr 0.8fr' : '1fr')};
 `;
 
@@ -177,7 +177,7 @@ const ProviderWrapper = styled('div')`
   position: relative;
   display: grid;
   grid-auto-rows: max-content;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 
   &:before {
     position: absolute;

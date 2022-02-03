@@ -15,7 +15,7 @@ type AreaDataType = {
 
 export function HistogramWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, location} = props;
-  const globalSelection = props.eventView.getGlobalSelection();
+  const globalSelection = props.eventView.getPageFilters();
 
   const Queries = useMemo(() => {
     return {

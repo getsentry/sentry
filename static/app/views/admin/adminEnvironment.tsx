@@ -45,6 +45,10 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
                     "You're running an old version of Sentry, did you know %s is available?",
                     version.latest
                   )}
+                  aria-label={t(
+                    "You're running an old version of Sentry, did you know %s is available?",
+                    version.latest
+                  )}
                   priority="link"
                   href="https://github.com/getsentry/sentry/releases"
                   icon={<IconQuestion size="sm" />}
@@ -103,6 +107,6 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
 const VersionLabel = styled('dt')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;

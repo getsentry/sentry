@@ -10,16 +10,16 @@ import {IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  GlobalSelection,
   Organization,
+  PageFilters,
   ProjectSdkUpdates,
   SDKUpdatesSuggestion,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 
 import {SidebarPanelKey} from './sidebar/types';
@@ -29,7 +29,7 @@ type Props = React.ComponentProps<typeof Alert> & {
   api: Client;
   organization: Organization;
   sdkUpdates?: ProjectSdkUpdates[] | null;
-  selection?: GlobalSelection;
+  selection?: PageFilters;
   Wrapper?: React.ComponentType;
 };
 
@@ -125,6 +125,7 @@ class InnerGlobalSdkSuggestions extends React.Component<Props, State> {
     const showBroadcastsPanel = (
       <Button
         priority="link"
+        size="zero"
         onClick={() => {
           SidebarPanelActions.activatePanel(SidebarPanelKey.Broadcasts);
           recordAnalyticsClicked({organization});
@@ -143,6 +144,7 @@ class InnerGlobalSdkSuggestions extends React.Component<Props, State> {
           <Actions>
             <Button
               priority="link"
+              size="zero"
               title={t('Dismiss for the next two weeks')}
               onClick={this.snoozePrompt}
             >
@@ -170,11 +172,11 @@ const Content = styled('div')`
 const Actions = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const GlobalSdkSuggestions = withOrganization(
-  withSdkUpdates(withGlobalSelection(withApi(InnerGlobalSdkSuggestions)))
+  withSdkUpdates(withPageFilters(withApi(InnerGlobalSdkSuggestions)))
 );
 
 export default GlobalSdkSuggestions;

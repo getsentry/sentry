@@ -46,7 +46,7 @@ def cli(locale):
             merge_message(msg, frontend_msg)
         catalog[msg.id] = msg
 
-    with open(catalog_file, "w") as f:
+    with open(catalog_file, "wb") as f:
         write_po(f, catalog)
 
 

@@ -110,9 +110,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 "webhookUrl": "https://newurl.com",
                 "redirectUrl": "https://newredirecturl.com",
                 "isAlertable": True,
+                "features": [1, 2],
             },
             format="json",
         )
+
         assert json.loads(response.content) == {
             "name": self.published_app.name,
             "author": "A Company",
@@ -133,10 +135,15 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "owner": {"id": self.org.id, "slug": self.org.slug},
             "featureData": [
                 {
-                    "featureId": 0,
-                    "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
-                    "featureGate": "integrations-api",
-                }
+                    "featureId": 1,
+                    "featureGate": "integrations-issue-link",
+                    "description": "Organizations can **create or link Sentry issues** to another service.",
+                },
+                {
+                    "featureId": 2,
+                    "featureGate": "integrations-stacktrace-link",
+                    "description": "Organizations can **open a line to Sentry's stack trace** in another service.",
+                },
             ],
             "popularity": self.popularity,
             "avatars": [],
@@ -154,6 +161,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 "webhookUrl": "https://newurl.com",
                 "scopes": ("event:read",),
                 "events": ("issue",),
+                "features": [1, 2],
             },
             format="json",
         )
@@ -165,6 +173,18 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data["events"] == {"issue"}
         assert response.data["uuid"] == self.unpublished_app.uuid
         assert response.data["webhookUrl"] == "https://newurl.com"
+        assert response.data["featureData"] == [
+            {
+                "featureId": 1,
+                "featureGate": "integrations-issue-link",
+                "description": "Organizations can **create or link Sentry issues** to another service.",
+            },
+            {
+                "featureId": 2,
+                "featureGate": "integrations-stacktrace-link",
+                "description": "Organizations can **open a line to Sentry's stack trace** in another service.",
+            },
+        ]
 
     def test_can_update_name_with_non_unique_name(self):
         from sentry.mediators import sentry_apps
@@ -209,6 +229,17 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.status_code == 400
         assert response.data["detail"] == "Cannot update permissions on a published integration."
+
+    def test_cannot_update_features_published_app_permissions(self):
+        self.login_as(user=self.user)
+
+        response = self.client.put(
+            self.url,
+            data={"features": [1, 2, 3]},
+            format="json",
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "Cannot update features on a published integration."
 
     def test_cannot_update_non_owned_apps(self):
         self.login_as(user=self.user)

@@ -69,7 +69,12 @@ class KeyRow extends Component<Props> {
           'Are you sure you want to remove this key? This action is irreversible.'
         )}
       >
-        <Button size="small" disabled={!controlActive} icon={<IconDelete />} />
+        <Button
+          size="small"
+          disabled={!controlActive}
+          icon={<IconDelete />}
+          aria-label={t('Delete')}
+        />
       </Confirm>,
     ];
 
@@ -125,7 +130,7 @@ const Title = styled('div')<{disabled: boolean}>`
 const Controls = styled('div')`
   display: grid;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-auto-flow: column;
 `;
 

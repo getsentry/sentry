@@ -12,7 +12,6 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 
 
@@ -35,62 +34,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
             )
 
         return Response({"count": result["data"][0]["count"]})
-
-
-class OrganizationEventBaseline(OrganizationEventsEndpointBase):
-    def get(self, request: Request, organization) -> Response:
-        """Find the event id with the closest value to an aggregate for a given query"""
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
-        try:
-            params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response(status=404)
-
-        # Assumption is that users will want the 50th percentile
-        baseline_function = request.GET.get("baselineFunction", "p50()")
-        # If the baseline was calculated already save ourselves a query
-        baseline_value = request.GET.get("baselineValue")
-        baseline_alias = get_function_alias(baseline_function)
-
-        with self.handle_query_errors():
-            if baseline_value is None:
-                result = discover.query(
-                    selected_columns=[baseline_function],
-                    params=params,
-                    query=request.GET.get("query"),
-                    limit=1,
-                    referrer="api.transaction-baseline.get_value",
-                )
-                baseline_value = result["data"][0].get(baseline_alias) if "data" in result else None
-                if baseline_value is None:
-                    return Response(status=404)
-
-            delta_column = f"absolute_delta(transaction.duration,{baseline_value})"
-
-            result = discover.query(
-                selected_columns=[
-                    "project",
-                    "timestamp",
-                    "id",
-                    "transaction.duration",
-                    delta_column,
-                ],
-                # Find the most recent transaction that's closest to the baseline value
-                # id is the last item of the orderby for consistent results
-                orderby=[get_function_alias(delta_column), "-timestamp", "id"],
-                params=params,
-                query=request.GET.get("query"),
-                limit=1,
-                referrer="api.transaction-baseline.get_id",
-            )
-            if len(result["data"]) == 0:
-                return Response(status=404)
-
-        baseline_data = result["data"][0]
-        baseline_data[baseline_alias] = baseline_value
-        return Response(baseline_data)
 
 
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')

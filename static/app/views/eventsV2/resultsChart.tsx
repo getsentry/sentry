@@ -10,7 +10,7 @@ import BarChart from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import WorldMapChart from 'sentry/components/charts/worldMapChart';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -62,7 +62,7 @@ class ResultsChart extends Component<ResultsChartProps> {
       'connect-discover-and-dashboards'
     );
 
-    const globalSelection = eventView.getGlobalSelection();
+    const globalSelection = eventView.getPageFilters();
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : null;
@@ -71,7 +71,7 @@ class ResultsChart extends Component<ResultsChartProps> {
       ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : null;
 
-    const {utc} = getParams(location.query);
+    const {utc} = normalizeDateTimeParams(location.query);
     const apiPayload = eventView.getEventsAPIPayload(location);
     const display = eventView.getDisplayMode();
     const isTopEvents =
@@ -287,7 +287,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
 export default withApi(ResultsChartContainer);
 
 const StyledPanel = styled(Panel)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     margin: 0;
   }
 `;

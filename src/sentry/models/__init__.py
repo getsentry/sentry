@@ -124,3 +124,4 @@ from .userip import *  # NOQA
 from .useroption import *  # NOQA
 from .userpermission import *  # NOQA
 from .userreport import *  # NOQA
+from .userrole import *  # NOQA

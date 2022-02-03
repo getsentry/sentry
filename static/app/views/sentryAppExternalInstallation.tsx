@@ -27,6 +27,8 @@ type State = AsyncView['state'] & {
 };
 
 export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getDefaultState() {
     const state = super.getDefaultState();
     return {

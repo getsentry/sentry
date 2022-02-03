@@ -373,15 +373,18 @@ class TableView extends React.Component<TableViewProps> {
 
       switch (action) {
         case Actions.TRANSACTION: {
-          const maybeProject = projects.find(project => project.slug === dataRow.project);
-
+          const maybeProject = projects.find(
+            project =>
+              project.slug &&
+              [dataRow['project.name'], dataRow.project].includes(project.slug)
+          );
           const projectID = maybeProject ? [maybeProject.id] : undefined;
 
           const next = transactionSummaryRouteWithQuery({
             orgSlug: organization.slug,
             transaction: String(value),
             projectID,
-            query: nextView.getGlobalSelectionQuery(),
+            query: nextView.getPageFiltersQuery(),
           });
 
           browserHistory.push(next);
@@ -397,7 +400,7 @@ class TableView extends React.Component<TableViewProps> {
               value
             )}/`,
             query: {
-              ...nextView.getGlobalSelectionQuery(),
+              ...nextView.getPageFiltersQuery(),
 
               project: maybeProject ? maybeProject.id : undefined,
             },

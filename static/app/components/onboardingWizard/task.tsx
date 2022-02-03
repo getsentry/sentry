@@ -165,7 +165,7 @@ const TaskCard = styled(Card)`
 const IncompleteTitle = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-weight: 600;
 `;
@@ -211,7 +211,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const StyledIconClose = styled(IconClose)`

@@ -174,7 +174,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
 const Heading = styled(PanelItem)`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1.5)} ${space(2)};

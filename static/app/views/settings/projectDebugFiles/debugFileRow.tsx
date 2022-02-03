@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -133,6 +133,7 @@ const DebugFileRow = ({
                     size="xsmall"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"
+                    aria-label={t('Delete')}
                   />
                 </Confirm>
               </Tooltip>
@@ -192,7 +193,7 @@ const StyledFileSize = styled(FileSize)`
 
 const TimeWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
   flex: 2;
   align-items: center;

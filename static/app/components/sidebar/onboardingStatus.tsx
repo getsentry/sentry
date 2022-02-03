@@ -116,7 +116,7 @@ function OnboardingStatus({
 const Heading = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.white};
   margin-bottom: ${space(0.25)};
 `;
 
@@ -126,7 +126,7 @@ const Remaining = styled('div')`
   color: ${p => p.theme.gray300};
   display: grid;
   grid-template-columns: max-content max-content;
-  grid-gap: ${space(0.75)};
+  gap: ${space(0.75)};
   align-items: center;
 `;
 
@@ -163,7 +163,7 @@ const Container = styled('div')<{isActive: boolean}>`
   cursor: pointer;
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   align-items: center;
   transition: background 100ms;
 

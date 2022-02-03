@@ -177,18 +177,18 @@ class StacktraceLinkModal extends Component<Props, State> {
 const SourceCodeInput = styled('div')`
   display: grid;
   grid-template-columns: 5fr 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const ManualSetup = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-items: center;
 `;
 
 const ModalContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   code {
     word-break: break-word;

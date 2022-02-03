@@ -26,7 +26,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const PanelBodyLineItem = styled(PanelBody)`
-  font-size: 1.4rem;
+  font-size: 1rem;
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
@@ -169,7 +169,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
     const {params} = this.props;
     const {fineTuneType} = params;
 
-    if (['alerts', 'deploy', 'workflow', 'approval'].includes(fineTuneType)) {
+    if (['alerts', 'deploy', 'workflow', 'approval', 'quota'].includes(fineTuneType)) {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 

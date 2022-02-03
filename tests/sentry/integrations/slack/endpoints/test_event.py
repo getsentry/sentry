@@ -15,6 +15,29 @@ UNSET = object()
 LINK_SHARED_EVENT = """{
     "type": "link_shared",
     "channel": "Cxxxxxx",
+    "channel_name": "general",
+    "user": "Uxxxxxxx",
+    "message_ts": "123456789.9875",
+    "team_id": "TXXXXXXX1",
+    "links": [
+        {
+            "domain": "example.com",
+            "url": "http://testserver/organizations/test-org/issues/foo/"
+        },
+        {
+            "domain": "example.com",
+            "url": "http://testserver/organizations/test-org/issues/bar/baz/"
+        },
+        {
+            "domain": "example.com",
+            "url": "http://testserver/organizations/test-org/issues/bar/baz/"
+        }
+    ]
+}"""
+
+LINK_SHARED_EVENT_NO_CHANNEL_NAME = """{
+    "type": "link_shared",
+    "channel": "Cxxxxxx",
     "user": "Uxxxxxxx",
     "message_ts": "123456789.9875",
     "team_id": "TXXXXXXX1",
@@ -170,8 +193,9 @@ class LinkSharedEventTest(BaseEventTest):
         assert data["token"] == "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
     def test_user_access_token(self):
-        # this test is needed to make sure that classic bots installed by on-prem users
-        # still work since they needed to use a user_access_token for unfurl
+        # this test is needed to make sure that classic bots installed by
+        # self-hosted users still work since they needed to use a
+        # user_access_token for unfurl
         self.integration.metadata.update(
             {
                 "user_access_token": "xoxt-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
@@ -233,6 +257,18 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         assert blocks[1]["type"] == "actions"
         assert len(blocks[1]["elements"]) == 2
         assert [button["text"]["text"] for button in blocks[1]["elements"]] == ["Link", "Cancel"]
+
+    def test_share_discover_links_unlinked_user_no_channel(self):
+        IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        with self.feature("organizations:discover-basic"):
+            responses.add(
+                responses.POST, "https://slack.com/api/chat.postEphemeral", json={"ok": True}
+            )
+            responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
+
+            resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT_NO_CHANNEL_NAME))
+            assert resp.status_code == 200, resp.content
+            assert len(responses.calls) == 0
 
     def test_share_discover_links_linked_user(self):
         idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})

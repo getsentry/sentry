@@ -3,7 +3,7 @@ import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
-import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 
 type Props = WithRouterProps & {
   /**

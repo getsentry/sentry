@@ -58,7 +58,7 @@ type DefaultProps = {
    *
    * e.g. 24h, 7d, 30d
    */
-  period?: string;
+  period?: string | null;
   /**
    * Absolute start date for query
    */
@@ -182,6 +182,14 @@ type EventsRequestPartialProps = {
    * A container for query batching data and functions.
    */
   queryBatching?: QueryBatching;
+  /**
+   * Extra query parameters to be added.
+   */
+  queryExtras?: Record<string, string>;
+  /**
+   * Allows overridding the pathname.
+   */
+  generatePathname?: (org: OrganizationSummary) => string;
 };
 
 type TimeAggregationProps =
@@ -200,7 +208,14 @@ type EventsRequestState = {
   fetchedWithPrevious: boolean;
 };
 
-const propNamesToIgnore = ['api', 'children', 'organization', 'loading', 'queryBatching'];
+const propNamesToIgnore = [
+  'api',
+  'children',
+  'organization',
+  'loading',
+  'queryBatching',
+  'generatePathname',
+];
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 

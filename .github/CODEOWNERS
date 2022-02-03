@@ -120,6 +120,7 @@ build-utils/        @getsentry/owners-js-build
 /tests/snuba/search/test_backend.py                             @getsentry/visibility
 /static/app/utils/discover/                                     @getsentry/visibility
 /tests/js/spec/utils/discover/                                  @getsentry/visibility
+/static/app/components/charts/                                  @getsentry/visibility
 ### Endof Visibility ###
 
 
@@ -163,6 +164,7 @@ build-utils/        @getsentry/owners-js-build
 /tests/js/spec/views/discover/                                  @getsentry/discover-n-dashboards
 /static/app/views/dashboardsV2/                                 @getsentry/discover-n-dashboards
 /tests/js/spec/views/dashboardsV2/                              @getsentry/discover-n-dashboards
+/static/app/components/dashboards/                              @getsentry/discover-n-dashboards
 ### Endof Discover/Dashboards ###
 
 

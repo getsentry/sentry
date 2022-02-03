@@ -251,7 +251,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
         <Footer>
           <Button
             disabled={codeownersFile ? false : true}
-            label={t('Add File')}
+            aria-label={t('Add File')}
             priority="primary"
             onClick={this.addFile}
           >
@@ -288,7 +288,7 @@ const SourceFileBody = styled(PanelBody)`
 
 const IntegrationsList = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-items: center;
   margin-top: ${space(2)};
 `;

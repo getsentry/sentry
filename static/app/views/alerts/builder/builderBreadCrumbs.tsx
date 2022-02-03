@@ -82,7 +82,7 @@ function BuilderBreadCrumbs(props: Props) {
     {
       to: `/organizations/${orgSlug}/alerts/rules/`,
       label: t('Alerts'),
-      preserveGlobalSelection: true,
+      preservePageFilters: true,
     },
     projectCrumb,
     {
@@ -90,7 +90,7 @@ function BuilderBreadCrumbs(props: Props) {
       ...(alertName
         ? {
             to: `/organizations/${orgSlug}/alerts/${projectSlug}/wizard`,
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
           }
         : {}),
     },

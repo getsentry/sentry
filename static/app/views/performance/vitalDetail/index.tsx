@@ -6,21 +6,22 @@ import isEqual from 'lodash/isEqual';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
 import {generatePerformanceVitalDetailView} from '../data';
+import {MetricsSwitchContext} from '../metricsSwitch';
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
 import VitalDetailContent from './vitalDetailContent';
@@ -29,7 +30,7 @@ type Props = RouteComponentProps<{}, {}> & {
   api: Client;
   organization: Organization;
   projects: Project[];
-  selection: GlobalSelection;
+  selection: PageFilters;
   loadingProjects: boolean;
 };
 
@@ -39,19 +40,13 @@ type State = {
 
 class VitalDetail extends Component<Props, State> {
   state: State = {
-    eventView: generatePerformanceVitalDetailView(
-      this.props.organization,
-      this.props.location
-    ),
+    eventView: generatePerformanceVitalDetailView(this.props.location, false),
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceVitalDetailView(
-        nextProps.organization,
-        nextProps.location
-      ),
+      eventView: generatePerformanceVitalDetailView(nextProps.location, false),
     };
   }
 
@@ -86,7 +81,7 @@ class VitalDetail extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router} = this.props;
+    const {organization, location, router, api} = this.props;
     const {eventView} = this.state;
     if (!eventView) {
       browserHistory.replace({
@@ -107,19 +102,25 @@ class VitalDetail extends Component<Props, State> {
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
-          <GlobalSelectionHeader>
+          <PageFiltersContainer>
             <StyledPageContent>
               <NoProjectMessage organization={organization}>
-                <VitalDetailContent
-                  location={location}
-                  organization={organization}
-                  eventView={eventView}
-                  router={router}
-                  vitalName={vitalName || WebVital.LCP}
-                />
+                <MetricsSwitchContext.Consumer>
+                  {({isMetricsData}) => (
+                    <VitalDetailContent
+                      location={location}
+                      organization={organization}
+                      eventView={eventView}
+                      router={router}
+                      vitalName={vitalName || WebVital.LCP}
+                      isMetricsData={isMetricsData}
+                      api={api}
+                    />
+                  )}
+                </MetricsSwitchContext.Consumer>
               </NoProjectMessage>
             </StyledPageContent>
-          </GlobalSelectionHeader>
+          </PageFiltersContainer>
         </PerformanceEventViewProvider>
       </SentryDocumentTitle>
     );
@@ -130,4 +131,4 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-export default withApi(withGlobalSelection(withProjects(withOrganization(VitalDetail))));
+export default withApi(withPageFilters(withProjects(withOrganization(VitalDetail))));

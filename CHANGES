@@ -1,3 +1,235 @@
+22.1.0
+------
+
+### Frontend Deploys (ongoing)
+
+By: @billyvg (#28878)
+
+### Python: Add support for Apple arm64 development (ongoing)
+
+Apple started moving away from their Intel based chipset to arm64 chipsets (aka as Apple Silicon).
+In order to do Sentry development on this new architecture we need to do various changes to Sentry's development environment. Some of these changes include using a different Python version (arm64 support was added on Python 3.8.10), upgrading Python packages and hosting some Python wheels that third-party maintainers are not yet releasing.
+
+By: @armenzg (#30071, #29739, #29449, #29315, #29013, #28769, #28607)
+
+### Docker: Add support for Apple arm64 development (ongoing)
+
+In order to do development for Sentry, we need to spin up various Docker containers.
+Apple is moving away from Intel based chipset to arm64 chipsets (aka Apple Silicon).
+
+This milestones track all work required to make sure we can still use these development services on Apple's arm64 architecture.
+
+By: @armenzg (#29494, #29293, #29284, #29157, #29081, #29117, #29084, #28672, #28724)
+
+### Connecting Dashboards and Discover (ongoing)
+
+Open a Dashboard widget in Discover. Add a Discover Query to a Dashboard.
+
+By: @edwardgou-sentry (#28699, #28827, #28745, #28637)
+
+### Various fixes & improvements
+
+- ref(ratelimit): Added a config and changed a default (#31141) by @AniketDas-Tekky
+- feat(dev): Fix `jest --watch` (#31138) by @billyvg
+- ref(auth): Increase sample rate to 1.0 on idpmigration.* metrics (#31139) by @RyanSkonnord
+- ref(pageFilters): Constrict types on updateParams better (#31073) by @evanpurkhiser
+- feat(notifications): Nudge Notifications (#30409) by @mgaeta
+- fix(ui): Team details doesn't load depending on navigation (#31081) by @mikellykels
+- fix(snuba-tests): wrap tag key in Column (#31137) by @MeredithAnya
+- test(ui): Convert globalSelectionLink to RTL (#31007) by @scttcper
+- fix(suspect-spans): Make sure to query for frequency column (#31134) by @Zylphrex
+- fix(echarts): Remove type casting from MapSeries (#31130) by @scttcper
+- ref(webhooks): Use ApiClient (#31127) by @ceorourke
+- fix(dashboard): Set line height on BigNumber to avoid clipping (#31136) by @narsaynorath
+- fix(echarts): Use default echarts bar series type (#31129) by @scttcper
+- fix(teamStats): Adjust gap between bar charts (#31119) by @scttcper
+- fix(dashboards): TopN widgets Open in Discover opens with TopN display type (#31120) by @edwardgou-sentry
+- ref(metrics): Consolidate wrappers around string indexer (#31051) by @untitaker
+- ref(performance-metrics): Port failure Rate sidebar widget - Summary to metrics (#31014) by @priscilawebdev
+- feat(profiling): move flamegraph and differential flamegraph (#30910) by @JonasBa
+- ref(ui): Extract LoadingTriangle from LoadingIndicator (#31118) by @evanpurkhiser
+- ref(notifications): Prepare Slack for sending Nudges. (#30765) by @mgaeta
+- ref(integrations): Split up large file (#30786) by @mgaeta
+- ref(analytics): Analytics Refactor + Types (#30555) by @mgaeta
+- fix(teamStats): Fix link to alert details from triggered (#31124) by @scttcper
+- ref(sentry apps): Don't raise IgnoreableSentryAppError (#31033) by @ceorourke
+
+_Plus 2051 more_
+
+21.12.0
+-------
+
+### Frontend Deploys (ongoing)
+
+By: @billyvg (#28878)
+
+### Python: Add support for Apple arm64 development (ongoing)
+
+Apple started moving away from their Intel based chipset to arm64 chipsets (aka as Apple Silicon).
+In order to do Sentry development on this new architecture we need to do various changes to Sentry's development environment. Some of these changes include using a different Python version (arm64 support was added on Python 3.8.10), upgrading Python packages and hosting some Python wheels that third-party maintainers are not yet releasing.
+
+By: @armenzg (#30071, #29739, #29449, #29315, #29013, #28769, #28607)
+
+### Docker: Add support for Apple arm64 development (ongoing)
+
+In order to do development for Sentry, we need to spin up various Docker containers.
+Apple is moving away from Intel based chipset to arm64 chipsets (aka Apple Silicon).
+
+This milestones track all work required to make sure we can still use these development services on Apple's arm64 architecture.
+
+By: @armenzg (#29494, #29293, #29284, #29157, #29081, #29117, #29084, #28672, #28724)
+
+### Connecting Dashboards and Discover (ongoing)
+
+Open a Dashboard widget in Discover. Add a Discover Query to a Dashboard.
+
+By: @edwardgou-sentry (#28699, #28827, #28745, #28637)
+
+### Various fixes & improvements
+
+- feat(cra-metrics): Adds crash rate alerts over metrics [INGEST-629] [INGEST-632] (#30400) by @ahmedetefy
+- fix(perf): Re-add onboarding for landing v3 (#30675) by @k-fish
+- fix(performance-metrics): Handle null serie values (#30594) by @priscilawebdev
+- feat(snql): Enable snql on facets performance endpoints (#30557) by @wmak
+- fix(discover): Updates Discover widget modal to propagate global header selection to the dashboard view when submitting (#30641) by @edwardgou-sentry
+- feat(suspect-spans): Allow specifying certain columns (#30576) by @Zylphrex
+- fix(chart-unfurl): Fix daily top5 rendering (#30669) by @shruthilayaj
+- ref(projectconfig_cache): Delete redis-blaster implementation, execute deletes faster (#30636) by @untitaker
+- feat(dashboards): Open Library Modal in edit mode (#30591) by @shruthilayaj
+- ref(js): Cleanup GSH getParams / utils (#30658) by @evanpurkhiser
+- style(js): Improve comments formatting in AsyncComponent (#30667) by @evanpurkhiser
+- ref(js): Convert (some of) redirectDeprecatedProjectRoute to a FC (#30640) by @evanpurkhiser
+- ref(js): Convert ScrollToTop to a hook (#30652) by @evanpurkhiser
+- ref(js): Remove UNSAFE_componentWillReceiveProps (#30663) by @evanpurkhiser
+- ref(js): Remove unused getEndpoint (#30659) by @evanpurkhiser
+- fix(ui): Span tree connector design (#30498) by @vuluongj20
+- fix(js): Remove double `- Sentry` in Activity route title (#30626) by @evanpurkhiser
+- feat(teamStats): Remove some team unresolved issue age buckets (#30650) by @scttcper
+- style: Hover & focus state for buttons (#30654) by @vuluongj20
+- fix(ui): Fix undefined markline data error (#30655) by @taylangocmen
+- ref(js): Convert OrganizationCreate to a FC (#30638) by @evanpurkhiser
+- chore(deps): bump typescript from 4.4.4 to 4.5.4 (#30615) by @dependabot
+- feat(teamStats): Add team-insights-age-unresolved flag (#30644) by @scttcper
+- ref(js): Rename constants/{globalSelectionHeader -> pageFilters} (#30618) by @evanpurkhiser
+
+_Plus 1646 more_
+
+21.11.0
+-------
+
+### Frontend Deploys (ongoing)
+
+By: @billyvg (#28878)
+
+### Python: Add support for Apple arm64 development (ongoing)
+
+Apple started moving away from their Intel based chipset to arm64 chipsets (aka as Apple Silicon).
+In order to do Sentry development on this new architecture we need to do various changes to Sentry's development environment. Some of these changes include using a different Python version (arm64 support was added on Python 3.8.10), upgrading Python packages and hosting some Python wheels that third-party maintainers are not yet releasing.
+
+By: @armenzg (#29739, #29449, #29315, #28769, #28607)
+
+### Docker: Add support for Apple arm64 development (ongoing)
+
+In order to do development for Sentry, we need to spin up various Docker containers.
+Apple is moving away from Intel based chipset to arm64 chipsets (aka Apple Silicon).
+
+This milestones track all work required to make sure we can still use these development services on Apple's arm64 architecture.
+
+By: @armenzg (#29494, #29293, #29284, #29157, #29081, #29117, #29084, #28672, #28724)
+
+### Connecting Dashboards and Discover (ongoing)
+
+Open a Dashboard widget in Discover. Add a Discover Query to a Dashboard.
+
+By: @edwardgou-sentry (#28699, #28827, #28745, #28637)
+
+### Various fixes & improvements
+
+- fix(tests) Remove import that wasn't caught in pr (#30018) by @markstory
+- chore(tests) Remove old react-select test helpers (#29998) by @markstory
+- ref(tests) Replace usage of predicate in MockApiClient (#29997) by @markstory
+- feat(dashboards): Add dashboard widget resizing flag (#30000) by @narsaynorath
+- feat(ci): Drop ubuntu from dev env CI (#29956) by @armenzg
+- ref(native-stack-trace-v2): Add more adjusts (#30013) by @priscilawebdev
+- fix(dev): Patch firefox_profile.py from Selenium package (#29887) by @armenzg
+- feat(ui): Add metrics switch to performance page [INGEST-572] (#30011) by @matejminar
+- ref(native-stack-trace-v2): Apply design feedback (#29989) by @priscilawebdev
+- ref(js): Convert GlobalSelectionHeaderRow to a FC (#30004) by @evanpurkhiser
+- meta(py): Upgrade python typing analysis script (#29961) by @mgaeta
+- ref(ts): Make GlobalSelectionStore useLegacyStore compatible (#30002) by @evanpurkhiser
+- security(issue-alerts): Validate the issue alert owner is a member of the organization (#29962) by @wedamija
+- feat(ui): Storybook - Add theme switcher & noBorder option to <Sample /> (#29765) by @vuluongj20
+- feat(notifications): Slack Digests (#29677) by @mgaeta
+- feat(ui): Release Details Sidebar component update (#29842) by @mikellykels
+- feat(release-comparison): Add Regressed tab to issue filter tabs (#27896) by @mikellykels
+- adds hook and experiment (#29976) by @scefali
+- feat(logo-upload): Update serializer to account for popularity (#29978) by @leeandher
+- test(ui): Convert seenByList to RTL (#29983) by @scttcper
+- test(ui): Convert collapsible component to RTL (#29982) by @scttcper
+- feat(widget-library): Add Library Widgets to Dashboard (#29881) by @shruthilayaj
+- feat(tests) Add request matchers to MockApiClient (#29910) by @markstory
+- ref(tests) Move tests for MutedBox to RTL (#29967) by @markstory
+
+_Plus 1127 more_
+
+21.10.0
+-------
+
+### Frontend Deploys (ongoing)
+
+PRs: #28878
+
+### Python: Add support for Apple arm64 development (ongoing)
+
+Apple started moving away from their Intel based chipset to arm64 chipsets (aka as Apple Silicon).
+In order to do Sentry development on this new architecture we need to do various changes to Sentry's development environment. Some of these changes include using a different Python version (arm64 support was added on Python 3.8.10), upgrading Python packages and hosting some Python wheels that third-party maintainers are not yet releasing.
+
+PRs: #28769, #28607
+
+### Docker: Add support for Apple arm64 development (ongoing)
+
+In order to do development for Sentry, we need to spin up various Docker containers.
+Apple is moving away from Intel based chipset to arm64 chipsets (aka Apple Silicon).
+
+This milestones track all work required to make sure we can still use these development services on Apple's arm64 architecture.
+
+PRs: #29293, #29284, #29157, #29081, #29117, #29084, #28672, #28724
+
+### Connecting Dashboards and Discover (ongoing)
+
+Open a Dashboard widget in Discover. Add a Discover Query to a Dashboard.
+
+PRs: #28699, #28827, #28745, #28637
+
+### Various fixes & improvements
+
+- feat(workflow): Enable issue-percent-filters flag by default (#29325)
+- feat(post-process-forwarder) Allow different types of post process forwarders (#29225)
+- ref(search): Enable search without waiting for search groups to load (#29336)
+- adds experiment for trial label (#29305)
+- fix(discover): Various snql discover fixes (#29219)
+- chore(deletion) Drop aborted column (#29323)
+- fix(snapshots): Fixes datetime comparison with str issue (#29349)
+- fix(ui): Handle empty alert chart (#29348)
+- feat(dev): Run dev env workflow when .pre-commit-config.yaml changes (#29331)
+- ref(tests): Use screen for querying in RTL (#29312)
+- fix(alerts): Fix logic that creates snapshots for crash rate alerts (#29320)
+- ref(grouprelease):  Buffer GroupRelease.last_seen update per minute (#29328)
+- ref(minichart): Add extra empty space on the top - [INGEST-495] (#29321)
+- ref(js): Remove unused withProjects on incidentRules/triggers (#29335)
+- test(js): Always use our exported act (#29340)
+- ref(js): Rewrite Sidebar as a functional component (#29278)
+- test(js): Refactor useLegacyStore test to use testing-library/react-hooks (#29338)
+- fix(workflow): Filter team release counts by teams projects (#29341)
+- feat(team-insights): Add Number of Releases section (#29101)
+- Temporarily disable pyright pre-commit checks. (#29326)
+- build(deps): bump nth-check from 2.0.0 to 2.0.1 (#29000)
+- fix(growth): Select the correct project when showing sample transaction banner (#29324)
+- fix(visibility): Unbound errors for visibility files (#29330)
+- fix(js): Links should not receive router attributes (#29279)
+
+_Plus 590 more_
+
 21.9.0
 ------
 

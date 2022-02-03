@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -54,6 +54,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
                   disabled={!hasRole}
                   href={downloadUrl}
                   title={hasRole ? t('Download Mapping') : undefined}
+                  aria-label={t('Download Mapping')}
                 />
               </Tooltip>
             )}
@@ -74,7 +75,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
                     size="small"
                     icon={<IconDelete size="sm" />}
                     title={hasAccess ? t('Remove Mapping') : undefined}
-                    label={t('Remove Mapping')}
+                    aria-label={t('Remove Mapping')}
                     disabled={!hasAccess}
                   />
                 </Confirm>
@@ -111,7 +112,7 @@ const Name = styled('div')`
 
 const TimeWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.fontSizeMedium};
   align-items: center;

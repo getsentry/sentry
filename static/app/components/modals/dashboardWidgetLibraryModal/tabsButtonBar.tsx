@@ -5,6 +5,7 @@ import {
   openAddDashboardWidgetModal,
   openDashboardWidgetLibraryModal,
 } from 'sentry/actionCreators/modal';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -19,6 +20,8 @@ import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';
+
+import {setWidgetLibraryVisit, shouldShowNewBadge} from './utils';
 
 export enum TAB {
   Library = 'library',
@@ -44,29 +47,6 @@ export function TabsButtonBar({
 }: Props) {
   return (
     <StyledButtonBar active={activeTab}>
-      <LibraryButton
-        barId={TAB.Library}
-        onClick={() => {
-          if (activeTab === TAB.Library) {
-            return;
-          }
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_library.switch_tab', {
-            organization,
-            to: TAB.Library,
-          });
-          if (defined(onAddWidget)) {
-            openDashboardWidgetLibraryModal({
-              organization,
-              dashboard,
-              customWidget,
-              initialSelectedWidgets: selectedWidgets,
-              onAddWidget,
-            });
-          }
-        }}
-      >
-        {t('Widget Library')}
-      </LibraryButton>
       <CustomButton
         barId={TAB.Custom}
         onClick={() => {
@@ -89,21 +69,48 @@ export function TabsButtonBar({
       >
         {t('Custom Widget')}
       </CustomButton>
+      <LibraryButton
+        barId={TAB.Library}
+        data-test-id="library-tab"
+        onClick={() => {
+          if (activeTab === TAB.Library) {
+            return;
+          }
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_library.switch_tab', {
+            organization,
+            to: TAB.Library,
+          });
+          setWidgetLibraryVisit();
+          if (defined(onAddWidget)) {
+            openDashboardWidgetLibraryModal({
+              organization,
+              dashboard,
+              customWidget,
+              initialSelectedWidgets: selectedWidgets,
+              onAddWidget,
+            });
+          }
+        }}
+      >
+        {t('Widget Library')}
+        {shouldShowNewBadge() && <FeatureBadge type="new" />}
+      </LibraryButton>
     </StyledButtonBar>
   );
 }
 
 const StyledButtonBar = styled(ButtonBar)`
-  display: inline;
+  display: inline-flex;
   margin-bottom: ${space(2)};
 `;
 
 const LibraryButton = styled(Button)`
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 `;
 
 const CustomButton = styled(Button)`
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  line-height: 17px;
 `;

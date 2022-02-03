@@ -12,10 +12,11 @@ import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
+import {DATA_CATEGORY_NAMES} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'sentry/types';
+import {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -34,23 +35,23 @@ const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
 const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
   .lighten(0.65)
   .string();
+
 const COLOR_DROPPED = commonTheme.red300;
-const COLOR_PROJECTED = commonTheme.gray100;
 const COLOR_FILTERED = commonTheme.pink100;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
   {
-    label: DataCategoryName[DataCategory.ERRORS],
+    label: DATA_CATEGORY_NAMES[DataCategory.ERRORS],
     value: DataCategory.ERRORS,
     disabled: false,
   },
   {
-    label: DataCategoryName[DataCategory.TRANSACTIONS],
+    label: DATA_CATEGORY_NAMES[DataCategory.TRANSACTIONS],
     value: DataCategory.TRANSACTIONS,
     disabled: false,
   },
   {
-    label: DataCategoryName[DataCategory.ATTACHMENTS],
+    label: DATA_CATEGORY_NAMES[DataCategory.ATTACHMENTS],
     value: DataCategory.ATTACHMENTS,
     disabled: false,
   },
@@ -204,7 +205,8 @@ export class UsageChart extends React.Component<Props, State> {
   }
 
   get chartColors() {
-    const {dataCategory} = this.props;
+    const {dataCategory, theme} = this.props;
+    const COLOR_PROJECTED = theme.chartOther;
 
     if (dataCategory === DataCategory.ERRORS) {
       return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];

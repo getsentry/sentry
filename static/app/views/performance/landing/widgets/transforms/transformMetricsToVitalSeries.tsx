@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
 import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
@@ -12,9 +12,12 @@ export function transformMetricsToVitalSeries<T extends WidgetDataConstraint>(
   results: MetricsRequestRenderProps,
   _: QueryDefinitionWithKey<T>
 ) {
-  const {start, end, utc, interval, statsPeriod} = getParams(widgetProps.location.query, {
-    defaultStatsPeriod: DEFAULT_STATS_PERIOD,
-  });
+  const {start, end, utc, interval, statsPeriod} = normalizeDateTimeParams(
+    widgetProps.location.query,
+    {
+      defaultStatsPeriod: DEFAULT_STATS_PERIOD,
+    }
+  );
 
   const metricsField = widgetProps.Queries.chart.fields[0];
 

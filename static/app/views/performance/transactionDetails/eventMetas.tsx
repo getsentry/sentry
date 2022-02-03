@@ -168,7 +168,7 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
   display: grid;
   grid-template-columns: repeat(${p => (p.type === 'transaction' ? 3 : 2)}, 1fr);
   grid-template-rows: repeat(2, auto);
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

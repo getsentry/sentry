@@ -18,13 +18,27 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _time_bucket(request_time: float, window: int) -> int:
+    """Bucket number lookup for given UTC time since epoch"""
+    return int(request_time / window)
+
+
+def _bucket_start_time(bucket_number: int, window: int) -> int:
+    """Determine bucket start time in seconds from epoch in UTC"""
+    return bucket_number * window
+
+
 class RedisRateLimiter(RateLimiter):
     def __init__(self, **options: Any) -> None:
         cluster_key = getattr(settings, "SENTRY_RATE_LIMIT_REDIS_CLUSTER", "default")
         self.client = redis.redis_clusters.get(cluster_key)
 
     def _construct_redis_key(
-        self, key: str, project: Project | None = None, window: int | None = None
+        self,
+        key: str,
+        project: Project | None = None,
+        window: int | None = None,
+        request_time: float | None = None,
     ) -> str:
         """
         Construct a rate limit key using the args given. Key will have a format of:
@@ -35,8 +49,11 @@ class RedisRateLimiter(RateLimiter):
         if window is None or window == 0:
             window = self.window
 
+        if request_time is None:
+            request_time = time()
+
         key_hex = md5_text(key).hexdigest()
-        bucket = int(time() / window)
+        bucket = _time_bucket(request_time, window)
 
         redis_key = f"rl:{key_hex}"
         if project is not None:
@@ -74,13 +91,19 @@ class RedisRateLimiter(RateLimiter):
 
     def is_limited_with_value(
         self, key: str, limit: int, project: Project | None = None, window: int | None = None
-    ) -> tuple[bool, int]:
-        """Does a rate limit check as well as return the new rate limit value"""
+    ) -> tuple[bool, int, int]:
+        """
+        Does a rate limit check as well as returning the new rate limit value and when the next
+        rate limit window will start
+        """
+        request_time = time()
         if window is None or window == 0:
             window = self.window
         redis_key = self._construct_redis_key(key, project=project, window=window)
 
-        expiration = window - int(time() % window)
+        expiration = window - int(request_time % window)
+        # Reset Time = next time bucket's start time
+        reset_time = _bucket_start_time(_time_bucket(request_time, window) + 1, window)
         try:
             result = self.client.incr(redis_key)
             self.client.expire(redis_key, expiration)
@@ -88,6 +111,6 @@ class RedisRateLimiter(RateLimiter):
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.
             logger.exception("Failed to retrieve current value from redis")
-            return False, 0
+            return False, 0, reset_time
 
-        return result > limit, result
+        return result > limit, result, reset_time

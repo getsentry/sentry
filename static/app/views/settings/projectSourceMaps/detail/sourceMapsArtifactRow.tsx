@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -68,6 +68,7 @@ const SourceMapsArtifactRow = ({
                   disabled={!hasRole}
                   href={downloadUrl}
                   title={hasRole ? t('Download Artifact') : undefined}
+                  aria-label={t('Download Artifact')}
                 />
               </Tooltip>
             )}
@@ -88,7 +89,7 @@ const SourceMapsArtifactRow = ({
                     size="small"
                     icon={<IconDelete size="sm" />}
                     title={hasAccess ? t('Remove Artifact') : undefined}
-                    label={t('Remove Artifact')}
+                    aria-label={t('Remove Artifact')}
                     disabled={!hasAccess}
                   />
                 </Confirm>
@@ -132,7 +133,7 @@ const TimeAndDistWrapper = styled('div')`
 
 const TimeWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.fontSizeMedium};
   align-items: center;

@@ -40,7 +40,7 @@ class LinkedIssue extends AsyncComponent<
     return <Placeholder height="120px" bottomGutter={2} />;
   }
 
-  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+  renderError(error?: Error, disableLog = false): React.ReactNode {
     const {errors} = this.state;
     const hasNotFound = Object.values(errors).find(resp => resp && resp.status === 404);
     if (hasNotFound) {
@@ -51,7 +51,7 @@ class LinkedIssue extends AsyncComponent<
       );
     }
 
-    return super.renderError(error, disableLog, disableReport);
+    return super.renderError(error, disableLog);
   }
 
   renderBody() {

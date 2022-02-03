@@ -7,6 +7,10 @@ import DefaultSettings from 'sentry/plugins/components/settings';
 type Props = DefaultSettings['props'];
 
 type State = DefaultSettings['state'] & {
+  // NB: "On-premises" here refers to on-premises SessionStack, not Sentry.
+  // That said, we only support connecting to an on-premises SessionStack from
+  // a self-hosted Sentry: https://docs.sessionstack.com/docs/sentry.
+
   showOnPremisesConfiguration?: boolean;
 };
 

@@ -100,7 +100,7 @@ describe('IssueWidgetQueriesForm', function () {
           conditions: 'assigned:',
           fields: ['issue', 'assignee'],
           name: '',
-          orderby: '',
+          orderby: 'date',
         }}
         onChange={onChangeHandler}
         fieldOptions={fieldOptions as ReturnType<typeof generateFieldOptions>}
@@ -131,5 +131,19 @@ describe('IssueWidgetQueriesForm', function () {
     expect(screen.getByText('Columns')).toBeInTheDocument();
     expect(screen.getByText('issue')).toBeInTheDocument();
     expect(screen.getByText('assignee')).toBeInTheDocument();
+  });
+
+  it('renders Widget Query Sort selector', async function () {
+    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    expect(screen.getByText('Last Seen')).toBeInTheDocument();
+  });
+
+  it('calls on change handler when changing sort', async function () {
+    userEvent.click(screen.getByText('Last Seen'));
+    userEvent.click(screen.getByText('First Seen'));
+    expect(onChangeHandler).toHaveBeenCalledTimes(1);
+    expect(onChangeHandler).toHaveBeenCalledWith(
+      expect.objectContaining({orderby: 'new'})
+    );
   });
 });

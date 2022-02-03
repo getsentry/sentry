@@ -3,6 +3,9 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
@@ -59,74 +62,131 @@ class IssueListFilters extends React.Component<Props> {
     const hasSessions =
       !hasMultipleProjectsSelected &&
       (ProjectsStore.getById(`${selectedProjects[0]}`)?.hasSessions ?? false);
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
 
     return (
-      <SearchContainer hasIssuePercentDisplay={hasIssuePercentDisplay}>
-        <ClassNames>
-          {({css}) => (
-            <GuideAnchor
-              target="assigned_or_suggested_query"
-              disabled={!isAssignedQuery}
-              containerClassName={css`
-                width: 100%;
-              `}
-            >
-              <IssueListSearchBar
-                organization={organization}
-                query={query || ''}
-                sort={sort}
-                onSearch={onSearch}
-                disabled={isSearchDisabled}
-                excludeEnvironment
-                supportedTags={tags}
-                tagValueLoader={tagValueLoader}
-                savedSearch={savedSearch}
-                onSidebarToggle={onSidebarToggle}
-              />
-            </GuideAnchor>
-          )}
-        </ClassNames>
+      <FilterContainer>
+        <SearchContainer
+          hasPageFilters={hasPageFilters}
+          hasIssuePercentDisplay={hasIssuePercentDisplay}
+        >
+          <ClassNames>
+            {({css}) => (
+              <GuideAnchor
+                target="assigned_or_suggested_query"
+                disabled={!isAssignedQuery}
+                containerClassName={css`
+                  width: 100%;
+                `}
+              >
+                <IssueListSearchBar
+                  organization={organization}
+                  query={query || ''}
+                  sort={sort}
+                  onSearch={onSearch}
+                  disabled={isSearchDisabled}
+                  excludeEnvironment
+                  supportedTags={tags}
+                  tagValueLoader={tagValueLoader}
+                  savedSearch={savedSearch}
+                  onSidebarToggle={onSidebarToggle}
+                />
+              </GuideAnchor>
+            )}
+          </ClassNames>
 
-        <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
-          {hasIssuePercentDisplay && (
-            <IssueListDisplayOptions
-              onDisplayChange={onDisplayChange}
-              display={display}
-              hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-              hasSessions={hasSessions}
-            />
+          {hasPageFilters ? (
+            <ProjectEnvironmentFilters>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+            </ProjectEnvironmentFilters>
+          ) : (
+            <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
+              {hasIssuePercentDisplay && (
+                <IssueListDisplayOptions
+                  onDisplayChange={onDisplayChange}
+                  display={display}
+                  hasMultipleProjectsSelected={hasMultipleProjectsSelected}
+                  hasSessions={hasSessions}
+                />
+              )}
+              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+            </DropdownsWrapper>
           )}
-          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-        </DropdownsWrapper>
-      </SearchContainer>
+        </SearchContainer>
+        {hasPageFilters && (
+          <IssueListDropdownsWrapper>
+            <DatePageFilter />
+            {hasIssuePercentDisplay && (
+              <IssueListDisplayOptions
+                onDisplayChange={onDisplayChange}
+                display={display}
+                hasMultipleProjectsSelected={hasMultipleProjectsSelected}
+                hasSessions={hasSessions}
+              />
+            )}
+            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          </IssueListDropdownsWrapper>
+        )}
+      </FilterContainer>
     );
   }
 }
 
-const SearchContainer = styled('div')<{hasIssuePercentDisplay?: boolean}>`
-  display: inline-grid;
-  grid-gap: ${space(1)};
+const FilterContainer = styled('div')`
+  display: grid;
+  gap: ${space(1)};
   margin-bottom: ${space(2)};
+`;
+
+const SearchContainer = styled('div')<{
+  hasIssuePercentDisplay?: boolean;
+  hasPageFilters?: boolean;
+}>`
+  display: inline-grid;
+  gap: ${space(1)};
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints[p.hasIssuePercentDisplay ? 1 : 0]}) {
-    grid-template-columns: 1fr auto;
-  }
+  ${p =>
+    p.hasPageFilters
+      ? `
+    @media (min-width: ${p.theme.breakpoints[1]}) {
+      grid-template-columns: 3fr 2fr;
+    }
+  `
+      : `
+    @media (min-width: ${p.theme.breakpoints[p.hasIssuePercentDisplay ? 1 : 0]}) {
+      grid-template-columns: 1fr auto;
+    }
+  }`}
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;
   }
 `;
 
+const ProjectEnvironmentFilters = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+`;
+
 const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: 1fr ${p => (p.hasIssuePercentDisplay ? '1fr' : '')};
   align-items: start;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;
   }
+`;
+
+const IssueListDropdownsWrapper = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-auto-columns: max-content;
+  grid-auto-flow: column;
 `;
 
 export default IssueListFilters;

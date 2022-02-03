@@ -16,7 +16,7 @@ import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, Release} from 'sentry/types';
+import {Organization, PageFilters, Release} from 'sentry/types';
 
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import {ReleasesRequestRenderProps} from '../releasesRequest';
@@ -25,7 +25,7 @@ import ReleaseCardCommits from './releaseCardCommits';
 import ReleaseCardProjectRow from './releaseCardProjectRow';
 import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
 
-function getReleaseProjectId(release: Release, selection: GlobalSelection) {
+function getReleaseProjectId(release: Release, selection: PageFilters) {
   // if a release has only one project
   if (release.projects.length === 1) {
     return release.projects[0].id;
@@ -48,7 +48,7 @@ type Props = {
   organization: Organization;
   activeDisplay: ReleasesDisplayOption;
   location: Location;
-  selection: GlobalSelection;
+  selection: PageFilters;
   reloading: boolean;
   showHealthPlaceholders: boolean;
   isTopRelease: boolean;
@@ -135,7 +135,7 @@ class ReleaseCard extends Component<Props> {
         </ReleaseInfo>
 
         <ReleaseProjects>
-          <ReleaseProjectsHeader>
+          <ReleaseProjectsHeader lightText>
             <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
               <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
               {showReleaseAdoptionStages && (
@@ -260,7 +260,7 @@ const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 `;
 

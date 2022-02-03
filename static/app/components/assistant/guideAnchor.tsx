@@ -147,6 +147,7 @@ class GuideAnchor extends React.Component<Props, State> {
     const dismissButton = (
       <DismissButton
         size="small"
+        translucentBorder
         href={href}
         onClick={this.handleDismiss}
         priority="link"
@@ -165,7 +166,12 @@ class GuideAnchor extends React.Component<Props, State> {
           <div>
             {lastStep ? (
               <React.Fragment>
-                <StyledButton size="small" to={to} onClick={this.handleFinish}>
+                <StyledButton
+                  size="small"
+                  translucentBorder
+                  to={to}
+                  onClick={this.handleFinish}
+                >
                   {currentStep.nextText ||
                     (hasManySteps ? t('Enough Already') : t('Got It'))}
                 </StyledButton>
@@ -173,7 +179,12 @@ class GuideAnchor extends React.Component<Props, State> {
               </React.Fragment>
             ) : (
               <React.Fragment>
-                <StyledButton size="small" onClick={this.handleNextStep} to={to}>
+                <StyledButton
+                  size="small"
+                  translucentBorder
+                  onClick={this.handleNextStep}
+                  to={to}
+                >
                   {currentStep.nextText || t('Next')}
                 </StyledButton>
                 {!currentStep.cantDismiss && dismissButton}
@@ -238,7 +249,7 @@ export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
 const GuideContainer = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   text-align: center;
   line-height: 1.5;
   background-color: ${p => p.theme.purple300};
@@ -249,7 +260,7 @@ const GuideContainer = styled('div')`
 const GuideContent = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 
   a {
     color: ${p => p.theme.white};
@@ -269,7 +280,7 @@ const GuideDescription = styled('div')`
 const GuideAction = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const StyledButton = styled(Button)`

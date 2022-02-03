@@ -101,6 +101,8 @@ type TeamActor = {
 type TeamOption = {
   value: string | null;
   label: React.ReactNode;
+  trailingItems?: React.ReactNode;
+  trailingItemsSpanFullHeight?: boolean;
   searchKey: string;
   actor: TeamActor | null;
   disabled?: boolean;
@@ -186,24 +188,29 @@ function TeamSelector(props: Props) {
               <IdBadge team={team} />
             </Tooltip>
           </DisabledLabel>
-          <Tooltip
-            title={
-              canAddTeam
-                ? t('Add %s to project', `#${team.slug}`)
-                : t('You do not have permission to add team to project.')
-            }
-          >
-            <AddToProjectButton
-              type="button"
-              size="zero"
-              borderless
-              disabled={!canAddTeam}
-              onClick={() => handleAddTeamToProject(team)}
-              icon={<IconAdd isCircled />}
-            />
-          </Tooltip>
         </TeamOutsideProject>
       ),
+      trailingItems: (
+        <Tooltip
+          title={
+            canAddTeam
+              ? t('Add %s to project', `#${team.slug}`)
+              : t('You do not have permission to add team to project.')
+          }
+          containerDisplayMode="flex"
+        >
+          <AddToProjectButton
+            type="button"
+            size="zero"
+            borderless
+            disabled={!canAddTeam}
+            onClick={() => handleAddTeamToProject(team)}
+            icon={<IconAdd isCircled />}
+            aria-label={t('Add %s to project', `#${team.slug}`)}
+          />
+        </Tooltip>
+      ),
+      trailingItemsSpanFullHeight: true,
     };
   }
 
@@ -244,6 +251,7 @@ function TeamSelector(props: Props) {
         ...(multiple ? {} : placeholderSelectStyles),
         ...(styles ?? {}),
       }}
+      verticallyCenterCheckWrap
       isLoading={fetching}
       {...extraProps}
     />

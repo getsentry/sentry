@@ -45,11 +45,19 @@ const OwnershipRules = ({
 
   const createRuleButton = (
     <Access access={['project:write']}>
-      <GuideAnchor target="owners" position="bottom" offset={space(3)}>
-        <Button onClick={handleOpenCreateOwnershipRule} size="small">
-          {t('Create Ownership Rule')}
-        </Button>
-      </GuideAnchor>
+      {({hasAccess}) => (
+        <GuideAnchor target="owners" position="bottom" offset={space(3)}>
+          <Button
+            onClick={handleOpenCreateOwnershipRule}
+            size="small"
+            disabled={!hasAccess}
+            title={t("You don't have permission to create ownership rules.")}
+            tooltipProps={{disabled: hasAccess}}
+          >
+            {t('Create Ownership Rule')}
+          </Button>
+        </GuideAnchor>
+      )}
     </Access>
   );
 
@@ -62,6 +70,7 @@ const OwnershipRules = ({
           icon={<IconClose size="xs" />}
           priority="link"
           onClick={() => handleCTAClose()}
+          aria-label={t('Close')}
         />
       </HeaderContainer>
       <Content>
@@ -73,7 +82,7 @@ const OwnershipRules = ({
         <SetupButton
           size="small"
           priority="primary"
-          href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+          to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
           onClick={() =>
             trackIntegrationAnalytics('integrations.code_owners_cta_setup_clicked', {
               view: 'stacktrace_issue_details',
@@ -82,7 +91,7 @@ const OwnershipRules = ({
             })
           }
         >
-          {t('Set It Up')}
+          {t('Setup')}
         </SetupButton>
         <Button
           size="small"
@@ -118,6 +127,7 @@ const OwnershipRules = ({
                       )}
                     </p>
                     <Button
+                      external
                       href="https://docs.sentry.io/workflow/issue-owners/"
                       priority="primary"
                     >

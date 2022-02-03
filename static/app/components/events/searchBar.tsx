@@ -37,6 +37,7 @@ type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> 
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
   fields?: Readonly<Field[]>;
+  includeSessionTagsValues?: boolean;
 };
 
 class SearchBar extends React.PureComponent<SearchBarProps> {
@@ -58,7 +59,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
    */
   getEventFieldValues = memoize(
     (tag, query, endpointParams): Promise<string[]> => {
-      const {api, organization, projectIds} = this.props;
+      const {api, organization, projectIds, includeSessionTagsValues} = this.props;
       const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -76,7 +77,10 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
         endpointParams,
 
         // allows searching for tags on transactions as well
-        true
+        true,
+
+        // allows searching for tags on sessions as well
+        includeSessionTagsValues
       ).then(
         results =>
           flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
@@ -115,11 +119,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
       ? Object.assign({}, measurements, FIELD_TAGS, functionTags)
       : omit(FIELD_TAGS, TRACING_FIELDS);
 
-    const semverTags = organization.features.includes('semver')
-      ? Object.assign({}, SEMVER_TAGS, fieldTags)
-      : fieldTags;
-
-    const combined = assign({}, tags, semverTags);
+    const combined = assign({}, tags, fieldTags, SEMVER_TAGS);
     combined.has = {
       key: 'has',
       name: 'Has property',

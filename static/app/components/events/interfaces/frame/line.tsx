@@ -187,6 +187,7 @@ export class Line extends React.Component<Props, State> {
           className="btn-toggle"
           data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
           css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
+          size="zero"
           title={t('Toggle Context')}
           tooltipProps={
             isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
@@ -430,7 +431,7 @@ const RepeatedContent = styled(VertCenterWrapper)`
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: ${p =>
     `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
   align-items: center;

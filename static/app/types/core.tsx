@@ -5,7 +5,7 @@
  * or used in multiple views.
  */
 import {getInterval} from 'sentry/components/charts/utils';
-import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {API_ACCESS_SCOPES} from 'sentry/constants';
 
 /**
  * Visual representation of a project/team/organization/user
@@ -71,23 +71,29 @@ export enum DataCategory {
 
 export type EventType = 'error' | 'transaction' | 'attachment';
 
-export const DataCategoryName = {
-  [DataCategory.ERRORS]: 'Errors',
-  [DataCategory.TRANSACTIONS]: 'Transactions',
-  [DataCategory.ATTACHMENTS]: 'Attachments',
-};
-
-export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
-export type GlobalSelection = {
-  // Project Ids currently selected
+/**
+ * Represents a pinned page filter sentinel value
+ */
+export type PinnedPageFilter = 'projects' | 'environments' | 'datetime';
+
+export type PageFilters = {
+  /**
+   * Currently selected Project IDs
+   */
   projects: number[];
+  /**
+   * Currently selected environment names
+   */
   environments: string[];
+  /**
+   * Currently selected time filter
+   */
   datetime: {
     start: DateString;
     end: DateString;
-    period: RelativePeriod | string;
+    period: string | null;
     utc: boolean | null;
   };
 };

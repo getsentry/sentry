@@ -66,11 +66,8 @@ type MemberListHeaderProps = {
   organization: Organization;
 };
 
-type DisabledAppStoreConnectItem = {
-  disabled: boolean;
-  onTrialStarted: () => void;
-  children: React.ReactElement;
-};
+type DisabledAppStoreConnectMultiple = {organization: Organization};
+type DisabledCustomSymbolSources = {organization: Organization};
 
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
@@ -95,6 +92,8 @@ type FirstPartyIntegrationAdditionalCTAProps = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
+  'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
@@ -102,7 +101,6 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
-  'component:disabled-app-store-connect-item': () => React.ComponentType<DisabledAppStoreConnectItem>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
@@ -143,7 +141,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:configure-distributed-tracing': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
-  'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;
   'feature-disabled:discard-groups': FeatureDisabledHook;
   'feature-disabled:discover-page': FeatureDisabledHook;
@@ -169,7 +166,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
-  'feature-disabled:sso-rippling': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;

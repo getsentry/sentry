@@ -112,7 +112,7 @@ from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
-from .skips import requires_snuba, requires_snuba_metrics
+from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -967,7 +967,6 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
-@requires_snuba_metrics
 class SessionMetricsTestCase(SnubaTestCase):
     """Store metrics instead of sessions"""
 
@@ -1315,6 +1314,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
                 expected_widget.display_type
             )
+        if "layout" in data:
+            assert data["layout"] == expected_widget.detail["layout"]
 
     def create_user_member_role(self):
         self.user = self.create_user(is_superuser=False)
@@ -1367,9 +1368,8 @@ class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
         self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
-        with self.feature({"organizations:sso-scim": True}):
-            self.auth_provider.enable_scim(self.user)
-            self.auth_provider.save()
+        self.auth_provider.enable_scim(self.user)
+        self.auth_provider.save()
         self.login_as(user=self.user)
 
 

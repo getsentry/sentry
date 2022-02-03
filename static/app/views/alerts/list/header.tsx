@@ -51,13 +51,13 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
             referrer="alert_stream"
             showPermissionGuide
           >
-            {t('Create Alert Rule')}
+            {t('Create Alert')}
           </CreateAlertButton>
           <Button
             onClick={handleNavigateToSettings}
             href="#"
             icon={<IconSettings size="sm" />}
-            label={t('Settings')}
+            aria-label={t('Settings')}
           />
         </Actions>
       </Layout.HeaderActions>

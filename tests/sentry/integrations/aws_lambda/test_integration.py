@@ -180,7 +180,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         # string instead of boolean
         resp = self.client.post(
             self.setup_path,
-            data={"lambdaB": True},
+            data={"lambdaB": "true", "lambdaA": "false"},
             format="json",
             HTTP_ACCEPT="application/json",
             headers={"Content-Type": "application/json", "Accept": "application/json"},
@@ -244,7 +244,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
         resp = self.client.post(
             self.setup_path,
-            data={"lambdaA": True},
+            data={"lambdaA": "true"},
             format="json",
             HTTP_ACCEPT="application/json",
             headers={"Content-Type": "application/json", "Accept": "application/json"},
@@ -320,7 +320,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
         resp = self.client.post(
             self.setup_path,
-            {"lambdaB": True},
+            {"lambdaB": "true"},
             format="json",
             HTTP_ACCEPT="application/json",
             headers={"Content-Type": "application/json", "Accept": "application/json"},
@@ -378,7 +378,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
         resp = self.client.post(
             self.setup_path,
-            {"lambdaB": True},
+            {"lambdaB": "true"},
             format="json",
             HTTP_ACCEPT="application/json",
             headers={"Content-Type": "application/json", "Accept": "application/json"},
@@ -437,7 +437,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
         resp = self.client.post(
             self.setup_path,
-            {"lambdaB": True},
+            {"lambdaB": "true"},
             format="json",
             HTTP_ACCEPT="application/json",
             headers={"Content-Type": "application/json", "Accept": "application/json"},
@@ -501,7 +501,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
         resp = self.client.post(
             self.setup_path,
-            {"lambdaB": True},
+            {"lambdaB": "true"},
             format="json",
             HTTP_ACCEPT="application/json",
             headers={"Content-Type": "application/json", "Accept": "application/json"},

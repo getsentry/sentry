@@ -21,22 +21,21 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {
   getDiffInMinutes,
-  getTooltipArrow,
   ONE_WEEK,
   truncationFormatter,
 } from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import {
-  getParams,
+  normalizeDateTimeParams,
   parseStatsPeriod,
   StatsPeriodType,
-} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, SessionApiResponse} from 'sentry/types';
+import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
@@ -48,7 +47,7 @@ import {ReleasesDisplayOption} from './releasesDisplayOptions';
 type Props = {
   api: Client;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   activeDisplay: ReleasesDisplayOption;
   location: Location;
   router: InjectedRouter;
@@ -84,15 +83,25 @@ class ReleasesAdoptionChart extends Component<Props> {
 
   getReleasesSeries(response: SessionApiResponse | null) {
     const {activeDisplay} = this.props;
-    const releases = response?.groups.map(group => group.by.release);
+
+    // If there are many releases, display releases with the highest number of sessions
+    // Often this due to many releases with low session counts or not filtering by environment
+    let releases: string[] | undefined =
+      response?.groups.map(group => group.by.release as string) ?? [];
+    if (response?.groups && response.groups.length > 50) {
+      releases = response!.groups
+        .sort((a, b) => b.totals['sum(session)'] - a.totals['sum(session)'])
+        .slice(0, 50)
+        .map(group => group.by.release as string);
+    }
 
     if (!releases) {
       return null;
     }
 
     return releases.map(release => ({
-      id: release as string,
-      seriesName: formatVersion(release as string),
+      id: release,
+      seriesName: formatVersion(release),
       data: getAdoptionSeries(
         [response?.groups.find(({by}) => by.release === release)!],
         response?.groups,
@@ -147,7 +156,7 @@ class ReleasesAdoptionChart extends Component<Props> {
         interval={interval}
         groupBy={['release']}
         field={[field]}
-        {...getParams(pick(location.query, Object.values(URL_PARAM)))}
+        {...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM)))}
       >
         {({response, loading, reloading}) => {
           const totalCount = getCount(response?.groups, field);
@@ -264,7 +273,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                 .join(''),
                               '</div>',
                               `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
-                              getTooltipArrow(),
+                              '<div class="tooltip-arrow"></div>',
                             ].join('');
                           },
                         }}

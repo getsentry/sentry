@@ -8,7 +8,7 @@ import Alert from 'sentry/components/alert';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -19,6 +19,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 
+import {MetricsSwitchContext} from '../metricsSwitch';
 import {getTransactionName} from '../utils';
 
 import TransactionHeader from './header';
@@ -33,6 +34,7 @@ export type ChildProps = {
   projectId: string;
   transactionName: string;
   setError: React.Dispatch<React.SetStateAction<string | undefined>>;
+  isMetricsData: boolean;
   // These are used to trigger a reload when the threshold/metric changes.
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
@@ -44,7 +46,11 @@ type Props = {
   projects: Project[];
   tab: Tab;
   getDocumentTitle: (name: string) => string;
-  generateEventView: (location: Location, transactionName: string) => EventView;
+  generateEventView: (props: {
+    location: Location;
+    transactionName: string;
+    isMetricsData: boolean;
+  }) => EventView;
   childComponent: (props: ChildProps) => JSX.Element;
   relativeDateOptions?: Record<string, React.ReactNode>;
   maxPickableDays?: number;
@@ -96,8 +102,6 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
-  const eventView = generateEventView(location, transactionName);
-
   return (
     <SentryDocumentTitle
       title={getDocumentTitle(transactionName)}
@@ -109,60 +113,72 @@ function PageLayout(props: Props) {
         organization={organization}
         renderDisabled={NoAccess}
       >
-        <PerformanceEventViewProvider value={{eventView}}>
-          <GlobalSelectionHeader
-            lockedMessageSubject={t('transaction')}
-            shouldForceProject={defined(project)}
-            forceProject={project}
-            specificProjectSlugs={defined(project) ? [project.slug] : []}
-            disableMultipleProjectSelection
-            showProjectSettingsLink
-            relativeDateOptions={relativeDateOptions}
-            maxPickableDays={maxPickableDays}
-          >
-            <StyledPageContent>
-              <NoProjectMessage organization={organization}>
-                <TransactionHeader
-                  eventView={eventView}
-                  location={location}
-                  organization={organization}
-                  projects={projects}
-                  projectId={projectId}
-                  transactionName={transactionName}
-                  currentTab={tab}
-                  hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
-                  handleIncompatibleQuery={handleIncompatibleQuery}
-                  onChangeThreshold={(threshold, metric) => {
-                    setTransactionThreshold(threshold);
-                    setTransactionThresholdMetric(metric);
-                  }}
-                />
-                <Layout.Body>
-                  <StyledSdkUpdatesAlert />
-                  {defined(error) && (
-                    <StyledAlert type="error" icon={<IconFlag size="md" />}>
-                      {error}
-                    </StyledAlert>
-                  )}
-                  {incompatibleAlertNotice && (
-                    <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
-                  )}
-                  <ChildComponent
-                    location={location}
-                    organization={organization}
-                    projects={projects}
-                    eventView={eventView}
-                    projectId={projectId}
-                    transactionName={transactionName}
-                    setError={setError}
-                    transactionThreshold={transactionThreshold}
-                    transactionThresholdMetric={transactionThresholdMetric}
-                  />
-                </Layout.Body>
-              </NoProjectMessage>
-            </StyledPageContent>
-          </GlobalSelectionHeader>
-        </PerformanceEventViewProvider>
+        <MetricsSwitchContext.Consumer>
+          {({isMetricsData}) => {
+            const eventView = generateEventView({
+              location,
+              transactionName,
+              isMetricsData,
+            });
+            return (
+              <PerformanceEventViewProvider value={{eventView}}>
+                <PageFiltersContainer
+                  lockedMessageSubject={t('transaction')}
+                  shouldForceProject={defined(project)}
+                  forceProject={project}
+                  specificProjectSlugs={defined(project) ? [project.slug] : []}
+                  disableMultipleProjectSelection
+                  showProjectSettingsLink
+                  relativeDateOptions={relativeDateOptions}
+                  maxPickableDays={maxPickableDays}
+                >
+                  <StyledPageContent>
+                    <NoProjectMessage organization={organization}>
+                      <TransactionHeader
+                        eventView={eventView}
+                        location={location}
+                        organization={organization}
+                        projects={projects}
+                        projectId={projectId}
+                        transactionName={transactionName}
+                        currentTab={tab}
+                        hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
+                        handleIncompatibleQuery={handleIncompatibleQuery}
+                        onChangeThreshold={(threshold, metric) => {
+                          setTransactionThreshold(threshold);
+                          setTransactionThresholdMetric(metric);
+                        }}
+                      />
+                      <Layout.Body>
+                        <StyledSdkUpdatesAlert />
+                        {defined(error) && (
+                          <StyledAlert type="error" icon={<IconFlag size="md" />}>
+                            {error}
+                          </StyledAlert>
+                        )}
+                        {incompatibleAlertNotice && (
+                          <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+                        )}
+                        <ChildComponent
+                          location={location}
+                          organization={organization}
+                          projects={projects}
+                          eventView={eventView}
+                          projectId={projectId}
+                          transactionName={transactionName}
+                          setError={setError}
+                          transactionThreshold={transactionThreshold}
+                          transactionThresholdMetric={transactionThresholdMetric}
+                          isMetricsData={isMetricsData}
+                        />
+                      </Layout.Body>
+                    </NoProjectMessage>
+                  </StyledPageContent>
+                </PageFiltersContainer>
+              </PerformanceEventViewProvider>
+            );
+          }}
+        </MetricsSwitchContext.Consumer>
       </Feature>
     </SentryDocumentTitle>
   );

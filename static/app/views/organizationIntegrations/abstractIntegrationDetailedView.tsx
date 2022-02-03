@@ -446,10 +446,6 @@ const FeatureListItem = styled('span')`
 `;
 
 const Description = styled('div')`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-  margin-bottom: ${space(2)};
-
   li {
     margin-bottom: 6px;
   }
@@ -459,7 +455,7 @@ const Metadata = styled(Flex)`
   display: grid;
   grid-auto-rows: max-content;
   grid-auto-flow: row;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   font-size: 0.9em;
   margin-left: ${space(4)};
   margin-right: 100px;
@@ -472,7 +468,7 @@ const AuthorInfo = styled('div')`
 const ExternalLinkContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 

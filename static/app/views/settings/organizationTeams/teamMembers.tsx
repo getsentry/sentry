@@ -273,7 +273,7 @@ class TeamMembers extends React.Component<Props, State> {
         size="small"
         icon={<IconSubtract size="xs" isCircled />}
         onClick={() => this.removeMember(member)}
-        label={t('Remove')}
+        aria-label={t('Remove')}
       >
         {t('Remove')}
       </Button>
@@ -328,7 +328,7 @@ const StyledMemberContainer = styled(PanelItem)`
 const StyledUserListElement = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
 `;
 

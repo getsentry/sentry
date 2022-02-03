@@ -4,7 +4,7 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as globalSelection from 'sentry/actionCreators/globalSelection';
+import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -78,7 +78,7 @@ describe('Performance > Content', function () {
   beforeEach(function () {
     act(() => void TeamStore.loadInitialData([], false, null));
     browserHistory.push = jest.fn();
-    jest.spyOn(globalSelection, 'updateDateTime');
+    jest.spyOn(pageFilters, 'updateDateTime');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -262,7 +262,7 @@ describe('Performance > Content', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
-    globalSelection.updateDateTime.mockRestore();
+    pageFilters.updateDateTime.mockRestore();
   });
 
   it('renders basic UI elements', async function () {
@@ -385,7 +385,7 @@ describe('Performance > Content', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           transaction: '/apple/cart',
-          query: 'sentry:yes transaction.duration:<15m event.type:transaction',
+          query: 'sentry:yes transaction.duration:<15m',
         }),
       })
     );
@@ -403,7 +403,7 @@ describe('Performance > Content', function () {
     );
     await tick();
     wrapper.update();
-    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
+    expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
     wrapper.unmount();
   });
 
@@ -425,7 +425,7 @@ describe('Performance > Content', function () {
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
 
-    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
+    expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({

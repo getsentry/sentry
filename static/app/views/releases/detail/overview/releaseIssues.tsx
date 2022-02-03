@@ -14,7 +14,7 @@ import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -53,7 +53,7 @@ type Props = {
   api: Client;
   organization: Organization;
   version: string;
-  selection: GlobalSelection;
+  selection: PageFilters;
   location: Location;
   releaseBounds: ReleaseBounds;
   queryFilterDescription?: string;
@@ -185,7 +185,9 @@ class ReleaseIssues extends Component<Props, State> {
         };
       case IssuesType.RESOLVED:
         return {
-          path: `/organizations/${organization.slug}/releases/${version}/resolved/`,
+          path: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+            version
+          )}/resolved/`,
           queryParams: {...queryParams, query: ''},
         };
       case IssuesType.UNHANDLED:
@@ -224,7 +226,9 @@ class ReleaseIssues extends Component<Props, State> {
   async fetchIssuesCount() {
     const {api, organization, version} = this.props;
     const issueCountEndpoint = this.getIssueCountEndpoint();
-    const resolvedEndpoint = `/organizations/${organization.slug}/releases/${version}/resolved/`;
+    const resolvedEndpoint = `/organizations/${
+      organization.slug
+    }/releases/${encodeURIComponent(version)}/resolved/`;
 
     try {
       await Promise.all([
@@ -384,7 +388,7 @@ class ReleaseIssues extends Component<Props, State> {
               <Button
                 key={value}
                 barId={value}
-                size="small"
+                size="xsmall"
                 onClick={() => this.handleIssuesTypeSelection(value)}
                 data-test-id={`filter-${value}`}
               >
@@ -395,11 +399,11 @@ class ReleaseIssues extends Component<Props, State> {
           </StyledButtonBar>
 
           <OpenInButtonBar gap={1}>
-            <Button to={this.getIssuesUrl()} size="small" data-test-id="issues-button">
+            <Button to={this.getIssuesUrl()} size="xsmall" data-test-id="issues-button">
               {t('Open in Issues')}
             </Button>
 
-            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xsmall" />
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
@@ -443,7 +447,7 @@ const StyledButtonBar = styled(ButtonBar)`
   grid-template-columns: repeat(4, 1fr);
   ${ButtonLabel} {
     white-space: nowrap;
-    grid-gap: ${space(0.5)};
+    gap: ${space(0.5)};
     span:last-child {
       color: ${p => p.theme.buttonCount};
     }

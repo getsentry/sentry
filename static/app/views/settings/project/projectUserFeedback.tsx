@@ -106,7 +106,7 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
 const ButtonList = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
 

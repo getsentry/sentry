@@ -21,6 +21,8 @@ type State = {
 } & AsyncView['state'];
 
 class AcceptProjectTransfer extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const query = this.props.location.query;
     return [['transferDetails', '/accept-transfer/', {query}]];

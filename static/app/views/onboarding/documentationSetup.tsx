@@ -205,7 +205,7 @@ const Content = styled(motion.div)`
 
   .alert h5 {
     font-size: 1em;
-    margin-bottom: 1rem;
+    margin-bottom: 0.625rem;
   }
 
   /**

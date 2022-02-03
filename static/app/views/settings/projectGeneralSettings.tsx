@@ -9,7 +9,7 @@ import {
 import ProjectActions from 'sentry/actions/projectActions';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {removeGlobalSelectionStorage} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
@@ -61,7 +61,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const {orgId} = this.props.params;
     const project = this.state.data;
 
-    removeGlobalSelectionStorage(orgId);
+    removePageFiltersStorage(orgId);
 
     if (!project) {
       return;

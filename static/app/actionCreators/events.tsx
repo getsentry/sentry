@@ -19,7 +19,7 @@ type Options = {
   project?: Readonly<number[]>;
   environment?: Readonly<string[]>;
   team?: Readonly<string | string[]>;
-  period?: string;
+  period?: string | null;
   start?: DateString;
   end?: DateString;
   interval?: string;
@@ -35,6 +35,8 @@ type Options = {
   withoutZerofill?: boolean;
   referrer?: string;
   queryBatching?: QueryBatching;
+  queryExtras?: Record<string, string>;
+  generatePathname?: (org: OrganizationSummary) => string;
 };
 
 /**
@@ -53,6 +55,8 @@ type Options = {
  * @param {Number} options.limit The number of rows to return
  * @param {String} options.query Search query
  * @param {QueryBatching} options.queryBatching A container for batching functions from a provider
+ * @param {Record<string, string>} options.queryExtras A list of extra query parameters
+ * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
 export const doEventsRequest = (
   api: Client,
@@ -76,6 +80,8 @@ export const doEventsRequest = (
     withoutZerofill,
     referrer,
     queryBatching,
+    generatePathname,
+    queryExtras,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -106,10 +112,13 @@ export const doEventsRequest = (
     query: {
       ...urlQuery,
       ...periodObj,
+      ...queryExtras,
     },
   };
 
-  const pathname = `/organizations/${organization.slug}/events-stats/`;
+  const pathname =
+    generatePathname?.(organization) ??
+    `/organizations/${organization.slug}/events-stats/`;
 
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, pathname, queryObject);

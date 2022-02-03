@@ -18,7 +18,7 @@ type Props = {
 const AlertMessage = ({alert, system}: Props) => {
   const handleClose = () => AlertActions.closeAlert(alert);
 
-  const {url, message, type} = alert;
+  const {url, message, type, opaque} = alert;
 
   const icon =
     type === 'success' ? (
@@ -28,12 +28,12 @@ const AlertMessage = ({alert, system}: Props) => {
     );
 
   return (
-    <StyledAlert type={type} icon={icon} system={system}>
+    <StyledAlert type={type} icon={icon} system={system} opaque={opaque}>
       <StyledMessage>
         {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
       </StyledMessage>
       <StyledCloseButton
-        icon={<IconClose size="md" isCircled />}
+        icon={<IconClose size="sm" />}
         aria-label={t('Close')}
         onClick={alert.onClose ?? handleClose}
         size="zero"
@@ -57,7 +57,6 @@ const StyledMessage = styled('span')`
 
 const StyledCloseButton = styled(Button)`
   background-color: transparent;
-  opacity: 0.4;
   transition: opacity 0.1s linear;
   position: absolute;
   top: 50%;

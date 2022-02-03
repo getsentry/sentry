@@ -2,11 +2,14 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {createDashboard} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import {Title} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
@@ -23,7 +26,9 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import {DashboardListItem} from '../types';
+import {DASHBOARDS_TEMPLATES} from '../data';
+import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
+import {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';
@@ -140,10 +145,15 @@ class ManageDashboards extends AsyncView<Props, State> {
     return (
       <Feature organization={organization} features={['dashboards-template']}>
         <TemplateContainer>
-          <TemplateCard title="Default" widgetCount={10} />
-          <TemplateCard title="Frontend" widgetCount={9} />
-          <TemplateCard title="Backend" widgetCount={13} />
-          <TemplateCard title="Mobile" widgetCount={4} />
+          {DASHBOARDS_TEMPLATES.map(dashboard => (
+            <TemplateCard
+              title={dashboard.title}
+              description={dashboard.description}
+              onPreview={() => this.onPreview(dashboard.id)}
+              onAdd={() => this.onAdd(dashboard)}
+              key={dashboard.title}
+            />
+          ))}
         </TemplateContainer>
       </Feature>
     );
@@ -215,6 +225,41 @@ class ManageDashboards extends AsyncView<Props, State> {
     });
   }
 
+  async onAdd(dashboard: DashboardDetails) {
+    const {organization, api} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
+      organization,
+      dashboard_id: dashboard.id,
+      dashboard_title: dashboard.title,
+      was_previewed: false,
+    });
+
+    await createDashboard(
+      api,
+      organization.slug,
+      {
+        ...dashboard,
+        widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
+      },
+      true
+    );
+    this.onDashboardsChange();
+    addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
+  }
+
+  onPreview(dashboardId: string) {
+    const {organization, location} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.preview', {
+      organization,
+      dashboard_id: dashboardId,
+    });
+
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}`,
+      query: location.query,
+    });
+  }
+
   renderLoading() {
     return (
       <PageContent>
@@ -238,7 +283,7 @@ class ManageDashboards extends AsyncView<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  {t('Dashboards')}
+                  <Title>{t('Dashboards')}</Title>
                   <ButtonContainer>
                     <Feature
                       organization={organization}
@@ -260,7 +305,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                         this.onCreate();
                       }}
                       priority="primary"
-                      icon={<IconAdd size="xs" isCircled />}
+                      icon={<IconAdd isCircled />}
                     >
                       {t('Create Dashboard')}
                     </Button>
@@ -285,8 +330,6 @@ const StyledPageContent = styled(PageContent)`
 const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
   justify-content: space-between;
   margin-bottom: ${space(2)};
 `;
@@ -294,7 +337,7 @@ const StyledPageHeader = styled('div')`
 const StyledActions = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -316,16 +359,21 @@ const TemplateSwitch = styled(Switch)`
 
 const ButtonContainer = styled('div')`
   display: inline;
+  flex-shrink: 0;
 `;
 
 const TemplateContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: repeat(2, 1fr);
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
   }
-  grid-gap: ${space(2)};
-  padding-bottom: ${space(4)};
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: repeat(4, minmax(200px, 1fr));
+  }
 `;
 
 export default withApi(withOrganization(ManageDashboards));
