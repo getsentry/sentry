@@ -23,7 +23,7 @@ type Internals = {
 type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   reset(selection?: PageFilters): void;
   onReset(): void;
-  onInitializeUrlState(newSelection: PageFilters): void;
+  onInitializeUrlState(newSelection: PageFilters, pinned: Set<PinnedPageFilter>): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
   updateEnvironments(environments: string[]): void;
@@ -48,14 +48,17 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   reset(selection) {
     this._hasInitialState = false;
     this.selection = selection || getDefaultSelection();
+    this.pinnedFilters = new Set();
   },
 
   /**
    * Initializes the page filters store data
    */
-  onInitializeUrlState(newSelection) {
+  onInitializeUrlState(newSelection, pinned) {
     this._hasInitialState = true;
+
     this.selection = newSelection;
+    this.pinnedFilters = pinned;
     this.trigger(this.getState());
   },
 

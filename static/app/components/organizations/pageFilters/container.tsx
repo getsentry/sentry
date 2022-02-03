@@ -9,7 +9,6 @@ import {
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
-import {DATE_TIME_KEYS} from 'sentry/constants/pageFilters';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -18,15 +17,7 @@ import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
-import {getStateFromQuery} from './parse';
-import {PageFiltersState} from './types';
-
-type DatetimeState = Pick<PageFiltersState, 'start' | 'end' | 'period' | 'utc'>;
-
-const getDatetimeFromState = (state: PageFiltersState) =>
-  Object.fromEntries(
-    Object.entries(state).filter(([key]) => DATE_TIME_KEYS.includes(key))
-  ) as DatetimeState;
+import {getDatetimeFromState, getStateFromQuery} from './parse';
 
 type GlobalSelectionHeaderProps = Omit<
   React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,

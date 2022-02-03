@@ -99,7 +99,7 @@ export function getPageFilterStorage(orgSlug: string) {
     {allowAbsoluteDatetime: true}
   );
 
-  return {selection: state, pinnedFilters: new Set(pinnedFilters)};
+  return {state, pinnedFilters: new Set(pinnedFilters)};
 }
 
 /**
