@@ -22,17 +22,17 @@ from snuba_sdk import (
     Query,
 )
 
+from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics import (
     MAX_POINTS,
-    InvalidParams,
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
-    _resolve_tags,
     get_date_range,
     get_intervals,
     parse_query,
+    resolve_tags,
 )
 
 
@@ -96,7 +96,7 @@ def test_parse_query(monkeypatch, query_string, expected):
     for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
         local_indexer.record(s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
-    parsed = _resolve_tags(parse_query(query_string))
+    parsed = resolve_tags(parse_query(query_string))
     assert parsed == expected
 
 
