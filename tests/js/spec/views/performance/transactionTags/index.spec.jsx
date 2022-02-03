@@ -8,6 +8,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
+const TEST_RELEASE_NAME = 'test-project@1.0.0';
+
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];
   const organization = TestStubs.Organization({
@@ -83,6 +85,15 @@ describe('Performance > Transaction Tags', function () {
           {
             tags_key: 'effectiveConnectionType',
             tags_value: '4g',
+            sumdelta: 45773.0,
+            count: 83,
+            frequency: 0.05,
+            comparison: 1.45,
+            aggregate: 2000.5,
+          },
+          {
+            tags_key: 'release',
+            tags_value: TEST_RELEASE_NAME,
             sumdelta: 45773.0,
             count: 83,
             frequency: 0.05,
@@ -248,5 +259,25 @@ describe('Performance > Transaction Tags', function () {
         }),
       })
     );
+  });
+
+  it('creates links to releases if the release tag is selected', async () => {
+    const initialData = initializeData({query: {tagKey: 'release'}});
+
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+    await tick();
+    wrapper.update();
+
+    expect(
+      wrapper.find('Link').someWhere(node => node.text().includes(TEST_RELEASE_NAME))
+    ).toBeTruthy();
   });
 });
