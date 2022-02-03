@@ -255,6 +255,9 @@ const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
 
   ${p => p.isDisabled && `cursor: initial;`}
 
+  &:focus {
+    outline: none;
+  }
   &:focus-visible {
     outline: none;
   }
