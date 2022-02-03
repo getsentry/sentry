@@ -573,10 +573,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.add_widget_through_dashboard("D")
             self.page.wait_until_loaded()
 
-            self.browser.snapshot(
-                "dashboards - pre save position when adding multiple widgets through Add Widget tile in edit"
-            )
-
             self.page.save_dashboard()
             self.capture_screenshots(
                 "dashboards - position when adding multiple widgets through Add Widget tile in edit"
@@ -596,10 +592,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.add_widget_through_dashboard("C")
             self.page.add_widget_through_dashboard("D")
             self.page.wait_until_loaded()
-
-            self.browser.snapshot(
-                "dashboards - pre save position when adding multiple widgets through Add Widget tile in create"
-            )
 
             self.page.save_dashboard()
 
