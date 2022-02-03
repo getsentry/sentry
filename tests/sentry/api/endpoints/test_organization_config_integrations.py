@@ -8,6 +8,8 @@ class OrganizationConfigIntegrationsTest(APITestCase):
 
     def setUp(self):
         super().setUp()
+        features.add("organizations:integrations-feature-flag-integration", OrganizationFeature)
+
         self.login_as(self.user)
 
     def test_simple(self):
@@ -27,8 +29,6 @@ class OrganizationConfigIntegrationsTest(APITestCase):
         assert response.data["providers"][0]["name"] == "Example Server"
 
     def test_feature_flag_integration(self):
-        features.add("organizations:integrations-feature-flag-integration", OrganizationFeature)
-
         response = self.get_success_response(self.organization.slug)
         provider = [r for r in response.data["providers"] if r["key"] == "feature_flag_integration"]
         assert len(provider) == 0
