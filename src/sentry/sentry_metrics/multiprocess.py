@@ -199,7 +199,17 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__closed = True
 
     def join(self, timeout: Optional[float] = None) -> None:
-        self.__flush()
+        start = time.time()
+        while self.__batch:
+            remaining = timeout - (time.time() - start) if timeout is not None else None
+            if remaining is not None and remaining <= 0:
+                logger.warning(f"Timed out with {len(self.__batch)} messages left in batch")
+                break
+            try:
+                self.__flush()
+            except MessageRejected:
+                pass
+
         self.__next_step.join(timeout)
 
 

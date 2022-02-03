@@ -1,3 +1,4 @@
+import logging
 import time
 from datetime import datetime, timezone
 from typing import Dict, List, Mapping, MutableMapping, Union
@@ -22,13 +23,11 @@ from sentry.sentry_metrics.multiprocess import (
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.utils import json
 
+LOGGER = logging.getLogger(__name__)
 
-def test_batch_messages() -> None:
-    next_step = Mock()
 
-    max_batch_time = 100.0  # seconds
-    max_batch_size = 2
-
+def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
+    # batch time is in seconds
     batch_messages_step = BatchMessages(
         next_step=next_step, max_batch_time=max_batch_time, max_batch_size=max_batch_size
     )
@@ -39,6 +38,13 @@ def test_batch_messages() -> None:
     message2 = Message(
         Partition(Topic("topic"), 0), 2, KafkaPayload(None, b"another value", []), datetime.now()
     )
+    return (batch_messages_step, message1, message2)
+
+
+def test_batch_messages() -> None:
+    next_step = Mock()
+
+    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
 
     # submit the first message, batch builder should should be created
     # and the messaged added to the batch
@@ -69,19 +75,8 @@ def test_batch_messages_rejected_message():
     next_step = Mock()
     next_step.submit.side_effect = MessageRejected()
 
-    max_batch_time = 100.0  # seconds
-    max_batch_size = 2
+    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
 
-    batch_messages_step = BatchMessages(
-        next_step=next_step, max_batch_time=max_batch_time, max_batch_size=max_batch_size
-    )
-
-    message1 = Message(
-        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
-    )
-    message2 = Message(
-        Partition(Topic("topic"), 0), 2, KafkaPayload(None, b"another value", []), datetime.now()
-    )
     batch_messages_step.poll()
     batch_messages_step.submit(message=message1)
 
@@ -95,6 +90,44 @@ def test_batch_messages_rejected_message():
     # when poll is called, we still try to flush the batch
     # caust its full but we handled the MessageRejected error
     batch_messages_step.poll()
+    assert next_step.submit.called
+
+
+def test_batch_messages_join_timeout(caplog):
+    next_step = Mock()
+    next_step.submit.side_effect = MessageRejected()
+
+    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
+
+    batch_messages_step.submit(message=message1)
+
+    # if we try to submit a batch when the next step is
+    # not ready to accept more messages we'll get a
+    # MessageRejected error which will bubble up to the
+    # StreamProcessor.
+    with pytest.raises(MessageRejected):
+        batch_messages_step.submit(message=message2)
+
+    # A rebalance, restart, scale up or any other event
+    # that causes partitions to be revoked will call join
+    with caplog.at_level(logging.WARNING):
+        batch_messages_step.join(timeout=3)
+
+    assert "Timed out with 2 messages left in batch" in caplog.text
+
+
+def test_batch_messages_join():
+    next_step = Mock()
+
+    batch_messages_step, message1, _ = _batch_message_set_up(next_step)
+
+    batch_messages_step.poll()
+    batch_messages_step.submit(message=message1)
+    # A rebalance, restart, scale up or any other event
+    # that causes partitions to be revoked will call join
+    batch_messages_step.join(timeout=3)
+    # we flush the batch even if it's not full because
+    # we still need to finish the work we've done thus far
     assert next_step.submit.called
 
 
