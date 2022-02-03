@@ -56,7 +56,7 @@ class LatestReleaseFilter(EventFilter):
                     )
                 except Release.DoesNotExist:
                     return None
-                latest_releases = list(Release.objects.filter(id=latest_release_ids[0]))
+                latest_releases = list(Release.objects.filter(version=latest_release_ids[0]))
             else:
                 latest_releases = bulk_fetch_project_latest_releases([event.group.project])
             if latest_releases:

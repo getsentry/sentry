@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import patch
 
@@ -7,7 +7,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import Environment, GroupRuleStatus, GroupStatus, Rule
+from sentry.models import GroupRuleStatus, GroupStatus, Rule
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
@@ -368,20 +368,24 @@ class RuleProcessorTestFilters(TestCase):
 
     def test_latest_release_environment(self):
         # setup an alert rule with 1 conditions and no filters that passes
-        self.create_release(project=self.project, version="2021-02.newRelease")
-        environment = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="production"
+        release = self.create_release(
+            project=self.project,
+            version="2021-02.newRelease",
+            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
+            environments=[self.environment],
         )
-        environment.add_project(project)
 
         self.event = self.store_event(
-            data={"release": "2021-02.newRelease"},
+            data={
+                "release": release.version,
+                "tags": [["environment", self.environment.name]],
+            },
             project_id=self.project.id,
-            environment=environment.name,
         )
 
         Rule.objects.filter(project=self.event.project).delete()
         self.rule = Rule.objects.create(
+            environment_id=self.environment.id,
             project=self.event.project,
             data={
                 "actions": [EMAIL_ACTION_DATA],
