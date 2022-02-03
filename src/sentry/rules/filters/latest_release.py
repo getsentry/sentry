@@ -9,19 +9,19 @@ from sentry.search.utils import get_latest_release
 from sentry.utils.cache import cache
 
 
-def get_project_release_cache_key(project_id, environment_id=None):
+def get_project_release_cache_key(project_id, environment_id=None) -> None:
     if environment_id is None:
         return f"project:{project_id}:latest_release"
     return f"project:{project_id}:env:{environment_id}:latest_release"
 
 
 # clear the cache given a Release object
-def clear_release_cache(instance: Release, **kwargs):
+def clear_release_cache(instance: Release, **kwargs) -> None:
     release_project_ids = instance.projects.values_list("id", flat=True)
     cache.delete_many([get_project_release_cache_key(proj_id) for proj_id in release_project_ids])
 
 
-def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwargs):
+def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwargs) -> None:
     release_project_ids = instance.release.projects.values_list("id", flat=True)
     cache.delete_many(
         [
@@ -32,7 +32,7 @@ def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwar
 
 
 # clear the cache given a ReleaseProject object
-def clear_release_project_cache(instance: ReleaseProject, **kwargs):
+def clear_release_project_cache(instance: ReleaseProject, **kwargs) -> None:
     proj_id = instance.project_id
     cache.delete(get_project_release_cache_key(proj_id))
 
