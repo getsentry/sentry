@@ -12,7 +12,7 @@ from sentry.ingest.ingest_consumer import (
     process_individual_attachment,
     process_userreport,
 )
-from sentry.models import EventAttachment, EventUser, File, UserReport
+from sentry.models import EventAttachment, EventUser, File, Replay, UserReport
 from sentry.utils import json
 
 
@@ -256,6 +256,61 @@ def test_individual_attachments(
         file_contents = file.getfile()
         assert file_contents.read() == b"".join(chunks)
         assert file_contents.name == "foo.txt"
+
+
+@pytest.mark.django_db
+def test_replay_attachment(default_project, factories, monkeypatch):
+    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
+
+    chunks = (
+        b'{"events":[{"type":4,"data":{"href":"http://localhost:3000/","width":1165,"height":1336},"timestamp":1643848997798}]}',
+    )
+    event_id = "515539018c9b4260a6f999572f1661ee"
+    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+    project_id = default_project.id
+    group_id = None
+
+    for i, chunk in enumerate(chunks):
+        process_attachment_chunk(
+            {
+                "payload": chunk,
+                "event_id": event_id,
+                "project_id": project_id,
+                "id": attachment_id,
+                "chunk_index": i,
+            },
+            projects={default_project.id: default_project},
+        )
+
+    process_individual_attachment(
+        {
+            "type": "attachment",
+            "attachment": {
+                "attachment_type": "event.attachment",
+                "chunks": len(chunks),
+                "content_type": "application/json",
+                "id": attachment_id,
+                "name": "rrweb.json",
+            },
+            "event_id": event_id,
+            "project_id": project_id,
+        },
+        projects={default_project.id: default_project},
+    )
+
+    attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
+
+    (attachment,) = attachments
+    file = File.objects.get(id=attachment.file_id)
+    assert file.type == "event.attachment"
+    assert file.headers == {"Content-Type": "application/json"}
+    assert attachment.group_id == group_id
+    file_contents = file.getfile()
+    assert file_contents.read() == b"".join(chunks)
+    assert file_contents.name == "rrweb.json"
+
+    replays = list(Replay.objects.filter(project_id=project_id, event_id=event_id))
+    assert len(replays) == 1
 
 
 @pytest.mark.django_db
