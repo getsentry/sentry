@@ -160,6 +160,7 @@ runs:
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
         WORKDIR: ${{ inputs.workdir }}
+        PG_VERSION: ${{ inputs.pg-version }}
       run: |
         sentry init
 

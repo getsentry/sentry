@@ -16,6 +16,7 @@ jobs:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2]
+        pg-version: [9.6, 12, 14]
 
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
@@ -53,6 +54,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
+          pg-version: ${{ matrix.pg-version }}
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         if: steps.changes.outputs.backend == 'true'
