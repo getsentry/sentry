@@ -152,6 +152,7 @@ jobs:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
+        pg-version: ['9.6', '12', '14']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 4
@@ -169,6 +170,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
+          pg-version: ${{ matrix.pg-version }}
 
       - name: Wait for frontend build
         uses: getsentry/action-wait-for-check@v1.0.0
