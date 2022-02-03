@@ -73,11 +73,11 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:
         if not self.user_id_team_lookup:
-            self.user_id_team_lookup = OrganizationMember.objects.get_teams_by_user(
+            lookup: Mapping[int, list[int]] = OrganizationMember.objects.get_teams_by_user(
                 self.organization
             )
-        lookup: Mapping[int, list[int]] = self.user_id_team_lookup
-        return lookup
+            self.user_id_team_lookup = lookup
+        return self.user_id_team_lookup
 
     def get_context(self) -> MutableMapping[str, Any]:
         return {
