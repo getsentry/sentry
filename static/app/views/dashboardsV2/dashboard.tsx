@@ -264,10 +264,41 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
+    const {layouts} = this.state;
     const {isEditing, handleUpdateWidgetList} = this.props;
-    const nextList = [...this.props.dashboard.widgets];
+    let nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
-    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
+    const minH = getDefaultWidgetHeight(nextWidget.displayType);
+    const nextSize = {
+      ...nextWidget.layout,
+      h: Math.max(nextWidget?.layout?.h ?? minH, minH),
+      minH,
+    };
+    nextList[updateIndex] = {
+      ...nextWidget,
+      tempId: prevWidget.tempId,
+      layout: {
+        ...nextWidget.layout,
+        ...nextSize,
+      },
+    };
+    // Manually calculate the post-delete layout and assign those to widgets
+    const nextLayout = compact(
+      [
+        ...layouts[DESKTOP].filter(({i}) => i !== constructGridItemKey(nextWidget)),
+        nextSize,
+      ],
+      'vertical',
+      NUM_DESKTOP_COLS
+    );
+    nextList = nextList.map(widget => {
+      const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));
+      if (!layout) {
+        return widget;
+      }
+      return {...widget, layout};
+    });
+
     this.props.onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
