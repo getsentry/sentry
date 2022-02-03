@@ -614,4 +614,19 @@ export const icons: IconData[] = [
     groups: ['action'],
     keywords: ['scale', 'stretch'],
   },
+  {
+    id: 'happy',
+    groups: ['content'],
+    keywords: ['good'],
+  },
+  {
+    id: 'meh',
+    groups: ['content'],
+    keywords: ['meh'],
+  },
+  {
+    id: 'sad',
+    groups: ['content'],
+    keywords: ['poor'],
+  },
 ];
