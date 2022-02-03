@@ -5,8 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.utils import get_date_range_from_params
-from sentry.search.events.builder import QueryBuilder
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.discover import timeseries_query
 
 
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
@@ -15,18 +14,23 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         query_start, query_end, granularity = self.map_snuba_queries(
             start.timestamp(), end.timestamp()
         )
-
-        # remove unused and overwrite relevant time params
-        for param in ["statsPeriod", "statsPeriodStart", "statsPeriodEnd"]:
-            request.GET.pop(param, None)
-        request.GET[start] = query_start
-        request.GET[end] = query_end
-
         params = self.get_snuba_params(request, organization)
         query = request.GET.get("query")
-        snql_query = self.get_snuba_query(params, query, granularity)
 
-        return self.get_anomalies(snql_query)
+        # overwrite relevant time params
+        params["statsPeriodStart"] = query_start
+        params["statsPeriodEnd"] = query_end
+
+        snuba_response = timeseries_query(
+            selected_columns=["count()"],
+            query=query,
+            params=params,
+            rollup=granularity,
+            referrer="transaction-anomaly-detection",
+            zerofill_results=True,
+        )
+
+        return self.get_anomalies(snuba_response.data["data"])
 
     @staticmethod
     def map_snuba_queries(start, end):
@@ -70,23 +74,6 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         )
 
     @staticmethod
-    def get_snuba_query(params, query, granularity):
-        query_builder = QueryBuilder(
-            Dataset.Transactions,
-            params,
-            query=query,
-            selected_columns=["count()"],
-            orderby=["time"],
-            limit=2200,  # max possible rows based on map_snuba_queries()
-            turbo=False,
-        )
-
-        query = query_builder.get_snql_query()
-        query.set_granularity(granularity)
-
-        return query.snuba()
-
-    @staticmethod
-    def get_anomalies(snql_query):
+    def get_anomalies(snuba_data):
         # call ADS
         return ""
