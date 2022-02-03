@@ -44,10 +44,12 @@ class ErrorRobot extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
-    logExperiment({
-      key: 'ViewSampleSandboxExperiment',
-      organization: this.props.org,
-    });
+    if (!this.props.org.features.includes('sandbox-kill-switch')) {
+      logExperiment({
+        key: 'ViewSampleSandboxExperiment',
+        organization: this.props.org,
+      });
+    }
   }
 
   async fetchData() {
@@ -84,8 +86,11 @@ class ErrorRobot extends Component<Props, State> {
     const {loading, error, sampleIssueId} = this.state;
     const {org, project, gradient} = this.props;
 
-    let sampleLink;
-    if (org.experiments.ViewSampleSandboxExperiment) {
+    let sampleLink: React.ReactNode;
+    if (
+      org.experiments.ViewSampleSandboxExperiment &&
+      !org.features.includes('sandbox-kill-switch')
+    ) {
       sampleLink = (
         <DemoSandboxButton
           scenario="oneIssue"
