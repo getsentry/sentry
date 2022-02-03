@@ -20,7 +20,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: false,
     });
@@ -55,7 +55,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: false,
     });
@@ -81,7 +81,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: false,
       existingMember: false,
     });
@@ -107,7 +107,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: true,
       existingMember: false,
     });
@@ -133,7 +133,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: true,
       existingMember: false,
     });
@@ -159,7 +159,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: true,
       existingMember: true,
     });
@@ -191,7 +191,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: false,
       existingMember: false,
     });
@@ -213,7 +213,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: true,
     });
@@ -245,7 +245,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: true,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: false,
     });
