@@ -20,7 +20,7 @@ type InviteDetails = {
   needsAuthentication: boolean;
   needs2fa: boolean;
   needsEmailVerification: boolean;
-  needsSso: boolean;
+  hasAuthProvider: boolean;
   requireSso: boolean;
   existingMember: boolean;
   ssoProvider?: string;
@@ -107,7 +107,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           </p>
         )}
 
-        {inviteDetails.needsSso && (
+        {inviteDetails.hasAuthProvider && (
           <p data-test-id="action-info-sso">
             {inviteDetails.requireSso
               ? tct(
@@ -133,7 +133,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
 
         <Actions>
           <ActionsLeft>
-            {inviteDetails.needsSso && (
+            {inviteDetails.hasAuthProvider && (
               <Button
                 aria-label="sso-login"
                 priority="primary"
@@ -211,7 +211,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
 
     return (
       <Fragment>
-        {inviteDetails.needsSso && !inviteDetails.requireSso && (
+        {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
           <p data-test-id="action-info-sso">
             {tct(
               `Note that [orgSlug] has enabled Single Sign-On (SSO) using
@@ -226,7 +226,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
         )}
         <Actions>
           <ActionsLeft>
-            {inviteDetails.needsSso && !inviteDetails.requireSso && (
+            {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
               <Button
                 aria-label="sso-login"
                 priority="primary"
