@@ -272,14 +272,16 @@ class QueryList extends React.Component<Props> {
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
       const menuItems = canAddToDashboard => [
-        ...(canAddToDashboard && [
-          {
-            key: 'add-to-dashboard',
-            label: t('Add to Dashboard'),
-            leadingItems: <IconGraph />,
-            onAction: () => this.handleAddQueryToDashboard(eventView, savedQuery),
-          },
-        ]),
+        ...(canAddToDashboard
+          ? [
+              {
+                key: 'add-to-dashboard',
+                label: t('Add to Dashboard'),
+                leadingItems: <IconGraph />,
+                onAction: () => this.handleAddQueryToDashboard(eventView, savedQuery),
+              },
+            ]
+          : []),
         {
           key: 'duplicate',
           label: t('Duplicate Query'),
