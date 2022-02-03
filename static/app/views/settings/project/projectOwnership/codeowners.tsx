@@ -35,7 +35,7 @@ class CodeOwnersPanel extends Component<Props> {
       addErrorMessage(t('An error occurred'));
     }
   };
-
+  // handle sync
   handleSync = async (codeowner: CodeOwner) => {
     const {api, organization, project, onUpdate} = this.props;
     try {
