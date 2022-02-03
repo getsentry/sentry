@@ -12,13 +12,6 @@ jobs:
         python-version: [3.8.12]
 
     steps:
-      - name: Getsentry Token
-        id: getsentry
-        uses: getsentry/action-github-app-token@v1
-        with:
-          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
       - uses: actions/checkout@v2
         with:
           # Avoid codecov error message related to SHA resolution:
@@ -47,7 +40,6 @@ jobs:
           ref: 'main'
           repository: getsentry/sentry-api-schema
           path: sentry-api-schema
-          token: ${{ steps.getsentry.outputs.token }}
 
       - name: Install/setup node
         if: steps.changes.outputs.api_docs == 'true'
@@ -61,4 +53,4 @@ jobs:
       - name: Compare OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
         run: |
-          npx json-diff --color sentry-api-schema/openapi-derefed.json tests/apidocs/openapi-derefed.json
+          npx json-diff@0.5.4 --color sentry-api-schema/openapi-derefed.json tests/apidocs/openapi-derefed.json
