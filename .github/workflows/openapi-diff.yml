@@ -40,7 +40,6 @@ jobs:
           ref: 'main'
           repository: getsentry/sentry-api-schema
           path: sentry-api-schema
-          token: ${{ github.token }}
 
       - name: Install/setup node
         if: steps.changes.outputs.api_docs == 'true'
