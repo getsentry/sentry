@@ -39,7 +39,8 @@ describe('PageFilters ActionCreators', function () {
         expect.objectContaining({
           environments: [],
           projects: [1],
-        })
+        }),
+        new Set()
       );
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -78,7 +79,8 @@ describe('PageFilters ActionCreators', function () {
             period: '14d',
             utc: null,
           },
-        })
+        }),
+        new Set()
       );
     });
 
@@ -103,7 +105,8 @@ describe('PageFilters ActionCreators', function () {
             period: '3h',
             utc: null,
           },
-        })
+        }),
+        new Set()
       );
     });
 
@@ -170,17 +173,19 @@ describe('PageFilters ActionCreators', function () {
         router,
       });
 
-      expect(localStorage.getItem).not.toHaveBeenCalled();
-      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith({
-        datetime: {
-          start: null,
-          end: null,
-          period: '14d',
-          utc: null,
+      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
+        {
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          projects: [1],
+          environments: [],
         },
-        projects: [1],
-        environments: [],
-      });
+        new Set()
+      );
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {
