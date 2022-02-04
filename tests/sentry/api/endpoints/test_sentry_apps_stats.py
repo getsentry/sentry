@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.api.serializers.base import serialize
-from sentry.models.sentryappavatar import SentryAppAvatar
+from sentry.models import SentryAppAvatar
 from sentry.testutils import APITestCase
 from sentry.utils import json
 

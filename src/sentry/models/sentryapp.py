@@ -24,8 +24,6 @@ from sentry.db.models import (
     ParanoidModel,
 )
 from sentry.models.apiscopes import HasApiScopes
-from sentry.models.sentryappavatar import SentryAppAvatar
-from sentry.models.sentryappinstallation import SentryAppInstallation
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -202,6 +200,8 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return super().save(*args, **kwargs)
 
     def is_installed_on(self, organization):
+        from sentry.models import SentryAppInstallation
+
         return SentryAppInstallation.objects.filter(
             organization=organization,
             sentry_app=self,
@@ -218,5 +218,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return set(self.scope_list).issubset(encoded_scopes)
 
     def delete(self):
+        from sentry.models import SentryAppAvatar
+
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
         return super().delete()

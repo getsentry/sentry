@@ -48,6 +48,8 @@ from sentry.models import (
     Commit,
     CommitAuthor,
     CommitFileChange,
+    DocIntegration,
+    DocIntegrationAvatar,
     Environment,
     EventAttachment,
     ExternalActor,
@@ -60,6 +62,7 @@ from sentry.models import (
     IdentityProvider,
     IdentityStatus,
     Integration,
+    IntegrationFeature,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -82,9 +85,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
-from sentry.models.docintegrationavatar import DocIntegrationAvatar
-from sentry.models.integration import DocIntegration
-from sentry.models.integrationfeature import Feature, IntegrationFeature, IntegrationTypes
+from sentry.models.integrationfeature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
