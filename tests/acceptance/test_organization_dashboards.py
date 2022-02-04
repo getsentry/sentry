@@ -490,7 +490,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             wait = WebDriverWait(self.browser.driver, 5)
             wait.until_not(EC.alert_is_present())
 
-            self.browser.snapshot("dashboard widget - duplicate in grid")
+            self.browser.snapshot("dashboard widget - duplicate with grid")
 
     def test_delete_widget_in_view_mode(self):
         existing_widget = DashboardWidget.objects.create(
@@ -513,7 +513,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.wait_until_loaded()
 
-            self.browser.snapshot("dashboard widget - delete")
+            self.browser.snapshot("dashboard widget - delete with grid")
 
     def test_cancel_without_changes_does_not_trigger_confirm_with_widget_library_through_header(
         self,

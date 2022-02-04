@@ -80,9 +80,9 @@ function Menu({
     onKeyDown: e => {
       if (isSubmenu && e.key === 'ArrowLeft') {
         closeCurrentSubmenu?.();
-      } else {
-        e.continuePropagation();
+        return;
       }
+      e.continuePropagation();
     },
   });
 
@@ -158,12 +158,12 @@ function Menu({
   const renderItemWithSubmenu = (node: Node<MenuItemProps>, isLastNode: boolean) => {
     const trigger = ({props: submenuTriggerProps, ref: submenuTriggerRef}) => (
       <MenuItem
-        ref={submenuTriggerRef}
         renderAs="div"
         node={node}
         isLastNode={isLastNode}
         state={state}
         isSubmenuTrigger
+        submenuTriggerRef={submenuTriggerRef}
         {...submenuTriggerProps}
       />
     );
