@@ -228,7 +228,7 @@ function NativeFrame({
       data-test-id="stack-trace-frame"
     >
       <StrictClick onClick={handleToggleContext}>
-        <Fragment>
+        <StrictClickContent>
           <StatusCell>
             {(status === 'error' || status === undefined) &&
               (packageClickable ? (
@@ -334,12 +334,11 @@ function NativeFrame({
                 tooltipProps={
                   isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
                 }
-                onClick={handleToggleContext}
                 icon={<IconChevron size="8px" direction={expanded ? 'up' : 'down'} />}
               />
             )}
           </ExpandCell>
-        </Fragment>
+        </StrictClickContent>
       </StrictClick>
       <RegistersCell>
         {expanded && (
@@ -479,4 +478,8 @@ const GridRow = styled('div')<{inApp: boolean; expandable: boolean; expanded: bo
     grid-template-columns: 24px auto minmax(138px, 1fr) 24px;
     grid-template-rows: repeat(2, auto);
   }
+`;
+
+const StrictClickContent = styled('div')`
+  display: contents;
 `;

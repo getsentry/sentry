@@ -2,8 +2,8 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IntervalPeriod} from 'sentry/types';
+import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
+import {IntervalPeriod, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
@@ -314,4 +314,13 @@ export function getStateFromQuery(
   };
 
   return state;
+}
+
+/**
+ * Extract the datetime component from the page filter state object
+ */
+export function getDatetimeFromState(state: PageFiltersState) {
+  return Object.fromEntries(
+    Object.entries(state).filter(([key]) => DATE_TIME_KEYS.includes(key))
+  ) as PageFilters['datetime'];
 }

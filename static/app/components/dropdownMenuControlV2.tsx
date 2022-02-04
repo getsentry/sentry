@@ -87,7 +87,7 @@ function MenuControl({
   trigger,
   triggerLabel,
   triggerProps = {},
-  isDisabled,
+  isDisabled: disabledProp,
   isSubmenu = false,
   closeRootMenu,
   closeCurrentSubmenu,
@@ -96,6 +96,7 @@ function MenuControl({
   ...props
 }: Props) {
   const ref = useRef(null);
+  const isDisabled = disabledProp ?? (!items || items.length === 0);
 
   // Control the menu open state. See:
   // https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
@@ -107,6 +108,7 @@ function MenuControl({
   );
   const {buttonProps} = useButton(
     {
+      isDisabled,
       ...menuTriggerProps,
       ...(isSubmenu && {
         onKeyUp: e => e.continuePropagation(),
@@ -131,13 +133,7 @@ function MenuControl({
       });
     }
     return (
-      <DropdownButton
-        ref={ref}
-        isOpen={state.isOpen}
-        disabled={isDisabled}
-        {...triggerProps}
-        {...buttonProps}
-      >
+      <DropdownButton ref={ref} isOpen={state.isOpen} {...triggerProps} {...buttonProps}>
         {triggerLabel}
       </DropdownButton>
     );

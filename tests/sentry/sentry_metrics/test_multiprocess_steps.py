@@ -3,15 +3,18 @@ from datetime import datetime, timezone
 from typing import Dict, List, Mapping, MutableMapping, Union
 from unittest.mock import Mock, call, patch
 
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker as Broker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.processing.strategies import MessageRejected
 from arroyo.types import Message, Partition, Position, Topic
 from arroyo.utils.clock import TestingClock as Clock
 
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.multiprocess import (
     BatchMessages,
+    DuplicateMessage,
     MetricsBatchBuilder,
     ProduceStep,
     process_messages,
@@ -20,12 +23,8 @@ from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.utils import json
 
 
-def test_batch_messages() -> None:
-    next_step = Mock()
-
-    max_batch_time = 100.0  # seconds
-    max_batch_size = 2
-
+def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
+    # batch time is in seconds
     batch_messages_step = BatchMessages(
         next_step=next_step, max_batch_time=max_batch_time, max_batch_size=max_batch_size
     )
@@ -36,6 +35,13 @@ def test_batch_messages() -> None:
     message2 = Message(
         Partition(Topic("topic"), 0), 2, KafkaPayload(None, b"another value", []), datetime.now()
     )
+    return (batch_messages_step, message1, message2)
+
+
+def test_batch_messages() -> None:
+    next_step = Mock()
+
+    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
 
     # submit the first message, batch builder should should be created
     # and the messaged added to the batch
@@ -51,20 +57,51 @@ def test_batch_messages() -> None:
     assert not next_step.submit.called
 
     # submit the second message, message should be added to the batch
+    # which will now saturate the batch_size (2). This will trigger
+    # __flush which in turn calls next.submit and reset the batch to None
     batch_messages_step.submit(message=message2)
-
-    assert len(batch_messages_step._BatchMessages__batch) == 2
-
-    # now the batch_size (2) has been reached, poll should call
-    # self.flush which will call the next step's submit and then
-    # reset the batch to None
-    batch_messages_step.poll()
 
     assert next_step.submit.call_args == call(
         Message(message2.partition, message2.offset, [message1, message2], message2.timestamp),
     )
 
     assert batch_messages_step._BatchMessages__batch is None
+
+
+def test_batch_messages_rejected_message():
+    next_step = Mock()
+    next_step.submit.side_effect = MessageRejected()
+
+    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
+
+    batch_messages_step.poll()
+    batch_messages_step.submit(message=message1)
+
+    # if we try to submit a batch when the next step is
+    # not ready to accept more messages we'll get a
+    # MessageRejected error which will bubble up to the
+    # StreamProcessor.
+    with pytest.raises(MessageRejected):
+        batch_messages_step.submit(message=message2)
+
+    # when poll is called, we still try to flush the batch
+    # caust its full but we handled the MessageRejected error
+    batch_messages_step.poll()
+    assert next_step.submit.called
+
+
+def test_batch_messages_join():
+    next_step = Mock()
+
+    batch_messages_step, message1, _ = _batch_message_set_up(next_step)
+
+    batch_messages_step.poll()
+    batch_messages_step.submit(message=message1)
+    # A rebalance, restart, scale up or any other event
+    # that causes partitions to be revoked will call join
+    batch_messages_step.join(timeout=3)
+    # we don't flush the batch
+    assert not next_step.submit.called
 
 
 def test_metrics_batch_builder():
@@ -105,6 +142,17 @@ def test_metrics_batch_builder():
 
     time.sleep(3)
     assert batch_builder_time.ready()
+
+    # 3. Adding the same message twice to the same batch
+    batch_builder_time = MetricsBatchBuilder(
+        max_batch_size=max_batch_size, max_batch_time=max_batch_time
+    )
+    message1 = Message(
+        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
+    )
+    batch_builder_time.append(message1)
+    with pytest.raises(DuplicateMessage):
+        batch_builder_time.append(message1)
 
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
