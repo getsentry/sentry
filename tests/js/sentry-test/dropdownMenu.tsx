@@ -50,7 +50,7 @@ export async function selectDropdownMenuItem({
    * dropdown menu control. If `specifiers` is not provided, returns the root
    * wrapper by default.
    */
-  const getSpecifiedWrap = (): ReactWrapper => {
+  function getSpecifiedWrap(): ReactWrapper {
     if (!specifiers) {
       return wrapper;
     }
