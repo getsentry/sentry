@@ -616,7 +616,10 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def test_deleting_stacked_widgets_by_context_menu_does_not_trigger_confirm_on_edit_cancel(
         self,
     ):
-        layouts = [{"x": 0, "y": 0, "w": 2, "h": 2}, {"x": 0, "y": 2, "w": 2, "h": 2}]
+        layouts = [
+            {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2},
+            {"x": 0, "y": 2, "w": 2, "h": 2, "minH": 2},
+        ]
         existing_widgets = DashboardWidget.objects.bulk_create(
             [
                 DashboardWidget(
@@ -728,7 +731,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
-            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3}},
+            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 1}},
         )
         DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
         with self.feature(
@@ -776,7 +779,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             display_type=DashboardWidgetDisplayTypes.AREA_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
-            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3}},
+            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 2}},
         )
         DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
         with self.feature(
