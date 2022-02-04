@@ -205,7 +205,8 @@ export function enforceWidgetHeightValues(widget: Widget): Widget {
 }
 
 export function generateWidgetsAfterCompaction(widgets: Widget[]) {
-  // Manually calculate the post-delete layout and assign those to widgets
+  // Resolves any potential compactions that need to occur after a
+  // single widget change would affect other widget positions, e.g. deletion
   const nextLayout = compact(getDashboardLayout(widgets), 'vertical', NUM_DESKTOP_COLS);
   return widgets.map(widget => {
     const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));

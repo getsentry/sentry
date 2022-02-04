@@ -794,7 +794,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.browser.snapshot("dashboards - change from area chart to big number keeps height")
 
-            # Try to decrease height by >1 row, should be at 2 rows
+            # Decrease height by >1 row, should stop at 1 row
             self.page.enter_edit_state()
             resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
             action = ActionChains(self.browser.driver)

@@ -269,11 +269,21 @@ class Dashboard extends Component<Props, State> {
 
     let nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
-    nextList[updateIndex] = enforceWidgetHeightValues({
+    const nextWidgetData = {
       ...nextWidget,
-      tempId: prevWidget?.tempId,
-    });
-    nextList = generateWidgetsAfterCompaction(nextList);
+      tempId: prevWidget.tempId,
+    };
+
+    // Only modify and re-compact if the default height has changed
+    if (
+      getDefaultWidgetHeight(prevWidget.displayType) !==
+      getDefaultWidgetHeight(nextWidget.displayType)
+    ) {
+      nextList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+      nextList = generateWidgetsAfterCompaction(nextList);
+    } else {
+      nextList[updateIndex] = nextWidgetData;
+    }
 
     onUpdate(nextList);
     if (!!!isEditing) {
