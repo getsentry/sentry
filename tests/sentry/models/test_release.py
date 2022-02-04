@@ -40,11 +40,11 @@ from sentry.utils.strings import truncatechars
 @pytest.mark.parametrize(
     "release_version",
     [
-        "1.0.0",
-        "1.0.0-alpha",
-        "1.0.0-alpha.1",
-        "1.0.0-alpha.beta",
-        "1.0.0-rc.1+43",
+        "fake_package@1.0.0",
+        "fake_package@1.0.0-alpha",
+        "fake_package@1.0.0-alpha.1",
+        "fake_package@1.0.0-alpha.beta",
+        "fake_package@1.0.0-rc.1+43",
         "org.example.FooApp@1.0+whatever",
     ],
 )
@@ -1049,6 +1049,19 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
                 org_id=self.org.id, project_id=self.proj_1.id, release_version="fake_package@2.0.0"
             )
             is True
+        )
+
+    def test_follows_semver_all_releases_semver_and_missing_package_semver_release_version(self):
+        """
+        Test that ensures that even if a project is following semver, then if the release_version
+        supplied lacks a package, then for that specific release we opt the project out of being
+        considered a semver project
+        """
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id, project_id=self.proj_1.id, release_version="2.0.0"
+            )
+            is False
         )
 
     def test_follows_semver_with_all_releases_semver_and_no_release_version(self):

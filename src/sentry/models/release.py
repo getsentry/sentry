@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
 from sentry.app import locks
-from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, SEMVER_FAKE_PACKAGE
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
     BoundedBigIntegerField,
@@ -506,11 +506,10 @@ class Release(Model):
         """
         Method that checks if a version follows semantic versioning
         """
-        if not Release.is_valid_version(version):
+        # If version is not a valid release version, or it has no package then we return False
+        if not Release.is_valid_version(version) or "@" not in version:
             return False
 
-        # Release name has to contain package_name to be parsed correctly by parse_release
-        version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
         try:
             version_info = parse_release(version)
             version_parsed = version_info.get("version_parsed")
