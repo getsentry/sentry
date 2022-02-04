@@ -46,19 +46,18 @@ class LatestReleaseFilter(EventFilter):
         latest_release = cache.get(cache_key)
         if latest_release is None:
             organization_id = event.group.project.organization_id
+            environments = None
             if environment_id:
                 environments = [Environment.objects.get(id=environment_id)]
-                try:
-                    latest_release_versions = get_latest_release(
-                        [event.group.project],
-                        environments,
-                        organization_id,
-                    )
-                except Release.DoesNotExist:
-                    return None
-                latest_releases = list(Release.objects.filter(version=latest_release_versions[0]))
-            else:
-                latest_releases = get_latest_release([event.group.project], None, organization_id)
+            try:
+                latest_release_versions = get_latest_release(
+                    [event.group.project],
+                    environments,
+                    organization_id,
+                )
+            except Release.DoesNotExist:
+                return None
+            latest_releases = list(Release.objects.filter(version=latest_release_versions[0]))
             if latest_releases:
                 cache.set(cache_key, latest_releases[0], 600)
                 return latest_releases[0]
