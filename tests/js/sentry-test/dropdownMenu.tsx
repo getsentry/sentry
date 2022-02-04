@@ -66,7 +66,7 @@ export async function selectDropdownMenuItem({
       return prefixedWrap.at(specifiers.at);
     }
     return prefixedWrap;
-  };
+  }
 
   // Open the top-level dropdown menu
   await act(async () => {
