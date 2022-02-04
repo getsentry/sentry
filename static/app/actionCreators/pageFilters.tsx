@@ -403,6 +403,7 @@ function getNewQueryParams(
   // Normalize existing query parameters
   const currentQueryState = getStateFromQuery(cleanCurrentQuery, {
     allowEmptyPeriod: true,
+    allowAbsoluteDatetime: true,
   });
 
   // Extract non page filter parameters.

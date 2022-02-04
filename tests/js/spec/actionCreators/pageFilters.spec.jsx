@@ -265,6 +265,21 @@ describe('PageFilters ActionCreators', function () {
 
       expect(router.replace).not.toHaveBeenCalled();
     });
+
+    it('does not override an absolute date selection', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '1', start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
+        },
+      });
+      updateProjects([2], router, {replace: true});
+
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {project: ['2'], start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
+      });
+    });
   });
 
   describe('updateEnvironments()', function () {
@@ -309,6 +324,29 @@ describe('PageFilters ActionCreators', function () {
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/test/',
         query: {},
+      });
+    });
+
+    it('does not override an absolute date selection', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {
+            environment: 'test',
+            start: '2020-03-22T00:53:38',
+            end: '2020-04-21T00:53:38',
+          },
+        },
+      });
+      updateEnvironments(['new-env'], router, {replace: true});
+
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          environment: ['new-env'],
+          start: '2020-03-22T00:53:38',
+          end: '2020-04-21T00:53:38',
+        },
       });
     });
   });
