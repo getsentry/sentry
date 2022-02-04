@@ -124,8 +124,17 @@ class IssueWidgetQueries extends React.Component<Props, State> {
     GroupStore.add(tableResults);
     const transformedTableResults: TableDataRow[] = [];
     tableResults.forEach(group => {
-      const {id, shortId, title, lifetime, filtered, count, userCount, ...resultProps} =
-        group;
+      const {
+        id,
+        shortId,
+        title,
+        lifetime,
+        filtered,
+        count,
+        userCount,
+        project,
+        ...resultProps
+      } = group;
       const transformedResultProps: Omit<TableDataRow, 'id'> = {};
       Object.keys(resultProps)
         .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
@@ -141,6 +150,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         'issue.id': id,
         issue: shortId,
         title,
+        project: project?.slug,
       };
 
       // Get lifetime stats
