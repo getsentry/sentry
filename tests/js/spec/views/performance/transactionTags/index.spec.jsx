@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -178,8 +178,10 @@ describe('Performance > Transaction Tags', function () {
     );
 
     // Table is loaded.
-    // const grid = await screen.findByTestId('grid-editable');
-    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
+    // The tagKey change will cause a full page re-render, so wait for the component to mount
+    await waitFor(async () =>
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument()
+    );
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
@@ -215,7 +217,9 @@ describe('Performance > Transaction Tags', function () {
     );
 
     // Table is loaded.
-    // expect(wrapper.find('GridEditable')).toHaveLength(1);
+    await waitFor(async () =>
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument()
+    );
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
@@ -250,8 +254,18 @@ describe('Performance > Transaction Tags', function () {
       {context: initialData.routerContext}
     );
 
-    // expect(
-    //  wrapper.find('Link').someWhere(node => node.text().includes(TEST_RELEASE_NAME))
-    // ).toBeTruthy();
+    // Table is loaded.
+    await waitFor(async () =>
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument()
+    );
+
+    // Release link is properly setup
+    expect(screen.getByText(TEST_RELEASE_NAME)).toBeInTheDocument();
+    expect(screen.getByText(TEST_RELEASE_NAME).parentElement).toHaveAttribute(
+      'href',
+      `/organizations/${initialData.organization.slug}/releases/${encodeURIComponent(
+        TEST_RELEASE_NAME
+      )}`
+    );
   });
 });

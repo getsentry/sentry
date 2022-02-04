@@ -174,7 +174,9 @@ export class TagValueTable extends Component<Props, State> {
         >
           {column.name === 'release' ? (
             <Link
-              to={`/organizations/${organization.slug}/releases/${dataRow.tags_value}`}
+              to={`/organizations/${organization.slug}/releases/${encodeURIComponent(
+                dataRow.tags_value
+              )}`}
             >
               <TagValue row={dataRow} />
             </Link>
