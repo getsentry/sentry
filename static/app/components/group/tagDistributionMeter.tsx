@@ -48,7 +48,7 @@ class GroupTagDistributionMeter extends Component<Props, State> {
       error: false,
     });
 
-    loadDeviceListModule()
+    loadDeviceListModule('iOS')
       .then(iOSDeviceList => {
         this.setState({
           iOSDeviceList,
