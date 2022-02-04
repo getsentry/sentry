@@ -9,7 +9,7 @@ from sentry.search.utils import get_latest_release
 from sentry.utils.cache import cache
 
 
-def get_project_release_cache_key(project_id: int, environment_id=None) -> str:
+def get_project_release_cache_key(project_id: int, environment_id: Optional[int] = None) -> str:
     if environment_id is None:
         return f"project:{project_id}:latest_release"
     return f"project:{project_id}:env:{environment_id}:latest_release"
