@@ -130,9 +130,11 @@ function ActionSet({
       </div>
 
       <DropdownLink
+        disabled={!anySelected}
         key="actions"
         customTitle={
           <ActionButton
+            disabled={!anySelected}
             aria-label={t('Open more issue actions')}
             icon={<IconEllipsis size="xs" />}
           />
