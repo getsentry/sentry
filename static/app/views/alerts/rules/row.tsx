@@ -269,6 +269,7 @@ const FlexCenter = styled('div')`
 `;
 
 const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
+  position: relative;
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
