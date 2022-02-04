@@ -1,4 +1,3 @@
-import logging
 import time
 from datetime import datetime, timezone
 from typing import Dict, List, Mapping, MutableMapping, Union
@@ -22,8 +21,6 @@ from sentry.sentry_metrics.multiprocess import (
 )
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.utils import json
-
-LOGGER = logging.getLogger(__name__)
 
 
 def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
@@ -93,29 +90,6 @@ def test_batch_messages_rejected_message():
     assert next_step.submit.called
 
 
-def test_batch_messages_join_timeout(caplog):
-    next_step = Mock()
-    next_step.submit.side_effect = MessageRejected()
-
-    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
-
-    batch_messages_step.submit(message=message1)
-
-    # if we try to submit a batch when the next step is
-    # not ready to accept more messages we'll get a
-    # MessageRejected error which will bubble up to the
-    # StreamProcessor.
-    with pytest.raises(MessageRejected):
-        batch_messages_step.submit(message=message2)
-
-    # A rebalance, restart, scale up or any other event
-    # that causes partitions to be revoked will call join
-    with caplog.at_level(logging.WARNING):
-        batch_messages_step.join(timeout=3)
-
-    assert "Timed out with 2 messages left in batch" in caplog.text
-
-
 def test_batch_messages_join():
     next_step = Mock()
 
@@ -126,9 +100,8 @@ def test_batch_messages_join():
     # A rebalance, restart, scale up or any other event
     # that causes partitions to be revoked will call join
     batch_messages_step.join(timeout=3)
-    # we flush the batch even if it's not full because
-    # we still need to finish the work we've done thus far
-    assert next_step.submit.called
+    # we don't flush the batch
+    assert not next_step.submit.called
 
 
 def test_metrics_batch_builder():
