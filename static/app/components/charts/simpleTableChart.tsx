@@ -8,6 +8,7 @@ import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -22,7 +23,10 @@ type Props = {
   metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
   className?: string;
-  getCustomFieldRenderer?: typeof getFieldRenderer;
+  getCustomFieldRenderer?: (
+    field: string,
+    meta: MetaType
+  ) => ReturnType<typeof getFieldRenderer> | null;
   fieldHeaderMap?: Record<string, string>;
   stickyHeaders?: boolean;
 };
