@@ -484,6 +484,12 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
+            # Should not trigger alert
+            self.page.enter_edit_state()
+            self.page.click_cancel_button()
+            wait = WebDriverWait(self.browser.driver, 5)
+            wait.until_not(EC.alert_is_present())
+
             self.browser.snapshot("dashboard widget - duplicate in grid")
 
     def test_delete_widget_in_view_mode(self):
