@@ -151,8 +151,7 @@ export class TagValueTable extends Component<Props, State> {
 
   generateReleaseLocation = (release: string) => {
     const {organization, location} = this.props;
-    const {query} = location;
-    const {project} = query;
+    const {project} = location.query;
 
     return {
       pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
