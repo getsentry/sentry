@@ -265,7 +265,7 @@ describe('Performance > Transaction Tags', function () {
       'href',
       `/organizations/${initialData.organization.slug}/releases/${encodeURIComponent(
         TEST_RELEASE_NAME
-      )}`
+      )}?project=${initialData.router.location.query.project}`
     );
   });
 });
