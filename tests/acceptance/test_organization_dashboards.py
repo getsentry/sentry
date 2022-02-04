@@ -655,6 +655,157 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.click_cancel_button()
             wait.until_not(EC.alert_is_present())
 
+    def test_changing_number_widget_to_area_updates_widget_height(
+        self,
+    ):
+        layouts = [{"x": 0, "y": 0, "w": 2, "h": 1}, {"x": 0, "y": 1, "w": 2, "h": 1}]
+        existing_widgets = DashboardWidget.objects.bulk_create(
+            [
+                DashboardWidget(
+                    dashboard=self.dashboard,
+                    order=i,
+                    title=f"Big Number {i}",
+                    display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    interval="1d",
+                    detail={"layout": layout},
+                )
+                for i, layout in enumerate(layouts)
+            ]
+        )
+        DashboardWidgetQuery.objects.bulk_create(
+            DashboardWidgetQuery(widget=widget, fields=["count()"], order=0)
+            for widget in existing_widgets
+        )
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            # Open edit modal for first widget
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+            edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
+            edit_widget_menu_item.click()
+
+            # Change the chart type to the first visualization option - Area chart
+            chart_type_input = self.browser.element("#react-select-2-input")
+            chart_type_input.send_keys("Area", Keys.ENTER)
+            button = self.browser.element('[data-test-id="add-widget"]')
+            button.click()
+
+            # No confirm dialog because of shifting lower element
+            self.page.enter_edit_state()
+            self.page.click_cancel_button()
+            wait = WebDriverWait(self.browser.driver, 5)
+            wait.until_not(EC.alert_is_present())
+
+            # Try to decrease height to 1 row, should stay at 2 rows
+            self.page.enter_edit_state()
+            resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(resizeHandle, 0, -100).perform()
+
+            self.page.save_dashboard()
+
+            self.browser.snapshot(
+                "dashboards - change from big number to area chart increases widget to min height"
+            )
+
+    def test_changing_number_widget_larger_than_min_height_for_area_chart_keeps_height(
+        self,
+    ):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Originally Big Number - 3 rows",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3}},
+        )
+        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            # Open edit modal for first widget
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+            edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
+            edit_widget_menu_item.click()
+
+            # Change the chart type to the first visualization option - Area chart
+            chart_type_input = self.browser.element("#react-select-2-input")
+            chart_type_input.send_keys("Area", Keys.ENTER)
+            button = self.browser.element('[data-test-id="add-widget"]')
+            button.click()
+
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot(
+                "dashboards - change from big number to other chart of more than 2 rows keeps height"
+            )
+
+            # Try to decrease height by >1 row, should be at 2 rows
+            self.page.enter_edit_state()
+            resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(resizeHandle, 0, -400).perform()
+
+            self.page.save_dashboard()
+
+            self.browser.snapshot(
+                "dashboards - change from big number to other chart enforces min height of 2"
+            )
+
+    def test_changing_area_widget_larger_than_min_height_for_number_chart_keeps_height(
+        self,
+    ):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Originally Area Chart - 3 rows",
+            display_type=DashboardWidgetDisplayTypes.AREA_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3}},
+        )
+        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            # Open edit modal for first widget
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+            edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
+            edit_widget_menu_item.click()
+
+            # Change the chart type to big number
+            chart_type_input = self.browser.element("#react-select-2-input")
+            chart_type_input.send_keys("Big Number", Keys.ENTER)
+            button = self.browser.element('[data-test-id="add-widget"]')
+            button.click()
+
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboards - change from area chart to big number keeps height")
+
+            # Decrease height by >1 row, should stop at 1 row
+            self.page.enter_edit_state()
+            resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(resizeHandle, 0, -400).perform()
+
+            self.page.save_dashboard()
+
+            self.browser.snapshot(
+                "dashboards - change from area chart to big number allows min height of 1"
+            )
+
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
