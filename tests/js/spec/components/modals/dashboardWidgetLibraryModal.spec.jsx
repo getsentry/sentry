@@ -119,7 +119,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
         description: 'Top 5 transactions with the largest volume.',
         queries: [
           {
-            conditions: '!event.type:error',
+            conditions: 'event.type:transaction',
             fields: ['transaction', 'count()'],
             name: '',
             orderby: '-count',

@@ -17,7 +17,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     queries: [
       {
         name: '',
-        conditions: '!event.type:error',
+        conditions: 'event.type:transaction',
         fields: [
           'p50(transaction.duration)',
           'p75(transaction.duration)',
@@ -37,7 +37,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     queries: [
       {
         name: '',
-        conditions: '!event.type:error',
+        conditions: 'event.type:transaction',
         fields: ['transaction', 'count()'],
         orderby: '-count',
       },
@@ -85,7 +85,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     queries: [
       {
         name: '',
-        conditions: '!event.type:error',
+        conditions: 'event.type:transaction',
         fields: [
           'equation|(count_if(transaction.duration,greater,300) / count()) * 100',
           'equation|(count_if(transaction.duration,lessOrEquals,300) / count()) * 100',
