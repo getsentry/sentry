@@ -63,7 +63,10 @@ class PagerDutyClient(ApiClient):
             # the payload is for a metric alert
             payload = data
 
-        response = self.post("/", data=payload)
+        try:
+            response = self.post("/", data=payload)
+        except Exception as exc:
+            raise exc
         if (
             organization
             and features.has("organizations:pagerduty-metric-alert-resolve-logging", organization)
