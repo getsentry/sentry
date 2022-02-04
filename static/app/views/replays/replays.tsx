@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import AsyncComponent from 'sentry/components/asyncComponent';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
 import PageHeading from 'sentry/components/pageHeading';
@@ -11,6 +12,8 @@ import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -26,26 +29,66 @@ type State = AsyncView['state'] & {
 };
 
 class Replays extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params, location} = this.props;
+  // example params to eventsv2
+  // TODO: remove this
+
+  // {'field': ['title', 'count()', 'count_unique(user)', 'project'], 'per_page': ['50'], 'project': ['2'], 'query': ['event.type:error'], 'referrer': ['api.discover.query-table'], 'sort': ['-count'], 'statsPeriod': ['24h']
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {
+      organization,
+      // query,
+      // start,
+      // end,
+      // statsPeriod,
+      // environment,
+      // project,
+      // fields,
+      location,
+    } = this.props;
+
+    const eventView = EventView.fromSavedQuery({
+      id: '',
+      name: '',
+      version: 2,
+      fields: ['eventID', 'timestamp'],
+      orderby: '',
+      projects: [2],
+      range: '30d',
+      query: 'event.type:error', // future: change to replay event
+      // environment: '',
+      // start,
+      // end,
+    });
+    const apiPayload = eventView.getEventsAPIPayload(location);
+    apiPayload.referrer = 'api.performance.durationpercentilechart';
+
     return [
-      [
-        'replayList',
-        `/organizations/${params.orgId}/replays/`,
-        {
-          query: location.query,
-        },
-      ],
+      ['eventData', `/organizations/${organization.slug}/eventsv2/`, {query: apiPayload}],
     ];
   }
+  // getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  //   const {params, location} = this.props;
+  //   return [
+  //     [
+  //       'replayList',
+  //       `/organizations/${params.orgId}/replays/`,
+  //       {
+  //         query: location.query,
+  //       },
+  //     ],
+  //   ];
+  // }
 
   getTitle() {
     return `Replays - ${this.props.params.orgId}`;
   }
 
   renderBody() {
-    const {replayList, replayListPageLinks} = this.state;
+    const {eventData, replayListPageLinks} = this.state;
     const {organization} = this.props;
+
+    // eslint-disable-next-line no-debugger
+    const replayList = eventData.data;
     return (
       <Fragment>
         <PageHeader>
@@ -60,9 +103,12 @@ class Replays extends AsyncView<Props, State> {
             {replayList?.map(replay => (
               <PanelItemCentered key={replay.id}>
                 <StyledLink
-                  to={`/organizations/${organization.slug}/replays/${replay.id}/`}
+                  to={`/organizations/${organization.slug}/replays/${generateEventSlug({
+                    project: replay['project.name'],
+                    id: replay.id,
+                  })}/`}
                 >
-                  {replay.dateCreated}
+                  {replay.timestamp}
                 </StyledLink>
               </PanelItemCentered>
             ))}
