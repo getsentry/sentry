@@ -1,4 +1,5 @@
-import {forwardRef, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
@@ -50,7 +51,7 @@ export type MenuItemProps = {
    */
   leadingItemsSpanFullHeight?: boolean;
   /*
-   * Items to be added to the right of the label
+   * Items to be added to the right of the label.
    */
   trailingItems?: React.ReactNode;
   /*
@@ -64,6 +65,11 @@ export type MenuItemProps = {
    * item's key is passed as an argument.
    */
   onAction?: (key: MenuItemProps['key']) => void;
+  /**
+   * React-router destination if menu item is a link. Note: currently only
+   * internal links (callable with `router.push()`) are supported.
+   */
+  to?: string;
   /**
    * Sub-items that are nested inside this item. By default, sub-items are
    * rendered collectively as menu sections inside the current menu. If
@@ -100,32 +106,36 @@ type Props = {
    */
   isSubmenuTrigger?: boolean;
   /**
+   * If isSubmenuTrigger is true, then replace the internal ref object with
+   * this ref
+   */
+  submenuTriggerRef?: React.RefObject<HTMLLIElement>;
+  /**
    * Tag name for item wrapper
    */
   renderAs?: React.ElementType;
-};
+} & WithRouterProps;
 
 /**
  * A menu item with a label, optional details, leading and trailing elements.
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
-  (
-    {
-      node,
-      isLastNode,
-      state,
-      onClose,
-      closeOnSelect,
-      isSubmenuTrigger = false,
-      renderAs = 'li' as React.ElementType,
-      ...submenuTriggerProps
-    },
-    submenuTriggerRef
-  ) => {
+const MenuItem = withRouter(
+  ({
+    node,
+    isLastNode,
+    state,
+    onClose,
+    closeOnSelect,
+    isSubmenuTrigger = false,
+    submenuTriggerRef,
+    renderAs = 'li' as React.ElementType,
+    router,
+    ...submenuTriggerProps
+  }: Props) => {
     const [isHovering, setIsHovering] = useState(false);
-    const ref = (submenuTriggerRef ?? useRef(null)) as React.RefObject<HTMLLIElement>;
+    const ref = submenuTriggerRef ?? useRef(null);
     const isDisabled = state.disabledKeys.has(node.key);
     const isFocused = state.selectionManager.focusedKey === node.key;
     const item = node.value;
@@ -136,6 +146,7 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
         return;
       }
       item.onAction?.(item.key);
+      item.to && router.push(item.to);
     };
 
     // Open submenu on hover
@@ -144,9 +155,9 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
       if (isHovering && isFocused) {
         if (isSubmenuTrigger) {
           state.selectionManager.select(node.key);
-        } else {
-          state.selectionManager.clearSelection();
+          return;
         }
+        state.selectionManager.clearSelection();
       }
     }, [isHovering, isFocused]);
 
@@ -155,13 +166,13 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
       onKeyDown: e => {
         if (isSubmenuTrigger && e.key === 'ArrowRight') {
           state.selectionManager.select(node.key);
-        } else {
-          e.continuePropagation();
+          return;
         }
+        e.continuePropagation();
       },
     });
 
-    // Manage interactive events & create aria- attributes
+    // Manage interactive events & create aria attributes
     const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
       {
         key: node.key,
@@ -200,7 +211,7 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
         {...props}
         {...(isSubmenuTrigger && {role: 'menuitemradio'})}
       >
-        <InnerWrap isFocused={isFocused} role="presentation">
+        <InnerWrap isFocused={isFocused}>
           {leadingItems && (
             <LeadingItems
               isDisabled={isDisabled}
@@ -209,12 +220,8 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
               {leadingItems}
             </LeadingItems>
           )}
-          <ContentWrap
-            isFocused={isFocused}
-            showDividers={showDividers}
-            role="presentation"
-          >
-            <LabelWrap role="presentation">
+          <ContentWrap isFocused={isFocused} showDividers={showDividers}>
+            <LabelWrap>
               <Label isDisabled={isDisabled} {...labelProps} aria-hidden="true">
                 {label}
               </Label>
@@ -237,7 +244,6 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
     );
   }
 );
-
 export default MenuItem;
 
 const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
@@ -249,6 +255,9 @@ const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
 
   ${p => p.isDisabled && `cursor: initial;`}
 
+  &:focus {
+    outline: none;
+  }
   &:focus-visible {
     outline: none;
   }

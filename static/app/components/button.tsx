@@ -97,6 +97,10 @@ function BaseButton({
   const screenReaderLabel =
     ariaLabel || (typeof children === 'string' ? children : undefined);
 
+  const hasChildren = Array.isArray(children)
+    ? children.some(child => !!child)
+    : !!children;
+
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.
   // *Note* you must still handle tabindex manually.
@@ -117,7 +121,7 @@ function BaseButton({
     >
       <ButtonLabel align={align} size={size} borderless={borderless}>
         {icon && (
-          <Icon size={size} hasChildren={!!children}>
+          <Icon size={size} hasChildren={hasChildren}>
             {icon}
           </Icon>
         )}
