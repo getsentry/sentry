@@ -240,7 +240,7 @@ class TransactionHeader extends React.Component<Props> {
     const spansTarget = spansRouteWithQuery(routeQuery);
 
     return (
-      <Layout.Header>
+      <Layout.Header data-test-id="transaction-header">
         <Layout.HeaderContent>
           <Breadcrumb
             organization={organization}
