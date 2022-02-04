@@ -71,7 +71,12 @@ class PagerDutyClient(ApiClient):
         ):
             logger.info(
                 "resolve.received.pagerduty_metric_alert",
-                extra={"organization_id": organization.id, "status_code": response.status_code},
+                extra={
+                    "organization_id": organization.id,
+                    "status_code": response.status_code,
+                    "dedup_key": response.dedup_key,
+                    "message": response.message,
+                },
             )
         return response
 
