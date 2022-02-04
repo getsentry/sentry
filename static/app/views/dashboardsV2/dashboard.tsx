@@ -3,6 +3,7 @@ import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {compact} from 'react-grid-layout/build/utils';
 import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
@@ -274,9 +275,24 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
+    const {layouts} = this.state;
     const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    // Manually calculate the post-delete layout and assign those to widgets
+    let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    const nextLayout = compact(
+      layouts[DESKTOP].filter(({i}) => i !== constructGridItemKey(widgetToDelete)),
+      'vertical',
+      NUM_DESKTOP_COLS
+    );
+    nextList = nextList.map(widget => {
+      const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));
+      if (!layout) {
+        return widget;
+      }
+      return {...widget, layout};
+    });
+
     onUpdate(nextList);
 
     if (!!!isEditing) {

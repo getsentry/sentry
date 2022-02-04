@@ -42,7 +42,7 @@ class ForbiddenError(RequestError):
 
 
 class NoDsymUrl(enum.Enum):
-    """Indicates the reason of absense of a dSYM URL from :class:`BuildInfo`."""
+    """Indicates the reason of absence of a dSYM URL from :class:`BuildInfo`."""
 
     # Currently unused because we haven't seen scenarios where this can happen yet.
     PENDING = enum.auto()
