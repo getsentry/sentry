@@ -283,6 +283,20 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const replays = hasOrganization && (
+    // todo: wrap in <Feature/>
+    <SidebarItem
+      {...sidebarItemProps}
+      onClick={(_id, evt) =>
+        navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
+      }
+      icon={<IconLab size="md" />}
+      label={t('Replays')}
+      to={`/organizations/${organization.slug}/replays/`}
+      id="replays"
+    />
+  );
+
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
@@ -384,6 +398,7 @@ function Sidebar({location, organization}: Props) {
               </SidebarSection>
 
               <SidebarSection>{monitors}</SidebarSection>
+              <SidebarSection>{replays}</SidebarSection>
 
               <SidebarSection>
                 {activity}
