@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
@@ -118,7 +117,9 @@ function DashboardWidgetLibraryModal({
                 handleSubmit();
               }}
             >
-              {t('Add')}
+              {selectedWidgets.length
+                ? tct('Add ([numWidgets])', {numWidgets: selectedWidgets.length})
+                : t('Add')}
             </StyledButton>
           </Tooltip>
         </ButtonBar>
@@ -134,8 +135,7 @@ export const modalCss = css`
 `;
 
 const StyledButton = styled(Button)`
-  padding-left: ${space(3)};
-  padding-right: ${space(3)};
+  min-width: 90px;
 `;
 
 export default DashboardWidgetLibraryModal;

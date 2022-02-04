@@ -17,8 +17,7 @@ from urllib.parse import urlencode
 from urllib.request import Request
 
 import requests
-from django.conf import settings
-from django.contrib.auth import authenticate, load_backend
+from django.contrib.auth import authenticate
 from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
 
@@ -271,8 +270,6 @@ class BaseAuth:
 
     def to_session_dict(self, next_idx, *args, **kwargs):
         """Returns dict to store on session for partial pipeline."""
-        backend = kwargs["backend"]
-        kwargs["backend"] = f"{backend.__module__}.{backend.__class__.__name__}"
         return {
             "next": next_idx,
             "backend": self.AUTH_BACKEND.name,
@@ -289,12 +286,6 @@ class BaseAuth:
         kwargs = kwargs.copy()
         saved_kwargs = {key: ctype_to_model(val) for key, val in session_data["kwargs"].items()}
         saved_kwargs.update((key, val) for key, val in kwargs.items())
-
-        if isinstance(saved_kwargs.get("backend"), str):
-            backend_path = saved_kwargs["backend"]
-            if backend_path in settings.AUTHENTICATION_BACKENDS:
-                saved_kwargs["backend"] = load_backend(backend_path)
-
         return (session_data["next"], args, saved_kwargs)
 
     def continue_pipeline(self, *args, **kwargs):
@@ -738,6 +729,7 @@ def get_backends(force_load=False):
                 mod, cls_name = auth_backend.rsplit(".", 1)
                 module = __import__(mod, {}, {}, ["BACKENDS", cls_name])
                 backend = getattr(module, cls_name)
+
                 if issubclass(backend, SocialAuthBackend):
                     name = backend.name
                     backends = getattr(module, "BACKENDS", {})
@@ -748,6 +740,7 @@ def get_backends(force_load=False):
 
 def get_backend(name, *args, **kwargs):
     get_backends()
+
     try:
         # Cached backend which has previously been discovered.
         backend_cls = BACKENDSCACHE[name]
