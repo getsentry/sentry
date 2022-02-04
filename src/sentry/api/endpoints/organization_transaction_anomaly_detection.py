@@ -2,10 +2,12 @@ from datetime import datetime
 
 from rest_framework.request import Request
 from rest_framework.response import Response
+from urllib3 import Retry, connection_from_url
 
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.utils import get_date_range_from_params
 from sentry.snuba.discover import timeseries_query
+from sentry.utils import json
 
 
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
@@ -16,6 +18,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         )
         params = self.get_snuba_params(request, organization)
         query = request.GET.get("query")
+        query.append(" event.type:transaction")
 
         # overwrite relevant time params
         params["statsPeriodStart"] = query_start
@@ -30,7 +33,14 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
             zerofill_results=True,
         )
 
-        return self.get_anomalies(snuba_response.data["data"])
+        return self.get_anomalies(
+            {
+                "data": snuba_response.data["data"],
+                "query": query,
+                "params": params,
+                "granularity": granularity,
+            }
+        )
 
     @staticmethod
     def map_snuba_queries(start, end):
@@ -74,6 +84,21 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         )
 
     @staticmethod
-    def get_anomalies(snuba_data):
-        # call ADS
-        return ""
+    def get_anomalies(snuba_io):
+        ads_url = "127.0.0.1:9091"
+        ads_timeout = 10
+        ads_connection_pool = connection_from_url(
+            ads_url,
+            retries=Retry(
+                total=5,
+                status_forcelist=[408, 429, 502, 503, 504],
+            ),
+            timeout=ads_timeout,
+        )
+
+        return ads_connection_pool.urlopen(
+            "POST",
+            "/anomaly/predict",
+            body=json.dumps(snuba_io),
+            headers={"content-type": "application/json;charset=utf-8"},
+        )
