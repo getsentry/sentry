@@ -14,7 +14,7 @@ import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = WithRouterProps & {
+interface IssueListProps extends WithRouterProps {
   api: Client;
   endpoint: string;
   emptyText?: string;
@@ -23,155 +23,105 @@ type Props = WithRouterProps & {
   renderEmpty?: () => React.ReactElement;
   noBorder?: boolean;
   noMargin?: boolean;
-};
+}
 
-type State = {
+interface IssueListState {
   issueIds: Array<string>;
-  loading: boolean;
-  error: boolean;
+  status: 'loading' | 'error' | 'success';
   pageLinks: string | null;
   data: Array<Group>;
-};
+}
 
-class IssueList extends React.Component<Props, State> {
-  state: State = this.getInitialState();
+function IssueList({
+  api,
+  endpoint,
+  emptyText,
+  query,
+  location,
+  pagination,
+  renderEmpty,
+  noBorder,
+  noMargin,
+}: IssueListProps): React.ReactElement {
+  const [state, setState] = React.useState<IssueListState>({
+    issueIds: [],
+    status: 'loading',
+    pageLinks: null,
+    data: [],
+  });
 
-  getInitialState(): State {
-    return {
-      issueIds: [],
-      loading: true,
-      error: false,
-      pageLinks: null,
-      data: [],
-    };
-  }
-
-  componentWillMount() {
-    this.fetchData();
-  }
-
-  componentWillReceiveProps(nextProps: Props) {
-    const {location} = this.props;
-    const nextLocation = nextProps.location;
-
-    if (!location) {
-      return;
-    }
-
-    if (
-      location.pathname !== nextLocation.pathname ||
-      location.search !== nextLocation.search
-    ) {
-      this.remountComponent();
-    }
-  }
-
-  remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
-  }
-
-  fetchData = () => {
-    const {location, api, endpoint, query} = this.props;
+  const fetchIssueListData = React.useCallback(() => {
     api.clear();
     api.request(endpoint, {
       method: 'GET',
       query: {
-        cursor: (location && location.query && location.query.cursor) || '',
         ...query,
+        ...(location?.query?.cursor ? {cursor: location.query.cursor} : {}),
       },
       success: (data, _, resp) => {
-        this.setState({
+        setState({
           data,
-          loading: false,
-          error: false,
+          status: 'success',
           issueIds: data.map(item => item.id),
           pageLinks: resp?.getResponseHeader('Link') ?? null,
         });
       },
       error: () => {
-        this.setState({loading: false, error: true});
+        setState({...state, status: 'error'});
       },
     });
-  };
+  }, [query, endpoint, location.query, api]);
 
-  renderError() {
-    return (
-      <div style={{margin: `${space(2)} ${space(2)} 0`}}>
-        <LoadingError onRetry={this.fetchData} />
-      </div>
-    );
-  }
-
-  renderLoading() {
-    return (
-      <div style={{margin: '18px 18px 0'}}>
-        <LoadingIndicator />
-      </div>
-    );
-  }
-
-  renderEmpty() {
-    const {emptyText} = this.props;
-    const {noBorder, noMargin} = this.props;
-    const panelStyle: React.CSSProperties = noBorder ? {border: 0, borderRadius: 0} : {};
-    if (noMargin) {
-      panelStyle.marginBottom = 0;
+  React.useEffect(() => {
+    // TODO: location should always be passed as a prop, check why we have this
+    if (!location) {
+      return;
     }
 
-    return (
-      <Panel style={panelStyle}>
-        <EmptyMessage icon={<IconSearch size="xl" />}>
-          {emptyText ? emptyText : t('Nothing to show here, move along.')}
-        </EmptyMessage>
-      </Panel>
-    );
-  }
+    setState({issueIds: [], status: 'loading', pageLinks: null, data: []});
+    fetchIssueListData();
+  }, [fetchIssueListData]);
 
-  renderResults() {
-    const {noBorder, noMargin, renderEmpty} = this.props;
-    const {loading, error, issueIds, data} = this.state;
+  const panelStyles = React.useMemo(() => {
+    const styles: React.CSSProperties = {
+      ...(noBorder ? {border: 0, borderRadius: 0} : {}),
+      ...(noMargin ? {marginBottom: 0} : {}),
+    };
 
-    if (loading) {
-      return this.renderLoading();
-    }
+    return styles;
+  }, [noBorder, noMargin]);
 
-    if (error) {
-      return this.renderError();
-    }
-
-    if (issueIds.length > 0) {
-      const panelStyle: React.CSSProperties = noBorder
-        ? {border: 0, borderRadius: 0}
-        : {};
-      if (noMargin) {
-        panelStyle.marginBottom = 0;
-      }
-
-      return (
-        <Panel style={panelStyle}>
+  return (
+    <React.Fragment>
+      {state.status === 'loading' ? (
+        <div style={{margin: '18px 18px 0'}}>
+          <LoadingIndicator />
+        </div>
+      ) : state.status === 'error' ? (
+        <div style={{margin: `${space(2)} ${space(2)} 0`}}>
+          <LoadingError onRetry={fetchIssueListData} />
+        </div>
+      ) : state.issueIds.length > 0 ? (
+        <Panel style={panelStyles}>
           <PanelBody className="issue-list">
-            {data.map(issue => (
+            {state.data.map(issue => (
               <CompactIssue key={issue.id} id={issue.id} data={issue} />
             ))}
           </PanelBody>
         </Panel>
-      );
-    }
+      ) : renderEmpty ? (
+        renderEmpty()
+      ) : (
+        <Panel style={panelStyles}>
+          <EmptyMessage icon={<IconSearch size="xl" />}>
+            {emptyText ?? t('Nothing to show here, move along.')}
+          </EmptyMessage>
+        </Panel>
+      )}
 
-    return renderEmpty?.() || this.renderEmpty();
-  }
-
-  render() {
-    const {pageLinks} = this.state;
-    const {pagination} = this.props;
-
-    return (
-      <React.Fragment>
-        {this.renderResults()}
-        {pagination && pageLinks && <Pagination pageLinks={pageLinks} {...this.props} />}
-      </React.Fragment>
-    );
-  }
+      {pagination && state.pageLinks && <Pagination pageLinks={state.pageLinks} />}
+    </React.Fragment>
+  );
 }
 
 export {IssueList};
