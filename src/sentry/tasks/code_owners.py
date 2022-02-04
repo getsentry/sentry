@@ -3,26 +3,9 @@ import logging
 from sentry import features
 from sentry.models.commit import Commit
 from sentry.tasks.base import instrumented_task
-from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.tasks.code_owners")
-
-
-def generate_failed_to_fetch_codeowner_contents_email(project):
-    new_context = {
-        "project_name": project.name,
-        "url": absolute_uri(
-            f"/settings/{project.organization.slug}/projects/{project.slug}/ownership/"
-        ),
-    }
-
-    return MessageBuilder(
-        subject="Unable to Complete CODEOWNERS Auto-Sync",
-        context=new_context,
-        template="sentry/emails/identity-invalid.txt",
-        html_template="sentry/emails/identity-invalid.html",
-    )
 
 
 @instrumented_task(
@@ -73,6 +56,7 @@ def code_owners_auto_sync(commit: Commit, **kwargs):
         ProjectCodeOwners,
         RepositoryProjectPathConfig,
     )
+    from sentry.utils.email import MessageBuilder
 
     code_mappings = RepositoryProjectPathConfig.objects.filter(
         repository_id=commit.repository_id,
@@ -87,7 +71,18 @@ def code_owners_auto_sync(commit: Commit, **kwargs):
         except Exception:
             # Notify owners that auto-sync failed to fetch contents.
             owners = code_mapping.organization_integration.organization.get_owners()
-            msg = generate_failed_to_fetch_codeowner_contents_email(code_mapping.project)
+            msg = MessageBuilder(
+                subject="Unable to Complete CODEOWNERS Auto-Sync",
+                context={
+                    "project_name": code_mapping.project.name,
+                    "url": absolute_uri(
+                        f"/settings/{code_mapping.project.organization.slug}/projects/{code_mapping.project.slug}/ownership/"
+                    ),
+                },
+                template="sentry/emails/identity-invalid.txt",
+                html_template="sentry/emails/identity-invalid.html",
+            )
+
             return msg.send_async([o.email for o in owners])
 
         if codeowner_contents:
