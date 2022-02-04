@@ -1,4 +1,5 @@
 import {Layout} from 'react-grid-layout';
+import {compact} from 'react-grid-layout/build/utils';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
@@ -187,4 +188,31 @@ export function assignDefaultLayout(
     };
   });
   return newWidgets;
+}
+
+export function enforceWidgetHeightValues(widget: Widget): Widget {
+  const {displayType, layout} = widget;
+  const nextWidget = {
+    ...widget,
+  };
+  const minH = getDefaultWidgetHeight(displayType);
+  const nextLayout = {
+    ...layout,
+    h: Math.max(layout?.h ?? minH, minH),
+    minH,
+  };
+  return {...nextWidget, layout: nextLayout};
+}
+
+export function generateWidgetsAfterCompaction(widgets: Widget[]) {
+  // Resolves any potential compactions that need to occur after a
+  // single widget change would affect other widget positions, e.g. deletion
+  const nextLayout = compact(getDashboardLayout(widgets), 'vertical', NUM_DESKTOP_COLS);
+  return widgets.map(widget => {
+    const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));
+    if (!layout) {
+      return widget;
+    }
+    return {...widget, layout};
+  });
 }
