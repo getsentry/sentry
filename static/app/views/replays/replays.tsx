@@ -7,16 +7,14 @@ import Link from 'sentry/components/links/link';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
-import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import MonitorIcon from 'sentry/views/monitors/monitorIcon';
 
-import {Monitor} from '../monitors/types';
+import {Replay} from './types';
 
 type Props = AsyncView['props'] &
   WithRouterProps<{orgId: string}> & {
@@ -24,10 +22,10 @@ type Props = AsyncView['props'] &
   };
 
 type State = AsyncView['state'] & {
-  replayList: Monitor[] | null;
+  replayList: Replay[] | null;
 };
 
-class Monitors extends AsyncView<Props, State> {
+class Replays extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
     return [
@@ -59,19 +57,13 @@ class Monitors extends AsyncView<Props, State> {
         </PageHeader>
         <Panel>
           <PanelBody>
-            {replayList?.map(monitor => (
-              <PanelItemCentered key={monitor.id}>
-                <MonitorIcon status={monitor.status} size={16} />
+            {replayList?.map(replay => (
+              <PanelItemCentered key={replay.id}>
                 <StyledLink
-                  to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
+                  to={`/organizations/${organization.slug}/replays/${replay.id}/`}
                 >
-                  {monitor.name}
+                  {replay.dateCreated}
                 </StyledLink>
-                {monitor.nextCheckIn ? (
-                  <StyledTimeSince date={monitor.lastCheckIn} />
-                ) : (
-                  t('n/a')
-                )}
               </PanelItemCentered>
             ))}
           </PanelBody>
@@ -103,8 +95,4 @@ const StyledLink = styled(Link)`
   padding: ${space(2)};
 `;
 
-const StyledTimeSince = styled(TimeSince)`
-  font-variant-numeric: tabular-nums;
-`;
-
-export default withRouter(withOrganization(Monitors));
+export default withRouter(withOrganization(Replays));
