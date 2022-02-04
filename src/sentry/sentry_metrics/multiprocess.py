@@ -199,17 +199,13 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__closed = True
 
     def join(self, timeout: Optional[float] = None) -> None:
-        start = time.time()
-        while self.__batch:
-            remaining = timeout - (time.time() - start) if timeout is not None else None
-            if remaining is not None and remaining <= 0:
-                logger.warning(f"Timed out with {len(self.__batch)} messages left in batch")
-                break
-            try:
-                self.__flush()
-            except MessageRejected:
-                pass
+        if self.__batch:
+            last = self.__batch.messages[-1]
+            logger.debug(
+                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.offset}"
+            )
 
+        self.__next_step.close()
         self.__next_step.join(timeout)
 
 
@@ -290,8 +286,8 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     def _record_commit_duration(self, commit_duration: float) -> None:
         self.__commit_duration_sum += commit_duration
 
-        # record commit durations every 5 minutes
-        if (self.__commit_start + 300) < time.time():
+        # record commit durations every 5 seconds
+        if (self.__commit_start + 5) < time.time():
             self.__metrics.incr(
                 "produce_step.commit_duration", amount=int(self.__commit_duration_sum)
             )
