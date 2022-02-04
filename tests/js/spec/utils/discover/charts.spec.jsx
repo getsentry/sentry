@@ -10,7 +10,7 @@ describe('tooltipFormatter()', function () {
       ['p50()', 100, '100.00ms'],
       ['p50()', 100.23, '100.23ms'],
       ['p50()', 1200, '1.20s'],
-      ['p50()', 86400000, '24.00hr'],
+      ['p50()', 86400000, '1.00d'],
     ];
     for (const scenario of cases) {
       expect(tooltipFormatter(scenario[1], scenario[0])).toEqual(scenario[2]);
