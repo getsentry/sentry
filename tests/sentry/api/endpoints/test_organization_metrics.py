@@ -66,7 +66,7 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
 
     @with_feature(FEATURE_FLAG)
     def test_invalid_field(self):
-        for field in ["", "(*&%", "foo(session", "foo(session)", "sum(bar)"]:
+        for field in ["", "(*&%", "foo(session", "foo(session)"]:
             response = self.get_response(self.project.organization.slug, field=field)
             assert response.status_code == 400
 

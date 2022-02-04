@@ -3,7 +3,6 @@ __all__ = (
     "AVAILABLE_OPERATIONS",
     "FIELD_REGEX",
     "MAX_POINTS",
-    "METRICS",
     "METRIC_TYPE_TO_ENTITY",
     "MetricMeta",
     "MetricMetaWithTagKeys",
@@ -53,9 +52,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
-from sentry.relay.config import ALL_MEASUREMENT_METRICS
 from sentry.search.events.builder import UnresolvedQuery
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import (
     resolve_tag_key,
     resolve_weak,
@@ -375,7 +372,9 @@ _OP_TO_SNUBA_FUNCTION = {
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_SNUBA_FUNCTION.items()
 }
-
+OPERATIONS_TO_ENTITY = {
+    op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
+}
 
 _BASE_TAGS = {
     "environment": [
@@ -406,69 +405,6 @@ _MEASUREMENT_TAGS = dict(
     _TRANSACTION_TAGS,
     measurement_rating=["good", "meh", "poor"],
 )
-
-METRICS = {
-    SessionMetricKey.SESSION.value: {
-        "type": "counter",
-        "operations": AVAILABLE_OPERATIONS["metrics_counters"],
-        "tags": _SESSION_TAGS,
-    },
-    SessionMetricKey.USER.value: {
-        "type": "set",
-        "operations": AVAILABLE_OPERATIONS["metrics_sets"],
-        "tags": _SESSION_TAGS,
-    },
-    SessionMetricKey.SESSION_DURATION.value: {
-        "type": "distribution",
-        "operations": AVAILABLE_OPERATIONS["metrics_distributions"],
-        "tags": _SESSION_TAGS,
-        "unit": "seconds",
-    },
-    SessionMetricKey.SESSION_ERROR.value: {
-        "type": "set",
-        "operations": AVAILABLE_OPERATIONS["metrics_sets"],
-        "tags": _SESSION_TAGS,
-    },
-    "sentry.transactions.transaction.duration": {
-        "type": "distribution",
-        "operations": AVAILABLE_OPERATIONS["metrics_distributions"],
-        "tags": {
-            **_TRANSACTION_TAGS,
-            "transaction.status": [
-                # Subset of possible states:
-                # https://develop.sentry.dev/sdk/event-payloads/transaction/
-                "ok",
-                "cancelled",
-                "aborted",
-            ],
-        },
-    },
-    "sentry.transactions.user": {
-        "type": "set",
-        "operations": AVAILABLE_OPERATIONS["metrics_sets"],
-        "tags": _TRANSACTION_TAGS,
-    },
-}
-
-METRICS.update(
-    {
-        measurement_metric: {
-            "type": "distribution",
-            "operations": AVAILABLE_OPERATIONS["metrics_distributions"],
-            "tags": _MEASUREMENT_TAGS,
-        }
-        for measurement_metric in ALL_MEASUREMENT_METRICS
-    }
-)
-
-
-def _get_metric(metric_name: str) -> dict:
-    try:
-        metric = METRICS[metric_name]
-    except KeyError:
-        raise InvalidParams(f"Unknown metric '{metric_name}'")
-
-    return metric
 
 
 ALLOWED_GROUPBY_COLUMNS = ("project_id",)
@@ -529,10 +465,11 @@ class SnubaQueryBuilder:
     def _build_queries(self, query_definition):
         queries_by_entity = OrderedDict()
         for op, metric_name in query_definition.fields.values():
-            type_ = _get_metric(metric_name)[
-                "type"
-            ]  # TODO: We should get the metric type from the op name, not the hard-coded lookup of the mock data source
-            entity = self._get_entity(type_)
+            entity = OPERATIONS_TO_ENTITY[op]
+
+            if entity not in self._implemented_datasets:
+                raise NotImplementedError(f"Dataset not yet implemented: {entity}")
+
             queries_by_entity.setdefault(entity, []).append((op, metric_name))
 
         where = self._build_where(query_definition)
@@ -576,15 +513,6 @@ class SnubaQueryBuilder:
 
     def get_snuba_queries(self):
         return self._queries
-
-    def _get_entity(self, metric_type: MetricType) -> str:
-
-        entity = METRIC_TYPE_TO_ENTITY[metric_type].value
-
-        if entity not in self._implemented_datasets:
-            raise NotImplementedError(f"Dataset not yet implemented: {entity}")
-
-        return entity
 
 
 _DEFAULT_AGGREGATES = {
