@@ -1,81 +1,81 @@
 import * as React from 'react';
+import * as Sentry from '@sentry/react';
 
+// Self reference to the module, so that we can mock a failed import in a test.
+import * as selfModule from 'sentry/components/deviceName';
 import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
 
-export function deviceNameMapper(model: string, iOSDeviceList): string {
-  const modelIdentifier = model.split(' ')[0];
-  const modelId = model.split(' ').splice(1).join(' ');
-  const modelName = iOSDeviceList.generationByIdentifier(modelIdentifier);
-  return modelName === undefined ? model : modelName + ' ' + modelId;
+export function deviceNameMapper(
+  model: string | undefined,
+  module: IOSDeviceList | null
+): string | null {
+  // If we have no model, render nothing
+  if (typeof model !== 'string') {
+    return null;
+  }
+
+  // If module has not loaded yet, render the unparsed model
+  if (module === null) {
+    return model;
+  }
+
+  const [identifier, ...rest] = model.split(' ');
+
+  const modelName = module.generationByIdentifier(identifier);
+  return modelName === undefined ? model : `${modelName} ${rest.join(' ')}`;
 }
 
-export async function loadDeviceListModule() {
+export async function loadDeviceListModule(platform: 'iOS') {
+  if (platform !== 'iOS') {
+    Sentry.captureException('DeviceName component only supports iOS module');
+  }
   return import('ios-device-list');
 }
 
-type Props = {
+interface DeviceNameProps {
   value: string;
   children?: (name: string) => React.ReactNode;
-};
+}
 
-type State = {
-  iOSDeviceList: IOSDeviceList | null;
-};
 /**
  * This is used to map iOS Device Names to model name.
  * This asynchronously loads the ios-device-list library because of its size
  */
-export default class DeviceName extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
+function DeviceName({value, children}: DeviceNameProps): React.ReactElement | null {
+  const [deviceList, setDeviceList] = React.useState<IOSDeviceList | null>(null);
 
-    this.state = {
-      iOSDeviceList: null,
+  React.useEffect(() => {
+    let didUnmount = false;
+
+    selfModule
+      .loadDeviceListModule('iOS')
+      .then(module => {
+        // We need to track component unmount so we dont try and setState on an unmounted component
+        if (didUnmount) {
+          return;
+        }
+
+        setDeviceList(module);
+      })
+      .catch(() => {
+        Sentry.captureException('Failed to load ios-device-list module');
+      });
+
+    return () => {
+      didUnmount = true;
     };
-  }
+  }, []);
 
-  componentDidMount() {
-    // This is to handle react's warning on calling setState for unmounted components
-    // Since we can't cancel promises, we need to do this
-    this._isMounted = true;
+  const deviceName = React.useMemo(
+    () => deviceNameMapper(value, deviceList),
+    [value, deviceList]
+  );
 
-    // This library is very big, so we are codesplitting it based on size and
-    // the relatively small utility this library provides
-    loadDeviceListModule().then(iOSDeviceList => {
-      if (!this._isMounted) {
-        return;
-      }
-
-      this.setState({iOSDeviceList});
-    });
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false;
-  }
-
-  private _isMounted?: boolean;
-
-  render() {
-    const {value, children} = this.props;
-    const {iOSDeviceList} = this.state;
-
-    // value can be undefined, need to return null or else react throws
-    if (!value) {
-      return null;
-    }
-
-    // If library has not loaded yet, then just render the raw model string, better than empty
-    if (!iOSDeviceList) {
-      return value;
-    }
-
-    const deviceName = deviceNameMapper(value, iOSDeviceList);
-
-    return (
-      <span data-test-id="loaded-device-name">
-        {children ? children(deviceName) : deviceName}
-      </span>
-    );
-  }
+  return deviceName ? (
+    <span data-test-id="loaded-device-name">
+      {children ? children(deviceName) : deviceName}
+    </span>
+  ) : null;
 }
+
+export {DeviceName};

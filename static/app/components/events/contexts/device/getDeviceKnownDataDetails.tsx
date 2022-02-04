@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import DeviceName from 'sentry/components/deviceName';
+import {DeviceName} from 'sentry/components/deviceName';
 import FileSize from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
