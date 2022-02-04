@@ -314,8 +314,9 @@ class Dashboard extends Component<Props, State> {
     widgetCopy.id = undefined;
     widgetCopy.tempId = undefined;
 
-    const nextList = [...dashboard.widgets];
+    let nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
+    nextList = generateWidgetsAfterCompaction(nextList);
 
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
