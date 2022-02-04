@@ -1,8 +1,9 @@
 // our storage wrapper is a subset of the full API
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
-export default function createStorage(storage: globalThis.Storage): Storage {
+export default function createStorage(getStorage: () => globalThis.Storage): Storage {
   try {
+    const storage = getStorage();
     const mod = 'sentry';
     storage.setItem(mod, mod);
     storage.removeItem(mod);
