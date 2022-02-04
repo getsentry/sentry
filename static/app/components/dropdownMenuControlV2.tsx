@@ -174,6 +174,10 @@ function MenuControl({
     );
   }
 
+  if (!items || items.length === 0) {
+    return null;
+  }
+
   return (
     <MenuControlWrap className={className} as={renderWrapAs} role="presentation">
       {renderTrigger()}
