@@ -199,12 +199,13 @@ function WidgetCardContextMenu({
     menuOptions.push(
       <Confirm
         key="delete-widget"
-        data-test-id="delete-widget"
         priority="danger"
         message={t('Are you sure you want to delete this widget?')}
         onConfirm={onDelete}
       >
-        <StyledMenuItem danger>{t('Delete Widget')}</StyledMenuItem>
+        <StyledMenuItem data-test-id="delete-widget" danger>
+          {t('Delete Widget')}
+        </StyledMenuItem>
       </Confirm>
     );
   }

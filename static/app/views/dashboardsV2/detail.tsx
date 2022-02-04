@@ -316,9 +316,11 @@ class DashboardDetail extends Component<Props, State> {
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
-    const layoutColumnDepths = calculateColumnDepths(
-      getDashboardLayout(dashboard.widgets)
-    );
+
+    // Use the new widgets for calculating layout because widgets has
+    // the most up to date information in edit state
+    const currentLayout = getDashboardLayout(widgets);
+    const layoutColumnDepths = calculateColumnDepths(currentLayout);
     const newModifiedDashboard = {
       ...cloneDashboard(modifiedDashboard || dashboard),
       widgets: assignDefaultLayout(widgets, layoutColumnDepths),
@@ -334,6 +336,9 @@ class DashboardDetail extends Component<Props, State> {
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
+          this.setState({
+            modifiedDashboard: null,
+          });
         }
         addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {

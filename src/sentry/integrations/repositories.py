@@ -131,7 +131,7 @@ class RepositoryMixin:
             html_url = self.check_file(repo, filepath, ref)
             if html_url:
                 try:
-                    contents = self.get_client().get_file(repo.name, filepath)
+                    contents = self.get_client().get_file(repo, filepath, ref)
                 except ApiError:
                     continue
                 return {"filepath": filepath, "html_url": html_url, "raw": contents}

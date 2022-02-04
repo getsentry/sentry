@@ -149,10 +149,6 @@ const StyledListItem = styled(ListItem)<{isChecked: boolean; hasDescription: boo
     ${CheckboxFancy} {
       opacity: 1;
     }
-    span {
-      color: ${p => p.theme.blue300};
-      text-decoration: underline;
-    }
   }
 `;
 

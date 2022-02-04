@@ -1,4 +1,5 @@
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -43,7 +44,23 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
             project_id=self.project.id,
         )
-        self.page = DashboardDetailPage(self.browser, self.client, organization=self.organization)
+        self.dashboard = Dashboard.objects.create(
+            title="Dashboard 1", created_by=self.user, organization=self.organization
+        )
+        self.existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Existing Widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=self.existing_widget, fields=["count()"], order=0
+        )
+        self.page = DashboardDetailPage(
+            self.browser, self.client, organization=self.organization, dashboard=self.dashboard
+        )
         self.login_as(self.user)
 
     def test_view_dashboard(self):
@@ -97,6 +114,32 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.browser.snapshot("dashboards - widget library")
 
+    def test_duplicate_widget_in_view_mode(self):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            self.browser.elements('[data-test-id="context-menu"]')[0].click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboard widget - duplicate")
+
+    def test_delete_widget_in_view_mode(self):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="delete-widget"]').click()
+            self.browser.element('[data-test-id="confirm-button"]').click()
+
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboard widget - delete")
+
 
 class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
@@ -124,7 +167,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         self.browser.snapshot(screenshot_name)
         self.browser.refresh()
         self.page.wait_until_loaded()
-
         self.browser.snapshot(f"{screenshot_name} (refresh)")
 
     def test_add_and_move_new_widget_on_existing_dashboard(self):
@@ -419,6 +461,54 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.wait_until_loaded()
             self.browser.snapshot("dashboards - default layout when widgets do not have layout set")
 
+    def test_duplicate_widget_in_view_mode(self):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Big Number Widget",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count_unique(issue)"], order=0
+        )
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            self.browser.elements('[data-test-id="context-menu"]')[0].click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboard widget - duplicate")
+
+    def test_delete_widget_in_view_mode(self):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Big Number Widget",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count_unique(issue)"], order=0
+        )
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="delete-widget"]').click()
+            self.browser.element('[data-test-id="confirm-button"]').click()
+
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboard widget - delete")
+
     def test_cancel_without_changes_does_not_trigger_confirm_with_widget_library_through_header(
         self,
     ):
@@ -465,6 +555,104 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.enter_edit_state()
             self.page.click_cancel_button()
             wait = WebDriverWait(self.browser.driver, 5)
+            wait.until_not(EC.alert_is_present())
+
+    def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_edit(
+        self,
+    ):
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+            self.page.enter_edit_state()
+
+            # Widgets should take up the whole first row and the first spot in second row
+            self.page.add_widget_through_dashboard("A")
+            self.page.add_widget_through_dashboard("B")
+            self.page.add_widget_through_dashboard("C")
+            self.page.add_widget_through_dashboard("D")
+            self.page.wait_until_loaded()
+
+            self.page.save_dashboard()
+            self.capture_screenshots(
+                "dashboards - position when adding multiple widgets through Add Widget tile in edit"
+            )
+
+    def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_create(
+        self,
+    ):
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_create_dashboard()
+
+            # Widgets should take up the whole first row and the first spot in second row
+            self.page.add_widget_through_dashboard("A")
+            self.page.add_widget_through_dashboard("B")
+            self.page.add_widget_through_dashboard("C")
+            self.page.add_widget_through_dashboard("D")
+            self.page.wait_until_loaded()
+
+            self.page.save_dashboard()
+
+            # Wait for page redirect, or else loading check passes too early
+            wait = WebDriverWait(self.browser.driver, 10)
+            wait.until(
+                lambda driver: (
+                    f"/organizations/{self.organization.slug}/dashboards/new/"
+                    not in driver.current_url
+                )
+            )
+            self.capture_screenshots(
+                "dashboards - position when adding multiple widgets through Add Widget tile in create"
+            )
+
+    def test_deleting_stacked_widgets_by_context_menu_does_not_trigger_confirm_on_edit_cancel(
+        self,
+    ):
+        layouts = [{"x": 0, "y": 0, "w": 2, "h": 2}, {"x": 0, "y": 2, "w": 2, "h": 2}]
+        existing_widgets = DashboardWidget.objects.bulk_create(
+            [
+                DashboardWidget(
+                    dashboard=self.dashboard,
+                    order=i,
+                    title=f"Existing Widget {i}",
+                    display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    interval="1d",
+                    detail={"layout": layout},
+                )
+                for i, layout in enumerate(layouts)
+            ]
+        )
+        DashboardWidgetQuery.objects.bulk_create(
+            DashboardWidgetQuery(widget=widget, fields=["count()"], order=0)
+            for widget in existing_widgets
+        )
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+
+            delete_widget_menu_item = self.browser.element('[data-test-id="delete-widget"]')
+            delete_widget_menu_item.click()
+
+            confirm_button = self.browser.element('[data-test-id="confirm-button"]')
+            confirm_button.click()
+
+            wait = WebDriverWait(self.browser.driver, 5)
+            wait.until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//*[contains(text(),'Dashboard updated')]")
+                )
+            )
+
+            # Should not trigger confirm dialog
+            self.page.enter_edit_state()
+            self.page.click_cancel_button()
             wait.until_not(EC.alert_is_present())
 
 

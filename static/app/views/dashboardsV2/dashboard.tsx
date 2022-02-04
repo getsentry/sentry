@@ -3,6 +3,7 @@ import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {compact} from 'react-grid-layout/build/utils';
 import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
@@ -19,7 +20,7 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import {IconArrow} from 'sentry/icons';
+import {IconResize} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -274,9 +275,24 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
+    const {layouts} = this.state;
     const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    // Manually calculate the post-delete layout and assign those to widgets
+    let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    const nextLayout = compact(
+      layouts[DESKTOP].filter(({i}) => i !== constructGridItemKey(widgetToDelete)),
+      'vertical',
+      NUM_DESKTOP_COLS
+    );
+    nextList = nextList.map(widget => {
+      const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));
+      if (!layout) {
+        return widget;
+      }
+      return {...widget, layout};
+    });
+
     onUpdate(nextList);
 
     if (!!!isEditing) {
@@ -525,7 +541,7 @@ class Dashboard extends Component<Props, State> {
             className="react-resizable-handle"
             data-test-id="custom-resize-handle"
           >
-            <IconArrow />
+            <IconResize />
           </ResizeHandle>
         }
         isBounded
@@ -620,7 +636,7 @@ const WidgetContainer = styled('div')`
 
 const GridItem = styled('div')`
   .react-resizable-handle {
-    z-index: 1;
+    z-index: 2;
   }
 `;
 
@@ -646,9 +662,8 @@ const GridLayout = styled(WidthProvider(Responsive))`
 `;
 
 const ResizeHandle = styled('div')`
-  transform: rotate(135deg);
   position: absolute;
   bottom: 2px;
-  right: 4px;
+  right: 2px;
   cursor: nwse-resize;
 `;
