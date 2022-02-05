@@ -94,7 +94,6 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
         />
       </Confirm>
       <DropdownMenuControlV2
-        isDisabled={disabled}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
