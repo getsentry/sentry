@@ -1,15 +1,15 @@
-import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
+import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -90,34 +90,40 @@ class Replays extends AsyncView<Props, State> {
     // eslint-disable-next-line no-debugger
     const replayList = eventData.data;
     return (
-      <Fragment>
-        <PageHeader>
-          <HeaderTitle>
-            <div>
-              {t('Replays')} <FeatureBadge type="beta" />
-            </div>
-          </HeaderTitle>
-        </PageHeader>
-        <Panel>
-          <PanelBody>
-            {replayList?.map(replay => (
-              <PanelItemCentered key={replay.id}>
-                <StyledLink
-                  to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-                    project: replay['project.name'],
-                    id: replay.id,
-                  })}/`}
-                >
-                  {replay.timestamp}
-                </StyledLink>
-              </PanelItemCentered>
-            ))}
-          </PanelBody>
-        </Panel>
-        {replayListPageLinks && (
-          <Pagination pageLinks={replayListPageLinks} {...this.props} />
-        )}
-      </Fragment>
+      <PageFiltersContainer
+        showEnvironmentSelector={false}
+        showDateSelector={false}
+        resetParamsOnChange={['cursor']}
+      >
+        <PageContent>
+          <PageHeader>
+            <HeaderTitle>
+              <div>
+                {t('Replays')} <FeatureBadge type="beta" />
+              </div>
+            </HeaderTitle>
+          </PageHeader>
+          <Panel>
+            <PanelBody>
+              {replayList?.map(replay => (
+                <PanelItemCentered key={replay.id}>
+                  <StyledLink
+                    to={`/organizations/${organization.slug}/replays/${generateEventSlug({
+                      project: replay['project.name'],
+                      id: replay.id,
+                    })}/`}
+                  >
+                    {replay.timestamp}
+                  </StyledLink>
+                </PanelItemCentered>
+              ))}
+            </PanelBody>
+          </Panel>
+          {replayListPageLinks && (
+            <Pagination pageLinks={replayListPageLinks} {...this.props} />
+          )}
+        </PageContent>
+      </PageFiltersContainer>
     );
   }
 }
