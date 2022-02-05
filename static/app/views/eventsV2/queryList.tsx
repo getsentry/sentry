@@ -168,6 +168,7 @@ class QueryList extends React.Component<Props> {
               triggerProps.onClick?.(e);
             }}
             icon={<IconEllipsis direction="down" size="sm" />}
+            data-test-id="menu-trigger"
           />
         )}
         placement="bottom right"
