@@ -96,6 +96,7 @@ type BaseField = {
   stacked?: boolean;
   hideLabel?: boolean;
   flexibleControlStateSize?: boolean;
+  style?: React.CSSProperties;
 };
 
 // TODO(ts): These are field specific props. May not be needed as we convert

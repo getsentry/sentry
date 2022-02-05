@@ -420,7 +420,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               const webhookDisabled =
                 this.isInternal && !this.form.getValue('webhookUrl');
               return (
-                <React.Fragment>
+                <StyledFormWrapper>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
                   {this.getAvatarChooser(true)}
                   {this.getAvatarChooser(false)}
@@ -430,7 +430,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                     scopes={scopes}
                     events={events}
                   />
-                </React.Fragment>
+                </StyledFormWrapper>
               );
             }}
           </Observer>
@@ -538,4 +538,11 @@ const AvatarPreviewText = styled('span')`
   display: block;
   grid-area: 2 / 2 / 3 / 3;
   padding-left: ${space(2)};
+`;
+
+const StyledFormWrapper = styled('div')`
+  /* Applies to Schema and Authorized JS Origins */
+  textarea {
+    font-family: ${p => p.theme.text.familyMono};
+  }
 `;

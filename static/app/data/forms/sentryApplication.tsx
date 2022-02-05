@@ -68,7 +68,8 @@ const getPublicFormFields = (): Field[] => [
     type: 'textarea',
     label: 'Schema',
     autosize: true,
-    rows: 1,
+    inline: false,
+    maxRows: 15,
     help: tct(
       'Schema for your UI components. Click [schema_docs:here] for documentation.',
       {
@@ -105,11 +106,15 @@ const getPublicFormFields = (): Field[] => [
     autosize: true,
     rows: 1,
     help: 'Description of your Integration and its functionality.',
+    // Prevents this field from displaying in a monospace font
+    style: {fontFamily: 'inherit'},
   },
   {
     name: 'allowedOrigins',
     type: 'string',
     multiline: true,
+    autosize: true,
+    rows: 1,
     placeholder: 'e.g. example.com',
     label: 'Authorized JavaScript Origins',
     help: 'Separate multiple entries with a newline.',
