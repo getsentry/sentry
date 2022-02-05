@@ -1,6 +1,5 @@
 from sentry.api.serializers import AppPlatformEvent, SentryAppInstallationSerializer
 from sentry.coreapi import APIUnauthorized
-from sentry.http import safe_urlread
 from sentry.mediators import Mediator, Param
 from sentry.tasks.sentry_apps import send_and_save_webhook_request
 from sentry.utils.cache import memoize
@@ -20,7 +19,7 @@ class InstallationNotifier(Mediator):
             raise APIUnauthorized(f"Invalid action '{self.action}'")
 
     def _send_webhook(self):
-        safe_urlread(send_and_save_webhook_request(self.sentry_app, self.request))
+        return send_and_save_webhook_request(self.sentry_app, self.request)
 
     @property
     def request(self):
