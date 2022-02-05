@@ -200,6 +200,26 @@ const getColors = ({
     focusShadow,
   } = theme.button[themeName];
 
+  const getFocusState = () => {
+    switch (priority) {
+      case 'primary':
+      case 'success':
+      case 'danger':
+        return `
+          border-color: ${focusBorder};
+          box-shadow: ${focusBorder} 0 0 0 1px, ${focusShadow} 0 0 0 4px;`;
+      default:
+        if (translucentBorder) {
+          return `
+            border-color: ${focusBorder};
+            box-shadow: ${focusBorder} 0 0 0 2px;`;
+        }
+        return `
+          border-color: ${focusBorder};
+          box-shadow: ${focusBorder} 0 0 0 1px;`;
+    }
+  };
+
   return css`
     color: ${color};
     background-color: ${background};
@@ -223,8 +243,7 @@ const getColors = ({
     }`}
 
     &.focus-visible {
-      border: 1px solid ${focusBorder};
-      box-shadow: ${focusBorder} 0 0 0 1px, ${focusShadow} 0 0 0 4px;
+      ${getFocusState()}
     }
   `;
 };
