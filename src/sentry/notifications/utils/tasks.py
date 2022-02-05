@@ -1,6 +1,7 @@
 from django.apps import apps
 
 from sentry.db.models import Model
+from sentry.notifications.class_manager import get
 from sentry.tasks.base import instrumented_task
 
 
@@ -21,14 +22,15 @@ def async_execute(NotificationClass, *args):
         # maybe we need an explicit check if it's a primitive?
         else:
             task_args.append({"type": "other", "value": arg})
-    _send_notification(NotificationClass, task_args)
+    _send_notification.delay(NotificationClass.__name__, task_args)
 
 
 @instrumented_task(
     name="src.sentry.notifications.utils.async_execute",
     queue="email",
 )
-def _send_notification(NotificationClass, arg_list):
+def _send_notification(notification_class_name, arg_list):
+    NotificationClass = get(notification_class_name)
     output_args = []
     for arg in arg_list:
         if arg["type"] == "model":
