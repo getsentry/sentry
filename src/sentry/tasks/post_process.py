@@ -213,6 +213,18 @@ def update_existing_attachments(event):
     )
 
 
+def fetch_buffered_group_stats(group):
+    """
+    Fetches buffered increments to `times_seen` for this group and adds them to the current
+    `times_seen`.
+    """
+    from sentry import buffer
+    from sentry.models import Group
+
+    result = buffer.get(Group, ["times_seen"], {"pk": group.id})
+    group.times_seen += result["times_seen"]
+
+
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
@@ -293,6 +305,10 @@ def post_process_group(
         # from cache, which may contain a stale group and project
         event.group, _ = get_group_with_redirect(event.group_id)
         event.group_id = event.group.id
+        # We fetch buffered updates to group aggregates here and populate them on the Group. This
+        # helps us avoid problems with processing group ignores and alert rules that rely on these
+        # stats.
+        fetch_buffered_group_stats(event.group)
 
         event.group.project = event.project
         event.group.project.set_cached_field_value("organization", event.project.organization)

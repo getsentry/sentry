@@ -1,8 +1,12 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import ANY, Mock, patch
 
+from django.test import override_settings
 from django.utils import timezone
 
+from sentry import buffer
+from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
 from sentry.models import (
     Activity,
@@ -18,6 +22,7 @@ from sentry.models import (
     ProjectTeam,
 )
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.rules import init_registry
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
@@ -169,6 +174,71 @@ class PostProcessGroupTest(TestCase):
         mock_processor.return_value.apply.assert_called_once_with()
 
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
+
+    @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
+    def test_rule_processor_buffer_values(self):
+        # Test that pending buffer values for `times_seen` are applied to the group and that alerts
+        # fire as expected
+        from sentry.models import Rule
+
+        MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
+
+        redis_buffer = RedisBuffer()
+        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.incr", redis_buffer.incr
+        ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
+            "sentry.rules.processor.rules", init_registry()
+        ) as rules:
+            MockAction = mock.Mock()
+            MockAction.rule_type = "action/event"
+            MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
+            MockAction.return_value.after.return_value = []
+            rules.add(MockAction)
+
+            conditions = [
+                {
+                    "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
+                    "value": 10,
+                },
+            ]
+            actions = [{"id": "tests.sentry.tasks.post_process.tests.MockAction"}]
+            Rule.objects.filter(project=self.project).delete()
+            Rule.objects.create(
+                project=self.project, data={"conditions": conditions, "actions": actions}
+            )
+
+            event = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            event_2 = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            cache_key = write_event_to_cache(event)
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+            event.group.update(times_seen=2)
+            assert MockAction.return_value.after.call_count == 0
+
+            cache_key = write_event_to_cache(event_2)
+            buffer.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event_2.group_id,
+            )
+            assert MockAction.return_value.after.call_count == 1
+
+            event.group.refresh_from_db()
+            # Make sure that we haven't inadvertently saved the updated `times_seen` value to the
+            # database.
+            assert event.group.times_seen == 2
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_refresh(self, mock_processor):
