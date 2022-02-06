@@ -30,7 +30,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
             params=params,
             rollup=granularity,
             referrer="transaction-anomaly-detection",
-            zerofill_results=True,
+            zerofill_results=False,
         )
 
         return self.get_anomalies(
