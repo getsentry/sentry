@@ -1,9 +1,11 @@
 import {browserHistory} from 'react-router';
 
+import {enforceActOnUseLegacyStoreHook} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {Organization} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
@@ -11,11 +13,14 @@ const TEST_RELEASE_NAME = 'test-project@1.0.0';
 
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];
+
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
   });
+
   const initialData = initializeOrg({
+    ...initializeOrg(),
     organization,
     router: {
       location: {
@@ -27,11 +32,18 @@ function initializeData({query} = {query: {}}) {
       },
     },
   });
+
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+
   return initialData;
 }
 
-const WrappedComponent = ({organization, ...props}) => {
+const WrappedComponent = ({
+  organization,
+  ...props
+}: Omit<React.ComponentProps<typeof TransactionTags>, 'organization'> & {
+  organization: Organization;
+}) => {
   return (
     <OrganizationContext.Provider value={organization}>
       <TransactionTags organization={organization} {...props} />
@@ -40,7 +52,9 @@ const WrappedComponent = ({organization, ...props}) => {
 };
 
 describe('Performance > Transaction Tags', function () {
-  let histogramMock;
+  enforceActOnUseLegacyStoreHook();
+
+  let histogramMock: Record<string, any>;
 
   beforeEach(function () {
     browserHistory.replace = jest.fn();
@@ -139,20 +153,26 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const initialData = initializeData();
+    const {organization, router, routerContext} = initializeData();
+
     mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      {context: initialData.routerContext}
+      <WrappedComponent organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
 
     // It shows the sidebar
-    expect(await screen.findByTestId('tags-page-content')).toBeInTheDocument();
+    expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
 
     // It shows the header
-    expect(await screen.findByTestId('transaction-header')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Test Transaction'})).toBeInTheDocument();
+
+    // It shows a table
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    // It shows the tag chart
+    expect(screen.getByText('Heat Map')).toBeInTheDocument();
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
@@ -162,26 +182,22 @@ describe('Performance > Transaction Tags', function () {
         transaction: 'Test Transaction',
       },
     });
-
-    // It shows a table
-    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
   });
 
   it('Default tagKey is set when loading the page without one', async function () {
-    const initialData = initializeData();
+    const {organization, router, routerContext} = initializeData();
+
     mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      {context: initialData.routerContext}
+      <WrappedComponent organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
 
-    // Table is loaded.
-    // The tagKey change will cause a full page re-render, so wait for the component to mount
-    await waitFor(async () =>
-      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument()
-    );
+    await waitFor(() => {
+      // Table is loaded.
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
@@ -206,20 +222,21 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('Passed tagKey gets used when calling queries', async function () {
-    const initialData = initializeData({query: {tagKey: 'effectiveConnectionType'}});
+    const {organization, router, routerContext} = initializeData({
+      query: {tagKey: 'effectiveConnectionType'},
+    });
 
     mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      {context: initialData.routerContext}
+      <WrappedComponent organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
 
-    // Table is loaded.
-    await waitFor(async () =>
-      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument()
-    );
+    await waitFor(() => {
+      // Table is loaded.
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
@@ -254,10 +271,10 @@ describe('Performance > Transaction Tags', function () {
       {context: initialData.routerContext}
     );
 
-    // Table is loaded.
-    await waitFor(async () =>
-      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument()
-    );
+    await waitFor(() => {
+      // Table is loaded.
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
 
     // Release link is properly setup
     expect(screen.getByText(TEST_RELEASE_NAME)).toBeInTheDocument();
