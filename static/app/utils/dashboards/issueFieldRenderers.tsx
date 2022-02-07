@@ -45,7 +45,6 @@ type SpecialFields = {
   assignee: SpecialField;
   count: SpecialField;
   events: SpecialField;
-  firstSeen: SpecialField;
   issue: SpecialField;
   lifetimeCount: SpecialField;
   lifetimeEvents: SpecialField;
