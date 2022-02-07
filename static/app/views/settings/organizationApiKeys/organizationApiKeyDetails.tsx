@@ -21,8 +21,8 @@ import {DeprecatedApiKey} from './types';
 const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 
 type RouteParams = {
-  orgId: string;
   apiKey: string;
+  orgId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {

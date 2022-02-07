@@ -13,8 +13,8 @@ import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
 
 type Props = {
-  renderNavigation?: () => React.ReactNode;
   children: React.ReactNode;
+  renderNavigation?: () => React.ReactNode;
 } & RouteComponentProps<{}, {}>;
 
 function SettingsLayout(props: Props) {

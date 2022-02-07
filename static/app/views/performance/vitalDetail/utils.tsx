@@ -3,7 +3,7 @@ import {Location, Query} from 'history';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {getSeriesSelection} from 'sentry/components/charts/utils';
-import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -45,11 +45,9 @@ export const vitalStateColors: Record<VitalState, Color> = {
 };
 
 export const vitalStateIcons: Record<VitalState, React.ReactNode> = {
-  [VitalState.POOR]: <IconFire color={vitalStateColors[VitalState.POOR]} />,
-  [VitalState.MEH]: <IconWarning color={vitalStateColors[VitalState.MEH]} />,
-  [VitalState.GOOD]: (
-    <IconCheckmark color={vitalStateColors[VitalState.GOOD]} isCircled />
-  ),
+  [VitalState.POOR]: <IconSad color={vitalStateColors[VitalState.POOR]} />,
+  [VitalState.MEH]: <IconMeh color={vitalStateColors[VitalState.MEH]} />,
+  [VitalState.GOOD]: <IconHappy color={vitalStateColors[VitalState.GOOD]} />,
 };
 
 export function vitalDetailRouteWithQuery({
@@ -59,8 +57,8 @@ export function vitalDetailRouteWithQuery({
   query,
 }: {
   orgSlug: string;
-  vitalName: string;
   query: Query;
+  vitalName: string;
   projectID?: string | string[];
 }) {
   const pathname = generateVitalDetailRoute({
@@ -158,8 +156,8 @@ export function getVitalChartDefinitions({
   vital,
   yAxis,
 }: {
-  theme: Theme;
   location: Location;
+  theme: Theme;
   vital: string;
   yAxis: string;
 }) {

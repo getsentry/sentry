@@ -102,28 +102,28 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 const MARGIN_LEFT = 0;
 
 type SpanBarProps = {
-  event: Readonly<EventTransaction>;
-  organization: Organization;
-  trace: Readonly<ParsedTraceType>;
-  span: Readonly<ProcessedSpanType>;
-  spanBarColor?: string;
-  spanBarHatch?: boolean;
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  treeDepth: number;
   continuingTreeDepths: Array<TreeDepthType>;
-  showSpanTree: boolean;
+  event: Readonly<EventTransaction>;
+  fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   numOfSpanChildren: number;
+  numOfSpans: number;
+  organization: Organization;
+  showEmbeddedChildren: boolean;
+  showSpanTree: boolean;
+  span: Readonly<ProcessedSpanType>;
   spanNumber: number;
+  toggleEmbeddedChildren:
+    | ((props: {eventSlug: string; orgSlug: string}) => void)
+    | undefined;
+  toggleSpanGroup: (() => void) | undefined;
+  toggleSpanTree: () => void;
+  trace: Readonly<ParsedTraceType>;
+  treeDepth: number;
   isLast?: boolean;
   isRoot?: boolean;
-  toggleSpanTree: () => void;
-  showEmbeddedChildren: boolean;
-  toggleEmbeddedChildren:
-    | ((props: {orgSlug: string; eventSlug: string}) => void)
-    | undefined;
-  fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
-  toggleSpanGroup: (() => void) | undefined;
-  numOfSpans: number;
+  spanBarColor?: string;
+  spanBarHatch?: boolean;
 };
 
 type SpanBarState = {
@@ -173,9 +173,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     transactions,
     errors,
   }: {
+    errors: TraceError[] | null;
     isVisible: boolean;
     transactions: QuickTraceEvent[] | null;
-    errors: TraceError[] | null;
   }) {
     const {span, organization, isRoot, trace, event} = this.props;
 
@@ -380,7 +380,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderSpanTreeToggler({left, errored}: {left: number; errored: boolean}) {
+  renderSpanTreeToggler({left, errored}: {errored: boolean; left: number}) {
     const {numOfSpanChildren, isRoot, showSpanTree} = this.props;
 
     const chevron = <TreeToggleIcon direction={showSpanTree ? 'up' : 'down'} />;
@@ -806,8 +806,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     transactions,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
     errors: TraceError[] | null;
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
     transactions: QuickTraceEvent[] | null;
   }) {
     const {span, spanBarColor, spanBarHatch, spanNumber} = this.props;

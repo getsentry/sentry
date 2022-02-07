@@ -43,13 +43,13 @@ const TOP_N_SPANS = 4;
 type OpBreakdownType = OpStats[];
 
 type DefaultProps = {
-  topN: number;
   hideHeader: boolean;
+  topN: number;
 };
 
 type Props = DefaultProps & {
-  operationNameFilters: ActiveOperationFilter;
   event: Event;
+  operationNameFilters: ActiveOperationFilter;
 };
 
 class OpsBreakdown extends Component<Props> {

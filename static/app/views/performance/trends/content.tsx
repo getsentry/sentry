@@ -38,9 +38,9 @@ import {
 } from './utils';
 
 type Props = {
-  organization: Organization;
-  location: Location;
   eventView: EventView;
+  location: Location;
+  organization: Organization;
   selection: PageFilters;
 };
 
@@ -298,8 +298,8 @@ class TrendsContent extends React.Component<Props, State> {
 
 type DefaultTrendsProps = {
   children: React.ReactNode[];
-  location: Location;
   eventView: EventView;
+  location: Location;
 };
 
 class DefaultTrends extends React.Component<DefaultTrendsProps> {

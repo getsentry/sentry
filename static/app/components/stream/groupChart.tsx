@@ -9,11 +9,11 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 
 type Props = {
-  statsPeriod: string;
   data: Group;
+  statsPeriod: string;
   height?: number;
-  showSecondaryPoints?: boolean;
   showMarkLine?: boolean;
+  showSecondaryPoints?: boolean;
 };
 
 function GroupChart({

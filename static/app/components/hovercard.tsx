@@ -26,6 +26,14 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   /**
+   * Element to display in the body
+   */
+  body?: React.ReactNode;
+  /**
+   * Classname to apply to body container
+   */
+  bodyClassName?: string;
+  /**
    * Classname to apply to the hovercard
    */
   className?: string;
@@ -38,33 +46,25 @@ type Props = DefaultProps & {
    */
   header?: React.ReactNode;
   /**
-   * Element to display in the body
+   * Popper Modifiers
    */
-  body?: React.ReactNode;
-  /**
-   * Classname to apply to body container
-   */
-  bodyClassName?: string;
-  /**
-   * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
-   */
-  show?: boolean;
-  /**
-   * Color of the arrow tip
-   */
-  tipColor?: string;
-  /**
-   * Color of the arrow tip border
-   */
-  tipBorderColor?: string;
+  modifiers?: PopperProps['modifiers'];
   /**
    * Offset for the arrow
    */
   offset?: string;
   /**
-   * Popper Modifiers
+   * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
    */
-  modifiers?: PopperProps['modifiers'];
+  show?: boolean;
+  /**
+   * Color of the arrow tip border
+   */
+  tipBorderColor?: string;
+  /**
+   * Color of the arrow tip
+   */
+  tipColor?: string;
 };
 
 type State = {
@@ -232,8 +232,8 @@ const getTipDirection = (p: HovercardArrowProps) =>
 const getOffset = (p: StyledHovercardProps) => p.offset ?? space(2);
 
 type StyledHovercardProps = {
-  visible: boolean;
   placement: Direction;
+  visible: boolean;
   offset?: string;
 };
 
@@ -285,8 +285,8 @@ const Body = styled('div')`
 
 type HovercardArrowProps = {
   placement: Direction;
-  tipColor?: string;
   tipBorderColor?: string;
+  tipColor?: string;
 };
 
 const HovercardArrow = styled('span')<HovercardArrowProps>`

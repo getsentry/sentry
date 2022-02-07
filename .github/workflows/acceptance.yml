@@ -17,11 +17,11 @@ jobs:
   frontend:
     name: frontend tests
     runs-on: ubuntu-20.04
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
-        instance: [0, 1]
+        instance: [0, 1, 2]
 
     env:
       VISUAL_HTML_ENABLE: 1
@@ -59,7 +59,7 @@ jobs:
           # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct.
-          CI_NODE_TOTAL: 2
+          CI_NODE_TOTAL: 3
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --testTimeout=10000

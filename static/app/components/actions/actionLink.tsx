@@ -31,14 +31,14 @@ type CommonProps = Omit<
   ConfirmableActionProps,
   'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority' | 'children'
 > & {
-  title: string;
   children: React.ReactChild;
-  onAction?: () => void;
-  disabled?: boolean;
+  title: string;
   className?: string;
-  shouldConfirm?: boolean;
-  confirmPriority?: ConfirmableActionProps['priority'];
   confirmLabel?: string;
+  confirmPriority?: ConfirmableActionProps['priority'];
+  disabled?: boolean;
+  onAction?: () => void;
+  shouldConfirm?: boolean;
 };
 
 type Props = CommonProps &
