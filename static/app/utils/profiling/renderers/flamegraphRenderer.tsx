@@ -523,7 +523,6 @@ class FlamegraphRenderer {
       },
       !!this.flamegraph.inverted
     );
-
     return this.configView;
   }
 
@@ -646,7 +645,6 @@ class FlamegraphRenderer {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
     const physicalSpacePixel = new Rect(0, 0, 1, 1);
-
     const physicalToConfig = mat3.invert(mat3.create(), configToPhysicalSpace);
     const configSpacePixel = physicalSpacePixel.transformRect(physicalToConfig);
 

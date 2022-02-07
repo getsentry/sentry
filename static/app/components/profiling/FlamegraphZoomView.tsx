@@ -191,7 +191,7 @@ function FlamegraphZoomView({
                   flamegraphRenderer.configView.height +
                   1
               )
-              .translateX(0)
+              .translate(0, 0)
               .withWidth(flamegraph.configSpace.width)
           : flamegraphRenderer.configView
               .translate(0, 0)

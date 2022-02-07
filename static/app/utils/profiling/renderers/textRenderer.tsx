@@ -14,8 +14,8 @@ import {
 
 export function isOutsideView(frame: Rect, view: Rect, inverted: boolean): boolean {
   // Frame is outside of the view on the left
-  if (!frame.overlaps(view)) {
-    return true;
+  if (frame.overlaps(view)) {
+    return false;
   }
 
   // @TODO check if we still need this
@@ -25,7 +25,7 @@ export function isOutsideView(frame: Rect, view: Rect, inverted: boolean): boole
     }
   }
 
-  return false;
+  return true;
 }
 
 class TextRenderer {
@@ -126,15 +126,14 @@ class TextRenderer {
       // If the width of the text is greater than the minimum width to render, we should render it
       if (paddedRectangleWidth >= minWidth) {
         let text = frame.frame.name;
-        const textWidth = this.measureText(this.context, text);
 
         // If text width is smaller than rectangle, just draw the text
-        if (textWidth > paddedRectangleWidth) {
+        if (this.measureText(this.context, text) > paddedRectangleWidth) {
           text = trimTextCenter(
             text,
             findRangeBinarySearch(
-              {low: 0, high: text.length},
-              n => this.measureText(this.context, text.substring(0, n)),
+              {low: 0, high: paddedRectangleWidth},
+              n => this.measureText(this.context, text.substring(0, n + 1)),
               paddedRectangleWidth
             )[0]
           );

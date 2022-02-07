@@ -429,7 +429,7 @@ export function findRangeBinarySearch(
 ): [number, number] {
   if (target < low || target > high) {
     throw new Error(
-      `Target value needs to be in low-high range, got ${target} for [${low}, ${high}]`
+      `Target has to be in range of low <= target <= high, got ${low} <= ${target} <= ${high}`
     );
   }
   // eslint-disable-next-line
