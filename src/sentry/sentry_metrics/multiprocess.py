@@ -32,7 +32,7 @@ from django.conf import settings
 from sentry.utils import json, kafka_config
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
-DEFAULT_QUEUED_MIN_MESSAGES = 10000
+DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
 logger = logging.getLogger(__name__)
 
