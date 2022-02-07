@@ -9,9 +9,9 @@ import EventTagsPill from './eventTagsPill';
 
 type Props = {
   event: Event;
+  location: Location;
   organization: Organization;
   projectId: string;
-  location: Location;
 };
 
 const EventTags = ({event: {tags = []}, organization, projectId, location}: Props) => {

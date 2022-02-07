@@ -30,10 +30,10 @@ import TeamSection from './teamSection';
 
 type Props = {
   api: Client;
+  error: Error | null;
+  loadingTeams: boolean;
   organization: Organization;
   teams: TeamWithProjects[];
-  loadingTeams: boolean;
-  error: Error | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 function Dashboard({teams, params, organization, loadingTeams, error}: Props) {

@@ -6,9 +6,9 @@ import {t} from 'sentry/locale';
 import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = Form['props'] & {
-  onSubmit?: (data: Record<string, any>) => void;
-  apiMethod: string;
   apiEndpoint: string;
+  apiMethod: string;
+  onSubmit?: (data: Record<string, any>) => void;
 };
 
 export default class ApiForm extends Component<Props> {

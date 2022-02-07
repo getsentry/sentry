@@ -17,11 +17,11 @@ type Props = Omit<
   EventsChartProps,
   keyof Omit<PageFilters, 'datetime'> | keyof PageFilters['datetime']
 > & {
-  title: string;
-  selection: PageFilters;
   onTotalValuesChange: (value: number | null) => void;
-  help?: string;
+  selection: PageFilters;
+  title: string;
   yAxis: string;
+  help?: string;
 };
 
 class ProjectBaseEventsChart extends Component<Props> {

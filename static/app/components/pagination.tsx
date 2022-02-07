@@ -24,13 +24,13 @@ export type CursorHandler = (
 ) => void;
 
 type Props = WithRouterProps & {
-  pageLinks?: string | null;
-  to?: string;
   caption?: React.ReactElement;
-  size?: 'zero' | 'xsmall' | 'small';
-  onCursor?: CursorHandler;
-  disabled?: boolean;
   className?: string;
+  disabled?: boolean;
+  onCursor?: CursorHandler;
+  pageLinks?: string | null;
+  size?: 'zero' | 'xsmall' | 'small';
+  to?: string;
 };
 
 const defaultOnCursor: CursorHandler = (cursor, path, query, _direction) =>

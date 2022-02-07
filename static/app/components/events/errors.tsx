@@ -26,10 +26,10 @@ export type Error = ErrorItem['props']['error'];
 
 type Props = {
   api: Client;
-  orgSlug: Organization['slug'];
-  projectSlug: Project['slug'];
-  proGuardErrors: Array<Error>;
   event: Event;
+  orgSlug: Organization['slug'];
+  proGuardErrors: Array<Error>;
+  projectSlug: Project['slug'];
 };
 
 type State = {

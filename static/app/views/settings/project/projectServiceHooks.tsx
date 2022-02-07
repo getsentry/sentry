@@ -21,10 +21,10 @@ import Field from 'sentry/views/settings/components/forms/field';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
-  orgId: string;
-  projectId: string;
   hook: ServiceHook;
   onToggleActive: () => void;
+  orgId: string;
+  projectId: string;
 };
 
 function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {

@@ -12,12 +12,6 @@ const defaultProps = {
 type Props = Partial<typeof defaultProps> & {
   children: React.ReactNode;
   /**
-   * Display the field control container in "inline" fashion. The label and
-   * description will be aligned to the left, while the control itself will be
-   * aligned to the right.
-   */
-  inline?: boolean;
-  /**
    * Align the control towards the right
    */
   alignRight?: boolean;
@@ -25,10 +19,6 @@ type Props = Partial<typeof defaultProps> & {
    * Loading / Saving / Error states of the form. See the ControlState
    */
   controlState?: React.ReactNode;
-  /**
-   * Hide the fields control state
-   */
-  hideControlState?: boolean;
   /**
    * Disable the field
    */
@@ -47,6 +37,16 @@ type Props = Partial<typeof defaultProps> & {
    * show (such as an error).
    */
   flexibleControlStateSize?: boolean;
+  /**
+   * Hide the fields control state
+   */
+  hideControlState?: boolean;
+  /**
+   * Display the field control container in "inline" fashion. The label and
+   * description will be aligned to the left, while the control itself will be
+   * aligned to the right.
+   */
+  inline?: boolean;
 };
 
 const FieldControl = ({

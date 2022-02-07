@@ -23,12 +23,12 @@ import {getFieldOrBackup} from '../display/utils';
 
 type Props = {
   eventView: EventView;
-  organization: Organization;
   field: string;
+  organization: Organization;
   title: string;
   titleTooltip: string;
-  backupField?: string;
   usingBackupAxis: boolean;
+  backupField?: string;
 } & WithRouterProps;
 
 function DurationChart({

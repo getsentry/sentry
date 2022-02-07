@@ -12,8 +12,8 @@ import space from 'sentry/styles/space';
 import {MetricQuery, MetricTag} from 'sentry/types';
 
 type Props = {
-  onChange: (groupBy: MetricQuery['groupBy']) => void;
   metricTags: MetricTag[];
+  onChange: (groupBy: MetricQuery['groupBy']) => void;
   groupBy?: MetricQuery['groupBy'];
 };
 
@@ -85,7 +85,7 @@ function GroupByField({metricTags, groupBy = [], onChange}: Props) {
 
 export default GroupByField;
 
-const Field = styled('div')<{isOpen: boolean; hasSelected: boolean}>`
+const Field = styled('div')<{hasSelected: boolean; isOpen: boolean}>`
   ${p => inputStyles(p)};
   padding: 0 10px;
   min-width: 250px;
