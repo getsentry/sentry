@@ -12,10 +12,10 @@ type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
 
 type Props = ModalRenderProps & {
-  onSelected: (statusDetails: ResolutionStatusDetails) => void;
-  label: string;
   countLabel: string;
   countName: CountNames;
+  label: string;
+  onSelected: (statusDetails: ResolutionStatusDetails) => void;
   windowName: WindowNames;
   windowOptions: SelectValue<number>[];
 };

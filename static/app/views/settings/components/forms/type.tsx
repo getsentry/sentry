@@ -36,66 +36,66 @@ export type FieldValue = any;
 // need to introduce some generics in here to get rid of some of these anys.
 
 type BaseField = {
-  label?: React.ReactNode | (() => React.ReactNode);
   name: string;
-  help?: React.ReactNode | ((props: any) => React.ReactNode);
-  showHelpInTooltip?: boolean;
-  required?: boolean;
-  placeholder?: string | ((props: any) => React.ReactNode);
-  multiline?: boolean;
-  monospace?: boolean;
-  visible?: boolean | ((props: any) => boolean);
-  disabled?: boolean | ((props: any) => boolean);
-  disabledReason?: string;
-  defaultValue?: FieldValue;
-  /** Does editing this field require the Form to load new configs? */
-  updatesForm?: boolean;
-  /** Does editing this field need to clear all other fields? */
-  resetsForm?: boolean;
-  confirm?: {[key: string]: React.ReactNode};
   autosize?: boolean;
-  maxRows?: number;
-  extraHelp?: string;
   choices?:
     | ((props: {[key: string]: any}) => void)
     | readonly Readonly<[number | string, React.ReactNode]>[];
-
+  confirm?: {[key: string]: React.ReactNode};
+  defaultValue?: FieldValue;
+  disabled?: boolean | ((props: any) => boolean);
+  disabledReason?: string;
+  extraHelp?: string;
+  flexibleControlStateSize?: boolean;
   formatLabel?: (value: number | '') => React.ReactNode;
-  transformInput?: (value: FieldValue) => FieldValue;
-  getData?: (data: object) => object;
-  /**
-   * If false, disable saveOnBlur for field, instead show a save/cancel button
-   */
-  saveOnBlur?: boolean;
-  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
-  saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
   /**
    * Function to format the value displayed in the undo toast. May also be
    * specified as false to disable showing the changed fields in the toast.
    */
   formatMessageValue?: Function | false;
+  getData?: (data: object) => object;
+  getValue?: (value: FieldValue) => any;
+  help?: React.ReactNode | ((props: any) => React.ReactNode);
+  hideLabel?: boolean;
+  // TODO(ts): FormField prop?
+  inline?: boolean;
+  label?: React.ReactNode | (() => React.ReactNode);
+  maxRows?: number;
+  // TODO(ts): used in sentryAppPublishRequestModal
+  meta?: string;
+
+  monospace?: boolean;
+  multiline?: boolean;
+  onChange?: (value: FieldValue) => void;
+  placeholder?: string | ((props: any) => React.ReactNode);
+  required?: boolean;
+  /** Does editing this field need to clear all other fields? */
+  resetsForm?: boolean;
+  saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
+  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
+  /**
+   * If false, disable saveOnBlur for field, instead show a save/cancel button
+   */
+  saveOnBlur?: boolean;
+  selectionInfoFunction?: (props: any) => React.ReactNode;
+
+  setValue?: (value: FieldValue, props?: any) => any;
+
+  showHelpInTooltip?: boolean;
+
   /**
    * Should show a "return key" icon in input?
    */
   showReturnButton?: boolean;
-  getValue?: (value: FieldValue) => any;
-  setValue?: (value: FieldValue, props?: any) => any;
-
-  onChange?: (value: FieldValue) => void;
-
-  validate?: ({id: String, form: object}) => string[][];
-
-  // TODO(ts): FormField prop?
-  inline?: boolean;
-
-  // TODO(ts): used in sentryAppPublishRequestModal
-  meta?: string;
-
-  selectionInfoFunction?: (props: any) => React.ReactNode;
 
   stacked?: boolean;
-  hideLabel?: boolean;
-  flexibleControlStateSize?: boolean;
+
+  transformInput?: (value: FieldValue) => FieldValue;
+
+  /** Does editing this field require the Form to load new configs? */
+  updatesForm?: boolean;
+  validate?: ({id: String, form: object}) => string[][];
+  visible?: boolean | ((props: any) => boolean);
 };
 
 // TODO(ts): These are field specific props. May not be needed as we convert
@@ -110,12 +110,13 @@ type InputType = {type: 'string' | 'secret'} & {
 };
 
 type SelectControlType = {type: 'choice' | 'select'} & {
-  multiple?: boolean;
   allowClear?: boolean;
-  options?: Array<{label: string; value: any}>; // for new select
+  // for new select
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
+  multiple?: boolean;
   noOptionsMessage?: () => string;
+  options?: Array<{label: string; value: any}>;
 };
 
 type TextareaType = {type: 'textarea'} & {
@@ -130,16 +131,16 @@ type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
   };
 
 export type TableType = {
-  type: 'table';
-  /**
-   * An object with of column labels (headers) for the table.
-   */
-  columnLabels: object;
   /**
    * A list of column keys for the table, in the order that you want
    * the columns to appear - order doesn't matter in columnLabels
    */
   columnKeys: string[];
+  /**
+   * An object with of column labels (headers) for the table.
+   */
+  columnLabels: object;
+  type: 'table';
   /**
    * The confirmation message before a a row is deleted
    */
@@ -149,18 +150,19 @@ export type TableType = {
 
 // maps a sentry project to another field
 export type ProjectMapperType = {
-  type: 'project_mapper';
+  iconType: string;
   mappedDropdown: {
-    items: Array<{value: string | number; label: string; url: string}>;
+    items: Array<{label: string; url: string; value: string | number}>;
     placeholder: string;
   };
-  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   nextButton: {
-    text: string; // url comes from the `next` parameter in the QS
-    description?: string;
     allowedDomain: string;
+    text: string;
+    // url comes from the `next` parameter in the QS
+    description?: string;
   };
-  iconType: string;
+  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
+  type: 'project_mapper';
 };
 
 export type ChoiceMapperType = {
@@ -169,8 +171,8 @@ export type ChoiceMapperType = {
 
 // selects a sentry project with avatars
 export type SentryProjectSelectorType = {
-  type: 'sentry_project_selector';
   projects: Project[];
+  type: 'sentry_project_selector';
   avatarSize?: number;
 };
 
@@ -196,8 +198,8 @@ export type Field = (
 export type FieldObject = Field | Function;
 
 export type JsonFormObject = {
-  title?: React.ReactNode;
   fields: FieldObject[];
+  title?: React.ReactNode;
 };
 
 export type Data = Record<string, any>;

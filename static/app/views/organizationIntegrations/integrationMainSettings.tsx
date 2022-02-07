@@ -9,8 +9,8 @@ import {Field} from 'sentry/views/settings/components/forms/type';
 
 type Props = {
   integration: Integration;
-  organization: Organization;
   onUpdate: () => void;
+  organization: Organization;
 };
 
 type State = {

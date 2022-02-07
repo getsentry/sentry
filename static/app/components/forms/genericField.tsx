@@ -25,25 +25,25 @@ type FieldType =
 type SelectFieldType = 'select' | 'choice';
 
 type Config = {
-  required?: boolean;
-  help?: string;
-  name: string;
-  label?: string;
-  placeholder: string;
+  choices: Array<[number | string, number | string]>;
   default: string;
+  name: string;
+  placeholder: string;
   readonly: boolean;
   type: FieldType;
-  choices: Array<[number | string, number | string]>;
+  help?: string;
+  label?: string;
+  required?: boolean;
 };
 
 type SelectFieldConfig = Omit<Config, 'type' | 'has_autocomplete'> & {
-  type: SelectFieldType;
   has_autocomplete: false;
+  type: SelectFieldType;
 };
 
 type AsyncSelectFieldConfig = Omit<SelectFieldConfig, 'has_autocomplete'> & {
-  url: string;
   has_autocomplete: true;
+  url: string;
 };
 
 interface FormData {
@@ -53,9 +53,9 @@ interface FormData {
 type Props = {
   config: Config | SelectFieldConfig | AsyncSelectFieldConfig;
   formData: FormData;
-  formErrors?: object;
   formState: typeof FormState[keyof typeof FormState];
   onChange: FormField['props']['onChange'];
+  formErrors?: object;
 };
 
 const GenericField = ({

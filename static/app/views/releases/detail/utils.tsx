@@ -77,8 +77,8 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  perPage?: number;
   activeRepository?: Repository;
+  perPage?: number;
 };
 
 export function getQuery({location, perPage = 40, activeRepository}: GetQueryProps) {
@@ -154,8 +154,8 @@ export const releaseComparisonChartHelp = {
 };
 
 type GenerateReleaseMarklineOptions = {
-  hideLabel?: boolean;
   axisIndex?: number;
+  hideLabel?: boolean;
 };
 
 function generateReleaseMarkLine(

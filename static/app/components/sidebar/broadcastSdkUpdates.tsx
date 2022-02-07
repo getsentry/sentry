@@ -26,8 +26,8 @@ import ListItem from '../list/listItem';
 import SidebarPanelItem from './sidebarPanelItem';
 
 type Props = {
-  projects: Project[];
   organization: Organization;
+  projects: Project[];
   sdkUpdates?: ProjectSdkUpdates[] | null;
 };
 

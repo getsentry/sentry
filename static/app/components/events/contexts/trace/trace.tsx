@@ -21,9 +21,9 @@ const traceKnownDataValues = [
 const traceIgnoredDataValues = [];
 
 type Props = {
-  organization: Organization;
-  event: Event;
   data: TraceKnownData;
+  event: Event;
+  organization: Organization;
 };
 
 const InnerTrace = withOrganization(function ({organization, event, data}: Props) {

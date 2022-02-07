@@ -18,16 +18,16 @@ const defaultProps = {
 type SelectOption = Record<'value' | 'label', string>;
 
 type Props = {
-  tag: Tag;
   onSelect: (tag: Tag, value: string | null) => void;
+  tag: Tag;
   tagValueLoader: TagValueLoader;
 } & typeof defaultProps;
 
 type State = {
-  query: string;
   isLoading: boolean;
-  value: string | null;
+  query: string;
   textValue: string;
+  value: string | null;
   options?: SelectOption[];
 };
 

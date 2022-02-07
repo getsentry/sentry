@@ -23,8 +23,8 @@ const editRuleMessage = t('You do not have permission to edit dynamic sampling r
 type Props = {
   disabled: boolean;
   isMenuActionsOpen: boolean;
-  onEditRule: () => void;
   onDeleteRule: () => void;
+  onEditRule: () => void;
   onOpenMenuActions: () => void;
 };
 

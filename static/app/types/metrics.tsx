@@ -1,13 +1,13 @@
 export type MetricsApiResponse = {
-  intervals: string[];
+  end: string;
   groups: {
     by: Record<string, string>;
-    totals: Record<string, number | null>;
     series: Record<string, Array<number | null>>;
+    totals: Record<string, number | null>;
   }[];
-  start: string;
-  end: string;
+  intervals: string[];
   query: string;
+  start: string;
 };
 
 export type MetricTag = {
@@ -25,8 +25,8 @@ export type MetricMeta = {
 };
 
 export type MetricQuery = {
-  legend?: string;
   aggregation?: string;
   groupBy?: string[];
+  legend?: string;
   metricMeta?: MetricMeta;
 };

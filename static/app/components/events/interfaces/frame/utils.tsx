@@ -96,8 +96,8 @@ export function isExpandable({
   frame: Frame;
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
-  platform?: string;
   isOnlyFrame?: boolean;
+  platform?: string;
 }) {
   return (
     (!isOnlyFrame && emptySourceNotation) ||

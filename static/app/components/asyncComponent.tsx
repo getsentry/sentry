@@ -17,12 +17,12 @@ import RouteError from 'sentry/views/routeError';
 type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
 
 type AsyncComponentState = {
-  loading: boolean;
-  reloading: boolean;
+  [key: string]: any;
   error: boolean;
   errors: Record<string, ResponseMeta>;
+  loading: boolean;
+  reloading: boolean;
   remainingRequests?: number;
-  [key: string]: any;
 };
 
 type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
@@ -208,7 +208,7 @@ class AsyncComponent<
   markShouldMeasure = ({
     remainingRequests,
     error,
-  }: {remainingRequests?: number; error?: any} = {}) => {
+  }: {error?: any; remainingRequests?: number} = {}) => {
     if (!this._measurement.hasMeasured) {
       this._measurement.finished = remainingRequests === 0;
       this._measurement.error = error || this._measurement.error;
