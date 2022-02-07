@@ -66,31 +66,25 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
   'onChange' | 'value'
 > & {
   /**
-   * Set to true to prefix selected values with content
-   */
-  inFieldLabel?: string;
-  /**
    * Backwards compatible shim to work with select2 style choice type.
    */
   choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
+  /**
+   * Set to true to prefix selected values with content
+   */
+  inFieldLabel?: string;
   /**
    * Used by MultiSelectControl.
    */
   multiple?: boolean;
   /**
-   * Show line dividers between options
-   */
-  showDividers?: boolean;
-  /**
-   * If false (default), checkmarks/checkboxes will be vertically centered
-   * wrt the first line of the label text. If true, they will be centered
-   * wrt the entire height of the option wrap.
-   */
-  verticallyCenterCheckWrap?: boolean;
-  /**
    * Handler for changes. Narrower than the types in react-select.
    */
   onChange?: (value?: OptionType | null) => void;
+  /**
+   * Show line dividers between options
+   */
+  showDividers?: boolean;
   /**
    * Unlike react-select which expects an OptionType as its value
    * we accept the option.value and resolve the option object.
@@ -98,6 +92,12 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * can't have a good type here.
    */
   value?: any;
+  /**
+   * If false (default), checkmarks/checkboxes will be vertically centered
+   * wrt the first line of the label text. If true, they will be centered
+   * wrt the entire height of the option wrap.
+   */
+  verticallyCenterCheckWrap?: boolean;
 };
 
 /**
@@ -371,13 +371,13 @@ type PickerProps<OptionType> = ControlProps<OptionType> & {
    */
   async?: boolean;
   /**
-   * Enable 'create' mode which allows values to be created inline.
-   */
-  creatable?: boolean;
-  /**
    * Enable 'clearable' which allows values to be removed.
    */
   clearable?: boolean;
+  /**
+   * Enable 'create' mode which allows values to be created inline.
+   */
+  creatable?: boolean;
 };
 
 function SelectPicker<OptionType>({

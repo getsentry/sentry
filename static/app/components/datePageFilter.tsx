@@ -48,7 +48,7 @@ type Props = {
   /**
    * Set an optional default value to prefill absolute date with
    */
-  defaultAbsolute?: {start?: Date; end?: Date};
+  defaultAbsolute?: {end?: Date; start?: Date};
   /**
    * Override DEFAULT_STATS_PERIOD
    */
@@ -306,6 +306,7 @@ const DateSelectorContainer = styled('div')`
 const PinButton = styled(Button)`
   display: block;
   color: ${p => p.theme.gray300};
+  background: transparent;
 `;
 
 const RelativePeriodButton = styled(Button)<{selected?: boolean}>`

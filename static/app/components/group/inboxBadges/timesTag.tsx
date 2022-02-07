@@ -13,8 +13,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
  */
 
 type Props = {
-  lastSeen: string;
   firstSeen: string;
+  lastSeen: string;
 };
 
 const TimesTag = ({lastSeen, firstSeen}: Props) => {

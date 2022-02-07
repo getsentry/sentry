@@ -15,10 +15,10 @@ import space from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
 
 type Props = {
+  downloadRole: string;
+  downloadUrl: string;
   mapping: DebugFile;
   onDelete: (id: string) => void;
-  downloadUrl: string;
-  downloadRole: string;
 };
 
 const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Props) => {

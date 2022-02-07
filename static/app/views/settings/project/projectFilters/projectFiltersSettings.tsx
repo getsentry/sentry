@@ -83,8 +83,8 @@ type RowProps = {
 };
 
 type RowState = {
-  loading: boolean;
   error: boolean | Error;
+  loading: boolean;
   subfilters: Set<string>;
 };
 
@@ -178,12 +178,12 @@ class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
 }
 
 type Props = {
-  project: Project;
   features: Set<string>;
   params: {
     orgId: string;
     projectId: string;
   };
+  project: Project;
 };
 
 type State = {

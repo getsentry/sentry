@@ -39,7 +39,8 @@ describe('PageFilters ActionCreators', function () {
         expect.objectContaining({
           environments: [],
           projects: [1],
-        })
+        }),
+        new Set()
       );
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -78,7 +79,8 @@ describe('PageFilters ActionCreators', function () {
             period: '14d',
             utc: null,
           },
-        })
+        }),
+        new Set()
       );
     });
 
@@ -103,7 +105,8 @@ describe('PageFilters ActionCreators', function () {
             period: '3h',
             utc: null,
           },
-        })
+        }),
+        new Set()
       );
     });
 
@@ -170,17 +173,19 @@ describe('PageFilters ActionCreators', function () {
         router,
       });
 
-      expect(localStorage.getItem).not.toHaveBeenCalled();
-      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith({
-        datetime: {
-          start: null,
-          end: null,
-          period: '14d',
-          utc: null,
+      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
+        {
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          projects: [1],
+          environments: [],
         },
-        projects: [1],
-        environments: [],
-      });
+        new Set()
+      );
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {
@@ -260,6 +265,21 @@ describe('PageFilters ActionCreators', function () {
 
       expect(router.replace).not.toHaveBeenCalled();
     });
+
+    it('does not override an absolute date selection', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '1', start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
+        },
+      });
+      updateProjects([2], router, {replace: true});
+
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {project: ['2'], start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
+      });
+    });
   });
 
   describe('updateEnvironments()', function () {
@@ -304,6 +324,29 @@ describe('PageFilters ActionCreators', function () {
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/test/',
         query: {},
+      });
+    });
+
+    it('does not override an absolute date selection', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {
+            environment: 'test',
+            start: '2020-03-22T00:53:38',
+            end: '2020-04-21T00:53:38',
+          },
+        },
+      });
+      updateEnvironments(['new-env'], router, {replace: true});
+
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          environment: ['new-env'],
+          start: '2020-03-22T00:53:38',
+          end: '2020-04-21T00:53:38',
+        },
       });
     });
   });

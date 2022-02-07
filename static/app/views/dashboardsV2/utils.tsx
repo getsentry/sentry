@@ -88,9 +88,9 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     if (query.title && query.displayType && query.interval && queries.length > 0) {
       const newWidget: Widget = {
         ...(pick(query, ['title', 'displayType', 'interval']) as {
-          title: string;
           displayType: DisplayType;
           interval: string;
+          title: string;
         }),
         widgetType: WidgetType.DISCOVER,
         queries,

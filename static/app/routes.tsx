@@ -29,8 +29,8 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 type CustomProps = {
-  name?: string;
   componentPromise?: () => Promise<any>;
+  name?: string;
 };
 
 /**
@@ -1260,6 +1260,13 @@ function buildRoutes() {
           path="events/"
           componentPromise={() =>
             import('sentry/views/performance/transactionSummary/transactionEvents')
+          }
+          component={SafeLazyLoad}
+        />
+        <Route
+          path="anomalies/"
+          componentPromise={() =>
+            import('sentry/views/performance/transactionSummary/transactionAnomalies')
           }
           component={SafeLazyLoad}
         />

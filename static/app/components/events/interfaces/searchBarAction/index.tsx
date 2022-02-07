@@ -6,13 +6,13 @@ import space from 'sentry/styles/space';
 
 type Props = {
   onChange: (value: string) => void;
-  query: string;
   placeholder: string;
+  query: string;
+  className?: string;
   /**
    * The filter must be the SearchBarFilter component
    */
   filter?: React.ReactElement;
-  className?: string;
 };
 
 function SearchBarAction({onChange, query, placeholder, filter, className}: Props) {

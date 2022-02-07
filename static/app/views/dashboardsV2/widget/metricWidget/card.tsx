@@ -18,20 +18,20 @@ import Chart from './chart';
 import StatsRequest from './statsRequest';
 
 type MetricWidget = {
-  title: string;
   displayType: DisplayType;
   groupings: MetricQuery[];
+  title: string;
   searchQuery?: string;
 };
 
 type Props = {
-  widget: MetricWidget;
   api: Client;
   location: Location;
   organization: Organization;
-  selection: PageFilters;
-  router: InjectedRouter;
   project: Project;
+  router: InjectedRouter;
+  selection: PageFilters;
+  widget: MetricWidget;
 };
 
 function Card({widget, api, location, router, organization, project, selection}: Props) {

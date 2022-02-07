@@ -26,9 +26,9 @@ import {getAppStoreErrorMessage} from './utils';
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
+  onSubmit: () => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  onSubmit: () => void;
   appStoreConnectStatusData?: AppStoreConnectStatusData;
   initialData?: CustomRepoAppStoreConnect;
 };
