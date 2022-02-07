@@ -20,7 +20,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
-import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
+import {DashboardListItem} from 'sentry/views/dashboardsV2/types';
 
 import ContextMenu from '../contextMenu';
 import {cloneDashboard} from '../utils';
@@ -30,11 +30,11 @@ import WidgetGrid from './widgetGrid';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  location: Location;
   dashboards: DashboardListItem[] | null;
-  pageLinks: string;
+  location: Location;
   onDashboardsChange: () => void;
+  organization: Organization;
+  pageLinks: string;
 };
 
 function DashboardList({
@@ -82,7 +82,6 @@ function DashboardList({
   }
 
   function renderMiniDashboards() {
-    debugger;
     return dashboards?.map((dashboard, index) => {
       return (
         <DashboardCard
@@ -94,12 +93,12 @@ function DashboardList({
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
           }}
-          detail={tn('%s widget', '%s widgets', dashboard.widgetDisplay.length)}
+          detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
           createdBy={dashboard.createdBy}
-          renderWidgets={() => <WidgetGrid layout={dashboard.layout} />}
+          renderWidgets={() => <WidgetGrid preview={dashboard.widgetPreview} />}
           renderContextMenu={() => (
             <ContextMenu>
               <MenuItem

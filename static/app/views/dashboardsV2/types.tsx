@@ -43,6 +43,11 @@ export type Widget = {
   widgetType?: WidgetType;
 };
 
+export type Preview = {
+  displayType: DisplayType;
+  layout: Omit<Layout, 'i'>;
+};
+
 /**
  * The response shape from dashboard list endpoint
  */
@@ -50,6 +55,7 @@ export type DashboardListItem = {
   id: string;
   title: string;
   widgetDisplay: DisplayType[];
+  widgetPreview: Preview[];
   createdBy?: User;
   dateCreated?: string;
 };
