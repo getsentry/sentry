@@ -16,41 +16,29 @@ import SelectorItem from './selectorItem';
 type DropdownAutoCompleteProps = React.ComponentProps<typeof DropdownAutoComplete>;
 
 type Props = {
-  organization: Organization;
-  /**
-   * Used by multiProjectSelector
-   */
-  multiProjects: Array<Project>;
-  nonMemberProjects: Array<Project>;
-  /**
-   * Use this if the component should be a controlled component
-   */
-  selectedProjects: Array<Project>;
   children: (
     args: Parameters<DropdownAutoCompleteProps['children']>[0] & {
       selectedProjects: Project[];
     }
   ) => React.ReactElement;
   /**
-   * Allow selecting multiple projects
+   * Used by multiProjectSelector
    */
-  multi?: boolean;
-  /**
-   * Represents if a search is taking place
-   */
-  searching?: boolean;
-  /**
-   * Represents if the current project selector is paginated or fully loaded.
-   * Currently only used to ensure that in an empty state the input is not
-   * hidden. This is for the case in which a user searches for a project which
-   * does not exist. If we hide the input due to no results, the user cannot
-   * recover
-   */
-  paginated?: boolean;
+  multiProjects: Array<Project>;
+  nonMemberProjects: Array<Project>;
   /**
    * Callback when a project is selected
    */
   onSelect: (project: Project) => void;
+  organization: Organization;
+  /**
+   * Use this if the component should be a controlled component
+   */
+  selectedProjects: Array<Project>;
+  /**
+   * Allow selecting multiple projects
+   */
+  multi?: boolean;
   /**
    * Callback when the input filter changes
    */
@@ -60,7 +48,19 @@ type Props = {
    * Calls back with (projects[], event)
    */
   onMultiSelect?: (projects: Array<Project>, event: React.MouseEvent) => void;
+  /**
+   * Represents if the current project selector is paginated or fully loaded.
+   * Currently only used to ensure that in an empty state the input is not
+   * hidden. This is for the case in which a user searches for a project which
+   * does not exist. If we hide the input due to no results, the user cannot
+   * recover
+   */
+  paginated?: boolean;
   pinned?: boolean;
+  /**
+   * Represents if a search is taking place
+   */
+  searching?: boolean;
 } & Pick<
   DropdownAutoCompleteProps,
   'menuFooter' | 'onScroll' | 'onClose' | 'rootClassName' | 'className'

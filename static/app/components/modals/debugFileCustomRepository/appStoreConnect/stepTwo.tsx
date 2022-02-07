@@ -7,8 +7,8 @@ import {AppStoreApp, StepTwoData} from './types';
 
 type Props = {
   appStoreApps: AppStoreApp[];
-  stepTwoData: StepTwoData;
   onSetStepTwoData: (stepTwoData: StepTwoData) => void;
+  stepTwoData: StepTwoData;
 };
 
 function StepTwo({stepTwoData, onSetStepTwoData, appStoreApps}: Props) {

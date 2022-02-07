@@ -267,8 +267,9 @@ class WaterfallModel {
     viewStart,
     viewEnd,
   }: {
+    // in [0, 1]
+    viewEnd: number;
     viewStart: number; // in [0, 1]
-    viewEnd: number; // in [0, 1]
   }) => {
     return boundsGenerator({
       ...this.getTraceBounds(),
@@ -281,8 +282,9 @@ class WaterfallModel {
     viewStart,
     viewEnd,
   }: {
+    // in [0, 1]
+    viewEnd: number;
     viewStart: number; // in [0, 1]
-    viewEnd: number; // in [0, 1]
   }) => {
     const generateBounds = this.generateBounds({
       viewStart,

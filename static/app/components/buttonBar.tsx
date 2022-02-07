@@ -8,10 +8,10 @@ import space, {ValidSize} from 'sentry/styles/space';
 
 type ButtonBarProps = {
   children: React.ReactNode;
-  gap?: ValidSize;
-  merged?: boolean;
   active?: React.ComponentProps<typeof Button>['barId'];
   className?: string;
+  gap?: ValidSize;
+  merged?: boolean;
 };
 
 function ButtonBar({

@@ -45,12 +45,12 @@ import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest'
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
 type Props = {
-  api: Client;
-  organization: Organization;
-  selection: PageFilters;
   activeDisplay: ReleasesDisplayOption;
+  api: Client;
   location: Location;
+  organization: Organization;
   router: InjectedRouter;
+  selection: PageFilters;
 };
 
 class ReleasesAdoptionChart extends Component<Props> {

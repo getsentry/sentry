@@ -26,26 +26,26 @@ import {
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
 type DefaultProps = {
-  data: Series[];
   comparisonData: Series[];
   comparisonMarkLines: LineChartSeries[];
+  data: Series[];
 };
 
 type Props = DefaultProps & {
-  triggers: Trigger[];
-  resolveThreshold: IncidentRule['resolveThreshold'];
-  thresholdType: IncidentRule['thresholdType'];
   aggregate: string;
   hideThresholdLines: boolean;
-  minutesThresholdToDisplaySeconds?: number;
+  resolveThreshold: IncidentRule['resolveThreshold'];
+  thresholdType: IncidentRule['thresholdType'];
+  triggers: Trigger[];
+  comparisonSeriesName?: string;
   maxValue?: number;
   minValue?: number;
-  comparisonSeriesName?: string;
+  minutesThresholdToDisplaySeconds?: number;
 } & Partial<PageFilters['datetime']>;
 
 type State = {
-  width: number;
   height: number;
+  width: number;
   yAxisMax: number | null;
   yAxisMin: number | null;
 };

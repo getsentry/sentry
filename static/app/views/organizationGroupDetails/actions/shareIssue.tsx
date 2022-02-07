@@ -15,10 +15,10 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 type ContainerProps = {
-  shareUrl: string;
-  onConfirming: () => void;
-  onConfirm: () => void;
   onCancel: () => void;
+  onConfirm: () => void;
+  onConfirming: () => void;
+  shareUrl: string;
 };
 
 type UrlRef = React.ElementRef<typeof AutoSelectText> | null;
@@ -76,17 +76,17 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
 
 type Props = {
   loading: boolean;
-  onToggle: () => void;
   /**
    * Called when refreshing an existing link
    */
   onReshare: () => void;
+  onToggle: () => void;
+  disabled?: boolean;
   /**
    * Link is public
    */
   isShared?: boolean;
   shareUrl?: string | null;
-  disabled?: boolean;
 };
 
 class ShareIssue extends React.Component<Props> {

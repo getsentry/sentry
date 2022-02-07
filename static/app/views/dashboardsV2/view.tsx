@@ -20,9 +20,9 @@ import {constructWidgetFromQuery} from './utils';
 
 const ALLOWED_PARAMS = ['start', 'end', 'utc', 'period', 'project', 'environment'];
 
-type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
-  organization: Organization;
+type Props = RouteComponentProps<{dashboardId: string; orgId: string}, {}> & {
   children: React.ReactNode;
+  organization: Organization;
 };
 
 function ViewEditDashboard(props: Props) {
@@ -81,8 +81,8 @@ function ViewEditDashboard(props: Props) {
 export default withOrganization(ViewEditDashboard);
 
 type FeatureProps = {
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 };
 
 export const DashboardBasicFeature = ({organization, children}: FeatureProps) => {

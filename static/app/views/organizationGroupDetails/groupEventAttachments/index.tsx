@@ -7,9 +7,9 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import GroupEventAttachments from './groupEventAttachments';
 
-type Props = RouteComponentProps<{orgId: string; groupId: string}, {}> & {
-  organization: Organization;
+type Props = RouteComponentProps<{groupId: string; orgId: string}, {}> & {
   group: Group;
+  organization: Organization;
 };
 
 const GroupEventAttachmentsContainer = ({organization, group}: Props) => (

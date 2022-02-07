@@ -12,9 +12,9 @@ const bulletStyle = (theme: Theme) => css`
 `;
 
 type Options = {
-  isSolid?: boolean;
   // setting initialCounterValue to 0 means the first visible step is 1
   initialCounterValue?: number;
+  isSolid?: boolean;
 };
 
 const numericStyle = (

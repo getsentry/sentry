@@ -220,7 +220,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 /**
  * Renders an emotion global styles injection component
  */
-const GlobalStyles = ({theme, isDark}: {theme: Theme; isDark: boolean}) => (
+const GlobalStyles = ({theme, isDark}: {isDark: boolean; theme: Theme}) => (
   <Global styles={styles(theme, isDark)} />
 );
 

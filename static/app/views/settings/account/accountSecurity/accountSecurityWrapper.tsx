@@ -15,9 +15,9 @@ type Props = {
   AsyncComponent['props'];
 
 type State = {
+  emails: UserEmail[];
   authenticators?: Authenticator[] | null;
   organizations?: OrganizationSummary[];
-  emails: UserEmail[];
 } & AsyncComponent['state'];
 
 class AccountSecurityWrapper extends AsyncComponent<Props, State> {

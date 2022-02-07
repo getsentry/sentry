@@ -9,11 +9,11 @@ import space from 'sentry/styles/space';
 import {ItemType, SearchGroup, SearchItem} from './types';
 
 type Props = {
-  className?: string;
   items: SearchGroup[];
-  searchSubstring: string;
-  onClick: (value: string, item: SearchItem) => void;
   loading: boolean;
+  onClick: (value: string, item: SearchItem) => void;
+  searchSubstring: string;
+  className?: string;
 };
 
 class SearchDropdown extends PureComponent<Props> {

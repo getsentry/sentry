@@ -34,31 +34,31 @@ const omitIgnoredProps = (props: Props) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
 type ProjectSessionsChartRequestRenderProps = {
-  loading: boolean;
-  reloading: boolean;
   errored: boolean;
-  timeseriesData: Series[];
+  loading: boolean;
   previousTimeseriesData: Series | null;
+  reloading: boolean;
+  timeseriesData: Series[];
   totalSessions: number | null;
 };
 
 type Props = {
   api: Client;
+  children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
+  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
+  onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
   selection: PageFilters;
-  children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
-  onTotalValuesChange: (value: number | null) => void;
-  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   theme: Theme;
   disablePrevious?: boolean;
   query?: string;
 };
 
 type State = {
-  reloading: boolean;
   errored: boolean;
-  timeseriesData: Series[] | null;
   previousTimeseriesData: Series | null;
+  reloading: boolean;
+  timeseriesData: Series[] | null;
   totalSessions: number | null;
 };
 
