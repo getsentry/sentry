@@ -246,7 +246,7 @@ class TransactionHeader extends React.Component<Props> {
     const anomaliesTarget = anomaliesRouteWithQuery(routeQuery);
 
     return (
-      <Layout.Header>
+      <Layout.Header data-test-id="transaction-header">
         <Layout.HeaderContent>
           <Breadcrumb
             organization={organization}

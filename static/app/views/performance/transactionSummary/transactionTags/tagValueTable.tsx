@@ -149,6 +149,18 @@ export class TagValueTable extends Component<Props, State> {
     };
   };
 
+  generateReleaseLocation = (release: string) => {
+    const {organization, location} = this.props;
+    const {project} = location.query;
+
+    return {
+      pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+        release
+      )}`,
+      query: {project},
+    };
+  };
+
   renderBodyCell = (
     parentProps: Props,
     column: TableColumn<TagsTableColumnKeys>,
@@ -165,6 +177,7 @@ export class TagValueTable extends Component<Props, State> {
 
     if (column.key === 'tagValue') {
       const actionRow = {...dataRow, id: dataRow.tags_key};
+
       return (
         <CellAction
           column={column}
@@ -172,7 +185,13 @@ export class TagValueTable extends Component<Props, State> {
           handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
           allowActions={allowActions}
         >
-          <TagValue row={dataRow} />
+          {column.name === 'release' ? (
+            <Link to={this.generateReleaseLocation(dataRow.tags_value)}>
+              <TagValue row={dataRow} />
+            </Link>
+          ) : (
+            <TagValue row={dataRow} />
+          )}
         </CellAction>
       );
     }
