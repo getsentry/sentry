@@ -16,7 +16,10 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/persistence';
 import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
-import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
+import {
+  getDefaultSelection,
+  getPathsWithNewFilters,
+} from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {
@@ -117,6 +120,7 @@ type InitializeUrlStateParams = {
   memberProjects: Project[];
   organization: Organization;
   queryParams: Location['query'];
+  pathname: Location['pathname'];
   router: InjectedRouter;
   shouldEnforceSingleProject: boolean;
   defaultSelection?: Partial<PageFilters>;
@@ -132,6 +136,7 @@ type InitializeUrlStateParams = {
 export function initializeUrlState({
   organization,
   queryParams,
+  pathname,
   router,
   memberProjects,
   skipLoadLastUsed,
@@ -182,9 +187,9 @@ export function initializeUrlState({
   if (storedPageFilters) {
     const {state: storedState, pinnedFilters} = storedPageFilters;
 
-    const hasPinning = organization.features.includes('selection-filters-v2');
+    const pageHasPinning = getPathsWithNewFilters(organization).includes(pathname);
 
-    const filtersToRestore = hasPinning
+    const filtersToRestore = pageHasPinning
       ? pinnedFilters
       : new Set<PinnedPageFilter>(['projects', 'environments']);
 

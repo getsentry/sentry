@@ -10,7 +10,10 @@ import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {
+  extractSelectionParameters,
+  getPathsWithNewFilters,
+} from 'sentry/components/organizations/pageFilters/utils';
 import {
   IconActivity,
   IconChevron,
@@ -108,11 +111,13 @@ function Sidebar({location, organization}: Props) {
     pathname: string,
     evt: React.MouseEvent<HTMLAnchorElement>
   ) => {
-    // XXX(epurkhiser): No need to navigation w/ the page filters in the world
+    // XXX(epurkhiser): No need to navigate w/ the page filters in the world
     // of new page filter selection. You must pin your filters in which case
     // they will persist anyway.
-    if (organization?.features.includes('selection-filters-v2')) {
-      return;
+    if (organization) {
+      if (getPathsWithNewFilters(organization).includes(pathname)) {
+        return;
+      }
     }
 
     const globalSelectionRoutes = [
