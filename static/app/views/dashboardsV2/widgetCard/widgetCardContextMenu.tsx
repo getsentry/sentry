@@ -21,15 +21,15 @@ import ContextMenu from '../contextMenu';
 import {Widget, WidgetType} from '../types';
 
 type Props = {
-  organization: Organization;
-  widget: Widget;
-  selection: PageFilters;
   onDelete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
+  organization: Organization;
+  selection: PageFilters;
+  widget: Widget;
   widgetLimitReached: boolean;
-  showContextMenu?: boolean;
   isPreview?: boolean;
+  showContextMenu?: boolean;
 };
 
 function WidgetCardContextMenu({

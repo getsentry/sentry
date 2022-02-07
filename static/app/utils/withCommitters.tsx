@@ -10,9 +10,9 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 type DependentProps = {
   api: Client;
 
+  event: Event;
   organization: Organization;
   project: Project | AvatarProject;
-  event: Event;
   group?: Group;
 };
 

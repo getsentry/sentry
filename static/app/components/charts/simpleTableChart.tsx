@@ -15,19 +15,19 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
 type Props = {
-  organization: Organization;
-  location: Location;
-  loading: boolean;
-  fields: string[];
-  title: string;
-  metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
+  fields: string[];
+  loading: boolean;
+  location: Location;
+  metadata: TableData['meta'] | undefined;
+  organization: Organization;
+  title: string;
   className?: string;
+  fieldHeaderMap?: Record<string, string>;
   getCustomFieldRenderer?: (
     field: string,
     meta: MetaType
   ) => ReturnType<typeof getFieldRenderer> | null;
-  fieldHeaderMap?: Record<string, string>;
   stickyHeaders?: boolean;
 };
 

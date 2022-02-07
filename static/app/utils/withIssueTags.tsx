@@ -23,8 +23,8 @@ const getUsername = ({isManaged, username, email}: User) => {
 
 type WrappedComponentState = {
   tags: TagCollection;
-  users: User[];
   teams: Team[];
+  users: User[];
 };
 /**
  * HOC for getting tags and many useful issue attributes as 'tags' for use

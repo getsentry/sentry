@@ -20,14 +20,14 @@ const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
 export type MetricsRequestRenderProps = {
-  loading: boolean;
-  isLoading: boolean;
-  reloading: boolean;
-  errored: boolean;
   error: string | null;
+  errored: boolean;
+  isLoading: boolean;
+  loading: boolean;
+  pageLinks: string | null;
+  reloading: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
-  pageLinks: string | null;
   tableData?: TableData;
 };
 
@@ -40,34 +40,34 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   api: Client;
-  orgSlug: Organization['slug'];
   field: string[];
+  orgSlug: Organization['slug'];
   children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
-  project?: Readonly<number[]>;
-  environment?: Readonly<string[]>;
-  statsPeriod?: string | null;
-  start?: DateString;
-  end?: DateString;
-  query?: string;
-  groupBy?: string[];
-  orderBy?: string;
-  limit?: number;
   cursor?: string;
-  interval?: string;
-  isDisabled?: boolean;
+  end?: DateString;
+  environment?: Readonly<string[]>;
+  groupBy?: string[];
   /**
    * Transform the response data to be something ingestible by GridEditable tables
    */
   includeTabularData?: boolean;
+  interval?: string;
+  isDisabled?: boolean;
+  limit?: number;
+  orderBy?: string;
+  project?: Readonly<number[]>;
+  query?: string;
+  start?: DateString;
+  statsPeriod?: string | null;
 };
 
 type State = {
-  reloading: boolean;
-  errored: boolean;
   error: string | null;
+  errored: boolean;
+  pageLinks: string | null;
+  reloading: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
-  pageLinks: string | null;
 };
 
 class MetricsRequest extends React.Component<Props, State> {

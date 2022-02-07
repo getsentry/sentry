@@ -21,10 +21,6 @@ function guidePrioritySort(a: Guide, b: Guide) {
 
 export type GuideStoreState = {
   /**
-   * All tooltip guides
-   */
-  guides: Guide[];
-  /**
    * Anchors that are currently mounted
    */
   anchors: Set<string>;
@@ -37,6 +33,14 @@ export type GuideStoreState = {
    */
   currentStep: number;
   /**
+   * We force show a guide if the URL contains #assistant
+   */
+  forceShow: boolean;
+  /**
+   * All tooltip guides
+   */
+  guides: Guide[];
+  /**
    * Current organization id
    */
   orgId: string | null;
@@ -44,10 +48,6 @@ export type GuideStoreState = {
    * Current organization slug
    */
   orgSlug: string | null;
-  /**
-   * We force show a guide if the URL contains #assistant
-   */
-  forceShow: boolean;
   /**
    * The previously shown guide
    */
@@ -66,12 +66,12 @@ const defaultState: GuideStoreState = {
 };
 
 type GuideStoreInterface = {
-  state: GuideStoreState;
-
   onFetchSucceeded(data: GuidesServerData): void;
+
   onRegisterAnchor(target: string): void;
   onUnregisterAnchor(target: string): void;
   recordCue(guide: string): void;
+  state: GuideStoreState;
   updatePrevGuide(nextGuide: Guide | null): void;
 };
 

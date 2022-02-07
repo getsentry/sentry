@@ -15,8 +15,8 @@ const options = {
 };
 
 type Props = {
-  selected: ReleasesStatusOption;
   onSelect: (key: string) => void;
+  selected: ReleasesStatusOption;
 };
 
 function ReleasesStatusOptions({selected, onSelect}: Props) {

@@ -15,11 +15,11 @@ const SECTION_TITLE = t('Built-in Repositories');
 
 type Props = {
   api: Client;
-  organization: Organization;
-  projSlug: Project['slug'];
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
   isLoading: boolean;
+  organization: Organization;
+  projSlug: Project['slug'];
 };
 
 function BuiltInRepositories({

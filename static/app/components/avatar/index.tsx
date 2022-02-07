@@ -15,10 +15,6 @@ import {
 } from 'sentry/types';
 
 type Props = {
-  team?: Team;
-  organization?: OrganizationSummary;
-  project?: AvatarProject;
-  sentryApp?: AvatarSentryApp;
   docIntegration?: DocIntegration;
   /**
    * True if the Avatar is full color, rather than B&W (Used for SentryAppAvatar)
@@ -28,6 +24,10 @@ type Props = {
    * True if the rendered Avatar should be a static asset
    */
   isDefault?: boolean;
+  organization?: OrganizationSummary;
+  project?: AvatarProject;
+  sentryApp?: AvatarSentryApp;
+  team?: Team;
 } & UserAvatar['props'];
 
 const Avatar = React.forwardRef(function Avatar(
