@@ -7,10 +7,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
   deploy: Deploy;
-  projectId?: number;
-  orgSlug?: string;
-  version?: string;
   className?: string;
+  orgSlug?: string;
+  projectId?: number;
+  version?: string;
 };
 
 const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) => {

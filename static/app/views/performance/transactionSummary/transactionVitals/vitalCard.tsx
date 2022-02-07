@@ -45,21 +45,21 @@ import {Rectangle} from './types';
 import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
 type Props = {
-  theme: Theme;
-  location: Location;
-  organization: Organization;
-  isLoading: boolean;
-  error: boolean;
-  vital: WebVital;
-  vitalDetails: Vital;
-  summaryData: VitalData | null;
   chartData: HistogramData;
   colors: [string];
+  error: boolean;
   eventView: EventView;
-  min?: number;
-  max?: number;
-  precision?: number;
+  isLoading: boolean;
+  location: Location;
+  organization: Organization;
+  summaryData: VitalData | null;
+  theme: Theme;
+  vital: WebVital;
+  vitalDetails: Vital;
   dataFilter?: DataFilter;
+  max?: number;
+  min?: number;
+  precision?: number;
 };
 
 type State = {

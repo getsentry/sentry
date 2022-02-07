@@ -24,14 +24,9 @@ type ChildFunction = (props: ChildRenderProps) => React.ReactNode;
 
 type DefaultProps = {
   /**
-   * Should the component require all access levels or just one or more.
+   * List of required access levels
    */
-  requireAll?: boolean;
-
-  /**
-   * Requires superuser
-   */
-  isSuperuser?: boolean;
+  access: Scope[];
 
   /**
    * Custom renderer function for "no access" message OR `true` to use
@@ -40,9 +35,14 @@ type DefaultProps = {
   renderNoAccessMessage: ChildFunction | boolean;
 
   /**
-   * List of required access levels
+   * Requires superuser
    */
-  access: Scope[];
+  isSuperuser?: boolean;
+
+  /**
+   * Should the component require all access levels or just one or more.
+   */
+  requireAll?: boolean;
 };
 
 const defaultProps: DefaultProps = {
@@ -54,14 +54,14 @@ const defaultProps: DefaultProps = {
 
 type Props = {
   /**
-   * Current Organization
-   */
-  organization: Organization;
-
-  /**
    * Configuration from ConfigStore
    */
   config: Config;
+
+  /**
+   * Current Organization
+   */
+  organization: Organization;
 
   /**
    * Children can be a node or a function as child.

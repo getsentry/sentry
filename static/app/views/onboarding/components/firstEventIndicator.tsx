@@ -16,8 +16,8 @@ type EventWaiterProps = Omit<React.ComponentProps<typeof EventWaiter>, 'children
 type FirstIssue = null | true | Group;
 
 type RenderProps = {
-  indicator: React.ReactNode;
   firstEventButton: React.ReactNode;
+  indicator: React.ReactNode;
 };
 
 type Props = EventWaiterProps & {

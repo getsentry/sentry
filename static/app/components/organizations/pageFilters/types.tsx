@@ -5,10 +5,10 @@
  * `statsPeriod`
  */
 export type PageFiltersStringified = {
-  project?: string[] | null;
-  environment?: string[] | null;
-  start?: string | null;
   end?: string | null;
+  environment?: string[] | null;
+  project?: string[] | null;
+  start?: string | null;
   statsPeriod?: string | null;
   utc?: string | null;
 };
@@ -17,10 +17,10 @@ export type PageFiltersStringified = {
  * This is a flat normalized variant of the PageFilters type.
  */
 export type PageFiltersState = {
-  project: number[] | null;
+  end: Date | null;
   environment: string[] | null;
   period: string | null;
+  project: number[] | null;
   start: Date | null;
-  end: Date | null;
   utc: boolean | null;
 };

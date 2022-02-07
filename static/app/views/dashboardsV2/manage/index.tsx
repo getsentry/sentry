@@ -45,8 +45,8 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 
 type Props = {
   api: Client;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   router: InjectedRouter;
 } & AsyncView['props'];
 
@@ -230,6 +230,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
       organization,
       dashboard_id: dashboard.id,
+      dashboard_title: dashboard.title,
       was_previewed: false,
     });
 

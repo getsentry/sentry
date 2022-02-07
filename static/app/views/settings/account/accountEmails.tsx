@@ -152,10 +152,10 @@ type EmailRowProps = {
   email: string;
   onRemove: (email: string, e: React.MouseEvent) => void;
   onVerify: (email: string, e: React.MouseEvent) => void;
-  onSetPrimary?: (email: string, e: React.MouseEvent) => void;
-  isVerified?: boolean;
-  isPrimary?: boolean;
   hideRemove?: boolean;
+  isPrimary?: boolean;
+  isVerified?: boolean;
+  onSetPrimary?: (email: string, e: React.MouseEvent) => void;
 };
 
 const EmailRow = ({

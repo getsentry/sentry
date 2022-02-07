@@ -11,8 +11,8 @@ import {SuspectSpans} from './types';
 
 type SuspectSpansProps = {
   perSuspect?: number;
-  spanOps?: string[];
   spanGroups?: string[];
+  spanOps?: string[];
 };
 
 type RequestProps = DiscoverQueryProps & SuspectSpansProps;

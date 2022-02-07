@@ -19,7 +19,7 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import {IconArrow} from 'sentry/icons';
+import {IconResize} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -34,7 +34,9 @@ import {
   calculateColumnDepths,
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
+  enforceWidgetHeightValues,
   generateWidgetId,
+  generateWidgetsAfterCompaction,
   getDashboardLayout,
   getDefaultWidgetHeight,
   getMobileLayout,
@@ -62,24 +64,24 @@ const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
 type Props = {
   api: Client;
-  organization: Organization;
   dashboard: DashboardDetails;
-  selection: PageFilters;
+  handleAddCustomWidget: (widget: Widget) => void;
+  handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditing: boolean;
-  router: InjectedRouter;
   location: Location;
-  widgetLimitReached: boolean;
-  isPreview?: boolean;
+  onSetWidgetToBeUpdated: (widget: Widget) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
-  onSetWidgetToBeUpdated: (widget: Widget) => void;
-  handleUpdateWidgetList: (widgets: Widget[]) => void;
-  handleAddCustomWidget: (widget: Widget) => void;
+  organization: Organization;
+  router: InjectedRouter;
+  selection: PageFilters;
+  widgetLimitReached: boolean;
+  isPreview?: boolean;
+  newWidget?: Widget;
   paramDashboardId?: string;
   paramTemplateId?: string;
-  newWidget?: Widget;
 };
 
 type State = {
@@ -263,11 +265,27 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing, handleUpdateWidgetList} = this.props;
-    const nextList = [...this.props.dashboard.widgets];
+    const {isEditing, onUpdate, handleUpdateWidgetList} = this.props;
+
+    let nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
-    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
-    this.props.onUpdate(nextList);
+    const nextWidgetData = {
+      ...nextWidget,
+      tempId: prevWidget.tempId,
+    };
+
+    // Only modify and re-compact if the default height has changed
+    if (
+      getDefaultWidgetHeight(prevWidget.displayType) !==
+      getDefaultWidgetHeight(nextWidget.displayType)
+    ) {
+      nextList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+      nextList = generateWidgetsAfterCompaction(nextList);
+    } else {
+      nextList[updateIndex] = nextWidgetData;
+    }
+
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
@@ -276,9 +294,10 @@ class Dashboard extends Component<Props, State> {
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
     const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
-    onUpdate(nextList);
+    let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    nextList = generateWidgetsAfterCompaction(nextList);
 
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
@@ -295,8 +314,9 @@ class Dashboard extends Component<Props, State> {
     widgetCopy.id = undefined;
     widgetCopy.tempId = undefined;
 
-    const nextList = [...dashboard.widgets];
+    let nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
+    nextList = generateWidgetsAfterCompaction(nextList);
 
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
@@ -525,7 +545,7 @@ class Dashboard extends Component<Props, State> {
             className="react-resizable-handle"
             data-test-id="custom-resize-handle"
           >
-            <IconArrow />
+            <IconResize />
           </ResizeHandle>
         }
         isBounded
@@ -620,7 +640,7 @@ const WidgetContainer = styled('div')`
 
 const GridItem = styled('div')`
   .react-resizable-handle {
-    z-index: 1;
+    z-index: 2;
   }
 `;
 
@@ -646,9 +666,8 @@ const GridLayout = styled(WidthProvider(Responsive))`
 `;
 
 const ResizeHandle = styled('div')`
-  transform: rotate(135deg);
   position: absolute;
   bottom: 2px;
-  right: 4px;
+  right: 2px;
   cursor: nwse-resize;
 `;

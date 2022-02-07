@@ -7,32 +7,32 @@ type State = {
   // Use `getCommitterStoreKey` to generate key
   [key: string]: {
     committers?: Committer[];
-    committersLoading?: boolean;
     committersError?: Error;
+    committersLoading?: boolean;
   };
 };
 
 type CommitterStoreInterface = {
-  state: State;
-
-  load(orgSlug: string, projectSlug: string, eventId: string): void;
-  loadSuccess(
-    orgSlug: string,
-    projectSlug: string,
-    eventId: string,
-    data: Committer[]
-  ): void;
-  loadError(orgSlug: string, projectSlug: string, eventId: string, error: Error): void;
-
   get(
     orgSlug: string,
     projectSlug: string,
     eventId: string
   ): {
     committers?: Committer[];
-    committersLoading?: boolean;
     committersError?: Error;
+    committersLoading?: boolean;
   };
+
+  load(orgSlug: string, projectSlug: string, eventId: string): void;
+  loadError(orgSlug: string, projectSlug: string, eventId: string, error: Error): void;
+  loadSuccess(
+    orgSlug: string,
+    projectSlug: string,
+    eventId: string,
+    data: Committer[]
+  ): void;
+
+  state: State;
 };
 
 export const storeConfig: Reflux.StoreDefinition & CommitterStoreInterface = {

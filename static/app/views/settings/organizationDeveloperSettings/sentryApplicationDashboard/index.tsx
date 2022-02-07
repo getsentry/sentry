@@ -18,19 +18,19 @@ import RequestLog from './requestLog';
 type Props = RouteComponentProps<{appSlug: string; orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
-  stats: {
-    totalUninstalls: number;
-    totalInstalls: number;
-    installStats: [number, number][];
-    uninstallStats: [number, number][];
-  };
+  app: SentryApp;
   interactions: {
     componentInteractions: {
       [key: string]: [number, number][];
     };
     views: [number, number][];
   };
-  app: SentryApp;
+  stats: {
+    installStats: [number, number][];
+    totalInstalls: number;
+    totalUninstalls: number;
+    uninstallStats: [number, number][];
+  };
 };
 
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {

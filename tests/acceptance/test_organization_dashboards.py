@@ -1,4 +1,5 @@
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -43,7 +44,23 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
             project_id=self.project.id,
         )
-        self.page = DashboardDetailPage(self.browser, self.client, organization=self.organization)
+        self.dashboard = Dashboard.objects.create(
+            title="Dashboard 1", created_by=self.user, organization=self.organization
+        )
+        self.existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Existing Widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=self.existing_widget, fields=["count()"], order=0
+        )
+        self.page = DashboardDetailPage(
+            self.browser, self.client, organization=self.organization, dashboard=self.dashboard
+        )
         self.login_as(self.user)
 
     def test_view_dashboard(self):
@@ -97,6 +114,32 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.browser.snapshot("dashboards - widget library")
 
+    def test_duplicate_widget_in_view_mode(self):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            self.browser.elements('[data-test-id="context-menu"]')[0].click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboard widget - duplicate")
+
+    def test_delete_widget_in_view_mode(self):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="delete-widget"]').click()
+            self.browser.element('[data-test-id="confirm-button"]').click()
+
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboard widget - delete")
+
 
 class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
@@ -124,7 +167,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         self.browser.snapshot(screenshot_name)
         self.browser.refresh()
         self.page.wait_until_loaded()
-
         self.browser.snapshot(f"{screenshot_name} (refresh)")
 
     def test_add_and_move_new_widget_on_existing_dashboard(self):
@@ -419,6 +461,60 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.wait_until_loaded()
             self.browser.snapshot("dashboards - default layout when widgets do not have layout set")
 
+    def test_duplicate_widget_in_view_mode(self):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Big Number Widget",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count_unique(issue)"], order=0
+        )
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            self.browser.elements('[data-test-id="context-menu"]')[0].click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.page.wait_until_loaded()
+
+            # Should not trigger alert
+            self.page.enter_edit_state()
+            self.page.click_cancel_button()
+            wait = WebDriverWait(self.browser.driver, 5)
+            wait.until_not(EC.alert_is_present())
+
+            self.browser.snapshot("dashboard widget - duplicate with grid")
+
+    def test_delete_widget_in_view_mode(self):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Big Number Widget",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count_unique(issue)"], order=0
+        )
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="delete-widget"]').click()
+            self.browser.element('[data-test-id="confirm-button"]').click()
+
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboard widget - delete with grid")
+
     def test_cancel_without_changes_does_not_trigger_confirm_with_widget_library_through_header(
         self,
     ):
@@ -466,6 +562,261 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.click_cancel_button()
             wait = WebDriverWait(self.browser.driver, 5)
             wait.until_not(EC.alert_is_present())
+
+    def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_edit(
+        self,
+    ):
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+            self.page.enter_edit_state()
+
+            # Widgets should take up the whole first row and the first spot in second row
+            self.page.add_widget_through_dashboard("A")
+            self.page.add_widget_through_dashboard("B")
+            self.page.add_widget_through_dashboard("C")
+            self.page.add_widget_through_dashboard("D")
+            self.page.wait_until_loaded()
+
+            self.page.save_dashboard()
+            self.capture_screenshots(
+                "dashboards - position when adding multiple widgets through Add Widget tile in edit"
+            )
+
+    def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_create(
+        self,
+    ):
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_create_dashboard()
+
+            # Widgets should take up the whole first row and the first spot in second row
+            self.page.add_widget_through_dashboard("A")
+            self.page.add_widget_through_dashboard("B")
+            self.page.add_widget_through_dashboard("C")
+            self.page.add_widget_through_dashboard("D")
+            self.page.wait_until_loaded()
+
+            self.page.save_dashboard()
+
+            # Wait for page redirect, or else loading check passes too early
+            wait = WebDriverWait(self.browser.driver, 10)
+            wait.until(
+                lambda driver: (
+                    f"/organizations/{self.organization.slug}/dashboards/new/"
+                    not in driver.current_url
+                )
+            )
+            self.capture_screenshots(
+                "dashboards - position when adding multiple widgets through Add Widget tile in create"
+            )
+
+    def test_deleting_stacked_widgets_by_context_menu_does_not_trigger_confirm_on_edit_cancel(
+        self,
+    ):
+        layouts = [
+            {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2},
+            {"x": 0, "y": 2, "w": 2, "h": 2, "minH": 2},
+        ]
+        existing_widgets = DashboardWidget.objects.bulk_create(
+            [
+                DashboardWidget(
+                    dashboard=self.dashboard,
+                    order=i,
+                    title=f"Existing Widget {i}",
+                    display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    interval="1d",
+                    detail={"layout": layout},
+                )
+                for i, layout in enumerate(layouts)
+            ]
+        )
+        DashboardWidgetQuery.objects.bulk_create(
+            DashboardWidgetQuery(widget=widget, fields=["count()"], order=0)
+            for widget in existing_widgets
+        )
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+
+            delete_widget_menu_item = self.browser.element('[data-test-id="delete-widget"]')
+            delete_widget_menu_item.click()
+
+            confirm_button = self.browser.element('[data-test-id="confirm-button"]')
+            confirm_button.click()
+
+            wait = WebDriverWait(self.browser.driver, 5)
+            wait.until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//*[contains(text(),'Dashboard updated')]")
+                )
+            )
+
+            # Should not trigger confirm dialog
+            self.page.enter_edit_state()
+            self.page.click_cancel_button()
+            wait.until_not(EC.alert_is_present())
+
+    def test_changing_number_widget_to_area_updates_widget_height(
+        self,
+    ):
+        layouts = [
+            {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 1},
+            {"x": 0, "y": 1, "w": 2, "h": 1, "minH": 1},
+        ]
+        existing_widgets = DashboardWidget.objects.bulk_create(
+            [
+                DashboardWidget(
+                    dashboard=self.dashboard,
+                    order=i,
+                    title=f"Big Number {i}",
+                    display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    interval="1d",
+                    detail={"layout": layout},
+                )
+                for i, layout in enumerate(layouts)
+            ]
+        )
+        DashboardWidgetQuery.objects.bulk_create(
+            DashboardWidgetQuery(widget=widget, fields=["count()"], order=0)
+            for widget in existing_widgets
+        )
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            # Open edit modal for first widget
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+            edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
+            edit_widget_menu_item.click()
+
+            # Change the chart type to the first visualization option - Area chart
+            chart_type_input = self.browser.element("#react-select-2-input")
+            chart_type_input.send_keys("Area", Keys.ENTER)
+            button = self.browser.element('[data-test-id="add-widget"]')
+            button.click()
+
+            # No confirm dialog because of shifting lower element
+            self.page.enter_edit_state()
+            self.page.click_cancel_button()
+            wait = WebDriverWait(self.browser.driver, 5)
+            wait.until_not(EC.alert_is_present())
+
+            # Try to decrease height to 1 row, should stay at 2 rows
+            self.page.enter_edit_state()
+            resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(resizeHandle, 0, -100).perform()
+
+            self.page.save_dashboard()
+
+            self.browser.snapshot(
+                "dashboards - change from big number to area chart increases widget to min height"
+            )
+
+    def test_changing_number_widget_larger_than_min_height_for_area_chart_keeps_height(
+        self,
+    ):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Originally Big Number - 3 rows",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 1}},
+        )
+        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            # Open edit modal for first widget
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+            edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
+            edit_widget_menu_item.click()
+
+            # Change the chart type to the first visualization option - Area chart
+            chart_type_input = self.browser.element("#react-select-2-input")
+            chart_type_input.send_keys("Area", Keys.ENTER)
+            button = self.browser.element('[data-test-id="add-widget"]')
+            button.click()
+
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot(
+                "dashboards - change from big number to other chart of more than 2 rows keeps height"
+            )
+
+            # Try to decrease height by >1 row, should be at 2 rows
+            self.page.enter_edit_state()
+            resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(resizeHandle, 0, -400).perform()
+
+            self.page.save_dashboard()
+
+            self.browser.snapshot(
+                "dashboards - change from big number to other chart enforces min height of 2"
+            )
+
+    def test_changing_area_widget_larger_than_min_height_for_number_chart_keeps_height(
+        self,
+    ):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Originally Area Chart - 3 rows",
+            display_type=DashboardWidgetDisplayTypes.AREA_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 2}},
+        )
+        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            # Open edit modal for first widget
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+            edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
+            edit_widget_menu_item.click()
+
+            # Change the chart type to big number
+            chart_type_input = self.browser.element("#react-select-2-input")
+            chart_type_input.send_keys("Big Number", Keys.ENTER)
+            button = self.browser.element('[data-test-id="add-widget"]')
+            button.click()
+
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot("dashboards - change from area chart to big number keeps height")
+
+            # Decrease height by >1 row, should stop at 1 row
+            self.page.enter_edit_state()
+            resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(resizeHandle, 0, -400).perform()
+
+            self.page.save_dashboard()
+
+            self.browser.snapshot(
+                "dashboards - change from area chart to big number allows min height of 1"
+            )
 
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):

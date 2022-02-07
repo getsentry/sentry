@@ -50,23 +50,23 @@ import TableActions from './tableActions';
 import {TableColumn} from './types';
 
 export type TableViewProps = {
-  location: Location;
-  organization: Organization;
-  projects: Project[];
+  error: string | null;
+  eventView: EventView;
+  isFirstPage: boolean;
 
   isLoading: boolean;
-  error: string | null;
+  location: Location;
 
-  isFirstPage: boolean;
-  eventView: EventView;
+  measurementKeys: null | string[];
+  onChangeShowTags: () => void;
+  organization: Organization;
+  projects: Project[];
+  showTags: boolean;
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
-  measurementKeys: null | string[];
-  spanOperationBreakdownKeys?: string[];
-  title: string;
 
-  onChangeShowTags: () => void;
-  showTags: boolean;
+  title: string;
+  spanOperationBreakdownKeys?: string[];
 };
 
 /**
@@ -373,8 +373,11 @@ class TableView extends React.Component<TableViewProps> {
 
       switch (action) {
         case Actions.TRANSACTION: {
-          const maybeProject = projects.find(project => project.slug === dataRow.project);
-
+          const maybeProject = projects.find(
+            project =>
+              project.slug &&
+              [dataRow['project.name'], dataRow.project].includes(project.slug)
+          );
           const projectID = maybeProject ? [maybeProject.id] : undefined;
 
           const next = transactionSummaryRouteWithQuery({

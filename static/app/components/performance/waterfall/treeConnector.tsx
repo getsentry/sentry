@@ -41,7 +41,7 @@ export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean
         content: '';
         height: 2px;
         left: -2px;
-        border-bottom: 2px solid ${p.theme.border};
+        border-bottom: 2px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border};
         width: calc(100% - 2px);
         position: absolute;
         bottom: calc(50% - 1px);
@@ -60,9 +60,9 @@ export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean
 `;
 
 type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
-  isExpanded: boolean;
   disabled: boolean;
   errored: boolean;
+  isExpanded: boolean;
   isSpanGroupToggler?: boolean;
 }>;
 

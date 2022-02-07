@@ -1,6 +1,6 @@
 export type DiscoverEventParameters = {
-  'discover_views.add_to_dashboard.modal_open': {saved_query: boolean};
   'discover_views.add_to_dashboard.confirm': {};
+  'discover_views.add_to_dashboard.modal_open': {saved_query: boolean};
 };
 
 export type DiscoverEventKey = keyof DiscoverEventParameters;

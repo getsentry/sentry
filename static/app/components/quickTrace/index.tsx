@@ -61,10 +61,10 @@ type QuickTraceProps = Pick<
   EventNodeSelectorProps,
   'anchor' | 'errorDest' | 'transactionDest'
 > & {
-  quickTrace: QuickTraceType;
   event: Event;
   location: Location;
   organization: OrganizationSummary;
+  quickTrace: QuickTraceType;
 };
 
 export default function QuickTrace({
@@ -264,16 +264,16 @@ function handleDropdownItem(
 }
 
 type EventNodeSelectorProps = {
-  location: Location;
-  organization: OrganizationSummary;
-  events: QuickTraceEvent[];
-  text: React.ReactNode;
-  currentEvent: Event;
-  numEvents?: number;
   anchor: 'left' | 'right';
-  nodeKey: keyof typeof TOOLTIP_PREFIX;
+  currentEvent: Event;
   errorDest: ErrorDestination;
+  events: QuickTraceEvent[];
+  location: Location;
+  nodeKey: keyof typeof TOOLTIP_PREFIX;
+  organization: OrganizationSummary;
+  text: React.ReactNode;
   transactionDest: TransactionDestination;
+  numEvents?: number;
 };
 
 function EventNodeSelector({
@@ -435,13 +435,13 @@ function EventNodeSelector({
 }
 
 type DropdownNodeProps = {
+  anchor: 'left' | 'right';
   event: TraceError | QuickTraceEvent;
   organization: OrganizationSummary;
-  anchor: 'left' | 'right';
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
-  to?: LocationDescriptor;
   subtext?: string;
+  to?: LocationDescriptor;
 };
 
 function DropdownNodeItem({
@@ -493,12 +493,12 @@ function DropdownNodeItem({
 }
 
 type EventNodeProps = {
-  text: React.ReactNode;
   hoverText: React.ReactNode;
-  to?: LocationDescriptor;
+  text: React.ReactNode;
   onClick?: (eventKey: any) => void;
-  type?: keyof Theme['tag'];
   shouldOffset?: boolean;
+  to?: LocationDescriptor;
+  type?: keyof Theme['tag'];
 };
 
 function StyledEventNode({

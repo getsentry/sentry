@@ -52,12 +52,12 @@ type WidgetCardChartProps = Pick<
   WidgetQueries['state'],
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
 > & {
-  theme: Theme;
-  organization: Organization;
   location: Location;
-  widget: Widget;
-  selection: PageFilters;
+  organization: Organization;
   router: InjectedRouter;
+  selection: PageFilters;
+  theme: Theme;
+  widget: Widget;
   isMobile?: boolean;
   windowWidth?: number;
 };
@@ -123,6 +123,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           metadata={result.meta}
           data={result.data}
           organization={organization}
+          stickyHeaders
         />
       );
     });
@@ -377,9 +378,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults
             ? timeseriesResults.map((values, i: number) => {
-                const seriesName = isEquation(values.seriesName)
-                  ? getEquation(values.seriesName)
-                  : values.seriesName;
+                let seriesName = '';
+                if (values.seriesName !== undefined) {
+                  seriesName = isEquation(values.seriesName)
+                    ? getEquation(values.seriesName)
+                    : values.seriesName;
+                }
                 return {
                   ...values,
                   seriesName,

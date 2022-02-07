@@ -7,8 +7,8 @@ import GenericDiscoverQuery, {
 import withApi from 'sentry/utils/withApi';
 
 export type TableDataRow = {
-  id: string;
   [key: string]: React.ReactText;
+  id: string;
 };
 
 export type TableData = {
