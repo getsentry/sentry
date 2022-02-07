@@ -17,12 +17,12 @@ import {releaseComparisonChartLabels} from '../../utils';
 import {ReleaseComparisonRow} from '.';
 
 type Props = Omit<ReleaseComparisonRow, 'diffDirection' | 'diffColor'> & {
-  showPlaceholders: boolean;
   activeChart: ReleaseComparisonChartType;
-  onChartChange: (type: ReleaseComparisonChartType) => void;
   chartDiff: React.ReactNode;
-  onExpanderToggle: (type: ReleaseComparisonChartType) => void;
   expanded: boolean;
+  onChartChange: (type: ReleaseComparisonChartType) => void;
+  onExpanderToggle: (type: ReleaseComparisonChartType) => void;
+  showPlaceholders: boolean;
   withExpanders: boolean;
 };
 
@@ -152,10 +152,10 @@ const TitleWrapper = styled('div')`
 `;
 
 const ChartTableRow = styled('label')<{
-  isActive: boolean;
-  role: ReleaseComparisonRow['role'];
   expanded: boolean;
+  isActive: boolean;
   isLoading: boolean;
+  role: ReleaseComparisonRow['role'];
 }>`
   display: contents;
   font-weight: 400;

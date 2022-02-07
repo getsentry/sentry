@@ -65,24 +65,24 @@ const defaultProps = {
 
 type Props = {
   id: string;
-  selection: PageFilters;
   organization: Organization;
-  displayReprocessingLayout?: boolean;
-  query?: string;
-  hasGuideAnchor?: boolean;
-  memberList?: User[];
-  showInboxTime?: boolean;
-  index?: number;
+  selection: PageFilters;
   customStatsPeriod?: TimePeriodType;
   display?: IssueDisplayOptions;
+  displayReprocessingLayout?: boolean;
+  hasGuideAnchor?: boolean;
+  index?: number;
+  memberList?: User[];
+  query?: string;
   // TODO(ts): higher order functions break defaultprops export types
   queryFilterDescription?: string;
+  showInboxTime?: boolean;
 } & Partial<typeof defaultProps>;
 
 type State = {
+  actionTaken: boolean;
   data: Group;
   reviewed: boolean;
-  actionTaken: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -593,9 +593,9 @@ export default withPageFilters(withOrganization(StreamGroup));
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
+  actionTaken: boolean;
   reviewed: boolean;
   unresolved: boolean;
-  actionTaken: boolean;
   useTintRow: boolean;
 }>`
   position: relative;

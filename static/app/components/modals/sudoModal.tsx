@@ -23,18 +23,18 @@ type Props = WithRouterProps &
     api: Client;
     closeModal: () => void;
     /**
-     * User is a superuser without an active su session
-     */
-    superuser?: boolean;
-    /**
      * expects a function that returns a Promise
      */
     retryRequest?: () => Promise<any>;
+    /**
+     * User is a superuser without an active su session
+     */
+    superuser?: boolean;
   };
 
 type State = {
-  error: boolean;
   busy: boolean;
+  error: boolean;
 };
 
 class SudoModal extends React.Component<Props, State> {

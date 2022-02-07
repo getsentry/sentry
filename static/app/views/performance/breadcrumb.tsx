@@ -17,17 +17,17 @@ import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
 import {getPerformanceLandingUrl} from './utils';
 
 type Props = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
+  eventSlug?: string;
+  spanSlug?: SpanSlug;
+  tab?: Tab;
+  traceSlug?: string;
   transaction?: {
-    project: string;
     name: string;
+    project: string;
   };
   vitalName?: string;
-  spanSlug?: SpanSlug;
-  eventSlug?: string;
-  traceSlug?: string;
-  tab?: Tab;
 };
 
 class Breadcrumb extends Component<Props> {

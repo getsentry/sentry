@@ -83,8 +83,9 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
 
 function QueryResultSaver<T extends WidgetDataConstraint>(
   props: {
-    results: any; // TODO(k-fish): Fix this any.
+    // TODO(k-fish): Fix this any.
     query: QueryDefinitionWithKey<T>;
+    results: any;
   } & QueryHandlerProps<T>
 ) {
   const {results, query} = props;

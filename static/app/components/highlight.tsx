@@ -3,6 +3,10 @@ import styled from '@emotion/styled';
 
 type HighlightProps = {
   /**
+   * The original text
+   */
+  children: string;
+  /**
    * The text to highlight
    */
   text: string;
@@ -10,10 +14,6 @@ type HighlightProps = {
    * Should highlighting be disabled?
    */
   disabled?: boolean;
-  /**
-   * The original text
-   */
-  children: string;
 };
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof HighlightProps> &

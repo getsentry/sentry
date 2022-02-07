@@ -59,13 +59,13 @@ type Props = DefaultProps &
   };
 
 type State = {
-  searchTerm: string;
-  filteredImages: Images;
-  filteredImagesBySearch: Images;
-  filteredImagesByFilter: Images;
   filterOptions: FilterOptions;
-  scrollbarWidth: number;
+  filteredImages: Images;
+  filteredImagesByFilter: Images;
+  filteredImagesBySearch: Images;
   isOpen: boolean;
+  scrollbarWidth: number;
+  searchTerm: string;
   panelTableHeight?: number;
 };
 

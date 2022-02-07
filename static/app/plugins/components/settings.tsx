@@ -12,19 +12,19 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
   organization: Organization;
-  project: Project;
   plugin: Plugin;
+  project: Project;
 } & PluginComponentBase['props'];
 
 type Field = Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
 
-type BackendField = Field & {value?: any; defaultValue?: any};
+type BackendField = Field & {defaultValue?: any; value?: any};
 
 type State = {
-  fieldList: Field[] | null;
-  initialData: Record<string, any> | null;
-  formData: Record<string, any>;
   errors: Record<string, any>;
+  fieldList: Field[] | null;
+  formData: Record<string, any>;
+  initialData: Record<string, any> | null;
   rawData: Record<string, any>;
   wasConfiguredOnPageLoad: boolean;
 } & PluginComponentBase['state'];
