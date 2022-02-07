@@ -430,10 +430,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
-        <Feature
-          organization={organization}
-          features={['connect-discover-and-dashboards', 'dashboards-edit']}
-        >
+        <Feature organization={organization} features={['dashboards-edit']}>
           {({hasFeature}) => hasFeature && this.renderButtonAddToDashboard()}
         </Feature>
         {renderQueryButton(disabled => this.renderButtonDelete(disabled))}

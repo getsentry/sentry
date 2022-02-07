@@ -15,49 +15,9 @@ describe('EventsV2 > ChartFooter', function () {
 
   afterEach(function () {});
 
-  it('renders yAxis option using OptionSelector using only the first yAxisValue without feature flag', async function () {
+  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', async function () {
     const organization = TestStubs.Organization({
-      features,
-      projects: [TestStubs.Project()],
-    });
-
-    // Start off with an invalid view (empty is invalid)
-    const initialData = initializeOrg({
-      organization,
-      router: {
-        location: {query: {query: 'tag:value'}},
-      },
-      project: 1,
-      projects: [],
-    });
-
-    const wrapper = mountWithTheme(
-      <ChartFooter
-        organization={organization}
-        total={100}
-        yAxisValue={yAxisValue}
-        yAxisOptions={yAxisOptions}
-        onAxisChange={() => undefined}
-        displayMode={DisplayModes.DEFAULT}
-        displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
-        onDisplayChange={() => undefined}
-        onTopEventsChange={() => undefined}
-        topEvents="5"
-      />,
-      initialData.routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    const optionSelector = wrapper.find('OptionSelector').last();
-    expect(optionSelector.props().title).toEqual(t('Y-Axis'));
-    expect(optionSelector.props().selected).toEqual(yAxisValue[0]);
-  });
-
-  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue with feature flag', async function () {
-    const organization = TestStubs.Organization({
-      features: [...features, 'connect-discover-and-dashboards'],
+      features: [...features],
     });
 
     // Start off with an invalid view (empty is invalid)

@@ -13,7 +13,7 @@ jest.mock('sentry/components/charts/simpleTableChart');
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
     organization: TestStubs.Organization({
-      features: ['connect-discover-and-dashboards', 'dashboards-edit', 'discover-basic'],
+      features: ['dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
     }),
     router: {orgId: 'orgId'},

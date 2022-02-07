@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import Feature from 'sentry/components/acl/feature';
 import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
@@ -27,7 +26,6 @@ type Props = {
 };
 
 export default function ChartFooter({
-  organization,
   total,
   yAxisValue,
   yAxisOptions,
@@ -75,31 +73,12 @@ export default function ChartFooter({
             menuWidth="60px"
           />
         )}
-        <Feature
-          organization={organization}
-          features={['connect-discover-and-dashboards']}
-        >
-          {({hasFeature}) => {
-            if (hasFeature) {
-              return (
-                <OptionCheckboxSelector
-                  title={t('Y-Axis')}
-                  selected={yAxisValue}
-                  options={yAxisOptions}
-                  onChange={onAxisChange}
-                />
-              );
-            }
-            return (
-              <OptionSelector
-                title={t('Y-Axis')}
-                selected={yAxisValue[0]}
-                options={yAxisOptions}
-                onChange={value => onAxisChange([value])}
-              />
-            );
-          }}
-        </Feature>
+        <OptionCheckboxSelector
+          title={t('Y-Axis')}
+          selected={yAxisValue}
+          options={yAxisOptions}
+          onChange={onAxisChange}
+        />
       </InlineContainer>
     </ChartControls>
   );
