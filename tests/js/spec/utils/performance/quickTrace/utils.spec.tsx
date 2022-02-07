@@ -74,7 +74,7 @@ function generateTransactionLite({
   };
 }
 
-function generateTransaction(opts: {index: number; depth: number}): TraceFull {
+function generateTransaction(opts: {depth: number; index: number}): TraceFull {
   const {index, depth = -1} = opts;
   const {generation, offset} = computePosition(index);
 

@@ -24,10 +24,10 @@ const CheckboxLabel = styled('span')`
 type SelectedValue = (string | number)[];
 
 type Props = {
-  value: (string | number)[];
   choices: Choices;
-  onChange?: (value: SelectedValue, event: React.ChangeEvent<HTMLInputElement>) => void;
+  value: (string | number)[];
   disabled?: boolean;
+  onChange?: (value: SelectedValue, event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 class MultipleCheckbox extends React.Component<Props> {

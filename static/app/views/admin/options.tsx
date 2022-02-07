@@ -18,17 +18,17 @@ type Section = {
 type Field = {
   key: string;
   label: React.ReactNode;
+  allowEmpty?: boolean;
+  component?: React.ComponentType<any>;
+  defaultValue?: () => string | false;
+  disabled?: boolean;
+  disabledReason?: string;
   help?: React.ReactNode;
   noLabel?: string;
-  yesLabel?: string;
-  yesFirst?: boolean;
   placeholder?: string;
   required?: boolean;
-  allowEmpty?: boolean;
-  disabledReason?: string;
-  disabled?: boolean;
-  defaultValue?: () => string | false;
-  component?: React.ComponentType<any>;
+  yesFirst?: boolean;
+  yesLabel?: string;
 };
 
 // This are ordered based on their display order visually

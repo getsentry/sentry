@@ -1,9 +1,9 @@
 type Options = {
-  key: string;
   htmlString: string;
+  key: string;
   markTags: {
-    highlightPreTag: string;
     highlightPostTag: string;
+    highlightPreTag: string;
   };
 };
 

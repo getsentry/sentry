@@ -19,11 +19,11 @@ import DashboardWidgetLibraryTab from './libraryTab';
 import {TAB, TabsButtonBar} from './tabsButtonBar';
 
 export type DashboardWidgetLibraryModalOptions = {
-  organization: Organization;
   dashboard: DashboardDetails;
-  initialSelectedWidgets?: WidgetTemplate[];
-  customWidget?: Widget;
   onAddWidget: (widgets: Widget[]) => void;
+  organization: Organization;
+  customWidget?: Widget;
+  initialSelectedWidgets?: WidgetTemplate[];
 };
 
 type Props = ModalRenderProps & DashboardWidgetLibraryModalOptions;

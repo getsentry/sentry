@@ -47,12 +47,12 @@ type Props = AsyncComponent['props'] &
     | 'onResults'
     | 'defaultOptions'
   > & {
-    organization: Organization;
     integration: Integration;
     mappings: ExternalActorMapping[];
-    type: 'team' | 'user';
     onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
     onDelete: (mapping: ExternalActorMapping) => void;
+    organization: Organization;
+    type: 'team' | 'user';
     pageLinks?: string;
   };
 

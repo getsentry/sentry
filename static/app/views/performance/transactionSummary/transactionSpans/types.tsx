@@ -14,9 +14,9 @@ export enum SpanSortOthers {
 export type SpanSort = SpanSortPercentiles | SpanSortOthers;
 
 export type SpanSortOption = {
-  prefix: string;
-  label: string;
   field: SpanSort;
+  label: string;
+  prefix: string;
 };
 
 export type SpansTotalValues = {

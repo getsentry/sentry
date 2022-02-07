@@ -8,15 +8,16 @@ import {AvatarProject, Organization, Team} from 'sentry/types';
 
 type Props = {
   displayName: React.ReactNode;
-  hideName?: boolean; // Hides the main display name
-  hideAvatar?: boolean;
   avatarProps?: Record<string, any>;
   avatarSize?: number;
+  className?: string;
   description?: React.ReactNode;
-  team?: Team;
+  // Hides the main display name
+  hideAvatar?: boolean;
+  hideName?: boolean;
   organization?: Organization;
   project?: AvatarProject;
-  className?: string;
+  team?: Team;
 };
 
 const BaseBadge = React.memo(

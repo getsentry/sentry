@@ -20,8 +20,8 @@ type DefaultProps = {
 
 type Props = Omit<ChartProps, 'series'> &
   DefaultProps & {
-    stacked?: boolean;
     series: AreaChartSeries[];
+    stacked?: boolean;
   };
 
 /**

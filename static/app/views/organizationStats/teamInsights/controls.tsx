@@ -72,9 +72,9 @@ function TeamStatsControls({location, router, currentTeam}: Props) {
   }
 
   function setStateOnUrl(nextState: {
-    pageStatsPeriod?: string | null;
-    pageStart?: DateString;
     pageEnd?: DateString;
+    pageStart?: DateString;
+    pageStatsPeriod?: string | null;
     pageUtc?: boolean | null;
     team?: string;
   }): LocationDescriptorObject {

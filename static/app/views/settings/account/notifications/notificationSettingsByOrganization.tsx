@@ -15,14 +15,14 @@ import Form from 'sentry/views/settings/components/forms/form';
 import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
 type Props = {
-  notificationType: string;
   notificationSettings: NotificationSettingsObject;
-  organizations: OrganizationSummary[];
+  notificationType: string;
   onChange: (
     changedData: NotificationSettingsByProviderObject,
     parentId: string
   ) => NotificationSettingsObject;
   onSubmitSuccess: () => void;
+  organizations: OrganizationSummary[];
 };
 
 type State = {};

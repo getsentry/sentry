@@ -14,9 +14,9 @@ import {SpanOperationBreakdownFilter} from '../../filter';
 import Content from './content';
 
 type Props = ViewProps & {
-  organization: OrganizationSummary;
-  location: Location;
   currentFilter: SpanOperationBreakdownFilter;
+  location: Location;
+  organization: OrganizationSummary;
 };
 
 function LatencyChart({currentFilter, ...props}: Props) {

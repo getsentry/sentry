@@ -18,7 +18,7 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 export function parseStatsPeriod(
   statsPeriod: string,
   outputFormat: string | null = DATE_TIME_FORMAT
-): {start: string; end: string} {
+): {end: string; start: string} {
   const statsPeriodRegex = /^(\d+)([smhd]{1})$/;
 
   const result = statsPeriodRegex.exec(statsPeriod);

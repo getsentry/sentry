@@ -52,12 +52,12 @@ type WidgetCardChartProps = Pick<
   WidgetQueries['state'],
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
 > & {
-  theme: Theme;
-  organization: Organization;
   location: Location;
-  widget: Widget;
-  selection: PageFilters;
+  organization: Organization;
   router: InjectedRouter;
+  selection: PageFilters;
+  theme: Theme;
+  widget: Widget;
   isMobile?: boolean;
   windowWidth?: number;
 };
