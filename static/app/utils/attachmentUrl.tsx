@@ -5,11 +5,11 @@ import {IssueAttachment, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  organization: Organization;
-  projectId: string;
-  eventId: string;
   attachment: IssueAttachment;
   children: (downloadUrl: string | null) => React.ReactElement | null;
+  eventId: string;
+  organization: Organization;
+  projectId: string;
 };
 
 function AttachmentUrl({attachment, organization, eventId, projectId, children}: Props) {

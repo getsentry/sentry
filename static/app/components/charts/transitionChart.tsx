@@ -7,14 +7,14 @@ const defaultProps = {
 };
 
 type Props = {
-  reloading: boolean;
   loading: boolean;
+  reloading: boolean;
 } & typeof defaultProps;
 
 type State = {
-  prevReloading: boolean;
-  prevLoading: boolean;
   key: number;
+  prevLoading: boolean;
+  prevReloading: boolean;
 };
 
 class TransitionChart extends Component<Props, State> {

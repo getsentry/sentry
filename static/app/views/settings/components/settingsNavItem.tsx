@@ -10,11 +10,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type Props = {
-  to: React.ComponentProps<RouterLink>['to'];
   label: React.ReactNode;
+  to: React.ComponentProps<RouterLink>['to'];
   badge?: string | number | null;
-  index?: boolean;
   id?: string;
+  index?: boolean;
   onClick?: (e: React.MouseEvent) => void;
 };
 

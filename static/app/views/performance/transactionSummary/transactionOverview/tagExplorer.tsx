@@ -172,12 +172,12 @@ export function TagValue(props: TagValueProps) {
 }
 
 type Props = {
+  currentFilter: SpanOperationBreakdownFilter;
   eventView: EventView;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   projects: Project[];
   transactionName: string;
-  currentFilter: SpanOperationBreakdownFilter;
 };
 
 type State = {
@@ -484,10 +484,10 @@ class _TagExplorer extends React.Component<Props> {
 }
 
 type HeaderProps = {
-  organization: Organization;
-  transactionName: string;
   location: Location;
+  organization: Organization;
   pageLinks: string | null;
+  transactionName: string;
 };
 
 function TagsHeader(props: HeaderProps) {

@@ -26,17 +26,17 @@ type MapChartSeries = Omit<Series, 'data'> & {
 type Props = Omit<ChartProps, 'series'> & {
   series: MapChartSeries[];
   theme: Theme;
-  seriesOptions?: MapSeriesOption;
   fromDiscover?: boolean;
   fromDiscoverQueryList?: boolean;
+  seriesOptions?: MapSeriesOption;
 };
 
 type JSONResult = Record<string, any>;
 
 type State = {
+  codeToCountryMap: JSONResult | null;
   countryToCodeMap: JSONResult | null;
   map: JSONResult | null;
-  codeToCountryMap: JSONResult | null;
 };
 
 const DEFAULT_ZOOM = 1.3;

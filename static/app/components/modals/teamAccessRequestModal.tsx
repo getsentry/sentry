@@ -16,8 +16,8 @@ type Props = ModalRenderProps &
   TeamAccessRequestModalOptions & {
     api: Client;
     memberId: string;
-    teamId: string;
     orgId: string;
+    teamId: string;
   };
 
 type State = {

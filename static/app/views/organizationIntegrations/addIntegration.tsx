@@ -10,17 +10,17 @@ type Props = {
   children: (
     openDialog: (urlParams?: {[key: string]: string}) => void
   ) => React.ReactNode;
-  provider: IntegrationProvider;
   onInstall: (data: IntegrationWithConfig) => void;
-  account?: string;
-  organization: Organization; // for analytics
+  organization: Organization;
+  provider: IntegrationProvider;
+  account?: string; // for analytics
   analyticsParams?: {
+    already_installed: boolean;
     view:
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
       | 'onboarding'
       | 'project_creation';
-    already_installed: boolean;
   };
   modalParams?: {[key: string]: string};
 };

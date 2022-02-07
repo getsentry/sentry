@@ -10,8 +10,8 @@ import {Organization, Release, ReleaseProject} from 'sentry/types';
 
 type Props = {
   organization: Organization;
-  release: Release;
   project: Required<ReleaseProject>;
+  release: Release;
 };
 
 function ReleaseStats({organization, release, project}: Props) {

@@ -8,10 +8,10 @@ import Alert from '../alert';
 import Link from '../links/link';
 
 type Props = {
+  groupId: string;
+  location: Location;
   orgSlug: string;
   projectSlug: string;
-  location: Location;
-  groupId: string;
 };
 
 const EventAttachmentsCrashReportsNotice = ({

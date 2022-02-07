@@ -46,9 +46,9 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
 export const spanOperationBreakdownSingleColumns = OPTIONS.map(o => `spans.${o}`);
 
 type Props = {
-  organization: OrganizationSummary;
   currentFilter: SpanOperationBreakdownFilter;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  organization: OrganizationSummary;
 };
 
 function Filter(props: Props) {

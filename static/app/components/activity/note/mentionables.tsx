@@ -19,10 +19,10 @@ type ChildFuncProps = {
 };
 
 type Props = {
+  children: (props: ChildFuncProps) => React.ReactNode;
   me: User;
   organization: Organization;
   projectSlugs: string[];
-  children: (props: ChildFuncProps) => React.ReactNode;
 };
 
 type State = {

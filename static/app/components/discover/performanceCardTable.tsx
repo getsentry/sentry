@@ -27,15 +27,15 @@ import {
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
 type PerformanceCardTableProps = {
-  organization: Organization;
-  location: Location;
-  project: ReleaseProject;
   allReleasesEventView: EventView;
-  releaseEventView: EventView;
   allReleasesTableData: TableData | null;
-  thisReleaseTableData: TableData | null;
-  performanceType: string;
   isLoading: boolean;
+  location: Location;
+  organization: Organization;
+  performanceType: string;
+  project: ReleaseProject;
+  releaseEventView: EventView;
+  thisReleaseTableData: TableData | null;
 };
 
 function PerformanceCardTable({
@@ -679,12 +679,12 @@ function PerformanceCardTable({
 }
 
 type Props = AsyncComponent['props'] & {
-  organization: Organization;
   allReleasesEventView: EventView;
-  releaseEventView: EventView;
+  location: Location;
+  organization: Organization;
   performanceType: string;
   project: ReleaseProject;
-  location: Location;
+  releaseEventView: EventView;
 };
 
 function PerformanceCardTableWrapper({

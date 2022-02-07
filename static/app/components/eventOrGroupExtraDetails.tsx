@@ -19,8 +19,8 @@ import {Event} from 'sentry/types/event';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
-  showAssignee?: boolean;
   hasGuideAnchor?: boolean;
+  showAssignee?: boolean;
   showInboxTime?: boolean;
 };
 

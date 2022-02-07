@@ -3,9 +3,9 @@ import {IconGeneric} from 'sentry/icons';
 import {AvatarSentryApp} from 'sentry/types';
 
 type Props = {
-  sentryApp?: AvatarSentryApp;
   isColor?: boolean;
   isDefault?: boolean;
+  sentryApp?: AvatarSentryApp;
 } & BaseAvatar['props'];
 
 const SentryAppAvatar = ({isColor = true, sentryApp, isDefault, ...props}: Props) => {

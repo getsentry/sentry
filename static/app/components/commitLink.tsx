@@ -13,9 +13,9 @@ type CommitFormatterParameters = {
 };
 
 type CommitProvider = {
+  commitUrl: (opts: CommitFormatterParameters) => string;
   icon: React.ReactNode;
   providerIds: string[];
-  commitUrl: (opts: CommitFormatterParameters) => string;
 };
 
 // TODO(epurkhiser, jess): This should be moved into plugins.
@@ -44,8 +44,8 @@ const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
 
 type Props = {
   commitId: string;
-  repository?: Repository;
   inline?: boolean;
+  repository?: Repository;
 };
 
 function CommitLink({inline, commitId, repository}: Props) {

@@ -8,10 +8,10 @@ import ProjectStabilityScoreCard from './projectStabilityScoreCard';
 import ProjectVelocityScoreCard from './projectVelocityScoreCard';
 
 type Props = {
+  hasSessions: boolean | null;
+  isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
-  isProjectStabilized: boolean;
-  hasSessions: boolean | null;
   hasTransactions?: boolean;
   query?: string;
 };

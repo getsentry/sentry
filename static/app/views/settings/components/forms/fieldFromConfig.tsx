@@ -23,15 +23,15 @@ import {Field} from './type';
 
 type Props = {
   field: Field;
-  highlighted?: boolean;
+  access?: Set<Scope>;
   disabled?: boolean | ((props) => boolean);
   flexibleControlStateSize?: boolean;
   getData?: (data) => any;
-  stacked?: boolean;
+  highlighted?: boolean;
   inline?: boolean;
-  onBlur?: (value, event) => void;
-  access?: Set<Scope>;
   noOptionsMessage?: () => string;
+  onBlur?: (value, event) => void;
+  stacked?: boolean;
 };
 
 export default class FieldFromConfig extends Component<Props> {

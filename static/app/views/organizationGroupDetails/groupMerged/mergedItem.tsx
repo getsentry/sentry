@@ -11,14 +11,14 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
 type Props = {
-  organization: Organization;
   fingerprint: Fingerprint;
+  organization: Organization;
 };
 
 type State = {
-  collapsed: boolean;
-  checked: boolean;
   busy: boolean;
+  checked: boolean;
+  collapsed: boolean;
 };
 
 class MergedItem extends React.Component<Props, State> {

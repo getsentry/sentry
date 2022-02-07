@@ -12,10 +12,10 @@ import withApi from 'sentry/utils/withApi';
  * An individual row in a Segment explorer result
  */
 export type TableDataRow = {
+  [key: string]: React.ReactText;
+  count: number;
   tags_key: string;
   tags_value: string;
-  count: number;
-  [key: string]: React.ReactText;
 };
 
 export type HistogramTag = {
@@ -24,8 +24,8 @@ export type HistogramTag = {
 
 export type TableData = {
   histogram: {data: TableDataRow[]};
-  tags: {data: HistogramTag[]};
   meta: {};
+  tags: {data: HistogramTag[]};
 };
 
 /**
@@ -38,18 +38,18 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 
 type QueryProps = DiscoverQueryProps & {
   aggregateColumn: string;
-  tagKey: string;
+  children: (props: ChildrenProps) => React.ReactNode;
   numBucketsPerKey: number;
   sort: string | string[];
-  children: (props: ChildrenProps) => React.ReactNode;
+  tagKey: string;
 };
 
 type FacetQuery = LocationQuery &
   EventQuery & {
-    tagKey?: string;
+    aggregateColumn?: string;
     numBucketsPerKey?: number;
     sort?: string | string[];
-    aggregateColumn?: string;
+    tagKey?: string;
   };
 
 export function getRequestFunction(_props: QueryProps) {

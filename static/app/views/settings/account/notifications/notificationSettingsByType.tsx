@@ -47,8 +47,8 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  notificationSettings: NotificationSettingsObject;
   identities: Identity[];
+  notificationSettings: NotificationSettingsObject;
   organizationIntegrations: OrganizationIntegration[];
 } & AsyncComponent['state'];
 

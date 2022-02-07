@@ -59,20 +59,20 @@ const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
 type ProGuardErrors = Array<Error>;
 
 type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> & {
+  api: Client;
+  location: Location;
   /**
    * The organization can be the shared view on a public issue view.
    */
   organization: Organization | SharedViewOrganization;
   project: Project;
-  location: Location;
-  api: Client;
+  className?: string;
   event?: Event;
   group?: Group;
+  isBorderless?: boolean;
   isShare?: boolean;
   showExampleCommit?: boolean;
   showTagSummary?: boolean;
-  isBorderless?: boolean;
-  className?: string;
 };
 
 const EventEntries = memo(

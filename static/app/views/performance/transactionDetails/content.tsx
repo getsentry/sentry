@@ -38,8 +38,8 @@ type Props = Pick<
   RouteComponentProps<{eventSlug: string}, {}>,
   'params' | 'location' | 'router' | 'route'
 > & {
-  organization: Organization;
   eventSlug: string;
+  organization: Organization;
 };
 
 type State = {

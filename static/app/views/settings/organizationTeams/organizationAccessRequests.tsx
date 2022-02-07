@@ -12,8 +12,8 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  orgId: string;
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
+  orgId: string;
   requestList: AccessRequest[];
 };
 
@@ -22,10 +22,10 @@ type State = {
 };
 
 type HandleOpts = {
+  errorMessage: string;
   id: string;
   isApproved: boolean;
   successMessage: string;
-  errorMessage: string;
 };
 
 class OrganizationAccessRequests extends React.Component<Props, State> {

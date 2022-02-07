@@ -26,12 +26,12 @@ const noPermissionToDeleteDebugFilesInfo = t(
 const debugFileDeleteConfirmationInfo = t('Are you sure you wish to delete this file?');
 
 type Props = {
-  candidate: ImageCandidate;
-  organization: Organization;
-  isInternalSource: boolean;
   baseUrl: string;
-  projSlug: Project['slug'];
+  candidate: ImageCandidate;
+  isInternalSource: boolean;
   onDelete: (debugFileId: string) => void;
+  organization: Organization;
+  projSlug: Project['slug'];
 };
 
 function Actions({

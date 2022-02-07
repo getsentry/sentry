@@ -154,40 +154,29 @@ function getEnvironment(maybe: ParamValue) {
 }
 
 type InputParams = {
-  pageStatsPeriod?: ParamValue;
-  pageStart?: ParamValue | Date;
-  pageEnd?: ParamValue | Date;
-  pageUtc?: ParamValue | boolean;
-
-  start?: ParamValue | Date;
-  end?: ParamValue | Date;
-  period?: ParamValue;
-  statsPeriod?: ParamValue;
-  utc?: ParamValue | boolean;
-
   [others: string]: any;
+  end?: ParamValue | Date;
+  pageEnd?: ParamValue | Date;
+  pageStart?: ParamValue | Date;
+
+  pageStatsPeriod?: ParamValue;
+  pageUtc?: ParamValue | boolean;
+  period?: ParamValue;
+  start?: ParamValue | Date;
+  statsPeriod?: ParamValue;
+
+  utc?: ParamValue | boolean;
 };
 
 type ParsedParams = {
-  start?: string;
+  [others: string]: Location['query'][string];
   end?: string;
+  start?: string;
   statsPeriod?: string | null;
   utc?: string;
-  [others: string]: Location['query'][string];
 };
 
 type DateTimeNormalizeOptions = {
-  /**
-   * When set to true allows the statsPeriod to result as `null`.
-   *
-   * @default false
-   */
-  allowEmptyPeriod?: boolean;
-  /**
-   * Include this default statsPeriod in the resulting parsed parameters when
-   * no stats period is provided (or if it is an invalid stats period)
-   */
-  defaultStatsPeriod?: string | null;
   /**
    * Parse absolute date time (`start` / `end`) from the input parameters. When
    * set to false the start and end will always be `null`.
@@ -201,6 +190,17 @@ type DateTimeNormalizeOptions = {
    * @default false
    */
   allowAbsolutePageDatetime?: boolean;
+  /**
+   * When set to true allows the statsPeriod to result as `null`.
+   *
+   * @default false
+   */
+  allowEmptyPeriod?: boolean;
+  /**
+   * Include this default statsPeriod in the resulting parsed parameters when
+   * no stats period is provided (or if it is an invalid stats period)
+   */
+  defaultStatsPeriod?: string | null;
 };
 
 /**

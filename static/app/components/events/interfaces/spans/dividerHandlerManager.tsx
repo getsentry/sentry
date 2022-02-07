@@ -22,11 +22,11 @@ const selectRefs = (
 };
 
 export type DividerHandlerManagerChildrenProps = {
-  dividerPosition: number;
-  setHover: (nextHover: boolean) => void;
-  onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   addDividerLineRef: () => React.RefObject<HTMLDivElement>;
   addGhostDividerLineRef: () => React.RefObject<HTMLDivElement>;
+  dividerPosition: number;
+  onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  setHover: (nextHover: boolean) => void;
 };
 
 type StateType = {

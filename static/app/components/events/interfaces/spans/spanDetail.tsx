@@ -50,22 +50,22 @@ const DEFAULT_ERRORS_VISIBLE = 5;
 const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
 
 type TransactionResult = {
-  'project.name': string;
-  transaction: string;
-  'trace.span': string;
   id: string;
+  'project.name': string;
+  'trace.span': string;
+  transaction: string;
 };
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  event: Readonly<EventTransaction>;
-  span: Readonly<ProcessedSpanType>;
-  isRoot: boolean;
-  trace: Readonly<ParsedTraceType>;
   childTransactions: QuickTraceEvent[] | null;
+  event: Readonly<EventTransaction>;
+  isRoot: boolean;
+  organization: Organization;
   relatedErrors: TraceError[] | null;
   scrollToHash: (hash: string) => void;
+  span: Readonly<ProcessedSpanType>;
+  trace: Readonly<ParsedTraceType>;
 };
 
 type State = {
@@ -510,10 +510,10 @@ export const Row = ({
   children,
   extra = null,
 }: {
-  title: JSX.Element | string | null;
   children: JSX.Element | string | null;
-  keep?: boolean;
+  title: JSX.Element | string | null;
   extra?: React.ReactNode;
+  keep?: boolean;
 }) => {
   if (!keep && !children) {
     return null;

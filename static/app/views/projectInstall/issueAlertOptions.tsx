@@ -40,35 +40,35 @@ const DEFAULT_PLACEHOLDER_VALUE = '10';
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = AsyncComponent['props'] & {
-  organization: Organization;
   onChange: StateUpdater;
+  organization: Organization;
 };
 
 type State = AsyncComponent['state'] & {
+  alertSetting: string;
   // TODO(ts): When we have alert conditional types, convert this
   conditions: any;
-  intervalChoices: [string, string][] | undefined;
-  threshold: string;
   interval: string;
-  alertSetting: string;
+  intervalChoices: [string, string][] | undefined;
   metric: MetricValues;
+  threshold: string;
 };
 
 type RequestDataFragment = {
-  defaultRules: boolean;
-  shouldCreateCustomRule: boolean;
-  name: string;
-  conditions: {interval: string; id: string; value: string}[] | undefined;
-  actions: {id: string}[];
   actionMatch: string;
+  actions: {id: string}[];
+  conditions: {id: string; interval: string; value: string}[] | undefined;
+  defaultRules: boolean;
   frequency: number;
+  name: string;
+  shouldCreateCustomRule: boolean;
 };
 
 function getConditionFrom(
   interval: string,
   metricValue: MetricValues,
   threshold: string
-): {interval: string; id: string; value: string} {
+): {id: string; interval: string; value: string} {
   let condition: string;
   switch (metricValue) {
     case MetricValues.ERRORS:

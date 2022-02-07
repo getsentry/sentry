@@ -15,14 +15,14 @@ type QueryObject = {
 }; // TODO(k-fish): Fix to ensure exact types for all requests. Simplified type for now, need to pull this in from events file.
 
 type BatchQueryDefinition = {
+  api: Client;
+  batchProperty: string;
+
+  path: string;
+  reject: (reason?: string) => void;
+  requestQueryObject: QueryObject;
   // Intermediate promise functions
   resolve: (value: any) => void;
-  reject: (reason?: string) => void;
-
-  batchProperty: string;
-  requestQueryObject: QueryObject;
-  path: string;
-  api: Client;
 };
 
 type QueryBatch = {
@@ -214,8 +214,8 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
 };
 
 type NodeContext = {
-  id: Ref<Symbol>;
   batchProperty: string;
+  id: Ref<Symbol>;
 };
 
 const BatchNodeContext = createContext<NodeContext | undefined>(undefined);

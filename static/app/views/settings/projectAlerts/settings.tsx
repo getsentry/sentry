@@ -25,8 +25,8 @@ type Props = RouteComponentProps<RouteParams, {}> &
   };
 
 type State = AsyncView['state'] & {
-  project: Project | null;
   pluginList: Array<Plugin> | null;
+  project: Project | null;
 };
 
 class Settings extends AsyncView<Props, State> {

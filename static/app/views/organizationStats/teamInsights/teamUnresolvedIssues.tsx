@@ -20,8 +20,8 @@ import {barAxisLabel, convertDayValueObjectToSeries, groupByTrend} from './utils
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
-  teamSlug: string;
   projects: Project[];
+  teamSlug: string;
 } & DateTimeObject;
 
 type UnresolvedCount = {unresolved: number};
@@ -96,7 +96,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
 
     const projectTotals: Record<
       string,
-      {projectId: string; periodAvg: number; today: number; percentChange: number}
+      {percentChange: number; periodAvg: number; projectId: string; today: number}
     > = {};
     for (const projectId of Object.keys(periodIssues)) {
       const periodAvg = this.getTotalUnresolved(Number(projectId));

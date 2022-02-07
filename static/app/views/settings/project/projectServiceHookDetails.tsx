@@ -22,14 +22,14 @@ import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput'
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
 
-type Params = {orgId: string; projectId: string; hookId: string};
+type Params = {hookId: string; orgId: string; projectId: string};
 
 type StatsProps = {
   params: Params;
 };
 
 type StatsState = {
-  stats: {ts: number; total: number}[] | null;
+  stats: {total: number; ts: number}[] | null;
 } & AsyncComponent['state'];
 
 class HookStats extends AsyncComponent<StatsProps, StatsState> {

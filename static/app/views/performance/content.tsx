@@ -34,9 +34,9 @@ import Onboarding from './onboarding';
 import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
 type Props = {
-  selection: PageFilters;
   location: Location;
   router: InjectedRouter;
+  selection: PageFilters;
   demoMode?: boolean;
 };
 

@@ -7,13 +7,13 @@ import {t} from '../../locale';
 import ExternalLink from '../links/externalLink';
 
 type Props = {
-  hasSeen?: boolean;
-  title?: string;
-  image?: string;
-  message?: React.ReactNode;
-  link?: string;
-  cta?: string;
   children?: React.ReactNode;
+  cta?: string;
+  hasSeen?: boolean;
+  image?: string;
+  link?: string;
+  message?: React.ReactNode;
+  title?: string;
 };
 
 const SidebarPanelItem = ({

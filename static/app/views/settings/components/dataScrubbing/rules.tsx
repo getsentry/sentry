@@ -12,9 +12,9 @@ import {getMethodLabel, getRuleLabel} from './utils';
 
 type Props = {
   rules: Array<Rule>;
-  onEditRule?: (id: Rule['id']) => () => void;
-  onDeleteRule?: (id: Rule['id']) => () => void;
   disabled?: boolean;
+  onDeleteRule?: (id: Rule['id']) => () => void;
+  onEditRule?: (id: Rule['id']) => () => void;
 };
 
 const getListItemDescription = (rule: Rule) => {

@@ -25,10 +25,10 @@ type OrgDashboardsChildrenProps = {
 
 type Props = {
   api: Client;
+  children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
+  location: Location;
   organization: Organization;
   params: {orgId: string; dashboardId?: string};
-  location: Location;
-  children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
 };
 
 type State = {

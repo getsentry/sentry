@@ -16,8 +16,8 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
     onClick?: () => void;
+    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
     timesRepeated?: number;
   };
 

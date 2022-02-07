@@ -18,11 +18,11 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  resource: Resource;
-  disabledFromPermissions: boolean;
   checked: boolean;
+  disabledFromPermissions: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
   organization: Organization;
+  resource: Resource;
 };
 
 export class SubscriptionBox extends React.Component<Props> {

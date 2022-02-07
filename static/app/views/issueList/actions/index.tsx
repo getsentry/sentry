@@ -20,26 +20,26 @@ import Headers from './headers';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
 type Props = {
-  api: Client;
   allResultsVisible: boolean;
-  organization: Organization;
-  selection: PageFilters;
+  api: Client;
+  displayCount: React.ReactElement;
+  displayReprocessingActions: boolean;
   groupIds: string[];
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
-  statsPeriod: string;
+  organization: Organization;
   query: string;
   queryCount: number;
-  displayCount: React.ReactElement;
-  displayReprocessingActions: boolean;
+  selection: PageFilters;
+  statsPeriod: string;
   onMarkReviewed?: (itemIds: string[]) => void;
 };
 
 type State = {
+  allInQuerySelected: boolean;
   anySelected: boolean;
   multiSelected: boolean;
   pageSelected: boolean;
-  allInQuerySelected: boolean;
   selectedIds: Set<string>;
   selectedProjectSlug?: string;
 };

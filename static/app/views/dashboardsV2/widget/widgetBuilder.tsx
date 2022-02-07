@@ -14,15 +14,15 @@ import MetricWidget from './metricWidget';
 import {DataSet} from './utils';
 
 type RouteParams = {
-  orgId: string;
   dashboardId: string;
+  orgId: string;
   widgetId?: number;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
-  organization: Organization;
   dashboard: DashboardDetails;
   onSave: (Widgets: Widget[]) => void;
+  organization: Organization;
   widget?: Widget;
 };
 

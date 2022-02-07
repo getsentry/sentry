@@ -4,8 +4,8 @@ import Alert from 'sentry/components/alert';
 import {IconFlag} from 'sentry/icons';
 
 const pageErrorContext = createContext<{
-  pageError?: string;
   setPageError: (error: string | undefined) => void;
+  pageError?: string;
 }>({
   pageError: undefined,
   setPageError: (_: string | undefined) => {},

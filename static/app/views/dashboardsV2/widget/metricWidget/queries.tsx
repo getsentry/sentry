@@ -12,10 +12,10 @@ import MetricSelectField from './metricSelectField';
 
 type Props = {
   metricMetas: MetricMeta[];
-  queries: MetricQuery[];
-  onRemoveQuery: (index: number) => void;
   onAddQuery: () => void;
   onChangeQuery: (queryIndex: number, query: MetricQuery) => void;
+  onRemoveQuery: (index: number) => void;
+  queries: MetricQuery[];
 };
 
 function Queries({

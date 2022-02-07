@@ -19,19 +19,19 @@ import SavedQueryButtonGroup from './savedQuery';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  location: Location;
   errorCode: number;
   eventView: EventView;
+  location: Location;
   onIncompatibleAlertQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  organization: Organization;
   yAxis: string[];
 };
 
 type State = {
-  savedQuery: SavedQuery | undefined;
   loading: boolean;
+  savedQuery: SavedQuery | undefined;
 };
 
 class ResultsHeader extends React.Component<Props, State> {

@@ -76,10 +76,10 @@ class TraceSummary extends Component<Props> {
       traces,
       meta,
     }: {
-      isLoading: boolean;
       error: string | null;
-      traces: TraceFullDetailed[] | null;
+      isLoading: boolean;
       meta: TraceMeta | null;
+      traces: TraceFullDetailed[] | null;
     }) => (
       <TraceDetailsContent
         location={location}

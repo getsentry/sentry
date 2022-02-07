@@ -19,44 +19,31 @@ type Props = {
   value: number | '';
 
   /**
-   * min allowed value, not needed if using `allowedValues`
+   * Array of allowed values. Make sure `value` is in this list.
+   * THIS NEEDS TO BE SORTED
    */
-  min?: number;
+  allowedValues?: number[];
 
-  /**
-   * max allowed value, not needed if using `allowedValues`
-   */
-  max?: number;
+  className?: string;
 
-  step?: number;
   disabled?: boolean;
-
   /**
    * Render prop for slider's label
    * Is passed the value as an argument
    */
   formatLabel?: (value: number | '') => React.ReactNode;
 
-  /**
-   * Array of allowed values. Make sure `value` is in this list.
-   * THIS NEEDS TO BE SORTED
-   */
-  allowedValues?: number[];
+  forwardRef?: React.Ref<HTMLDivElement>;
 
   /**
-   * Show input control for custom values
+   * max allowed value, not needed if using `allowedValues`
    */
-  showCustomInput?: boolean;
-  /**
-   * Show label with current value
-   */
-  showLabel?: boolean;
+  max?: number;
 
   /**
-   * Placeholder for custom input
+   * min allowed value, not needed if using `allowedValues`
    */
-  placeholder?: string;
-
+  min?: number;
   /**
    * This is called when *any* MouseUp or KeyUp event happens.
    * Used for "smart" Fields to trigger a "blur" event. `onChange` can
@@ -65,9 +52,22 @@ type Props = {
   onBlur?: (
     event: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
   ) => void;
+
   onChange?: (value: Props['value'], event: React.ChangeEvent<HTMLInputElement>) => void;
-  className?: string;
-  forwardRef?: React.Ref<HTMLDivElement>;
+
+  /**
+   * Placeholder for custom input
+   */
+  placeholder?: string;
+  /**
+   * Show input control for custom values
+   */
+  showCustomInput?: boolean;
+  /**
+   * Show label with current value
+   */
+  showLabel?: boolean;
+  step?: number;
 };
 
 function RangeSlider({

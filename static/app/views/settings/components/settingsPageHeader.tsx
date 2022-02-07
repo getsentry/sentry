@@ -5,21 +5,21 @@ import {HeaderTitle} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 
 type Props = {
-  // Icon left of title
-  icon?: ReactNode;
-
   // The title
   title: ReactNode;
-  subtitle?: ReactNode;
-
-  // Disables font styles in the title. Allows for more custom titles.
-  noTitleStyles?: boolean;
-  className?: string;
 
   // CTA button
   action?: ReactNode;
-
   body?: ReactNode;
+
+  className?: string;
+  // Icon left of title
+  icon?: ReactNode;
+
+  // Disables font styles in the title. Allows for more custom titles.
+  noTitleStyles?: boolean;
+
+  subtitle?: ReactNode;
 
   tabs?: ReactNode;
 };

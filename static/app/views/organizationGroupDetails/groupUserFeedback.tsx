@@ -13,20 +13,20 @@ import UserFeedbackEmpty from 'sentry/views/userFeedback/userFeedbackEmpty';
 import {fetchGroupUserReports} from './utils';
 
 type RouteParams = {
-  orgId: string;
   groupId: string;
+  orgId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  environments: string[];
   group: Group;
   organization: Organization;
   project: Project;
-  environments: string[];
 };
 
 type State = {
-  loading: boolean;
   error: boolean;
+  loading: boolean;
   reportList: UserReport[];
   pageLinks?: string | null;
 };

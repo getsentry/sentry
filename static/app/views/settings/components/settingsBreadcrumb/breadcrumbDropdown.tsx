@@ -15,13 +15,13 @@ type AdditionalDropdownProps = Pick<
 >;
 
 type Props = {
+  items: Item[];
+  name: React.ReactNode;
+  onSelect: (item: Item) => void;
   route: RouteWithName;
+  enterDelay?: number;
   hasMenu?: boolean;
   isLast?: boolean;
-  enterDelay?: number;
-  name: React.ReactNode;
-  items: Item[];
-  onSelect: (item: Item) => void;
 } & AdditionalDropdownProps;
 
 type State = {

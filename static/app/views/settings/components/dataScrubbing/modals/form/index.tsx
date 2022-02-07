@@ -26,13 +26,13 @@ import SourceField from './sourceField';
 type Values = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
 
 type Props<V extends Values, K extends keyof V> = {
-  values: V;
   errors: Partial<V>;
-  sourceSuggestions: Array<SourceSuggestion>;
-  onValidate: (field: K) => () => void;
-  onChange: (field: K, value: string) => void;
   eventId: EventId;
+  onChange: (field: K, value: string) => void;
   onUpdateEventId: (eventId: string) => void;
+  onValidate: (field: K) => () => void;
+  sourceSuggestions: Array<SourceSuggestion>;
+  values: V;
 };
 
 type State = {

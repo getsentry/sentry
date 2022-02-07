@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 type Props = {
   children: React.ReactNode;
-  withoutBackground?: boolean;
   className?: string;
+  withoutBackground?: boolean;
 };
 
 const Redaction = styled(({children, className}: Props) => (

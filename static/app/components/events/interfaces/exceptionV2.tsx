@@ -13,11 +13,11 @@ import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {
-  event: Event;
-  type: string;
   data: ExceptionType;
-  projectId: Project['id'];
+  event: Event;
   hasHierarchicalGrouping: boolean;
+  projectId: Project['id'];
+  type: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };

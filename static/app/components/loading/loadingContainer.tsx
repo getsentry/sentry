@@ -13,8 +13,8 @@ const defaultProps = {
 type DefaultProps = Readonly<typeof defaultProps>;
 
 type Props = {
-  className?: string;
   children?: React.ReactNode;
+  className?: string;
 } & DefaultProps;
 
 type MaskProps = {

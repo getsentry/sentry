@@ -5,9 +5,9 @@ import ListItem from 'sentry/components/list/listItem';
 import space from 'sentry/styles/space';
 
 type Props = {
-  title: string;
-  description: string;
   children: React.ReactNode;
+  description: string;
+  title: string;
 };
 
 function BuildStep({title, description, children}: Props) {

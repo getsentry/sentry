@@ -12,9 +12,9 @@ type Payload = {
 
 type Props = {
   organization: Organization;
+  formProps?: Partial<typeof Form>;
   onSubmit?: (data: Payload, onSuccess: Function, onError: Function) => void;
   onSuccess?: (data: Payload) => void;
-  formProps?: Partial<typeof Form>;
 };
 
 function CreateTeamForm({organization, formProps, ...props}: Props) {

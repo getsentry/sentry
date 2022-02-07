@@ -5,8 +5,8 @@ import {Level} from 'sentry/types';
 const DEFAULT_SIZE = '13px';
 
 type Props = {
-  size?: string;
   level?: Level;
+  size?: string;
 };
 
 const ErrorLevel = styled('span')<Props>`

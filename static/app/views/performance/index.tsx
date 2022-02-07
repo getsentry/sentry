@@ -8,8 +8,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {MetricsSwitchContextContainer} from './metricsSwitch';
 
 type Props = {
-  organization: Organization;
   children: React.ReactChildren;
+  organization: Organization;
 };
 
 function PerformanceContainer({organization, children}: Props) {

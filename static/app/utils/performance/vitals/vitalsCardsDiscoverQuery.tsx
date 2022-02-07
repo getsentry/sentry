@@ -11,8 +11,8 @@ import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import withApi from 'sentry/utils/withApi';
 
 export type TableDataRow = {
-  id: string;
   [key: string]: React.ReactText;
+  id: string;
 };
 
 export type TableData = {
@@ -21,11 +21,11 @@ export type TableData = {
 };
 
 export type VitalData = {
-  poor: number;
-  meh: number;
   good: number;
-  total: number;
+  meh: number;
   p75: number | null;
+  poor: number;
+  total: number;
 };
 
 export type VitalsData = Record<string, VitalData>;

@@ -9,10 +9,10 @@ import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 type Props = {
-  onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
-  withLeadHint: boolean;
   includeSystemFrames: boolean;
+  onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   packagePath: string | null;
+  withLeadHint: boolean;
   isClickable?: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?

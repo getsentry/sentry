@@ -12,13 +12,13 @@ import {getImageRange, parseAddress} from '../../utils';
 
 type Props = {
   data: StacktraceType;
-  platform: PlatformType;
   event: Event;
-  groupingCurrentLevel?: Group['metadata']['current_level'];
-  newestFirst?: boolean;
-  isHoverPreviewed?: boolean;
-  includeSystemFrames?: boolean;
+  platform: PlatformType;
   expandFirstFrame?: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
+  includeSystemFrames?: boolean;
+  isHoverPreviewed?: boolean;
+  newestFirst?: boolean;
 };
 
 function Content({

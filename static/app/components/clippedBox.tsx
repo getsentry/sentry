@@ -8,17 +8,17 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type DefaultProps = {
-  clipHeight?: number;
   btnText?: string;
+  clipHeight?: number;
   defaultClipped?: boolean;
 };
 
 type Props = {
   clipHeight: number;
-  title?: string;
-  renderedHeight?: number;
-  onReveal?: () => void;
   className?: string;
+  onReveal?: () => void;
+  renderedHeight?: number;
+  title?: string;
 } & DefaultProps;
 
 type State = {

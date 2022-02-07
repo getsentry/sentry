@@ -6,9 +6,9 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type Props = {
-  isOpen: boolean;
-  getActorProps: GetActorPropsFn;
   checkedQuantity: number;
+  getActorProps: GetActorPropsFn;
+  isOpen: boolean;
 };
 
 function DropDownButton({isOpen, getActorProps, checkedQuantity}: Props) {

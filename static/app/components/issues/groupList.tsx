@@ -38,12 +38,9 @@ const defaultProps = {
 
 type Props = WithRouterProps & {
   api: Client;
-  query: string;
-  orgId: string;
   endpointPath: string;
-  renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
-  queryParams?: Record<string, number | string | string[] | undefined | null>;
+  orgId: string;
+  query: string;
   customStatsPeriod?: TimePeriodType;
   onFetchSuccess?: (
     groupListState: State,
@@ -55,13 +52,16 @@ type Props = WithRouterProps & {
     ) => void
   ) => void;
   queryFilterDescription?: string;
+  queryParams?: Record<string, number | string | string[] | undefined | null>;
+  renderEmptyMessage?: () => React.ReactNode;
+  renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
 } & Partial<typeof defaultProps>;
 
 type State = {
-  loading: boolean;
   error: boolean;
   errorData: {detail: string} | null;
   groups: Group[];
+  loading: boolean;
   pageLinks: string | null;
   memberList?: ReturnType<typeof indexMembersByProject>;
 };

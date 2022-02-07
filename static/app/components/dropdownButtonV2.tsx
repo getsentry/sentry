@@ -8,13 +8,13 @@ import space from 'sentry/styles/space';
 export type DropdownButtonProps = Omit<React.ComponentProps<typeof Button>, 'type'> & {
   children?: React.ReactNode;
   /**
-   * The fixed prefix text to show in the button eg: 'Sort By'
-   */
-  prefix?: React.ReactNode;
-  /**
    * Whether or not the button should render as open
    */
   isOpen?: boolean;
+  /**
+   * The fixed prefix text to show in the button eg: 'Sort By'
+   */
+  prefix?: React.ReactNode;
   /**
    * Should a chevron icon be shown?
    */

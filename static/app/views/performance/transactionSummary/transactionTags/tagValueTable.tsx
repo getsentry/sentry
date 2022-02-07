@@ -39,17 +39,17 @@ import {trackTagPageInteraction} from './utils';
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
 type Props = {
+  aggregateColumn: string;
+  eventView: EventView;
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  aggregateColumn: string;
-  projects: Project[];
-  transactionName: string;
-  tagKey?: string;
-  eventView: EventView;
-  tableData: TableData | null;
   pageLinks: string | null;
-  isLoading: boolean;
+  projects: Project[];
+  tableData: TableData | null;
+  transactionName: string;
   onCursor?: CursorHandler;
+  tagKey?: string;
 };
 
 type State = {

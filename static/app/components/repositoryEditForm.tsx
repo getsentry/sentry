@@ -11,10 +11,10 @@ import {Field} from 'sentry/views/settings/components/forms/type';
 import Alert from './alert';
 
 type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> & {
+  closeModal: () => void;
+  onSubmitSuccess: (data: any) => void;
   orgSlug: string;
   repository: Repository;
-  onSubmitSuccess: (data: any) => void;
-  closeModal: () => void;
 };
 
 export default class RepositoryEditForm extends Component<Props> {

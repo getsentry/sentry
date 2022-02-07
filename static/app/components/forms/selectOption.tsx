@@ -67,7 +67,7 @@ const InnerWrap = styled('div')<{isFocused: boolean}>`
   ${p => p.isFocused && `background: ${p.theme.hover};`}
 `;
 
-const Indent = styled('div')<{isMulti?: boolean; centerCheckWrap?: boolean}>`
+const Indent = styled('div')<{centerCheckWrap?: boolean; isMulti?: boolean}>`
   display: flex;
   justify-content: center;
   gap: ${space(1)};
@@ -109,9 +109,9 @@ const CheckWrap = styled('div')<{isMulti: boolean; isSelected: boolean}>`
 `;
 
 const ContentWrap = styled('div')<{
+  addRightMargin: boolean;
   isFocused: boolean;
   showDividers?: boolean;
-  addRightMargin: boolean;
 }>`
   position: relative;
   width: 100%;

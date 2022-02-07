@@ -13,8 +13,8 @@ type CheckboxRenderOptions = {
 
 type Props = {
   checked: boolean;
-  onCheckClick: (event: React.MouseEvent) => void;
   children: React.ReactNode;
+  onCheckClick: (event: React.MouseEvent) => void;
   multi?: boolean;
   /**
    * This is a render prop which may be used to augment the checkbox rendered

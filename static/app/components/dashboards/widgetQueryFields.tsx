@@ -23,7 +23,6 @@ type Props = {
    * The widget display type. Used to render different fieldsets.
    */
   displayType: Widget['displayType'];
-  widgetType: Widget['widgetType'];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   /**
    * The field list for the widget.
@@ -37,6 +36,7 @@ type Props = {
    * Any errors that need to be rendered.
    */
   organization: Organization;
+  widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
   style?: React.CSSProperties;
 };

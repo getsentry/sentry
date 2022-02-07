@@ -17,11 +17,11 @@ type Value = null | string | boolean | number | {[key: string]: Value} | Value[]
 
 type Props = React.HTMLAttributes<HTMLPreElement> & {
   data: Value;
-  preserveQuotes?: boolean;
-  withAnnotatedText?: boolean;
+  jsonConsts?: boolean;
   maxDefaultDepth?: number;
   meta?: Meta;
-  jsonConsts?: boolean;
+  preserveQuotes?: boolean;
+  withAnnotatedText?: boolean;
 };
 
 type State = {

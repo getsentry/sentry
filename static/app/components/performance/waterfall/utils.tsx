@@ -8,9 +8,9 @@ export const getBackgroundColor = ({
   showDetail,
   theme,
 }: {
-  showStriping?: boolean;
-  showDetail?: boolean;
   theme: Theme;
+  showDetail?: boolean;
+  showStriping?: boolean;
 }) => {
   if (showDetail) {
     return theme.textColor;
@@ -64,8 +64,8 @@ export const getDurationPillAlignment = ({
   spanBarHatch,
 }: {
   durationDisplay: DurationDisplay;
-  theme: Theme;
   spanBarHatch: boolean;
+  theme: Theme;
 }) => {
   switch (durationDisplay) {
     case 'left':
@@ -87,10 +87,10 @@ export const getToggleTheme = ({
   errored,
   isSpanGroupToggler,
 }: {
-  theme: Theme;
-  isExpanded: boolean;
   disabled: boolean;
   errored: boolean;
+  isExpanded: boolean;
+  theme: Theme;
   isSpanGroupToggler?: boolean;
 }) => {
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
@@ -137,8 +137,8 @@ export const getDurationDisplay = ({
   width,
   left,
 }: {
-  width: undefined | number;
   left: undefined | number;
+  width: undefined | number;
 }): DurationDisplay => {
   const spaceNeeded = 0.3;
 
@@ -166,11 +166,11 @@ export const getHumanDuration = (duration: number): string => {
 export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
 
 type Rect = {
+  height: number;
+  width: number;
   // x and y are left/top coords respectively
   x: number;
   y: number;
-  width: number;
-  height: number;
 };
 
 // get position of element relative to top/left of document

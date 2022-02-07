@@ -10,8 +10,8 @@ import withProjects from 'sentry/utils/withProjects';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
-  projects: Project[];
   organization: Organization;
+  projects: Project[];
 };
 
 const IntegrationAlertRules = ({projects, organization}: Props) => (

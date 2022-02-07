@@ -22,17 +22,17 @@ type Props = {
    */
   onScroll?: () => void;
   /**
-   * If you use grouping with virtualizedHeight, the labels will be that height unless specified here
-   */
-  virtualizedLabelHeight?: number;
-
-  /**
    * Supplying this height will force the dropdown menu to be a virtualized list.
    * This is very useful (and probably required) if you have a large list. e.g. Project selector with many projects.
    *
    * Currently, our implementation of the virtualized list requires a fixed height.
    */
   virtualizedHeight?: number;
+
+  /**
+   * If you use grouping with virtualizedHeight, the labels will be that height unless specified here
+   */
+  virtualizedLabelHeight?: number;
 } & RowProps;
 
 function getHeight(

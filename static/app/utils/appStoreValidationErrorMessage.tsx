@@ -10,7 +10,7 @@ export const unexpectedErrorMessage = t(
 
 export function getAppStoreValidationErrorMessage(
   error: AppStoreConnectValidationError,
-  repo?: {name: string; link: string}
+  repo?: {link: string; name: string}
 ) {
   switch (error.code) {
     case 'app-connect-authentication-error':

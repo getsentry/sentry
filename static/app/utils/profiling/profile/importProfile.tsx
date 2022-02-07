@@ -6,10 +6,10 @@ import {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
 
 export interface ProfileGroup {
-  name: string;
-  traceID: string;
   activeProfileIndex: number;
+  name: string;
   profiles: Profile[];
+  traceID: string;
 }
 
 type ProfileType =
@@ -18,8 +18,8 @@ type ProfileType =
   | JSSelfProfiling.Trace;
 
 interface Schema {
-  name: string;
   activeProfileIndex: number;
+  name: string;
   profiles: ProfileType[];
 }
 

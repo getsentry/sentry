@@ -8,20 +8,20 @@ import {Organization, Project} from 'sentry/types';
 type OrgTypes = Organization | null;
 
 type State = {
-  project: Project | null;
+  environment: string | string[] | null;
   lastProject: Project | null;
   organization: OrgTypes;
-  environment: string | string[] | null;
+  project: Project | null;
 };
 
 type LatestContextStoreInterface = {
-  state: State;
-  reset(): void;
   get(): State;
-  onUpdateOrganization(organization: OrgTypes): void;
   onSetActiveOrganization(organization: OrgTypes): void;
   onSetActiveProject(project: Project | null): void;
+  onUpdateOrganization(organization: OrgTypes): void;
   onUpdateProject(project: Project | null): void;
+  reset(): void;
+  state: State;
 };
 
 /**

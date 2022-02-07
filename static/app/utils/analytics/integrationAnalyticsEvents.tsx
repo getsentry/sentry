@@ -19,10 +19,10 @@ type SingleIntegrationEventParams = {
   integration: string; // the slug
   integration_type: IntegrationType;
   already_installed?: boolean;
-  plan?: string;
   // include the status since people might do weird things testing unpublished integrations
   integration_status?: SentryAppStatus;
   integration_tab?: 'configurations' | 'overview';
+  plan?: string;
 } & View;
 
 type MultipleIntegrationsEventParams = {
@@ -30,8 +30,8 @@ type MultipleIntegrationsEventParams = {
 } & View;
 
 type IntegrationSearchEventParams = {
-  search_term: string;
   num_results: number;
+  search_term: string;
 } & View;
 
 type IntegrationCategorySelectEventParams = {
@@ -39,10 +39,10 @@ type IntegrationCategorySelectEventParams = {
 } & View;
 
 type IntegrationStacktraceLinkEventParams = {
-  provider?: string;
-  platform?: PlatformType;
-  setup_type?: 'automatic' | 'manual';
   error_reason?: StacktraceErrorMessage;
+  platform?: PlatformType;
+  provider?: string;
+  setup_type?: 'automatic' | 'manual';
 } & View;
 
 type IntegrationServerlessFunctionsViewedParams = {
@@ -62,42 +62,43 @@ type IntegrationCodeOwnersEventParams = {
 } & View;
 // define the event key to payload mappings
 export type IntegrationEventParameters = {
-  'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
-  'integrations.install_modal_opened': SingleIntegrationEventParams;
-  'integrations.integration_viewed': SingleIntegrationEventParams;
-  'integrations.installation_start': SingleIntegrationEventParams;
-  'integrations.installation_complete': SingleIntegrationEventParams;
-  'integrations.uninstall_clicked': SingleIntegrationEventParams;
-  'integrations.uninstall_completed': SingleIntegrationEventParams;
-  'integrations.enabled': SingleIntegrationEventParams;
-  'integrations.disabled': SingleIntegrationEventParams;
-  'integrations.config_saved': SingleIntegrationEventParams;
-  'integrations.integration_tab_clicked': SingleIntegrationEventParams;
-  'integrations.plugin_add_to_project_clicked': SingleIntegrationEventParams;
-  'integrations.resolve_now_clicked': SingleIntegrationEventParams;
-  'integrations.request_install': SingleIntegrationEventParams;
+  'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
   'integrations.code_mappings_viewed': SingleIntegrationEventParams;
-  'integrations.details_viewed': SingleIntegrationEventParams; // for an individual configuration
-  'integrations.index_viewed': MultipleIntegrationsEventParams;
-  'integrations.directory_item_searched': IntegrationSearchEventParams;
+  'integrations.code_owners_cta_docs_clicked': IntegrationCodeOwnersEventParams;
+  'integrations.code_owners_cta_setup_clicked': IntegrationCodeOwnersEventParams;
+  'integrations.config_saved': SingleIntegrationEventParams;
+  'integrations.details_viewed': SingleIntegrationEventParams;
   'integrations.directory_category_selected': IntegrationCategorySelectEventParams;
+  'integrations.directory_item_searched': IntegrationSearchEventParams;
+  'integrations.disabled': SingleIntegrationEventParams;
+  'integrations.dismissed_code_owners_prompt': IntegrationCodeOwnersEventParams;
+  'integrations.enabled': SingleIntegrationEventParams;
+  // for an individual configuration
+  'integrations.index_viewed': MultipleIntegrationsEventParams;
+  'integrations.install_modal_opened': SingleIntegrationEventParams;
+  'integrations.installation_complete': SingleIntegrationEventParams;
+  'integrations.installation_input_value_changed': IntegrationInstallationInputValueChangeEventParams;
+  'integrations.installation_start': SingleIntegrationEventParams;
+  'integrations.integration_tab_clicked': SingleIntegrationEventParams;
+  'integrations.integration_viewed': SingleIntegrationEventParams;
+  'integrations.plugin_add_to_project_clicked': SingleIntegrationEventParams;
+  'integrations.reconfigure_stacktrace_setup': IntegrationStacktraceLinkEventParams;
+  'integrations.request_install': SingleIntegrationEventParams;
+  'integrations.resolve_now_clicked': SingleIntegrationEventParams;
+  'integrations.serverless_function_action': IntegrationServerlessFunctionActionParams;
+  'integrations.serverless_functions_viewed': IntegrationServerlessFunctionsViewedParams;
+  'integrations.show_code_owners_prompt': IntegrationCodeOwnersEventParams;
+  'integrations.stacktrace_complete_setup': IntegrationStacktraceLinkEventParams;
+  'integrations.stacktrace_docs_clicked': IntegrationStacktraceLinkEventParams;
+  'integrations.stacktrace_link_clicked': IntegrationStacktraceLinkEventParams;
   'integrations.stacktrace_link_cta_dismissed': IntegrationStacktraceLinkEventParams;
+  'integrations.stacktrace_manual_option_clicked': IntegrationStacktraceLinkEventParams;
   'integrations.stacktrace_start_setup': IntegrationStacktraceLinkEventParams;
   'integrations.stacktrace_submit_config': IntegrationStacktraceLinkEventParams;
-  'integrations.stacktrace_complete_setup': IntegrationStacktraceLinkEventParams;
-  'integrations.stacktrace_manual_option_clicked': IntegrationStacktraceLinkEventParams;
-  'integrations.stacktrace_link_clicked': IntegrationStacktraceLinkEventParams;
-  'integrations.reconfigure_stacktrace_setup': IntegrationStacktraceLinkEventParams;
-  'integrations.stacktrace_docs_clicked': IntegrationStacktraceLinkEventParams;
-  'integrations.serverless_functions_viewed': IntegrationServerlessFunctionsViewedParams;
-  'integrations.installation_input_value_changed': IntegrationInstallationInputValueChangeEventParams;
-  'integrations.serverless_function_action': IntegrationServerlessFunctionActionParams;
-  'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
   'integrations.switch_manual_sdk_setup': SingleIntegrationEventParams;
-  'integrations.code_owners_cta_setup_clicked': IntegrationCodeOwnersEventParams;
-  'integrations.code_owners_cta_docs_clicked': IntegrationCodeOwnersEventParams;
-  'integrations.show_code_owners_prompt': IntegrationCodeOwnersEventParams;
-  'integrations.dismissed_code_owners_prompt': IntegrationCodeOwnersEventParams;
+  'integrations.uninstall_clicked': SingleIntegrationEventParams;
+  'integrations.uninstall_completed': SingleIntegrationEventParams;
+  'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
 };
 
 export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;

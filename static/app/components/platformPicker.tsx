@@ -31,13 +31,13 @@ type Category = typeof PLATFORM_CATEGORIES[number]['id'];
 
 type Props = {
   setPlatform: (key: PlatformKey | null) => void;
-  platform?: string | null;
-  showOther?: boolean;
+  defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.ComponentProps<typeof PlatformList>;
   noAutoFilter?: boolean;
-  defaultCategory?: Category;
   organization?: Organization;
+  platform?: string | null;
+  showOther?: boolean;
   source?: string;
 };
 

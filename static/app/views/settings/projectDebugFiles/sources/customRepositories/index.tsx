@@ -29,12 +29,12 @@ const SECTION_TITLE = t('Custom Repositories');
 
 type Props = {
   api: Client;
+  customRepositories: CustomRepo[];
+  isLoading: boolean;
+  location: Location;
   organization: Organization;
   projSlug: Project['slug'];
-  customRepositories: CustomRepo[];
   router: InjectedRouter;
-  location: Location;
-  isLoading: boolean;
 };
 
 function CustomRepositories({
@@ -92,10 +92,10 @@ function CustomRepositories({
     index,
     refresh,
   }: {
-    updatedItems?: CustomRepo[];
-    updatedItem?: CustomRepo;
     index?: number;
     refresh?: boolean;
+    updatedItem?: CustomRepo;
+    updatedItems?: CustomRepo[];
   }) {
     let items = updatedItems ?? [];
 

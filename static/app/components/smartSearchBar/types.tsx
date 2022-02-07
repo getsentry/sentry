@@ -10,27 +10,27 @@ export enum ItemType {
 }
 
 export type SearchGroup = {
-  type: ItemType | 'header';
-  title: string;
-  icon: React.ReactNode;
-  value?: string;
-  desc?: string;
   children: SearchItem[];
+  icon: React.ReactNode;
+  title: string;
+  type: ItemType | 'header';
+  desc?: string;
+  value?: string;
 };
 
 export type SearchItem = {
-  type?: ItemType;
-  title?: string;
-  value: string;
   desc: string;
+  value: string;
   active?: boolean;
   children?: React.ReactNode[];
   ignoreMaxSearchItems?: boolean;
+  title?: string;
+  type?: ItemType;
 };
 
 export type Tag = {
-  predefined: boolean;
-  key: string;
   desc: string;
+  key: string;
+  predefined: boolean;
   values: string[];
 };

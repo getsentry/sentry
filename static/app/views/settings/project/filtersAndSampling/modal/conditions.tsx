@@ -17,18 +17,18 @@ import {getMatchFieldPlaceholder} from './utils';
 
 type Condition = {
   category: DynamicSamplingInnerName;
-  match?: string;
   legacyBrowsers?: Array<LegacyBrowser>;
+  match?: string;
 };
 
 type Props = Pick<React.ComponentProps<typeof AutoComplete>, 'orgSlug' | 'projectId'> & {
   conditions: Condition[];
-  onDelete: (index: number) => void;
   onChange: <T extends keyof Condition>(
     index: number,
     field: T,
     value: Condition[T]
   ) => void;
+  onDelete: (index: number) => void;
 };
 
 function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props) {

@@ -20,8 +20,8 @@ import {
 } from 'sentry/types';
 
 type Props = {
-  author: React.ReactNode;
   activity: GroupActivity;
+  author: React.ReactNode;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
 };

@@ -8,8 +8,8 @@ import {Panel, PanelItem} from './panels';
 
 type Props = {
   organization: Organization;
-  project: Project;
   pluginList: Plugin[];
+  project: Project;
   onDisablePlugin?: (plugin: Plugin) => void;
   onEnablePlugin?: (plugin: Plugin) => void;
 };

@@ -23,10 +23,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import NoGroupsHandler from '../issueList/noGroupsHandler';
 
 type Props = {
-  organization: Organization;
-  location: Location;
-  projectId: number;
   api: Client;
+  location: Location;
+  organization: Organization;
+  projectId: number;
   query?: string;
 };
 

@@ -14,8 +14,8 @@ type WithPluginProps = {
 };
 
 type State = {
-  plugins: Plugin[];
   loading: boolean;
+  plugins: Plugin[];
 };
 
 /**

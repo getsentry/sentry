@@ -48,7 +48,7 @@ type Props = {
   /**
    * Set an optional default value to prefill absolute date with
    */
-  defaultAbsolute?: {start?: Date; end?: Date};
+  defaultAbsolute?: {end?: Date; start?: Date};
   /**
    * Override DEFAULT_STATS_PERIOD
    */

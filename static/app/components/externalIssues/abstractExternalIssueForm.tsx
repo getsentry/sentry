@@ -24,10 +24,6 @@ type Props = ModalRenderProps & AsyncComponent['props'];
 type State = {
   action: ExternalIssueAction;
   /**
-   * Fetched via endpoint, null until set.
-   */
-  integrationDetails: IntegrationIssueConfig | null;
-  /**
    * Object of fields where `updatesFrom` is true, by field name. Derived from
    * `integrationDetails` when it loads. Null until set.
    */
@@ -36,6 +32,10 @@ type State = {
    * Cache of options fetched for async fields.
    */
   fetchedFieldOptionsCache: Record<string, Choices>;
+  /**
+   * Fetched via endpoint, null until set.
+   */
+  integrationDetails: IntegrationIssueConfig | null;
 } & AsyncComponent['state'];
 
 const DEBOUNCE_MS = 200;

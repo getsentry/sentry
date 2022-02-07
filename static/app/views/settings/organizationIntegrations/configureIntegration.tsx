@@ -29,9 +29,9 @@ import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RouteParams = {
+  integrationId: string;
   orgId: string;
   providerKey: string;
-  integrationId: string;
 };
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;

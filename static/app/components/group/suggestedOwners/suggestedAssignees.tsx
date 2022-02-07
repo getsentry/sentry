@@ -17,8 +17,8 @@ type Owner = {
 };
 
 type Props = {
-  owners: Array<Owner>;
   onAssign: (actor: Actor) => () => void;
+  owners: Array<Owner>;
 };
 
 const SuggestedAssignees = ({owners, onAssign}: Props) => (

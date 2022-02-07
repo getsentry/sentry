@@ -25,8 +25,8 @@ type PlatformPickerParam = {
 };
 
 type PlatformSearchParam = {
-  search: string;
   num_results: number;
+  search: string;
   source?: string;
 };
 
@@ -35,8 +35,8 @@ type SampleEventParam = {
 };
 
 type InviteRequestParam = {
-  member_id: number;
   invite_status: string;
+  member_id: number;
 };
 
 type InviteModal = {
@@ -45,54 +45,54 @@ type InviteModal = {
 
 // define the event key to payload mappings
 export type GrowthEventParameters = {
-  'growth.show_mobile_prompt_banner': ShowParams;
-  'growth.dismissed_mobile_prompt_banner': MobilePromptBannerParams;
-  'growth.opened_mobile_project_suggest_modal': MobilePromptBannerParams;
-  'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;
-  'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
-  'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
-  'growth.demo_click_get_started': {cta?: string};
-  'growth.demo_click_docs': {};
-  'growth.demo_click_request_demo': {};
   'growth.clicked_enter_sandbox': {
     scenario: string;
   };
+  'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
+  'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;
+  'growth.demo_click_docs': {};
+  'growth.demo_click_get_started': {cta?: string};
+  'growth.demo_click_request_demo': {};
+  'growth.demo_modal_clicked_continue': {};
+  'growth.demo_modal_clicked_signup': {};
+  'growth.dismissed_mobile_prompt_banner': MobilePromptBannerParams;
+  'growth.issue_open_in_discover_btn_clicked': {};
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_set_up_your_project': PlatformParam;
-  'growth.select_platform': PlatformPickerParam;
-  'growth.platformpicker_category': PlatformCategory;
-  'growth.platformpicker_search': PlatformSearchParam;
   'growth.onboarding_start_onboarding': {};
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
-  'invite_request.approved': InviteRequestParam;
-  'invite_request.denied': InviteRequestParam;
-  'growth.demo_modal_clicked_signup': {};
-  'growth.demo_modal_clicked_continue': {};
-  'growth.sample_transaction_docs_link_clicked': {
-    project_id: string;
-  };
+  'growth.opened_mobile_project_suggest_modal': MobilePromptBannerParams;
+  'growth.platformpicker_category': PlatformCategory;
+  'growth.platformpicker_search': PlatformSearchParam;
   'growth.sample_error_onboarding_link_clicked': {
     project_id: string;
     platform?: string;
   };
-  'growth.issue_open_in_discover_btn_clicked': {};
-  'member_settings_page.loaded': {
-    num_members: number;
-    num_invite_requests: number;
+  'growth.sample_transaction_docs_link_clicked': {
+    project_id: string;
   };
-  'invite_modal.closed': InviteModal;
-  'invite_modal.opened': InviteModal & {
-    source?: string;
-    can_invite: boolean;
-  };
-  'invite_modal.invites_sent': InviteModal;
-  'invite_modal.requests_sent': InviteModal;
+  'growth.select_platform': PlatformPickerParam;
+  'growth.show_mobile_prompt_banner': ShowParams;
+  'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'invite_modal.add_more': InviteModal;
+  'invite_modal.closed': InviteModal;
+  'invite_modal.invites_sent': InviteModal;
+  'invite_modal.opened': InviteModal & {
+    can_invite: boolean;
+    source?: string;
+  };
+  'invite_modal.requests_sent': InviteModal;
+  'invite_request.approved': InviteRequestParam;
+  'invite_request.denied': InviteRequestParam;
+  'member_settings_page.loaded': {
+    num_invite_requests: number;
+    num_members: number;
+  };
+  'sdk_updates.clicked': {};
   'sdk_updates.seen': {};
   'sdk_updates.snoozed': {};
-  'sdk_updates.clicked': {};
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;

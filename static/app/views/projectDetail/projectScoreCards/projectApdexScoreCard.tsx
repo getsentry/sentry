@@ -19,9 +19,9 @@ import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 
 type Props = AsyncComponent['props'] & {
+  isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
-  isProjectStabilized: boolean;
   hasTransactions?: boolean;
   query?: string;
 };

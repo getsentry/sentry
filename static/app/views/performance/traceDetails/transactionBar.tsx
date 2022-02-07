@@ -51,18 +51,18 @@ import {TraceInfo, TraceRoot, TreeDepth} from './types';
 const MARGIN_LEFT = 0;
 
 type Props = {
+  continuingDepths: TreeDepth[];
+  hasGuideAnchor: boolean;
+  index: number;
+  isExpanded: boolean;
+  isLast: boolean;
+  isOrphan: boolean;
+  isVisible: boolean;
   location: Location;
   organization: Organization;
-  index: number;
-  transaction: TraceRoot | TraceFullDetailed;
-  traceInfo: TraceInfo;
-  isOrphan: boolean;
-  isLast: boolean;
-  continuingDepths: TreeDepth[];
-  isExpanded: boolean;
-  isVisible: boolean;
-  hasGuideAnchor: boolean;
   toggleExpandedState: () => void;
+  traceInfo: TraceInfo;
+  transaction: TraceRoot | TraceFullDetailed;
   barColor?: string;
 };
 

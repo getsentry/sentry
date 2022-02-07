@@ -1,24 +1,24 @@
 export type Relay = {
-  publicKey: string;
   name: string;
+  publicKey: string;
   created?: string;
-  lastModified?: string;
   description?: string;
+  lastModified?: string;
 };
 
 export type RelayActivity = {
+  firstSeen: string;
+  lastSeen: string;
   publicKey: string;
   relayId: string;
   version: string;
-  firstSeen: string;
-  lastSeen: string;
 };
 
 export type RelaysByPublickey = {
   [publicKey: string]: {
-    name: string;
     activities: Array<RelayActivity>;
-    description?: string;
+    name: string;
     created?: string;
+    description?: string;
   };
 };

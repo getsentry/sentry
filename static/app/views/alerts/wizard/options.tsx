@@ -93,8 +93,8 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
 
 type PanelContent = {
   description: string;
-  docsLink?: string;
   examples: string[];
+  docsLink?: string;
   illustration?: string;
 };
 

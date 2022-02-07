@@ -32,6 +32,10 @@ const DEFAULT_TRANSACTION_LIMIT = 5;
 
 export type DropdownOption = {
   /**
+   * The label to display in the dropdown
+   */
+  label: string;
+  /**
    * The sort to apply to the eventView when this is selected.
    */
   sort: Sort;
@@ -40,54 +44,49 @@ export type DropdownOption = {
    */
   value: string;
   /**
-   * The label to display in the dropdown
+   * override the eventView query
    */
-  label: string;
+  query?: [string, string][];
   /**
    * Included if the option is for a trend
    */
   trendType?: TrendChangeType;
-  /**
-   * override the eventView query
-   */
-  query?: [string, string][];
 };
 
 type Props = {
-  location: Location;
+  /**
+   * The name of the url parameter that contains the cursor info.
+   */
+  cursorName: string;
   eventView: EventView;
-  trendView?: TrendView;
-  organization: Organization;
-  /**
-   * The currently selected option on the dropdown.
-   */
-  selected: DropdownOption;
-  /**
-   * The available options for the dropdown.
-   */
-  options: DropdownOption[];
   /**
    * The callback for when the dropdown option changes.
    */
   handleDropdownChange: (k: string) => void;
   /**
-   * The callback to generate a cell action handler for a column
-   */
-  handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
-  /**
-   * The name of the url parameter that contains the cursor info.
-   */
-  cursorName: string;
-  /**
    * The limit to the number of results to fetch.
    */
   limit: number;
+  location: Location;
   /**
-   * A list of preferred table headers to use over the field names.
+   * The available options for the dropdown.
    */
-  titles?: string[];
+  options: DropdownOption[];
+  organization: Organization;
+  /**
+   * The currently selected option on the dropdown.
+   */
+  selected: DropdownOption;
+  breakdown?: SpanOperationBreakdownFilter;
+  /**
+   * Show a loading indicator instead of the table, used for transaction summary p95.
+   */
+  forceLoading?: boolean;
+  /**
+   * Optional callback function to generate an alternative EventView object to be used
+   * for generating the Discover query.
+   */
+  generateDiscoverEventView?: () => EventView;
   /**
    * A map of callbacks to generate a link for a column based on the title.
    */
@@ -99,26 +98,27 @@ type Props = {
       query: Query
     ) => LocationDescriptor
   >;
+  generatePerformanceTransactionEventsView?: () => EventView;
   /**
-   * The callback for when Open in Discover is clicked.
+   * The callback to generate a cell action handler for a column
    */
-  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  handleCellAction?: (
+    c: TableColumn<React.ReactText>
+  ) => (a: Actions, v: React.ReactText) => void;
   /**
    * The callback for when View All Events is clicked.
    */
   handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
   /**
-   * Show a loading indicator instead of the table, used for transaction summary p95.
+   * The callback for when Open in Discover is clicked.
    */
-  forceLoading?: boolean;
-  /**
-   * Optional callback function to generate an alternative EventView object to be used
-   * for generating the Discover query.
-   */
-  generateDiscoverEventView?: () => EventView;
-  generatePerformanceTransactionEventsView?: () => EventView;
+  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
   showTransactions?: TransactionFilterOptions;
-  breakdown?: SpanOperationBreakdownFilter;
+  /**
+   * A list of preferred table headers to use over the field names.
+   */
+  titles?: string[];
+  trendView?: TrendView;
 };
 
 class TransactionsList extends React.Component<Props> {

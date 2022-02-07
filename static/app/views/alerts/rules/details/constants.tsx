@@ -22,10 +22,10 @@ export const API_INTERVAL_POINTS_LIMIT = 10000;
 export const API_INTERVAL_POINTS_MIN = 150;
 
 export type TimePeriodType = {
-  start: string;
-  end: string;
-  period: string;
-  label: string;
   display: React.ReactNode;
+  end: string;
+  label: string;
+  period: string;
+  start: string;
   custom?: boolean;
 };

@@ -25,15 +25,15 @@ import {didProjectOrEnvironmentChange} from './utils';
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
 
 type Props = AsyncComponent['props'] & {
+  isProjectStabilized: boolean;
+  location: Location;
   organization: Organization;
   projectSlug: string;
-  location: Location;
-  isProjectStabilized: boolean;
 };
 
 type State = {
-  unresolvedAlerts: Incident[] | null;
   resolvedAlerts: Incident[] | null;
+  unresolvedAlerts: Incident[] | null;
   hasAlertRule?: boolean;
 } & AsyncComponent['state'];
 

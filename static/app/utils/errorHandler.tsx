@@ -3,8 +3,8 @@ import * as React from 'react';
 import RouteError from 'sentry/views/routeError';
 
 type State = {
-  hasError: boolean;
   error: Error | undefined;
+  hasError: boolean;
 };
 
 export default function errorHandler<P>(Component: React.ComponentType<P>) {

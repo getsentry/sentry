@@ -19,11 +19,11 @@ import {SingleAxisChart} from './singleAxisChart';
 import {getAxisOrBackupAxis, getBackupAxes} from './utils';
 
 type Props = {
+  axisOptions: AxisOption[];
+  eventView: EventView;
+  leftAxis: AxisOption;
   location: Location;
   organization: Organization;
-  eventView: EventView;
-  axisOptions: AxisOption[];
-  leftAxis: AxisOption;
   rightAxis: AxisOption;
 };
 

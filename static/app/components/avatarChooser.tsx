@@ -27,9 +27,9 @@ type AvatarChooserType =
   | 'sentryAppSimple'
   | 'docIntegration';
 type DefaultChoice = {
-  preview?: React.ReactNode;
   allowDefault?: boolean;
   choiceText?: string;
+  preview?: React.ReactNode;
 };
 
 type DefaultProps = {
@@ -37,8 +37,8 @@ type DefaultProps = {
   allowGravatar?: boolean;
   allowLetter?: boolean;
   allowUpload?: boolean;
-  type?: AvatarChooserType;
   defaultChoice?: DefaultChoice;
+  type?: AvatarChooserType;
 };
 
 type Props = {
@@ -46,17 +46,17 @@ type Props = {
   endpoint: string;
   model: Model;
   disabled?: boolean;
-  savedDataUrl?: string;
-  isUser?: boolean;
-  title?: string;
   help?: React.ReactNode;
+  isUser?: boolean;
+  savedDataUrl?: string;
+  title?: string;
 } & DefaultProps;
 
 type State = {
-  model: Model;
   hasError: boolean;
-  savedDataUrl?: string | null;
+  model: Model;
   dataUrl?: string | null;
+  savedDataUrl?: string | null;
 };
 
 class AvatarChooser extends React.Component<Props, State> {

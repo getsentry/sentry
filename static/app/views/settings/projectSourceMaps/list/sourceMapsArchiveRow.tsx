@@ -18,9 +18,9 @@ import {SourceMapsArchive} from 'sentry/types';
 
 type Props = {
   archive: SourceMapsArchive;
+  onDelete: (name: string) => void;
   orgId: string;
   projectId: string;
-  onDelete: (name: string) => void;
 };
 
 const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {

@@ -17,39 +17,39 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   /**
-   * Raw version (canonical release identifier)
-   */
-  version: string;
-  /**
    *  Organization injected by withOrganization HOC
    */
   organization: Organization;
   /**
+   * Raw version (canonical release identifier)
+   */
+  version: string;
+  /**
    * Should the version be a link to the release page
    */
   anchor?: boolean;
+  className?: string;
   /**
    * Should link to release page preserve user's page filter values
    */
   preservePageFilters?: boolean;
-  /**
-   * Should there be a tooltip with raw version on hover
-   */
-  tooltipRawVersion?: boolean;
-  /**
-   * Should we also show package name
-   */
-  withPackage?: boolean;
   /**
    * Will add project ID to the linked url (can be overridden by preservePageFilters).
    * If not provided and user does not have global-views enabled, it will try to take it from current url query.
    */
   projectId?: string;
   /**
+   * Should there be a tooltip with raw version on hover
+   */
+  tooltipRawVersion?: boolean;
+  /**
    * Ellipsis on overflow
    */
   truncate?: boolean;
-  className?: string;
+  /**
+   * Should we also show package name
+   */
+  withPackage?: boolean;
 };
 
 const Version = ({

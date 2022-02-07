@@ -49,11 +49,11 @@ type Props = DefaultProps & {
 };
 
 type State = {
-  filter: string;
   debugImages: Array<Image>;
+  filter: string;
   filteredImages: Array<Image>;
-  showUnused: boolean;
   showDetails: boolean;
+  showUnused: boolean;
   foundFrame?: Frame;
   panelBodyHeight?: number;
 };

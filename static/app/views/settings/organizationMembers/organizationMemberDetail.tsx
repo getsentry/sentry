@@ -42,8 +42,8 @@ const TWO_FACTOR_REQUIRED = t(
 );
 
 type RouteParams = {
-  orgId: string;
   memberId: string;
+  orgId: string;
 };
 
 type Props = {
@@ -51,9 +51,9 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
+  member: Member | null;
   roleList: Member['roles'];
   selectedRole: Member['role'];
-  member: Member | null;
 } & AsyncView['state'];
 
 const DisabledMemberTooltip = HookOrDefault({

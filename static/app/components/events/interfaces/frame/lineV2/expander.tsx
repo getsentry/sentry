@@ -11,10 +11,10 @@ import {isDotnet} from '../utils';
 
 type Props = {
   isExpandable: boolean;
-  platform: PlatformType;
   onToggleContext: (evt: React.MouseEvent) => void;
-  isHoverPreviewed?: boolean;
+  platform: PlatformType;
   isExpanded?: boolean;
+  isHoverPreviewed?: boolean;
 };
 
 function Expander({

@@ -16,19 +16,19 @@ type FormProps = React.ComponentProps<typeof Form>;
 type Values = FormProps['values'];
 
 type Props = ModalRenderProps & {
+  api: Client;
   onSubmitSuccess: (organization: Organization) => void;
   orgSlug: Organization['slug'];
-  api: Client;
   savedRelays: Array<Relay>;
 };
 
 type State = {
-  values: Values;
-  requiredValues: Array<keyof Values>;
   disables: FormProps['disables'];
   errors: FormProps['errors'];
   isFormValid: boolean;
+  requiredValues: Array<keyof Values>;
   title: string;
+  values: Values;
 };
 
 class DialogManager<

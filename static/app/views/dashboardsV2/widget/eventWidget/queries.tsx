@@ -14,13 +14,13 @@ import {WidgetQuery} from '../../types';
 import {DisplayType} from '../utils';
 
 type Props = {
-  queries: WidgetQuery[];
-  selectedProjectIds: number[];
-  organization: Organization;
   displayType: DisplayType;
-  onRemoveQuery: (index: number) => void;
   onAddQuery: () => void;
   onChangeQuery: (queryIndex: number, queries: WidgetQuery) => void;
+  onRemoveQuery: (index: number) => void;
+  organization: Organization;
+  queries: WidgetQuery[];
+  selectedProjectIds: number[];
   errors?: Array<Record<string, any>>;
 };
 

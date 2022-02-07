@@ -40,15 +40,15 @@ import {
 } from './utils';
 
 type Props = {
-  organization: Organization;
   eventView: EventView;
-  location: Location;
-  projects: Project[];
-  selection: PageFilters;
-  shouldShowOnboarding: boolean;
-  setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  selection: PageFilters;
+  setError: (msg: string | undefined) => void;
+  shouldShowOnboarding: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {

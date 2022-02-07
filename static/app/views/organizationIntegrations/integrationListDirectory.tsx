@@ -60,23 +60,23 @@ const fuseOptions = {
 };
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
-  organization: Organization;
   hideHeader: boolean;
+  organization: Organization;
 };
 
 type State = {
-  integrations: Integration[] | null;
-  plugins: PluginWithProjectList[] | null;
   appInstalls: SentryAppInstallation[] | null;
-  orgOwnedApps: SentryApp[] | null;
-  publishedApps: SentryApp[] | null;
-  docIntegrations: DocIntegration[] | null;
   config: {providers: IntegrationProvider[]} | null;
-  extraApp?: SentryApp;
-  searchInput: string;
-  list: AppOrProviderOrPlugin[];
   displayedList: AppOrProviderOrPlugin[];
+  docIntegrations: DocIntegration[] | null;
+  integrations: Integration[] | null;
+  list: AppOrProviderOrPlugin[];
+  orgOwnedApps: SentryApp[] | null;
+  plugins: PluginWithProjectList[] | null;
+  publishedApps: SentryApp[] | null;
+  searchInput: string;
   selectedCategory: string;
+  extraApp?: SentryApp;
   fuzzy?: Fuse<AppOrProviderOrPlugin, typeof fuseOptions>;
 };
 

@@ -59,13 +59,13 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   api: Client;
-  organization: Organization;
-  initialState: DashboardState;
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
+  initialState: DashboardState;
+  organization: Organization;
   route: PlainRoute;
-  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
 };
 
 type State = {

@@ -46,54 +46,54 @@ class PendingChangeQueue {
 type Item = BaseGroup | Group | GroupCollapseRelease;
 
 type Internals = {
-  items: Item[];
-  statuses: Record<string, Record<string, boolean>>;
-  pendingChanges: PendingChangeQueue;
-
-  indexOfActivity: (groupId: string, id: string) => number;
   addActivity: (groupId: string, data: Activity, index?: number) => void;
-  updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
+  indexOfActivity: (groupId: string, id: string) => number;
+  items: Item[];
+
+  pendingChanges: PendingChangeQueue;
   removeActivity: (groupId: string, id: string) => number;
+  statuses: Record<string, Record<string, boolean>>;
+  updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
 };
 
 type GroupStoreInterface = Reflux.StoreDefinition & {
-  init: () => void;
-  reset: () => void;
-  loadInitialData: (items: Item[]) => void;
   add: (items: Item[]) => void;
-  remove: (itemIds: string[]) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
-  hasStatus: (id: string, status: string) => boolean;
   get: (id: string) => Item | undefined;
   getAllItemIds: () => string[];
   getAllItems: () => Item[];
+  hasStatus: (id: string, status: string) => boolean;
+  init: () => void;
+  loadInitialData: (items: Item[]) => void;
   onAssignTo: (changeId: string, itemId: string, data: any) => void;
   onAssignToError: (changeId: string, itemId: string, error: Error) => void;
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
   onDelete: (changeId: string, itemIds: string[]) => void;
-  onDeleteSuccess: (changeId: string, itemIds: string[], response: any) => void;
   onDeleteError: (changeId: string, itemIds: string[], error: Error) => void;
+  onDeleteSuccess: (changeId: string, itemIds: string[], response: any) => void;
   onDiscard: (changeId: string, itemId: string) => void;
   onDiscardError: (changeId: string, itemId: string, response: any) => void;
   onDiscardSuccess: (changeId: string, itemId: string, response: any) => void;
   onMerge: (changeId: string, itemIds: string[]) => void;
   onMergeError: (changeId: string, itemIds: string[], response: any) => void;
   onMergeSuccess: (changeId: string, itemIds: string[], response: any) => void;
+  onPopulateReleases: (itemId: string, releaseData: GroupRelease) => void;
+  onPopulateStats: (itemIds: string[], response: GroupStats[]) => void;
   onUpdate: (changeId: string, itemIds: string[], data: any) => void;
-  onUpdateSuccess: (
-    changeId: string,
-    itemIds: string[],
-    response: Partial<Group>
-  ) => void;
   onUpdateError: (
     changeId: string,
     itemIds: string[],
     error: Error,
     silent: boolean
   ) => void;
-  onPopulateStats: (itemIds: string[], response: GroupStats[]) => void;
-  onPopulateReleases: (itemId: string, releaseData: GroupRelease) => void;
+  onUpdateSuccess: (
+    changeId: string,
+    itemIds: string[],
+    response: Partial<Group>
+  ) => void;
+  remove: (itemIds: string[]) => void;
+  reset: () => void;
 };
 
 const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {

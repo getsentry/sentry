@@ -29,7 +29,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
-type RouteParams = {orgId: string; projectId: string; name: string};
+type RouteParams = {name: string; orgId: string; projectId: string};
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;

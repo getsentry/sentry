@@ -49,25 +49,25 @@ const newQuery = {
 };
 
 type Props = AsyncView['props'] & {
+  dashboardTitle: DashboardDetails['title'];
+  goBackLocation: LocationDescriptor;
+  isEditing: boolean;
+  onAdd: (widget: Widget) => void;
+  onChangeDataSet: (dataSet: DataSet) => void;
+  onDelete: () => void;
+  onUpdate: (nextWidget: Widget) => void;
   organization: Organization;
   selection: PageFilters;
-  dashboardTitle: DashboardDetails['title'];
   tags: TagCollection;
-  isEditing: boolean;
-  goBackLocation: LocationDescriptor;
-  onChangeDataSet: (dataSet: DataSet) => void;
-  onAdd: (widget: Widget) => void;
-  onUpdate: (nextWidget: Widget) => void;
-  onDelete: () => void;
   widget?: Widget;
 };
 
 type State = AsyncView['state'] & {
-  title: string;
   displayType: DisplayType;
-  widgetType: WidgetType;
   interval: string;
   queries: Widget['queries'];
+  title: string;
+  widgetType: WidgetType;
   widgetErrors?: Record<string, any>;
 };
 

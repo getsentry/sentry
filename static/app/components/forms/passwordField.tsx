@@ -5,9 +5,9 @@ import InputField from 'sentry/components/forms/inputField';
 import FormState from 'sentry/components/forms/state';
 
 type Props = InputField['props'] & {
-  hasSavedValue?: boolean;
   prefix: string;
   formState?: typeof FormState[keyof typeof FormState];
+  hasSavedValue?: boolean;
 };
 
 type State = InputField['state'] & {

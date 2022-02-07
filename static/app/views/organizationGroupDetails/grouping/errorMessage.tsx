@@ -31,10 +31,10 @@ type Error = {
 type Props = {
   error: Error | string;
   groupId: Group['id'];
-  orgSlug: Organization['slug'];
-  projSlug: Project['slug'];
   hasProjectWriteAccess: boolean;
   onRetry: () => void;
+  orgSlug: Organization['slug'];
+  projSlug: Project['slug'];
 };
 
 function ErrorMessage({

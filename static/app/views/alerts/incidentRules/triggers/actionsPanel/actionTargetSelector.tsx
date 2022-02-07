@@ -28,12 +28,12 @@ const getPlaceholderForType = (type: ActionType) => {
 
 type Props = {
   action: Action;
-  availableAction?: MetricActionTemplate;
   disabled: boolean;
   loading: boolean;
-  organization: Organization;
-  project?: Project;
   onChange: (value: string) => void;
+  organization: Organization;
+  availableAction?: MetricActionTemplate;
+  project?: Project;
 };
 
 export default function ActionTargetSelector(props: Props) {

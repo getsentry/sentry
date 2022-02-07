@@ -6,12 +6,12 @@ import space from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
-  title?: React.ReactNode;
+  action?: React.ReactElement;
   description?: React.ReactNode;
   icon?: React.ReactNode;
-  action?: React.ReactElement;
-  size?: 'large' | 'medium';
   leftAligned?: boolean;
+  size?: 'large' | 'medium';
+  title?: React.ReactNode;
 };
 
 type EmptyMessageProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;

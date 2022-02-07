@@ -7,9 +7,9 @@ import DefaultSettings from 'sentry/plugins/components/settings';
 
 type Field = Parameters<typeof DefaultSettings.prototype.renderField>[0]['config'];
 
-type FieldWithValues = Field & {value?: any; defaultValue?: any};
+type FieldWithValues = Field & {defaultValue?: any; value?: any};
 
-type ApiData = {default_project?: string; config: FieldWithValues[]};
+type ApiData = {config: FieldWithValues[]; default_project?: string};
 
 type Props = DefaultSettings['props'];
 

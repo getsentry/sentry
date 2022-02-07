@@ -42,11 +42,11 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  loading: boolean;
-  error: boolean;
   dropdownBusy: boolean;
-  teamMemberList: Member[];
+  error: boolean;
+  loading: boolean;
   orgMemberList: Member[];
+  teamMemberList: Member[];
 };
 
 class TeamMembers extends React.Component<Props, State> {

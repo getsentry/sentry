@@ -6,10 +6,10 @@ import space from 'sentry/styles/space';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
-  small?: boolean;
   children?: React.ReactNode;
-  withIcon?: boolean;
   className?: string;
+  small?: boolean;
+  withIcon?: boolean;
 };
 
 const EmptyStateWarning = ({

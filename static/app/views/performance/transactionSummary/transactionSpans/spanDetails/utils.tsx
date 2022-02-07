@@ -21,9 +21,9 @@ export function spanDetailsRouteWithQuery({
   projectID,
 }: {
   orgSlug: string;
-  transaction: string;
   query: Query;
   spanSlug: SpanSlug;
+  transaction: string;
   projectID?: string | string[];
 }) {
   const pathname = generateSpanDetailsRoute({

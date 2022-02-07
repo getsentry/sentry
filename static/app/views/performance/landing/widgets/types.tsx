@@ -25,26 +25,26 @@ export enum GenericPerformanceWidgetDataType {
 }
 
 export type PerformanceWidgetProps = {
-  chartSetting: PerformanceWidgetSetting;
+  ContainerActions: React.FC<{isLoading: boolean}>;
   chartDefinition: ChartDefinition;
   chartHeight: number;
 
+  chartSetting: PerformanceWidgetSetting;
+  eventView: EventView;
+  fields: string[];
+  location: Location;
+
+  organization: Organization;
   title: string;
   titleTooltip: string;
-  fields: string[];
+
   chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-
-  ContainerActions: React.FC<{isLoading: boolean}>;
 };
 
 export interface WidgetDataResult {
-  isLoading: boolean;
-  isErrored: boolean;
   hasData: boolean;
+  isErrored: boolean;
+  isLoading: boolean;
 }
 export interface WidgetDataConstraint {
   [dataKey: string]: WidgetDataResult | undefined;
@@ -55,20 +55,20 @@ export type QueryChildren = {
 };
 export type QueryFC<T extends WidgetDataConstraint> = React.FC<
   QueryChildren & {
-    fields?: string | string[];
-    yAxis?: string | string[];
-    period?: string | null;
-    start?: DateString;
-    end?: DateString;
-    project?: Readonly<number[]>;
-    environment?: Readonly<string[]>;
-    team?: Readonly<string | string[]>;
-    query?: string;
-    referrer?: string;
-    orgSlug: string;
     eventView: EventView;
+    orgSlug: string;
     organization: OrganizationSummary;
     widgetData: T;
+    end?: DateString;
+    environment?: Readonly<string[]>;
+    fields?: string | string[];
+    period?: string | null;
+    project?: Readonly<number[]>;
+    query?: string;
+    referrer?: string;
+    start?: DateString;
+    team?: Readonly<string | string[]>;
+    yAxis?: string | string[];
   }
 >;
 
@@ -93,16 +93,16 @@ export type Queries<T extends WidgetDataConstraint> = Record<
 type Visualization<T> = {
   component: React.FC<{
     widgetData: T;
-    queryFields?: string;
     grid?: React.ComponentProps<typeof BaseChart>['grid'];
     height?: number;
+    queryFields?: string;
   }>;
+  height: number;
+  bottomPadding?: boolean;
   dataState?: (data: T) => VisualizationDataState;
   fields?: string;
   noPadding?: boolean;
-  bottomPadding?: boolean;
-  queryFields?: string[];
-  height: number; // Used to determine placeholder and loading sizes. Will also be passed to the component.
+  queryFields?: string[]; // Used to determine placeholder and loading sizes. Will also be passed to the component.
 };
 
 type Visualizations<T extends WidgetDataConstraint> = Readonly<Visualization<T>[]>; // Readonly because of index being used for React key.
@@ -116,37 +116,37 @@ type Subtitle<T> = React.FC<{
 }>;
 
 export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
-  chartSetting: PerformanceWidgetSetting;
+  Queries: Queries<T>;
+  Visualizations: Visualizations<T>;
+
   chartDefinition: ChartDefinition;
+  chartHeight: number;
+
+  chartSetting: PerformanceWidgetSetting;
+  containerType: PerformanceWidgetContainerTypes;
+  eventView: EventView;
+
+  fields: string[];
+  location: Location;
+  organization: Organization;
 
   // Header;
   title: string;
   titleTooltip: string;
-
-  fields: string[];
-  chartHeight: number;
-  containerType: PerformanceWidgetContainerTypes;
-
-  location: Location;
-  eventView: EventView;
-  organization: Organization;
-
-  // Components
-  Subtitle?: Subtitle<T>;
-  HeaderActions?: HeaderActions<T>;
   EmptyComponent?: React.FC<{height?: number}>;
 
-  Queries: Queries<T>;
-  Visualizations: Visualizations<T>;
+  HeaderActions?: HeaderActions<T>;
+  // Components
+  Subtitle?: Subtitle<T>;
 };
 
 export type GenericPerformanceWithData<T extends WidgetDataConstraint> =
   GenericPerformanceWidgetProps<T> & WidgetDataProps<T>;
 
 export type WidgetDataProps<T> = {
-  widgetData: T;
-  setWidgetDataForKey: (dataKey: string, result?: WidgetDataResult) => void;
   removeWidgetDataForKey: (dataKey: string) => void;
+  setWidgetDataForKey: (dataKey: string, result?: WidgetDataResult) => void;
+  widgetData: T;
 };
 
 export type EventsRequestChildrenProps = RenderProps;
@@ -158,8 +158,8 @@ export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefini
 
 export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
-  queries: QueryDefinitionWithKey<T>[];
   eventView: EventView;
+  queries: QueryDefinitionWithKey<T>[];
   queryProps: WidgetPropUnion<T>;
   children?: React.ReactNode;
 } & WidgetDataProps<T>;

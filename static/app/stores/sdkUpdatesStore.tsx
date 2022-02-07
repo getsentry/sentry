@@ -4,9 +4,9 @@ import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
 import {ProjectSdkUpdates} from 'sentry/types';
 
 type SdkUpdatesStoreInterface = {
-  onLoadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
   getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;
   isSdkUpdatesLoaded(orgSlug: string): boolean;
+  onLoadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
 };
 
 type Internals = {

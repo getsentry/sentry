@@ -30,8 +30,8 @@ import {
 type AlertsTriggered = Record<string, number>;
 
 type AlertsTriggeredRule = IncidentRule & {
-  weeklyAvg: number;
   totalThisWeek: number;
+  weeklyAvg: number;
 };
 
 type Props = AsyncComponent['props'] & {

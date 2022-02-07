@@ -7,20 +7,37 @@ import testableTransition from 'sentry/utils/testableTransition';
 import theme, {Theme} from 'sentry/utils/theme';
 
 type TextProps = {
-  textCss?: Props['textCss'];
   percent: number;
   theme: Theme;
+  textCss?: Props['textCss'];
 };
 
 type Props = React.HTMLAttributes<SVGSVGElement> & {
   value: number;
-  maxValue?: number;
-  minValue?: number;
-  size?: number;
+  /**
+   * Apply a micro animation when the text value changes
+   */
+  animateText?: boolean;
+  /**
+   * The color of the ring background
+   */
+  backgroundColor?: string;
   /**
    * The width of the progress ring bar
    */
   barWidth?: number;
+  maxValue?: number;
+  minValue?: number;
+  /**
+   * The color of the ring bar. A function may be provided to compute the color
+   * based on the percent value filled of the progress bar.
+   */
+  progressColor?: string;
+  /**
+   * Endcaps on the progress bar
+   */
+  progressEndcaps?: React.SVGAttributes<SVGCircleElement>['strokeLinecap'];
+  size?: number;
   /**
    * Text to display in the center of the ring
    */
@@ -30,23 +47,6 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
    * styles based on the state of the progress bar.
    */
   textCss?: (p: TextProps) => SerializedStyles;
-  /**
-   * Apply a micro animation when the text value changes
-   */
-  animateText?: boolean;
-  /**
-   * The color of the ring bar. A function may be provided to compute the color
-   * based on the percent value filled of the progress bar.
-   */
-  progressColor?: string;
-  /**
-   * The color of the ring background
-   */
-  backgroundColor?: string;
-  /**
-   * Endcaps on the progress bar
-   */
-  progressEndcaps?: React.SVGAttributes<SVGCircleElement>['strokeLinecap'];
 };
 
 const Text = styled('div')<Omit<TextProps, 'theme'>>`
@@ -137,7 +137,7 @@ const RingSvg = styled('svg')`
   position: relative;
 `;
 
-const RingBackground = styled('circle')<{color: string; barWidth: number}>`
+const RingBackground = styled('circle')<{barWidth: number; color: string}>`
   fill: none;
   stroke: ${p => p.color};
   stroke-width: ${p => p.barWidth}px;
@@ -145,9 +145,9 @@ const RingBackground = styled('circle')<{color: string; barWidth: number}>`
 `;
 
 const RingBar = styled('circle')<{
-  color: string;
-  circumference: number;
   barWidth: number;
+  circumference: number;
+  color: string;
 }>`
   fill: none;
   stroke: ${p => p.color};

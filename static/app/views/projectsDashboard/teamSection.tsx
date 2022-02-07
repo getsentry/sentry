@@ -9,12 +9,12 @@ import ProjectCard from './projectCard';
 import TeamMembers from './teamMembers';
 
 type Props = {
-  team: Team;
-  orgId: string;
-  showBorder: boolean;
   access: Set<Scope>;
-  title: React.ReactNode;
+  orgId: string;
   projects: Project[];
+  showBorder: boolean;
+  team: Team;
+  title: React.ReactNode;
 };
 
 const TeamSection = ({team, projects, title, showBorder, orgId, access}: Props) => {

@@ -24,11 +24,11 @@ type ReprocessableEvent = {
 };
 
 type Props = {
-  onReprocessEvent: () => void;
   api: Client;
+  eventId: Event['id'];
+  onReprocessEvent: () => void;
   orgSlug: Organization['slug'];
   projSlug: Project['slug'];
-  eventId: Event['id'];
 };
 
 function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Props) {

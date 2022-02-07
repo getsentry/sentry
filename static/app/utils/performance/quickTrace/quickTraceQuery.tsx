@@ -12,8 +12,8 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
-  event: Event;
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
+  event: Event;
 };
 
 export default function QuickTraceQuery({children, event, ...props}: QueryProps) {

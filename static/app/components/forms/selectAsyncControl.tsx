@@ -12,15 +12,16 @@ import {t} from 'sentry/locale';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 export type Result = {
-  value: string;
   label: string;
+  value: string;
 };
 
 export type SelectAsyncControlProps = {
-  url: string;
-  onResults: (data: any) => Result[]; // TODO(ts): Improve data type
-  onQuery: (query: string | undefined) => {};
   forwardedRef: React.Ref<ReactSelect<GeneralSelectValue>>;
+  // TODO(ts): Improve data type
+  onQuery: (query: string | undefined) => {};
+  onResults: (data: any) => Result[];
+  url: string;
   value: ControlProps['value'];
   defaultOptions?: boolean | GeneralSelectValue[];
 };

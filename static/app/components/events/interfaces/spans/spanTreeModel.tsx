@@ -103,8 +103,8 @@ class SpanTreeModel {
   }
 
   isSpanFilteredOut = (props: {
-    operationNameFilters: ActiveOperationFilter;
     filterSpans: FilterSpans | undefined;
+    operationNameFilters: ActiveOperationFilter;
   }): boolean => {
     const {operationNameFilters, filterSpans} = props;
 
@@ -167,22 +167,22 @@ class SpanTreeModel {
   }
 
   getSpansList = (props: {
-    operationNameFilters: ActiveOperationFilter;
-    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-    treeDepth: number;
-    isLastSibling: boolean;
-    continuingTreeDepths: Array<TreeDepthType>;
-    hiddenSpanGroups: Set<String>;
-    spanGroups: Set<String>;
-    filterSpans: FilterSpans | undefined;
-    previousSiblingEndTimestamp: number | undefined;
-    event: Readonly<EventTransaction>;
-    isOnlySibling: boolean;
-    spanGrouping: EnhancedSpan[] | undefined;
-    toggleSpanGroup: (() => void) | undefined;
-    showSpanGroup: boolean;
     addTraceBounds: (bounds: TraceBound) => void;
+    continuingTreeDepths: Array<TreeDepthType>;
+    event: Readonly<EventTransaction>;
+    filterSpans: FilterSpans | undefined;
+    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+    hiddenSpanGroups: Set<String>;
+    isLastSibling: boolean;
+    isOnlySibling: boolean;
+    operationNameFilters: ActiveOperationFilter;
+    previousSiblingEndTimestamp: number | undefined;
     removeTraceBounds: (eventSlug: string) => void;
+    showSpanGroup: boolean;
+    spanGrouping: EnhancedSpan[] | undefined;
+    spanGroups: Set<String>;
+    toggleSpanGroup: (() => void) | undefined;
+    treeDepth: number;
   }): EnhancedProcessedSpanType[] => {
     const {
       operationNameFilters,
@@ -456,7 +456,7 @@ class SpanTreeModel {
       addTraceBounds: (bounds: TraceBound) => void;
       removeTraceBounds: (eventSlug: string) => void;
     }) =>
-    (props: {orgSlug: string; eventSlug: string}) => {
+    (props: {eventSlug: string; orgSlug: string}) => {
       this.showEmbeddedChildren = !this.showEmbeddedChildren;
       this.fetchEmbeddedChildrenState = 'idle';
 
@@ -485,9 +485,9 @@ class SpanTreeModel {
     eventSlug,
     addTraceBounds,
   }: {
-    orgSlug: string;
-    eventSlug: string;
     addTraceBounds: (bounds: TraceBound) => void;
+    eventSlug: string;
+    orgSlug: string;
   }) {
     const url = `/organizations/${orgSlug}/events/${eventSlug}/`;
 

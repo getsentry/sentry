@@ -16,11 +16,11 @@ import {Group} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 
 type Props = {
-  orgId: string;
-  issue: Group;
-  to: string;
   card: boolean;
   children: React.ReactNode;
+  issue: Group;
+  orgId: string;
+  to: string;
 };
 
 const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {

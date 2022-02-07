@@ -7,12 +7,12 @@ import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
 type Props = {
-  bars: number;
   barHeight: number;
-  userMisery: number;
+  bars: number;
+  miserableUsers: number | undefined;
   miseryLimit: number | undefined;
   totalUsers: number | undefined;
-  miserableUsers: number | undefined;
+  userMisery: number;
 };
 
 function UserMisery(props: Props) {

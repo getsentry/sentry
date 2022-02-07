@@ -15,8 +15,8 @@ export function anomaliesRouteWithQuery({
   query,
 }: {
   orgSlug: string;
-  transaction: string;
   query: Query;
+  transaction: string;
   projectID?: string | string[];
 }) {
   const pathname = generateAnomaliesRoute({

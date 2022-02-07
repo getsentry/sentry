@@ -78,9 +78,9 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  api: Client;
   organization: Organization;
   selection: PageFilters;
-  api: Client;
 };
 
 class ReleaseOverview extends AsyncView<Props> {

@@ -27,11 +27,11 @@ import withApi from 'sentry/utils/withApi';
 
 export type Props = {
   api: Client;
+  onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
+  onResetConfiguration: (projectId: string) => void;
+  organization: Organization;
   plugin: PluginNoProject;
   projectItem: PluginProjectItem;
-  organization: Organization;
-  onResetConfiguration: (projectId: string) => void;
-  onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
   trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
   className?: string;
 };

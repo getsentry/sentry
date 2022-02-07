@@ -21,8 +21,8 @@ import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';
 
 type Props = {
-  variant: EventGroupVariant;
   showGroupingConfig: boolean;
+  variant: EventGroupVariant;
 };
 
 type State = {

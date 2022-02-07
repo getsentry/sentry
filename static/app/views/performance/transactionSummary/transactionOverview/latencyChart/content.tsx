@@ -26,9 +26,9 @@ import {decodeHistogramZoom, ZOOM_END, ZOOM_START} from './utils';
 const NUM_BUCKETS = 50;
 
 type Props = ViewProps & {
-  organization: OrganizationSummary;
-  location: Location;
   currentFilter: SpanOperationBreakdownFilter;
+  location: Location;
+  organization: OrganizationSummary;
 };
 
 /**

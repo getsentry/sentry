@@ -13,15 +13,15 @@ type RouteParams = {
 };
 
 type Props = {
-  organization: Organization;
   onChangeTitle: (data: string) => void;
+  organization: Organization;
   project: Project;
   userTeamIds: string[];
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  rule: IncidentRule;
-  actions: Map<string, any>; // This is temp
+  actions: Map<string, any>;
+  rule: IncidentRule; // This is temp
 } & AsyncView['state'];
 
 class IncidentRulesDetails extends AsyncView<Props, State> {

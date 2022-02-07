@@ -48,20 +48,20 @@ import {
 import ThresholdsChart from './thresholdsChart';
 
 type Props = {
+  aggregate: IncidentRule['aggregate'];
   api: Client;
+  comparisonType: AlertRuleComparisonType;
+
+  environment: string | null;
   organization: Organization;
   projects: Project[];
-
   query: IncidentRule['query'];
-  timeWindow: IncidentRule['timeWindow'];
-  environment: string | null;
-  aggregate: IncidentRule['aggregate'];
-  triggers: Trigger[];
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
-  comparisonType: AlertRuleComparisonType;
-  header?: React.ReactNode;
+  timeWindow: IncidentRule['timeWindow'];
+  triggers: Trigger[];
   comparisonDelta?: number;
+  header?: React.ReactNode;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {

@@ -15,10 +15,10 @@ export enum EventsDisplayFilterName {
 }
 
 export type EventsDisplayFilter = {
-  name: EventsDisplayFilterName;
-  sort?: {kind: 'desc' | 'asc'; field: string};
   label: string;
+  name: EventsDisplayFilterName;
   query?: string[][];
+  sort?: {field: string; kind: 'desc' | 'asc'};
 };
 
 export type EventsFilterOptions = {
@@ -87,8 +87,8 @@ export function eventsRouteWithQuery({
   query,
 }: {
   orgSlug: string;
-  transaction: string;
   query: Query;
+  transaction: string;
   projectID?: string | string[];
 }) {
   const pathname = `/organizations/${orgSlug}/performance/summary/events/`;

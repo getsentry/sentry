@@ -20,16 +20,16 @@ type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];
 
 type Props = {
   api: Client;
+  event: Event;
+  group: Group;
   organization: Organization;
   project: Project;
-  group: Group;
-  event: Event;
   committers?: Committer[];
 } & AsyncComponent['props'];
 
 type State = {
-  event_owners: {rules: Rules; owners: Array<Actor>};
   codeowners: CodeOwner[];
+  event_owners: {owners: Array<Actor>; rules: Rules};
   isDismissed: boolean;
 } & AsyncComponent['state'];
 

@@ -24,11 +24,11 @@ import SentryAppExternalIssueModal from './sentryAppExternalIssueModal';
 
 type Props = {
   api: Client;
+  event: Event;
   group: Group;
   sentryAppComponent: SentryAppComponent;
   sentryAppInstallation: SentryAppInstallation;
   externalIssue?: PlatformExternalIssue;
-  event: Event;
 };
 
 type State = {

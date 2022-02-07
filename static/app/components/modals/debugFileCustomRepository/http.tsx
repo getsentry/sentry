@@ -22,22 +22,22 @@ const CLEAR_PASSWORD_BUTTON_SIZE = 22;
 const PASSWORD_INPUT_PADDING_RIGHT = INPUT_PADDING + CLEAR_PASSWORD_BUTTON_SIZE;
 
 type InitialData = {
+  layout: {
+    casing: keyof typeof DEBUG_SOURCE_CASINGS;
+    type: keyof typeof DEBUG_SOURCE_LAYOUTS;
+  };
   name: string;
   url: string;
-  layout: {
-    type: keyof typeof DEBUG_SOURCE_LAYOUTS;
-    casing: keyof typeof DEBUG_SOURCE_CASINGS;
-  };
-  username?: string;
   password?: {
     'hidden-secret': boolean;
   };
+  username?: string;
 };
 
 type Data = Partial<Pick<InitialData, 'name' | 'url'>> &
   Omit<InitialData, 'name' | 'url' | 'password' | 'layout'> & {
-    'layout.type': keyof typeof DEBUG_SOURCE_LAYOUTS;
     'layout.casing': keyof typeof DEBUG_SOURCE_CASINGS;
+    'layout.type': keyof typeof DEBUG_SOURCE_LAYOUTS;
     password?: string;
   };
 

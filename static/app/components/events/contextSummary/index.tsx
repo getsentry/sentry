@@ -14,9 +14,9 @@ import ContextSummaryUser from './contextSummaryUser';
 import filterContexts from './filterContexts';
 
 export type Context = {
-  keys: string[];
   // TODO(ts): Refactor this component
   Component: (props: any) => JSX.Element;
+  keys: string[];
   unknownTitle?: string;
 };
 

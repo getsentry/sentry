@@ -26,13 +26,12 @@ import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
-  eventView: EventView;
-  organization: Organization;
-  location: Location;
-  isLoading: boolean;
-  tableData: TableData | TrendsDataEvents | null;
   columnOrder: TableColumn<React.ReactText>[];
-  titles?: string[];
+  eventView: EventView;
+  isLoading: boolean;
+  location: Location;
+  organization: Organization;
+  tableData: TableData | TrendsDataEvents | null;
   generateLink?: Record<
     string,
     (
@@ -44,6 +43,7 @@ type Props = {
   handleCellAction?: (
     c: TableColumn<React.ReactText>
   ) => (a: Actions, v: React.ReactText) => void;
+  titles?: string[];
 };
 
 class TransactionsTable extends React.PureComponent<Props> {

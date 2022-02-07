@@ -10,9 +10,9 @@ import {getFormattedTimestamp} from './utils';
 
 type Props = {
   searchTerm: string;
-  timestamp?: string;
-  relativeTime?: string;
   displayRelativeTime?: boolean;
+  relativeTime?: string;
+  timestamp?: string;
 };
 
 const Time = memo(function Time({

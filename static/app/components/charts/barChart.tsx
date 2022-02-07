@@ -12,8 +12,8 @@ export type BarChartSeries = Series & Omit<BarSeriesOption, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
   series: BarChartSeries[];
-  stacked?: boolean;
   animation?: boolean;
+  stacked?: boolean;
 };
 
 class BarChart extends React.Component<Props> {

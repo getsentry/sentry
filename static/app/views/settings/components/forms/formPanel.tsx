@@ -15,16 +15,19 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   /**
-   * Panel title
-   */
-  title?: React.ReactNode;
-
-  /**
    * List of fields to render
    */
   fields: FieldObject[];
 
   access?: Set<Scope>;
+
+  /** Can the PanelBody be hidden with a click? */
+  collapsible?: boolean;
+  /**
+   * Disables the entire form
+   */
+  disabled?: boolean;
+
   features?: Record<string, any>;
 
   /**
@@ -33,22 +36,19 @@ type Props = DefaultProps & {
   highlighted?: string;
 
   /**
-   * Renders inside of PanelBody at the start
-   */
-  renderHeader?: (arg: JsonFormObject) => React.ReactNode;
-
-  /**
    * Renders inside of PanelBody before PanelBody close
    */
   renderFooter?: (arg: JsonFormObject) => React.ReactNode;
 
   /**
-   * Disables the entire form
+   * Renders inside of PanelBody at the start
    */
-  disabled?: boolean;
+  renderHeader?: (arg: JsonFormObject) => React.ReactNode;
 
-  /** Can the PanelBody be hidden with a click? */
-  collapsible?: boolean;
+  /**
+   * Panel title
+   */
+  title?: React.ReactNode;
 };
 
 type State = {

@@ -16,15 +16,15 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  urlPrefix: string;
+  openMembership: boolean;
   organization: Organization;
   team: Team;
-  openMembership: boolean;
+  urlPrefix: string;
 };
 
 type State = {
-  loading: boolean;
   error: boolean;
+  loading: boolean;
 };
 
 class AllTeamsRow extends React.Component<Props, State> {
@@ -74,8 +74,8 @@ class AllTeamsRow extends React.Component<Props, State> {
     successMessage,
     errorMessage,
   }: {
-    successMessage: React.ReactNode;
     errorMessage: React.ReactNode;
+    successMessage: React.ReactNode;
   }) => {
     const {api, organization, team} = this.props;
 

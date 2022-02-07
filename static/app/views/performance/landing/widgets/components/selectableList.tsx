@@ -10,9 +10,9 @@ import space from 'sentry/styles/space';
 import {RadioLineItem} from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 type Props = {
+  items: (() => React.ReactNode)[];
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
-  items: (() => React.ReactNode)[];
   radioColor?: string;
 };
 
@@ -39,7 +39,7 @@ function SelectableItem({
   children,
   setSelectedIndex,
   radioColor,
-}: {isSelected: boolean; currentIndex: number; children: React.ReactNode} & Props) {
+}: {children: React.ReactNode; currentIndex: number; isSelected: boolean} & Props) {
   return (
     <ListItemContainer>
       <ItemRadioContainer color={radioColor ?? ''}>

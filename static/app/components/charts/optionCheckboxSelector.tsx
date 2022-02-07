@@ -20,9 +20,9 @@ const defaultProps = {
 };
 
 type Props = {
+  onChange: (value: string[]) => void;
   options: (SelectValue<string> & {checkboxHidden?: boolean})[];
   selected: string[];
-  onChange: (value: string[]) => void;
   title: string;
 } & typeof defaultProps;
 

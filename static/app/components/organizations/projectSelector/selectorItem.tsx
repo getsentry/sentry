@@ -24,8 +24,8 @@ const defaultProps = {
 };
 
 type Props = {
-  project: Project;
   organization: Organization;
+  project: Project;
   onMultiSelect?: (project: Project, event: React.MouseEvent) => void;
 } & typeof defaultProps;
 

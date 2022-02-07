@@ -47,6 +47,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   api: Client;
 
+  eventView: EventView;
   /**
    * DO NOT USE `Location` TO GENERATE `EventView` IN THIS COMPONENT.
    *
@@ -55,21 +56,20 @@ type Props = DefaultProps & {
    * passed down only because it is needed for navigation.
    */
   location: Location;
-  organization: Organization;
-  eventView: EventView;
-  savedQuery: SavedQuery | undefined;
-  savedQueryLoading: boolean;
-  projects: Project[];
-  updateCallback: () => void;
   onIncompatibleAlertQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  organization: Organization;
+  projects: Project[];
+  savedQuery: SavedQuery | undefined;
+  savedQueryLoading: boolean;
+  updateCallback: () => void;
   yAxis: string[];
 };
 
 type State = {
-  isNewQuery: boolean;
   isEditingQuery: boolean;
+  isNewQuery: boolean;
 
   queryName: string;
 };

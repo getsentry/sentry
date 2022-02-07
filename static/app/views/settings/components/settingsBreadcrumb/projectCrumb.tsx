@@ -20,8 +20,8 @@ type Props = RouteComponentProps<{projectId?: string}, {}> & {
   organization: Organization;
   project: Project;
   projects: Project[];
-  routes: RouteWithName[];
   route: RouteWithName;
+  routes: RouteWithName[];
 };
 
 const ProjectCrumb = ({

@@ -15,15 +15,15 @@ import {
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = ThresholdControlValue & {
-  type: string;
-  disabled: boolean;
-  disableThresholdType: boolean;
-  placeholder: string;
   comparisonType: AlertRuleComparisonType;
-  thresholdPeriod: number | null;
+  disableThresholdType: boolean;
+  disabled: boolean;
   onChange: (value: ThresholdControlValue, e: React.FormEvent) => void;
-  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   onThresholdPeriodChange: (value: number) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  placeholder: string;
+  thresholdPeriod: number | null;
+  type: string;
 };
 
 type State = {

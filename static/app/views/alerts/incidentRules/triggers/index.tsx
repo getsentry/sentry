@@ -17,31 +17,31 @@ import {
 } from '../types';
 
 type Props = {
-  organization: Organization;
-  projects: Project[];
-  ruleId?: string;
-  triggers: Trigger[];
-  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
-  thresholdType: UnsavedIncidentRule['thresholdType'];
-  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
-  comparisonType: AlertRuleComparisonType;
   aggregate: UnsavedIncidentRule['aggregate'];
-  currentProject: string;
   availableActions: MetricActionTemplate[] | null;
+  comparisonType: AlertRuleComparisonType;
+  currentProject: string;
   disabled: boolean;
-
   errors: Map<number, {[fieldName: string]: string}>;
-
   onChange: (
     triggers: Trigger[],
     triggerIndex?: number,
     changeObj?: Partial<Trigger>
   ) => void;
-  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   onResolveThresholdChange: (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => void;
   onThresholdPeriodChange: (value: number) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  organization: Organization;
+  projects: Project[];
+
+  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
+
+  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
+  thresholdType: UnsavedIncidentRule['thresholdType'];
+  triggers: Trigger[];
+  ruleId?: string;
 };
 
 /**

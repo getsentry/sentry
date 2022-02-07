@@ -20,14 +20,14 @@ type DefaultProps = {
    */
   addButtonText: React.ReactNode;
   /**
+   * Automatically save even if fields are empty
+   */
+  allowEmpty: boolean;
+  /**
    * If using mappedSelectors to specifically map different choice selectors
    * per item specify this as true.
    */
   perItemMapping: boolean;
-  /**
-   * Automatically save even if fields are empty
-   */
-  allowEmpty: boolean;
 };
 
 const defaultProps: DefaultProps = {
@@ -40,10 +40,20 @@ type MappedSelectors = Record<string, Partial<ControlProps>>;
 
 export type ChoiceMapperProps = {
   /**
+   * Props forwarded to the add mapping dropdown.
+   */
+  addDropdown: React.ComponentProps<typeof DropdownAutoComplete>;
+  /**
    * A list of column labels (headers) for the multichoice table. This should
    * have the same mapping keys as the mappedSelectors prop.
    */
   columnLabels: Record<string, React.ReactNode>;
+  /**
+   * Since we're saving an object, there isn't a great way to render the
+   * change within the toast. Just turn off displaying the from/to portion of
+   * the message.
+   */
+  formatMessageValue: boolean;
   /**
    * mappedSelectors controls how the Select control should render for each
    * column. This can be generalised so that each column renders the same set
@@ -67,32 +77,22 @@ export type ChoiceMapperProps = {
    * }
    */
   mappedSelectors: MappedSelectors;
-  /**
-   * Props forwarded to the add mapping dropdown.
-   */
-  addDropdown: React.ComponentProps<typeof DropdownAutoComplete>;
-  /**
-   * Since we're saving an object, there isn't a great way to render the
-   * change within the toast. Just turn off displaying the from/to portion of
-   * the message.
-   */
-  formatMessageValue: boolean;
-  /**
-   * The label to show above the row name selected from the dropdown.
-   */
-  mappedColumnLabel?: React.ReactNode;
+  onChange: InputFieldProps['onChange'];
+  // TODO(ts) tighten this up.
+  value: Record<string, any>;
+
   /**
    * Field controls get a boolean.
    */
   disabled?: boolean;
 
+  /**
+   * The label to show above the row name selected from the dropdown.
+   */
+  mappedColumnLabel?: React.ReactNode;
+
   // TODO(ts) This isn't aligned with InputField but that's what the runtime code had.
   onBlur?: () => void;
-
-  onChange: InputFieldProps['onChange'];
-
-  // TODO(ts) tighten this up.
-  value: Record<string, any>;
 } & DefaultProps;
 
 type FieldProps = ChoiceMapperProps & InputFieldProps;

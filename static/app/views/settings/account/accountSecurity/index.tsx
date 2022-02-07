@@ -25,12 +25,12 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   authenticators: Authenticator[] | null;
-  orgsRequire2fa: OrganizationSummary[];
   countEnrolled: number;
   deleteDisabled: boolean;
-  hasVerifiedEmail: boolean;
   handleRefresh: () => void;
+  hasVerifiedEmail: boolean;
   onDisable: (auth: Authenticator) => void;
+  orgsRequire2fa: OrganizationSummary[];
 } & AsyncView['props'] &
   RouteComponentProps<{}, {}>;
 

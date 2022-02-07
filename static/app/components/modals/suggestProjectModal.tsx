@@ -26,8 +26,8 @@ import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = ModalRenderProps & {
   api: Client;
-  organization: Organization;
   matchedUserAgentString: string;
+  organization: Organization;
 };
 
 type State = {

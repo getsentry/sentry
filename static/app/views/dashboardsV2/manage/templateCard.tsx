@@ -8,10 +8,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type Props = {
-  title: string;
   description: string;
-  onPreview: () => void;
   onAdd: () => void;
+  onPreview: () => void;
+  title: string;
 };
 
 function TemplateCard({title, description, onPreview, onAdd}: Props) {

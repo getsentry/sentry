@@ -21,56 +21,34 @@ type RenderProps = {
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
 type Props = {
-  /**
-   * The HTTP method to use.
-   */
-  apiMethod?: APIRequestMethod;
+  additionalFieldProps?: {[key: string]: any};
+  allowUndo?: boolean;
   /**
    * The URL to the API endpoint this form submits to.
    */
   apiEndpoint?: string;
+  /**
+   * The HTTP method to use.
+   */
+  apiMethod?: APIRequestMethod;
+  cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;
   className?: string;
-  cancelLabel?: string;
-  /**
-   * Should the submit button be disabled.
-   */
-  submitDisabled?: boolean;
-  submitLabel?: string;
-  submitPriority?: React.ComponentProps<typeof Button>['priority'];
+  'data-test-id'?: string;
+  extraButton?: React.ReactNode;
   footerClass?: string;
   footerStyle?: React.CSSProperties;
-  extraButton?: React.ReactNode;
-  initialData?: Data;
-  /**
-   * Are changed required before the form can be submitted.
-   */
-  requireChanges?: boolean;
-  /**
-   * Should the form reset its state when there are errors after submission.
-   */
-  resetOnError?: boolean;
   hideFooter?: boolean;
-  allowUndo?: boolean;
-  /**
-   * Should fields save individually as they are blurred.
-   */
-  saveOnBlur?: boolean;
+  initialData?: Data;
   /**
    * A FormModel instance. If undefined a FormModel will be created for you.
    */
   model?: FormModel;
   /**
-   * If set to true, preventDefault is not called
-   */
-  skipPreventDefault?: boolean;
-  additionalFieldProps?: {[key: string]: any};
-  'data-test-id'?: string;
-
-  /**
    * Callback fired when the form is cancelled via the cancel button.
    */
   onCancel?: (e: React.MouseEvent) => void;
+  onPreSubmit?: () => void;
   /**
    * Callback to handle form submission.
    *
@@ -81,11 +59,33 @@ type Props = {
    * `onSubmitError` when the action fails.
    */
   onSubmit?: OnSubmitCallback;
-  onPreSubmit?: () => void;
   /**
    * Ensure the form model isn't reset when the form unmounts
    */
   preventFormResetOnUnmount?: boolean;
+  /**
+   * Are changed required before the form can be submitted.
+   */
+  requireChanges?: boolean;
+  /**
+   * Should the form reset its state when there are errors after submission.
+   */
+  resetOnError?: boolean;
+  /**
+   * Should fields save individually as they are blurred.
+   */
+  saveOnBlur?: boolean;
+
+  /**
+   * If set to true, preventDefault is not called
+   */
+  skipPreventDefault?: boolean;
+  /**
+   * Should the submit button be disabled.
+   */
+  submitDisabled?: boolean;
+  submitLabel?: string;
+  submitPriority?: React.ComponentProps<typeof Button>['priority'];
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
 export default class Form extends React.Component<Props> {

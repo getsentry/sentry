@@ -10,75 +10,75 @@ import {User} from './user';
  * list of all organizations
  */
 export type OrganizationSummary = {
+  avatar: Avatar;
+  dateCreated: string;
+  features: string[];
+  id: string;
+  isEarlyAdopter: boolean;
+  name: string;
+  require2FA: boolean;
+  slug: string;
   status: {
     // TODO(ts): Are these fields == `ObjectStatus`?
     id: string;
     name: string;
   };
-  require2FA: boolean;
-  avatar: Avatar;
-  features: string[];
-  name: string;
-  dateCreated: string;
-  id: string;
-  isEarlyAdopter: boolean;
-  slug: string;
 };
 
 /**
  * Detailed organization (e.g. when requesting details for a single org)
  */
 export type Organization = OrganizationSummary & {
-  relayPiiConfig: string;
-  scrubIPAddresses: boolean;
-  attachmentsRole: string;
-  debugFilesRole: string;
-  eventsMemberAdmin: boolean;
+  access: Scope[];
   alertsMemberWrite: boolean;
-  sensitiveFields: string[];
+  allowJoinRequests: boolean;
+  allowSharedIssues: boolean;
+  apdexThreshold: number;
+  attachmentsRole: string;
+  availableRoles: {id: string; name: string}[];
+  dataScrubber: boolean;
+  dataScrubberDefaults: boolean;
+  debugFilesRole: string;
+  defaultRole: string;
+  enhancedPrivacy: boolean;
+  eventsMemberAdmin: boolean;
+  experiments: Partial<OrgExperiments>;
+  isDefault: boolean;
+  onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
+  pendingAccessRequests: number;
   quota: {
-    maxRateInterval: number | null;
-    projectLimit: number | null;
     accountLimit: number | null;
     maxRate: number | null;
+    maxRateInterval: number | null;
+    projectLimit: number | null;
   };
-  defaultRole: string;
-  experiments: Partial<OrgExperiments>;
-  allowJoinRequests: boolean;
-  scrapeJavaScript: boolean;
-  isDefault: boolean;
-  pendingAccessRequests: number;
-  availableRoles: {id: string; name: string}[];
-  enhancedPrivacy: boolean;
+  relayPiiConfig: string;
   safeFields: string[];
+  scrapeJavaScript: boolean;
+  scrubIPAddresses: boolean;
+  sensitiveFields: string[];
   storeCrashReports: number;
-  access: Scope[];
-  allowSharedIssues: boolean;
-  dataScrubberDefaults: boolean;
-  dataScrubber: boolean;
-  apdexThreshold: number;
-  onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
   role?: string;
 };
 
 export type Team = {
-  id: string;
-  name: string;
-  slug: string;
-  isMember: boolean;
-  hasAccess: boolean;
-  isPending: boolean;
-  memberCount: number;
   avatar: Avatar;
   externalTeams: ExternalTeam[];
+  hasAccess: boolean;
+  id: string;
+  isMember: boolean;
+  isPending: boolean;
+  memberCount: number;
+  name: string;
+  slug: string;
 };
 
 export type MemberRole = {
+  desc: string;
   id: string;
   name: string;
-  desc: string;
   allowed?: boolean;
 };
 
@@ -90,9 +90,9 @@ export type Member = {
   email: string;
   expired: boolean;
   flags: {
-    'sso:linked': boolean;
-    'sso:invalid': boolean;
     'member-limit:restricted': boolean;
+    'sso:invalid': boolean;
+    'sso:linked': boolean;
   };
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
@@ -114,30 +114,30 @@ export type Member = {
  */
 export type SharedViewOrganization = {
   slug: string;
-  id?: string;
   features?: Array<string>;
+  id?: string;
 };
 
 export type AuditLog = {
-  id: string;
   actor: User;
+  data: any;
+  dateCreated: string;
   event: string;
+  id: string;
   ipAddress: string;
   note: string;
   targetObject: number;
   targetUser: Actor | null;
-  data: any;
-  dateCreated: string;
 };
 
 export type AccessRequest = {
   id: string;
-  team: Team;
   member: Member;
+  team: Team;
   requester?: Partial<{
+    email: string;
     name: string;
     username: string;
-    email: string;
   }>;
 };
 
@@ -147,55 +147,55 @@ export type AccessRequest = {
 export type SavedQueryVersions = 1 | 2;
 
 export type NewQuery = {
-  id: string | undefined;
-  version: SavedQueryVersions;
-  name: string;
-  createdBy?: User;
-
-  // Query and Table
-  query?: string;
   fields: Readonly<string[]>;
-  widths?: Readonly<string[]>;
-  orderby?: string;
-  expired?: boolean;
-
+  id: string | undefined;
+  name: string;
   // GlobalSelectionHeader
   projects: Readonly<number[]>;
+
+  version: SavedQueryVersions;
+  createdBy?: User;
+  display?: string;
+  end?: string;
   environment?: Readonly<string[]>;
+
+  expired?: boolean;
+  orderby?: string;
+  // Query and Table
+  query?: string;
   range?: string;
   start?: string;
-  end?: string;
+
+  teams?: Readonly<('myteams' | number)[]>;
+  topEvents?: string;
+  widths?: Readonly<string[]>;
 
   // Graph
   yAxis?: string[];
-  display?: string;
-  topEvents?: string;
-
-  teams?: Readonly<('myteams' | number)[]>;
 };
 
 export type SavedQuery = NewQuery & {
-  id: string;
   dateCreated: string;
   dateUpdated: string;
+  id: string;
 };
 
 export type SavedQueryState = {
-  savedQueries: SavedQuery[];
   hasError: boolean;
   isLoading: boolean;
+  savedQueries: SavedQuery[];
 };
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
-export type EventsGeoData = {'geo.country_code': string; count: number}[];
+export type EventsGeoData = {count: number; 'geo.country_code': string}[];
 
 // API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
-  totals?: {count: number};
+  end?: number;
   order?: number;
   start?: number;
-  end?: number;
+  totals?: {count: number};
 };
 
 // API response format for multiple series
@@ -208,18 +208,18 @@ export type MultiSeriesEventsStats = {
  */
 // Base type for series style API response
 export type SeriesApi = {
-  intervals: string[];
   groups: {
     by: Record<string, string | number>;
-    totals: Record<string, number>;
     series: Record<string, number[]>;
+    totals: Record<string, number>;
   }[];
+  intervals: string[];
 };
 
 export type SessionApiResponse = SeriesApi & {
-  start: string;
   end: string;
   query: string;
+  start: string;
 };
 
 export enum SessionField {

@@ -29,10 +29,10 @@ import Content from './content';
 
 type Props = WithRouterProps &
   ViewProps & {
+    currentFilter: SpanOperationBreakdownFilter;
     location: Location;
     organization: OrganizationSummary;
     queryExtra: Query;
-    currentFilter: SpanOperationBreakdownFilter;
     withoutZerofill: boolean;
   };
 
@@ -68,8 +68,8 @@ function DurationChart({
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
-    type: string;
     selected: Record<string, boolean>;
+    type: string;
   }) {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);

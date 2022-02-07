@@ -12,11 +12,11 @@ type Preferences = {
 };
 
 type PreferenceStoreInterface = CommonStoreInterface<Preferences> & {
-  prefs: Preferences;
-
   getInitialState(): Preferences;
-  reset(): void;
+
   loadInitialState(prefs: Preferences): void;
+  prefs: Preferences;
+  reset(): void;
 };
 
 const storeConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {

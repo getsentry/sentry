@@ -12,9 +12,9 @@ type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type DisplayName = BaseBadgeProps['displayName'];
 
 type Props = Omit<BaseBadgeProps, 'displayName'> & {
-  user?: User;
-  member?: Member;
   displayName?: DisplayName;
+  member?: Member;
+  user?: User;
 };
 
 function getBadge({organization, team, project, user, member, ...props}: Props) {

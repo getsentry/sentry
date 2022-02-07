@@ -10,13 +10,13 @@ import {uniqueId} from 'sentry/utils/guid';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 type AssignToUserParams = {
+  assignedBy: AssignedBy;
   /**
    * Issue id
    */
   id: string;
   user: User | Actor;
   member?: Member;
-  assignedBy: AssignedBy;
 };
 
 export function assignToUser(params: AssignToUserParams) {
@@ -84,12 +84,12 @@ export function clearAssignment(groupId: string, assignedBy: AssignedBy) {
 }
 
 type AssignToActorParams = {
+  actor: Pick<Actor, 'id' | 'type'>;
+  assignedBy: AssignedBy;
   /**
    * Issue id
    */
   id: string;
-  actor: Pick<Actor, 'id' | 'type'>;
-  assignedBy: AssignedBy;
 };
 
 export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
@@ -179,10 +179,10 @@ export function updateNote(
 }
 
 type ParamsType = {
-  itemIds?: Array<number> | Array<string>;
-  query?: string;
   environment?: string | Array<string> | null;
+  itemIds?: Array<number> | Array<string>;
   project?: Array<number> | null;
+  query?: string;
 };
 
 type UpdateParams = ParamsType & {
@@ -302,8 +302,8 @@ export function bulkDelete(
 }
 
 type BulkUpdateParams = UpdateParams & {
-  failSilently?: boolean;
   data?: any;
+  failSilently?: boolean;
 };
 
 export function bulkUpdate(

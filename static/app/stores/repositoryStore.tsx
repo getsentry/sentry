@@ -7,20 +7,20 @@ type RepositoryStoreInterface = {
   get(): {
     orgSlug?: string;
     repositories?: Repository[];
-    repositoriesLoading?: boolean;
     repositoriesError?: Error;
-  };
-
-  state: {
-    orgSlug?: string;
-    repositories?: Repository[];
     repositoriesLoading?: boolean;
-    repositoriesError?: Error;
   };
 
   loadRepositories(orgSlug: string): void;
-  loadRepositoriesSuccess(data: Repository[]): void;
+
   loadRepositoriesError(error: Error): void;
+  loadRepositoriesSuccess(data: Repository[]): void;
+  state: {
+    orgSlug?: string;
+    repositories?: Repository[];
+    repositoriesError?: Error;
+    repositoriesLoading?: boolean;
+  };
 };
 
 const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {

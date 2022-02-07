@@ -13,8 +13,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 type PluginIssue = {
   issue_id: string;
-  url: string;
   label: string;
+  url: string;
 };
 
 type TitledPlugin = Plugin & {
@@ -27,8 +27,8 @@ type Props = {
   api: Client;
   group: Group;
   organization: Organization;
-  project: Project;
   plugin: TitledPlugin;
+  project: Project;
 };
 
 type State = {
@@ -132,10 +132,10 @@ class PluginActions extends Component<Props, State> {
 
 type ModalProps = ModalRenderProps & {
   group: Group;
-  project: Project;
+  onSuccess: (data: any) => void;
   organization: Organization;
   plugin: TitledPlugin & {issue: PluginIssue | null};
-  onSuccess: (data: any) => void;
+  project: Project;
 };
 
 type ModalState = {

@@ -28,22 +28,22 @@ import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/iss
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 export type FormField = {
-  // Type of form fields
-  type: string;
   // The rest is configuration for the form field
   [key: string]: any;
+  // Type of form fields
+  type: string;
 };
 
 type Props = {
-  index: number;
-  node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   data: IssueAlertRuleAction | IssueAlertRuleCondition;
-  project: Project;
-  organization: Organization;
   disabled: boolean;
+  index: number;
   onDelete: (rowIndex: number) => void;
-  onReset: (rowIndex: number, name: string, value: string) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
+  onReset: (rowIndex: number, name: string, value: string) => void;
+  organization: Organization;
+  project: Project;
+  node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
 };
 class RuleNode extends React.Component<Props> {
   handleDelete = () => {

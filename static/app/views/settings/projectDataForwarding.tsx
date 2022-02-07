@@ -20,7 +20,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type RouteParams = {projectId: string; orgId: string};
+type RouteParams = {orgId: string; projectId: string};
 
 type StatProps = {
   params: RouteParams;

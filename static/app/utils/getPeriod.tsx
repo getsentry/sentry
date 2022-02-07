@@ -6,6 +6,10 @@ import {getUtcDateString} from 'sentry/utils/dates';
 
 type DateObject = {
   /**
+   * Ending date object
+   */
+  end?: DateString;
+  /**
    * Relative period string in format "<int><unit>" (e.g. 4d for 4 days)
    */
   period?: string | null;
@@ -13,10 +17,6 @@ type DateObject = {
    * Starting date object
    */
   start?: DateString;
-  /**
-   * Ending date object
-   */
-  end?: DateString;
 };
 
 type Options = {

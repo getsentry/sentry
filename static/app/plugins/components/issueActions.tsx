@@ -9,8 +9,8 @@ import {t} from 'sentry/locale';
 import {Group, Organization, Plugin, Project} from 'sentry/types';
 
 type Field = {
-  has_autocomplete?: boolean;
   depends?: string[];
+  has_autocomplete?: boolean;
 } & Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
 
 type ActionType = 'link' | 'create' | 'unlink';
@@ -19,7 +19,6 @@ type FieldStateValue = typeof FormState[keyof typeof FormState];
 type Props = {
   actionType: ActionType;
   group: Group;
-  project: Project;
   organization: Organization;
   plugin: Plugin & {
     issue?: {
@@ -28,27 +27,28 @@ type Props = {
       url: string;
     };
   };
-  onSuccess?: (data: any) => void;
+  project: Project;
   onError?: (data: any) => void;
+  onSuccess?: (data: any) => void;
 };
 
 type State = {
   createFormData: Record<string, any>;
+  dependentFieldState: Record<string, FieldStateValue>;
   linkFormData: Record<string, any>;
   unlinkFormData: Record<string, any>;
   createFieldList?: Field[];
-  linkFieldList?: Field[];
-  unlinkFieldList?: Field[];
-  dependentFieldState: Record<string, FieldStateValue>;
   error?: {
     message: string;
-    error_type?: string;
     auth_url?: string;
+    error_type?: string;
+    errors?: Record<string, string>;
     has_auth_configured?: boolean;
     required_auth_settings?: string[];
-    errors?: Record<string, string>;
   };
+  linkFieldList?: Field[];
   loading?: boolean;
+  unlinkFieldList?: Field[];
 } & PluginComponentBase['state'];
 
 class IssueActions extends PluginComponentBase<Props, State> {

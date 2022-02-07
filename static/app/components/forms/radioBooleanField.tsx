@@ -4,8 +4,8 @@ import InputField from 'sentry/components/forms/inputField';
 import {defined} from 'sentry/utils';
 
 type Props = {
-  yesLabel: string;
   noLabel: string;
+  yesLabel: string;
   yesFirst?: boolean;
 } & InputField['props'];
 

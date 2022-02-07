@@ -30,11 +30,11 @@ import {
 const SPANS_CURSOR_NAME = 'spansCursor';
 
 type Props = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
-  totals: SpansTotalValues | null;
   projectId: string;
+  totals: SpansTotalValues | null;
   transactionName: string;
 };
 
@@ -92,9 +92,9 @@ export default function SuspectSpans(props: Props) {
 type HeaderProps = {
   location: Location;
   organization: Organization;
+  pageLinks: string | null;
   projectId: string;
   transactionName: string;
-  pageLinks: string | null;
 };
 
 function SuspectSpansHeader(props: HeaderProps) {

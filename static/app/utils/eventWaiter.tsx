@@ -23,14 +23,14 @@ type FirstIssue = null | true | Group;
 
 type Props = {
   api: Client;
+  children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
+  eventType: 'error' | 'transaction';
   organization: Organization;
   project: Project;
-  eventType: 'error' | 'transaction';
   disabled?: boolean;
-  pollInterval?: number;
   onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
   onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
-  children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
+  pollInterval?: number;
 };
 
 type State = {

@@ -53,16 +53,16 @@ type DefaultProps = {
 
 type Props = RouteComponentProps<{}, {}> &
   DefaultProps & {
-    organization?: Organization;
-    project?: Project;
-    /**
-     * The string to search the navigation routes for
-     */
-    query: string;
     /**
      * Render function that renders the route matches
      */
     children: (props: ChildProps) => React.ReactNode;
+    /**
+     * The string to search the navigation routes for
+     */
+    query: string;
+    organization?: Organization;
+    project?: Project;
   };
 
 type State = {

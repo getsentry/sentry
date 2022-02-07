@@ -14,10 +14,10 @@ import Filter from './filter';
 const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
 type Props = {
-  selectedTeams: Set<string>;
   handleChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
-  showStatus?: boolean;
+  selectedTeams: Set<string>;
   selectedStatus?: Set<string>;
+  showStatus?: boolean;
 };
 
 export function getTeamParams(team?: string | string[]): string[] {

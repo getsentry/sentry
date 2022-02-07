@@ -259,12 +259,12 @@ async function createEventIdLookupResult(
 }
 
 type Props = WithRouterProps<{orgId: string}> & {
+  children: (props: ChildProps) => React.ReactElement;
+  organization: Organization;
   /**
    * search term
    */
   query: string;
-  organization: Organization;
-  children: (props: ChildProps) => React.ReactElement;
   /**
    * fuse.js options
    */
@@ -272,10 +272,10 @@ type Props = WithRouterProps<{orgId: string}> & {
 };
 
 type State = {
-  loading: boolean;
-  searchResults: null | Result[];
   directResults: null | Result[];
   fuzzy: null | Fuse<ResultItem, Fuse.FuseOptions<ResultItem>>;
+  loading: boolean;
+  searchResults: null | Result[];
 };
 
 class ApiSource extends React.Component<Props, State> {

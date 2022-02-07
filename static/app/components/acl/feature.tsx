@@ -12,10 +12,13 @@ import ComingSoon from './comingSoon';
 
 type Props = {
   /**
-   * The following properties will be set by the HoCs
+   * If children is a function then will be treated as a render prop and
+   * passed FeatureRenderProps.
+   *
+   * The other interface is more simple, only show `children` if org/project has
+   * all the required feature.
    */
-
-  organization: Organization;
+  children: React.ReactNode | ChildrenRenderFn;
   config: Config;
   /**
    * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
@@ -26,9 +29,20 @@ type Props = {
    */
   features: string[];
   /**
-   * Should the component require all features or just one or more.
+   * The following properties will be set by the HoCs
    */
-  requireAll?: boolean;
+  organization: Organization;
+  /**
+   * Specify the key to use for hookstore functionality.
+   *
+   * The hookName should be prefixed with `feature-disabled`.
+   *
+   * When specified, the hookstore will be checked if the feature is
+   * disabled, and the first available hook will be used as the render
+   * function.
+   */
+  hookName?: keyof FeatureDisabledHooks;
+  project?: Project;
   /**
    * Custom renderer function for when the feature is not enabled.
    *
@@ -45,33 +59,18 @@ type Props = {
    */
   renderDisabled?: boolean | RenderDisabledFn;
   /**
-   * Specify the key to use for hookstore functionality.
-   *
-   * The hookName should be prefixed with `feature-disabled`.
-   *
-   * When specified, the hookstore will be checked if the feature is
-   * disabled, and the first available hook will be used as the render
-   * function.
+   * Should the component require all features or just one or more.
    */
-  hookName?: keyof FeatureDisabledHooks;
-  /**
-   * If children is a function then will be treated as a render prop and
-   * passed FeatureRenderProps.
-   *
-   * The other interface is more simple, only show `children` if org/project has
-   * all the required feature.
-   */
-  children: React.ReactNode | ChildrenRenderFn;
-  project?: Project;
+  requireAll?: boolean;
 };
 
 /**
  * Common props passed to children and disabled render handlers.
  */
 type FeatureRenderProps = {
-  organization: Organization;
   features: string[];
   hasFeature: boolean;
+  organization: Organization;
   project?: Project;
 };
 

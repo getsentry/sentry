@@ -21,10 +21,21 @@ type Props = {
    */
   children?: React.ReactNode | (() => React.ReactNode);
 
+  className?: string;
+
   /**
-   * If this is true, then display a loading indicator
+   * Renders without predefined padding on the header and body cells
    */
-  isLoading?: boolean;
+  disablePadding?: boolean;
+
+  /**
+   * Action to display when isEmpty is true
+   */
+  emptyAction?: React.ReactNode;
+  /**
+   * Message to use for `<EmptyStateWarning>`
+   */
+  emptyMessage?: React.ReactNode;
 
   /**
    * Displays an `<EmptyStateWarning>` if true
@@ -32,20 +43,9 @@ type Props = {
   isEmpty?: boolean;
 
   /**
-   * Message to use for `<EmptyStateWarning>`
+   * If this is true, then display a loading indicator
    */
-  emptyMessage?: React.ReactNode;
-  /**
-   * Action to display when isEmpty is true
-   */
-  emptyAction?: React.ReactNode;
-
-  /**
-   * Renders without predefined padding on the header and body cells
-   */
-  disablePadding?: boolean;
-
-  className?: string;
+  isLoading?: boolean;
 
   /**
    * A custom loading indicator.
@@ -132,8 +132,8 @@ type WrapperProps = {
    * The number of columns the table will have, this is derived from the headers list
    */
   columns: number;
-  hasRows: boolean;
   disablePadding: Props['disablePadding'];
+  hasRows: boolean;
 };
 
 const LoadingWrapper = styled('div')``;

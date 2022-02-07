@@ -25,8 +25,8 @@ function formatCommitMessage(message: string | null) {
 
 interface CommitRowProps {
   commit: Commit;
-  customAvatar?: React.ReactNode;
   className?: string;
+  customAvatar?: React.ReactNode;
 }
 
 function CommitRow({commit, customAvatar, className}: CommitRowProps) {

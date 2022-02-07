@@ -35,21 +35,21 @@ type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
 type Props = {
   api: Client;
+  children: React.ReactNode;
+  environments: string[];
+  isGlobalSelectionReady: boolean;
   organization: Organization;
   projects: Project[];
-  environments: string[];
-  children: React.ReactNode;
-  isGlobalSelectionReady: boolean;
-} & RouteComponentProps<{orgId: string; groupId: string; eventId?: string}, {}>;
+} & RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}>;
 
 type State = {
+  error: boolean;
+  errorType: Error;
+  eventError: boolean;
   group: Group | null;
   loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
-  error: boolean;
-  eventError: boolean;
-  errorType: Error;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
   event?: Event;
 };
@@ -155,7 +155,7 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
-  getCurrentRouteInfo(group: Group): {currentTab: Tab; baseUrl: string} {
+  getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
     const {routes, organization} = this.props;
     const {event} = this.state;
 

@@ -17,8 +17,8 @@ type Props = {
 };
 
 type Data = {
-  model?: string;
   arch?: string;
+  model?: string;
   model_id?: string;
 };
 

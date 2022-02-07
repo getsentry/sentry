@@ -25,8 +25,8 @@ import {TimePeriodType} from './constants';
 
 type Props = {
   organization: OrganizationSummary;
-  rule: IncidentRule;
   projects: Project[];
+  rule: IncidentRule;
   timePeriod: TimePeriodType;
   query?: string;
 };

@@ -29,8 +29,8 @@ function getView(view: View, data: State['data']) {
 }
 
 type Props = {
-  type: string;
   data: Record<string, any>;
+  type: string;
 };
 
 type View = 'report' | 'raw';

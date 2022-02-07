@@ -27,14 +27,14 @@ import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
 
 type TeamMiseryProps = {
-  organization: Organization;
-  location: Location;
-  projects: Project[];
-  periodTableData: TableData | null;
-  weekTableData: TableData | null;
   isLoading: boolean;
-  period?: string | null;
+  location: Location;
+  organization: Organization;
+  periodTableData: TableData | null;
+  projects: Project[];
+  weekTableData: TableData | null;
   error?: Error | null;
+  period?: string | null;
 };
 
 /** The number of elements to display before collapsing */
@@ -186,13 +186,13 @@ function TeamMisery({
 }
 
 type Props = AsyncComponent['props'] & {
-  organization: Organization;
-  teamId: string;
-  projects: Project[];
   location: Location;
+  organization: Organization;
+  projects: Project[];
+  teamId: string;
+  end?: string;
   period?: string | null;
   start?: string;
-  end?: string;
 } & DateTimeObject;
 
 function TeamMiseryWrapper({

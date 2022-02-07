@@ -14,25 +14,25 @@ export type EntryData = Record<string, any | Array<any>>;
  * Saved issues searches
  */
 export type RecentSearch = {
-  id: string;
-  organizationId: string;
-  type: SavedSearchType;
-  query: string;
-  lastSeen: string;
   dateCreated: string;
+  id: string;
+  lastSeen: string;
+  organizationId: string;
+  query: string;
+  type: SavedSearchType;
 };
 
 // XXX: Deprecated Sentry 9 attributes are not included here.
 export type SavedSearch = {
+  dateCreated: string;
   id: string;
-  type: SavedSearchType;
+  isGlobal: boolean;
+  isOrgCustom: boolean;
+  isPinned: boolean;
   name: string;
   query: string;
   sort: string;
-  isGlobal: boolean;
-  isPinned: boolean;
-  isOrgCustom: boolean;
-  dateCreated: string;
+  type: SavedSearchType;
 };
 
 export enum SavedSearchType {
@@ -42,15 +42,15 @@ export enum SavedSearchType {
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
-  id: string;
   dateCreated: string;
+  event_id: string;
   headers: Object;
+  id: string;
   mimetype: string;
   name: string;
   sha1: string;
   size: number;
   type: string;
-  event_id: string;
 };
 
 // endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
@@ -60,33 +60,33 @@ export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
  * Issue Tags
  */
 export type Tag = {
-  name: string;
   key: string;
-  values?: string[];
-  totalValues?: number;
-  predefined?: boolean;
+  name: string;
   isInput?: boolean;
   /**
    * How many values should be suggested in autocomplete.
    * Overrides SmartSearchBar's `maxSearchItems` prop.
    */
   maxSuggestedValues?: number;
+  predefined?: boolean;
+  totalValues?: number;
+  values?: string[];
 };
 
 export type TagCollection = Record<string, Tag>;
 
 export type TagValue = {
   count: number;
+  firstSeen: string;
+  key: string;
+  lastSeen: string;
   name: string;
   value: string;
-  lastSeen: string;
-  key: string;
-  firstSeen: string;
-  query?: string;
   email?: string;
-  username?: string;
   identifier?: string;
   ipAddress?: string;
+  query?: string;
+  username?: string;
 } & AvatarUser;
 
 type Topvalue = {
@@ -101,9 +101,9 @@ type Topvalue = {
 };
 
 export type TagWithTopValues = {
-  topValues: Array<Topvalue>;
   key: string;
   name: string;
+  topValues: Array<Topvalue>;
   totalValues: number;
   uniqueValues: number;
   canDelete?: boolean;
@@ -113,11 +113,11 @@ export type TagWithTopValues = {
  * Inbox, issue owners and Activity
  */
 export type InboxReasonDetails = {
-  until?: string | null;
   count?: number | null;
-  window?: number | null;
+  until?: string | null;
   user_count?: number | null;
   user_window?: number | null;
+  window?: number | null;
 };
 
 export type InboxDetails = {
@@ -130,18 +130,18 @@ export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
-  type: SuggestedOwnerReason;
-  owner: string;
   date_added: string;
+  owner: string;
+  type: SuggestedOwnerReason;
 };
 
 export type IssueOwnership = {
-  raw: string;
-  fallthrough: boolean;
-  dateCreated: string;
-  lastUpdated: string;
-  isActive: boolean;
   autoAssignment: boolean;
+  dateCreated: string;
+  fallthrough: boolean;
+  isActive: boolean;
+  lastUpdated: string;
+  raw: string;
 };
 
 export enum GroupActivityType {
@@ -171,110 +171,109 @@ type GroupActivityBase = {
   dateCreated: string;
   id: string;
   project: Project;
-  user?: null | User;
   assignee?: string;
   issue?: Group;
+  user?: null | User;
 };
 
 type GroupActivityNote = GroupActivityBase & {
-  type: GroupActivityType.NOTE;
   data: {
     text: string;
   };
+  type: GroupActivityType.NOTE;
 };
 
 type GroupActivitySetResolved = GroupActivityBase & {
-  type: GroupActivityType.SET_RESOLVED;
   data: Record<string, any>;
+  type: GroupActivityType.SET_RESOLVED;
 };
 
 type GroupActivitySetUnresolved = GroupActivityBase & {
-  type: GroupActivityType.SET_UNRESOLVED;
   data: Record<string, any>;
+  type: GroupActivityType.SET_UNRESOLVED;
 };
 
 type GroupActivitySetPublic = GroupActivityBase & {
-  type: GroupActivityType.SET_PUBLIC;
   data: Record<string, any>;
+  type: GroupActivityType.SET_PUBLIC;
 };
 
 type GroupActivitySetPrivate = GroupActivityBase & {
-  type: GroupActivityType.SET_PRIVATE;
   data: Record<string, any>;
+  type: GroupActivityType.SET_PRIVATE;
 };
 
 type GroupActivitySetByAge = GroupActivityBase & {
-  type: GroupActivityType.SET_RESOLVED_BY_AGE;
   data: Record<string, any>;
+  type: GroupActivityType.SET_RESOLVED_BY_AGE;
 };
 
 type GroupActivityUnassigned = GroupActivityBase & {
-  type: GroupActivityType.UNASSIGNED;
   data: Record<string, any>;
+  type: GroupActivityType.UNASSIGNED;
 };
 
 type GroupActivityFirstSeen = GroupActivityBase & {
-  type: GroupActivityType.FIRST_SEEN;
   data: Record<string, any>;
+  type: GroupActivityType.FIRST_SEEN;
 };
 
 type GroupActivityMarkReviewed = GroupActivityBase & {
-  type: GroupActivityType.MARK_REVIEWED;
   data: Record<string, any>;
+  type: GroupActivityType.MARK_REVIEWED;
 };
 
 type GroupActivityRegression = GroupActivityBase & {
-  type: GroupActivityType.SET_REGRESSION;
   data: {
     version?: string;
   };
+  type: GroupActivityType.SET_REGRESSION;
 };
 
 export type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
-  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
   data: {
-    version?: string;
     current_release_version?: string;
+    version?: string;
   };
+  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
 };
 
 type GroupActivitySetByResolvedInCommit = GroupActivityBase & {
-  type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
   data: {
     commit: Commit;
   };
+  type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 };
 
 type GroupActivitySetByResolvedInPullRequest = GroupActivityBase & {
-  type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
   data: {
     pullRequest: PullRequest;
   };
+  type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
 };
 
 export type GroupActivitySetIgnored = GroupActivityBase & {
-  type: GroupActivityType.SET_IGNORED;
   data: {
+    ignoreCount?: number;
     ignoreDuration?: number;
     ignoreUntil?: string;
     ignoreUserCount?: number;
     ignoreUserWindow?: number;
     ignoreWindow?: number;
-    ignoreCount?: number;
   };
+  type: GroupActivityType.SET_IGNORED;
 };
 
 export type GroupActivityReprocess = GroupActivityBase & {
-  type: GroupActivityType.REPROCESS;
   data: {
     eventCount: number;
     newGroupId: number;
     oldGroupId: number;
   };
+  type: GroupActivityType.REPROCESS;
 };
 
 type GroupActivityUnmergeDestination = GroupActivityBase & {
-  type: GroupActivityType.UNMERGE_DESTINATION;
   data: {
     fingerprints: Array<string>;
     source?: {
@@ -282,10 +281,10 @@ type GroupActivityUnmergeDestination = GroupActivityBase & {
       shortId: string;
     };
   };
+  type: GroupActivityType.UNMERGE_DESTINATION;
 };
 
 type GroupActivityUnmergeSource = GroupActivityBase & {
-  type: GroupActivityType.UNMERGE_SOURCE;
   data: {
     fingerprints: Array<string>;
     destination?: {
@@ -293,31 +292,32 @@ type GroupActivityUnmergeSource = GroupActivityBase & {
       shortId: string;
     };
   };
+  type: GroupActivityType.UNMERGE_SOURCE;
 };
 
 type GroupActivityMerge = GroupActivityBase & {
-  type: GroupActivityType.MERGE;
   data: {
     issues: Array<any>;
   };
+  type: GroupActivityType.MERGE;
 };
 
 export type GroupActivityAssigned = GroupActivityBase & {
-  type: GroupActivityType.ASSIGNED;
   data: {
     assignee: string;
     assigneeType: string;
     user: Team | User;
   };
+  type: GroupActivityType.ASSIGNED;
 };
 
 export type GroupActivityCreateIssue = GroupActivityBase & {
-  type: GroupActivityType.CREATE_ISSUE;
   data: {
-    provider: string;
     location: string;
+    provider: string;
     title: string;
   };
+  type: GroupActivityType.CREATE_ISSUE;
 };
 
 export type GroupActivity =
@@ -346,27 +346,27 @@ export type Activity = GroupActivity;
 
 type GroupFiltered = {
   count: string;
-  stats: Record<string, TimeseriesValue[]>;
-  lastSeen: string;
   firstSeen: string;
+  lastSeen: string;
+  stats: Record<string, TimeseriesValue[]>;
   userCount: number;
 };
 
 export type GroupStats = GroupFiltered & {
-  lifetime?: GroupFiltered;
   filtered: GroupFiltered | null;
-  sessionCount?: string | null;
   id: string;
+  lifetime?: GroupFiltered;
+  sessionCount?: string | null;
 };
 
 export type BaseGroupStatusReprocessing = {
   status: 'reprocessing';
   statusDetails: {
-    pendingEvents: number;
     info: {
       dateCreated: string;
       totalEvents: number;
     } | null;
+    pendingEvents: number;
   };
 };
 
@@ -389,8 +389,8 @@ export type ResolutionStatusDetails = {
   ignoreUserWindow?: number;
   ignoreWindow?: number;
   inCommit?: Commit;
-  inRelease?: string;
   inNextRelease?: boolean;
+  inRelease?: string;
 };
 
 export type UpdateResolutionStatus = {
@@ -410,19 +410,19 @@ export type GroupRelease = {
 
 // TODO(ts): incomplete
 export type BaseGroup = {
-  id: string;
-  latestEvent: Event;
   activity: GroupActivity[];
   annotations: string[];
   assignedTo: Actor;
   culprit: string;
   firstSeen: string;
   hasSeen: boolean;
+  id: string;
   isBookmarked: boolean;
-  isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
+  isUnhandled: boolean;
   lastSeen: string;
+  latestEvent: Event;
   level: Level;
   logger: string;
   metadata: EventMetadata;
@@ -437,12 +437,12 @@ export type BaseGroup = {
   seenBy: User[];
   shareId: string;
   shortId: string;
+  status: string;
+  subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
-  subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  status: string;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 } & GroupRelease;
@@ -454,39 +454,39 @@ export type GroupCollapseRelease = Omit<Group, keyof GroupRelease> &
   Partial<GroupRelease>;
 
 export type GroupTombstone = {
-  id: string;
-  title: string;
-  culprit: string;
-  level: Level;
   actor: AvatarUser;
+  culprit: string;
+  id: string;
+  level: Level;
   metadata: EventMetadata;
+  title: string;
 };
 
 export type ProcessingIssueItem = {
-  id: string;
-  type: string;
   checksum: string;
-  numEvents: number;
   data: {
     // TODO(ts) This type is likely incomplete, but this is what
     // project processing issues settings uses.
     _scope: string;
     image_arch: string;
-    image_uuid: string;
     image_path: string;
+    image_uuid: string;
   };
+  id: string;
   lastSeen: string;
+  numEvents: number;
+  type: string;
 };
 
 export type ProcessingIssue = {
-  project: string;
-  numIssues: number;
-  signedLink: string;
-  lastSeen: string;
-  hasMoreResolveableIssues: boolean;
   hasIssues: boolean;
+  hasMoreResolveableIssues: boolean;
   issuesProcessing: number;
+  lastSeen: string;
+  numIssues: number;
+  project: string;
   resolveableIssues: number;
+  signedLink: string;
   issues?: ProcessingIssueItem[];
 };
 
@@ -495,18 +495,18 @@ export type ProcessingIssue = {
  */
 export type Meta = {
   chunks: Array<ChunkType>;
+  err: Array<MetaError>;
   len: number;
   rem: Array<MetaRemark>;
-  err: Array<MetaError>;
 };
 
 export type MetaError = string | [string, any];
 export type MetaRemark = Array<string | number>;
 
 export type ChunkType = {
+  rule_id: string | number;
   text: string;
   type: string;
-  rule_id: string | number;
   remark?: string | number;
 };
 
@@ -514,33 +514,33 @@ export type ChunkType = {
  * User Feedback
  */
 export type UserReport = {
-  id: string;
+  comments: string;
+  dateCreated: string;
+  email: string;
+  event: {eventID: string; id: string};
   eventID: string;
+  id: string;
   issue: Group;
   name: string;
-  event: {eventID: string; id: string};
   user: User;
-  dateCreated: string;
-  comments: string;
-  email: string;
 };
 
 export type KeyValueListData = {
   key: string;
   subject: string;
-  value?: React.ReactNode;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
+  value?: React.ReactNode;
 }[];
 
 // Response from ShortIdLookupEndpoint
 // /organizations/${orgId}/shortids/${query}/
 export type ShortIdResponse = {
+  group: Group;
+  groupId: string;
   organizationSlug: string;
   projectSlug: string;
-  groupId: string;
-  group: Group;
   shortId: string;
 };
 
@@ -549,12 +549,12 @@ export type ShortIdResponse = {
  */
 export type Note = {
   /**
-   * Note contents (markdown allowed)
-   */
-  text: string;
-
-  /**
    * Array of [id, display string] tuples used for @-mentions
    */
   mentions: [string, string][];
+
+  /**
+   * Note contents (markdown allowed)
+   */
+  text: string;
 };

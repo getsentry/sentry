@@ -25,9 +25,9 @@ const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
 type Period = {
+  end: DateString;
   period: string | null;
   start: DateString;
-  end: DateString;
 };
 
 const ZoomPropKeys = [
@@ -40,31 +40,31 @@ const ZoomPropKeys = [
 ] as const;
 
 export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
-  utc?: boolean;
-  start?: Date;
+  dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
   showTimeInTooltip?: boolean;
-  dataZoom?: DataZoomComponentOption[];
+  start?: Date;
   toolBox?: ToolboxComponentOption;
+  utc?: boolean;
 };
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
-  router?: InjectedRouter;
   disabled?: boolean;
-  xAxis?: XAXisComponentOption;
-  xAxisIndex?: number | number[];
-  start?: DateString;
   end?: DateString;
-  period?: string | null;
-  utc?: boolean | null;
   onChartReady?: EChartChartReadyHandler;
   onDataZoom?: EChartDataZoomHandler;
   onFinished?: EChartFinishedHandler;
   onRestore?: EChartRestoreHandler;
   onZoom?: (period: Period) => void;
+  period?: string | null;
+  router?: InjectedRouter;
+  start?: DateString;
   usePageDate?: boolean;
+  utc?: boolean | null;
+  xAxis?: XAXisComponentOption;
+  xAxisIndex?: number | number[];
 };
 
 /**

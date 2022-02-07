@@ -40,14 +40,14 @@ const axisIndexToSessionsField = {
 };
 
 type Props = {
-  release: ReleaseWithHealth;
-  project: ReleaseProject;
-  environment: string[];
-  releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
-  loading: boolean;
-  reloading: boolean;
+  environment: string[];
   errored: boolean;
+  loading: boolean;
+  project: ReleaseProject;
+  release: ReleaseWithHealth;
+  releaseSessions: SessionApiResponse | null;
+  reloading: boolean;
 } & WithRouterProps;
 
 function ReleaseAdoption({

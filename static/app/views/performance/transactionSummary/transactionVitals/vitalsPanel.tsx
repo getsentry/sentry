@@ -18,9 +18,9 @@ import {NUM_BUCKETS, VITAL_GROUPS} from './constants';
 import VitalCard from './vitalCard';
 
 type Props = {
-  organization: Organization;
-  location: Location;
   eventView: EventView;
+  location: Location;
+  organization: Organization;
   dataFilter?: DataFilter;
 };
 
@@ -87,7 +87,7 @@ class VitalsPanel extends Component<Props> {
     const bounds = vitals.reduce(
       (
         allBounds: Partial<
-          Record<WebVital, {start: string | undefined; end: string | undefined}>
+          Record<WebVital, {end: string | undefined; start: string | undefined}>
         >,
         vital: WebVital
       ) => {

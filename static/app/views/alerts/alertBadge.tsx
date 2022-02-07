@@ -8,9 +8,9 @@ import {Color} from 'sentry/utils/theme';
 import {IncidentStatus} from './types';
 
 type Props = {
-  status?: IncidentStatus;
   hideText?: boolean;
   isIssue?: boolean;
+  status?: IncidentStatus;
 };
 
 function AlertBadge({status, hideText = false, isIssue}: Props) {

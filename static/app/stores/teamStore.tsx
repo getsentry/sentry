@@ -7,24 +7,24 @@ import {defined} from 'sentry/utils';
 import {CommonStoreInterface} from './types';
 
 type State = {
-  teams: Team[];
-  loading: boolean;
-  hasMore: boolean | null;
   cursor: string | null;
+  hasMore: boolean | null;
   loadedUserTeams: boolean;
+  loading: boolean;
+  teams: Team[];
 };
 
 type TeamStoreInterface = CommonStoreInterface<State> & {
-  initialized: boolean;
-  state: State;
-  reset(): void;
-  loadInitialData(items: Team[], hasMore?: boolean | null, cursor?: string | null): void;
-  onUpdateSuccess(itemId: string, response: Team): void;
-  onRemoveSuccess(slug: string): void;
-  onCreateSuccess(team: Team): void;
   getAll(): Team[];
   getById(id: string): Team | null;
   getBySlug(slug: string): Team | null;
+  initialized: boolean;
+  loadInitialData(items: Team[], hasMore?: boolean | null, cursor?: string | null): void;
+  onCreateSuccess(team: Team): void;
+  onRemoveSuccess(slug: string): void;
+  onUpdateSuccess(itemId: string, response: Team): void;
+  reset(): void;
+  state: State;
 };
 
 const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {

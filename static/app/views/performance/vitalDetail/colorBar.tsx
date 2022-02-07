@@ -4,8 +4,8 @@ import space from 'sentry/styles/space';
 import {Color} from 'sentry/utils/theme';
 
 type ColorStop = {
-  percent: number;
   color: Color;
+  percent: number;
 };
 
 type Props = {

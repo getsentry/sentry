@@ -13,17 +13,17 @@ type Priority = 'info' | 'warning' | 'success' | 'error' | 'muted';
 type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
 
 type OtherProps = {
+  children?: React.ReactNode;
   ['data-test-id']?: string;
   icon?: string | React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
-  children?: React.ReactNode;
 };
 
 type DefaultProps = {
-  size: Size;
-  priority: Priority;
-  withoutMarginBottom: boolean;
   openInNewTab: boolean;
+  priority: Priority;
+  size: Size;
+  withoutMarginBottom: boolean;
   href?: string;
 };
 

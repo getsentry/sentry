@@ -21,10 +21,10 @@ import Modal, {modalCss} from './modal';
 
 type Props = {
   event: Event;
+  onDelete: (attachmentId: EventAttachment['id']) => void;
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
-  onDelete: (attachmentId: EventAttachment['id']) => void;
 };
 
 function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {

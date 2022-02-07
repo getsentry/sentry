@@ -13,25 +13,25 @@ import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
 type DefaultProps = {
-  isLoading: boolean;
-  showReleasePackage: boolean;
   hasError: boolean;
-  renderLoading: () => React.ReactNode;
+  isLoading: boolean;
   renderEmpty: () => React.ReactNode;
   renderError: () => React.ReactNode;
+  renderLoading: () => React.ReactNode;
+  showReleasePackage: boolean;
 };
 
 type Props = DefaultProps & {
-  title: string;
   segments: TagSegment[];
+  title: string;
   totalValues: number;
   onTagClick?: (title: string, value: TagSegment) => void;
 };
 
 type SegmentValue = {
-  to: LocationDescriptor;
-  onClick: () => void;
   index: number;
+  onClick: () => void;
+  to: LocationDescriptor;
 };
 
 export default class TagDistributionMeter extends React.Component<Props> {

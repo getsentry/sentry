@@ -65,6 +65,13 @@ export const analytics: Hooks['analytics:event'] = (name, data) =>
   HookStore.get('analytics:event').forEach(cb => cb(name, data));
 
 type RecordMetric = Hooks['metrics:event'] & {
+  endTransaction: (opts: {
+    /**
+     * Name of the transaction to end
+     */
+    name: string;
+  }) => void;
+
   mark: (opts: {
     /**
      * Name of the metric event
@@ -79,26 +86,26 @@ type RecordMetric = Hooks['metrics:event'] & {
 
   measure: (opts: {
     /**
-     * Name of the metric event
-     */
-    name?: string;
-    /**
-     * Name of starting mark
-     */
-    start?: string;
-    /**
-     * Name of ending mark
-     */
-    end?: string;
-    /**
      * Additional data to send with metric event.
      * If a key collide with the data in mark(), this will overwrite them
      */
     data?: object;
     /**
+     * Name of ending mark
+     */
+    end?: string;
+    /**
+     * Name of the metric event
+     */
+    name?: string;
+    /**
      * Do not clean up marks and measurements when completed
      */
     noCleanup?: boolean;
+    /**
+     * Name of starting mark
+     */
+    start?: string;
   }) => void;
 
   startTransaction: (opts: {
@@ -107,21 +114,14 @@ type RecordMetric = Hooks['metrics:event'] & {
      */
     name: string;
     /**
-     * Optional trace id, defaults to current tx trace
-     */
-    traceId?: string;
-    /**
      * Optional op code
      */
     op?: string;
-  }) => Transaction;
-
-  endTransaction: (opts: {
     /**
-     * Name of the transaction to end
+     * Optional trace id, defaults to current tx trace
      */
-    name: string;
-  }) => void;
+    traceId?: string;
+  }) => Transaction;
 };
 
 /**

@@ -6,16 +6,16 @@ import ModalActions from 'sentry/actions/modalActions';
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
 type ModalStoreState = {
-  renderer: Renderer | null;
   options: ModalOptions;
+  renderer: Renderer | null;
 };
 
 type ModalStoreInterface = {
-  init(): void;
   get(): ModalStoreState;
-  reset(): void;
+  init(): void;
   onCloseModal(): void;
   onOpenModal(renderer: Renderer, options: ModalOptions): void;
+  reset(): void;
 };
 
 const storeConfig: Reflux.StoreDefinition & ModalStoreInterface = {

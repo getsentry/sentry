@@ -16,10 +16,10 @@ import EventView from 'sentry/utils/discover/eventView';
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
 type Props = {
-  title: React.ComponentClass<TitleProps>;
   eventView: EventView;
-  tableMeta: TableData['meta'];
   location: Location;
+  tableMeta: TableData['meta'];
+  title: React.ComponentClass<TitleProps>;
 };
 
 type State = {

@@ -1,13 +1,13 @@
-export type InviteStatus = {[email: string]: {error?: string; sent: boolean}};
+export type InviteStatus = {[email: string]: {sent: boolean; error?: string}};
 
 export type InviteRow = {
   emails: Set<string>;
-  teams: Set<string>;
   role: string;
+  teams: Set<string>;
 };
 
 export type NormalizedInvite = {
   email: string;
-  teams: Set<string>;
   role: string;
+  teams: Set<string>;
 };

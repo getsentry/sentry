@@ -10,9 +10,9 @@ import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import ExclusiveTimeChart from './exclusiveTimeChart';
 
 type Props = WithRouterProps & {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
   spanSlug: SpanSlug;
 };
 

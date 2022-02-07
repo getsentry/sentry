@@ -5,18 +5,18 @@ import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
 
 type State = {
-  savedSearches: SavedSearch[];
   hasError: boolean;
   isLoading: boolean;
+  savedSearches: SavedSearch[];
 };
 
 type SavedSearchesStoreInterface = {
-  reset(): void;
+  findByQuery(query: string, sort: string): SavedSearch | undefined;
   get(): State;
   getFilteredSearches(type: SavedSearchType, id?: string): SavedSearch[];
-  updateExistingSearch(id: string, changes: Partial<SavedSearch>): SavedSearch;
-  findByQuery(query: string, sort: string): SavedSearch | undefined;
   onPinSearch(type: SavedSearchType, query: string, sort: string): void;
+  reset(): void;
+  updateExistingSearch(id: string, changes: Partial<SavedSearch>): SavedSearch;
 };
 
 const storeConfig: Reflux.StoreDefinition & SavedSearchesStoreInterface = {

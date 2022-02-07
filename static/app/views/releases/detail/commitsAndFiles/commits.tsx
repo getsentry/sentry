@@ -21,8 +21,8 @@ import withReleaseRepos from './withReleaseRepos';
 
 type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   location: Location;
-  projectSlug: Project['slug'];
   orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
   release: string;
   releaseRepos: Repository[];
   activeReleaseRepo?: Repository;

@@ -3,14 +3,14 @@ import * as React from 'react';
 import FormField from 'sentry/components/forms/formField';
 
 type InputFieldProps = FormField['props'] & {
-  placeholder?: string;
-  inputStyle?: object;
-  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
-  onKeyPress?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
   autoComplete?: string;
+  inputStyle?: object;
   min?: number;
+  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
+  onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyPress?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  placeholder?: string;
   step?: number;
 };
 

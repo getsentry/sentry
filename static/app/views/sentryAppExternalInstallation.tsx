@@ -19,10 +19,10 @@ import Field from 'sentry/views/settings/components/forms/field';
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
 type State = AsyncView['state'] & {
-  selectedOrgSlug: string | null;
   organization: Organization | null;
   organizations: Organization[];
   reloading: boolean;
+  selectedOrgSlug: string | null;
   sentryApp: SentryApp;
 };
 

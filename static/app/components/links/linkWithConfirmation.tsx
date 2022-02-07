@@ -6,10 +6,10 @@ import Confirm from 'sentry/components/confirm';
 
 type Props = {
   message: React.ReactNode;
-  title: string;
   onConfirm: () => void;
-  disabled?: boolean;
+  title: string;
   className?: string;
+  disabled?: boolean;
   priority?: React.ComponentProps<typeof Button>['priority'];
 };
 

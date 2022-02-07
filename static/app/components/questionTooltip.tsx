@@ -6,8 +6,8 @@ import {IconQuestion} from 'sentry/icons';
 import {IconSize} from 'sentry/utils/theme';
 
 type ContainerProps = {
-  className?: string;
   size: IconSize | string;
+  className?: string;
 };
 
 const QuestionIconContainer = styled('span')<ContainerProps>`
@@ -27,9 +27,9 @@ const QuestionIconContainer = styled('span')<ContainerProps>`
 `;
 
 type QuestionProps = {
-  className?: string;
-  title: React.ReactNode;
   size: string;
+  title: React.ReactNode;
+  className?: string;
 } & Pick<React.ComponentProps<typeof Tooltip>, 'position'> &
   Partial<
     Pick<

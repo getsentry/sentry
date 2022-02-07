@@ -16,11 +16,11 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = ModalRenderProps & {
   api: Client;
+  event: Event;
   group: Group;
+  onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
   sentryAppComponent: SentryAppComponent;
   sentryAppInstallation: SentryAppInstallation;
-  event: Event;
-  onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
 };
 
 type State = {

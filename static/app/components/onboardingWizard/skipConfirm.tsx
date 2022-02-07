@@ -60,8 +60,8 @@ const SkipHelp = HookOrDefault({
 });
 
 type ConfirmProps = React.HTMLAttributes<HTMLDivElement> & {
-  onSkip: (e: React.MouseEvent) => void;
   onDismiss: (e: React.MouseEvent) => void;
+  onSkip: (e: React.MouseEvent) => void;
   visible: boolean;
 };
 

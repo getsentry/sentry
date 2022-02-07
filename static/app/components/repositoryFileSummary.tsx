@@ -8,8 +8,8 @@ import space from 'sentry/styles/space';
 import {FilesByRepository} from 'sentry/types';
 
 type CollapsedProps = {
-  onClick: React.MouseEventHandler<HTMLAnchorElement>;
   count: number;
+  onClick: React.MouseEventHandler<HTMLAnchorElement>;
 };
 
 function Collapsed(props: CollapsedProps) {
@@ -23,15 +23,15 @@ function Collapsed(props: CollapsedProps) {
 }
 
 type Props = {
-  fileChangeSummary: FilesByRepository[string];
-  repository: string;
   collapsible: boolean;
+  fileChangeSummary: FilesByRepository[string];
   maxWhenCollapsed: number;
+  repository: string;
 };
 
 type State = {
-  loading: boolean;
   collapsed: boolean;
+  loading: boolean;
 };
 
 class RepositoryFileSummary extends React.Component<Props, State> {

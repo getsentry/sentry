@@ -29,12 +29,12 @@ type RouteParams = {
 };
 
 type Props = WithRouterProps<RouteParams, {}> & {
-  organization: Organization;
   appStoreConnectSourcesQuantity: number;
   /**
    * Callback invoked with the updated config value.
    */
   onSave: (data: Record<string, any>) => Promise<void>;
+  organization: Organization;
   /**
    * Type of this source.
    */

@@ -52,10 +52,15 @@ const defaultProps = {
 };
 
 type Props = {
-  organization: Organization;
+  /**
+   * Whether or not the projects are currently being loaded in
+   */
+  loadingProjects: boolean;
 
   memberProjects: Project[];
   nonMemberProjects: Project[];
+
+  organization: Organization;
 
   /**
    * List of projects to display in project selector (comes from HoC)
@@ -67,10 +72,17 @@ type Props = {
    */
   selection: PageFilters;
 
+  className?: string;
+
   /**
    * Custom default selection values (e.g. a different default period)
    */
   defaultSelection?: Partial<PageFilters>;
+
+  /**
+   * If a forced project is passed, selection is disabled
+   */
+  forceProject?: MinimalProject | null;
 
   /**
    * Is global selection store still loading (i.e. not ready)
@@ -78,17 +90,33 @@ type Props = {
   isGlobalSelectionReady?: boolean;
 
   /**
-   * Whether or not the projects are currently being loaded in
+   * Subject that will be used in a tooltip that is shown on a lock icon hover
+   * E.g. This 'issue' is unique to a project
    */
-  loadingProjects: boolean;
-
-  className?: string;
+  lockedMessageSubject?: string;
 
   /**
-   * Slugs of projects to display in project selector
+   * The maximum number of days in the past you can pick
    */
-  specificProjectSlugs?: string[];
+  maxPickableDays?: number;
 
+  onChangeEnvironments?: (environments: string[]) => void;
+  // Callbacks //
+  onChangeProjects?: (val: number[]) => void;
+
+  onChangeTime?: (datetime: any) => void;
+
+  onUpdateEnvironments?: (environments: string[]) => void;
+  onUpdateProjects?: (selectedProjects: number[]) => void;
+  onUpdateTime?: (datetime: any) => void;
+  /**
+   * Message to display at the bottom of project list
+   */
+  projectsFooterMessage?: React.ReactNode;
+  /**
+   * Override default relative date options from DEFAULT_RELATIVE_PERIODS
+   */
+  relativeDateOptions?: Record<string, React.ReactNode>;
   /**
    * A project will be forced from parent component (selection is disabled, and if user
    * does not have multi-project support enabled, it will not try to auto select a project).
@@ -97,34 +125,11 @@ type Props = {
    */
   shouldForceProject?: boolean;
 
-  /**
-   * If a forced project is passed, selection is disabled
-   */
-  forceProject?: MinimalProject | null;
-
   /// Props passed to child components ///
-
   /**
    * Show absolute date selectors
    */
   showAbsolute?: boolean;
-  /**
-   * Show relative date selectors
-   */
-  showRelative?: boolean;
-
-  /**
-   * Small info icon with tooltip hint text
-   */
-  timeRangeHint?: string;
-
-  // Callbacks //
-  onChangeProjects?: (val: number[]) => void;
-  onUpdateProjects?: (selectedProjects: number[]) => void;
-  onChangeEnvironments?: (environments: string[]) => void;
-  onUpdateEnvironments?: (environments: string[]) => void;
-  onChangeTime?: (datetime: any) => void;
-  onUpdateTime?: (datetime: any) => void;
 
   /**
    * If true, there will be a back to issues stream icon link
@@ -138,33 +143,27 @@ type Props = {
   showProjectSettingsLink?: boolean;
 
   /**
-   * Subject that will be used in a tooltip that is shown on a lock icon hover
-   * E.g. This 'issue' is unique to a project
+   * Show relative date selectors
    */
-  lockedMessageSubject?: string;
+  showRelative?: boolean;
 
   /**
-   * Message to display at the bottom of project list
+   * Slugs of projects to display in project selector
    */
-  projectsFooterMessage?: React.ReactNode;
+  specificProjectSlugs?: string[];
 
   /**
-   * Override default relative date options from DEFAULT_RELATIVE_PERIODS
+   * Small info icon with tooltip hint text
    */
-  relativeDateOptions?: Record<string, React.ReactNode>;
-
-  /**
-   * The maximum number of days in the past you can pick
-   */
-  maxPickableDays?: number;
+  timeRangeHint?: string;
 } & Partial<typeof defaultProps> &
   Omit<WithRouterProps, 'router'> & {
     router: WithRouterProps['router'] | null;
   };
 
 type State = {
-  projects: number[] | null;
   environments: string[] | null;
+  projects: number[] | null;
   searchQuery: string;
 };
 
@@ -206,7 +205,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     start,
     end,
     utc,
-  }: {relative?; start?; end?; utc?} = {}) => {
+  }: {end?; relative?; start?; utc?} = {}) => {
     const newValueObj = {
       period,
       start,

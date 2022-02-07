@@ -33,16 +33,16 @@ import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRul
 type Props = {
   availableActions: MetricActionTemplate[] | null;
   currentProject: string;
-  organization: Organization;
-  projects: Project[];
   disabled: boolean;
-  loading: boolean;
   error: boolean;
-
-  triggers: Trigger[];
-  className?: string;
+  loading: boolean;
   onAdd: (triggerIndex: number, action: Action) => void;
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
+
+  organization: Organization;
+  projects: Project[];
+  triggers: Trigger[];
+  className?: string;
 };
 
 /**

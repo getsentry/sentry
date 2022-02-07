@@ -14,16 +14,16 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;
-  project: Project;
   params: {orgId: string; projectId: string};
+  project: Project;
 };
 
 type State = {
-  loading: boolean;
-  error: boolean;
-  statsError: boolean;
-  formattedData: Series[];
   blankStats: boolean;
+  error: boolean;
+  formattedData: Series[];
+  loading: boolean;
+  statsError: boolean;
 };
 
 type RawStats = Record<string, [timestamp: number, value: number][]>;

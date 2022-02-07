@@ -26,8 +26,8 @@ export default class InputField extends React.Component<Props> {
       onKeyDown,
       ...props
     }: {
-      onChange: onEvent;
       onBlur: onEvent;
+      onChange: onEvent;
       onKeyDown: onEvent;
     }) => (
       <Input

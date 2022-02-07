@@ -14,9 +14,9 @@ import getThreadStacktrace from './getThreadStacktrace';
 import trimFilename from './trimFilename';
 
 type ThreadInfo = {
-  label?: string;
-  filename?: string;
   crashedInfo?: EntryData;
+  filename?: string;
+  label?: string;
 };
 
 function filterThreadInfo(

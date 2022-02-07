@@ -41,15 +41,15 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 type State = {
   incidentList: Incident[];
   /**
-   * Is there at least one alert rule configured for the currently selected
-   * projects?
-   */
-  hasAlertRule?: boolean;
-  /**
    * User has not yet seen the 'alert_stream' welcome prompt for this
    * organization.
    */
   firstVisitShown?: boolean;
+  /**
+   * Is there at least one alert rule configured for the currently selected
+   * projects?
+   */
+  hasAlertRule?: boolean;
 };
 
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {

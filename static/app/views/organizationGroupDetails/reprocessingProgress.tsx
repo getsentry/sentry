@@ -6,8 +6,8 @@ import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
 type Props = {
-  totalEvents: number;
   pendingEvents: number;
+  totalEvents: number;
 };
 
 function ReprocessingProgress({totalEvents, pendingEvents}: Props) {

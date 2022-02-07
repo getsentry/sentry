@@ -19,18 +19,18 @@ type Props = Pick<
   React.ComponentProps<typeof Content>,
   'groupingCurrentLevel' | 'hasHierarchicalGrouping'
 > & {
-  event: Event;
-  projectId: Project['id'];
-  type: string;
   data: {
     values?: Array<Thread>;
   };
+  event: Event;
+  projectId: Project['id'];
+  type: string;
   hideGuide?: boolean;
 };
 
 type State = {
-  stackType: STACK_TYPE;
   newestFirst: boolean;
+  stackType: STACK_TYPE;
   activeThread?: Thread;
   stackView?: STACK_VIEW;
 };

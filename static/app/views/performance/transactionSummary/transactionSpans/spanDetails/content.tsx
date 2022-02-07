@@ -31,12 +31,12 @@ import SpanChart from './chart';
 import SpanTable from './spanDetailsTable';
 
 type Props = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
   project: Project | undefined;
-  transactionName: string;
   spanSlug: SpanSlug;
+  transactionName: string;
 };
 
 export default function SpanDetailsContentWrapper(props: Props) {
@@ -117,15 +117,15 @@ export default function SpanDetailsContentWrapper(props: Props) {
 }
 
 type ContentProps = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
   project: Project | undefined;
-  eventView: EventView;
-  spanSlug: SpanSlug;
-  transactionName: string;
-  totalCount: number;
-  suspectSpansResults: SuspectSpansProps;
   spanExamplesResults: SpanExamplesProps;
+  spanSlug: SpanSlug;
+  suspectSpansResults: SuspectSpansProps;
+  totalCount: number;
+  transactionName: string;
 };
 
 function SpanDetailsContent(props: ContentProps) {

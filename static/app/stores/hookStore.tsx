@@ -4,14 +4,14 @@ import Reflux from 'reflux';
 import {HookName, Hooks} from 'sentry/types/hooks';
 
 type HookStoreInterface = {
+  add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
+
+  get<H extends HookName>(hookName: H): Array<Hooks[H]>;
   // XXX(epurkhiser): We could type this as {[H in HookName]?:
   // Array<Hooks[H]>}, however this causes typescript to produce a complex
   // union that it complains is 'too complex'
   hooks: any;
-
-  add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
   remove<H extends HookName>(hookName: H, callback: Hooks[H]): void;
-  get<H extends HookName>(hookName: H): Array<Hooks[H]>;
 };
 
 const storeConfig: Reflux.StoreDefinition & HookStoreInterface = {

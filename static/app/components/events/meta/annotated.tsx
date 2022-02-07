@@ -5,10 +5,10 @@ import MetaData from 'sentry/components/events/meta/metaData';
 import {isFunction} from 'sentry/utils';
 
 type Props<Values> = {
+  children: (value: string | null | React.ReactNode) => React.ReactNode | string;
   object: Values;
   objectKey: Extract<keyof Values, string>;
   required?: boolean;
-  children: (value: string | null | React.ReactNode) => React.ReactNode | string;
 };
 
 /**

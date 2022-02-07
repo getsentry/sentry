@@ -35,11 +35,11 @@ type Props = Pick<
   | 'route'
 > & {
   breadcrumbs: Crumb[];
-  onSwitchTimeFormat: () => void;
   emptyMessage: Pick<
     React.ComponentProps<typeof PanelTable>,
     'emptyMessage' | 'emptyAction'
   >;
+  onSwitchTimeFormat: () => void;
 };
 
 function Breadcrumbs({

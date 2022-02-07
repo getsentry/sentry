@@ -10,11 +10,11 @@ type IncidentImpact = SentryServiceStatus['indicator'];
  */
 type StatuspageIncident = {
   id: string;
-  name: string;
-  status: string;
   impact: IncidentImpact;
-  shortlink: string;
   incident_updates: {body: string}[];
+  name: string;
+  shortlink: string;
+  status: string;
 };
 
 function getIncidentsFromIncidentResponse(statuspageIncidents: StatuspageIncident[]): {

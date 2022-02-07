@@ -13,20 +13,20 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 type Props = {
   data: Series[];
-  previousData?: Series[];
-  router: InjectedRouter;
-  statsPeriod: string | null | undefined;
-  start: DateString;
   end: DateString;
+  loading: boolean;
+  router: InjectedRouter;
+  start: DateString;
+  statsPeriod: string | null | undefined;
   utc: boolean;
-  height?: number;
-  grid?: AreaChart['props']['grid'];
+  chartColors?: string[];
+  definedAxisTicks?: number;
   disableMultiAxis?: boolean;
   disableXAxis?: boolean;
-  definedAxisTicks?: number;
-  chartColors?: string[];
-  loading: boolean;
+  grid?: AreaChart['props']['grid'];
+  height?: number;
   isLineChart?: boolean;
+  previousData?: Series[];
 };
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum

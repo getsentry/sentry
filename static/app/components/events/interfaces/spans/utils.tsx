@@ -25,34 +25,34 @@ import {
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
 
-export type SpanBoundsType = {startTimestamp: number; endTimestamp: number};
+export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
 export type SpanGeneratedBoundsType =
-  | {type: 'TRACE_TIMESTAMPS_EQUAL'; isSpanVisibleInView: boolean}
-  | {type: 'INVALID_VIEW_WINDOW'; isSpanVisibleInView: boolean}
+  | {isSpanVisibleInView: boolean; type: 'TRACE_TIMESTAMPS_EQUAL'}
+  | {isSpanVisibleInView: boolean; type: 'INVALID_VIEW_WINDOW'}
   | {
+      isSpanVisibleInView: boolean;
+      start: number;
       type: 'TIMESTAMPS_EQUAL';
-      start: number;
       width: number;
-      isSpanVisibleInView: boolean;
     }
   | {
+      end: number;
+      isSpanVisibleInView: boolean;
+      start: number;
       type: 'TIMESTAMPS_REVERSED';
-      start: number;
-      end: number;
-      isSpanVisibleInView: boolean;
     }
   | {
-      type: 'TIMESTAMPS_STABLE';
-      start: number;
       end: number;
       isSpanVisibleInView: boolean;
+      start: number;
+      type: 'TIMESTAMPS_STABLE';
     };
 
 export type SpanViewBoundsType = {
-  warning: undefined | string;
-  left: undefined | number;
-  width: undefined | number;
   isSpanVisibleInView: boolean;
+  left: undefined | number;
+  warning: undefined | string;
+  width: undefined | number;
 };
 
 const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
@@ -92,10 +92,13 @@ export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus
 // The view window (viewStart and viewEnd) are percentage values (between 0% and 100%), they correspond to the window placement
 // between the start and end trace timestamps.
 export const boundsGenerator = (bounds: {
-  traceStartTimestamp: number; // unix timestamp
-  traceEndTimestamp: number; // unix timestamp
+  // unix timestamp
+  traceEndTimestamp: number;
+  traceStartTimestamp: number;
+  // in [0, 1]
+  viewEnd: number;
+  // unix timestamp
   viewStart: number; // in [0, 1]
-  viewEnd: number; // in [0, 1]
 }) => {
   const {viewStart, viewEnd} = bounds;
 
@@ -198,9 +201,9 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
 }
 
 // start and end are assumed to be unix timestamps with fractional seconds
-export function getTraceDateTimeRange(input: {start: number; end: number}): {
-  start: string;
+export function getTraceDateTimeRange(input: {end: number; start: number}): {
   end: string;
+  start: string;
 } {
   const start = moment
     .unix(input.start)
@@ -483,8 +486,8 @@ type Measurements = {
 };
 
 type VerticalMark = {
-  marks: Measurements;
   failedThreshold: boolean;
+  marks: Measurements;
 };
 
 function hasFailedThreshold(marks: Measurements): boolean {

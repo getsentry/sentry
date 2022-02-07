@@ -19,11 +19,6 @@ type Props<OptionType> = InputFieldProps &
      * Should the select allow empty values?
      */
     allowEmpty?: boolean;
-    small?: boolean;
-    /**
-     * A label that is shown inside the select control.
-     */
-    inFieldLabel?: string;
     /**
      * Allow specific options to be 'confirmed' with a confirmation message.
      *
@@ -35,6 +30,11 @@ type Props<OptionType> = InputFieldProps &
      * not correctly reflect this so be careful!
      */
     confirm?: Record<string, React.ReactNode>;
+    /**
+     * A label that is shown inside the select control.
+     */
+    inFieldLabel?: string;
+    small?: boolean;
   };
 
 function getChoices<T>(props: Props<T>): Choices {

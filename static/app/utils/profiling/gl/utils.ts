@@ -417,7 +417,7 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
 
 /** Find closest min and max value to target */
 export function findRangeBinarySearch(
-  {low, high}: {low: number; high: number},
+  {low, high}: {high: number; low: number},
   fn: (val: number) => number,
   target: number,
   precision = 1

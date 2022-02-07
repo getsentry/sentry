@@ -28,9 +28,9 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  hasMetricAlerts: boolean;
   organization: Organization;
   project: Project;
-  hasMetricAlerts: boolean;
 };
 
 type AlertType = 'metric' | 'issue';

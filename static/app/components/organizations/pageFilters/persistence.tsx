@@ -12,13 +12,13 @@ function makeLocalStorageKey(orgSlug: string) {
 }
 
 type StoredObject = {
-  projects: number[];
-  environments: string[];
-  start: string | null;
   end: string | null;
+  environments: string[];
   period: string | null;
-  utc: 'true' | null;
   pinnedFilters: PinnedPageFilter[];
+  projects: number[];
+  start: string | null;
+  utc: 'true' | null;
 };
 
 /**

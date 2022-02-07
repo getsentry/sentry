@@ -15,20 +15,20 @@ import withLatestContext from 'sentry/utils/withLatestContext';
 import {ChildProps, Result, ResultItem} from './types';
 
 type Props = WithRouterProps & {
-  organization: Organization;
-  project: Project;
-  /**
-   * Specific platforms to filter reults to
-   */
-  platforms: string[];
-  /**
-   * The string to search the navigation routes for
-   */
-  query: string;
   /**
    * Render function that renders the global search result
    */
   children: (props: ChildProps) => React.ReactNode;
+  organization: Organization;
+  /**
+   * Specific platforms to filter reults to
+   */
+  platforms: string[];
+  project: Project;
+  /**
+   * The string to search the navigation routes for
+   */
+  query: string;
 };
 
 type State = {

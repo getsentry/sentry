@@ -19,9 +19,9 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type HeaderProps = {
+  data: BaseGroup;
   organization: Organization;
   projectId: string;
-  data: BaseGroup;
   eventId?: string;
 };
 
@@ -86,8 +86,8 @@ type Props = {
   api: Client;
   id: string;
   organization: Organization;
-  eventId?: string;
   data?: BaseGroup;
+  eventId?: string;
 };
 
 type State = {

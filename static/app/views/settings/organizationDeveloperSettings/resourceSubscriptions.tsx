@@ -17,9 +17,9 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  permissions: Permissions;
   events: WebhookEvent[];
   onChange: (events: WebhookEvent[]) => void;
+  permissions: Permissions;
 };
 
 export default class Subscriptions extends Component<Props> {

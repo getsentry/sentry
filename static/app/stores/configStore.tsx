@@ -7,10 +7,10 @@ import {CommonStoreInterface} from './types';
 
 type ConfigStoreInterface = CommonStoreInterface<Config> & {
   get<K extends keyof Config>(key: K): Config[K];
-  set<K extends keyof Config>(key: K, value: Config[K]): void;
   getConfig(): Config;
-  updateTheme(theme: 'light' | 'dark'): void;
   loadInitialData(config: Config): void;
+  set<K extends keyof Config>(key: K, value: Config[K]): void;
+  updateTheme(theme: 'light' | 'dark'): void;
 };
 
 type Internals = {

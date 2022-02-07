@@ -14,13 +14,13 @@ type Props = Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css'> &
      */
     autosize?: boolean;
     /**
-     * Number of rows to default to.
-     */
-    rows?: number;
-    /**
      * Max number of rows to default to.
      */
     maxRows?: number;
+    /**
+     * Number of rows to default to.
+     */
+    rows?: number;
   };
 
 const TextAreaControl = React.forwardRef(function TextAreaControl(

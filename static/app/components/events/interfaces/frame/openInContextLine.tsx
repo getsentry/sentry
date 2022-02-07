@@ -9,9 +9,9 @@ import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
-  lineNo: number;
-  filename: string;
   components: Array<SentryAppComponent>;
+  filename: string;
+  lineNo: number;
 };
 
 const OpenInContextLine = ({lineNo, filename, components}: Props) => {

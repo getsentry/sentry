@@ -20,9 +20,9 @@ import TrendsContent from './content';
 
 type Props = RouteComponentProps<{}, {}> & {
   api: Client;
-  selection: PageFilters;
   organization: Organization;
   projects: Project[];
+  selection: PageFilters;
 };
 
 type State = {

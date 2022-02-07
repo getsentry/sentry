@@ -7,15 +7,15 @@ import {Theme} from 'sentry/utils/theme';
 type PillType = 'positive' | 'negative' | 'error';
 
 type Props = {
-  type?: PillType;
-  name?: React.ReactNode;
-  value?: number | string | boolean | null;
   children?: React.ReactNode;
   className?: string;
+  name?: React.ReactNode;
+  type?: PillType;
+  value?: number | string | boolean | null;
 };
 
 const Pill = React.memo(({name, value, children, type, className}: Props) => {
-  const getTypeAndValue = (): Partial<{valueType: PillType; renderValue: string}> => {
+  const getTypeAndValue = (): Partial<{renderValue: string; valueType: PillType}> => {
     if (value === undefined) {
       return {};
     }
@@ -57,7 +57,7 @@ const Pill = React.memo(({name, value, children, type, className}: Props) => {
   );
 });
 
-const getPillStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
+const getPillStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'error':
       return `
@@ -71,7 +71,7 @@ const getPillStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
   }
 };
 
-const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
+const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
   switch (type) {
     case 'positive':
       return `

@@ -14,14 +14,14 @@ type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
 type Values = Record<FormField, string>;
 
 type Props = {
-  isFormValid: boolean;
-  values: Values;
-  errors: Partial<Values>;
   disables: Partial<Record<FormField, boolean>>;
+  errors: Partial<Values>;
+  isFormValid: boolean;
+  onChange: (field: FormField, value: string) => void;
   onSave: () => void;
   onValidate: (field: FormField) => () => void;
   onValidateKey: () => void;
-  onChange: (field: FormField, value: string) => void;
+  values: Values;
 };
 
 const Form = ({

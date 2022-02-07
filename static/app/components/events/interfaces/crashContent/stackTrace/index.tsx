@@ -10,11 +10,11 @@ import ContentV3 from './contentV3';
 import rawStacktraceContent from './rawContent';
 
 type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'> & {
-  stacktrace: StacktraceType;
   event: Event;
+  hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
   platform: PlatformType;
-  hasHierarchicalGrouping: boolean;
+  stacktrace: StacktraceType;
   nativeV2?: boolean;
   stackView?: STACK_VIEW;
 };

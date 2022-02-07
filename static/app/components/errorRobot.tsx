@@ -17,9 +17,9 @@ import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventBu
 
 type Props = {
   api: Client;
+  gradient: boolean;
   org: Organization;
   project?: Project;
-  gradient: boolean;
   /**
    * sampleIssueId can have 3 values:
    * - empty string to indicate it doesn't exist (render "create sample event")

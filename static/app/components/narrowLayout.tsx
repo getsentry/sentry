@@ -7,8 +7,8 @@ import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {
-  showLogout?: boolean;
   maxWidth?: string;
+  showLogout?: boolean;
 };
 
 class NarrowLayout extends Component<Props> {

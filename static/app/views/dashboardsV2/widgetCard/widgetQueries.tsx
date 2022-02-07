@@ -107,22 +107,22 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
 
 type Props = {
   api: Client;
-  organization: OrganizationSummary;
-  widget: Widget;
-  selection: PageFilters;
-  limit?: number;
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;
+  organization: OrganizationSummary;
+  selection: PageFilters;
+  widget: Widget;
+  limit?: number;
 };
 
 type State = {
   errorMessage: undefined | string;
   loading: boolean;
   queryFetchID: symbol | undefined;
-  timeseriesResults: undefined | Series[];
   rawResults: undefined | RawResult[];
   tableResults: undefined | TableDataWithTitle[];
+  timeseriesResults: undefined | Series[];
 };
 
 class WidgetQueries extends React.Component<Props, State> {

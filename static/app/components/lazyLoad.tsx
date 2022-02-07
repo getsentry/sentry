@@ -16,12 +16,12 @@ type Props<C extends Component> = Omit<
   React.ComponentProps<C>,
   'hideBusy' | 'hideError' | 'component' | 'route'
 > & {
-  hideBusy?: boolean;
-  hideError?: boolean;
   /**
    * Function that returns a promise of a React.Component
    */
   component?: () => PromisedImport<C>;
+  hideBusy?: boolean;
+  hideError?: boolean;
   /**
    * Also accepts a route object from react-router that has a `componentPromise` property
    */

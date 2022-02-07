@@ -45,14 +45,14 @@ import RelatedTransactions from './relatedTransactions';
 
 type Props = {
   api: Client;
-  rule?: IncidentRule;
-  incidents?: Incident[];
-  timePeriod: TimePeriodType;
-  selectedIncident?: Incident | null;
-  organization: Organization;
-  location: Location;
   handleTimePeriodChange: (value: string) => void;
   handleZoom: (start: DateString, end: DateString) => void;
+  location: Location;
+  organization: Organization;
+  timePeriod: TimePeriodType;
+  incidents?: Incident[];
+  rule?: IncidentRule;
+  selectedIncident?: Incident | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {

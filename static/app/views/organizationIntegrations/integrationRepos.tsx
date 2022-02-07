@@ -28,11 +28,11 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   adding: boolean;
   dropdownBusy: boolean;
-  itemList: Repository[];
   integrationRepos: {
     repos: {identifier: string; name: string}[];
     searchable: boolean;
   };
+  itemList: Repository[];
 };
 
 class IntegrationRepos extends AsyncComponent<Props, State> {
@@ -104,7 +104,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     this.debouncedSearchRepositoriesRequest(e.target.value);
   };
 
-  addRepo(selection: {searchKey: string; value: string; label: JSX.Element}) {
+  addRepo(selection: {label: JSX.Element; searchKey: string; value: string}) {
     const {integration} = this.props;
     const {itemList} = this.state;
     const orgId = this.props.organization.slug;

@@ -9,17 +9,6 @@ import space from 'sentry/styles/space';
  */
 type Props = {
   /**
-   * When stacking forms the bottom border is hidden and padding is adjusted
-   * for form elements to be stacked on each other.
-   */
-  stacked?: boolean;
-  /**
-   * Display the field control container in "inline" fashion. The label and
-   * description will be aligned to the left, while the control itself will be
-   * aligned to the right.
-   */
-  inline?: boolean;
-  /**
    * When false adds padding to the right of the element to ensure visual
    * consistency with other fields that aren't using flexible control states.
    */
@@ -28,6 +17,17 @@ type Props = {
    * Is "highlighted", i.e. after a search
    */
   highlighted?: boolean;
+  /**
+   * Display the field control container in "inline" fashion. The label and
+   * description will be aligned to the left, while the control itself will be
+   * aligned to the right.
+   */
+  inline?: boolean;
+  /**
+   * When stacking forms the bottom border is hidden and padding is adjusted
+   * for form elements to be stacked on each other.
+   */
+  stacked?: boolean;
 };
 
 const inlineStyle = (p: Props) =>

@@ -7,12 +7,12 @@ import space from 'sentry/styles/space';
 import {Level} from 'sentry/types';
 
 type Props = {
-  level?: Level;
-  levelIndicatorSize?: string;
-  message?: React.ReactNode;
   annotations?: React.ReactNode;
   className?: string;
   hasGuideAnchor?: boolean;
+  level?: Level;
+  levelIndicatorSize?: string;
+  message?: React.ReactNode;
 };
 
 const BaseEventMessage = ({

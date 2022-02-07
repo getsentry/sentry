@@ -60,9 +60,9 @@ export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean
 `;
 
 type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
-  isExpanded: boolean;
   disabled: boolean;
   errored: boolean;
+  isExpanded: boolean;
   isSpanGroupToggler?: boolean;
 }>;
 

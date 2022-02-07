@@ -4,12 +4,12 @@ import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
 
 type ProjectsStatsStoreInterface = {
-  itemsBySlug: Record<string, Project>;
-
-  getInitialState(): ProjectsStatsStoreInterface['itemsBySlug'];
-  reset(): void;
-  getBySlug(slug: string): Project;
   getAll(): ProjectsStatsStoreInterface['itemsBySlug'];
+
+  getBySlug(slug: string): Project;
+  getInitialState(): ProjectsStatsStoreInterface['itemsBySlug'];
+  itemsBySlug: Record<string, Project>;
+  reset(): void;
 };
 
 /**

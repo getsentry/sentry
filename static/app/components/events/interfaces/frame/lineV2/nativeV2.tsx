@@ -26,13 +26,13 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
-    onClick?: () => void;
-    isFrameAfterLastNonApp?: boolean;
-    includeSystemFrames?: boolean;
-    prevFrame?: Frame;
     image?: React.ComponentProps<typeof DebugImage>['image'];
+    includeSystemFrames?: boolean;
+    isFrameAfterLastNonApp?: boolean;
     maxLengthOfRelativeAddress?: number;
+    onClick?: () => void;
+    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
+    prevFrame?: Frame;
   };
 
 function Native({

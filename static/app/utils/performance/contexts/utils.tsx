@@ -8,9 +8,9 @@ type CreateContextReturn<T> = [React.Provider<T>, () => T, React.Context<T>];
  * Renamed to createDefinedContext to not conflate with React context.
  */
 export function createDefinedContext<ContextType>(options: {
-  strict?: boolean;
-  errorMessage?: string;
   name: string;
+  errorMessage?: string;
+  strict?: boolean;
 }) {
   const {
     strict = true,

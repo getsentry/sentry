@@ -25,8 +25,8 @@ type Props = AsyncComponent['props'] &
   };
 
 type State = AsyncComponent['state'] & {
-  members: (Member & {externalUsers: ExternalUser[]})[];
   initialResults: Member[];
+  members: (Member & {externalUsers: ExternalUser[]})[];
 };
 
 class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {

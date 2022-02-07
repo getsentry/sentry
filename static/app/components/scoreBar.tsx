@@ -4,12 +4,12 @@ import theme from 'sentry/utils/theme';
 
 type Props = {
   score: number;
+  className?: string;
+  palette?: Readonly<string[]>;
+  paletteClassNames?: string[];
+  radius?: number;
   size?: number;
   thickness?: number;
-  radius?: number;
-  palette?: Readonly<string[]>;
-  className?: string;
-  paletteClassNames?: string[];
   vertical?: boolean;
 };
 

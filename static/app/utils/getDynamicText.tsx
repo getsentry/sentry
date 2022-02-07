@@ -8,8 +8,8 @@ export default function getDynamicText<Value, Fixed = Value>({
   value,
   fixed,
 }: {
-  value: Value;
   fixed: Fixed;
+  value: Value;
 }): Value | Fixed {
   return IS_ACCEPTANCE_TEST ? fixed : value;
 }

@@ -23,7 +23,10 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
-  routes: PlainRoute[];
+  /**
+   * Busy differs from loading in that busy is a result of an action like removing
+   */
+  busy: boolean;
   keys: DeprecatedApiKey[];
 
   /**
@@ -31,13 +34,10 @@ type Props = RouteComponentProps<RouteParams, {}> & {
    */
   loading: boolean;
 
-  /**
-   * Busy differs from loading in that busy is a result of an action like removing
-   */
-  busy: boolean;
+  onAddApiKey: () => {};
 
   onRemove: (id: DeprecatedApiKey['id']) => {};
-  onAddApiKey: () => {};
+  routes: PlainRoute[];
 };
 
 function OrganizationApiKeysList({

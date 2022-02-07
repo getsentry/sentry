@@ -37,10 +37,10 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
+  inviteRequests: Member[];
+  invited: {[key: string]: 'loading' | 'success' | null};
   member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
-  invited: {[key: string]: 'loading' | 'success' | null};
-  inviteRequests: Member[];
 };
 
 const MemberListHeader = HookOrDefault({

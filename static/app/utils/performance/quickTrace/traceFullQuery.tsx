@@ -17,8 +17,8 @@ import {
 import withApi from 'sentry/utils/withApi';
 
 type AdditionalQueryProps = {
-  eventId?: string;
   detailed?: boolean;
+  eventId?: string;
 };
 
 type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &

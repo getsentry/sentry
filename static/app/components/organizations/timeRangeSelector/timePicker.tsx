@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 type Props = {
-  onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  // Takes string in 24 hour format
-  start?: string;
-  // Takes string in 24 hour format
-  end?: string;
+  onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  className?: string;
   // Should inputs be disabled
   disabled?: boolean;
-  className?: string;
+  // Takes string in 24 hour format
+  end?: string;
+  // Takes string in 24 hour format
+  start?: string;
 };
 
 type State = {

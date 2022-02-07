@@ -26,6 +26,43 @@ type Props = {
    */
   items: MenuItemProps[];
   /**
+   * Pass class name to the outer wrap
+   */
+  className?: string;
+  /**
+   * If this is a submenu, it will in some cases need to close itself (e.g.
+   * when the user presses the arrow left key)
+   */
+  closeCurrentSubmenu?: () => void;
+  /**
+   * If this is a submenu, it will in some cases need to close the root menu
+   * (e.g. when a submenu item is clicked).
+   */
+  closeRootMenu?: () => void;
+  /**
+   * Whether the trigger is disabled.
+   */
+  isDisabled?: boolean;
+  /**
+   * Whether this is a submenu.
+   */
+  isSubmenu?: boolean;
+  /**
+   * Title for the current menu.
+   */
+  menuTitle?: string;
+  /**
+   * Tag name for the outer wrap, defaults to `div`
+   */
+  renderWrapAs?: React.ElementType;
+  /**
+   * Optionally replace the trigger button with a different component. Note
+   * that the replacement must have the `props` and `ref` (supplied in
+   * TriggerProps) forwarded its outer wrap, otherwise the accessibility
+   * features won't work correctly.
+   */
+  trigger?: (props: TriggerProps) => React.ReactNode;
+  /**
    * By default, the menu trigger will be rendered as a button, with
    * triggerLabel as the button label.
    */
@@ -36,43 +73,6 @@ type Props = {
    * component.
    */
   triggerProps?: DropdownButtonProps;
-  /**
-   * Optionally replace the trigger button with a different component. Note
-   * that the replacement must have the `props` and `ref` (supplied in
-   * TriggerProps) forwarded its outer wrap, otherwise the accessibility
-   * features won't work correctly.
-   */
-  trigger?: (props: TriggerProps) => React.ReactNode;
-  /**
-   * Whether the trigger is disabled.
-   */
-  isDisabled?: boolean;
-  /**
-   * Title for the current menu.
-   */
-  menuTitle?: string;
-  /**
-   * Whether this is a submenu.
-   */
-  isSubmenu?: boolean;
-  /**
-   * If this is a submenu, it will in some cases need to close the root menu
-   * (e.g. when a submenu item is clicked).
-   */
-  closeRootMenu?: () => void;
-  /**
-   * If this is a submenu, it will in some cases need to close itself (e.g.
-   * when the user presses the arrow left key)
-   */
-  closeCurrentSubmenu?: () => void;
-  /**
-   * Tag name for the outer wrap, defaults to `div`
-   */
-  renderWrapAs?: React.ElementType;
-  /**
-   * Pass class name to the outer wrap
-   */
-  className?: string;
 } & Partial<MenuTriggerProps> &
   Partial<AriaMenuOptions<MenuItemProps>> &
   Partial<OverlayProps> &

@@ -16,11 +16,11 @@ import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 
 type Props = {
-  organization: Organization;
-  project: Project;
+  disabled: boolean;
   onDelete: () => void;
   onDiscard: () => void;
-  disabled: boolean;
+  organization: Organization;
+  project: Project;
 };
 
 function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Props) {

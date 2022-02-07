@@ -5,9 +5,9 @@ import {Frame} from 'sentry/types';
 
 type Props = {
   frame: Frame;
+  className?: string;
   hasHiddenDetails?: boolean;
   showCompleteFunctionName?: boolean;
-  className?: string;
 };
 
 const FunctionName = ({
@@ -18,7 +18,7 @@ const FunctionName = ({
   ...props
 }: Props) => {
   const getValueOutput = ():
-    | {value: Frame['function']; meta: ReturnType<typeof getMeta>}
+    | {meta: ReturnType<typeof getMeta>; value: Frame['function']}
     | undefined => {
     if (hasHiddenDetails && showCompleteFunctionName && frame.rawFunction) {
       return {

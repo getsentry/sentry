@@ -10,10 +10,10 @@ import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
 
 type Props = {
-  title: string;
   detail: React.ReactNode;
-  to: React.ComponentProps<typeof Link>['to'];
   renderWidgets: () => React.ReactNode;
+  title: string;
+  to: React.ComponentProps<typeof Link>['to'];
   createdBy?: User;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;

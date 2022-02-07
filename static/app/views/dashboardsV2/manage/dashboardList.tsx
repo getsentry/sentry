@@ -36,11 +36,11 @@ import DashboardCard from './dashboardCard';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  location: Location;
   dashboards: DashboardListItem[] | null;
-  pageLinks: string;
+  location: Location;
   onDashboardsChange: () => void;
+  organization: Organization;
+  pageLinks: string;
 };
 
 function DashboardList({

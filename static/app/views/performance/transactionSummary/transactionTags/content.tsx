@@ -167,11 +167,11 @@ const InnerContent = (
 };
 
 const TagsSideBar = (props: {
-  tagSelected?: string;
   changeTag: (tag: string) => void;
-  suspectTags: TagOption[];
   otherTags: TagOption[];
+  suspectTags: TagOption[];
   isLoading?: boolean;
+  tagSelected?: string;
 }) => {
   const {suspectTags, otherTags, changeTag, tagSelected, isLoading} = props;
   return (

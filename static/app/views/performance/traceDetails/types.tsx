@@ -2,29 +2,29 @@ import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
 export type TraceInfo = {
   /**
-   * The projects in the trace
+   * The very latest end timestamp in the trace.
    */
-  projects: Set<string>;
+  endTimestamp: number;
   /**
    * The errors in the trace.
    */
   errors: Set<string>;
   /**
-   * The transactions in the trace.
+   * The maximum generation in the trace.
    */
-  transactions: Set<string>;
+  maxGeneration: number;
+  /**
+   * The projects in the trace
+   */
+  projects: Set<string>;
   /**
    * The very earliest start timestamp in the trace.
    */
   startTimestamp: number;
   /**
-   * The very latest end timestamp in the trace.
+   * The transactions in the trace.
    */
-  endTimestamp: number;
-  /**
-   * The maximum generation in the trace.
-   */
-  maxGeneration: number;
+  transactions: Set<string>;
 };
 
 export type TraceRoot = Pick<

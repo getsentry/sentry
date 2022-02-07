@@ -39,8 +39,8 @@ export function getTriggerName(value: string | null) {
 
 type IncidentProps = {
   api: Client;
-  organization: Organization;
   incident: Incident;
+  organization: Organization;
   rule: IncidentRule;
 };
 
@@ -181,9 +181,9 @@ class TimelineIncident extends React.Component<IncidentProps> {
 
 type Props = {
   api: Client;
-  rule?: IncidentRule;
   organization: Organization;
   incidents?: Incident[];
+  rule?: IncidentRule;
 };
 
 class Timeline extends React.Component<Props> {

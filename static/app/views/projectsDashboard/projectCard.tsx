@@ -40,9 +40,9 @@ import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
 
 type Props = {
   api: Client;
+  hasProjectAccess: boolean;
   organization: Organization;
   project: Project;
-  hasProjectAccess: boolean;
 };
 
 class ProjectCard extends Component<Props> {
@@ -236,9 +236,9 @@ class ProjectCard extends Component<Props> {
 
 type ContainerProps = {
   api: Client;
-  project: Project;
-  organization: Organization;
   hasProjectAccess: boolean;
+  organization: Organization;
+  project: Project;
 };
 
 type ContainerState = {

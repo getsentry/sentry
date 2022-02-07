@@ -11,11 +11,11 @@ import Status from './status';
 import {customRepoTypeLabel} from './utils';
 
 type Props = {
-  repository: CustomRepo;
+  hasAccess: boolean;
+  hasFeature: boolean;
   onDelete: (repositoryId: string) => void;
   onEdit: (repositoryId: string) => void;
-  hasFeature: boolean;
-  hasAccess: boolean;
+  repository: CustomRepo;
 };
 
 function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props) {

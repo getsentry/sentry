@@ -5,8 +5,8 @@ import space from 'sentry/styles/space';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 
 type Props = {
-  location: Location;
   children: React.ReactChildren;
+  location: Location;
 };
 
 function SettingsWrapper({location, children}: Props) {

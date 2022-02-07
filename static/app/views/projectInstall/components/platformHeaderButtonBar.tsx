@@ -3,8 +3,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 
 type Props = {
-  gettingStartedLink: string;
   docsLink: string;
+  gettingStartedLink: string;
 };
 export default function PlatformHeaderButtonBar({gettingStartedLink, docsLink}: Props) {
   return (

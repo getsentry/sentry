@@ -9,23 +9,23 @@ import {MemberRole} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
-  className?: string;
-  roles: MemberRole[];
-  query: string;
   onChange: (query: string) => void;
+  query: string;
+  roles: MemberRole[];
+  className?: string;
 };
 
 type BooleanFilterProps = {
+  children: React.ReactNode;
   onChange: (value: boolean | null) => void;
   value: boolean | null;
-  children: React.ReactNode;
 };
 
 type Filters = {
-  roles: string[];
-  isInvited: boolean | null;
-  ssoLinked: boolean | null;
   has2fa: boolean | null;
+  isInvited: boolean | null;
+  roles: string[];
+  ssoLinked: boolean | null;
 };
 
 const getBoolean = (list: string[]) =>

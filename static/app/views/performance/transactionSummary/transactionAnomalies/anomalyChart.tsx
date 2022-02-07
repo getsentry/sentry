@@ -12,12 +12,12 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 
 type Props = {
   data: Series[];
-  statsPeriod: string | undefined;
-  start: DateString;
   end: DateString;
-  height?: number;
   location: Location;
   router: InjectedRouter;
+  start: DateString;
+  statsPeriod: string | undefined;
+  height?: number;
 };
 
 const _AnomalyChart = (props: Props) => {

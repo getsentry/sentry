@@ -9,8 +9,8 @@ import {
 import {Vital} from 'sentry/utils/performance/vitals/types';
 
 type Measurement = {
-  name: string;
   key: string;
+  name: string;
 };
 
 type MeasurementCollection = Record<string, Measurement>;
@@ -39,8 +39,8 @@ type ChildrenProps = {
 };
 
 type Props = {
-  organization: Organization;
   children: (props: ChildrenProps) => React.ReactNode;
+  organization: Organization;
 };
 
 function Measurements({organization, children}: Props) {

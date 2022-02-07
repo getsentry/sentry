@@ -76,11 +76,11 @@ class OperationTitle extends React.Component<TitleProps> {
 
 type Props = {
   eventView: EventView;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   setError: (msg: string | undefined) => void;
-  columnTitles?: string[];
   transactionName: string;
+  columnTitles?: string[];
 };
 
 type State = {

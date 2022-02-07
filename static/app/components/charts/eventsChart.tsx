@@ -50,50 +50,50 @@ type ChartComponent =
   | React.ComponentType<React.ComponentProps<typeof WorldMapChart>>;
 
 type ChartProps = {
-  theme: Theme;
+  currentSeriesNames: string[];
   loading: boolean;
+  previousSeriesNames: string[];
   reloading: boolean;
-  zoomRenderProps: ZoomRenderProps;
+  stacked: boolean;
   tableData: TableDataWithTitle[];
+  theme: Theme;
   timeseriesData: Series[];
-  showLegend?: boolean;
-  minutesThresholdToDisplaySeconds?: number;
-  legendOptions?: LegendComponentOption;
+  yAxis: string;
+  zoomRenderProps: ZoomRenderProps;
+  chartComponent?: ChartComponent;
   chartOptions?: Omit<EChartsOption, 'xAxis' | 'yAxis'> & {
     xAxis?: XAXisComponentOption;
     yAxis?: YAXisComponentOption;
   };
-  currentSeriesNames: string[];
-  releaseSeries?: Series[];
-  previousSeriesNames: string[];
-  previousTimeseriesData?: Series[] | null;
-  /**
-   * A callback to allow for post-processing of the series data.
-   * Can be used to rename series or even insert a new series.
-   */
-  seriesTransformer?: (series: Series[]) => Series[];
-  previousSeriesTransformer?: (series?: Series | null) => Series | null | undefined;
-  showDaily?: boolean;
-  interval?: string;
-  yAxis: string;
-  stacked: boolean;
   colors?: string[];
   /**
    * By default, only the release series is disableable. This adds
    * a list of series names that are also disableable.
    */
   disableableSeries?: string[];
-  chartComponent?: ChartComponent;
-  height?: number;
-  timeframe?: {start: number; end: number};
-  topEvents?: number;
-  referrer?: string;
   fromDiscover?: boolean;
+  height?: number;
+  interval?: string;
+  legendOptions?: LegendComponentOption;
+  minutesThresholdToDisplaySeconds?: number;
+  previousSeriesTransformer?: (series?: Series | null) => Series | null | undefined;
+  previousTimeseriesData?: Series[] | null;
+  referrer?: string;
+  releaseSeries?: Series[];
+  /**
+   * A callback to allow for post-processing of the series data.
+   * Can be used to rename series or even insert a new series.
+   */
+  seriesTransformer?: (series: Series[]) => Series[];
+  showDaily?: boolean;
+  showLegend?: boolean;
+  timeframe?: {end: number; start: number};
+  topEvents?: number;
 };
 
 type State = {
-  seriesSelection: Record<string, boolean>;
   forceUpdate: boolean;
+  seriesSelection: Record<string, boolean>;
 };
 
 class Chart extends React.Component<ChartProps, State> {
@@ -327,40 +327,45 @@ const ThemedChart = withTheme(Chart);
 
 export type EventsChartProps = {
   api: Client;
-  router: InjectedRouter;
+  /**
+   * Absolute end date.
+   */
+  end: DateString;
+  /**
+   * Environment condition.
+   */
+  environments: string[];
   organization: OrganizationSummary;
   /**
    * Project ids
    */
   projects: number[];
   /**
-   * Environment condition.
-   */
-  environments: string[];
-  /**
    * The discover query string to find events with.
    */
   query: string;
-  /**
-   * The aggregate/metric to plot.
-   */
-  yAxis: string | string[];
-  /**
-   * Relative datetime expression. eg. 14d
-   */
-  period?: string | null;
+  router: InjectedRouter;
   /**
    * Absolute start date.
    */
   start: DateString;
   /**
-   * Absolute end date.
+   * The aggregate/metric to plot.
    */
-  end: DateString;
+  yAxis: string | string[];
   /**
-   * Should datetimes be formatted in UTC?
+   * Markup for optional chart header
    */
-  utc?: boolean | null;
+  chartHeader?: React.ReactNode;
+  /**
+   * Override the default color palette.
+   */
+  colors?: string[];
+  confirmedQuery?: boolean;
+  /**
+   * Name of the series
+   */
+  currentSeriesName?: string;
   /**
    * Don't show the previous period's data. Will automatically disable
    * when start/end are used.
@@ -375,10 +380,6 @@ export type EventsChartProps = {
    */
   emphasizeReleases?: string[];
   /**
-   * Fetch n top events as dictated by the field and orderby props.
-   */
-  topEvents?: number;
-  /**
    * The fields that act as grouping conditions when generating a topEvents chart.
    */
   field?: string[];
@@ -391,32 +392,10 @@ export type EventsChartProps = {
    */
   orderby?: string;
   /**
-   * Override the interval calculation and show daily results.
+   * Relative datetime expression. eg. 14d
    */
-  showDaily?: boolean;
-  confirmedQuery?: boolean;
-  /**
-   * Override the default color palette.
-   */
-  colors?: string[];
-  /**
-   * Markup for optional chart header
-   */
-  chartHeader?: React.ReactNode;
-  releaseQueryExtra?: Query;
+  period?: string | null;
   preserveReleaseQueryParams?: boolean;
-  /**
-   * Chart zoom will change 'pageStart' instead of 'start'
-   */
-  usePageZoom?: boolean;
-  /**
-   * Whether or not to zerofill results
-   */
-  withoutZerofill?: boolean;
-  /**
-   * Name of the series
-   */
-  currentSeriesName?: string;
   /**
    * Name of the previous series
    */
@@ -425,6 +404,27 @@ export type EventsChartProps = {
    * A unique name for what's triggering this request, see organization_events_stats for an allowlist
    */
   referrer?: string;
+  releaseQueryExtra?: Query;
+  /**
+   * Override the interval calculation and show daily results.
+   */
+  showDaily?: boolean;
+  /**
+   * Fetch n top events as dictated by the field and orderby props.
+   */
+  topEvents?: number;
+  /**
+   * Chart zoom will change 'pageStart' instead of 'start'
+   */
+  usePageZoom?: boolean;
+  /**
+   * Should datetimes be formatted in UTC?
+   */
+  utc?: boolean | null;
+  /**
+   * Whether or not to zerofill results
+   */
+  withoutZerofill?: boolean;
 } & Pick<
   ChartProps,
   | 'seriesTransformer'
@@ -440,17 +440,17 @@ export type EventsChartProps = {
 >;
 
 type ChartDataProps = {
-  zoomRenderProps: ZoomRenderProps;
   errored: boolean;
   loading: boolean;
   reloading: boolean;
-  results?: Series[];
-  timeseriesData?: Series[];
+  zoomRenderProps: ZoomRenderProps;
   previousTimeseriesData?: Series[] | null;
   releaseSeries?: Series[];
-  timeframe?: {start: number; end: number};
-  topEvents?: number;
+  results?: Series[];
   tableData?: TableDataWithTitle[];
+  timeframe?: {end: number; start: number};
+  timeseriesData?: Series[];
+  topEvents?: number;
 };
 
 class EventsChart extends React.Component<EventsChartProps> {

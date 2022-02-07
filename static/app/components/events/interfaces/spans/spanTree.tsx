@@ -21,12 +21,12 @@ import {getSpanID, getSpanOperation} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
-  organization: Organization;
   dragProps: DragManagerChildrenProps;
-  traceViewRef: React.RefObject<HTMLDivElement>;
   filterSpans: FilterSpans | undefined;
-  waterfallModel: WaterfallModel;
+  organization: Organization;
   spans: EnhancedProcessedSpanType[];
+  traceViewRef: React.RefObject<HTMLDivElement>;
+  waterfallModel: WaterfallModel;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -62,10 +62,10 @@ class SpanTree extends React.Component<PropType> {
   }
 
   generateInfoMessage(input: {
-    isCurrentSpanHidden: boolean;
-    numOfSpansOutOfViewAbove: number;
     isCurrentSpanFilteredOut: boolean;
+    isCurrentSpanHidden: boolean;
     numOfFilteredSpansAbove: number;
+    numOfSpansOutOfViewAbove: number;
   }): React.ReactNode {
     const {
       isCurrentSpanHidden,
@@ -150,10 +150,10 @@ class SpanTree extends React.Component<PropType> {
     });
 
     type AccType = {
-      numOfSpansOutOfViewAbove: number;
       numOfFilteredSpansAbove: number;
-      spanTree: React.ReactNode[];
+      numOfSpansOutOfViewAbove: number;
       spanNumber: number;
+      spanTree: React.ReactNode[];
     };
 
     const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {

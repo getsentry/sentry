@@ -25,9 +25,9 @@ import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 
 type Props = WithRouterProps & {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
   spanSlug: SpanSlug;
   withoutZerofill: boolean;
 };

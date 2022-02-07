@@ -5,11 +5,11 @@ import space from 'sentry/styles/space';
 
 type DefaultProps = {
   className: string;
-  minLength: number;
-  maxLength: number;
-  leftTrim: boolean;
-  expandable: boolean;
   expandDirection: 'left' | 'right';
+  expandable: boolean;
+  leftTrim: boolean;
+  maxLength: number;
+  minLength: number;
 };
 
 type Props = DefaultProps & {
@@ -121,8 +121,8 @@ const Wrapper = styled('span')`
 `;
 
 export const FullValue = styled('span')<{
-  expanded: boolean;
   expandDirection: 'left' | 'right';
+  expanded: boolean;
 }>`
   display: none;
   position: absolute;

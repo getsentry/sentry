@@ -20,9 +20,9 @@ import {ZOOM_KEYS} from './constants';
 import VitalsPanel from './vitalsPanel';
 
 type Props = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
 };
 
 function VitalsContent(props: Props) {

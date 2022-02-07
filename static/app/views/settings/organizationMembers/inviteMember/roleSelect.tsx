@@ -15,10 +15,10 @@ const Label = styled('label')`
 `;
 
 type Props = {
-  enforceAllowed: boolean;
   disabled: boolean;
-  selectedRole: string;
+  enforceAllowed: boolean;
   roleList: MemberRole[];
+  selectedRole: string;
   setRole: (id: string) => void;
 };
 

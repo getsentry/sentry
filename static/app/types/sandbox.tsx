@@ -1,13 +1,13 @@
 export type SandboxData = {
-  skipEmail?: boolean;
   acceptedTracking?: boolean;
-  extraQueryString?: string;
   cta?: {
     id: string;
-    title: string;
     shortTitle: string;
+    title: string;
     url: string;
   };
+  extraQueryString?: string;
+  skipEmail?: boolean;
 };
 
 declare global {

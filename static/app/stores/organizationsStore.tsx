@@ -4,17 +4,17 @@ import OrganizationsActions from 'sentry/actions/organizationsActions';
 import {Organization} from 'sentry/types';
 
 type OrganizationsStoreInterface = {
-  state: Organization[];
-  loaded: boolean;
+  add(item: Organization): void;
+  get(slug: string): Organization | undefined;
 
-  onUpdate(org: Organization): void;
+  getAll(): Organization[];
+  load(items: Organization[]): void;
+  loaded: boolean;
   onChangeSlug(prev: Organization, next: Organization): void;
   onRemoveSuccess(slug: string): void;
-  get(slug: string): Organization | undefined;
-  getAll(): Organization[];
+  onUpdate(org: Organization): void;
   remove(slug: string): void;
-  add(item: Organization): void;
-  load(items: Organization[]): void;
+  state: Organization[];
 };
 
 const storeConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {

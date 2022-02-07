@@ -14,16 +14,16 @@ import StacktraceContentV2 from '../stackTrace/contentV2';
 import StacktraceContentV3 from '../stackTrace/contentV3';
 
 type Props = {
+  chainedException: boolean;
   data: ExceptionValue['stacktrace'];
   event: Event;
+  hasHierarchicalGrouping: boolean;
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
-  chainedException: boolean;
-  hasHierarchicalGrouping: boolean;
-  groupingCurrentLevel?: Group['metadata']['current_level'];
-  stackView?: STACK_VIEW;
   expandFirstFrame?: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
   newestFirst?: boolean;
+  stackView?: STACK_VIEW;
 };
 
 function StackTrace({

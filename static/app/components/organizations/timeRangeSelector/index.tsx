@@ -40,8 +40,8 @@ const SelectorItemsHook = HookOrDefault({
 
 export type ChangeData = {
   relative: string | null;
-  start?: Date;
   end?: Date;
+  start?: Date;
   utc?: boolean | null;
 };
 
@@ -71,34 +71,9 @@ const defaultProps = {
 
 type Props = WithRouterProps & {
   /**
-   * Start date value for absolute date selector
-   */
-  start: DateString;
-
-  /**
    * End date value for absolute date selector
    */
   end: DateString;
-
-  /**
-   * Relative date value
-   */
-  relative: string | null;
-
-  /**
-   * Override defaults from DEFAULT_RELATIVE_PERIODS
-   */
-  relativeOptions?: Record<string, React.ReactNode>;
-
-  /**
-   * Default initial value for using UTC
-   */
-  utc: boolean | null;
-
-  /**
-   * Replace the default calendar icon for label
-   */
-  label?: React.ReactNode;
 
   /**
    * Callback when "Update" button is clicked
@@ -106,14 +81,29 @@ type Props = WithRouterProps & {
   onUpdate: (data: ChangeData) => void;
 
   /**
-   * Callback when opening/closing dropdown date selector
-   */
-  onToggleSelector?: (isOpen: boolean) => void;
-
-  /**
    * Just used for metrics
    */
   organization: Organization;
+
+  /**
+   * Relative date value
+   */
+  relative: string | null;
+
+  /**
+   * Start date value for absolute date selector
+   */
+  start: DateString;
+
+  /**
+   * Default initial value for using UTC
+   */
+  utc: boolean | null;
+
+  /**
+   * Set an optional default value to prefill absolute date with
+   */
+  defaultAbsolute?: {end?: Date; start?: Date};
 
   /**
    * Small info icon with tooltip hint text
@@ -121,23 +111,33 @@ type Props = WithRouterProps & {
   hint?: string;
 
   /**
-   * Set an optional default value to prefill absolute date with
+   * Replace the default calendar icon for label
    */
-  defaultAbsolute?: {start?: Date; end?: Date};
+  label?: React.ReactNode;
 
   /**
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
+
+  /**
+   * Callback when opening/closing dropdown date selector
+   */
+  onToggleSelector?: (isOpen: boolean) => void;
+
+  /**
+   * Override defaults from DEFAULT_RELATIVE_PERIODS
+   */
+  relativeOptions?: Record<string, React.ReactNode>;
 } & Partial<typeof defaultProps>;
 
 type State = {
-  isOpen: boolean;
   hasChanges: boolean;
   hasDateRangeErrors: boolean;
+  isOpen: boolean;
   relative: string | null;
-  start?: Date;
   end?: Date;
+  start?: Date;
   utc?: boolean | null;
 };
 

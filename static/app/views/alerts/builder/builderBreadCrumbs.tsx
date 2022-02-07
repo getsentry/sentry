@@ -14,12 +14,12 @@ import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuIt
 import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 type Props = {
+  location: Location;
   orgSlug: string;
-  title: string;
   projectSlug: string;
   projects: Project[];
   routes: RouteWithName[];
-  location: Location;
+  title: string;
   alertName?: string;
   canChangeProject?: boolean;
 };

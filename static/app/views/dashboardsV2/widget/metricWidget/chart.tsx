@@ -24,13 +24,13 @@ import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 import {DisplayType} from '../utils';
 
 type Props = {
-  series: Series[];
   displayType: DisplayType;
-  location: Location;
-  isLoading: boolean;
   errored: boolean;
-  selection: PageFilters;
+  isLoading: boolean;
+  location: Location;
   router: InjectedRouter;
+  selection: PageFilters;
+  series: Series[];
   platform?: PlatformKey;
 };
 

@@ -16,9 +16,9 @@ function SampleEventAlert({
   organization,
   projects,
 }: {
-  selection: PageFilters;
   organization: Organization;
   projects: Project[];
+  selection: PageFilters;
 }) {
   if (projects.length === 0) {
     return null;

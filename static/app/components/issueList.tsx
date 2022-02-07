@@ -18,18 +18,18 @@ interface IssueListProps extends WithRouterProps {
   api: Client;
   endpoint: string;
   emptyText?: string;
-  query?: Record<string, any>;
-  pagination?: boolean;
-  renderEmpty?: () => React.ReactElement;
   noBorder?: boolean;
   noMargin?: boolean;
+  pagination?: boolean;
+  query?: Record<string, any>;
+  renderEmpty?: () => React.ReactElement;
 }
 
 interface IssueListState {
-  issueIds: Array<string>;
-  status: 'loading' | 'error' | 'success';
-  pageLinks: string | null;
   data: Array<Group>;
+  issueIds: Array<string>;
+  pageLinks: string | null;
+  status: 'loading' | 'error' | 'success';
 }
 
 function IssueList({

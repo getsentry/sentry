@@ -5,8 +5,8 @@ import {OrganizationSummary} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedOrganizationsProps = {
-  organizationsLoading?: boolean;
   organizations: OrganizationSummary[];
+  organizationsLoading?: boolean;
 };
 
 type State = {

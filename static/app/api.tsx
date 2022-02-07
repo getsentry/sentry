@@ -47,6 +47,18 @@ export class Request {
 
 export type ResponseMeta<R = any> = {
   /**
+   * Get a header value from the response
+   */
+  getResponseHeader: (header: string) => string | null;
+  /**
+   * The response body decoded from json
+   */
+  responseJSON: R;
+  /**
+   * The string value of the response
+   */
+  responseText: string;
+  /**
    * The response status code
    */
   status: Response['status'];
@@ -54,18 +66,6 @@ export type ResponseMeta<R = any> = {
    * The response status code text
    */
   statusText: Response['statusText'];
-  /**
-   * The string value of the response
-   */
-  responseText: string;
-  /**
-   * The response body decoded from json
-   */
-  responseJSON: R;
-  /**
-   * Get a header value from the response
-   */
-  getResponseHeader: (header: string) => string | null;
 };
 
 /**
@@ -195,35 +195,35 @@ export type RequestCallbacks = {
    */
   complete?: (resp: ResponseMeta, textStatus: string) => void;
   /**
-   * Callback for the request completing successfully
-   */
-  success?: (data: any, textStatus?: string, resp?: ResponseMeta) => void;
-  /**
    * Callback for the request failing with an error
    */
   // TODO(ts): Update this when sentry is mostly migrated to TS
   error?: FunctionCallback;
+  /**
+   * Callback for the request completing successfully
+   */
+  success?: (data: any, textStatus?: string, resp?: ResponseMeta) => void;
 };
 
 export type RequestOptions = RequestCallbacks & {
-  /**
-   * The HTTP method to use when making the API request
-   */
-  method?: APIRequestMethod;
   /**
    * Values to attach to the body of the request.
    */
   data?: any;
   /**
-   * Query parameters to add to the requested URL.
+   * The HTTP method to use when making the API request
    */
-  query?: Record<string, any>;
+  method?: APIRequestMethod;
   /**
    * Because of the async nature of API requests, errors will happen outside of
    * the stack that initated the request. a preservedError can be passed to
    * coalesce the stacks together.
    */
   preservedError?: Error;
+  /**
+   * Query parameters to add to the requested URL.
+   */
+  query?: Record<string, any>;
 };
 
 type ClientOptions = {

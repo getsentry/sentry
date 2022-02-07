@@ -18,9 +18,9 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 type Props = {
-  organization: Organization;
-  location: Location;
   eventView: EventView;
+  location: Location;
+  organization: Organization;
 };
 
 function StatusBreakdown({eventView, location, organization}: Props) {

@@ -9,15 +9,15 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {VitalState, vitalStateIcons, webVitalMeh, webVitalPoor} from './utils';
 
 type Percent = {
-  vitalState: VitalState;
   percent: number;
+  vitalState: VitalState;
 };
 
 type Props = {
-  vital: WebVital | WebVital[];
   percents: Percent[];
-  showVitalPercentNames?: boolean;
+  vital: WebVital | WebVital[];
   hideTooltips?: boolean;
+  showVitalPercentNames?: boolean;
 };
 
 function getVitalStateText(vital: WebVital | WebVital[], vitalState) {

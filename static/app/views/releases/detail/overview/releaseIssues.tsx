@@ -41,8 +41,8 @@ enum IssuesQuery {
 
 type IssuesQueryParams = {
   limit: number;
-  sort: string;
   query: string;
+  sort: string;
 };
 
 const defaultProps = {
@@ -51,25 +51,25 @@ const defaultProps = {
 
 type Props = {
   api: Client;
-  organization: Organization;
-  version: string;
-  selection: PageFilters;
   location: Location;
+  organization: Organization;
   releaseBounds: ReleaseBounds;
+  selection: PageFilters;
+  version: string;
   queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
-  issuesType: IssuesType;
   count: {
+    all: number | null;
     new: number | null;
-    unhandled: number | null;
     regressed: number | null;
     resolved: number | null;
-    all: number | null;
+    unhandled: number | null;
   };
-  pageLinks?: string;
+  issuesType: IssuesType;
   onCursor?: () => void;
+  pageLinks?: string;
 };
 
 class ReleaseIssues extends Component<Props, State> {

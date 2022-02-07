@@ -10,8 +10,8 @@ const dataSetChoices: [string, string][] = [
 ];
 
 type Props = {
-  value: DataSet;
   onChange: (value: DataSet) => void;
+  value: DataSet;
 };
 
 function ChooseDataSetStep({value, onChange}: Props) {

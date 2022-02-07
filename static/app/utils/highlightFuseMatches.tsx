@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 type Match = {
-  value: string;
   indices: [number, number][];
+  value: string;
 };
 
 type HighlightResult = {

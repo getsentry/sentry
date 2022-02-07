@@ -6,14 +6,14 @@ import {SavedSearch} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedSavedSearchesProps = {
-  savedSearches: SavedSearch[];
-  savedSearchLoading: boolean;
   savedSearch: SavedSearch | null;
+  savedSearchLoading: boolean;
+  savedSearches: SavedSearch[];
 } & RouteComponentProps<{searchId?: string}, {}>;
 
 type State = {
-  savedSearches: SavedSearch[];
   isLoading: boolean;
+  savedSearches: SavedSearch[];
 };
 
 /**

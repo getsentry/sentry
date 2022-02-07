@@ -5,10 +5,10 @@ import ListItem from 'sentry/components/list/listItem';
 import space from 'sentry/styles/space';
 
 type Props = {
-  title: React.ReactNode;
   children: React.ReactElement;
-  subtitle?: React.ReactNode;
+  title: React.ReactNode;
   className?: string;
+  subtitle?: React.ReactNode;
 };
 
 const Item = styled(({title, subtitle, children, className}: Props) => (

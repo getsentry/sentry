@@ -38,9 +38,9 @@ type Props = StepProps & {
 };
 
 type State = {
-  platformDocs: {html: string; link: string} | null;
-  loadedPlatform: PlatformKey | null;
   hasError: boolean;
+  loadedPlatform: PlatformKey | null;
+  platformDocs: {html: string; link: string} | null;
 };
 
 class DocumentationSetup extends React.Component<Props, State> {

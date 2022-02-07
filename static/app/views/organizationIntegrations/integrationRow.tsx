@@ -26,26 +26,26 @@ import IntegrationStatus from './integrationStatus';
 import PluginDeprecationAlert from './pluginDeprecationAlert';
 
 type Props = {
-  organization: Organization;
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration';
-  slug: string;
-  displayName: string;
-  publishStatus: 'unpublished' | 'published' | 'internal';
-  configurations: number;
   categories: string[];
-  status?: IntegrationInstallationStatus;
+  configurations: number;
+  displayName: string;
+  organization: Organization;
+  publishStatus: 'unpublished' | 'published' | 'internal';
+  slug: string;
+  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration';
   /**
    * If provided, render an alert message with this text.
    */
   alertText?: string;
+  customAlert?: React.ReactNode;
+  customIcon?: React.ReactNode;
+  plugin?: PluginWithProjectList;
   /**
    * If `alertText` was provided, this text overrides the "Resolve now" message
    * in the alert.
    */
   resolveText?: string;
-  customAlert?: React.ReactNode;
-  plugin?: PluginWithProjectList;
-  customIcon?: React.ReactNode;
+  status?: IntegrationInstallationStatus;
 };
 
 const urlMap = {

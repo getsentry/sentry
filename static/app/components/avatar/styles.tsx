@@ -1,9 +1,9 @@
 import {css} from '@emotion/react';
 
 export type ImageStyleProps = {
+  grayscale?: boolean;
   round?: boolean;
   suggested?: boolean;
-  grayscale?: boolean;
 };
 
 export const imageStyle = (props: ImageStyleProps) => css`

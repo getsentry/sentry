@@ -18,26 +18,26 @@ export enum DownloadStatus {
 }
 
 type RouteParams = {
-  orgId: string;
   dataExportId: string;
+  orgId: string;
 };
 
 type Download = {
-  id: number;
-  user: {
-    id: number;
-    email: string;
-    username: string;
-  };
+  checksum: string;
   dateCreated: string;
-  dateFinished?: string;
-  dateExpired?: string;
+  id: number;
   query: {
-    type: ExportQueryType;
     info: object;
+    type: ExportQueryType;
   };
   status: DownloadStatus;
-  checksum: string;
+  user: {
+    email: string;
+    id: number;
+    username: string;
+  };
+  dateExpired?: string;
+  dateFinished?: string;
 };
 
 type Props = {} & RouteComponentProps<RouteParams, {}>;
@@ -46,11 +46,11 @@ type State = {
   download: Download;
   errors: {
     download: {
-      status: number;
-      statusText: string;
       responseJSON: {
         detail: string;
       };
+      status: number;
+      statusText: string;
     };
   };
 } & AsyncView['state'];

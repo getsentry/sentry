@@ -6,9 +6,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t} from 'sentry/locale';
 
 type DefaultProps = {
-  successMessage: string;
   errorMessage: string;
   hideMessages: boolean;
+  successMessage: string;
 };
 
 type Props = {
@@ -16,8 +16,8 @@ type Props = {
   value: string;
   /** Hide children if browser does not support copy */
   hideUnsupported?: boolean;
-  onSuccess?: () => void;
   onError?: () => void;
+  onSuccess?: () => void;
 } & DefaultProps;
 
 /**

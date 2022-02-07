@@ -43,8 +43,8 @@ type Props = {
 >;
 
 type State = {
-  loading: boolean;
   error: boolean;
+  loading: boolean;
 };
 
 class KeySettings extends Component<Props, State> {

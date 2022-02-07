@@ -19,17 +19,9 @@ type Props = {
    */
   name: string;
   /**
-   * User visible field label
-   */
-  label?: React.ReactNode;
-  /**
    * Is the field disabled?
    */
   disabled?: boolean;
-  /**
-   * Is the field required?
-   */
-  required?: boolean;
   /**
    * Help or description of the field
    */
@@ -38,6 +30,14 @@ type Props = {
    * The control's `id` property
    */
   id?: string;
+  /**
+   * User visible field label
+   */
+  label?: React.ReactNode;
+  /**
+   * Is the field required?
+   */
+  required?: boolean;
 } & FormFieldProps;
 
 function CheckboxField(props: Props) {

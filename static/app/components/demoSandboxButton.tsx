@@ -22,16 +22,16 @@ type Props = {
     | 'oneWebVitals'
     | 'oneTransactionSummary'
     | 'oneRelease';
-  /**
-   * Which project we should link to in the sandbox
-   */
-  projectSlug?: 'react' | 'python' | 'ios' | 'android' | 'react-native';
+  clientData?: SandboxData;
   /**
    * Matching on the error type or title
    */
   errorType?: string;
 
-  clientData?: SandboxData;
+  /**
+   * Which project we should link to in the sandbox
+   */
+  projectSlug?: 'react' | 'python' | 'ios' | 'android' | 'react-native';
 } & React.ComponentProps<typeof Button>;
 
 /**

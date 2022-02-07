@@ -10,16 +10,16 @@ import {Color} from 'sentry/utils/theme';
 import {Grid, GridCell} from './styles';
 
 type Props = {
-  id: number;
   details: ThreadInfo;
+  id: number;
+  crashed?: boolean;
   crashedInfo?: EntryData;
   name?: string | null;
-  crashed?: boolean;
 };
 
 type ThreadInfo = {
-  label?: string;
   filename?: string;
+  label?: string;
 };
 
 const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
@@ -81,7 +81,7 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
 
 export default Option;
 
-const InnerCell = styled('div')<{isCentered?: boolean; color?: Color; isBold?: boolean}>`
+const InnerCell = styled('div')<{color?: Color; isBold?: boolean; isCentered?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};

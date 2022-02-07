@@ -24,8 +24,8 @@ import {Container, FieldShortId, OverflowLink} from '../discover/styles';
  * Types, functions and definitions for rendering fields in discover results.
  */
 type RenderFunctionBaggage = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
   eventView?: EventView;
 };
 
@@ -40,23 +40,23 @@ type SpecialFieldRenderFunc = (
 ) => React.ReactNode;
 
 type SpecialField = {
-  sortField: string | null;
   renderFunc: SpecialFieldRenderFunc;
+  sortField: string | null;
 };
 
 type SpecialFields = {
-  issue: SpecialField;
   assignee: SpecialField;
-  lifetimeEvents: SpecialField;
-  lifetimeUsers: SpecialField;
+  count: SpecialField;
   events: SpecialField;
-  users: SpecialField;
   firstSeen: SpecialField;
+  issue: SpecialField;
   lastSeen: SpecialField;
   lifetimeCount: SpecialField;
+  lifetimeEvents: SpecialField;
   lifetimeUserCount: SpecialField;
-  count: SpecialField;
+  lifetimeUsers: SpecialField;
   userCount: SpecialField;
+  users: SpecialField;
 };
 
 /**

@@ -16,9 +16,9 @@ import IssueListTagFilter from './tagFilter';
 import {TagValueLoader} from './types';
 
 type DefaultProps = {
-  tags: TagCollection;
-  query: string;
   onQueryChange: (query: string) => void;
+  query: string;
+  tags: TagCollection;
 };
 
 type Props = DefaultProps & {

@@ -9,28 +9,28 @@ import {ChallengeData, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type TapParams = {
-  response: string;
   challenge: string;
+  response: string;
 };
 
 type Props = {
-  organization: Organization;
   challengeData: ChallengeData;
   flowMode: string;
-  silentIfUnsupported: boolean;
   onTap: ({response, challenge}: TapParams) => Promise<void>;
+  organization: Organization;
+  silentIfUnsupported: boolean;
   style?: React.CSSProperties;
 };
 
 type State = {
-  responseElement: HTMLInputElement | null;
-  formElement: HTMLFormElement | null;
   challengeElement: HTMLInputElement | null;
-  isSupported: boolean | null;
-  hasBeenTapped: boolean;
   deviceFailure: string | null;
-  isSafari: boolean;
   failCount: number;
+  formElement: HTMLFormElement | null;
+  hasBeenTapped: boolean;
+  isSafari: boolean;
+  isSupported: boolean | null;
+  responseElement: HTMLInputElement | null;
 };
 
 class U2fInterface extends React.Component<Props, State> {

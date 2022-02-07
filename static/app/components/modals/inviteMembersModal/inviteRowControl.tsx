@@ -17,21 +17,21 @@ import {InviteStatus} from './types';
 type SelectOption = SelectValue<string>;
 
 type Props = {
-  className?: string;
-  disabled: boolean;
   disableRemove: boolean;
+  disabled: boolean;
   emails: string[];
-  role: string;
-  teams: string[];
-  roleOptions: MemberRole[];
-  roleDisabledUnallowed: boolean;
   inviteStatus: InviteStatus;
-  onRemove: () => void;
-  theme: Theme;
-
   onChangeEmails: (emails: null | SelectOption[]) => void;
   onChangeRole: (role: SelectOption) => void;
   onChangeTeams: (teams?: SelectOption[] | null) => void;
+  onRemove: () => void;
+  role: string;
+  roleDisabledUnallowed: boolean;
+  roleOptions: MemberRole[];
+
+  teams: string[];
+  theme: Theme;
+  className?: string;
 };
 
 type State = {

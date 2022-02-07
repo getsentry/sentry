@@ -20,8 +20,6 @@ type Tag = {
 };
 
 type Props = {
-  projectId: Project['id'];
-  orgSlug: Organization['slug'];
   category:
     | DynamicSamplingInnerName.TRACE_ENVIRONMENT
     | DynamicSamplingInnerName.EVENT_ENVIRONMENT
@@ -30,6 +28,8 @@ type Props = {
     | DynamicSamplingInnerName.TRACE_TRANSACTION
     | DynamicSamplingInnerName.EVENT_TRANSACTION;
   onChange: (value: string) => void;
+  orgSlug: Organization['slug'];
+  projectId: Project['id'];
   value?: string;
 };
 

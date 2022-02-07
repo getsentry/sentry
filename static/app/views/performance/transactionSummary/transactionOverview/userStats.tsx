@@ -19,13 +19,13 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
 
 type Props = {
-  eventView: EventView;
-  isLoading: boolean;
-  hasWebVitals: boolean;
   error: string | null;
-  totals: Record<string, number> | null;
+  eventView: EventView;
+  hasWebVitals: boolean;
+  isLoading: boolean;
   location: Location;
   organization: Organization;
+  totals: Record<string, number> | null;
   transactionName: string;
   isMetricsData?: boolean;
 };

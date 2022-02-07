@@ -9,13 +9,13 @@ type NumberDragControlProps = {
   onChange: (delta: number, event: React.MouseEvent<HTMLDivElement>) => void;
   axis?: 'x' | 'y';
   /**
-   * The value to increment by as the mouse is dragged. Defaults to 1
-   */
-  step?: number;
-  /**
    * The value to increment by if the shift key is held. Defaults to 1
    */
   shiftStep?: number;
+  /**
+   * The value to increment by as the mouse is dragged. Defaults to 1
+   */
+  step?: number;
 };
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof NumberDragControlProps> &

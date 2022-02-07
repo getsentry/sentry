@@ -14,8 +14,8 @@ type DependentProps = {
 
 type InjectedProps = {
   repositories?: Repository[];
-  repositoriesLoading?: boolean;
   repositoriesError?: Error;
+  repositoriesLoading?: boolean;
 };
 
 const INITIAL_STATE: InjectedProps = {

@@ -25,31 +25,31 @@ const defaultProps = {
 };
 
 type Props = {
-  teams: Mentionable[];
   memberList: Mentionable[];
+  teams: Mentionable[];
+  theme: Theme;
+  error?: boolean;
+  errorJSON?: CreateError | null;
   /**
    * This is the id of the note object from the server
    * This is to indicate you are editing an existing item
    */
   modelId?: string;
+  onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
+  onCreate?: (data: NoteType) => void;
+  onEditFinish?: () => void;
+  onUpdate?: (data: NoteType) => void;
   /**
    * The note text itself
    */
   text?: string;
-  error?: boolean;
-  errorJSON?: CreateError | null;
-  onEditFinish?: () => void;
-  onUpdate?: (data: NoteType) => void;
-  onCreate?: (data: NoteType) => void;
-  onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
-  theme: Theme;
 } & typeof defaultProps;
 
 type State = {
-  preview: boolean;
-  value: string;
   memberMentions: Mentioned[];
+  preview: boolean;
   teamMentions: Mentioned[];
+  value: string;
 };
 
 class NoteInputComponent extends React.Component<Props, State> {
@@ -304,7 +304,7 @@ const getNotePreviewCss = (p: NotePreviewProps) => {
 `;
 };
 
-const getNoteInputErrorStyles = (p: {error?: string; theme: Theme}) => {
+const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   if (!p.error) {
     return '';
   }

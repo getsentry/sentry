@@ -19,23 +19,23 @@ import TableView from './tableView';
 
 type TableProps = {
   api: Client;
-  location: Location;
+  confirmedQuery: boolean;
   eventView: EventView;
+  location: Location;
+  onChangeShowTags: () => void;
   organization: Organization;
+  setError: (msg: string, code: number) => void;
   showTags: boolean;
   tags: TagCollection;
-  setError: (msg: string, code: number) => void;
   title: string;
-  onChangeShowTags: () => void;
-  confirmedQuery: boolean;
 };
 
 type TableState = {
-  isLoading: boolean;
-  tableFetchID: symbol | undefined;
   error: null | string;
+  isLoading: boolean;
   pageLinks: null | string;
   tableData: TableData | null | undefined;
+  tableFetchID: symbol | undefined;
 };
 
 /**

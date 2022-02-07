@@ -10,10 +10,10 @@ export enum OperatingSystemIgnoredDataType {
 }
 
 export type OperatingSystemKnownData = {
-  name: string;
-  type: string;
   build: string;
   kernel_version: string;
-  version?: string;
+  name: string;
+  type: string;
   rooted?: boolean;
+  version?: string;
 };

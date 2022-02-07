@@ -12,10 +12,10 @@ import withProjects from 'sentry/utils/withProjects';
 import Summary from './summary';
 
 type Props = {
-  searchTerm: string;
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   event: Event;
   orgSlug: Organization['slug'];
+  searchTerm: string;
   linkedEvent?: React.ReactElement;
 };
 
@@ -58,13 +58,13 @@ const FormatMessage = withProjects(function FormatMessageInner({
   loadingProjects,
   orgSlug,
 }: {
-  searchTerm: string;
-  event: Event;
-  projects: Project[];
-  loadingProjects: boolean;
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
+  event: Event;
+  loadingProjects: boolean;
   message: string;
   orgSlug: Organization['slug'];
+  projects: Project[];
+  searchTerm: string;
 }) {
   const content = <Highlight text={searchTerm}>{message}</Highlight>;
   if (

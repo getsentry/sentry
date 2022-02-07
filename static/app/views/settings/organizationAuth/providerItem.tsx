@@ -16,31 +16,31 @@ import {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
 
 type RenderInstallButtonProps = {
+  hasFeature: boolean;
   /**
    * We pass the provider so that it may be passed into any hook provided
    * callbacks.
    */
   provider: AuthProvider;
-  hasFeature: boolean;
 };
 
 type LockedFeatureProps = {
-  provider: AuthProvider;
   features: string[];
+  provider: AuthProvider;
   className?: string;
 };
 
 type FeatureRenderProps = {
-  children?: (p: FeatureRenderProps) => React.ReactNode;
-  hasFeature: boolean;
   features: string[];
+  hasFeature: boolean;
   renderDisabled: (p: LockedFeatureProps) => React.ReactNode;
   renderInstallButton: (p: RenderInstallButtonProps) => React.ReactNode;
+  children?: (p: FeatureRenderProps) => React.ReactNode;
 };
 
 type Props = {
-  provider: AuthProvider;
   active: boolean;
+  provider: AuthProvider;
   onConfigure?: (providerKey: string, e: React.MouseEvent) => void;
 };
 

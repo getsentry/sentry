@@ -31,22 +31,22 @@ type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options
 type ImageCandidates = Image['candidates'];
 
 type Props = {
+  baseUrl: string;
   candidates: ImageCandidates;
+  hasReprocessWarning: boolean;
+  isLoading: boolean;
+  onDelete: (debugId: string) => void;
   organization: Organization;
   projSlug: Project['slug'];
-  baseUrl: string;
-  isLoading: boolean;
-  hasReprocessWarning: boolean;
-  onDelete: (debugId: string) => void;
   eventDateReceived?: string;
   imageStatus?: ImageStatus;
 };
 
 type State = {
-  searchTerm: string;
   filterOptions: FilterOptions;
-  filteredCandidatesBySearch: ImageCandidates;
   filteredCandidatesByFilter: ImageCandidates;
+  filteredCandidatesBySearch: ImageCandidates;
+  searchTerm: string;
 };
 
 class Candidates extends React.Component<Props, State> {

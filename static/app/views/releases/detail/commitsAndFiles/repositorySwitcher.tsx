@@ -10,9 +10,9 @@ import space from 'sentry/styles/space';
 import {Repository} from 'sentry/types';
 
 type Props = {
+  location: Location;
   repositories: Array<Repository>;
   router: InjectedRouter;
-  location: Location;
   activeRepository?: Repository;
 };
 

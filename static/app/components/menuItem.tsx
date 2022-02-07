@@ -9,37 +9,35 @@ import {Theme} from 'sentry/utils/theme';
 
 type MenuItemProps = {
   /**
-   * Should this item act as a header
+   * Enable to allow default event on click
    */
-  header?: boolean;
-  /**
-   * Renders a bottom border (excludes the last item)
-   */
-  withBorder?: boolean;
-  /**
-   * Renders an icon next to the item
-   */
-  icon?: React.ReactNode;
-  /**
-   * Should this item act as a divider
-   */
-  divider?: boolean;
-  /**
-   * The title/tooltipe of the item
-   */
-  title?: string;
+  allowDefaultEvent?: boolean;
+  'aria-label'?: string;
+  className?: string;
   /**
    * Is the item disabled?
    */
   disabled?: boolean;
   /**
-   * Triggered when the item is clicked
+   * Should this item act as a divider
    */
-  onSelect?: (eventKey: any) => void;
+  divider?: boolean;
   /**
    * Provided to the onSelect callback when this item is selected
    */
   eventKey?: any;
+  /**
+   * Should this item act as a header
+   */
+  header?: boolean;
+  /**
+   * A server rendered URL.
+   */
+  href?: string;
+  /**
+   * Renders an icon next to the item
+   */
+  icon?: React.ReactNode;
   /**
    * Is the item actively seleted?
    */
@@ -49,25 +47,27 @@ type MenuItemProps = {
    */
   noAnchor?: boolean;
   /**
-   * A router target destination
+   * Triggered when the item is clicked
    */
-  to?: React.ComponentProps<typeof Link>['to'];
-  /**
-   * A server rendered URL.
-   */
-  href?: string;
-  /**
-   * Enable to allow default event on click
-   */
-  allowDefaultEvent?: boolean;
+  onSelect?: (eventKey: any) => void;
   /**
    * Enable to stop event propagation on click
    */
   stopPropagation?: boolean;
+  /**
+   * The title/tooltipe of the item
+   */
+  title?: string;
 
-  'aria-label'?: string;
+  /**
+   * A router target destination
+   */
+  to?: React.ComponentProps<typeof Link>['to'];
 
-  className?: string;
+  /**
+   * Renders a bottom border (excludes the last item)
+   */
+  withBorder?: boolean;
 };
 
 type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
@@ -169,12 +169,12 @@ const MenuItem = ({
 };
 
 type MenuListItemProps = {
-  header?: boolean;
-  withBorder?: boolean;
-  noAnchor?: boolean;
-  isActive?: boolean;
   disabled?: boolean;
   divider?: boolean;
+  header?: boolean;
+  isActive?: boolean;
+  noAnchor?: boolean;
+  withBorder?: boolean;
 } & React.HTMLProps<HTMLLIElement>;
 
 function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {

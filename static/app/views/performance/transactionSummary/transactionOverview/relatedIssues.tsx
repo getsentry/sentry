@@ -20,12 +20,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {removeTracingKeysFromSearch} from '../../utils';
 
 type Props = {
-  organization: OrganizationSummary;
   location: Location;
+  organization: OrganizationSummary;
   transaction: string;
-  statsPeriod?: string | null;
-  start?: string;
   end?: string;
+  start?: string;
+  statsPeriod?: string | null;
 };
 
 class RelatedIssues extends Component<Props> {

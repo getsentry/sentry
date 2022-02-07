@@ -26,13 +26,13 @@ type HoCsProps = {
   api: Client;
   organization: Organization;
   repositories?: Repository[];
-  repositoriesLoading?: boolean;
   repositoriesError?: Error;
+  repositoriesLoading?: boolean;
 };
 
 type State = {
-  releaseRepos: Repository[];
   isLoading: boolean;
+  releaseRepos: Repository[];
   activeReleaseRepo?: Repository;
 };
 

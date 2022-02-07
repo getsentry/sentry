@@ -33,8 +33,8 @@ import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styl
 type Props = {
   location: Location;
   organization: Organization;
-  transaction: TraceFullDetailed;
   scrollToHash: (hash: string) => void;
+  transaction: TraceFullDetailed;
 };
 
 class TransactionDetail extends Component<Props> {

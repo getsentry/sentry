@@ -15,17 +15,17 @@ type Props = {
   // Avatar size
   avatarSize?: number;
 
-  // List of *all* users that have seen something
-  seenBy?: User[];
+  className?: string;
+
+  iconPosition?: 'left' | 'right';
 
   // Tooltip message for the "Seen By" icon
   iconTooltip?: string;
 
   // Max avatars to display
   maxVisibleAvatars?: number;
-
-  iconPosition?: 'left' | 'right';
-  className?: string;
+  // List of *all* users that have seen something
+  seenBy?: User[];
 };
 
 const SeenByList = ({

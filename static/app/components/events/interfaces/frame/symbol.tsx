@@ -16,15 +16,15 @@ import {getFrameHint} from './utils';
 type Props = {
   frame: Frame;
   absoluteFilePaths?: boolean;
-  showCompleteFunctionName?: boolean;
-  nativeStackTraceV2?: boolean;
-  isUsedForGrouping?: boolean;
-  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  className?: string;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
-  className?: string;
+  isUsedForGrouping?: boolean;
+  nativeStackTraceV2?: boolean;
+  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  showCompleteFunctionName?: boolean;
 };
 
 const Symbol = ({

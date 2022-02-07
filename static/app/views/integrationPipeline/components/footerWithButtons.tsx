@@ -6,8 +6,8 @@ import space from 'sentry/styles/space';
 
 type Props = {
   buttonText: string;
-  formProps?: Omit<React.HTMLProps<HTMLFormElement>, 'as'>;
   formFields?: Array<{name: string; value: any}>;
+  formProps?: Omit<React.HTMLProps<HTMLFormElement>, 'as'>;
 } & Partial<Pick<React.ComponentProps<typeof Button>, 'disabled' | 'onClick' | 'href'>>;
 
 export default function FooterWithButtons({

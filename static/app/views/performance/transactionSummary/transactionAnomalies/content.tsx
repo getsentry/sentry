@@ -31,9 +31,9 @@ import AnomaliesTable from './anomaliesTable';
 import {AnomalyChart} from './anomalyChart';
 
 type Props = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
   projectId: string;
   setError: SetStateAction<string | undefined>;
   transactionName: string;

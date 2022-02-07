@@ -14,9 +14,9 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
 type Props = {
-  router: InjectedRouter;
-  organization: Organization;
   activeTab: 'stream' | 'rules';
+  organization: Organization;
+  router: InjectedRouter;
 };
 
 const AlertHeader = ({router, organization, activeTab}: Props) => {

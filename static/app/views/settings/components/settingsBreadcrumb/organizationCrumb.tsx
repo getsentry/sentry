@@ -13,10 +13,10 @@ import {RouteWithName} from './types';
 import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{projectId?: string}, {}> & {
-  organizations: Organization[];
   organization: Organization;
-  routes: RouteWithName[];
+  organizations: Organization[];
   route: RouteWithName;
+  routes: RouteWithName[];
 };
 
 const OrganizationCrumb = ({

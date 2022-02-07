@@ -8,25 +8,25 @@ export type ScheduleType = 'crontab' | 'interval';
 
 export type MonitorConfig = {
   checkin_margin: number;
-  schedule_type: ScheduleType;
   max_runtime: number;
   schedule: unknown[];
+  schedule_type: ScheduleType;
 };
 
 export type Monitor = {
-  status: Status;
-  project: Project;
-  name: string;
-  lastCheckIn: string;
   config: MonitorConfig;
-  nextCheckIn: string;
-  type: MonitorTypes;
-  id: string;
   dateCreated: string;
+  id: string;
+  lastCheckIn: string;
+  name: string;
+  nextCheckIn: string;
+  project: Project;
+  status: Status;
+  type: MonitorTypes;
 };
 
 export type MonitorStat = {
-  ts: number;
-  ok: number;
   error: number;
+  ok: number;
+  ts: number;
 };

@@ -62,22 +62,22 @@ import {TimePeriodType} from './constants';
 
 type Props = WithRouterProps & {
   api: Client;
-  rule: IncidentRule;
-  incidents?: Incident[];
-  timePeriod: TimePeriodType;
-  selectedIncident?: Incident | null;
+  filter: string[] | null;
+  handleZoom: (start: DateString, end: DateString) => void;
+  interval: string;
+  orgId: string;
   organization: Organization;
   projects: Project[] | AvatarProject[];
-  interval: string;
   query: string;
-  filter: string[] | null;
-  orgId: string;
-  handleZoom: (start: DateString, end: DateString) => void;
+  rule: IncidentRule;
+  timePeriod: TimePeriodType;
+  incidents?: Incident[];
+  selectedIncident?: Incident | null;
 };
 
 type State = {
-  width: number;
   height: number;
+  width: number;
 };
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {

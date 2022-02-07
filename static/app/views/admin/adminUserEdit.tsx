@@ -74,8 +74,8 @@ const REMOVE_BUTTON_LABEL = {
 type DeleteType = 'disable' | 'delete';
 
 type RemoveModalProps = ModalRenderProps & {
-  user: User;
   onRemove: (type: DeleteType) => void;
+  user: User;
 };
 
 type RemoveModalState = {

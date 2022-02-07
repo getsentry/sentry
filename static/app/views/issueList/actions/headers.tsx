@@ -8,10 +8,10 @@ import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 
 type Props = {
+  isReprocessingQuery: boolean;
+  onSelectStatsPeriod: (statsPeriod: string) => void;
   selection: PageFilters;
   statsPeriod: string;
-  onSelectStatsPeriod: (statsPeriod: string) => void;
-  isReprocessingQuery: boolean;
   anySelected?: boolean;
 };
 

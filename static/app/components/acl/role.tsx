@@ -38,14 +38,6 @@ function checkUserRole(user: User, organization: Organization, role: RoleProps['
 
 interface RoleProps {
   /**
-   * Minimum required role
-   */
-  role: string;
-  /**
-   * Current Organization
-   */
-  organization: Organization;
-  /**
    * If children is a function then will be treated as a render prop and
    * passed RoleRenderProps.
    *
@@ -53,6 +45,14 @@ interface RoleProps {
    * the minimum required role.
    */
   children: React.ReactElement | ChildrenRenderFn;
+  /**
+   * Current Organization
+   */
+  organization: Organization;
+  /**
+   * Minimum required role
+   */
+  role: string;
 }
 
 function Role({role, organization, children}: RoleProps): React.ReactElement | null {

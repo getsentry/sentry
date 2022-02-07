@@ -10,8 +10,8 @@ import IssueQuickTrace from './issueQuickTrace';
 type Props = {
   event: Event;
   group: Group;
-  organization: Organization;
   location: Location;
+  organization: Organization;
 };
 
 function QuickTrace({event, group, organization, location}: Props) {

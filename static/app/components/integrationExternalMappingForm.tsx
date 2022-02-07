@@ -21,15 +21,15 @@ import {Field} from 'sentry/views/settings/components/forms/type';
 
 type Props = Pick<Form['props'], 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> &
   Pick<SelectAsyncControlProps, 'defaultOptions'> & {
-    integration: Integration;
-    mapping?: ExternalActorMappingOrSuggestion;
-    type: 'user' | 'team';
-    getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
-    sentryNamesMapper: (v: any) => {id: string; name: string}[];
     dataEndpoint: string;
-    onResults?: (data: any, mappingKey?: string) => void;
+    getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
+    integration: Integration;
+    sentryNamesMapper: (v: any) => {id: string; name: string}[];
+    type: 'user' | 'team';
     isInline?: boolean;
+    mapping?: ExternalActorMappingOrSuggestion;
     mappingKey?: string;
+    onResults?: (data: any, mappingKey?: string) => void;
   };
 
 export default class IntegrationExternalMappingForm extends Component<Props> {

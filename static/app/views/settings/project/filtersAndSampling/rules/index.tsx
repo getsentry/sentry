@@ -13,12 +13,12 @@ import Rule from './rule';
 import {layout} from './utils';
 
 type Props = {
-  rules: Array<DynamicSamplingRule>;
   disabled: boolean;
-  onEditRule: (rule: DynamicSamplingRule) => () => void;
-  onDeleteRule: (rule: DynamicSamplingRule) => () => void;
-  onUpdateRules: (rules: Array<DynamicSamplingRule>) => void;
   emptyMessage: string;
+  onDeleteRule: (rule: DynamicSamplingRule) => () => void;
+  onEditRule: (rule: DynamicSamplingRule) => () => void;
+  onUpdateRules: (rules: Array<DynamicSamplingRule>) => void;
+  rules: Array<DynamicSamplingRule>;
 };
 
 type State = {

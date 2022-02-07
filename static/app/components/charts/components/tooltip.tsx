@@ -92,13 +92,13 @@ type TooltipFormatters =
 type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
   Pick<ChartProps, NeededChartProps> & {
     /**
-     * Array containing seriesNames that need to be indented
-     */
-    indentLabels?: string[];
-    /**
      * If true seconds will be added to the Axis label time format
      */
     addSecondsToTimeFormat?: boolean;
+    /**
+     * Array containing seriesNames that need to be indented
+     */
+    indentLabels?: string[];
   };
 
 function getFormatter({

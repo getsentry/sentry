@@ -27,8 +27,8 @@ export function tagsRouteWithQuery({
   query,
 }: {
   orgSlug: string;
-  transaction: string;
   query: Query;
+  transaction: string;
   projectID?: string | string[];
 }) {
   const pathname = generateTagsRoute({

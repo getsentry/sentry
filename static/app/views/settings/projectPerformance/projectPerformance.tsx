@@ -24,10 +24,10 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 };
 
 type ProjectThreshold = {
-  id?: string;
-  threshold: string;
   metric: string;
+  threshold: string;
   editedBy?: string;
+  id?: string;
 };
 
 type State = AsyncView['state'] & {

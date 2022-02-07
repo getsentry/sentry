@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import space from 'sentry/styles/space';
 
 type Props = {
-  children?: React.ReactNode;
-  symbol?: React.ReactElement;
-  onClick?: (event: React.MouseEvent) => void;
-  'data-test-id'?: string;
   'aria-label'?: string;
+  children?: React.ReactNode;
   className?: string;
+  'data-test-id'?: string;
+  onClick?: (event: React.MouseEvent) => void;
+  symbol?: React.ReactElement;
 };
 
 const ListItem = styled(

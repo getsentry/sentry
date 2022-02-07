@@ -21,10 +21,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
-  location: Location;
   eventView: EventView;
-  organization: Organization;
   handleOpChange: (op: string | undefined) => void;
+  location: Location;
+  organization: Organization;
   transactionName: string;
 };
 

@@ -21,7 +21,7 @@ function initializeData({
   features: additionalFeatures = [],
   query = {},
   project: prj,
-}: {features?: string[]; query?: Record<string, any>; project?: Project} = {}) {
+}: {features?: string[]; project?: Project; query?: Record<string, any>} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const project = prj ?? TestStubs.Project({teams});
   const organization = TestStubs.Organization({

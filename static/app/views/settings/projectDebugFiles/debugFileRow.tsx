@@ -20,10 +20,10 @@ import {getFeatureTooltip, getFileType} from './utils';
 
 type Props = {
   debugFile: DebugFile;
-  showDetails: boolean;
-  downloadUrl: string;
   downloadRole: string;
+  downloadUrl: string;
   onDelete: (id: string) => void;
+  showDetails: boolean;
 };
 
 const DebugFileRow = ({

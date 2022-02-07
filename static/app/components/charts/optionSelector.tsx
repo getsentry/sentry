@@ -20,9 +20,9 @@ const defaultProps = {
 };
 
 type Props = {
+  onChange: (value: string) => void;
   options: SelectValue<string>[];
   selected: string;
-  onChange: (value: string) => void;
   title: string;
   featureType?: 'alpha' | 'beta' | 'new';
 } & typeof defaultProps;

@@ -41,8 +41,8 @@ class TitleStar extends Component<TitleProps> {
 }
 
 type BaseProps = {
-  organization: Organization;
   isKeyTransaction: boolean;
+  organization: Organization;
 };
 
 type Props = BaseProps &
@@ -75,8 +75,8 @@ function TeamKeyTransactionField({
 }
 
 type WrapperProps = BaseProps & {
-  projects: Project[];
   projectSlug: string | undefined;
+  projects: Project[];
   transactionName: string | undefined;
 };
 

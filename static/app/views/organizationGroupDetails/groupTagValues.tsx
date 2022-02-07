@@ -33,8 +33,8 @@ type RouteParams = {
 type Props = {
   baseUrl: string;
   group: Group;
-  project?: Project;
   environments?: string[];
+  project?: Project;
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {

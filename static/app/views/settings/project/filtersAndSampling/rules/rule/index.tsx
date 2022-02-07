@@ -16,13 +16,13 @@ import SampleRate from './sampleRate';
 import Type from './type';
 
 type Props = {
-  rule: DynamicSamplingRule;
   disabled: boolean;
   dragging: boolean;
-  sorting: boolean;
   listeners: DraggableSyntheticListeners;
-  onEditRule: () => void;
   onDeleteRule: () => void;
+  onEditRule: () => void;
+  rule: DynamicSamplingRule;
+  sorting: boolean;
   grabAttributes?: UseDraggableArguments['attributes'];
 };
 

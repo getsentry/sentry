@@ -37,31 +37,31 @@ import {
 } from './utils';
 
 type Props = {
+  components: Array<SentryAppComponent>;
   data: Frame;
   event: Event;
   registers: Record<string, string>;
-  components: Array<SentryAppComponent>;
-  nextFrame?: Frame;
-  prevFrame?: Frame;
-  platform?: PlatformType;
   emptySourceNotation?: boolean;
-  isOnlyFrame?: boolean;
-  timesRepeated?: number;
-  showingAbsoluteAddress?: boolean;
-  onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
-  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
-  showCompleteFunctionName?: boolean;
   image?: React.ComponentProps<typeof DebugImage>['image'];
-  maxLengthOfRelativeAddress?: number;
-  isFrameAfterLastNonApp?: boolean;
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
-  organization?: Organization;
+  isFrameAfterLastNonApp?: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
+  isOnlyFrame?: boolean;
+  maxLengthOfRelativeAddress?: number;
+  nextFrame?: Frame;
+  onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  organization?: Organization;
+  platform?: PlatformType;
+  prevFrame?: Frame;
+  showCompleteFunctionName?: boolean;
+  showingAbsoluteAddress?: boolean;
+  timesRepeated?: number;
 };
 
 type State = {

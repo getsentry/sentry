@@ -24,8 +24,8 @@ type UserTitle = {
 
 type UserDetails = {
   subject: string;
-  value?: string;
   meta?: Meta;
+  value?: string;
 };
 
 const ContextSummaryUser = ({data}: Props) => {

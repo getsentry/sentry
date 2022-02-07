@@ -12,9 +12,9 @@ import space from 'sentry/styles/space';
 import {Relay} from 'sentry/types';
 
 type Props = Relay & {
-  onEdit: (publicKey: Relay['publicKey']) => () => void;
-  onDelete: (publicKey: Relay['publicKey']) => () => void;
   disabled: boolean;
+  onDelete: (publicKey: Relay['publicKey']) => () => void;
+  onEdit: (publicKey: Relay['publicKey']) => () => void;
 };
 
 const CardHeader = ({

@@ -11,10 +11,10 @@ import {
 import WidgetLibraryCard from 'sentry/views/dashboardsV2/widgetLibrary/widgetCard';
 
 type Props = {
-  selectedWidgets: WidgetTemplate[];
   errored: boolean;
-  setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
+  selectedWidgets: WidgetTemplate[];
   setErrored: (errored: boolean) => void;
+  setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
 };
 
 function DashboardWidgetLibraryTab({

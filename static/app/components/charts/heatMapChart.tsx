@@ -17,8 +17,8 @@ export type LineChartSeries = Series &
 
 type Props = Omit<ChartProps, 'series'> & {
   series: LineChartSeries[];
-  seriesOptions?: HeatmapSeriesOption;
   visualMaps: VisualMapComponentOption[];
+  seriesOptions?: HeatmapSeriesOption;
 };
 
 export default React.forwardRef<ReactEchartsRef, Props>((props, ref) => {

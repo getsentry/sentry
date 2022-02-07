@@ -17,15 +17,15 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
-  organization: Organization;
+  dashboardState: DashboardState;
   dashboards: DashboardListItem[];
-  onEdit: () => void;
+  onAddWidget: () => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
-  onAddWidget: () => void;
+  onEdit: () => void;
+  organization: Organization;
   widgetLimitReached: boolean;
-  dashboardState: DashboardState;
 };
 
 class Controls extends React.Component<Props> {

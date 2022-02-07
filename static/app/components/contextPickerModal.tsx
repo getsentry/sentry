@@ -20,15 +20,9 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';
 
 type Props = ModalRenderProps & {
-  /**
-   * The destination route
-   */
-  nextPath: string;
+  integrationConfigs: Integration[];
 
-  /**
-   * List of available organizations
-   */
-  organizations: Organization[];
+  loading: boolean;
 
   /**
    * Does modal need to prompt for organization.
@@ -42,29 +36,35 @@ type Props = ModalRenderProps & {
   needProject: boolean;
 
   /**
-   * Organization slug
+   * The destination route
    */
-  organization: string;
-
-  projects: Project[];
-  loading: boolean;
+  nextPath: string;
 
   /**
    * Finish callback
    */
   onFinish: (path: string) => void;
-
   /**
    * Callback for when organization is selected
    */
   onSelectOrganization: (orgSlug: string) => void;
 
   /**
+   * Organization slug
+   */
+  organization: string;
+
+  /**
+   * List of available organizations
+   */
+  organizations: Organization[];
+
+  projects: Project[];
+  /**
    * Id of the project (most likely from the URL)
    * on which the modal was opened
    */
   comingFromProjectId?: string;
-  integrationConfigs: Integration[];
 };
 
 const selectStyles: StylesConfig = {
@@ -446,17 +446,17 @@ type ContainerProps = Omit<
   | 'onSelectOrganization'
   | 'integrationConfigs'
 > & {
+  configUrl?: string;
   /**
    * List of slugs we want to be able to choose from
    */
   projectSlugs?: string[];
-  configUrl?: string;
 } & AsyncComponent['props'];
 
 type ContainerState = {
-  selectedOrganization?: string;
   organizations: Organization[];
   integrationConfigs?: Integration[];
+  selectedOrganization?: string;
 } & AsyncComponent['state'];
 
 class ContextPickerModalContainer extends AsyncComponent<ContainerProps, ContainerState> {
@@ -495,9 +495,9 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
     initiallyLoaded,
     integrationConfigs,
   }: {
-    projects?: Project[];
     initiallyLoaded?: boolean;
     integrationConfigs?: Integration[];
+    projects?: Project[];
   }) {
     return (
       <ContextPickerModal

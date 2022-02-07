@@ -19,8 +19,8 @@ const initialStyles = {
 };
 
 type Props = {
-  onOpenWidgetBuilder: () => void;
   onAddWidget: () => void;
+  onOpenWidgetBuilder: () => void;
   orgFeatures: Organization['features'];
 };
 

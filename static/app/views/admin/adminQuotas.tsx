@@ -8,9 +8,9 @@ type Config = {
 };
 
 type State = AsyncView['state'] & {
-  since: number;
-  resolution: string;
   config: Config;
+  resolution: string;
+  since: number;
 };
 
 export default class AdminQuotas extends AsyncView<{}, State> {

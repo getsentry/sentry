@@ -39,13 +39,13 @@ import {getReleaseBounds, ReleaseBounds} from '../utils';
 import ReleaseHeader from './header/releaseHeader';
 
 type ReleaseContextType = {
-  release: ReleaseWithHealth;
-  project: Required<ReleaseProject>;
   deploys: Deploy[];
-  releaseMeta: ReleaseMeta;
-  refetchData: () => void;
   hasHealthData: boolean;
+  project: Required<ReleaseProject>;
+  refetchData: () => void;
+  release: ReleaseWithHealth;
   releaseBounds: ReleaseBounds;
+  releaseMeta: ReleaseMeta;
 };
 const ReleaseContext = createContext<ReleaseContextType>({} as ReleaseContextType);
 
@@ -56,13 +56,13 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  selection: PageFilters;
   releaseMeta: ReleaseMeta;
+  selection: PageFilters;
 };
 
 type State = {
-  release: ReleaseWithHealth;
   deploys: Deploy[];
+  release: ReleaseWithHealth;
   sessions: SessionApiResponse | null;
 } & AsyncView['state'];
 

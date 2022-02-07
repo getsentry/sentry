@@ -4,8 +4,8 @@ import {formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
-  className?: string;
   bytes: number;
+  className?: string;
 };
 
 function FileSize(props: Props) {

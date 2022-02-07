@@ -10,8 +10,8 @@ import {defined} from 'sentry/utils';
 type Value = string | number | boolean;
 
 type Props = {
-  hideLabelDivider?: boolean;
   choices: Choices;
+  hideLabelDivider?: boolean;
 } & FormField['props'];
 
 type State = FormField['state'] & {

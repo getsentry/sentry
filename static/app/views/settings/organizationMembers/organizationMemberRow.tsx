@@ -17,18 +17,18 @@ import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'sentry/utils/recreateRoute';
 
 type Props = {
-  params: Record<string, string>;
-  routes: PlainRoute[];
+  canAddMembers: boolean;
+  canRemoveMembers: boolean;
+  currentUser: AvatarUser;
   member: Member;
-  onRemove: (member: Member) => void;
+  memberCanLeave: boolean;
   onLeave: (member: Member) => void;
+  onRemove: (member: Member) => void;
   onSendInvite: (member: Member) => void;
   orgName: string;
-  memberCanLeave: boolean;
+  params: Record<string, string>;
   requireLink: boolean;
-  canRemoveMembers: boolean;
-  canAddMembers: boolean;
-  currentUser: AvatarUser;
+  routes: PlainRoute[];
   status: '' | 'loading' | 'success' | 'error' | null;
 };
 

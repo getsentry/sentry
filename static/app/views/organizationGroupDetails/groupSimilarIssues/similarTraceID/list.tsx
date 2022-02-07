@@ -27,17 +27,17 @@ type CustomGroup = GroupResolution & {
 };
 
 type Period = {
-  start: string;
   end: string;
+  start: string;
 };
 
 type Props = {
   api: Client;
-  orgSlug: string;
   issues: Array<TableDataRow>;
-  period: Period;
-  pageLinks: string | null;
   location: Location;
+  orgSlug: string;
+  pageLinks: string | null;
+  period: Period;
   traceID: string;
 };
 

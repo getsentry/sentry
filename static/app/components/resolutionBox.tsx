@@ -17,8 +17,8 @@ import {
 } from 'sentry/types';
 
 type Props = {
-  statusDetails: ResolutionStatusDetails;
   projectId: string;
+  statusDetails: ResolutionStatusDetails;
   activities?: GroupActivity[];
 };
 

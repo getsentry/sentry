@@ -20,9 +20,9 @@ import {
 } from 'sentry/views/performance/trends/utils';
 
 export type TrendsRequest = {
+  eventView: Partial<TrendView>;
   trendChangeType?: TrendChangeType;
   trendFunctionField?: TrendFunctionField;
-  eventView: Partial<TrendView>;
 };
 
 type RequestProps = DiscoverQueryProps & TrendsRequest;

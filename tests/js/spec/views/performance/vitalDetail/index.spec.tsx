@@ -35,7 +35,7 @@ const {
 });
 
 function TestComponent(
-  props: {router?: InjectedRouter; orgFeatures?: string[]; isMetricsData?: boolean} = {}
+  props: {isMetricsData?: boolean; orgFeatures?: string[]; router?: InjectedRouter} = {}
 ) {
   return (
     <OrganizationContext.Provider

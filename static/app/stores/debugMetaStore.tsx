@@ -7,10 +7,10 @@ type State = {
 };
 
 type DebugMetaStoreInterface = {
+  get(): State;
   init(): void;
   reset(): void;
   updateFilter(word: string): void;
-  get(): State;
 };
 
 type Internals = {

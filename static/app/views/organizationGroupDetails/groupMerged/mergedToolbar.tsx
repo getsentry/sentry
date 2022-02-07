@@ -12,18 +12,18 @@ import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 
 type Props = {
+  groupId: Group['id'];
+  onToggleCollapse: () => void;
+  onUnmerge: () => void;
   orgId: Organization['slug'];
   project: Project;
-  groupId: Group['id'];
-  onUnmerge: () => void;
-  onToggleCollapse: () => void;
 };
 
 type State = {
-  unmergeList: Map<any, any>;
-  unmergeLastCollapsed: boolean;
-  unmergeDisabled: boolean;
   enableFingerprintCompare: boolean;
+  unmergeDisabled: boolean;
+  unmergeLastCollapsed: boolean;
+  unmergeList: Map<any, any>;
 };
 
 class MergedToolbar extends React.Component<Props, State> {

@@ -5,8 +5,8 @@ import {t} from 'sentry/locale';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 
 type Props = {
-  id: string;
   disabled: boolean;
+  id: string;
 };
 
 type State = {

@@ -30,14 +30,14 @@ import SwitchOrganization from './switchOrganization';
 // TODO: make org and user optional props
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
+  config: Config;
   projects: Project[];
   user: User;
-  config: Config;
-  org?: Organization;
   /**
    * Set to true to hide links within the organization
    */
   hideOrgLinks?: boolean;
+  org?: Organization;
 };
 
 const SidebarDropdown = ({

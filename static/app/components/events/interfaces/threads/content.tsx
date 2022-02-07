@@ -13,12 +13,12 @@ type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
 type Props = {
   event: Event;
-  projectId: Project['id'];
-  stackType: STACK_TYPE;
   newestFirst: boolean;
+  projectId: Project['id'];
   stackTraceNotFound: boolean;
-  stackView?: STACK_VIEW;
+  stackType: STACK_TYPE;
   data?: Thread;
+  stackView?: STACK_VIEW;
 } & Pick<
   CrashContentProps,
   'exception' | 'stacktrace' | 'hasHierarchicalGrouping' | 'groupingCurrentLevel'

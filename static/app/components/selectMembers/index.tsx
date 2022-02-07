@@ -16,40 +16,40 @@ const getSearchKeyForUser = (user: User) =>
   `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
 
 type MentionableUser = {
-  value: string;
-  label: React.ReactElement;
-  searchKey: string;
   actor: {
-    type: 'user';
     id: string;
     name: string;
+    type: 'user';
   };
+  label: React.ReactElement;
+  searchKey: string;
+  value: string;
   disabled?: boolean;
 };
 
 type Props = {
   api: Client;
-  project?: Project;
+  onChange: (value: any) => any;
   organization: Organization;
   value: any;
-  onChange: (value: any) => any;
-  onInputChange?: (value: any) => any;
   disabled?: boolean;
+  onInputChange?: (value: any) => any;
   placeholder?: string;
+  project?: Project;
   styles?: {control?: (provided: any) => any};
 };
 
 type State = {
+  inputValue: string;
   loading: boolean;
   memberListLoading: boolean;
-  inputValue: string;
   options: MentionableUser[] | null;
 };
 
 type FilterOption<T> = {
-  value: string;
-  label: React.ReactNode;
   data: T;
+  label: React.ReactNode;
+  value: string;
 };
 
 /**

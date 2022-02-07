@@ -12,7 +12,7 @@ import {getDuration} from 'sentry/utils/formatters';
 
 import {barAxisLabel, convertDaySeriesToWeeks} from './utils';
 
-type TimeToResolution = Record<string, {count: number; avg: number}>;
+type TimeToResolution = Record<string, {avg: number; count: number}>;
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;

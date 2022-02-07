@@ -13,26 +13,26 @@ type SaveSnapshot = (() => number) | null;
 export type FieldValue = string | number | boolean | undefined; // is undefined valid here?
 
 export type FormOptions = {
+  allowUndo?: boolean;
   apiEndpoint?: string;
   apiMethod?: APIRequestMethod;
-  allowUndo?: boolean;
-  resetOnError?: boolean;
-  saveOnBlur?: boolean;
   onFieldChange?: (id: string, finalValue: FieldValue) => void;
+  onSubmitError?: (error: any, instance: FormModel, id?: string) => void;
   onSubmitSuccess?: (
     response: any,
     instance: FormModel,
     id?: string,
-    change?: {old: FieldValue; new: FieldValue}
+    change?: {new: FieldValue; old: FieldValue}
   ) => void;
-  onSubmitError?: (error: any, instance: FormModel, id?: string) => void;
+  resetOnError?: boolean;
+  saveOnBlur?: boolean;
 };
 
 type ClientOptions = ConstructorParameters<typeof Client>[0];
 
 type OptionsWithInitial = FormOptions & {
-  initialData?: object;
   apiOptions?: ClientOptions;
+  initialData?: object;
 };
 
 class FormModel {
@@ -280,9 +280,9 @@ class FormModel {
     apiMethod,
     data,
   }: {
+    data: object;
     apiEndpoint?: string;
     apiMethod?: APIRequestMethod;
-    data: object;
   }) {
     const endpoint = apiEndpoint || this.options.apiEndpoint || '';
     const method = apiMethod || this.options.apiMethod;

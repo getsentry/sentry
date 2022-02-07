@@ -23,8 +23,8 @@ import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './ut
 
 type WrapGuideProps = {
   children: React.ReactElement;
-  tabQuery: string;
   query: string;
+  tabQuery: string;
   to: React.ComponentProps<typeof GuideAnchor>['to'];
 };
 
@@ -41,16 +41,16 @@ function WrapGuideTabs({children, tabQuery, query, to}: WrapGuideProps) {
 }
 
 type Props = {
+  displayReprocessingTab: boolean;
+  onRealtimeChange: (realtime: boolean) => void;
   organization: Organization;
+  projects: Project[];
   query: string;
-  sort: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
   router: InjectedRouter;
-  onRealtimeChange: (realtime: boolean) => void;
-  displayReprocessingTab: boolean;
   selectedProjectIds: number[];
-  projects: Project[];
+  sort: string;
   queryCount?: number;
 } & React.ComponentProps<typeof SavedSearchTab>;
 

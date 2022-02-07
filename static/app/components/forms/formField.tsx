@@ -10,23 +10,23 @@ import {defined} from 'sentry/utils';
 type Value = string | number | boolean;
 
 type DefaultProps = {
-  required?: boolean;
   disabled?: boolean;
   hideErrorMessage?: boolean;
+  required?: boolean;
 };
 
 type FormFieldProps = DefaultProps & {
   name: string;
-  style?: object;
-  label?: React.ReactNode;
+  className?: string;
   defaultValue?: any;
   disabledReason?: string;
-  help?: string | React.ReactNode;
-  className?: string;
-  onChange?: (value: Value) => void;
   error?: string;
-  value?: Value;
+  help?: string | React.ReactNode;
+  label?: React.ReactNode;
   meta?: Meta;
+  onChange?: (value: Value) => void;
+  style?: object;
+  value?: Value;
 };
 
 type FormFieldState = {

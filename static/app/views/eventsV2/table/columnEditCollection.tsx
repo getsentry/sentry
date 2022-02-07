@@ -42,11 +42,11 @@ type Props = {
 };
 
 type State = {
-  isDragging: boolean;
+  draggingGrabbedOffset: undefined | {x: number; y: number};
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
-  draggingGrabbedOffset: undefined | {x: number; y: number};
   error: Map<number, string | undefined>;
+  isDragging: boolean;
   left: undefined | number;
   top: undefined | number;
 };
@@ -392,11 +392,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
       gridColumns = 2,
       disabled = false,
     }: {
+      gridColumns: number;
       canDelete?: boolean;
       canDrag?: boolean;
-      isGhost?: boolean;
-      gridColumns: number;
       disabled?: boolean;
+      isGhost?: boolean;
     }
   ) {
     const {columns, fieldOptions} = this.props;

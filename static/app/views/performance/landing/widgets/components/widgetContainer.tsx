@@ -27,16 +27,16 @@ import {VitalWidgetMetrics} from '../widgets/vitalWidgetMetrics';
 import {ChartRowProps} from './widgetChartRow';
 
 type Props = {
-  index: number;
-  organization: Organization;
-  defaultChartSetting: PerformanceWidgetSetting;
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
-  chartColor?: string;
+  defaultChartSetting: PerformanceWidgetSetting;
   eventView: EventView;
-  forceDefaultChartSetting?: boolean;
+  index: number;
+  organization: Organization;
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
+  chartColor?: string;
+  forceDefaultChartSetting?: boolean;
 } & ChartRowProps;
 
 function trackChartSettingChange(
@@ -184,10 +184,10 @@ export const WidgetContainerActions = ({
   allowedCharts,
   rowChartSettings,
 }: {
-  chartSetting: PerformanceWidgetSetting;
-  setChartSetting: (setting: PerformanceWidgetSetting) => void;
   allowedCharts: PerformanceWidgetSetting[];
+  chartSetting: PerformanceWidgetSetting;
   rowChartSettings: PerformanceWidgetSetting[];
+  setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) => {
   const organization = useOrganization();
   const menuOptions: React.ReactNode[] = [];

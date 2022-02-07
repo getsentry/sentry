@@ -54,38 +54,38 @@ import ReleaseEventsChart from './releaseEventsChart';
 import ReleaseSessionsChart from './releaseSessionsChart';
 
 export type ReleaseComparisonRow = {
-  type: ReleaseComparisonChartType;
-  thisRelease: React.ReactNode;
   allReleases: React.ReactNode;
   diff: React.ReactNode;
-  diffDirection: 'up' | 'down' | null;
   diffColor: Color | null;
-  role: 'parent' | 'children' | 'default';
+  diffDirection: 'up' | 'down' | null;
   drilldown: React.ReactNode;
+  role: 'parent' | 'children' | 'default';
+  thisRelease: React.ReactNode;
+  type: ReleaseComparisonChartType;
 };
 
 type Props = {
-  release: ReleaseWithHealth;
-  project: ReleaseProject;
-  releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
-  platform: PlatformKey;
-  location: Location;
-  loading: boolean;
-  reloading: boolean;
-  errored: boolean;
   api: Client;
-  organization: Organization;
+  errored: boolean;
   hasHealthData: boolean;
+  loading: boolean;
+  location: Location;
+  organization: Organization;
+  platform: PlatformKey;
+  project: ReleaseProject;
+  release: ReleaseWithHealth;
+  releaseSessions: SessionApiResponse | null;
+  reloading: boolean;
 };
 
 type EventsTotals = {
   allErrorCount: number;
-  releaseErrorCount: number;
-  allTransactionCount: number;
-  releaseTransactionCount: number;
-  releaseFailureRate: number;
   allFailureRate: number;
+  allTransactionCount: number;
+  releaseErrorCount: number;
+  releaseFailureRate: number;
+  releaseTransactionCount: number;
 } | null;
 
 type IssuesTotals = {

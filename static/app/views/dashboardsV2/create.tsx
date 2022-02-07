@@ -14,8 +14,8 @@ import {DashboardState, Widget} from './types';
 import {cloneDashboard, constructWidgetFromQuery} from './utils';
 
 type Props = RouteComponentProps<{orgId: string; templateId?: string}, {}> & {
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 };
 
 function CreateDashboard(props: Props) {

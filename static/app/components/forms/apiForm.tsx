@@ -12,12 +12,12 @@ import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 
 type Props = Form['props'] & {
-  omitDisabled?: boolean;
-  onSubmit?: (data: object) => void;
   apiEndpoint: string;
   apiMethod: APIRequestMethod;
-  submitLoadingMessage?: string;
+  omitDisabled?: boolean;
+  onSubmit?: (data: object) => void;
   submitErrorMessage?: string;
+  submitLoadingMessage?: string;
 };
 
 export default class ApiForm extends Form<Props> {

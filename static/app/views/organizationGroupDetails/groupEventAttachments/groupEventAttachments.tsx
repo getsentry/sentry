@@ -16,12 +16,12 @@ import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 
 type Props = {
   projectSlug: string;
-} & WithRouterProps<{orgId: string; groupId: string}> &
+} & WithRouterProps<{groupId: string; orgId: string}> &
   AsyncComponent['props'];
 
 type State = {
-  eventAttachments?: IssueAttachment[];
   deletedAttachments: string[];
+  eventAttachments?: IssueAttachment[];
 } & AsyncComponent['state'];
 
 class GroupEventAttachments extends AsyncComponent<Props, State> {

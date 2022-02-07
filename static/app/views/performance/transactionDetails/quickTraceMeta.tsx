@@ -27,11 +27,11 @@ type Props = Pick<
   React.ComponentProps<typeof QuickTrace>,
   'errorDest' | 'transactionDest'
 > & {
+  anchor: 'left' | 'right';
   event: Event;
   location: Location;
   quickTrace: QuickTraceQueryChildrenProps | null;
   traceMeta: TraceMeta | null;
-  anchor: 'left' | 'right';
   project?: AvatarProject;
 };
 

@@ -21,11 +21,11 @@ const MENUS = {
 } as const;
 
 type Props = {
-  className?: string;
-  routes: RouteWithName[];
-  pathMap: Record<string, string>;
   params: {[param: string]: string | undefined};
+  pathMap: Record<string, string>;
   route: any;
+  routes: RouteWithName[];
+  className?: string;
 };
 
 class SettingsBreadcrumb extends Component<Props> {

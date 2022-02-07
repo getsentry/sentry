@@ -6,8 +6,8 @@ import {t} from 'sentry/locale';
 
 type Props = Omit<React.ComponentProps<typeof Button>, 'onClick'> & {
   index: number;
-  triggerIndex: number;
   onClick: (triggerIndex: number, index: number, e: React.MouseEvent) => void;
+  triggerIndex: number;
 };
 
 export default function DeleteActionButton(props: Props) {

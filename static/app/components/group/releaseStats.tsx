@@ -14,12 +14,12 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import SidebarSection from './sidebarSection';
 
 type Props = {
+  allEnvironments: Group | undefined;
+  currentRelease: CurrentRelease | undefined;
+  environments: Environment[];
+  group: Group | undefined;
   organization: Organization;
   project: Project;
-  environments: Environment[];
-  allEnvironments: Group | undefined;
-  group: Group | undefined;
-  currentRelease: CurrentRelease | undefined;
 };
 
 const GroupReleaseStats = ({

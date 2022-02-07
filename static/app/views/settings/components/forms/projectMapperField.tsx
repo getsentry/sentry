@@ -31,8 +31,8 @@ type Props = InputField['props'];
 type RenderProps = Props & ProjectMapperType & {model: FormModel};
 
 type State = {
-  selectedSentryProjectId: number | null;
   selectedMappedValue: MappedValue | null;
+  selectedSentryProjectId: number | null;
 };
 
 // Get the icon

@@ -170,7 +170,7 @@ export function convertDatasetEventTypesToSource(
  */
 export function getQueryDatasource(
   query: string
-): {source: Datasource; query: string} | null {
+): {query: string; source: Datasource} | null {
   let match = query.match(
     /\(?\bevent\.type:(error|default|transaction)\)?\WOR\W\(?event\.type:(error|default|transaction)\)?/i
   );

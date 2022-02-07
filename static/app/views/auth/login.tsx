@@ -29,10 +29,10 @@ type Props = {
 };
 
 type State = {
-  loading: boolean;
-  error: null | boolean;
   activeTab: ActiveTab;
   authConfig: null | AuthConfig;
+  error: null | boolean;
+  loading: boolean;
 };
 
 class Login extends React.Component<Props, State> {

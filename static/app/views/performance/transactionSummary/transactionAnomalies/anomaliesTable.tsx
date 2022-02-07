@@ -14,10 +14,10 @@ import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
 import {AnomalyInfo} from 'sentry/utils/performance/anomalies/anomaliesQuery';
 
 type Props = {
-  anomalies?: AnomalyInfo[];
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  isLoading: boolean;
+  anomalies?: AnomalyInfo[];
 };
 
 const transformRow = (anom: AnomalyInfo): TableDataRowWithExtras => {

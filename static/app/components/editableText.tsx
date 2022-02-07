@@ -12,12 +12,12 @@ import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
-  value: string;
   onChange: (value: string) => void;
-  name?: string;
+  value: string;
   errorMessage?: React.ReactNode;
-  successMessage?: React.ReactNode;
   isDisabled?: boolean;
+  name?: string;
+  successMessage?: React.ReactNode;
 };
 
 function EditableText({

@@ -6,9 +6,9 @@ import Rules from './rules';
 import {Rule} from './types';
 
 type Props = {
-  rules: Array<Rule>;
-  onEditRule: (rule: Rule['id']) => () => void;
   onDeleteRule: (rule: Rule['id']) => () => void;
+  onEditRule: (rule: Rule['id']) => () => void;
+  rules: Array<Rule>;
   disabled?: boolean;
 };
 

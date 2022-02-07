@@ -42,10 +42,10 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
-  ownership: null | any;
   codeMappings: RepositoryProjectPathConfig[];
-  codeowners?: CodeOwner[];
   integrations: Integration[];
+  ownership: null | any;
+  codeowners?: CodeOwner[];
 } & AsyncView['state'];
 
 const CodeOwnersHeader = HookOrDefault({

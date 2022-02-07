@@ -11,13 +11,13 @@ import Actions from './actions';
 import Information from './information';
 
 type Props = {
+  baseUrl: string;
   candidate: ImageCandidate;
+  hasReprocessWarning: boolean;
+  haveCandidatesAtLeastOneAction: boolean;
+  onDelete: (debugFileId: string) => void;
   organization: Organization;
   projSlug: Project['slug'];
-  baseUrl: string;
-  haveCandidatesAtLeastOneAction: boolean;
-  hasReprocessWarning: boolean;
-  onDelete: (debugFileId: string) => void;
   eventDateReceived?: string;
 };
 

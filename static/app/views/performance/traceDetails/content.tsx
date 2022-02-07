@@ -59,30 +59,30 @@ import {TraceInfo, TreeDepth} from './types';
 import {getTraceInfo, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {
-  transaction: TraceFullDetailed;
   indexed: string[];
+  transaction: TraceFullDetailed;
 };
 
 type AccType = {
-  renderedChildren: React.ReactNode[];
   lastIndex: number;
   numberOfHiddenTransactionsAbove: number;
+  renderedChildren: React.ReactNode[];
 };
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
-  organization: Organization;
-  traceSlug: string;
-  traceEventView: EventView;
   dateSelected: boolean;
-  isLoading: boolean;
   error: string | null;
-  traces: TraceFullDetailed[] | null;
+  isLoading: boolean;
   meta: TraceMeta | null;
+  organization: Organization;
+  traceEventView: EventView;
+  traceSlug: string;
+  traces: TraceFullDetailed[] | null;
 };
 
 type State = {
-  searchQuery: string | undefined;
   filteredTransactionIds: Set<string> | undefined;
+  searchQuery: string | undefined;
 };
 
 class TraceDetailsContent extends React.Component<Props, State> {
@@ -440,12 +440,12 @@ class TraceDetailsContent extends React.Component<Props, State> {
       hasGuideAnchor,
     }: {
       continuingDepths: TreeDepth[];
-      isOrphan: boolean;
-      isLast: boolean;
+      hasGuideAnchor: boolean;
       index: number;
+      isLast: boolean;
+      isOrphan: boolean;
       numberOfHiddenTransactionsAbove: number;
       traceInfo: TraceInfo;
-      hasGuideAnchor: boolean;
     }
   ) {
     const {location, organization} = this.props;

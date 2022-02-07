@@ -14,31 +14,31 @@ type ReleaseStoreInterface = {
     projectSlug: string,
     releaseVersion: string
   ): {
-    release: Release | undefined;
-    releaseLoading: boolean | undefined;
-    releaseError: Error | undefined;
     deploys: Array<Deploy> | undefined;
-    deploysLoading: boolean | undefined;
     deploysError: Error | undefined;
+    deploysLoading: boolean | undefined;
+    release: Release | undefined;
+    releaseError: Error | undefined;
+    releaseLoading: boolean | undefined;
   };
 
+  loadDeploys(orgSlug: string, projectSlug: string, releaseVersion: string): void;
+
+  loadDeploysError(projectSlug: string, releaseVersion: string, error: Error): void;
+  loadDeploysSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
+  loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string): void;
+  loadReleaseError(projectSlug: string, releaseVersion: string, error: Error): void;
+  loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
   state: {
+    deploys: StoreDeploys;
+    deploysError: StoreError;
+    deploysLoading: StoreLoading;
     orgSlug: string | undefined;
     release: StoreRelease;
-    releaseLoading: StoreLoading;
     releaseError: StoreError;
-    deploys: StoreDeploys;
-    deploysLoading: StoreLoading;
-    deploysError: StoreError;
+    releaseLoading: StoreLoading;
   };
-
   updateOrganization(org: Organization): void;
-  loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string): void;
-  loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
-  loadReleaseError(projectSlug: string, releaseVersion: string, error: Error): void;
-  loadDeploys(orgSlug: string, projectSlug: string, releaseVersion: string): void;
-  loadDeploysSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
-  loadDeploysError(projectSlug: string, releaseVersion: string, error: Error): void;
 };
 
 export const getReleaseStoreKey = (projectSlug: string, releaseVersion: string) =>

@@ -81,12 +81,12 @@ export function getProjectID(
 
 type Props = {
   eventView: EventView;
-  organization: Organization;
   location: Location;
-  setError: (msg: string | undefined) => void;
-  summaryConditions: string;
-
+  organization: Organization;
   projects: Project[];
+  setError: (msg: string | undefined) => void;
+
+  summaryConditions: string;
 };
 
 type State = {

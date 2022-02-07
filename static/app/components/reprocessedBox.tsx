@@ -10,10 +10,10 @@ import {GroupActivityReprocess, Organization} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
 type Props = {
-  reprocessActivity: GroupActivityReprocess;
   groupCount: number;
   groupId: string;
   orgSlug: Organization['slug'];
+  reprocessActivity: GroupActivityReprocess;
   className?: string;
 };
 

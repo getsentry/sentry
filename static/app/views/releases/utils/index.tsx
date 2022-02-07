@@ -127,7 +127,7 @@ export const getReleaseHandledIssuesUrl = (
 export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.Archived;
 
-export type ReleaseBounds = {releaseStart?: string | null; releaseEnd?: string | null};
+export type ReleaseBounds = {releaseEnd?: string | null; releaseStart?: string | null};
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
   const {lastEvent, currentProjectMeta, dateCreated} = release || {};

@@ -20,9 +20,9 @@ import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
-  projectSlug: Project['slug'];
   event: Event;
   organization: SharedViewOrganization | Organization;
+  projectSlug: Project['slug'];
   group?: Group;
 };
 

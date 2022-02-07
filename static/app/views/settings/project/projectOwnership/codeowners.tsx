@@ -12,12 +12,12 @@ import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPane
 
 type Props = {
   api: Client;
-  organization: Organization;
-  project: Project;
   codeowners: CodeOwner[];
   disabled: boolean;
   onDelete: (data: CodeOwner) => void;
   onUpdate: (data: CodeOwner) => void;
+  organization: Organization;
+  project: Project;
 };
 
 class CodeOwnersPanel extends Component<Props> {

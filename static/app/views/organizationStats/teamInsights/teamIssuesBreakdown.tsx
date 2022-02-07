@@ -22,13 +22,13 @@ import {
 } from './utils';
 
 type StatusCounts = {
-  resolved?: number;
-  ignored?: number;
+  total: number;
   deleted?: number;
+  ignored?: number;
   new?: number;
   regressed?: number;
+  resolved?: number;
   unignored?: number;
-  total: number;
 };
 
 type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
@@ -38,8 +38,8 @@ type Statuses = keyof Omit<StatusCounts, 'total'>;
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projects: Project[];
-  teamSlug: string;
   statuses: Statuses[];
+  teamSlug: string;
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
