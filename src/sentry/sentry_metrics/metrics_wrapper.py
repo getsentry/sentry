@@ -6,7 +6,7 @@ from sentry.metrics.base import MetricsBackend
 Tags = Mapping[str, str]
 
 
-class MetricsWrapper(MetricsBackend):
+class MetricsWrapper(MetricsBackend):  # type: ignore
     def __init__(
         self,
         backend: MetricsBackend,
