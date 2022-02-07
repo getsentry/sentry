@@ -159,13 +159,11 @@ describe('OrganizationMembersList', function () {
       TestStubs.routerContext([{organization}])
     );
 
-    await act(async () => {
-      wrapper.find('Button[data-test-id="remove"]').at(0).simulate('click');
+    wrapper.find('Button[data-test-id="remove"]').at(0).simulate('click');
 
-      // Confirm modal
-      const modal = await mountGlobalModal();
-      modal.find('Button[priority="primary"]').simulate('click');
-    });
+    // Confirm modal
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="primary"]').simulate('click');
 
     await tick();
 

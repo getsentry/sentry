@@ -63,10 +63,8 @@ describe('AsyncComponentSearchInput', () => {
 
     expect(props.onSuccess).not.toHaveBeenCalled();
 
-    act(() => {
-      userEvent.click(screen.getByRole('textbox'));
-      userEvent.keyboard('e');
-    });
+    userEvent.click(screen.getByRole('textbox'));
+    userEvent.keyboard('e');
 
     await waitFor(() => expect(props.onSuccess).toHaveBeenCalledTimes(1));
   });
