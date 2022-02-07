@@ -20,7 +20,6 @@ import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
-import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -223,16 +222,14 @@ class ProjectDetail extends AsyncView<Props, State> {
                   ]}
                 />
                 <Layout.Title>
-                  <TextOverflow>
-                    {project && (
-                      <IdBadge
-                        project={project}
-                        avatarSize={28}
-                        displayName={params.projectId}
-                        disableLink
-                      />
-                    )}
-                  </TextOverflow>
+                  {project && (
+                    <IdBadge
+                      project={project}
+                      avatarSize={28}
+                      hideOverflow="100%"
+                      disableLink
+                    />
+                  )}
                 </Layout.Title>
               </Layout.HeaderContent>
 
