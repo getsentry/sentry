@@ -2,10 +2,10 @@ import {createContext} from 'react';
 import {LocationDescriptor} from 'history';
 
 type ChildTransaction = {
+  eventSlug: string;
+  id: string;
   'project.name': string;
   transaction: string;
-  id: string;
-  eventSlug: string;
 };
 
 export type SpanEntryContextChildrenProps = {

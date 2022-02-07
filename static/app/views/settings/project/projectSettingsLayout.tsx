@@ -9,8 +9,8 @@ import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import ProjectSettingsNavigation from 'sentry/views/settings/project/projectSettingsNavigation';
 
 type Props = {
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 function ProjectSettingsLayout({

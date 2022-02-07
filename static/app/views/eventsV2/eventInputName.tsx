@@ -11,8 +11,8 @@ import useApi from 'sentry/utils/useApi';
 import {handleUpdateQueryName} from './savedQuery/utils';
 
 type Props = {
-  organization: Organization;
   eventView: EventView;
+  organization: Organization;
   savedQuery?: SavedQuery;
 };
 

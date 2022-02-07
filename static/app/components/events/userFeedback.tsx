@@ -12,9 +12,9 @@ import {UserReport} from 'sentry/types';
 import {escape, nl2br} from 'sentry/utils';
 
 type Props = {
-  report: UserReport;
-  orgId: string;
   issueId: string;
+  orgId: string;
+  report: UserReport;
   className?: string;
 };
 

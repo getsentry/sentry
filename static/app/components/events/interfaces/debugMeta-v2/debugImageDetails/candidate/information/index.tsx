@@ -29,8 +29,8 @@ import ProcessingIcon from './processingIcon';
 
 type Props = {
   candidate: ImageCandidate;
-  isInternalSource: boolean;
   hasReprocessWarning: boolean;
+  isInternalSource: boolean;
   eventDateReceived?: string;
 };
 

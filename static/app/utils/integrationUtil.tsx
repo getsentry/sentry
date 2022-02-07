@@ -247,7 +247,7 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
 export const getExternalActorEndpointDetails = (
   baseEndpoint: string,
   mapping?: ExternalActorMappingOrSuggestion
-): {apiMethod: 'POST' | 'PUT'; apiEndpoint: string} => {
+): {apiEndpoint: string; apiMethod: 'POST' | 'PUT'} => {
   const isValidMapping = mapping && isExternalActorMapping(mapping);
   return {
     apiMethod: isValidMapping ? 'PUT' : 'POST',

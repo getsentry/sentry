@@ -6,10 +6,10 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 
 type Props = {
-  onSave: () => void;
-  title: string;
   content: React.ReactElement;
   disabled: boolean;
+  onSave: () => void;
+  title: string;
 } & ModalRenderProps;
 
 const Modal = ({

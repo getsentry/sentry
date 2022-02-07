@@ -38,13 +38,13 @@ import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
 
 type Props = WithRouterProps & {
-  currentTab: string;
+  api: Client;
   baseUrl: string;
+  currentTab: string;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
-  project: Project;
-  api: Client;
   organization: Organization;
+  project: Project;
   event?: Event;
 };
 

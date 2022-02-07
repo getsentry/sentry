@@ -15,27 +15,27 @@ export enum OnboardingTaskKey {
 }
 
 export type OnboardingSupplementComponentProps = {
-  task: OnboardingTask;
   onCompleteTask: () => void;
+  task: OnboardingTask;
 };
 
 export type OnboardingTaskDescriptor = {
-  task: OnboardingTaskKey;
-  title: string;
   description: string;
   /**
-   * Can this task be skipped?
+   * Should the onboarding task currently be displayed
    */
-  skippable: boolean;
+  display: boolean;
   /**
    * A list of require task keys that must have been completed before these
    * tasks may be completed.
    */
   requisites: OnboardingTaskKey[];
   /**
-   * Should the onboarding task currently be displayed
+   * Can this task be skipped?
    */
-  display: boolean;
+  skippable: boolean;
+  task: OnboardingTaskKey;
+  title: string;
   /**
    * An extra component that may be rendered within the onboarding task item.
    */
@@ -46,18 +46,18 @@ export type OnboardingTaskDescriptor = {
       location: string;
     }
   | {
-      actionType: 'action';
       action: () => void;
+      actionType: 'action';
     }
 );
 
 export type OnboardingTaskStatus = {
-  task: OnboardingTaskKey;
   status: 'skipped' | 'pending' | 'complete';
-  user?: AvatarUser | null;
-  dateCompleted?: string;
+  task: OnboardingTaskKey;
   completionSeen?: string;
   data?: object;
+  dateCompleted?: string;
+  user?: AvatarUser | null;
 };
 
 export type OnboardingTask = OnboardingTaskStatus &

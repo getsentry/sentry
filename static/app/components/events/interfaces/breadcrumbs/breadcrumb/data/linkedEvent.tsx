@@ -14,17 +14,17 @@ import useApi from 'sentry/utils/useApi';
 import useSessionStorage from 'sentry/utils/useSessionStorage';
 
 type StoredLinkedEvent = {
-  shortId: string;
   groupId: string;
-  project: Project;
   orgSlug: Organization['slug'];
+  project: Project;
+  shortId: string;
 };
 
 type Props = {
-  orgSlug: Organization['slug'];
   eventId: string;
-  router: InjectedRouter;
+  orgSlug: Organization['slug'];
   route: PlainRoute;
+  router: InjectedRouter;
 };
 
 const errorMessage = t(

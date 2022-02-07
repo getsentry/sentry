@@ -1,7 +1,7 @@
 type Props = {
-  showWordmark?: boolean;
-  height?: string;
   className?: string;
+  height?: string;
+  showWordmark?: boolean;
 };
 
 function LogoSentry({showWordmark = true, height = '32px', className}: Props) {

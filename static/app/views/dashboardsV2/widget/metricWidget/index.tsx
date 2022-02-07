@@ -39,24 +39,24 @@ import Queries from './queries';
 
 type Props = AsyncView['props'] & {
   dashboardTitle: DashboardDetails['title'];
-  theme: Theme;
+  goBackLocation: LocationDescriptor;
+  loadingProjects: boolean;
+  location: Location;
+  onChangeDataSet: (dataSet: DataSet) => void;
   organization: Organization;
   projects: Project[];
   router: InjectedRouter;
-  location: Location;
-  loadingProjects: boolean;
   selection: PageFilters;
-  goBackLocation: LocationDescriptor;
-  onChangeDataSet: (dataSet: DataSet) => void;
+  theme: Theme;
 };
 
 type State = AsyncView['state'] &
   Pick<React.ComponentProps<typeof FiltersAndGroups>, 'groupBy' | 'searchQuery'> & {
-    title: string;
     displayType: DisplayType;
     metricMetas: MetricMeta[] | null;
     metricTags: MetricTag[] | null;
     queries: MetricQuery[];
+    title: string;
   };
 
 class MetricWidget extends AsyncView<Props, State> {

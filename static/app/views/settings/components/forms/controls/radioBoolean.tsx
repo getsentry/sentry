@@ -8,9 +8,9 @@ type OnChangeHandler = (
 type OptionProps = {
   label: string;
   value: string;
-  name?: string;
   checked?: boolean;
   disabled?: boolean;
+  name?: string;
   onChange?: OnChangeHandler;
 };
 
@@ -45,11 +45,11 @@ const Option = React.forwardRef(function Option(
 type Props = {
   disabled?: boolean;
   name?: string;
-  value?: boolean;
-  yesLabel?: string;
   noLabel?: string;
-  yesFirst?: boolean;
   onChange?: OnChangeHandler;
+  value?: boolean;
+  yesFirst?: boolean;
+  yesLabel?: string;
 };
 
 const RadioBoolean = React.forwardRef(function RadioBoolean(

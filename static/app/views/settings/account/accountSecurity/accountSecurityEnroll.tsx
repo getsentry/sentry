@@ -39,10 +39,6 @@ type getFieldsOpts = {
    */
   hasSentCode: boolean;
   /**
-   * Flag to track if we are currently sending the otp code
-   */
-  sendingCode: boolean;
-  /**
    * Callback to reset SMS 2fa enrollment
    */
   onSmsReset: () => void;
@@ -50,6 +46,10 @@ type getFieldsOpts = {
    * Callback when u2f device is activated
    */
   onU2fTap: U2fsign['props']['onTap'];
+  /**
+   * Flag to track if we are currently sending the otp code
+   */
+  sendingCode: boolean;
 };
 
 /**

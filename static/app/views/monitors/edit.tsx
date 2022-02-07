@@ -7,7 +7,7 @@ import MonitorForm from './monitorForm';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string; monitorId: string}, {}>;
+  RouteComponentProps<{monitorId: string; orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   monitor: Monitor | null;
