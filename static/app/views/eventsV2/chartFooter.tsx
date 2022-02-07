@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import Feature from 'sentry/components/acl/feature';
 import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
@@ -14,20 +13,19 @@ import {Organization, SelectValue} from 'sentry/types';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 type Props = {
-  organization: Organization;
-  total: number | null;
-  yAxisValue: string[];
-  yAxisOptions: SelectValue<string>[];
-  onAxisChange: (value: string[]) => void;
   displayMode: string;
   displayOptions: SelectValue<string>[];
+  onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
+  organization: Organization;
   topEvents: string;
+  total: number | null;
+  yAxisOptions: SelectValue<string>[];
+  yAxisValue: string[];
 };
 
 export default function ChartFooter({
-  organization,
   total,
   yAxisValue,
   yAxisOptions,
@@ -75,31 +73,12 @@ export default function ChartFooter({
             menuWidth="60px"
           />
         )}
-        <Feature
-          organization={organization}
-          features={['connect-discover-and-dashboards']}
-        >
-          {({hasFeature}) => {
-            if (hasFeature) {
-              return (
-                <OptionCheckboxSelector
-                  title={t('Y-Axis')}
-                  selected={yAxisValue}
-                  options={yAxisOptions}
-                  onChange={onAxisChange}
-                />
-              );
-            }
-            return (
-              <OptionSelector
-                title={t('Y-Axis')}
-                selected={yAxisValue[0]}
-                options={yAxisOptions}
-                onChange={value => onAxisChange([value])}
-              />
-            );
-          }}
-        </Feature>
+        <OptionCheckboxSelector
+          title={t('Y-Axis')}
+          selected={yAxisValue}
+          options={yAxisOptions}
+          onChange={onAxisChange}
+        />
       </InlineContainer>
     </ChartControls>
   );

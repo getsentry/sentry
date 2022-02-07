@@ -27,8 +27,8 @@ import Footer from './footer';
 type Props = {
   api: Client;
   eventView: EventView;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   router: InjectedRouter;
 };
 

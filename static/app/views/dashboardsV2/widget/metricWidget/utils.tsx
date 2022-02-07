@@ -42,9 +42,9 @@ export function getBreakdownChartData({
 }
 
 type FillChartDataFromMetricsResponse = {
-  response: SessionApiResponse;
-  field: string;
   chartData: ChartData;
+  field: string;
+  response: SessionApiResponse;
   valueFormatter?: (value: number) => number;
 };
 

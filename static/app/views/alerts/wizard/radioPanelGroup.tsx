@@ -5,13 +5,13 @@ import Radio from 'sentry/components/radio';
 import space from 'sentry/styles/space';
 
 type RadioPanelGroupProps<C extends string> = {
-  label: string;
   /**
    * An array of [id, name]
    */
   choices: [C, React.ReactNode, React.ReactNode?][];
-  value: string | null;
+  label: string;
   onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
+  value: string | null;
 };
 
 type Props<C extends string> = RadioPanelGroupProps<C> &

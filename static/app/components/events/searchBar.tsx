@@ -34,10 +34,10 @@ type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> 
   api: Client;
   organization: Organization;
   tags: TagCollection;
-  omitTags?: string[];
-  projectIds?: number[] | Readonly<number[]>;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
+  omitTags?: string[];
+  projectIds?: number[] | Readonly<number[]>;
 };
 
 class SearchBar extends React.PureComponent<SearchBarProps> {

@@ -9,19 +9,19 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {ChildProps, Result} from './types';
 
 type Props = WithRouterProps<{orgId: string}> & {
+  children: (props: ChildProps) => React.ReactElement;
   /**
    * search term
    */
   query: string;
-  children: (props: ChildProps) => React.ReactElement;
-  /**
-   * fusejs options.
-   */
-  searchOptions?: Fuse.FuseOptions<FormSearchField>;
   /**
    * List of form fields to search
    */
   searchMap?: null | FormSearchField[];
+  /**
+   * fusejs options.
+   */
+  searchOptions?: Fuse.FuseOptions<FormSearchField>;
 };
 
 type State = {

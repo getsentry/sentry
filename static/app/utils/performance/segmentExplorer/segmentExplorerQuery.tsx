@@ -12,13 +12,13 @@ import withApi from 'sentry/utils/withApi';
  * An individual row in a Segment explorer result
  */
 export type TableDataRow = {
-  tags_key: string;
-  tags_value: string;
-  sumdelta: number;
-  count: number;
-  frequency: number;
   aggregate: number;
   comparison: number;
+  count: number;
+  frequency: number;
+  sumdelta: number;
+  tags_key: string;
+  tags_value: string;
 };
 
 export type TableData = {
@@ -36,17 +36,17 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 
 type QueryProps = DiscoverQueryProps & {
   aggregateColumn: string;
-  allTagKeys?: boolean;
-  tagKey?: string;
-  sort?: string | string[];
   children: (props: ChildrenProps) => React.ReactNode;
+  allTagKeys?: boolean;
+  sort?: string | string[];
+  tagKey?: string;
 };
 
 type FacetQuery = LocationQuery &
   EventQuery & {
-    sort?: string | string[];
     aggregateColumn?: string;
     allTagKeys?: boolean;
+    sort?: string | string[];
     tagKey?: string;
   };
 

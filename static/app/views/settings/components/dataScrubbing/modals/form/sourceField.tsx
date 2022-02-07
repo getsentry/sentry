@@ -17,21 +17,21 @@ const defaultHelp = t(
 );
 
 type Props = {
-  value: string;
-  onChange: (value: string) => void;
   isRegExMatchesSelected: boolean;
+  onChange: (value: string) => void;
   suggestions: Array<SourceSuggestion>;
+  value: string;
   error?: string;
   onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
 };
 
 type State = {
-  suggestions: Array<SourceSuggestion>;
-  fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>;
   activeSuggestion: number;
-  showSuggestions: boolean;
-  hideCaret: boolean;
+  fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>;
   help: string;
+  hideCaret: boolean;
+  showSuggestions: boolean;
+  suggestions: Array<SourceSuggestion>;
 };
 
 class SourceField extends React.Component<Props, State> {

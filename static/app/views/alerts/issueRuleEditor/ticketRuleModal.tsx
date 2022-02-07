@@ -16,12 +16,12 @@ type Props = {
   index: number;
   // The AlertRuleAction from DB.
   instance: IssueAlertRuleAction;
-  link?: string;
   onSubmitAction: (
     data: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   organization: Organization;
+  link?: string;
   ticketType?: string;
 } & AbstractExternalIssueForm['props'];
 
@@ -84,15 +84,15 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   cleanData = (data: {
     [key: string]: string;
   }): {
-    integration?: string | number;
     [key: string]: any;
+    integration?: string | number;
   } => {
     const {instance} = this.props;
     const {issueConfigFieldsCache} = this.state;
     const names: string[] = this.getValidAndSavableFieldNames();
     const formData: {
-      integration?: string | number;
       [key: string]: any;
+      integration?: string | number;
     } = {};
     if (instance?.hasOwnProperty('integration')) {
       formData.integration = instance.integration;

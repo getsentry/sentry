@@ -20,8 +20,8 @@ const initialState = {
 
 type Props = {
   api: Client;
-  since: number;
   resolution: string;
+  since: number;
 };
 
 type State = {

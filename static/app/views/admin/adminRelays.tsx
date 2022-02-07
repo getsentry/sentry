@@ -17,11 +17,11 @@ type State = {
 };
 
 type RelayRow = {
-  id: string;
-  relayId: string;
-  publicKey: string;
   firstSeen: string;
+  id: string;
   lastSeen: string;
+  publicKey: string;
+  relayId: string;
 };
 
 class AdminRelays extends Component<Props, State> {
