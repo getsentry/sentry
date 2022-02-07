@@ -27,3 +27,23 @@ export function textWithMarkupMatcher(textMatch: string | RegExp) {
     return findTextWithMarkup(element, textMatch);
   };
 }
+
+/**
+ * Trigger onPress events on components that use react-aria (e.g. the dropdown
+ * menu). These components require more complex events than what enzyme can
+ * simulate with `.simulate('click')`. Preferably, we should use the
+ * 'user-event' library from react testing library. This function is a
+ * workaround for test files that still use enzyme. Read more:
+ * https://react-spectrum.adobe.com/react-spectrum/testing.html#triggering-events
+ */
+export function triggerPress(element) {
+  element.prop('onClick')({
+    button: 0,
+    detail: 0,
+    nativeEvent: {detail: 0},
+    currentTarget: element.getDOMNode(),
+    target: element.getDOMNode(),
+    stopPropagation: () => {},
+    preventDefault: () => {},
+  });
+}

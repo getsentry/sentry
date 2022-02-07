@@ -157,7 +157,7 @@ const IgnoreActions = ({
           ],
         })),
         {
-          key: 'for-custom',
+          key: 'until-reoccur-custom',
           label: t('Custom'),
           onAction: () => openCustomIgnoreCount(),
         },
@@ -193,7 +193,7 @@ const IgnoreActions = ({
           ],
         })),
         {
-          key: 'for-custom',
+          key: 'until-affect-custom',
           label: t('Custom'),
           onAction: () => openCustomIgnoreUserCount(),
         },

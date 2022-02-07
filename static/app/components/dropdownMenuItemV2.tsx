@@ -208,6 +208,7 @@ const MenuItem = withRouter(
         ref={ref}
         as={renderAs}
         isDisabled={isDisabled}
+        data-test-id={item.key}
         {...props}
         {...(isSubmenuTrigger && {role: 'menuitemradio'})}
       >
