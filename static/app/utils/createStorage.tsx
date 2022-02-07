@@ -26,6 +26,6 @@ export default function createStorage(getStorage: () => globalThis.Storage): Sto
       removeItem() {
         return null;
       },
-    } as Storage;
+    };
   }
 }
