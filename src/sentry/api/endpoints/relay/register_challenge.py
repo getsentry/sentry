@@ -54,7 +54,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):  # type: ignore
 
         public_key = json_data.get("public_key")
         if not public_key:
-            return Response({"detail": "Missing public key"}, status=status.HTTP_400_FORBIDDEN)
+            return Response({"detail": "Missing public key"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not settings.SENTRY_RELAY_OPEN_REGISTRATION and not (
             is_internal_relay(request, public_key) or is_static_relay(request)
