@@ -19,12 +19,12 @@ type Props = {
 };
 
 type State = {
-  errorMessage: undefined | string;
   loading: boolean;
-  queryFetchID: symbol | undefined;
-  rawResults: undefined | MetricsApiResponse[];
-  tableResults: undefined | TableDataWithTitle[];
-  timeseriesResults: undefined | Series[];
+  errorMessage?: string;
+  queryFetchID?: symbol;
+  rawResults?: MetricsApiResponse[];
+  tableResults?: TableDataWithTitle[];
+  timeseriesResults?: Series[];
 };
 
 class MetricsWidgetQueries extends React.Component<Props, State> {
