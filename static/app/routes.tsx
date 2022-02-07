@@ -1287,6 +1287,19 @@ function buildRoutes() {
     </Route>
   );
 
+  const profilingRoutes = (
+    <Route
+      path="/organizations/:orgId/profiling/"
+      componentPromise={() => import('sentry/views/profiling')}
+      component={SafeLazyLoad}
+    >
+      <IndexRoute
+        componentPromise={() => import('sentry/views/profiling/content')}
+        component={SafeLazyLoad}
+      />
+    </Route>
+  );
+
   const userFeedbackRoutes = (
     <Route
       path="/organizations/:orgId/user-feedback/"
@@ -1817,6 +1830,7 @@ function buildRoutes() {
       {teamStatsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {profilingRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}
       {legacyGettingStartedRoutes}

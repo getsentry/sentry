@@ -49,8 +49,7 @@ export class CanvasScheduler {
     args?: ArgumentTypes<FlamegraphEvents[K]>
   ): void {
     for (const handler of this.events[event]) {
-      // @ts-ignore
-      handler(args);
+      handler.apply(undefined, args);
     }
   }
 

@@ -18,6 +18,7 @@ import {
   IconIssues,
   IconLab,
   IconLightning,
+  IconMobile,
   IconProject,
   IconReleases,
   IconSettings,
@@ -298,6 +299,27 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const profiling = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:profiling-sidebar-item"
+      features={['profiling']}
+      organization={organization}
+      requireAll={false}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        index
+        onClick={(_id, evt) =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/profiling/`, evt)
+        }
+        icon={<IconMobile size="md" />}
+        label={t('Profiling')}
+        to={`/organizations/${organization.slug}/profiling/`}
+        id="profiling"
+      />
+    </Feature>
+  );
+
   const activity = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -353,6 +375,7 @@ function Sidebar({location, organization}: Props) {
                 {alerts}
                 {discover2}
                 {dashboards}
+                {profiling}
               </SidebarSection>
 
               <SidebarSection>{monitors}</SidebarSection>

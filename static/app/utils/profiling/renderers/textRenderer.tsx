@@ -81,7 +81,7 @@ class TextRenderer {
       // This rect gets discarded after each render which is wasteful
       const frameInConfigSpace = new Rect(
         frame.start,
-        this.flamegraph.inverted ? configSpace.height - frame.depth + 1 : frame.depth,
+        this.flamegraph.inverted ? configSpace.height - frame.depth + 1 : frame.depth + 1,
         frame.end - frame.start,
         1
       );
@@ -133,7 +133,7 @@ class TextRenderer {
           text = trimTextCenter(
             text,
             findRangeBinarySearch(
-              {low: 0, high: text.length},
+              {low: 0, high: textWidth},
               n => this.measureText(this.context, text.substring(0, n)),
               paddedRectangleWidth
             )[0]

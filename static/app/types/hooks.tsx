@@ -171,6 +171,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:trace-view-link': FeatureDisabledHook;
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
   'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
+  'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
 };
 
 /**
