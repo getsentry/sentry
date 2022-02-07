@@ -114,9 +114,9 @@ export function updateQuery(
 }
 
 type Props = {
+  children: React.ReactNode;
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
-  children: React.ReactNode;
   handleCellAction: (action: Actions, value: React.ReactText) => void;
 
   // allow list of actions to display on the context menu

@@ -10,10 +10,10 @@ import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
 import {ChildProps, Result} from './types';
 
 type Action = {
-  title: string;
+  action: () => void;
   description: string;
   requiresSuperuser: boolean;
-  action: () => void;
+  title: string;
 };
 
 const ACTIONS: Action[] = [
@@ -66,20 +66,20 @@ const ACTIONS: Action[] = [
 ];
 
 type Props = {
+  children: (props: ChildProps) => React.ReactElement;
+  isSuperuser: boolean;
   /**
    * search term
    */
   query: string;
-  isSuperuser: boolean;
-  children: (props: ChildProps) => React.ReactElement;
-  /**
-   * fuse.js options
-   */
-  searchOptions?: Fuse.FuseOptions<Action>;
   /**
    * Array of routes to search
    */
   searchMap?: PlainRoute[];
+  /**
+   * fuse.js options
+   */
+  searchOptions?: Fuse.FuseOptions<Action>;
 };
 
 type State = {

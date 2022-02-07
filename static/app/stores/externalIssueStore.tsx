@@ -3,9 +3,9 @@ import Reflux from 'reflux';
 import {PlatformExternalIssue} from 'sentry/types';
 
 type ExternalIssueStoreInterface = {
-  load(items: PlatformExternalIssue[]): void;
   add(issue: PlatformExternalIssue): void;
   getInitialState(): PlatformExternalIssue[];
+  load(items: PlatformExternalIssue[]): void;
 };
 
 const storeConfig: Reflux.StoreDefinition & ExternalIssueStoreInterface = {

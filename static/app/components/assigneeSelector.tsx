@@ -27,28 +27,28 @@ import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'sentry/ty
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
 type SuggestedAssignee = Actor & {
-  suggestedReason: SuggestedOwnerReason;
   assignee: AssignableTeam | User;
+  suggestedReason: SuggestedOwnerReason;
 };
 
 type AssignableTeam = {
-  id: string;
   display: string;
   email: string;
+  id: string;
   team: Team;
 };
 
 type Props = {
   id: string;
-  size?: number;
-  memberList?: User[];
   disabled?: boolean;
+  memberList?: User[];
+  noDropdown?: boolean;
   onAssign?: (
     type: Actor['type'],
     assignee: User | Actor,
     suggestedAssignee?: SuggestedAssignee
   ) => void;
-  noDropdown?: boolean;
+  size?: number;
 };
 
 type State = {
@@ -578,8 +578,8 @@ const IconContainer = styled('div')`
 `;
 
 const MenuItemWrapper = styled('div')<{
-  py?: number;
   disabled?: boolean;
+  py?: number;
 }>`
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   display: flex;

@@ -3,9 +3,9 @@ import {Organization, Project} from 'sentry/types';
 import {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
+  debugFilesNeedsReview?: boolean;
   organization?: Organization;
   project?: Project;
-  debugFilesNeedsReview?: boolean;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';

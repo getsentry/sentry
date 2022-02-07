@@ -49,12 +49,12 @@ import {
 import {BackendCards, FrontendCards, MobileCards} from './vitalsCards';
 
 type Props = {
-  organization: Organization;
   eventView: EventView;
+  handleSearch: (searchQuery: string) => void;
   location: Location;
+  organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
-  handleSearch: (searchQuery: string) => void;
 } & WithRouterProps;
 
 type State = {};

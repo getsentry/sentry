@@ -11,8 +11,8 @@ type SidebarPanelStoreInterface = CommonStoreInterface<ActivePanelType> & {
   activePanel: ActivePanelType;
 
   onActivatePanel(panel: SidebarPanelKey): void;
-  onTogglePanel(panel: SidebarPanelKey): void;
   onHidePanel(): void;
+  onTogglePanel(panel: SidebarPanelKey): void;
 };
 
 const storeConfig: Reflux.StoreDefinition & SidebarPanelStoreInterface = {

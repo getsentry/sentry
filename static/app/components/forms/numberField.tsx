@@ -1,8 +1,8 @@
 import InputField from 'sentry/components/forms/inputField';
 
 type Props = {
-  min?: number;
   max?: number;
+  min?: number;
 } & InputField['props'];
 
 export default class NumberField extends InputField<Props> {

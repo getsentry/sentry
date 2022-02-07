@@ -1,4 +1,4 @@
-type Result = Record<string, {href: string; results: boolean | null; cursor: string}>;
+type Result = Record<string, {cursor: string; href: string; results: boolean | null}>;
 
 export default function parseLinkHeader(header: string | null): Result {
   if (header === null || header === '') {

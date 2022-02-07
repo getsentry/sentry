@@ -60,9 +60,9 @@ function getImageStatusDetails(status: Status) {
 
 type Props = {
   image: DebugImageType;
-  showDetails: boolean;
   organization: Organization;
   projectId: Project['id'];
+  showDetails: boolean;
   style?: React.CSSProperties;
 };
 
