@@ -9,7 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.models import Relay
 
 
-class RelayIndexEndpoint(Endpoint):
+class RelayIndexEndpoint(Endpoint):  # type: ignore
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
@@ -24,10 +24,11 @@ class RelayIndexEndpoint(Endpoint):
         """
         queryset = Relay.objects.filter(public_key__in=settings.SENTRY_RELAY_WHITELIST_PK)
 
-        return self.paginate(
+        response: Response = self.paginate(
             request=request,
             queryset=queryset,
             order_by="relay_id",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
+        return response

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 
 
-class RelayHealthCheck(Endpoint):
+class RelayHealthCheck(Endpoint):  # type: ignore
     """
     Endpoint checked by downstream Relay when a suspected network error is encountered.
     This endpoint doesn't do anything besides returning an Ok, and the downstream Relay
