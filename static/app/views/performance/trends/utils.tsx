@@ -18,7 +18,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {PROJECT_PERFORMANCE_TYPE} from '../utils';
+import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
 
 import {
   NormalizedTrendsTransaction,
@@ -156,25 +156,51 @@ export function getCurrentTrendFunction(
   return trendFunction || TRENDS_FUNCTIONS[0];
 }
 
-export function getCurrentTrendParameter(location: Location): TrendParameter {
+function getDefaultTrendParameter(
+  projects: Project[],
+  projectIds: Readonly<number[]>
+): TrendParameter {
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  const trendParameter = performanceTypeToTrendParameterLabel(performanceType);
+
+  return trendParameter;
+}
+
+export function getCurrentTrendParameter(
+  location: Location,
+  projects: Project[],
+  projectIds: Readonly<number[]>
+): TrendParameter {
   const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
   const trendParameter = TRENDS_PARAMETERS.find(
     ({label}) => label === trendParameterLabel
   );
-  return trendParameter || TRENDS_PARAMETERS[0];
+
+  if (trendParameter) {
+    return trendParameter;
+  }
+
+  const defaultTrendParameter = getDefaultTrendParameter(projects, projectIds);
+  return defaultTrendParameter;
 }
 
 export function performanceTypeToTrendParameterLabel(
   performanceType: PROJECT_PERFORMANCE_TYPE
-): string {
+): TrendParameter {
   switch (performanceType) {
     case PROJECT_PERFORMANCE_TYPE.FRONTEND:
-      return 'LCP';
     case PROJECT_PERFORMANCE_TYPE.ANY:
+      return {
+        label: 'LCP',
+        column: TrendColumnField.LCP,
+      };
     case PROJECT_PERFORMANCE_TYPE.BACKEND:
     case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
     default:
-      return 'Duration';
+      return {
+        label: 'Duration',
+        column: TrendColumnField.DURATION,
+      };
   }
 }
 
@@ -212,10 +238,11 @@ export function modifyTrendView(
   trendView: TrendView,
   location: Location,
   trendsType: TrendChangeType,
+  projects: Project[],
   isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
-  const trendParameter = getCurrentTrendParameter(location);
+  const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
 
   const transactionField = isProjectOnly ? [] : ['transaction'];
   const fields = [...transactionField, 'project'].map(field => ({

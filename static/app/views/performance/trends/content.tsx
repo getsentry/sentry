@@ -21,11 +21,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import {
-  getPerformanceLandingUrl,
-  getTransactionSearchQuery,
-  platformToPerformanceType,
-} from '../utils';
+import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 
 import ChangedTransactions from './changedTransactions';
 import {TrendChangeType, TrendFunctionField, TrendView} from './types';
@@ -36,7 +32,6 @@ import {
   getCurrentTrendParameter,
   getSelectedQueryKey,
   modifyTrendsViewDefaultPeriod,
-  performanceTypeToTrendParameterLabel,
   resetCursors,
   TRENDS_FUNCTIONS,
   TRENDS_PARAMETERS,
@@ -46,8 +41,8 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  selection: PageFilters;
   projects: Project[];
+  selection: PageFilters;
 };
 
 type State = {
@@ -125,15 +120,6 @@ class TrendsContent extends React.Component<Props, State> {
     );
   }
 
-  getDefaultTrendParameter = (): string => {
-    const {projects, eventView} = this.props;
-
-    const performanceType = platformToPerformanceType(projects, eventView.project);
-    const trendParameterLabel = performanceTypeToTrendParameterLabel(performanceType);
-
-    return trendParameterLabel;
-  };
-
   handleParameterChange = (label: string) => {
     const {organization, location} = this.props;
     const cursors = resetCursors();
@@ -176,7 +162,7 @@ class TrendsContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, eventView, location} = this.props;
+    const {organization, eventView, location, projects} = this.props;
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
@@ -207,9 +193,11 @@ class TrendsContent extends React.Component<Props, State> {
       ['epm()', 'eps()']
     );
     const currentTrendFunction = getCurrentTrendFunction(location);
-    const currentTrendParameter = location.query.trendParameter
-      ? getCurrentTrendParameter(location)
-      : this.getDefaultTrendParameter();
+    const currentTrendParameter = getCurrentTrendParameter(
+      location,
+      projects,
+      eventView.project
+    );
     const query = getTransactionSearchQuery(location);
 
     return (
@@ -241,7 +229,7 @@ class TrendsContent extends React.Component<Props, State> {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <DefaultTrends location={location} eventView={eventView}>
+            <DefaultTrends location={location} eventView={eventView} projects={projects}>
               <StyledSearchContainer>
                 <StyledSearchBar
                   searchSource="trends"
@@ -317,16 +305,21 @@ type DefaultTrendsProps = {
   children: React.ReactNode[];
   eventView: EventView;
   location: Location;
+  projects: Project[];
 };
 
 class DefaultTrends extends React.Component<DefaultTrendsProps> {
   hasPushedDefaults = false;
 
   render() {
-    const {children, location, eventView} = this.props;
+    const {children, location, eventView, projects} = this.props;
 
     const queryString = decodeScalar(location.query.query);
-    const trendParameter = getCurrentTrendParameter(location);
+    const trendParameter = getCurrentTrendParameter(
+      location,
+      projects,
+      eventView.project
+    );
     const conditions = new MutableSearch(queryString || '');
 
     if (queryString || this.hasPushedDefaults) {
