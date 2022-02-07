@@ -7,8 +7,8 @@ import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {TagValueLoader} from '../issueList/types';
 
 type Props = {
-  query: string;
   onSearch: (q: string) => void;
+  query: string;
   tagValueLoader: TagValueLoader;
 };
 

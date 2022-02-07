@@ -23,13 +23,13 @@ import WidgetQueryFields from './widgetQueryFields';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  selection: PageFilters;
-  query: WidgetQuery;
-  error?: Record<string, any>;
-  onChange: (widgetQuery: WidgetQuery) => void;
-  tags: TagCollection;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
+  onChange: (widgetQuery: WidgetQuery) => void;
+  organization: Organization;
+  query: WidgetQuery;
+  selection: PageFilters;
+  tags: TagCollection;
+  error?: Record<string, any>;
 };
 
 type State = {

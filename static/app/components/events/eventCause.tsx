@@ -18,12 +18,12 @@ import withCommitters from 'sentry/utils/withCommitters';
 type Props = {
   // injected by HoC
   api: Client;
-  committers?: Committer[];
+  event: Event;
 
   // needed by HoC
   organization: Organization;
   project: AvatarProject;
-  event: Event;
+  committers?: Committer[];
   group?: Group;
 };
 

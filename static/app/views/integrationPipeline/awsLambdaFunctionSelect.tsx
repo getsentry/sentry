@@ -24,8 +24,8 @@ const LAMBDA_COUNT_THRESHOLD = 10;
 type LambdaFunction = {FunctionName: string; Runtime: string};
 
 type Props = {
-  lambdaFunctions: LambdaFunction[];
   initialStepNumber: number;
+  lambdaFunctions: LambdaFunction[];
 };
 
 type State = {

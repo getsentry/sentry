@@ -12,20 +12,20 @@ type Project = NonNullable<BaseBadgeProps['project']>;
 
 type Props = Partial<Omit<BaseBadgeProps, 'project' | 'organization' | 'team'>> & {
   project: Project;
-  organization?: Organization;
-  /**
-   * If true, will use default max-width, or specify one as a string
-   */
-  hideOverflow?: boolean | string;
+  className?: string;
   /**
    * If true, this component will not be a link to project details page
    */
   disableLink?: boolean;
   /**
+   * If true, will use default max-width, or specify one as a string
+   */
+  hideOverflow?: boolean | string;
+  organization?: Organization;
+  /**
    * Overides where the project badge links
    */
   to?: React.ComponentProps<typeof Link>['to'];
-  className?: string;
 };
 
 const ProjectBadge = ({

@@ -21,10 +21,10 @@ import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
   closeModal: () => void;
-  sentryApp: SentryApp;
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
+  sentryApp: SentryApp;
 } & AsyncComponent['props'];
 
 type State = {

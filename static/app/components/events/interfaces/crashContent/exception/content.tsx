@@ -15,10 +15,10 @@ type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
-  type: STACK_TYPE;
   platform: StackTraceProps['platform'];
-  stackView?: StackTraceProps['stackView'];
+  type: STACK_TYPE;
   newestFirst?: boolean;
+  stackView?: StackTraceProps['stackView'];
 } & Pick<ExceptionType, 'values'> &
   Pick<
     React.ComponentProps<typeof StackTrace>,

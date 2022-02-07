@@ -31,13 +31,13 @@ interface MatchCallable {
 }
 
 type ResponseType = ApiNamespace.ResponseMeta & {
-  url: string;
-  statusCode: number;
-  method: string;
-  callCount: 0;
-  match: MatchCallable[];
   body: any;
+  callCount: 0;
   headers: Record<string, string>;
+  match: MatchCallable[];
+  method: string;
+  statusCode: number;
+  url: string;
 };
 
 type MockResponse = [resp: ResponseType, mock: jest.Mock];

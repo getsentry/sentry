@@ -21,18 +21,18 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type ReleaseMetaBasic = {
-  version: string;
   date: string;
+  version: string;
 };
 
 type ReleaseConditions = {
-  start: DateString;
   end: DateString;
-  project: Readonly<number[]>;
   environment: Readonly<string[]>;
-  statsPeriod?: string | null;
+  project: Readonly<number[]>;
+  start: DateString;
   cursor?: string;
   query?: string;
+  statsPeriod?: string | null;
 };
 
 // This is not an exported action/function because releases list uses AsyncComponent
@@ -62,27 +62,27 @@ function getOrganizationReleases(
 
 type Props = WithRouterProps & {
   api: Client;
-  theme: Theme;
-  organization: Organization;
   children: (s: State) => React.ReactNode;
-  projects: Readonly<number[]>;
-  environments: Readonly<string[]>;
-  start: DateString;
   end: DateString;
-  period?: string | null;
-  utc?: boolean | null;
-  releases?: ReleaseMetaBasic[] | null;
-  tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
-  memoized?: boolean;
-  preserveQueryParams?: boolean;
+  environments: Readonly<string[]>;
+  organization: Organization;
+  projects: Readonly<number[]>;
+  start: DateString;
+  theme: Theme;
   emphasizeReleases?: string[];
+  memoized?: boolean;
+  period?: string | null;
+  preserveQueryParams?: boolean;
   query?: string;
   queryExtra?: Query;
+  releases?: ReleaseMetaBasic[] | null;
+  tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
+  utc?: boolean | null;
 };
 
 type State = {
-  releases: ReleaseMetaBasic[] | null;
   releaseSeries: Series[];
+  releases: ReleaseMetaBasic[] | null;
 };
 
 class ReleaseSeries extends React.Component<Props, State> {

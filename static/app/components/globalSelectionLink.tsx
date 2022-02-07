@@ -10,19 +10,19 @@ type Props = WithRouterProps & {
    * Location that is being linked to
    */
   to: LocationDescriptor;
+  children?: React.ReactNode;
   /**
    * Styles applied to the component's root
    */
   className?: string;
   /**
-   * Inline styles
-   */
-  style?: React.CSSProperties;
-  /**
    * Click event (not for navigation)
    */
   onClick?: React.ComponentProps<typeof Link>['onClick'];
-  children?: React.ReactNode;
+  /**
+   * Inline styles
+   */
+  style?: React.CSSProperties;
 };
 
 /**

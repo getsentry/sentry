@@ -7,8 +7,8 @@ import space from 'sentry/styles/space';
 import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'sentry/utils/dates';
 
 type Props = {
-  start: moment.MomentInput;
   end: moment.MomentInput;
+  start: moment.MomentInput;
 };
 
 /**

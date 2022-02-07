@@ -8,8 +8,8 @@ import {DashboardDetails} from './types';
 type Props = {
   dashboard: DashboardDetails | null;
   isEditing: boolean;
-  organization: Organization;
   onUpdate: (dashboard: DashboardDetails) => void;
+  organization: Organization;
 };
 
 function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {

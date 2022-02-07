@@ -29,11 +29,11 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
 
 type Props = {
   onUpdate: (params: UpdateResolutionStatus) => void;
-  disabled?: boolean;
-  shouldConfirm?: boolean;
-  confirmMessage?: React.ReactNode;
   confirmLabel?: string;
+  confirmMessage?: React.ReactNode;
+  disabled?: boolean;
   isIgnored?: boolean;
+  shouldConfirm?: boolean;
 };
 
 const IgnoreActions = ({

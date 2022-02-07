@@ -6,11 +6,11 @@ type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export interface FlamegraphEvents {
-  transformConfigView: (transform: mat3) => void;
-  setConfigView: (configView: Rect) => void;
-  zoomIntoFrame: (frame: any) => void;
-  selectedNode: (frame: any | null) => void;
   resetZoom: () => void;
+  selectedNode: (frame: any | null) => void;
+  setConfigView: (configView: Rect) => void;
+  transformConfigView: (transform: mat3) => void;
+  zoomIntoFrame: (frame: any) => void;
 }
 
 type EventStore = {[K in keyof FlamegraphEvents]: Set<FlamegraphEvents[K]>};
