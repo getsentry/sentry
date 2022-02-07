@@ -4,7 +4,7 @@ import Fuse from 'fuse.js';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DefaultSearchProps, Search, SearchProps} from 'sentry/components/search';
+import {Search, SearchProps} from 'sentry/components/search';
 import {ChildProps, Result, ResultItem} from 'sentry/components/search/sources/types';
 
 function makeSearchResultsMock(items?: ResultItem[], threshold?: number) {
@@ -54,19 +54,15 @@ function makeSearchResultsMock(items?: ResultItem[], threshold?: number) {
   } as React.ComponentType;
 }
 const makeSearchProps = (partial: Partial<SearchProps> = {}): SearchProps => {
-  const props: SearchProps = {
-    ...DefaultSearchProps,
+  return {
     renderInput: ({getInputProps}) => {
       return <input {...getInputProps({placeholder: 'Search Input'})} />;
     },
-    entryPoint: 'settings_search',
     sources: [makeSearchResultsMock()],
     caseSensitive: false,
     minSearch: 0,
     ...partial,
   } as SearchProps;
-
-  return props;
 };
 
 describe('Search', () => {
@@ -77,7 +73,7 @@ describe('Search', () => {
   afterEach(() => {
     jest.useRealTimers();
   });
-  it('renders search results from source', async () => {
+  it('renders search results from source', () => {
     mountWithTheme(<Search {...makeSearchProps()} />, {
       context: TestStubs.routerContext(),
     });
@@ -173,17 +169,13 @@ describe('Search', () => {
     expect(opener.location.href).toBe('https://vandelayindustries.io/import');
   });
   it('renders max search results', async () => {
-    const results = new Array(10).fill(0).map((_, i) => {
-      const resultItem: ResultItem = {
-        resultType: 'integration',
-        sourceType: 'organization',
-        title: `${i} Vandelay Industries - Import`,
-        to: 'https://vandelayindustries.io/import',
-        model: {slug: 'vdl-imp'},
-      };
-
-      return resultItem;
-    });
+    const results: ResultItem[] = new Array(10).fill(0).map((_, i) => ({
+      resultType: 'integration',
+      sourceType: 'organization',
+      title: `${i} Vandelay Industries - Import`,
+      to: 'https://vandelayindustries.io/import',
+      model: {slug: 'vdl-imp'},
+    }));
 
     mountWithTheme(
       <Search

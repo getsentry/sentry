@@ -44,25 +44,7 @@ interface ItemProps {
   itemProps: React.ComponentProps<typeof SearchResultWrapper>;
   matches: Result['matches'];
 }
-
-// Not using typeof defaultProps because of the wrapping HOC which
-// causes defaultProp magic to fall off.
-export const DefaultSearchProps = {
-  renderItem: ({
-    item,
-    matches,
-    itemProps,
-    highlighted,
-  }: ItemProps): React.ReactElement => (
-    <SearchResultWrapper {...itemProps} highlighted={highlighted}>
-      <SearchResult highlighted={highlighted} item={item} matches={matches} />
-    </SearchResultWrapper>
-  ),
-  sources: [ApiSource, FormSource, RouteSource, CommandSource] as React.ComponentType[],
-  closeOnSelect: true,
-};
-
-export interface SearchProps extends WithRouterProps<{orgId: string}> {
+interface SearchProps extends WithRouterProps<{orgId: string}> {
   /**
    * For analytics
    */
@@ -120,7 +102,7 @@ function Search(props: SearchProps): React.ReactElement {
       }
 
       trackAdvancedAnalyticsEvent(`${props.entryPoint}.select`, {
-        query: state && state.inputValue,
+        query: state?.inputValue,
         result_type: item.resultType,
         source_type: item.sourceType,
         organization: null,
@@ -139,15 +121,16 @@ function Search(props: SearchProps): React.ReactElement {
 
       if (item.to.startsWith('http')) {
         const open = window.open();
-        if (open === null) {
-          addErrorMessage(
-            t('Unable to open search result (a popup blocker may have caused this).')
-          );
+
+        if (open) {
+          open.opener = null;
+          open.location.href = item.to;
           return;
         }
 
-        open.opener = null;
-        open.location.href = item.to;
+        addErrorMessage(
+          t('Unable to open search result (a popup blocker may have caused this).')
+        );
         return;
       }
 
@@ -180,7 +163,7 @@ function Search(props: SearchProps): React.ReactElement {
     <AutoComplete
       defaultHighlightedIndex={0}
       onSelect={handleSelectItem}
-      closeOnSelect={props.closeOnSelect ?? DefaultSearchProps.closeOnSelect}
+      closeOnSelect={props.closeOnSelect ?? true}
     >
       {({getInputProps, getItemProps, isOpen, inputValue, highlightedIndex}) => {
         const searchQuery = inputValue.toLowerCase().trim();
@@ -191,7 +174,16 @@ function Search(props: SearchProps): React.ReactElement {
         const renderItem =
           typeof props.renderItem === 'function'
             ? props.renderItem
-            : DefaultSearchProps.renderItem;
+            : ({
+                item,
+                matches,
+                itemProps,
+                highlighted,
+              }: ItemProps): React.ReactElement => (
+                <SearchResultWrapper {...itemProps} highlighted={highlighted}>
+                  <SearchResult highlighted={highlighted} item={item} matches={matches} />
+                </SearchResultWrapper>
+              );
 
         return (
           <SearchWrapper>
@@ -202,7 +194,15 @@ function Search(props: SearchProps): React.ReactElement {
                 searchOptions={props.searchOptions}
                 query={searchQuery}
                 params={props.params}
-                sources={props.sources ?? DefaultSearchProps.sources}
+                sources={
+                  props.sources ??
+                  ([
+                    ApiSource,
+                    FormSource,
+                    RouteSource,
+                    CommandSource,
+                  ] as React.ComponentType[])
+                }
               >
                 {({isLoading, results, hasAnyResults}) => (
                   <DropdownBox className={props.dropdownStyle}>
@@ -244,7 +244,7 @@ function Search(props: SearchProps): React.ReactElement {
 }
 
 const WithRouterSearch = withRouter(Search);
-export {WithRouterSearch as Search};
+export {WithRouterSearch as Search, SearchProps};
 
 const DropdownBox = styled('div')`
   background: ${p => p.theme.background};
