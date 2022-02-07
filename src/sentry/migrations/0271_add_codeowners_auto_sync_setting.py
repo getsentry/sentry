@@ -28,9 +28,22 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="projectownership",
-            name="codeowners_auto_sync",
-            field=models.BooleanField(default=True, null=True),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.AddField(
+                    model_name="projectownership",
+                    name="codeowners_auto_sync",
+                    # Don't use a default in Postgres, a data migration can be used afterward to backfill
+                    field=models.BooleanField(null=True),
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="projectownership",
+                    name="codeowners_auto_sync",
+                    # Use the default in Django, new rows will use the specified default
+                    field=models.BooleanField(null=True, default=True),
+                ),
+            ],
+        )
     ]
