@@ -26,7 +26,7 @@ import Input from 'sentry/views/settings/components/forms/controls/input';
 import ArithmeticInput from './arithmeticInput';
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
 
-type FieldValueOption = SelectValue<FieldValue>;
+export type FieldValueOption = SelectValue<FieldValue>;
 
 type FieldOptions = Record<string, FieldValueOption>;
 
@@ -195,6 +195,7 @@ class QueryField extends React.Component<Props> {
             (field.kind === FieldValueKind.FIELD ||
               field.kind === FieldValueKind.TAG ||
               field.kind === FieldValueKind.MEASUREMENT ||
+              field.kind === FieldValueKind.METRIC ||
               field.kind === FieldValueKind.BREAKDOWN) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
           ) {
@@ -353,6 +354,7 @@ class QueryField extends React.Component<Props> {
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT ||
+                    value.kind === FieldValueKind.METRIC ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
@@ -628,6 +630,7 @@ function validateColumnTypes(
     return columnTypes({name: input.meta.name, dataType: input.meta.dataType});
   }
 
+  // @ts-ignore
   return columnTypes.includes(input.meta.dataType);
 }
 

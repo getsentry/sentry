@@ -6,6 +6,7 @@ import {
   ColumnType,
   ColumnValueType,
 } from 'sentry/utils/discover/fields';
+import {MetricsColumnType} from 'sentry/views/dashboardsV2/widget/metricWidget/fields';
 
 /**
  * It is assumed that `aggregation` and `field` have the same ColumnValueType
@@ -35,6 +36,7 @@ export enum FieldValueKind {
   FIELD = 'field',
   FUNCTION = 'function',
   EQUATION = 'equation',
+  METRIC = 'metric',
 }
 
 export type FieldValueColumns =
@@ -66,6 +68,13 @@ export type FieldValueColumns =
       meta: {
         name: string;
         dataType: ColumnType;
+      };
+    }
+  | {
+      kind: FieldValueKind.METRIC;
+      meta: {
+        name: string;
+        dataType: MetricsColumnType;
       };
     };
 

@@ -25,7 +25,7 @@ import {FieldKey} from 'sentry/views/dashboardsV2/widget/issueWidget/fields';
 
 import {generateFieldOptions} from '../utils';
 
-import {QueryField} from './queryField';
+import {FieldValueOption, QueryField} from './queryField';
 import {FieldValueKind} from './types';
 
 type Sources = WidgetType;
@@ -39,6 +39,7 @@ type Props = {
   organization: Organization;
   className?: string;
   source?: Sources;
+  filterPrimaryOptions?: (option: FieldValueOption) => boolean;
 };
 
 type State = {
@@ -399,7 +400,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       disabled?: boolean;
     }
   ) {
-    const {columns, fieldOptions} = this.props;
+    const {columns, fieldOptions, filterPrimaryOptions} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -450,6 +451,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             otherColumns={columns}
             shouldRenderTag
             disabled={disabled}
+            filterPrimaryOptions={filterPrimaryOptions}
           />
           {canDelete || col.kind === 'equation' ? (
             <Button
