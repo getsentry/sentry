@@ -68,6 +68,10 @@ function FlamegraphZoomView({
         ]);
       }
 
+      // If the flamegraph name is the same as before, then the user probably changed the way they want
+      // to visualize the flamegraph. In those cases we want preserve the previous config view so
+      // that users dont lose their state. E.g. clicking on invert flamegraph still shows you the same
+      // flamegraph you were looking at before, just inverted instead of zooming out completely
       if (previousRenderer?.flamegraph.name === renderer.flamegraph.name) {
         renderer.setConfigView(previousRenderer.configView);
       }
@@ -376,18 +380,16 @@ function FlamegraphZoomView({
         return;
       }
 
-      const newSelectedNode = flamegraphRenderer.getHoveredNode(configSpaceCursor);
-
       // Only dispatch the zoom action if the new clicked node is not the same as the old selected node
       // This essentialy tracks double click action on a rectangle
-      if (newSelectedNode && selectedNode && newSelectedNode === selectedNode) {
-        canvasPoolManager.dispatch('zoomIntoFrame', [newSelectedNode]);
+      if (hoveredNode && selectedNode && hoveredNode === selectedNode) {
+        canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
       }
 
-      setSelectedNode(newSelectedNode);
-      canvasPoolManager.dispatch('selectedNode', [newSelectedNode]);
+      setSelectedNode(hoveredNode);
+      canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
     },
-    [flamegraphRenderer, configSpaceCursor, selectedNode, canvasPoolManager]
+    [flamegraphRenderer, configSpaceCursor, selectedNode, hoveredNode, canvasPoolManager]
   );
 
   const onCanvasMouseMove = React.useCallback(
@@ -451,29 +453,27 @@ function FlamegraphZoomView({
         return;
       }
 
-      {
-        const physicalDelta = vec2.fromValues(evt.deltaX, evt.deltaY);
-        const physicalToConfig = mat3.invert(
-          mat3.create(),
-          flamegraphRenderer.configToPhysicalSpace
-        );
-        const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+      const physicalDelta = vec2.fromValues(evt.deltaX, evt.deltaY);
+      const physicalToConfig = mat3.invert(
+        mat3.create(),
+        flamegraphRenderer.configToPhysicalSpace
+      );
+      const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
-        const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-          m00,
-          m01,
-          m02,
-          m10,
-          m11,
-          m12,
-          0,
-          0,
-          0,
-        ]);
+      const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+        m00,
+        m01,
+        m02,
+        m10,
+        m11,
+        m12,
+        0,
+        0,
+        0,
+      ]);
 
-        const translate = mat3.fromTranslation(mat3.create(), configDelta);
-        canvasPoolManager.dispatch('transformConfigView', [translate]);
-      }
+      const translate = mat3.fromTranslation(mat3.create(), configDelta);
+      canvasPoolManager.dispatch('transformConfigView', [translate]);
     },
     [flamegraphRenderer, canvasPoolManager]
   );
