@@ -5,11 +5,6 @@ import {triggerPress} from 'sentry-test/utils';
 
 type SelectDropdownItemProps = {
   /**
-   * The root node wrapper, must be provided to run wrapper.update() after
-   * each step.
-   */
-  wrapper: ReactWrapper;
-  /**
    * They key(s) of menu item(s) to select. If the item is nested inside a
    * sub-menu, then this must be an array containing the keys of ancestor
    * items, with the highest-level item first, and the last item to select
@@ -17,10 +12,10 @@ type SelectDropdownItemProps = {
    */
   itemKey: string | string[];
   /**
-   * Selector for the dropdown's trigger button, useful for custom trigger
-   * components whose display name is different from 'TriggerButton'.
+   * The root node wrapper, must be provided to run wrapper.update() after
+   * each step.
    */
-  triggerSelector?: string;
+  wrapper: ReactWrapper;
   /**
    * Optional arguments to help the function better locate the dropdown
    * control. Useful if there are more than one control inside `wrapper`. If
@@ -29,10 +24,15 @@ type SelectDropdownItemProps = {
    */
   specifiers?: {
     prefix: string;
+    at?: number;
     first?: boolean;
     last?: boolean;
-    at?: number;
   };
+  /**
+   * Selector for the dropdown's trigger button, useful for custom trigger
+   * components whose display name is different from 'TriggerButton'.
+   */
+  triggerSelector?: string;
 };
 
 /**
