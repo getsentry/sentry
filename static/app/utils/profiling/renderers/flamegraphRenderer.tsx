@@ -309,7 +309,7 @@ class FlamegraphRenderer {
 
         this.bounds[offset] = x1;
         this.bounds[offset + 1] = y1;
-        this.bounds[offset + 2] = frame.start + frame.end;
+        this.bounds[offset + 2] = x2;
         this.bounds[offset + 3] = y2;
       }
     }

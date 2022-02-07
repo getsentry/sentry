@@ -39,7 +39,7 @@ varying vec2 v_pos;
 
 void main() {
   float minX = v_bounds.x + u_border_width.x;
-  float maxX = v_bounds.z - u_border_width.x - v_bounds.x;
+  float maxX = v_bounds.z - u_border_width.x;
 
   float minY = v_bounds.y + u_border_width.y;
   float maxY = v_bounds.y + 1.0 - u_border_width.y;
