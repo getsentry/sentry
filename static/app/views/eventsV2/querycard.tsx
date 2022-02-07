@@ -106,6 +106,7 @@ const QueryTitle = styled('div')`
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
   ${overflowEllipsis};
+  font-weight: initial;
 `;
 
 const QueryDetail = styled('div')`
