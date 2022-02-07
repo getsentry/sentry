@@ -16,6 +16,7 @@ describe('generateIssueWidgetFieldOptions', function () {
       'field:lifetimeEvents',
       'field:lifetimeUsers',
       'field:platform',
+      'field:project',
       'field:status',
       'field:title',
       'field:users',
