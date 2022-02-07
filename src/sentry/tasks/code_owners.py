@@ -54,6 +54,7 @@ def code_owners_auto_sync(commit: Commit, **kwargs):
     from sentry.models import (
         OrganizationIntegration,
         ProjectCodeOwners,
+        ProjectOwnership,
         RepositoryProjectPathConfig,
     )
     from sentry.utils.email import MessageBuilder
@@ -66,6 +67,14 @@ def code_owners_auto_sync(commit: Commit, **kwargs):
     )
 
     for code_mapping in code_mappings:
+        try:
+            project_ownership = ProjectOwnership.objects.get(project_id=code_mapping.project_id)
+        except ProjectOwnership.DoesNotExist:
+            return
+
+        if not project_ownership.codeowners_auto_sync:
+            return
+
         try:
             codeowner_contents = get_codeowner_contents(code_mapping)
         except Exception:
