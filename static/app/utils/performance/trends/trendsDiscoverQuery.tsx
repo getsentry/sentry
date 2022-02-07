@@ -96,6 +96,6 @@ function EventsDiscoverQuery(props: EventProps) {
   );
 }
 
-export const TrendsEventsDiscoverQuery = withApi(EventsDiscoverQuery);
+export const TrendsEventsDiscoverQuery = withApi(withProjects(EventsDiscoverQuery));
 
 export default withApi(withProjects(TrendsDiscoverQuery));
