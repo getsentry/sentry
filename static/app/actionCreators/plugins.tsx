@@ -19,14 +19,14 @@ type Slugs = {
   orgId: string;
 
   /**
-   * Project slug
-   */
-  projectId: string;
-
-  /**
    * Plugin slug
    */
   pluginId: string;
+
+  /**
+   * Project slug
+   */
+  projectId: string;
 };
 
 type DoUpdateParams = Slugs & {

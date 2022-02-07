@@ -29,9 +29,9 @@ export function formatHistogramData(
     type,
     additionalFieldsFn,
   }: {
+    additionalFieldsFn?: any;
     precision?: number;
     type?: ColumnType;
-    additionalFieldsFn?: any;
   } = {}
 ) {
   const formatter = (value: number): string => {

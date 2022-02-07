@@ -108,9 +108,9 @@ type Props = AsyncComponent['props'] & {
 };
 
 type State = AsyncComponent['state'] & {
-  eventType: string;
-  errorsOnly: boolean;
   currentPage: number;
+  errorsOnly: boolean;
+  eventType: string;
   requests: SentryAppWebhookRequest[];
 };
 

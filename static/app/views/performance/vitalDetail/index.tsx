@@ -28,10 +28,10 @@ import VitalDetailContent from './vitalDetailContent';
 
 type Props = RouteComponentProps<{}, {}> & {
   api: Client;
+  loadingProjects: boolean;
   organization: Organization;
   projects: Project[];
   selection: PageFilters;
-  loadingProjects: boolean;
 };
 
 type State = {

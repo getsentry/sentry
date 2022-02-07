@@ -16,11 +16,11 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
-  serverlessFunction: ServerlessFunction;
   api: Client;
   integration: IntegrationWithConfig;
-  organization: Organization;
   onUpdateFunction: (serverlessFunctionUpdate: Partial<ServerlessFunction>) => void;
+  organization: Organization;
+  serverlessFunction: ServerlessFunction;
 };
 
 type State = {

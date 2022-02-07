@@ -12,10 +12,10 @@ import {Organization, SavedSearch} from 'sentry/types';
 import SavedSearchMenu from './savedSearchMenu';
 
 type Props = {
+  onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   organization: Organization;
   savedSearchList: SavedSearch[];
-  onSavedSearchSelect: (savedSearch: SavedSearch) => void;
-  onSavedSearchDelete: (savedSearch: SavedSearch) => void;
   sort: string;
   isActive?: boolean;
   query?: string;

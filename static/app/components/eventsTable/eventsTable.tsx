@@ -7,10 +7,10 @@ import {Event} from 'sentry/types/event';
 
 type Props = {
   events: Event[];
-  tagList: Tag[];
+  groupId: string;
   orgId: string;
   projectId: string;
-  groupId: string;
+  tagList: Tag[];
 };
 class EventsTable extends Component<Props> {
   render() {

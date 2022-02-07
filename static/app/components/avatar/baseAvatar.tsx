@@ -18,8 +18,8 @@ const DEFAULT_REMOTE_SIZE = 120;
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
 const StyledBaseAvatar = styled('span')<{
-  round: boolean;
   loaded: boolean;
+  round: boolean;
   suggested: boolean;
 }>`
   flex-shrink: 0;
@@ -50,20 +50,20 @@ const defaultProps: DefaultProps = {
 };
 
 type DefaultProps = {
-  style?: React.CSSProperties;
-  suggested?: boolean;
   /**
    * Enable to display tooltips.
    */
   hasTooltip?: boolean;
   /**
-   * The type of avatar being rendered.
-   */
-  type?: Avatar['avatarType'];
-  /**
    * Should avatar be round instead of a square
    */
   round?: boolean;
+  style?: React.CSSProperties;
+  suggested?: boolean;
+  /**
+   * The type of avatar being rendered.
+   */
+  type?: Avatar['avatarType'];
   /**
    * Path to uploaded avatar (differs based on model type)
    */
@@ -77,20 +77,21 @@ type DefaultProps = {
 };
 
 type BaseProps = DefaultProps & {
-  size?: number;
-  /**
-   * This is the size of the remote image to request.
-   */
-  remoteImageSize?: typeof ALLOWED_SIZES[number];
+  backupAvatar?: React.ReactNode;
+  className?: string;
   /**
    * Default gravatar to display
    */
   default?: string;
-  uploadId?: string | null | undefined;
+  forwardedRef?: React.Ref<HTMLSpanElement>;
   gravatarId?: string;
   letterId?: string;
+  /**
+   * This is the size of the remote image to request.
+   */
+  remoteImageSize?: typeof ALLOWED_SIZES[number];
+  size?: number;
   title?: string;
-  backupAvatar?: React.ReactNode;
   /**
    * The content for the tooltip. Requires hasTooltip to display
    */
@@ -99,16 +100,15 @@ type BaseProps = DefaultProps & {
    * Additional props for the tooltip
    */
   tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
-  className?: string;
-  forwardedRef?: React.Ref<HTMLSpanElement>;
+  uploadId?: string | null | undefined;
 };
 
 type Props = BaseProps;
 
 type State = {
-  showBackupAvatar: boolean;
   hasLoaded: boolean;
   loadError: boolean;
+  showBackupAvatar: boolean;
 };
 
 class BaseAvatar extends React.Component<Props, State> {

@@ -25,13 +25,13 @@ type Props = {
    */
   value: string;
   /**
-   * A set of labels to display for each password strength level. 5 levels.
-   */
-  labels?: [string, string, string, string, string];
-  /**
    * The color to make the progress bar for each strength level. 5 levels.
    */
   colors?: [string, string, string, string, string];
+  /**
+   * A set of labels to display for each password strength level. 5 levels.
+   */
+  labels?: [string, string, string, string, string];
 };
 
 const PasswordStrength = ({

@@ -44,10 +44,10 @@ import SubscribeAction from './subscribeAction';
 
 type Props = {
   api: Client;
-  group: Group;
-  project: Project;
-  organization: Organization;
   disabled: boolean;
+  group: Group;
+  organization: Organization;
+  project: Project;
   event?: Event;
 };
 

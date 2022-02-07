@@ -29,28 +29,28 @@ type FilteredGrouping = Required<Pick<MetricQuery, 'metricMeta' | 'aggregation'>
 type RequestQuery = {
   field: string;
   interval: string;
-  query?: string;
-  start?: string;
   end?: string;
   period?: string | null;
+  query?: string;
+  start?: string;
   utc?: string;
 };
 
 type ChildrenArgs = {
-  isLoading: boolean;
   errored: boolean;
+  isLoading: boolean;
   series: Series[];
 };
 
 type Props = {
   api: Client;
+  children: (args: ChildrenArgs) => React.ReactElement;
+  datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
+  groupings: MetricQuery[];
+  location: Location;
   organization: Organization;
   projectId: Project['id'];
-  environments: PageFilters['environments'];
-  datetime: PageFilters['datetime'];
-  location: Location;
-  children: (args: ChildrenArgs) => React.ReactElement;
-  groupings: MetricQuery[];
   searchQuery?: string;
 };
 
