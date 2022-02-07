@@ -2297,12 +2297,17 @@ class MetricsFunction(SnQLFunction):
                 arg.has_default
             ), f"{self.name}: optional argument at index {i} does not have default"
 
-        assert sum([
-            self.snql_distribution is not None,
-            self.snql_set is not None,
-            self.snql_counter is not None,
-            self.snql_column is not None,
-        ]) == 1
+        assert (
+            sum(
+                [
+                    self.snql_distribution is not None,
+                    self.snql_set is not None,
+                    self.snql_counter is not None,
+                    self.snql_column is not None,
+                ]
+            )
+            == 1
+        )
 
         # assert that no duplicate argument names are used
         names = set()
