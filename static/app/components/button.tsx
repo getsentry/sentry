@@ -244,6 +244,7 @@ const getColors = ({
 
     &.focus-visible {
       ${getFocusState()}
+      z-index: 1;
     }
   `;
 };
