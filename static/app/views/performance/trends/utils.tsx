@@ -189,11 +189,11 @@ export function performanceTypeToTrendParameterLabel(
 ): TrendParameter {
   switch (performanceType) {
     case PROJECT_PERFORMANCE_TYPE.FRONTEND:
-    case PROJECT_PERFORMANCE_TYPE.ANY:
       return {
         label: 'LCP',
         column: TrendColumnField.LCP,
       };
+    case PROJECT_PERFORMANCE_TYPE.ANY:
     case PROJECT_PERFORMANCE_TYPE.BACKEND:
     case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
     default:
