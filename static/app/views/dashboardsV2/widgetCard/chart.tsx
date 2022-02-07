@@ -378,9 +378,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults
             ? timeseriesResults.map((values, i: number) => {
-                const seriesName = isEquation(values.seriesName)
-                  ? getEquation(values.seriesName)
-                  : values.seriesName;
+                let seriesName = '';
+                if (values.seriesName !== undefined) {
+                  seriesName = isEquation(values.seriesName)
+                    ? getEquation(values.seriesName)
+                    : values.seriesName;
+                }
                 return {
                   ...values,
                   seriesName,
