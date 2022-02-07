@@ -38,10 +38,7 @@ const OwnershipRules = ({
   const handleOpenCreateOwnershipRule = () => {
     openCreateOwnershipRule({project, organization, issueId});
   };
-  const showCTA =
-    organization.features.includes('integrations-codeowners') &&
-    !codeowners.length &&
-    !isDismissed;
+  const showCTA = !codeowners.length && !isDismissed;
 
   const createRuleButton = (
     <Access access={['project:write']}>
