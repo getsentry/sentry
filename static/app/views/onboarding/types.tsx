@@ -7,17 +7,17 @@ export type StepData = {
 
 export type StepProps = {
   active: boolean;
-  orgId: string;
-  project: Project | null;
-  platform: PlatformKey | null;
   onComplete: (data: StepData) => void;
   onUpdate: (data: StepData) => void;
+  orgId: string;
+  platform: PlatformKey | null;
+  project: Project | null;
   organization?: Organization;
 };
 
 export type StepDescriptor = {
+  Component: React.ComponentType<StepProps>;
   id: string;
   title: string;
-  Component: React.ComponentType<StepProps>;
   centered?: boolean;
 };

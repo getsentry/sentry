@@ -12,11 +12,11 @@ import NoUnresolvedIssues from './noUnresolvedIssues';
 
 type Props = {
   api: Client;
+  groupIds: string[];
   organization: Organization;
   query: string;
-  selectedProjectIds?: number[];
-  groupIds: string[];
   emptyMessage?: React.ReactNode;
+  selectedProjectIds?: number[];
 };
 
 type State = {

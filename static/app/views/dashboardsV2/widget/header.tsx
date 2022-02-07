@@ -12,15 +12,15 @@ import {t} from 'sentry/locale';
 import {DashboardDetails} from '../types';
 
 type Props = {
-  title: string;
-  orgSlug: string;
-  goBackLocation: React.ComponentProps<typeof Link>['to'];
   dashboardTitle: DashboardDetails['title'];
+  goBackLocation: React.ComponentProps<typeof Link>['to'];
   onChangeTitle: (title: string) => void;
-  onSave?: (event: React.MouseEvent) => void;
-  onDelete?: () => void;
+  orgSlug: string;
+  title: string;
   disabled?: boolean;
   isEditing?: boolean;
+  onDelete?: () => void;
+  onSave?: (event: React.MouseEvent) => void;
 };
 
 function Header({

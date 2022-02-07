@@ -19,20 +19,32 @@ const LabelHook = HookOrDefault({
 });
 
 type Props = WithRouterProps & {
-  onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
-  className?: string;
-  index?: boolean;
-  href?: string;
-  to?: string;
-
+  /**
+   * Icon to display
+   */
+  icon: React.ReactNode;
   /**
    * Key of the sidebar item. Used for label hooks
    */
   id: string;
   /**
+   * Label to display (only when expanded)
+   */
+  label: React.ReactNode;
+  /**
+   * Sidebar is at "top" or "left" of screen
+   */
+  orientation: SidebarOrientation;
+  /**
    * Is this sidebar item active
    */
   active?: boolean;
+
+  /**
+   * Additional badge to display after label
+   */
+  badge?: number;
+  className?: string;
   /**
    * Is sidebar in a collapsed state
    */
@@ -41,34 +53,22 @@ type Props = WithRouterProps & {
    * Sidebar has a panel open
    */
   hasPanel?: boolean;
-  /**
-   * Icon to display
-   */
-  icon: React.ReactNode;
-  /**
-   * Label to display (only when expanded)
-   */
-  label: React.ReactNode;
-  /**
-   * Additional badge to display after label
-   */
-  badge?: number;
-  /**
-   * Additional badge letting users know a tab is new.
-   */
-  isNew?: boolean;
+  href?: string;
+  index?: boolean;
   /**
    * Additional badge letting users know a tab is in beta.
    */
   isBeta?: boolean;
   /**
-   * Sidebar is at "top" or "left" of screen
+   * Additional badge letting users know a tab is new.
    */
-  orientation: SidebarOrientation;
+  isNew?: boolean;
   /**
    * An optional prefix that can be used to reset the "new" indicator
    */
   isNewSeenKeySuffix?: string;
+  onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
+  to?: string;
 };
 
 const SidebarItem = ({

@@ -100,8 +100,8 @@ export function getAxisOptions(organization: Organization): TooltipOption[] {
 
 export type AxisOption = TooltipOption & {
   field: string;
-  backupOption?: AxisOption;
   label: string;
+  backupOption?: AxisOption;
   isDistribution?: boolean;
   isLeftDefault?: boolean;
   isRightDefault?: boolean;

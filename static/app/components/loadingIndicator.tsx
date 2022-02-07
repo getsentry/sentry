@@ -3,16 +3,16 @@ import {withProfiler} from '@sentry/react';
 import classNames from 'classnames';
 
 type Props = {
-  overlay?: boolean;
+  children?: React.ReactNode;
+  className?: string;
   dark?: boolean;
-  mini?: boolean;
-  relative?: boolean;
   hideMessage?: boolean;
   hideSpinner?: boolean;
+  mini?: boolean;
+  overlay?: boolean;
+  relative?: boolean;
   size?: number;
-  className?: string;
   style?: React.CSSProperties;
-  children?: React.ReactNode;
 };
 
 function LoadingIndicator(props: Props) {

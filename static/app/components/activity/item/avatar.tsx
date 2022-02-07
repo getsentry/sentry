@@ -7,9 +7,9 @@ import {AvatarUser} from 'sentry/types';
 
 type Props = {
   type: 'system' | 'user';
-  user?: AvatarUser;
   className?: string;
   size?: number;
+  user?: AvatarUser;
 };
 
 function ActivityAvatar({className, type, user, size = 38}: Props) {

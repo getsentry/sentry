@@ -18,11 +18,11 @@ import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
 export type Props = {
+  integration: Integration;
+  onDisable: (integration: Integration) => void;
+  onRemove: (integration: Integration) => void;
   organization: Organization;
   provider: IntegrationProvider;
-  integration: Integration;
-  onRemove: (integration: Integration) => void;
-  onDisable: (integration: Integration) => void;
   trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
   className?: string;
   requiresUpgrade?: boolean;

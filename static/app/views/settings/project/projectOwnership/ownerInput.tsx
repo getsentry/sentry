@@ -21,18 +21,18 @@ const defaultProps = {
 };
 
 type Props = {
+  initialText: string;
   organization: Organization;
   project: Project;
-  initialText: string;
   onSave?: (text: string | null) => void;
 } & typeof defaultProps;
 
 type State = {
-  hasChanges: boolean;
-  text: string | null;
   error: null | {
     raw: string[];
   };
+  hasChanges: boolean;
+  text: string | null;
 };
 
 class OwnerInput extends React.Component<Props, State> {

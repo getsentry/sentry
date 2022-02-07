@@ -16,9 +16,9 @@ const defaultProps = {
 };
 
 type Props = {
-  user?: Actor | AvatarUser;
-  renderTooltip?: RenderTooltipFunc;
   gravatar?: boolean;
+  renderTooltip?: RenderTooltipFunc;
+  user?: Actor | AvatarUser;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 function isActor(maybe: AvatarUser | Actor): maybe is Actor {

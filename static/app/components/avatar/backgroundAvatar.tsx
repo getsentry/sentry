@@ -5,9 +5,9 @@ import {imageStyle} from 'sentry/components/avatar/styles';
 import theme from 'sentry/utils/theme';
 
 type Props = {
+  forwardedRef?: React.Ref<SVGSVGElement>;
   round?: boolean;
   suggested?: boolean;
-  forwardedRef?: React.Ref<SVGSVGElement>;
 };
 
 type BackgroundAvatarProps = React.ComponentProps<'svg'> & Props;

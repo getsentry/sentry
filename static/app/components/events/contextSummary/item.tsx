@@ -5,8 +5,8 @@ import classNames from 'classnames';
 import space from 'sentry/styles/space';
 
 type Props = {
-  icon: React.ReactElement;
   children: React.ReactNode;
+  icon: React.ReactElement;
   className?: string;
 };
 

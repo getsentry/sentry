@@ -7,12 +7,12 @@ import Content from './content';
 import RawContent from './rawContent';
 
 type Props = {
-  stackType: STACK_TYPE;
-  projectId: Project['id'];
   event: Event;
+  hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
   platform: PlatformType;
-  hasHierarchicalGrouping: boolean;
+  projectId: Project['id'];
+  stackType: STACK_TYPE;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
 } & Pick<ExceptionType, 'values'>;

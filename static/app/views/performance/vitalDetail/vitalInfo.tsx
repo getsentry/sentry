@@ -22,15 +22,15 @@ type ViewProps = Pick<
 
 type Props = ViewProps & {
   location: Location;
-  vital: WebVital | WebVital[];
   orgSlug: Organization['slug'];
-  isLoading?: boolean;
+  vital: WebVital | WebVital[];
   hideBar?: boolean;
+  hideDurationDetail?: boolean;
   hideStates?: boolean;
   hideVitalPercentNames?: boolean;
-  hideDurationDetail?: boolean;
-  p75AllTransactions?: number;
+  isLoading?: boolean;
   isMetricsData?: boolean;
+  p75AllTransactions?: number;
 };
 
 function VitalInfo({

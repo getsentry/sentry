@@ -17,16 +17,16 @@ import EventView from 'sentry/utils/discover/eventView';
 import {downloadAsCsv} from '../utils';
 
 type Props = {
-  isLoading: boolean;
   error: string | null;
-  title: string;
-  organization: OrganizationSummary;
   eventView: EventView;
-  tableData: TableData | null | undefined;
+  isLoading: boolean;
   location: Location;
-  onEdit: () => void;
   onChangeShowTags: () => void;
+  onEdit: () => void;
+  organization: OrganizationSummary;
   showTags: boolean;
+  tableData: TableData | null | undefined;
+  title: string;
 };
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {

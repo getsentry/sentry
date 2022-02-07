@@ -23,9 +23,10 @@ export type Crumb = {
   label: React.ReactNode;
 
   /**
-   * Link of the crumb
+   * Component will try to come up with unique key, but you can provide your own
+   * (used when mapping over crumbs)
    */
-  to?: React.ComponentProps<typeof Link>['to'] | null;
+  key?: string;
 
   /**
    * It will keep the page filter values (projects, environments, time) in the
@@ -34,22 +35,21 @@ export type Crumb = {
   preservePageFilters?: boolean;
 
   /**
-   * Component will try to come up with unique key, but you can provide your own
-   * (used when mapping over crumbs)
+   * Link of the crumb
    */
-  key?: string;
+  to?: React.ComponentProps<typeof Link>['to'] | null;
 };
 
 export type CrumbDropdown = {
   /**
-   * Name of the crumb
-   */
-  label: React.ReactNode;
-
-  /**
    * Items of the crumb dropdown
    */
   items: React.ComponentProps<typeof BreadcrumbDropdown>['items'];
+
+  /**
+   * Name of the crumb
+   */
+  label: React.ReactNode;
 
   /**
    * Callback function for when an item is selected
@@ -143,8 +143,8 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
 
 type BreadcrumbLinkProps = {
   to: React.ComponentProps<typeof Link>['to'];
-  preservePageFilters?: boolean;
   children?: React.ReactNode;
+  preservePageFilters?: boolean;
 };
 
 const BreadcrumbLink = styled(

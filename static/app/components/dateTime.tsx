@@ -11,11 +11,11 @@ type DefaultProps = {
 type Props = DefaultProps & {
   date: moment.MomentInput | momentTimezone.MomentInput;
   dateOnly?: boolean;
-  timeOnly?: boolean;
+  format?: string;
   shortDate?: boolean;
   timeAndDate?: boolean;
+  timeOnly?: boolean;
   utc?: boolean;
-  format?: string;
 };
 
 class DateTime extends Component<Props> {

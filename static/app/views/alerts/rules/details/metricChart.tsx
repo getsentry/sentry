@@ -62,22 +62,22 @@ import {TimePeriodType} from './constants';
 
 type Props = WithRouterProps & {
   api: Client;
-  rule: IncidentRule;
-  incidents?: Incident[];
-  timePeriod: TimePeriodType;
-  selectedIncident?: Incident | null;
+  filter: string[] | null;
+  handleZoom: (start: DateString, end: DateString) => void;
+  interval: string;
+  orgId: string;
   organization: Organization;
   projects: Project[] | AvatarProject[];
-  interval: string;
   query: string;
-  filter: string[] | null;
-  orgId: string;
-  handleZoom: (start: DateString, end: DateString) => void;
+  rule: IncidentRule;
+  timePeriod: TimePeriodType;
+  incidents?: Incident[];
+  selectedIncident?: Incident | null;
 };
 
 type State = {
-  width: number;
   height: number;
+  width: number;
 };
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
@@ -341,6 +341,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       organization,
       timePeriod: {start, end},
     } = this.props;
+    const {width} = this.state;
     const {dateModified, timeWindow, aggregate} = rule;
 
     if (loading || !timeseriesData) {
@@ -540,6 +541,18 @@ class MetricChart extends React.PureComponent<Props, State> {
 
     const queryFilter = filter?.join(' ');
 
+    const percentOfWidth =
+      width >= 1151
+        ? 15
+        : width < 1151 && width >= 700
+        ? 14
+        : width < 700 && width >= 515
+        ? 13
+        : width < 515 && width >= 300
+        ? 12
+        : 8;
+    const truncateWidth = (percentOfWidth / 100) * width;
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
@@ -551,7 +564,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           <ChartFilters>
             <StyledCircleIndicator size={8} />
             <Filters>{rule.aggregate}</Filters>
-            <Truncate value={queryFilter ?? ''} maxLength={75} />
+            <Truncate value={queryFilter ?? ''} maxLength={truncateWidth} />
           </ChartFilters>
           {getDynamicText({
             value: (
@@ -825,14 +838,9 @@ const ChartFilters = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.textColor};
-  white-space: nowrap;
-  text-overflow: ellipsis;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
+  display: inline-grid;
+  grid-template-columns: repeat(3, max-content);
+  align-items: center;
 `;
 
 const Filters = styled('span')`

@@ -14,9 +14,9 @@ type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 export type PieChartSeries = Series & Omit<PieSeriesOption, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
+  series: PieChartSeries[];
   theme: Theme;
   selectOnRender?: boolean;
-  series: PieChartSeries[];
 };
 
 class PieChart extends React.Component<Props> {
