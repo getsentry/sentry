@@ -15,11 +15,11 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraph: Flamegraph | DifferentialFlamegraph;
   colorCoding: 'by symbol name' | 'by system / application' | 'by library';
-  searchResults: Record<string, FlamegraphFrame>;
-  highlightRecursion: boolean;
+  flamegraph: Flamegraph | DifferentialFlamegraph;
   flamegraphTheme: FlamegraphTheme;
+  highlightRecursion: boolean;
+  searchResults: Record<string, FlamegraphFrame>;
   showSelectedNodeStack?: boolean;
 }
 
