@@ -1,12 +1,11 @@
 import * as React from 'react';
 
-import {Project} from 'sentry/types';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import useProjects from 'sentry/utils/useProjects';
 import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
 import {
   TrendChangeType,
   TrendFunctionField,
@@ -23,7 +22,6 @@ import {
 
 export type TrendsRequest = {
   eventView: Partial<TrendView>;
-  projects: Project[];
   trendChangeType?: TrendChangeType;
   trendFunctionField?: TrendFunctionField;
 };
@@ -50,7 +48,8 @@ type EventProps = RequestProps & {
 };
 
 export function getTrendsRequestPayload(props: RequestProps) {
-  const {eventView, projects} = props;
+  const {projects} = useProjects();
+  const {eventView} = props;
   const apiPayload: TrendsQuery = eventView?.getEventsAPIPayload(props.location);
   const trendFunction = getCurrentTrendFunction(props.location, props.trendFunctionField);
   const trendParameter = getCurrentTrendParameter(
@@ -96,6 +95,6 @@ function EventsDiscoverQuery(props: EventProps) {
   );
 }
 
-export const TrendsEventsDiscoverQuery = withApi(withProjects(EventsDiscoverQuery));
+export const TrendsEventsDiscoverQuery = withApi(EventsDiscoverQuery);
 
-export default withApi(withProjects(TrendsDiscoverQuery));
+export default withApi(TrendsDiscoverQuery);
