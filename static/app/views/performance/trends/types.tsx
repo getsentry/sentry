@@ -86,8 +86,8 @@ export type TrendsDataEvents = {
 
 export type TrendsData = {
   events: TrendsDataEvents;
-  stats: TrendsStats;
   projects: Project[];
+  stats: TrendsStats;
 };
 
 export type NormalizedTrendsTransaction = TrendsTransaction & {
