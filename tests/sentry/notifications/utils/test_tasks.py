@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry.notifications.class_manager import manager, register
-from sentry.notifications.utils.tasks import _send_notification, async_execute
+from sentry.notifications.utils.tasks import _send_notification, async_send_notification
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.notifications import AnotherDummyNotification
 
@@ -17,14 +17,14 @@ class NotificationTaskTests(TestCase):
         notification.__name__ = "AnotherDummyNotification"
         register()(notification)
         with self.tasks():
-            async_execute(AnotherDummyNotification, self.organization, "some_value")
+            async_send_notification(AnotherDummyNotification, self.organization, "some_value")
 
         assert notification.call_args.args == (self.organization, "some_value")
         notification.return_value.send.assert_called_once_with()
 
     @patch("sentry.notifications.utils.tasks._send_notification.delay")
     def test_call_task(self, mock_delay):
-        async_execute(AnotherDummyNotification, self.organization, "some_value")
+        async_send_notification(AnotherDummyNotification, self.organization, "some_value")
         assert mock_delay.called_with(
             "AnotherDummyNotification",
             [

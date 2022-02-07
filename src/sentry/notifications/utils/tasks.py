@@ -6,7 +6,7 @@ from sentry.tasks.base import instrumented_task
 
 
 # TODO: handle kwargs
-def async_execute(NotificationClass, *args):
+def async_send_notification(NotificationClass, *args):
     """
     This function takes a notification class and arguments to instantiate
     the notification class in a task with the original arguments.
@@ -32,7 +32,7 @@ def async_execute(NotificationClass, *args):
 
 
 @instrumented_task(
-    name="src.sentry.notifications.utils.async_execute",
+    name="src.sentry.notifications.utils.async_send_notification",
     queue="email",
 )
 def _send_notification(notification_class_name, arg_list):
