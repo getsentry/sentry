@@ -21,15 +21,15 @@ import ContextMenu from '../contextMenu';
 import {Widget, WidgetType} from '../types';
 
 type Props = {
-  organization: Organization;
-  widget: Widget;
-  selection: PageFilters;
   onDelete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
+  organization: Organization;
+  selection: PageFilters;
+  widget: Widget;
   widgetLimitReached: boolean;
-  showContextMenu?: boolean;
   isPreview?: boolean;
+  showContextMenu?: boolean;
 };
 
 function WidgetCardContextMenu({
@@ -43,9 +43,6 @@ function WidgetCardContextMenu({
   showContextMenu,
   isPreview,
 }: Props) {
-  function isAllowWidgetsToDiscover() {
-    return organization.features.includes('connect-discover-and-dashboards');
-  }
   if (!showContextMenu) {
     return null;
   }
@@ -65,7 +62,6 @@ function WidgetCardContextMenu({
   }
 
   if (
-    (widget.displayType === 'table' || isAllowWidgetsToDiscover()) &&
     organization.features.includes('discover-basic') &&
     widget.widgetType === WidgetType.DISCOVER
   ) {
@@ -78,31 +74,29 @@ function WidgetCardContextMenu({
         widget.displayType
       );
       const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
-      if (isAllowWidgetsToDiscover()) {
-        // Pull a max of 3 valid Y-Axis from the widget
-        const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-        discoverLocation.query.yAxis = [
-          ...new Set(
-            widget.queries[0].fields.filter(field => yAxisOptions.includes(field))
-          ),
-        ].slice(0, 3);
-        switch (widget.displayType) {
-          case DisplayType.WORLD_MAP:
-            discoverLocation.query.display = DisplayModes.WORLDMAP;
-            break;
-          case DisplayType.BAR:
-            discoverLocation.query.display = DisplayModes.BAR;
-            break;
-          case DisplayType.TOP_N:
-            discoverLocation.query.display = DisplayModes.TOP5;
-            // Last field is used as the yAxis
-            discoverLocation.query.yAxis =
-              widget.queries[0].fields[widget.queries[0].fields.length - 1];
-            discoverLocation.query.field = widget.queries[0].fields.slice(0, -1);
-            break;
-          default:
-            break;
-        }
+      // Pull a max of 3 valid Y-Axis from the widget
+      const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
+      discoverLocation.query.yAxis = [
+        ...new Set(
+          widget.queries[0].fields.filter(field => yAxisOptions.includes(field))
+        ),
+      ].slice(0, 3);
+      switch (widget.displayType) {
+        case DisplayType.WORLD_MAP:
+          discoverLocation.query.display = DisplayModes.WORLDMAP;
+          break;
+        case DisplayType.BAR:
+          discoverLocation.query.display = DisplayModes.BAR;
+          break;
+        case DisplayType.TOP_N:
+          discoverLocation.query.display = DisplayModes.TOP5;
+          // Last field is used as the yAxis
+          discoverLocation.query.yAxis =
+            widget.queries[0].fields[widget.queries[0].fields.length - 1];
+          discoverLocation.query.field = widget.queries[0].fields.slice(0, -1);
+          break;
+        default:
+          break;
       }
 
       // Gather all fields and functions used in equations and prepend them to discover columns

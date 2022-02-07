@@ -11,9 +11,9 @@ import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  hasMetricAlerts: boolean;
   organization: Organization;
   children?: React.ReactNode;
-  hasMetricAlerts: boolean;
 };
 
 type RouteParams = {

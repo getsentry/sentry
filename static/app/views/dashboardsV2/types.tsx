@@ -26,21 +26,21 @@ export enum WidgetType {
 }
 
 export type WidgetQuery = {
-  name: string;
-  fields: string[];
   conditions: string;
+  fields: string[];
+  name: string;
   orderby: string;
 };
 
 export type Widget = {
-  id?: string;
-  title: string;
   displayType: DisplayType;
   interval: string;
   queries: WidgetQuery[];
-  widgetType?: WidgetType;
-  tempId?: string;
+  title: string;
+  id?: string;
   layout?: Partial<Layout>;
+  tempId?: string;
+  widgetType?: WidgetType;
 };
 
 /**
@@ -49,19 +49,19 @@ export type Widget = {
 export type DashboardListItem = {
   id: string;
   title: string;
-  dateCreated?: string;
-  createdBy?: User;
   widgetDisplay: DisplayType[];
+  createdBy?: User;
+  dateCreated?: string;
 };
 
 /**
  * Saved dashboard with widgets
  */
 export type DashboardDetails = {
+  dateCreated: string;
+  id: string;
   title: string;
   widgets: Widget[];
-  id: string;
-  dateCreated: string;
   createdBy?: User;
 };
 

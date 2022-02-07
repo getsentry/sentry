@@ -80,8 +80,8 @@ type CodeOwnersHeaderProps = {
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
-  wrapWithContainer?: boolean;
   hideCTA?: boolean;
+  wrapWithContainer?: boolean;
 };
 
 type FirstPartyIntegrationAdditionalCTAProps = {
@@ -92,19 +92,19 @@ type FirstPartyIntegrationAdditionalCTAProps = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
+  'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
+  'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
+  'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
+  'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
+  'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
+  'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
-  'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
-  'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
-  'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
-  'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
-  'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
-  'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
-  'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
 };
 
 /**
@@ -122,15 +122,15 @@ export type CustomizationHooks = {
  * Analytics / tracking / and operational metrics backend hooks.
  */
 export type AnalyticsHooks = {
-  'analytics:init-user': AnalyticsInitUser;
-  'analytics:track-event-v2': AnalyticsTrackEventV2;
-  'analytics:log-experiment': AnalyticsLogExperiment;
-  'metrics:event': MetricsEvent;
-
   // TODO(scefali): Below are deprecated and should be replaced
   'analytics:event': LegacyAnalyticsEvent;
-  'analytics:track-event': AnalyticsTrackEvent;
+  'analytics:init-user': AnalyticsInitUser;
+  'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
+
+  'analytics:track-event': AnalyticsTrackEvent;
+  'analytics:track-event-v2': AnalyticsTrackEventV2;
+  'metrics:event': MetricsEvent;
 };
 
 /**
@@ -138,9 +138,13 @@ export type AnalyticsHooks = {
  * rendered in place for Feature components when the feature is not enabled.
  */
 export type FeatureDisabledHooks = {
+  'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
   'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:configure-distributed-tracing': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
+  'feature-disabled:dashboards-edit': FeatureDisabledHook;
+  'feature-disabled:dashboards-page': FeatureDisabledHook;
+  'feature-disabled:dashboards-sidebar-item': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;
   'feature-disabled:discard-groups': FeatureDisabledHook;
   'feature-disabled:discover-page': FeatureDisabledHook;
@@ -148,28 +152,24 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:events-page': FeatureDisabledHook;
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
-  'feature-disabled:open-discover': FeatureDisabledHook;
-  'feature-disabled:dashboards-edit': FeatureDisabledHook;
-  'feature-disabled:dashboards-page': FeatureDisabledHook;
-  'feature-disabled:dashboards-sidebar-item': FeatureDisabledHook;
   'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:open-discover': FeatureDisabledHook;
+  'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
   'feature-disabled:performance-quick-trace': FeatureDisabledHook;
   'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
+  'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
-  'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
-  'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
 };
 
 /**
@@ -177,22 +177,22 @@ export type FeatureDisabledHooks = {
  */
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
+  'help-modal:footer': HelpModalFooterHook;
   'organization:header': OrganizationHeaderComponentHook;
-  'sidebar:help-menu': GenericOrganizationComponentHook;
-  'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
-  'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
+  'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:item-override': SidebarItemOverrideHook;
-  'help-modal:footer': HelpModalFooterHook;
+  'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
+  'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
 };
 
 /**
  * Onboarding experience hooks
  */
 export type OnboardingHooks = {
-  'onboarding:extra-chrome': GenericComponentHook;
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
+  'onboarding:extra-chrome': GenericComponentHook;
 };
 
 /**
@@ -231,9 +231,10 @@ type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
  */
 type FeatureDisabledHook = (opts: {
   /**
-   * The organization that is associated to this feature.
+   * Children can either be a node, or a function that accepts a renderDisabled prop containing
+   * a function/component to render when the feature is not enabled.
    */
-  organization: Organization;
+  children: React.ReactNode | ChildrenRenderFn;
   /**
    * The list of features that are controlled by this hook.
    */
@@ -244,10 +245,9 @@ type FeatureDisabledHook = (opts: {
   hasFeature: boolean;
 
   /**
-   * Children can either be a node, or a function that accepts a renderDisabled prop containing
-   * a function/component to render when the feature is not enabled.
+   * The organization that is associated to this feature.
    */
-  children: React.ReactNode | ChildrenRenderFn;
+  organization: Organization;
 
   /**
    * The project that is associated to this feature.
@@ -265,6 +265,10 @@ type AnalyticsInitUser = (user: User) => void;
  */
 type AnalyticsTrackEvent = (opts: {
   /**
+   * Arbitrary data to track
+   */
+  [key: string]: any;
+  /**
    * The key used to identify the event.
    */
   eventKey: string;
@@ -273,10 +277,6 @@ type AnalyticsTrackEvent = (opts: {
    */
   eventName: string;
   organization_id: string | number | null;
-  /**
-   * Arbitrary data to track
-   */
-  [key: string]: any;
 }) => void;
 
 /**
@@ -285,31 +285,31 @@ type AnalyticsTrackEvent = (opts: {
 type AnalyticsTrackEventV2 = (
   data: {
     /**
+     * Arbitrary data to track
+     */
+    [key: string]: any;
+    /**
      * The Reload event key.
      */
     eventKey: string;
+
     /**
      * The Amplitude event name. Set to null if event should not go to Amplitude.
      */
     eventName: string | null;
-
     organization: Organization | null;
-    /**
-     * Arbitrary data to track
-     */
-    [key: string]: any;
   },
   options?: {
+    /**
+     * An arbitrary function to map the parameters to new parameters
+     */
+    mapValuesFn?: (params: Record<string, any>) => Record<string, any>;
     /**
      * If true, starts an analytics session. This session can be used
      * to construct funnels. The start of the funnel should have
      * startSession set to true.
      */
     startSession?: boolean;
-    /**
-     * An arbitrary function to map the parameters to new parameters
-     */
-    mapValuesFn?: (params: Record<string, any>) => Record<string, any>;
   }
 ) => void;
 
@@ -318,13 +318,13 @@ type AnalyticsTrackEventV2 = (
  */
 type AnalyticsTrackAdhocEvent = (opts: {
   /**
-   * The key used to identify the event.
-   */
-  eventKey: string;
-  /**
    * Arbitrary data to track
    */
   [key: string]: any;
+  /**
+   * The key used to identify the event.
+   */
+  eventKey: string;
 }) => void;
 
 /**
@@ -332,13 +332,13 @@ type AnalyticsTrackAdhocEvent = (opts: {
  */
 type AnalyticsLogExperiment = (opts: {
   /**
-   * The organization. Must be provided for organization experiments.
-   */
-  organization?: Organization;
-  /**
    * The experiment key
    */
   key: ExperimentKey;
+  /**
+   * The organization. Must be provided for organization experiments.
+   */
+  organization?: Organization;
 }) => void;
 
 /**
@@ -462,13 +462,13 @@ type IntegrationFeatureGroup = {
 
 type FeatureGateSharedProps = {
   /**
-   * Organization of the integration we're querying feature gate details for.
-   */
-  organization: Organization;
-  /**
    * The list of features, typically this is provided by the backend.
    */
   features: DecoratedIntegrationFeature[];
+  /**
+   * Organization of the integration we're querying feature gate details for.
+   */
+  organization: Organization;
 };
 
 type IntegrationFeaturesProps = FeatureGateSharedProps & {
@@ -477,15 +477,6 @@ type IntegrationFeaturesProps = FeatureGateSharedProps & {
    */
   children: (opts: {
     /**
-     * This is the list of features which have *not* been gated in any way.
-     */
-    ungatedFeatures: DecoratedIntegrationFeature[];
-    /**
-     * Features grouped based on specific gating criteria (for example, in
-     * sentry.io this is features grouped by plans).
-     */
-    gatedFeatureGroups: IntegrationFeatureGroup[];
-    /**
      * Is the integration disabled for installation because of feature gating?
      */
     disabled: boolean;
@@ -493,6 +484,15 @@ type IntegrationFeaturesProps = FeatureGateSharedProps & {
      * The translated reason that the integration is disabled.
      */
     disabledReason: React.ReactNode;
+    /**
+     * Features grouped based on specific gating criteria (for example, in
+     * sentry.io this is features grouped by plans).
+     */
+    gatedFeatureGroups: IntegrationFeatureGroup[];
+    /**
+     * This is the list of features which have *not* been gated in any way.
+     */
+    ungatedFeatures: DecoratedIntegrationFeature[];
   }) => React.ReactElement;
 };
 
@@ -506,17 +506,17 @@ type IntegrationFeatureListProps = FeatureGateSharedProps & {
  */
 type IntegrationsFeatureGatesHook = () => {
   /**
+   * This component renders the list of integration features.
+   */
+  FeatureList: React.ComponentType<IntegrationFeatureListProps>;
+  IntegrationDirectoryFeatureList: React.ComponentType<IntegrationFeatureListProps>;
+  IntegrationDirectoryFeatures: React.ComponentType<IntegrationFeaturesProps>;
+  /**
    * This is a render-prop style component that given a set of integration
    * features will call the children function with gating details about the
    * features.
    */
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
-  IntegrationDirectoryFeatures: React.ComponentType<IntegrationFeaturesProps>;
-  /**
-   * This component renders the list of integration features.
-   */
-  FeatureList: React.ComponentType<IntegrationFeatureListProps>;
-  IntegrationDirectoryFeatureList: React.ComponentType<IntegrationFeatureListProps>;
 };
 
 /**
@@ -524,26 +524,7 @@ type IntegrationsFeatureGatesHook = () => {
  * additional react elements into the modal, and add invite-send middleware.
  */
 type InviteModalCustomizationHook = () => React.ComponentType<{
-  /**
-   * The organization that members will be invited to.
-   */
-  organization: Organization;
-  /**
-   * Indicates if clicking 'send invites' will immediately send invites, or
-   * would just create invite requests.
-   */
-  willInvite: boolean;
-  /**
-   * When the children's sendInvites renderProp is called, this will also be
-   * triggered.
-   */
-  onSendInvites: () => void;
   children: (opts: {
-    /**
-     * Additional react elements to render in the header of the modal, just
-     * under the description.
-     */
-    headerInfo?: React.ReactNode;
     /**
      * Indicates that the modal's send invites button should be enabled and
      * invites may currently be sent.
@@ -553,5 +534,24 @@ type InviteModalCustomizationHook = () => React.ComponentType<{
      * Trigger sending invites
      */
     sendInvites: () => void;
+    /**
+     * Additional react elements to render in the header of the modal, just
+     * under the description.
+     */
+    headerInfo?: React.ReactNode;
   }) => React.ReactElement;
+  /**
+   * When the children's sendInvites renderProp is called, this will also be
+   * triggered.
+   */
+  onSendInvites: () => void;
+  /**
+   * The organization that members will be invited to.
+   */
+  organization: Organization;
+  /**
+   * Indicates if clicking 'send invites' will immediately send invites, or
+   * would just create invite requests.
+   */
+  willInvite: boolean;
 }>;

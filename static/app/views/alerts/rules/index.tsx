@@ -356,6 +356,7 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
+  position: static;
   overflow: auto;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     overflow: initial;

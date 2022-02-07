@@ -34,37 +34,38 @@ type FieldOptions = Record<string, FieldValueOption>;
 // data with the AggregateParameter type.
 type ParameterDescription =
   | {
-      kind: 'value';
-      value: string;
       dataType: ColumnType;
+      kind: 'value';
       required: boolean;
+      value: string;
       placeholder?: string;
     }
   | {
       kind: 'column';
-      value: FieldValue | null;
       options: FieldValueOption[];
       required: boolean;
+      value: FieldValue | null;
     }
   | {
-      kind: 'dropdown';
-      value: string;
-      options: SelectValue<string>[];
       dataType: string;
+      kind: 'dropdown';
+      options: SelectValue<string>[];
       required: boolean;
+      value: string;
       placeholder?: string;
     };
 
 type Props = {
-  className?: string;
-  takeFocus?: boolean;
-  fieldValue: QueryFieldValue;
   fieldOptions: FieldOptions;
+  fieldValue: QueryFieldValue;
+  onChange: (fieldValue: QueryFieldValue) => void;
+  className?: string;
+  disabled?: boolean;
+  error?: string;
   /**
-   * The number of columns to render. Columns that do not have a parameter will
-   * render an empty parameter placeholder. Leave blank to avoid adding spacers.
+   * Function to filter the options that are used as parameters for function/aggregate.
    */
-  gridColumns?: number;
+  filterAggregateParameters?: (option: FieldValueOption) => boolean;
   /**
    * Filter the options in the primary selector. Useful if you only want to
    * show a subset of selectable items.
@@ -74,24 +75,23 @@ type Props = {
    */
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   /**
-   * Function to filter the options that are used as parameters for function/aggregate.
+   * The number of columns to render. Columns that do not have a parameter will
+   * render an empty parameter placeholder. Leave blank to avoid adding spacers.
    */
-  filterAggregateParameters?: (option: FieldValueOption) => boolean;
+  gridColumns?: number;
+  hideParameterSelector?: boolean;
+  hidePrimarySelector?: boolean;
   /**
    * Whether or not to add labels inside of the input fields, currently only
    * used for the metric alert builder.
    */
   inFieldLabels?: boolean;
+  otherColumns?: Column[];
   /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
-  onChange: (fieldValue: QueryFieldValue) => void;
-  error?: string;
-  disabled?: boolean;
-  hidePrimarySelector?: boolean;
-  hideParameterSelector?: boolean;
-  otherColumns?: Column[];
+  takeFocus?: boolean;
 };
 
 // Type for completing generics in react-select

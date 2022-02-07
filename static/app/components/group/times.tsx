@@ -13,8 +13,8 @@ import space from 'sentry/styles/space';
  */
 
 type Props = {
-  lastSeen: string;
   firstSeen: string;
+  lastSeen: string;
 };
 
 const Times = ({lastSeen, firstSeen}: Props) => (

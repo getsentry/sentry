@@ -4,9 +4,9 @@ import {getDuration, getExactDuration} from 'sentry/utils/formatters';
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
   seconds: number;
-  fixedDigits?: number;
   abbreviation?: boolean;
   exact?: boolean;
+  fixedDigits?: number;
 };
 
 const Duration = ({seconds, fixedDigits, abbreviation, exact, ...props}: Props) => (

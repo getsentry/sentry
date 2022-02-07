@@ -10,11 +10,11 @@ import theme from 'sentry/utils/theme';
 
 type Props = {
   data?: KeyValueListData;
-  onClick?: () => void;
-  raw?: boolean;
-  longKeys?: boolean;
   isContextData?: boolean;
   isSorted?: boolean;
+  longKeys?: boolean;
+  onClick?: () => void;
+  raw?: boolean;
 };
 
 const KeyValueList = ({

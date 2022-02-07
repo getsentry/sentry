@@ -8,8 +8,8 @@ import {MetricsColumnType} from 'sentry/views/dashboardsV2/widget/metricWidget/f
 import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
 
 export type Sort = {
-  kind: 'asc' | 'desc';
   field: string;
+  kind: 'asc' | 'desc';
 };
 
 // Contains the URL field value & the related table column width.
@@ -31,8 +31,8 @@ export type ColumnType =
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
 export type ParsedFunction = {
-  name: string;
   arguments: string[];
+  name: string;
 };
 
 type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
@@ -44,24 +44,24 @@ export type ValidateColumnTypes =
 
 export type AggregateParameter =
   | {
-      kind: 'column';
       columnTypes: Readonly<ValidateColumnTypes>;
-      defaultValue?: string;
+      kind: 'column';
       required: boolean;
+      defaultValue?: string;
     }
   | {
-      kind: 'value';
       dataType: ColumnType;
-      defaultValue?: string;
+      kind: 'value';
       required: boolean;
+      defaultValue?: string;
       placeholder?: string;
     }
   | {
+      dataType: string;
       kind: 'dropdown';
       options: SelectValue<string>[];
-      dataType: string;
-      defaultValue?: string;
       required: boolean;
+      defaultValue?: string;
       placeholder?: string;
     };
 
@@ -73,16 +73,16 @@ export type AggregationRefinement = string | undefined;
 // This type can be converted into a Field.field using generateFieldAsString()
 export type QueryFieldValue =
   | {
+      field: string;
       kind: 'field';
-      field: string;
     }
   | {
+      field: string;
       kind: 'equation';
-      field: string;
     }
   | {
-      kind: 'function';
       function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
+      kind: 'function';
     };
 
 // Column is just an alias of a Query value
@@ -441,31 +441,31 @@ export type AggregationOutputType = Extract<
 export type PlotType = 'bar' | 'line' | 'area';
 
 type DefaultValueInputs = {
-  parameter: AggregateParameter;
   organization: Organization;
+  parameter: AggregateParameter;
 };
 
 export type Aggregation = {
-  /**
-   * List of parameters for the function.
-   */
-  parameters: Readonly<AggregateParameter[]>;
-  /**
-   * The output type. Null means to inherit from the field.
-   */
-  outputType: AggregationOutputType | null;
   /**
    * Can this function be used in a sort result
    */
   isSortable: boolean;
   /**
+   * The output type. Null means to inherit from the field.
+   */
+  outputType: AggregationOutputType | null;
+  /**
+   * List of parameters for the function.
+   */
+  parameters: Readonly<AggregateParameter[]>;
+  getFieldOverrides?: (
+    data: DefaultValueInputs
+  ) => Partial<Omit<AggregateParameter, 'kind'>>;
+  /**
    * How this function should be plotted when shown in a multiseries result (top5)
    * Optional because some functions cannot be plotted (strings/dates)
    */
   multiPlotType?: PlotType;
-  getFieldOverrides?: (
-    data: DefaultValueInputs
-  ) => Partial<Omit<AggregateParameter, 'kind'>>;
 };
 
 enum FieldKey {
@@ -1099,7 +1099,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
 export function validateForNumericAggregate(
   validColumnTypes: ColumnType[]
 ): ValidateColumnValueFunction {
-  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+  return function ({name, dataType}: {dataType: ColumnType; name: string}): boolean {
     // these built-in columns cannot be applied to numeric aggregates such as percentile(...)
     if (
       [
@@ -1120,7 +1120,7 @@ function validateDenyListColumns(
   validColumnTypes: ColumnType[],
   deniedColumns: string[]
 ): ValidateColumnValueFunction {
-  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+  return function ({name, dataType}: {dataType: ColumnType; name: string}): boolean {
     return validColumnTypes.includes(dataType) && !deniedColumns.includes(name);
   };
 }

@@ -19,13 +19,13 @@ import {spanDetailsRouteWithQuery} from './spanDetails/utils';
 import {SpanSort, SpanSortOthers, SpanSortPercentiles, SpansTotalValues} from './types';
 
 type Props = {
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  transactionName: string;
-  isLoading: boolean;
+  sort: SpanSort;
   suspectSpans: SuspectSpans;
   totals: SpansTotalValues | null;
-  sort: SpanSort;
+  transactionName: string;
   project?: Project;
 };
 

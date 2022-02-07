@@ -11,12 +11,12 @@ import GroupDetails from './groupDetails';
 import SampleEventAlert from './sampleEventAlert';
 
 type Props = {
-  selection: PageFilters;
+  children: React.ReactNode;
   isGlobalSelectionReady: boolean;
   organization: Organization;
   projects: Project[];
-  children: React.ReactNode;
-} & RouteComponentProps<{orgId: string; groupId: string}, {}>;
+  selection: PageFilters;
+} & RouteComponentProps<{groupId: string; orgId: string}, {}>;
 
 class OrganizationGroupDetails extends React.Component<Props> {
   componentDidMount() {

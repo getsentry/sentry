@@ -18,9 +18,9 @@ import {getStartEndFromStats} from 'sentry/views/alerts/utils';
 export function getIncidentDiscoverUrl(opts: {
   orgSlug: string;
   projects: Project[];
+  extraQueryParams?: Partial<NewQuery>;
   incident?: Incident;
   stats?: IncidentStats;
-  extraQueryParams?: Partial<NewQuery>;
 }) {
   const {orgSlug, projects, incident, stats, extraQueryParams} = opts;
 
