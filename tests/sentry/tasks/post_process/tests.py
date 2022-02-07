@@ -175,7 +175,6 @@ class PostProcessGroupTest(TestCase):
 
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
 
-    @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
     def test_rule_processor_buffer_values(self):
         # Test that pending buffer values for `times_seen` are applied to the group and that alerts
         # fire as expected
@@ -234,11 +233,6 @@ class PostProcessGroupTest(TestCase):
                 group_id=event_2.group_id,
             )
             assert MockAction.return_value.after.call_count == 1
-
-            event.group.refresh_from_db()
-            # Make sure that we haven't inadvertently saved the updated `times_seen` value to the
-            # database.
-            assert event.group.times_seen == 2
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_refresh(self, mock_processor):
@@ -317,6 +311,45 @@ class PostProcessGroupTest(TestCase):
             group=group, project=group.project, type=Activity.SET_UNRESOLVED
         ).exists()
         assert send_robust.called
+
+    @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
+    @patch("sentry.signals.issue_unignored.send_robust")
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
+        redis_buffer = RedisBuffer()
+        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.incr", redis_buffer.incr
+        ):
+            event = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            event_2 = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            group = event.group
+            group.update(times_seen=50)
+            snooze = GroupSnooze.objects.create(group=group, count=100, state={"times_seen": 0})
+
+            cache_key = write_event_to_cache(event)
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+            assert GroupSnooze.objects.filter(id=snooze.id).exists()
+            cache_key = write_event_to_cache(event_2)
+
+            buffer.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+            assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):

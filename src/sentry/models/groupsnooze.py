@@ -69,7 +69,7 @@ class GroupSnooze(Model):
                 if test_rates:
                     if not self.test_frequency_rates():
                         return False
-            elif self.count <= group.times_seen - self.state["times_seen"]:
+            elif self.count <= group.times_seen_with_pending - self.state["times_seen"]:
                 return False
 
         if self.user_count and test_rates:

@@ -222,7 +222,7 @@ def fetch_buffered_group_stats(group):
     from sentry.models import Group
 
     result = buffer.get(Group, ["times_seen"], {"pk": group.id})
-    group.times_seen += result["times_seen"]
+    group.times_seen_pending = result["times_seen"]
 
 
 @instrumented_task(

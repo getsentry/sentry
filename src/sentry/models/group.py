@@ -641,3 +641,26 @@ class Group(Model):
             return assigned_actor.resolve()
         except assigned_actor.type.DoesNotExist:
             return None
+
+    @property
+    def times_seen_with_pending(self) -> int:
+        """
+        Returns `times_seen` with any additional pending updates from `buffers` added on. This value
+        must be set first.
+        """
+        return self.times_seen + self.times_seen_pending
+
+    @property
+    def times_seen_pending(self) -> int:
+        pending = 0
+        assert hasattr(self, "_times_seen_pending")
+        if not hasattr(self, "_times_seen_pending"):
+            logger.error("Attempted to fetch pending `times_seen` value without first setting it")
+        else:
+            pending = self._times_seen_pending
+
+        return pending
+
+    @times_seen_pending.setter
+    def times_seen_pending(self, times_seen: int):
+        self._times_seen_pending = times_seen
