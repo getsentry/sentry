@@ -10,6 +10,7 @@ import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
@@ -150,7 +151,7 @@ class QueryList extends React.Component<Props> {
     return cards;
   }
 
-  renderDropdownMenu(items) {
+  renderDropdownMenu(items: MenuItemProps[]) {
     return (
       <DropdownMenuControlV2
         items={items}
@@ -272,7 +273,7 @@ class QueryList extends React.Component<Props> {
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
-      const menuItems = canAddToDashboard => [
+      const menuItems = (canAddToDashboard: boolean) => [
         ...(canAddToDashboard
           ? [
               {
