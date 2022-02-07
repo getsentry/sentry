@@ -622,10 +622,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_update_widget_layouts(self):
         layouts = {
-            self.widget_1.id: {"x": 0, "y": 0, "w": 2, "h": 5},
-            self.widget_2.id: {"x": 2, "y": 0, "w": 1, "h": 1},
-            self.widget_3.id: {"x": 3, "y": 0, "w": 2, "h": 2},
-            self.widget_4.id: {"x": 0, "y": 5, "w": 2, "h": 5},
+            self.widget_1.id: {"x": 0, "y": 0, "w": 2, "h": 5, "minH": 2},
+            self.widget_2.id: {"x": 2, "y": 0, "w": 1, "h": 1, "minH": 2},
+            self.widget_3.id: {"x": 3, "y": 0, "w": 2, "h": 2, "minH": 2},
+            self.widget_4.id: {"x": 0, "y": 5, "w": 2, "h": 5, "minH": 2},
         }
         response = self.do_request(
             "put",
@@ -650,7 +650,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 "widgets": [
                     {
                         "id": self.widget_1.id,
-                        "layout": {"x": "this type is unexpected", "y": 0, "w": 2, "h": 5},
+                        "layout": {
+                            "x": "this type is unexpected",
+                            "y": 0,
+                            "w": 2,
+                            "h": 5,
+                            "minH": 2,
+                        },
                     }
                 ]
             },
@@ -681,8 +687,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_ignores_certain_keys_in_layout(self):
         expected_layouts = {
-            self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1},
-            self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1},
+            self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+            self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2},
         }
         response = self.do_request(
             "put",

@@ -238,7 +238,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1},
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
                 },
                 {
                     "displayType": "bar",
@@ -247,7 +247,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "queries": [
                         {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
                     ],
-                    "layout": {"x": 1, "y": 0, "w": 1, "h": 1},
+                    "layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2},
                 },
             ],
         }
@@ -285,7 +285,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"minH": 2},
+                    "layout": {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2},
                 },
             ],
         }
@@ -354,7 +354,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": False, "y": "this is incorrect", "w": 1, "h": 1},
+                    "layout": {"x": False, "y": "this is incorrect", "w": 1, "h": 1, "minH": 2},
                 },
             ],
         }
@@ -373,7 +373,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "conditions": "event.type:transaction",
                 }
             ],
-            "layout": {"x": 0, "y": 0, "w": 1, "h": 1},
+            "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
         }
         data = {
             "title": "Dashboard from Post",
@@ -414,7 +414,29 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": "this", "y": "should", "w": "fail", "h": 1},
+                    "layout": {"x": "this", "y": "should", "w": "fail", "h": 1, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
+    def test_post_errors_if_layout_submitted_without_required_keys(self):
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {},
                 },
             ],
         }

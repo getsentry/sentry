@@ -51,23 +51,25 @@ def is_table_display_type(display_type):
 
 
 class LayoutField(serializers.Field):
-    STORE_KEYS = {
+    REQUIRED_KEYS = {
         "x",
         "y",
         "w",
         "h",
-        "min_w",
-        "max_w",
         "min_h",
-        "max_h",
     }
 
     def to_internal_value(self, data):
         if data is None:
             return None
 
+        missing_keys = self.REQUIRED_KEYS - set(data.keys())
+        if missing_keys:
+            missing_key_str = ", ".join(sorted(snake_to_camel_case(key) for key in missing_keys))
+            raise serializers.ValidationError(f"Missing required keys: {missing_key_str}")
+
         layout_to_store = {}
-        for key in self.STORE_KEYS:
+        for key in self.REQUIRED_KEYS:
             value = data.get(key)
             if value is None:
                 continue
