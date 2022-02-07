@@ -573,7 +573,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             # Wait for new element to show up.
             self.browser.element(f'[data-test-id="card-{duplicate_name}"]')
-            
+
             # Assert the new query exists and has 'copy' added to the name.
             assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
 
