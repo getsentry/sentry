@@ -1424,7 +1424,7 @@ class HistogramQueryBuilder(QueryBuilder):
 
 
 class MetricsQueryBuilder(QueryBuilder):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
@@ -1516,10 +1516,11 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             return Condition(lhs, Op(search_filter.operator), value)
 
-    def get_snql_query(self):
+    def get_snql_query(self) -> None:
         """Because metrics table queries need to make multiple requests per metric type this function cannot be
         inmplemented see run_query"""
         raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
 
-    def run_query(self):
+    def run_query(self) -> None:
+        # TODO(wmak): will implement this soon
         pass
