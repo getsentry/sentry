@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, MutableMapping
+from typing import TYPE_CHECKING, Callable, MutableMapping, Type
 
 if TYPE_CHECKING:
     from .notifications.base import BaseNotification
@@ -12,11 +12,11 @@ class NotificationClassAlreadySetException(Exception):
 
 class NotificationClassManager:
     def __init__(self) -> None:
-        self.classes: MutableMapping[str, BaseNotification] = {}
+        self.classes: MutableMapping[str, Type[BaseNotification]] = {}
 
-    def register(self):
-        def wrapped(notification_class: BaseNotification) -> BaseNotification:
-            key = notification_class.__name__
+    def register(self) -> Callable[[Type[BaseNotification]], Type[BaseNotification]]:
+        def wrapped(notification_class: Type[BaseNotification]) -> Type[BaseNotification]:
+            key = getattr(notification_class, "__name__")
             if key in self.classes:
                 raise NotificationClassAlreadySetException()
             self.classes[key] = notification_class
@@ -24,7 +24,7 @@ class NotificationClassManager:
 
         return wrapped
 
-    def get(self, class_name):
+    def get(self, class_name: str) -> Type[BaseNotification]:
         return self.classes[class_name]
 
 
