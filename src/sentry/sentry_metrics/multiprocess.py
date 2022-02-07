@@ -53,13 +53,6 @@ def get_indexer():  # type: ignore
 
 
 @functools.lru_cache(maxsize=10)
-def get_task():  # type: ignore
-    from sentry.sentry_metrics.indexer.tasks import process_indexed_metrics
-
-    return process_indexed_metrics
-
-
-@functools.lru_cache(maxsize=10)
 def get_metrics():  # type: ignore
     from sentry.utils import metrics
 
@@ -355,7 +348,6 @@ def process_messages(
     """
     indexer = get_indexer()
     metrics = get_metrics()
-    task = get_task()
 
     strings = set()
     parsed_payloads_by_offset = {
@@ -378,7 +370,6 @@ def process_messages(
         mapping = indexer.bulk_record(list(strings))
 
     new_messages: List[Message[KafkaPayload]] = []
-    celery_messages: List[Mapping[str, Union[str, int, Mapping[int, int]]]] = []
 
     for message in outer_message.payload:
         parsed_payload_value = parsed_payloads_by_offset[message.offset]
@@ -408,13 +399,6 @@ def process_messages(
         )
         new_messages.append(new_message)
 
-        # TODO(meredith): Need to add kickin off the celery task in here, eventually
-        # we will use kafka to forward messages to the product data model
-        celery_messages.append(
-            {"name": metric_name, "tags": new_tags, "org_id": parsed_payload_value["org_id"]}
-        )
-
-    task.apply_async(kwargs={"messages": celery_messages})
     metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
 
     return new_messages

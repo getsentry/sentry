@@ -197,19 +197,12 @@ set_payload = {
 
 
 def __translated_payload(
-    payload, slim_version: bool = False
+    payload,
 ) -> Dict[str, Union[str, int, List[int], MutableMapping[int, int]]]:
     """
     Translates strings to ints using the MockIndexer
     in addition to adding the retention_days
 
-    If `slim_version` is True, we just need the tags,
-    name, and org_id. This is what (currently) gets
-    forwarded to the metrics data model.*
-
-    *Nothing is actually forwarded at the moment, the task
-    just emits metrics. This will probably move from
-    celery to kafka later.
     """
     indexer = MockIndexer()
     payload = payload.copy()
@@ -218,14 +211,6 @@ def __translated_payload(
     payload["metric_id"] = indexer.resolve(payload["name"])
     payload["retention_days"] = 90
     payload["tags"] = new_tags
-
-    if slim_version:
-        slim_payload = {
-            "name": payload["name"],
-            "tags": payload["tags"],
-            "org_id": payload["org_id"],
-        }
-        return slim_payload
 
     del payload["name"]
     return payload
@@ -264,13 +249,6 @@ def test_process_messages(mock_indexer, mock_task) -> None:
     ]
 
     assert new_batch == expected_new_batch
-
-    expected_task_args = {
-        "messages": [
-            __translated_payload(payload, slim_version=True) for payload in message_payloads
-        ]
-    }
-    assert mock_task.apply_async.call_args == call(kwargs=expected_task_args)
 
 
 def test_produce_step() -> None:
