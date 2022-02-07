@@ -667,7 +667,10 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def test_changing_number_widget_to_area_updates_widget_height(
         self,
     ):
-        layouts = [{"x": 0, "y": 0, "w": 2, "h": 1}, {"x": 0, "y": 1, "w": 2, "h": 1}]
+        layouts = [
+            {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 1},
+            {"x": 0, "y": 1, "w": 2, "h": 1, "minH": 1},
+        ]
         existing_widgets = DashboardWidget.objects.bulk_create(
             [
                 DashboardWidget(
