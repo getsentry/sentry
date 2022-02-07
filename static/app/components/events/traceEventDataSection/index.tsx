@@ -19,30 +19,30 @@ import DisplayOptions, {DisplayOption} from './displayOptions';
 import SortOptions, {SortOption} from './sortOptions';
 
 type Props = {
+  children: (childProps: State) => React.ReactNode;
+  eventId: Event['id'];
+  fullStackTrace: boolean;
+  hasAbsoluteAddresses: boolean;
+  hasAbsoluteFilePaths: boolean;
+  hasAppOnlyFrames: boolean;
+  hasMinified: boolean;
+  hasNewestFirst: boolean;
+  hasVerboseFunctionNames: boolean;
+  platform: PlatformType;
+  projectId: Project['id'];
+  recentFirst: boolean;
+  stackTraceNotFound: boolean;
+  stackType: STACK_TYPE;
   title: React.ReactNode;
   type: string;
-  recentFirst: boolean;
-  fullStackTrace: boolean;
-  children: (childProps: State) => React.ReactNode;
-  projectId: Project['id'];
-  eventId: Event['id'];
-  stackType: STACK_TYPE;
-  platform: PlatformType;
-  hasVerboseFunctionNames: boolean;
-  hasMinified: boolean;
-  hasAbsoluteFilePaths: boolean;
-  hasAbsoluteAddresses: boolean;
-  hasAppOnlyFrames: boolean;
-  hasNewestFirst: boolean;
-  stackTraceNotFound: boolean;
-  wrapTitle?: boolean;
   showPermalink?: boolean;
+  wrapTitle?: boolean;
 };
 
 type State = {
+  activeDisplayOptions: DisplayOption[];
   raw: boolean;
   recentFirst: boolean;
-  activeDisplayOptions: DisplayOption[];
 };
 
 const TraceEventDataSectionContext = createContext<State | undefined>(undefined);
@@ -192,7 +192,7 @@ function TraceEventDataSection({
 export {TraceEventDataSectionContext};
 export default TraceEventDataSection;
 
-const Header = styled('div')<{raw: boolean; nativePlatform: boolean}>`
+const Header = styled('div')<{nativePlatform: boolean; raw: boolean}>`
   display: grid;
   grid-template-columns: 1fr max-content;
   grid-template-rows: ${p =>

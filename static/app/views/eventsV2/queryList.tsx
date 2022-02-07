@@ -42,12 +42,12 @@ import {getPrebuiltQueries} from './utils';
 
 type Props = {
   api: Client;
-  organization: Organization;
   location: Location;
-  savedQueries: SavedQuery[];
-  renderPrebuilt: boolean;
-  pageLinks: string;
   onQueryChange: () => void;
+  organization: Organization;
+  pageLinks: string;
+  renderPrebuilt: boolean;
+  savedQueries: SavedQuery[];
   savedQuerySearchQuery: string;
 };
 

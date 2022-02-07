@@ -43,9 +43,9 @@ import {generateTransactionLink} from '../utils';
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
 type Props = {
+  aggregateColumn: string;
   eventView: EventView;
   location: Location;
-  aggregateColumn: string;
   organization: Organization;
   projects: Project[];
   transactionName: string;
@@ -86,8 +86,8 @@ const getPortal = memoize((): HTMLElement => {
 
 const TagsHeatMap = (
   props: Props & {
-    tableData: TagTableData | null;
     isLoading: boolean;
+    tableData: TagTableData | null;
   }
 ) => {
   const {

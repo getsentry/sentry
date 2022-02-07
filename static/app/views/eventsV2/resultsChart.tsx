@@ -31,11 +31,11 @@ import ChartFooter from './chartFooter';
 
 type ResultsChartProps = {
   api: Client;
-  router: InjectedRouter;
-  organization: Organization;
+  confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
-  confirmedQuery: boolean;
+  organization: Organization;
+  router: InjectedRouter;
   yAxisValue: string[];
 };
 
@@ -139,18 +139,18 @@ class ResultsChart extends Component<ResultsChartProps> {
 
 type ContainerProps = {
   api: Client;
-  router: InjectedRouter;
+  confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
-  organization: Organization;
-  confirmedQuery: boolean;
-  yAxis: string[];
-
-  // chart footer props
-  total: number | null;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
+
+  organization: Organization;
+  router: InjectedRouter;
+  // chart footer props
+  total: number | null;
+  yAxis: string[];
 };
 
 class ResultsChartContainer extends Component<ContainerProps> {

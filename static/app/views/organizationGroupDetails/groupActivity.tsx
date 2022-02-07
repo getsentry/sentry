@@ -44,8 +44,8 @@ import {
 
 type Props = {
   api: Client;
-  organization: Organization;
   group: Group;
+  organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = {

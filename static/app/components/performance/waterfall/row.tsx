@@ -6,8 +6,8 @@ import {OmitHtmlDivProps} from 'sentry/utils';
 
 type RowProps = {
   cursor?: 'pointer' | 'default';
-  visible?: boolean;
   showBorder?: boolean;
+  visible?: boolean;
 };
 
 type RowAndDivProps = Omit<React.HTMLProps<HTMLDivElement>, keyof RowProps> & RowProps;
@@ -30,8 +30,8 @@ export const Row = styled('div')<RowAndDivProps>`
 `;
 
 type RowCellProps = OmitHtmlDivProps<{
-  showStriping?: boolean;
   showDetail?: boolean;
+  showStriping?: boolean;
 }>;
 
 export const RowCellContainer = styled('div')<RowCellProps>`

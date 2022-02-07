@@ -13,16 +13,16 @@ import {Organization, SelectValue} from 'sentry/types';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 type Props = {
-  organization: Organization;
-  total: number | null;
-  yAxisValue: string[];
-  yAxisOptions: SelectValue<string>[];
-  onAxisChange: (value: string[]) => void;
   displayMode: string;
   displayOptions: SelectValue<string>[];
+  onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
+  organization: Organization;
   topEvents: string;
+  total: number | null;
+  yAxisOptions: SelectValue<string>[];
+  yAxisValue: string[];
 };
 
 export default function ChartFooter({

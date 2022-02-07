@@ -12,13 +12,13 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  url: string | null;
   attachmentId: string;
-  withPreviewButton?: boolean;
-  hasPreview?: boolean;
-  previewIsOpen?: boolean;
   onDelete: (attachmentId: string) => void;
+  url: string | null;
+  hasPreview?: boolean;
   onPreview?: (attachmentId: string) => void;
+  previewIsOpen?: boolean;
+  withPreviewButton?: boolean;
 };
 
 class EventAttachmentActions extends Component<Props> {
