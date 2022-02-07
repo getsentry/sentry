@@ -1,4 +1,5 @@
 import * as React from 'react';
+import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -15,11 +16,11 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraph: Flamegraph | DifferentialFlamegraph;
   colorCoding: 'by symbol name' | 'by system / application' | 'by library';
-  searchResults: Record<string, FlamegraphFrame>;
-  highlightRecursion: boolean;
+  flamegraph: Flamegraph | DifferentialFlamegraph;
   flamegraphTheme: FlamegraphTheme;
+  highlightRecursion: boolean;
+  searchResults: Record<string, FlamegraphFrame>;
   showSelectedNodeStack?: boolean;
 }
 
@@ -507,34 +508,29 @@ function FlamegraphZoomView({
 
   return (
     <React.Fragment>
-      <canvas
-        style={{
-          width: '100%',
-          height: '100%',
-          left: 0,
-          top: 0,
-          userSelect: 'none',
-          position: 'absolute',
-        }}
+      <Canvas
         ref={canvas => setFlamegraphCanvasRef(canvas)}
         onClick={onCanvasClick}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
       />
-      <canvas
+      <Canvas
         ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}
         style={{
-          left: 0,
-          top: 0,
-          width: '100%',
-          height: '100%',
-          userSelect: 'none',
-          position: 'absolute',
           pointerEvents: 'none',
         }}
       />
     </React.Fragment>
   );
 }
+
+const Canvas = styled('canvas')`
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  position: absolute;
+`;
 
 export {FlamegraphZoomView};
