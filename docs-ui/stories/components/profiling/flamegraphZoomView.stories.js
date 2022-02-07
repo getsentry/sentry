@@ -10,11 +10,11 @@ export default {
   title: 'Components/Profiling/FlamegraphZoomView',
 };
 
-export const EventedTrace = () => {
+export const EventedTrace = ({inverted, leftHeavy}) => {
   const canvasPoolManager = new CanvasPoolManager();
 
   const profiles = importProfile(trace);
-  const flamegraph = new Flamegraph(profiles.profiles[0]);
+  const flamegraph = new Flamegraph(profiles.profiles[0], 0, inverted, leftHeavy);
 
   return (
     <FlamegraphZoomView
@@ -25,4 +25,9 @@ export const EventedTrace = () => {
       flamegraphTheme={LightFlamegraphTheme}
     />
   );
+};
+
+EventedTrace.args = {
+  inverted: false,
+  leftHeavy: false,
 };
