@@ -29,6 +29,7 @@ from sentry.discover.arithmetic import (
     is_equation_alias,
     resolve_equation_list,
 )
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization
 from sentry.models.project import Project
 from sentry.search.events.constants import (
@@ -44,7 +45,8 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     FunctionDetails,
-    InvalidSearchQuery,
+    MetricsFunction,
+    NormalizedArg,
     NumericColumn,
     SnQLArrayCombinator,
     SnQLFunction,
@@ -55,6 +57,7 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.filter import ParsedTerm, ParsedTerms
 from sentry.search.events.types import HistogramParams, ParamsType, SelectType, WhereType
+from sentry.sentry_metrics import indexer
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, raw_snql_query, resolve_column
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
@@ -150,6 +153,7 @@ class QueryBuilder:
         Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
     ]:
         from sentry.search.events.datasets.discover import DiscoverDatasetConfig
+        from sentry.search.events.datasets.metrics import MetricsDatasetConfig
         from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 
         self.config: DatasetConfig
@@ -157,6 +161,8 @@ class QueryBuilder:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
+        elif self.dataset == Dataset.Metrics:
+            self.config = MetricsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -386,11 +392,7 @@ class QueryBuilder:
 
         # Add threshold config alias if there's a function that depends on it
         # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
-        for column in {
-            "apdex()",
-            "count_miserable(user)",
-            "user_misery()",
-        }:
+        for column in self.config.custom_threshold_columns:
             if (
                 column in stripped_columns
                 and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
@@ -502,12 +504,26 @@ class QueryBuilder:
         if combinator and not combinator_applied:
             raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
 
+        resolved_function = self.resolve_snql_function(
+            snql_function, arguments, alias, resolve_only
+        )
+        if resolved_function is not None:
+            return resolved_function
+
+        return snql_function.snql_column(arguments, alias)
+
+    def resolve_snql_function(
+        self,
+        snql_function: SnQLFunction,
+        arguments: Mapping[str, NormalizedArg],
+        alias: str,
+        resolve_only: bool,
+    ) -> Optional[SelectType]:
         if snql_function.snql_aggregate is not None:
             if not resolve_only:
                 self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
             return snql_function.snql_aggregate(arguments, alias)
-
-        return snql_function.snql_column(arguments, alias)
+        return None
 
     def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
         return Function(
@@ -1405,3 +1421,105 @@ class HistogramQueryBuilder(QueryBuilder):
             base_groupby += [self.resolve_column(field) for field in self.additional_groupby]
 
         return base_groupby
+
+
+class MetricsQueryBuilder(QueryBuilder):
+    def __init__(self, *args, **kwargs):
+        self.distributions: List[CurriedFunction] = []
+        self.sets: List[CurriedFunction] = []
+        self.counters: List[CurriedFunction] = []
+        super().__init__(
+            # Dataset is always Metrics
+            Dataset.Metrics,
+            *args,
+            **kwargs,
+        )
+
+    def resolve_params(self) -> List[WhereType]:
+        conditions = super().resolve_params()
+        conditions.append(
+            Condition(self.column("organization_id"), Op.EQ, self.params["organization_id"])
+        )
+        return conditions
+
+    def resolve_snql_function(
+        self,
+        snql_function: MetricsFunction,
+        arguments: Mapping[str, NormalizedArg],
+        alias: str,
+        resolve_only: bool,
+    ) -> Optional[SelectType]:
+        if snql_function.snql_distribution is not None:
+            resolved_function = snql_function.snql_distribution(arguments, alias)
+            if not resolve_only:
+                self.distributions.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        if snql_function.snql_set is not None:
+            resolved_function = snql_function.snql_set(arguments, alias)
+            if not resolve_only:
+                self.sets.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        if snql_function.snql_counter is not None:
+            resolved_function = snql_function.snql_counter(arguments, alias)
+            if not resolve_only:
+                self.counters.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        return None
+
+    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        name = search_filter.key.name
+        operator = search_filter.operator
+        value = search_filter.value.value
+
+        lhs = self.resolve_column(name)
+        # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
+        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        if is_tag:
+            value = indexer.resolve(value)
+
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and name not in TIMESTAMP_FIELDS:
+            value = int(to_timestamp(value)) * 1000
+
+        if name in TIMESTAMP_FIELDS:
+            if (
+                operator in ["<", "<="]
+                and value < self.params["start"]
+                or operator in [">", ">="]
+                and value > self.params["end"]
+            ):
+                raise InvalidSearchQuery(
+                    "Filter on timestamp is outside of the selected date range."
+                )
+
+        # Tags are never null, but promoted tags are columns and so can be null.
+        # To handle both cases, use `ifNull` to convert to an empty string and
+        # compare so we need to check for empty values.
+        if is_tag:
+            if operator not in ["IN", "NOT IN"] and not isinstance(value, int):
+                sentry_sdk.set_tag("query.lhs", lhs)
+                sentry_sdk.set_tag("query.rhs", value)
+                sentry_sdk.capture_message("Tag value was not found", level="error")
+                raise InvalidSearchQuery("Tag value was not found")
+
+        # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
+
+        if search_filter.value.is_wildcard():
+            raise IncompatibleMetricsQuery("wildcards not supported")
+        else:
+            return Condition(lhs, Op(search_filter.operator), value)
+
+    def get_snql_query(self):
+        """Because metrics table queries need to make multiple requests per metric type this function cannot be
+        inmplemented see run_query"""
+        raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
+
+    def run_query(self):
+        pass
