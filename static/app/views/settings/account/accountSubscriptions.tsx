@@ -7,7 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import DateTime from 'sentry/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
-import {IconToggle} from 'sentry/icons';
+import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
@@ -105,7 +105,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                   <React.Fragment key={email}>
                     {subGroups.length > 1 && (
                       <Heading>
-                        <IconToggle /> {t('Subscriptions for %s', email)}
+                        <IconUser /> {t('Subscriptions for %s', email)}
                       </Heading>
                     )}
 

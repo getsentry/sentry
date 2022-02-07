@@ -5,7 +5,7 @@ import {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
+import {IconBell, IconClock, IconStar, IconTag, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {ItemType, SearchGroup, SearchItem} from './types';
@@ -81,7 +81,7 @@ function getIconForTypeAndTag(type: ItemType, tagName: string) {
   // Change based on tagName and default to "icon-tag"
   switch (tagName) {
     case 'is':
-      return <IconToggle size="xs" />;
+      return <IconBell size="xs" />;
     case 'assigned':
     case 'bookmarks':
       return <IconUser size="xs" />;

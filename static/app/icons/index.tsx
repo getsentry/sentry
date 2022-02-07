@@ -95,7 +95,6 @@ export {IconSync} from './iconSync';
 export {IconTag} from './iconTag';
 export {IconTelescope} from './iconTelescope';
 export {IconTerminal} from './iconTerminal';
-export {IconToggle} from './iconToggle';
 export {IconTrello} from './iconTrello';
 export {IconUpgrade} from './iconUpgrade';
 export {IconUpload} from './iconUpload';
