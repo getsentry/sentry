@@ -6,14 +6,19 @@ if TYPE_CHECKING:
     from .notifications.base import BaseNotification
 
 
+class NotificationClassAlreadySetException(Exception):
+    pass
+
+
 class NotificationClassManager:
     def __init__(self) -> None:
         self.classes: MutableMapping[str, BaseNotification] = {}
 
     def register(self):
-        # TODO: throw error if already registered
         def wrapped(notification_class: BaseNotification) -> BaseNotification:
             key = notification_class.__name__
+            if key in self.classes:
+                raise NotificationClassAlreadySetException()
             self.classes[key] = notification_class
             return notification_class
 

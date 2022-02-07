@@ -7,6 +7,12 @@ from sentry.tasks.base import instrumented_task
 
 # TODO: handle kwargs
 def async_execute(NotificationClass, *args):
+    """
+    This function takes a notification class and arguments to instantiate
+    the notification class in a task with the original arguments.
+    It converts instances of models into a JSON object that allows us to query
+    the rows inside the task so the interface is just simple JSON.
+    """
     task_args = []
     for arg in args:
         if isinstance(arg, Model):
