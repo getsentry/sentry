@@ -7,17 +7,17 @@ import Spinner from 'sentry/views/settings/components/forms/spinner';
 
 type Props = {
   /**
-   * Display the saving state
+   * Display the  error indicator
    */
-  isSaving?: boolean;
+  error?: string | boolean;
   /**
    * Display the "was just saved" state
    */
   isSaved?: boolean;
   /**
-   * Display the  error indicator
+   * Display the saving state
    */
-  error?: string | boolean;
+  isSaving?: boolean;
 };
 
 /**

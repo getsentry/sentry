@@ -9,16 +9,16 @@ import {GenericPerformanceWidgetDataType} from './types';
 
 export interface ChartDefinition {
   dataType: GenericPerformanceWidgetDataType;
-  title: string;
+  fields: string[];
 
-  titleTooltip: string;
-  fields: string[]; // The first field in the list will be treated as the primary field in most widgets (except for special casing).
+  title: string;
+  titleTooltip: string; // The first field in the list will be treated as the primary field in most widgets (except for special casing).
 
   chartColor?: string; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
 
   vitalStops?: {
-    poor: number;
     meh: number;
+    poor: number;
   };
 }
 

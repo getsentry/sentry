@@ -10,10 +10,10 @@ import space from 'sentry/styles/space';
 import {ProcessingIssue} from 'sentry/types';
 
 type Props = {
-  showProject: boolean;
   issue: ProcessingIssue;
   orgId: string;
   projectId: string;
+  showProject: boolean;
 };
 
 function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {

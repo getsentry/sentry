@@ -6,9 +6,9 @@ import {DEFAULT_ERROR_JSON} from 'sentry/constants';
  * Represents a mentionable user or team.
  */
 export type Mentionable = {
-  id: string;
   display: string;
   email: string;
+  id: string;
 };
 
 /**
@@ -25,9 +25,9 @@ export type MentionChangeEvent = Parameters<OnChangeHandlerFunc>[0];
 export type CreateError =
   | {
       detail: {
-        message: string;
         code: number;
         extra: any;
+        message: string;
       };
     }
   | typeof DEFAULT_ERROR_JSON;

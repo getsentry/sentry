@@ -38,13 +38,9 @@ type State = {
 };
 
 type Props = ModalRenderProps & {
-  title: string;
-  emptyMessage: string;
-  conditionCategories: Array<[DynamicSamplingInnerName, string]>;
   api: Client;
-  organization: Organization;
-  project: Project;
-  onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
+  conditionCategories: Array<[DynamicSamplingInnerName, string]>;
+  emptyMessage: string;
   onSubmit: (
     props: Omit<State, 'errors'> & {
       submitRules: (
@@ -53,8 +49,12 @@ type Props = ModalRenderProps & {
       ) => Promise<void>;
     }
   ) => void;
-  onChange?: (props: State) => void;
+  onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
+  organization: Organization;
+  project: Project;
+  title: string;
   extraFields?: React.ReactElement;
+  onChange?: (props: State) => void;
   rule?: DynamicSamplingRule;
 };
 

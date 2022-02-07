@@ -19,10 +19,10 @@ import RouteError from 'sentry/views/routeError';
 import ProjectPluginRow from './projectPluginRow';
 
 type Props = {
-  plugins: Plugin[];
-  loading: boolean;
   error: React.ComponentProps<typeof RouteError>['error'];
+  loading: boolean;
   onChange: React.ComponentProps<typeof ProjectPluginRow>['onChange'];
+  plugins: Plugin[];
   project: Project;
 } & RouteComponentProps<{orgId: string}, {}>;
 

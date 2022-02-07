@@ -6,8 +6,8 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import space from 'sentry/styles/space';
 
 type Props = {
-  node: Node<MenuItemProps>;
   children: React.ReactNode;
+  node: Node<MenuItemProps>;
 };
 
 /**

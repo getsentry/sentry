@@ -29,21 +29,21 @@ export type RenderOption = Omit<EChartsOption, 'animation' | 'tooltip' | 'toolbo
  * Describes configuration for a renderable chart style
  */
 export type RenderDescriptor<D extends string = string> = {
-  key: D;
-  /**
-   * Height of the produced image in pixels
-   */
-  height: number;
-  /**
-   * Width of the produced image in pixels
-   */
-  width: number;
   /**
    * Produce the echart option config for rendering the charts series. It is up
    * to the implementation to declare what data it should receive, as long as
    * it produces a valid ECharts Option config.
    */
   getOption: (data: any) => RenderOption;
+  /**
+   * Height of the produced image in pixels
+   */
+  height: number;
+  key: D;
+  /**
+   * Width of the produced image in pixels
+   */
+  width: number;
 };
 
 /**
@@ -56,6 +56,11 @@ export type RenderConfig<D extends string = string> = Map<D, RenderDescriptor<D>
  */
 export type RenderData = {
   /**
+   * Arbitrary series data. The RenderDescriptor.getOption should transform this
+   * into a valid echarts series.
+   */
+  data: any;
+  /**
    * Globally unique render ID.
    */
   requestId: string;
@@ -63,11 +68,6 @@ export type RenderData = {
    * The style config key
    */
   style: string;
-  /**
-   * Arbitrary series data. The RenderDescriptor.getOption should transform this
-   * into a valid echarts series.
-   */
-  data: any;
 };
 
 /**

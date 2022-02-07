@@ -43,27 +43,27 @@ type Props = Omit<
 > &
   Partial<typeof DropdownMenu.defaultProps> & {
     children: React.ReactNode;
-    title?: React.ReactNode;
-    customTitle?: React.ReactNode;
-    /**
-     * display dropdown caret
-     */
-    caret?: boolean;
-    disabled?: boolean;
-    /**
-     * Anchors menu to the right
-     */
-    anchorRight?: boolean;
-    anchorMiddle?: boolean;
     /**
      * Always render children of dropdown menu, this is included to support menu
      * items that open a confirm modal. Otherwise when dropdown menu hides, the
      * modal also gets unmounted
      */
     alwaysRenderMenu?: boolean;
-    topLevelClasses?: string;
-    menuClasses?: string;
+    anchorMiddle?: boolean;
+    /**
+     * Anchors menu to the right
+     */
+    anchorRight?: boolean;
+    /**
+     * display dropdown caret
+     */
+    caret?: boolean;
     className?: string;
+    customTitle?: React.ReactNode;
+    disabled?: boolean;
+    menuClasses?: string;
+    title?: React.ReactNode;
+    topLevelClasses?: string;
   };
 
 function DropdownLink({

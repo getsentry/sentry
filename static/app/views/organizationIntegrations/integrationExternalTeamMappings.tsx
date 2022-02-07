@@ -25,13 +25,13 @@ type Props = AsyncComponent['props'] &
   };
 
 type State = AsyncComponent['state'] & {
-  teams: Team[];
   initialResults: Team[];
   queryResults: {
     // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
     // For the modal form, the mappingKey will be this.modalMappingKey (since only one modal form is rendered at any time)
     [mappingKey: string]: Team[];
   };
+  teams: Team[];
 };
 
 class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {

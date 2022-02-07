@@ -13,14 +13,14 @@ import {saveToSourceGroupData} from '../utils';
 import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
 
 type Props = {
-  onUpdateEventId: (eventId: string) => void;
   eventId: EventId;
+  onUpdateEventId: (eventId: string) => void;
   disabled?: boolean;
 };
 
 type State = {
-  value: string;
   status: EventIdStatus;
+  value: string;
 };
 
 class EventIdField extends React.Component<Props, State> {

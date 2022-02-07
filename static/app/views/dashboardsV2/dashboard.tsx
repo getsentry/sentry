@@ -3,7 +3,6 @@ import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
-import {compact} from 'react-grid-layout/build/utils';
 import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
@@ -35,7 +34,9 @@ import {
   calculateColumnDepths,
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
+  enforceWidgetHeightValues,
   generateWidgetId,
+  generateWidgetsAfterCompaction,
   getDashboardLayout,
   getDefaultWidgetHeight,
   getMobileLayout,
@@ -63,24 +64,24 @@ const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
 type Props = {
   api: Client;
-  organization: Organization;
   dashboard: DashboardDetails;
-  selection: PageFilters;
+  handleAddCustomWidget: (widget: Widget) => void;
+  handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditing: boolean;
-  router: InjectedRouter;
   location: Location;
-  widgetLimitReached: boolean;
-  isPreview?: boolean;
+  onSetWidgetToBeUpdated: (widget: Widget) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
-  onSetWidgetToBeUpdated: (widget: Widget) => void;
-  handleUpdateWidgetList: (widgets: Widget[]) => void;
-  handleAddCustomWidget: (widget: Widget) => void;
+  organization: Organization;
+  router: InjectedRouter;
+  selection: PageFilters;
+  widgetLimitReached: boolean;
+  isPreview?: boolean;
+  newWidget?: Widget;
   paramDashboardId?: string;
   paramTemplateId?: string;
-  newWidget?: Widget;
 };
 
 type State = {
@@ -264,37 +265,39 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing, handleUpdateWidgetList} = this.props;
-    const nextList = [...this.props.dashboard.widgets];
+    const {isEditing, onUpdate, handleUpdateWidgetList} = this.props;
+
+    let nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
-    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
-    this.props.onUpdate(nextList);
+    const nextWidgetData = {
+      ...nextWidget,
+      tempId: prevWidget.tempId,
+    };
+
+    // Only modify and re-compact if the default height has changed
+    if (
+      getDefaultWidgetHeight(prevWidget.displayType) !==
+      getDefaultWidgetHeight(nextWidget.displayType)
+    ) {
+      nextList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+      nextList = generateWidgetsAfterCompaction(nextList);
+    } else {
+      nextList[updateIndex] = nextWidgetData;
+    }
+
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {layouts} = this.state;
     const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    // Manually calculate the post-delete layout and assign those to widgets
     let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
-    const nextLayout = compact(
-      layouts[DESKTOP].filter(({i}) => i !== constructGridItemKey(widgetToDelete)),
-      'vertical',
-      NUM_DESKTOP_COLS
-    );
-    nextList = nextList.map(widget => {
-      const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));
-      if (!layout) {
-        return widget;
-      }
-      return {...widget, layout};
-    });
+    nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
-
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
@@ -311,8 +314,9 @@ class Dashboard extends Component<Props, State> {
     widgetCopy.id = undefined;
     widgetCopy.tempId = undefined;
 
-    const nextList = [...dashboard.widgets];
+    let nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
+    nextList = generateWidgetsAfterCompaction(nextList);
 
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);

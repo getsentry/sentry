@@ -16,8 +16,8 @@ import {Event, EventTag} from 'sentry/types/event';
 
 type Props = {
   event: Event;
-  query: string;
   generateUrl: (tag: EventTag) => LocationDescriptor;
+  query: string;
   title?: React.ReactNode;
 };
 

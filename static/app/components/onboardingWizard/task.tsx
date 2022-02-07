@@ -36,22 +36,22 @@ const recordAnalytics = (
   });
 
 type Props = WithRouterProps & {
-  /**
-   * Task to render
-   */
-  task: OnboardingTask;
-  /**
-   * Fired when the task has been skipped
-   */
-  onSkip: (taskKey: OnboardingTaskKey) => void;
+  forwardedRef: React.Ref<HTMLDivElement>;
   /**
    * Fired when a task is completed. This will typically happen if there is a
    * supplemental component with the ability to complete a task
    */
   onMarkComplete: (taskKey: OnboardingTaskKey) => void;
+  /**
+   * Fired when the task has been skipped
+   */
+  onSkip: (taskKey: OnboardingTaskKey) => void;
 
-  forwardedRef: React.Ref<HTMLDivElement>;
   organization: Organization;
+  /**
+   * Task to render
+   */
+  task: OnboardingTask;
 };
 
 function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}: Props) {

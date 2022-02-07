@@ -13,11 +13,11 @@ import {DisplayType} from '../types';
 import {WidgetTemplate} from './data';
 
 type Props = {
+  selectedWidgets: WidgetTemplate[];
+  setErrored: (errored: boolean) => void;
+  setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
   widget: WidgetTemplate;
   ['data-test-id']?: string;
-  setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
-  setErrored: (errored: boolean) => void;
-  selectedWidgets: WidgetTemplate[];
 };
 
 function WidgetLibraryCard({

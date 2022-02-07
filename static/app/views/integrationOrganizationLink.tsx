@@ -28,9 +28,9 @@ import Field from 'sentry/views/settings/components/forms/field';
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  selectedOrgSlug?: string;
   organization?: Organization;
   provider?: IntegrationProvider;
+  selectedOrgSlug?: string;
 };
 
 export default class IntegrationOrganizationLink extends AsyncView<Props, State> {

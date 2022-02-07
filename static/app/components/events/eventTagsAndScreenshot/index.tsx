@@ -9,12 +9,12 @@ import Tags from './tags';
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
 type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug' | 'hasContext'> & {
-  projectId: string;
-  onDeleteScreenshot: ScreenshotProps['onDelete'];
   attachments: ScreenshotProps['screenshot'][];
-  isShare?: boolean;
-  isBorderless?: boolean;
+  onDeleteScreenshot: ScreenshotProps['onDelete'];
+  projectId: string;
   hasContext?: boolean;
+  isBorderless?: boolean;
+  isShare?: boolean;
 };
 
 function EventTagsAndScreenshots({

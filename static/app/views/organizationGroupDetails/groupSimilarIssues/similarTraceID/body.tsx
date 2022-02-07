@@ -16,8 +16,8 @@ import List from './list';
 
 type Props = {
   event: Event;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   traceID?: string;
 };
 
