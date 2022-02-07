@@ -52,8 +52,8 @@ const SidebarOverride = HookOrDefault({
 });
 
 type Props = {
-  organization?: Organization;
   location?: Location;
+  organization?: Organization;
 };
 
 function Sidebar({location, organization}: Props) {

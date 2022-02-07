@@ -26,12 +26,12 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 const ENDPOINT = '/users/me/authenticators/';
 
 type AuthenticatorDateProps = {
-  label: string;
   /**
    * Can be null or a Date object.
    * Component will have value "never" if it is null
    */
   date: string | null;
+  label: string;
 };
 
 function AuthenticatorDate({label, date}: AuthenticatorDateProps) {

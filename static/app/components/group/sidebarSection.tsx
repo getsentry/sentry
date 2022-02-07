@@ -28,8 +28,8 @@ const Subheading = styled('h6')`
 `;
 
 type Props = {
-  title: React.ReactNode;
   children: React.ReactNode;
+  title: React.ReactNode;
   secondary?: boolean;
 } & Omit<React.ComponentProps<typeof Heading>, 'title'>;
 

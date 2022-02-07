@@ -40,21 +40,21 @@ import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
-  frame: Frame;
-  event: Event;
-  registers: Record<string, string>;
   components: Array<SentryAppComponent>;
+  event: Event;
+  frame: Frame;
   isUsedForGrouping: boolean;
   platform: PlatformType;
-  isHoverPreviewed?: boolean;
-  isExpanded?: boolean;
-  nextFrame?: Frame;
-  includeSystemFrames?: boolean;
-  prevFrame?: Frame;
-  image?: React.ComponentProps<typeof DebugImage>['image'];
-  maxLengthOfRelativeAddress?: number;
+  registers: Record<string, string>;
   emptySourceNotation?: boolean;
+  image?: React.ComponentProps<typeof DebugImage>['image'];
+  includeSystemFrames?: boolean;
+  isExpanded?: boolean;
+  isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
+  maxLengthOfRelativeAddress?: number;
+  nextFrame?: Frame;
+  prevFrame?: Frame;
 };
 
 function NativeFrame({
@@ -449,7 +449,7 @@ const PackageStatusButton = styled(Button)`
   border: none;
 `;
 
-const GridRow = styled('div')<{inApp: boolean; expandable: boolean; expanded: boolean}>`
+const GridRow = styled('div')<{expandable: boolean; expanded: boolean; inApp: boolean}>`
   ${p => p.expandable && `cursor: pointer;`};
   ${p => p.inApp && `background: ${p.theme.bodyBackground};`};
   ${p =>

@@ -79,9 +79,9 @@ import SelectField from 'sentry/views/settings/components/forms/selectField';
  */
 
 type Props = {
-  permissions: Permissions;
-  onChange: (permissions: Permissions) => void;
   appPublished: boolean;
+  onChange: (permissions: Permissions) => void;
+  permissions: Permissions;
 };
 
 type State = {

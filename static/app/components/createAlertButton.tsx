@@ -35,10 +35,6 @@ import {getQueryDatasource} from 'sentry/views/alerts/utils';
  */
 type IncompatibleQueryProperties = {
   /**
-   * Must have exactly one project selected and not -1 (all projects)
-   */
-  hasProjectError: boolean;
-  /**
    * Must have zero or one environments
    */
   hasEnvironmentError: boolean;
@@ -46,17 +42,21 @@ type IncompatibleQueryProperties = {
    * event.type must be error or transaction
    */
   hasEventTypeError: boolean;
+  /**
+   * Must have exactly one project selected and not -1 (all projects)
+   */
+  hasProjectError: boolean;
   hasYAxisError: boolean;
 };
 
 type AlertProps = {
-  incompatibleQuery: IncompatibleQueryProperties;
   eventView: EventView;
-  orgId: string;
+  incompatibleQuery: IncompatibleQueryProperties;
   /**
    * Dismiss alert
    */
   onClose: () => void;
+  orgId: string;
 };
 
 /**
@@ -186,14 +186,10 @@ type CreateAlertFromViewButtonProps = Omit<
   React.ComponentProps<typeof Button>,
   'aria-label'
 > & {
-  className?: string;
-  projects: Project[];
   /**
    * Discover query used to create the alert
    */
   eventView: EventView;
-  organization: Organization;
-  referrer?: string;
   /**
    * Called when the current eventView does not meet the requirements of alert rules
    * @returns a function that takes an alert close function argument
@@ -206,6 +202,10 @@ type CreateAlertFromViewButtonProps = Omit<
    * Called when the user is redirected to the alert builder
    */
   onSuccess: () => void;
+  organization: Organization;
+  projects: Project[];
+  className?: string;
+  referrer?: string;
 };
 
 function incompatibleYAxis(eventView: EventView): boolean {
@@ -326,10 +326,10 @@ function CreateAlertFromViewButton({
 
 type Props = {
   organization: Organization;
-  projectSlug?: string;
-  iconProps?: React.ComponentProps<typeof IconSiren>;
-  referrer?: string;
   hideIcon?: boolean;
+  iconProps?: React.ComponentProps<typeof IconSiren>;
+  projectSlug?: string;
+  referrer?: string;
   showPermissionGuide?: boolean;
 } & WithRouterProps &
   React.ComponentProps<typeof Button>;

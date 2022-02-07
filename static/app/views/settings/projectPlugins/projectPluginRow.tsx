@@ -20,9 +20,9 @@ const grayText = css`
 `;
 
 type Props = {
+  onChange: (id: string, enabled: boolean) => void;
   organization: Organization;
   project: Project;
-  onChange: (id: string, enabled: boolean) => void;
 } & Plugin &
   Pick<RouteComponentProps<{}, {}>, 'params' | 'routes'>;
 

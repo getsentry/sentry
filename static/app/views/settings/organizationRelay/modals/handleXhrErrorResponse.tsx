@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 
 type Error = {
+  message: string;
   type:
     | 'unknown'
     | 'bad-structure'
@@ -9,7 +10,6 @@ type Error = {
     | 'missing-key'
     | 'invalid-key'
     | 'duplicated-key';
-  message: string;
 };
 
 type XhrError = {

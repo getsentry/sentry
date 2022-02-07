@@ -25,9 +25,9 @@ const defaultProps = {
 type DefaultProps = typeof defaultProps;
 
 type Props = {
-  className?: string;
-  organization: Organization;
   item: Activity;
+  organization: Organization;
+  className?: string;
 } & DefaultProps;
 
 type State = {

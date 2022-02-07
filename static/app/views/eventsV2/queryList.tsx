@@ -42,12 +42,12 @@ import {getPrebuiltQueries} from './utils';
 
 type Props = {
   api: Client;
-  organization: Organization;
   location: Location;
-  savedQueries: SavedQuery[];
-  renderPrebuilt: boolean;
-  pageLinks: string;
   onQueryChange: () => void;
+  organization: Organization;
+  pageLinks: string;
+  renderPrebuilt: boolean;
+  savedQueries: SavedQuery[];
   savedQuerySearchQuery: string;
 };
 
@@ -216,10 +216,7 @@ class QueryList extends React.Component<Props> {
             });
           }}
           renderContextMenu={() => (
-            <Feature
-              organization={organization}
-              features={['connect-discover-and-dashboards', 'dashboards-edit']}
-            >
+            <Feature organization={organization} features={['dashboards-edit']}>
               {({hasFeature}) => {
                 return (
                   hasFeature && (
@@ -279,31 +276,21 @@ class QueryList extends React.Component<Props> {
             });
           }}
           renderGraph={() => (
-            <Feature
+            <MiniGraph
+              location={location}
+              eventView={eventView}
               organization={organization}
-              features={['connect-discover-and-dashboards']}
-            >
-              {({hasFeature}) => (
-                <MiniGraph
-                  location={location}
-                  eventView={eventView}
-                  organization={organization}
-                  referrer={referrer}
-                  yAxis={
-                    hasFeature && savedQuery.yAxis && savedQuery.yAxis.length
-                      ? savedQuery.yAxis
-                      : ['count()']
-                  }
-                />
-              )}
-            </Feature>
+              referrer={referrer}
+              yAxis={
+                savedQuery.yAxis && savedQuery.yAxis.length
+                  ? savedQuery.yAxis
+                  : ['count()']
+              }
+            />
           )}
           renderContextMenu={() => (
             <ContextMenu>
-              <Feature
-                organization={organization}
-                features={['connect-discover-and-dashboards', 'dashboards-edit']}
-              >
+              <Feature organization={organization} features={['dashboards-edit']}>
                 {({hasFeature}) =>
                   hasFeature && (
                     <StyledMenuItem

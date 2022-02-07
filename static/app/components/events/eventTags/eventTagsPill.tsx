@@ -21,12 +21,12 @@ const iconStyle = css`
 `;
 
 type Props = {
-  tag: EventTag;
-  streamPath: string;
-  releasesPath: string;
-  query: Query;
   organization: Organization;
   projectId: string;
+  query: Query;
+  releasesPath: string;
+  streamPath: string;
+  tag: EventTag;
 };
 
 const EventTagsPill = ({

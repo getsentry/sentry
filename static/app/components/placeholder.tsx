@@ -14,8 +14,8 @@ const defaultProps = {
 type DefaultProps = Readonly<typeof defaultProps>;
 
 type Props = {
-  className?: string;
   children?: React.ReactNode;
+  className?: string;
   error?: React.ReactNode;
   testId?: string;
 } & Partial<DefaultProps>;

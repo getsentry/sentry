@@ -43,34 +43,29 @@ type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'>
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  location: Location;
-  isEditing: boolean;
-  widget: Widget;
-  selection: PageFilters;
-  onDelete: () => void;
-  onEdit: () => void;
-  onDuplicate: () => void;
-  isSorting: boolean;
   currentWidgetDragging: boolean;
-  showContextMenu?: boolean;
-  isPreview?: boolean;
-  hideToolbar?: boolean;
-  draggableProps?: DraggableProps;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-  noLazyLoad?: boolean;
-  isMobile?: boolean;
+  isEditing: boolean;
+  isSorting: boolean;
+  location: Location;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onEdit: () => void;
+  organization: Organization;
+  selection: PageFilters;
+  widget: Widget;
   widgetLimitReached: boolean;
+  draggableProps?: DraggableProps;
+  hideToolbar?: boolean;
+  isMobile?: boolean;
+  isPreview?: boolean;
+  noLazyLoad?: boolean;
+  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  showContextMenu?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
-  isAllowWidgetsToDiscover() {
-    const {organization} = this.props;
-    return organization.features.includes('connect-discover-and-dashboards');
-  }
-
   renderToolbar() {
     const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
       this.props;

@@ -12,10 +12,6 @@ type RenderProps = {
    */
   isPageSelected: boolean;
   /**
-   * Callback for toggling single row
-   */
-  onRowToggle: (id: string) => void;
-  /**
    * Callback for toggling all rows across all pages
    */
   onAllRowsToggle: (select: boolean) => void;
@@ -23,6 +19,10 @@ type RenderProps = {
    * Callback for toggling all rows on current page
    */
   onPageRowsToggle: (select: boolean) => void;
+  /**
+   * Callback for toggling single row
+   */
+  onRowToggle: (id: string) => void;
   /**
    * Ready to be rendered summary component showing how many items are selected,
    * with buttons to select everything, cancel everything, etc...
@@ -32,36 +32,32 @@ type RenderProps = {
 
 type State = {
   /**
-   * Selected ids on the current page
-   */
-  selectedIds: string[];
-  /**
    * Are all rows across all pages selected?
    */
   isAllSelected: boolean;
+  /**
+   * Selected ids on the current page
+   */
+  selectedIds: string[];
 };
 
 type Props = {
-  /**
-   * Array of ids on current page
-   */
-  pageIds: string[];
   /**
    * Number of all rows across all pages
    */
   allRowsCount: number;
   /**
-   * Number of grid columns to stretch the selection summary (used in BulkNotice)
-   */
-  columnsCount: number;
-  /**
    * Children with render props
    */
   children: (props: RenderProps) => React.ReactNode;
   /**
-   * BulkController State
+   * Number of grid columns to stretch the selection summary (used in BulkNotice)
    */
-  onChange?: (props: State) => void;
+  columnsCount: number;
+  /**
+   * Array of ids on current page
+   */
+  pageIds: string[];
   /**
    * Maximum number of rows that can be bulk manipulated at once (used in BulkNotice)
    */
@@ -70,6 +66,10 @@ type Props = {
    * Array of default selected ids
    */
   defaultSelectedIds?: string[];
+  /**
+   * BulkController State
+   */
+  onChange?: (props: State) => void;
 };
 
 class BulkController extends React.Component<Props, State> {

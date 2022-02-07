@@ -6,9 +6,9 @@ import space from 'sentry/styles/space';
 import {analytics} from 'sentry/utils/analytics';
 
 type Props = {
-  title: string;
-  link: string;
   imgUrl: string;
+  link: string;
+  title: string;
 };
 
 const ResourceCard = ({title, link, imgUrl}: Props) => (

@@ -22,11 +22,11 @@ import OriginalSourceInfo from './originalSourceInfo';
 type Props = {
   frame: Frame;
   platform: PlatformType;
-  isUsedForGrouping?: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
+  isUsedForGrouping?: boolean;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};

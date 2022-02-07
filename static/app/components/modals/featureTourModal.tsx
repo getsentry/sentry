@@ -10,8 +10,8 @@ import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 export type TourStep = {
-  title: string;
   body: React.ReactNode;
+  title: string;
   actions?: React.ReactNode;
   image?: React.ReactNode;
 };
@@ -28,14 +28,6 @@ type Props = {
    */
   steps: TourStep[];
   /**
-   * Triggered when the tour is advanced.
-   */
-  onAdvance?: (currentIndex: number, durationOpen: number) => void;
-  /**
-   * Triggered when the tour is closed by completion or IconClose
-   */
-  onCloseModal?: (currentIndex: number, durationOpen: number) => void;
-  /**
    * Customize the text shown on the done button.
    */
   doneText?: string;
@@ -43,19 +35,27 @@ type Props = {
    * Provide a URL for the done state to open in a new tab.
    */
   doneUrl?: string;
+  /**
+   * Triggered when the tour is advanced.
+   */
+  onAdvance?: (currentIndex: number, durationOpen: number) => void;
+  /**
+   * Triggered when the tour is closed by completion or IconClose
+   */
+  onCloseModal?: (currentIndex: number, durationOpen: number) => void;
 };
 
 type State = {
+  /**
+   * The last known step
+   */
+  current: number;
+
   /**
    * The timestamp when the modal was shown.
    * Used to calculate how long the modal was open
    */
   openedAt: number;
-
-  /**
-   * The last known step
-   */
-  current: number;
 };
 
 const defaultProps = {

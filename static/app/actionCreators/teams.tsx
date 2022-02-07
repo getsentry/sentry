@@ -7,8 +7,8 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {uniqueId} from 'sentry/utils/guid';
 
 type CallbackOptions = {
-  success?: Function;
   error?: Function;
+  success?: Function;
 };
 
 const doCallback = (

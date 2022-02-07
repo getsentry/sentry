@@ -18,16 +18,16 @@ import {Theme} from 'sentry/utils/theme';
 import {transformEventStatsSmoothed} from '../../../trends/utils';
 
 type Props = {
-  loading: boolean;
-  reloading: boolean;
-  theme: Theme;
   errored: boolean;
+  loading: boolean;
   queryExtra: Query;
+  reloading: boolean;
   router: InjectedRouter;
+  theme: Theme;
   series?: Series[];
   timeFrame?: {
-    start: number;
     end: number;
+    start: number;
   };
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
   Pick<React.ComponentProps<typeof LineChart>, 'onLegendSelectChanged' | 'legend'>;

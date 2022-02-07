@@ -9,9 +9,9 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import space from 'sentry/styles/space';
 
 type Props = {
-  title: string;
-  description: string;
   children: React.ReactNode;
+  description: string;
+  title: string;
   className?: string;
 };
 

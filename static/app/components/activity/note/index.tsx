@@ -20,33 +20,32 @@ type Props = {
    * default from parent component
    */
   authorName: string;
+  dateCreated: Date | string;
+  /**
+   * min-height for NoteInput textarea
+   */
+  minHeight: number;
   /**
    * This is the id of the note object from the server. This is to indicate you
    * are editing an existing item
    */
   modelId: string;
+  onDelete: (props: Props) => void;
+  onUpdate: (data: NoteType, props: Props) => void;
   /**
-   * The note text itself
+   * If used, will fetch list of teams/members that can be mentioned for projects
    */
-  text: string;
-  user: User;
-  dateCreated: Date | string;
+  projectSlugs: string[];
   /**
    * Pass through to ActivityItem. Shows absolute time instead of a relative
    * string
    */
   showTime: boolean;
   /**
-   * min-height for NoteInput textarea
+   * The note text itself
    */
-  minHeight: number;
-  /**
-   * If used, will fetch list of teams/members that can be mentioned for projects
-   */
-  projectSlugs: string[];
-  onUpdate: (data: NoteType, props: Props) => void;
-  onDelete: (props: Props) => void;
-  onCreate?: (data: NoteType) => void;
+  text: string;
+  user: User;
   /**
    * This is unusual usage that Alert Details uses to get back the activity
    * that an input was bound to as the onUpdate and onDelete actions forward
@@ -57,6 +56,7 @@ type Props = {
    * pass through to ActivityItem. Hides the date/timestamp in header
    */
   hideDate?: boolean;
+  onCreate?: (data: NoteType) => void;
 };
 
 function Note(props: Props) {

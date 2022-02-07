@@ -39,11 +39,11 @@ type InputProps = Pick<
  * }
  */
 type ItemProps = {
-  item: Item;
-  matches: Result['matches'];
-  index: number;
   highlighted: boolean;
+  index: number;
+  item: Item;
   itemProps: React.ComponentProps<typeof SearchResultWrapper>;
+  matches: Result['matches'];
 };
 
 // Not using typeof defaultProps because of the wrapping HOC which
@@ -69,10 +69,6 @@ type Props = WithRouterProps<{orgId: string}> & {
    */
   entryPoint: 'settings_search' | 'command_palette' | 'sidebar_help';
   /**
-   * Render prop for the main input for the search
-   */
-  renderInput: (props: InputProps) => React.ReactNode;
-  /**
    * Maximum number of results to display
    */
   maxResults: number;
@@ -80,24 +76,28 @@ type Props = WithRouterProps<{orgId: string}> & {
    * Minimum number of characters before search activates
    */
   minSearch: number;
+  /**
+   * Render prop for the main input for the search
+   */
+  renderInput: (props: InputProps) => React.ReactNode;
 
-  searchOptions?: Fuse.FuseOptions<any>;
+  /**
+   * Passed to the underlying AutoComplete component
+   */
+  closeOnSelect?: boolean;
   /**
    * Additional CSS for the dropdown menu.
    */
   dropdownStyle?: string;
   /**
-   * Adds a footer below the results when the search is complete
-   */
-  resultFooter?: React.ReactElement;
-  /**
    * Render an item in the search results.
    */
   renderItem?: (props: ItemProps) => React.ReactElement;
   /**
-   * Passed to the underlying AutoComplete component
+   * Adds a footer below the results when the search is complete
    */
-  closeOnSelect?: boolean;
+  resultFooter?: React.ReactElement;
+  searchOptions?: Fuse.FuseOptions<any>;
   /**
    * The sources to query
    */
