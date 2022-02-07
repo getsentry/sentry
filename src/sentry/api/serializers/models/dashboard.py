@@ -82,9 +82,9 @@ class DashboardListSerializer(Serializer):
                 "displayType": DashboardWidgetDisplayTypes.get_type_name(widget["display_type"]),
                 "layout": None,
             }
-            if widget["detail"]:
+            if widget.get("detail"):
                 detail = json.loads(widget["detail"])
-                if detail["layout"]:
+                if detail.get("layout"):
                     widget_preview["layout"] = detail["layout"]
 
             result[dashboard]["widget_preview"].append(widget_preview)
