@@ -15,9 +15,9 @@ type DependentProps = {
 };
 
 type InjectedTeamsProps = {
-  teams: TeamWithProjects[];
-  loadingTeams: boolean;
   error: Error | null;
+  loadingTeams: boolean;
+  teams: TeamWithProjects[];
 };
 
 const withTeamsForUser = <P extends InjectedTeamsProps>(

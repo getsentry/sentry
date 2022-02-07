@@ -10,19 +10,19 @@ export type SortableItemProps = Pick<
 > & {
   id: string;
   index: number;
+  innerWrapperStyle(args: {
+    id: UniqueIdentifier;
+    index: number;
+    isDragOverlay: boolean;
+    isDragging: boolean;
+    isSorting: boolean;
+    overIndex: number;
+  }): React.CSSProperties;
   wrapperStyle(args: {
     id: string;
     index: number;
     isDragging: boolean;
     isSorting: boolean;
-  }): React.CSSProperties;
-  innerWrapperStyle(args: {
-    id: UniqueIdentifier;
-    index: number;
-    isSorting: boolean;
-    overIndex: number;
-    isDragging: boolean;
-    isDragOverlay: boolean;
   }): React.CSSProperties;
   disabled?: boolean;
 };

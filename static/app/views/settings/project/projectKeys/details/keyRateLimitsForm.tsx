@@ -22,8 +22,8 @@ const PREDEFINED_RATE_LIMIT_VALUES = [
 ];
 
 type RateLimitValue = {
-  window: number;
   count: number;
+  window: number;
 };
 
 type Props = {

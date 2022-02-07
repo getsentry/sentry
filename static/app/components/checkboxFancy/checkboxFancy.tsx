@@ -7,10 +7,10 @@ import {Theme} from 'sentry/utils/theme';
 import CheckboxFancyContent from './checkboxFancyContent';
 
 type Props = {
-  isDisabled?: boolean;
-  size?: string;
   className?: string;
+  isDisabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  size?: string;
 } & React.ComponentProps<typeof CheckboxFancyContent>;
 
 const disabledStyles = (p: Props & {theme: Theme}) =>

@@ -5,8 +5,8 @@ import LoadingMask from 'sentry/components/loadingMask';
 
 type Props = {
   visible: boolean;
-  className?: string;
   children?: React.ReactNode;
+  className?: string;
 } & React.ComponentProps<typeof LoadingMask>;
 
 const TransparentLoadingMask = styled(

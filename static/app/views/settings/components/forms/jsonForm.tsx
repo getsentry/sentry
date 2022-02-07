@@ -10,10 +10,7 @@ import FormPanel from './formPanel';
 import {Field, FieldObject, JsonFormObject} from './type';
 
 type Props = {
-  /**
-   * Fields that are grouped by "section"
-   */
-  forms?: JsonFormObject[];
+  additionalFieldProps?: {[key: string]: any};
 
   /**
    * If `forms` is not defined, `title` + `fields` must be required.
@@ -21,7 +18,10 @@ type Props = {
    */
   fields?: FieldObject[];
 
-  additionalFieldProps?: {[key: string]: any};
+  /**
+   * Fields that are grouped by "section"
+   */
+  forms?: JsonFormObject[];
 } & WithRouterProps &
   Omit<
     React.ComponentProps<typeof FormPanel>,

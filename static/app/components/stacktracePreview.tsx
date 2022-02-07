@@ -64,8 +64,8 @@ function StackTracePreviewContent({
 }: {
   event: Event;
   stacktrace: StacktraceType;
-  orgFeatures?: string[];
   groupingCurrentLevel?: number;
+  orgFeatures?: string[];
 }) {
   const includeSystemFrames = React.useMemo(() => {
     return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
@@ -119,13 +119,13 @@ function StackTracePreviewContent({
 }
 
 type StackTracePreviewProps = {
+  children: React.ReactNode;
   issueId: string;
   organization: Organization;
-  children: React.ReactNode;
-  groupingCurrentLevel?: number;
-  eventId?: string;
-  projectSlug?: string;
   className?: string;
+  eventId?: string;
+  groupingCurrentLevel?: number;
+  projectSlug?: string;
 };
 
 function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {

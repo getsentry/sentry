@@ -24,8 +24,8 @@ export const LEFT_AXIS_QUERY_KEY = 'left';
 export const RIGHT_AXIS_QUERY_KEY = 'right';
 
 type LandingDisplay = {
-  label: string;
   field: LandingDisplayField;
+  label: string;
 };
 
 export enum LandingDisplayField {
@@ -207,9 +207,9 @@ export function getDefaultDisplayFieldForPlatform(
 }
 
 type VitalCardDetail = {
+  formatter: (value: number) => string | number;
   title: string;
   tooltip: string;
-  formatter: (value: number) => string | number;
 };
 
 export const vitalCardDetails = (

@@ -22,10 +22,10 @@ type ApiResult = Record<string, number>;
 
 type Props = AsyncComponent['props'] &
   ViewProps & {
-    organization: OrganizationSummary;
-    location: Location;
     currentFilter: SpanOperationBreakdownFilter;
     fields: string[];
+    location: Location;
+    organization: OrganizationSummary;
   };
 
 type State = AsyncComponent['state'] & {

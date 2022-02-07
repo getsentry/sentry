@@ -189,15 +189,15 @@ export class OrganizationStats extends Component<Props> {
    */
   setStateOnUrl = (
     nextState: {
-      dataCategory?: DataCategory;
-      pageStatsPeriod?: string | null;
-      pageStart?: DateString;
-      pageEnd?: DateString;
-      pageUtc?: boolean | null;
-      transform?: ChartDataTransform;
-      sort?: string;
-      query?: string;
       cursor?: string;
+      dataCategory?: DataCategory;
+      pageEnd?: DateString;
+      pageStart?: DateString;
+      pageStatsPeriod?: string | null;
+      pageUtc?: boolean | null;
+      query?: string;
+      sort?: string;
+      transform?: ChartDataTransform;
     },
     options: {
       willUpdateRouter?: boolean;

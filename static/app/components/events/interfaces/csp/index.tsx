@@ -23,8 +23,8 @@ function getView(view, data) {
 }
 
 type Props = {
-  event: Event;
   data: Record<string, any>;
+  event: Event;
 };
 
 type State = {

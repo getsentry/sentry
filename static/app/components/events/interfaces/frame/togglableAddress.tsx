@@ -12,17 +12,17 @@ import {formatAddress, parseAddress} from '../utils';
 
 type Props = {
   address: string;
-  startingAddress: string | null;
   isAbsolute: boolean;
   isFoundByStackScanning: boolean;
   isInlineFrame: boolean;
-  relativeAddressMaxlength?: number;
-  onToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  startingAddress: string | null;
+  className?: string;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
-  className?: string;
+  onToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  relativeAddressMaxlength?: number;
 };
 
 function TogglableAddress({

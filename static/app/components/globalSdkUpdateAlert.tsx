@@ -28,9 +28,9 @@ import Button from './button';
 type Props = React.ComponentProps<typeof Alert> & {
   api: Client;
   organization: Organization;
+  Wrapper?: React.ComponentType;
   sdkUpdates?: ProjectSdkUpdates[] | null;
   selection?: PageFilters;
-  Wrapper?: React.ComponentType;
 };
 
 type State = {

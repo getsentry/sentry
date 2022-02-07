@@ -27,19 +27,19 @@ import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  project: Project;
   codeMappings: RepositoryProjectPathConfig[];
   integrations: Integration[];
   onSave: (data: CodeOwner) => void;
+  organization: Organization;
+  project: Project;
 } & ModalRenderProps;
 
 type State = {
-  codeownersFile: CodeownersFile | null;
   codeMappingId: string | null;
-  isLoading: boolean;
+  codeownersFile: CodeownersFile | null;
   error: boolean;
   errorJSON: {raw?: string} | null;
+  isLoading: boolean;
 };
 
 class AddCodeOwnerModal extends Component<Props, State> {

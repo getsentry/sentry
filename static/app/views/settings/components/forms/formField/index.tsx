@@ -67,22 +67,31 @@ type ResolvedObservableProps = {
 
 type BaseProps<P> = {
   /**
-   * Name of the field
-   */
-  name: string;
-  /**
    * Used to render the actual control
    */
   children: (renderProps) => React.ReactNode;
   /**
-   * Extra styles to apply to the field
+   * Name of the field
    */
-  style?: React.CSSProperties;
+  name: string;
+  // TODO(ts): These are actually props that are needed for some lower
+  // component. We should let the rendering component pass these in instead
+  defaultValue?: FieldValue;
+  formatMessageValue?: boolean | Function;
   /**
-   * When the field is blurred should it automatically persist its value into
-   * the model. Will show a confirm button 'save' otherwise.
+   * Transform data when saving on blur.
    */
-  saveOnBlur?: boolean;
+  getData?: (value: any) => any;
+  /**
+   * Should hide error message?
+   */
+  hideErrorMessage?: boolean;
+  onBlur?: (value, event) => void;
+  onChange?: (value, event) => void;
+  onKeyDown?: (value, event) => void;
+  placeholder?: ObservedFnOrValue<P, React.ReactNode>;
+
+  resetOnError?: boolean;
   /**
    * The message to display when saveOnBlur is false
    */
@@ -93,35 +102,26 @@ type BaseProps<P> = {
    * The alert type to use when saveOnBlur is false
    */
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
+
   /**
-   * Should hide error message?
+   * When the field is blurred should it automatically persist its value into
+   * the model. Will show a confirm button 'save' otherwise.
    */
-  hideErrorMessage?: boolean;
-  /**
-   * Transform input when a value is set to the model.
-   */
-  transformInput?: (value: any) => any;
-  /**
-   * Transform data when saving on blur.
-   */
-  getData?: (value: any) => any;
+  saveOnBlur?: boolean;
   /**
    * A function producing an optional component with extra information.
    */
   selectionInfoFunction?: (
-    props: PassthroughProps<P> & {error?: string; value: FieldValue}
+    props: PassthroughProps<P> & {value: FieldValue; error?: string}
   ) => React.ReactNode;
-
-  onKeyDown?: (value, event) => void;
-  onBlur?: (value, event) => void;
-  onChange?: (value, event) => void;
-
-  // TODO(ts): These are actually props that are needed for some lower
-  // component. We should let the rendering component pass these in instead
-  defaultValue?: FieldValue;
-  resetOnError?: boolean;
-  placeholder?: ObservedFnOrValue<P, React.ReactNode>;
-  formatMessageValue?: boolean | Function; // used in prettyFormString
+  /**
+   * Extra styles to apply to the field
+   */
+  style?: React.CSSProperties;
+  /**
+   * Transform input when a value is set to the model.
+   */
+  transformInput?: (value: any) => any; // used in prettyFormString
 };
 
 type Props<P> = BaseProps<P> & ObservableProps<P> & Omit<Field['props'], PropToObserve>;
