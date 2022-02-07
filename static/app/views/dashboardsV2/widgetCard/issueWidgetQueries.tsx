@@ -26,37 +26,37 @@ const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 const DEFAULT_EXPAND = ['owners'];
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
-  project: number[];
   environment: string[];
+  project: number[];
+  collapse?: string[];
+  cursor?: string;
+  display?: string;
+  expand?: string[];
+  groupStatsPeriod?: string | null;
+  page?: number | string;
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
-  groupStatsPeriod?: string | null;
-  cursor?: string;
-  page?: number | string;
-  display?: string;
-  collapse?: string[];
-  expand?: string[];
 };
 
 type Props = {
   api: Client;
-  organization: OrganizationSummary;
-  widget: Widget;
-  selection: PageFilters;
-  limit?: number;
   children: (props: {
-    loading: boolean;
     errorMessage: undefined | string;
+    loading: boolean;
     transformedResults: TableDataRow[];
   }) => React.ReactNode;
+  organization: OrganizationSummary;
+  selection: PageFilters;
+  widget: Widget;
+  limit?: number;
 };
 
 type State = {
   errorMessage: undefined | string;
   loading: boolean;
-  tableResults: Group[];
   memberListStoreLoaded: boolean;
+  tableResults: Group[];
   totalCount: null | string;
 };
 
@@ -123,8 +123,8 @@ class IssueWidgetQueries extends React.Component<Props, State> {
     const {tableResults} = this.state;
     GroupStore.add(tableResults);
     const transformedTableResults: TableDataRow[] = [];
-    tableResults.forEach(group => {
-      const {
+    tableResults.forEach(
+      ({
         id,
         shortId,
         title,
@@ -134,66 +134,67 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         userCount,
         project,
         ...resultProps
-      } = group;
-      const transformedResultProps: Omit<TableDataRow, 'id'> = {};
-      Object.keys(resultProps)
-        .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
-        .forEach(key => {
-          transformedResultProps[key] = resultProps[key];
-        });
+      }) => {
+        const transformedResultProps: Omit<TableDataRow, 'id'> = {};
+        Object.keys(resultProps)
+          .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
+          .forEach(key => {
+            transformedResultProps[key] = resultProps[key];
+          });
 
-      const transformedTableResult: TableDataRow = {
-        ...transformedResultProps,
-        events: count,
-        users: userCount,
-        id,
-        'issue.id': id,
-        issue: shortId,
-        title,
-        project: project?.slug,
-      };
+        const transformedTableResult: TableDataRow = {
+          ...transformedResultProps,
+          events: count,
+          users: userCount,
+          id,
+          'issue.id': id,
+          issue: shortId,
+          title,
+          project: project.slug,
+        };
 
-      // Get lifetime stats
-      if (lifetime) {
-        transformedTableResult.lifetimeEvents = lifetime?.count;
-        transformedTableResult.lifetimeUsers = lifetime?.userCount;
-      }
-      // Get filtered stats
-      if (filtered) {
-        transformedTableResult.filteredEvents = filtered?.count;
-        transformedTableResult.filteredUsers = filtered?.userCount;
-      }
+        // Get lifetime stats
+        if (lifetime) {
+          transformedTableResult.lifetimeEvents = lifetime?.count;
+          transformedTableResult.lifetimeUsers = lifetime?.userCount;
+        }
+        // Get filtered stats
+        if (filtered) {
+          transformedTableResult.filteredEvents = filtered?.count;
+          transformedTableResult.filteredUsers = filtered?.userCount;
+        }
 
-      // Discover Url properties
-      const query = widget.queries[0].conditions;
-      const queryTerms: string[] = [];
-      if (typeof query === 'string') {
-        const queryObj = queryToObj(query);
-        for (const queryTag in queryObj) {
-          if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
-            const queryVal = queryObj[queryTag].includes(' ')
-              ? `"${queryObj[queryTag]}"`
-              : queryObj[queryTag];
-            queryTerms.push(`${queryTag}:${queryVal}`);
+        // Discover Url properties
+        const query = widget.queries[0].conditions;
+        const queryTerms: string[] = [];
+        if (typeof query === 'string') {
+          const queryObj = queryToObj(query);
+          for (const queryTag in queryObj) {
+            if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
+              const queryVal = queryObj[queryTag].includes(' ')
+                ? `"${queryObj[queryTag]}"`
+                : queryObj[queryTag];
+              queryTerms.push(`${queryTag}:${queryVal}`);
+            }
+          }
+
+          if (queryObj.__text) {
+            queryTerms.push(queryObj.__text);
           }
         }
+        transformedTableResult.discoverSearchQuery =
+          (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
+        transformedTableResult.projectId = project.id;
 
-        if (queryObj.__text) {
-          queryTerms.push(queryObj.__text);
+        const {period, start, end} = selection.datetime || {};
+        if (start && end) {
+          transformedTableResult.start = getUtcDateString(start);
+          transformedTableResult.end = getUtcDateString(end);
         }
+        transformedTableResult.period = period ?? '';
+        transformedTableResults.push(transformedTableResult);
       }
-      transformedTableResult.discoverSearchQuery =
-        (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
-      transformedTableResult.projectId = group.project.id;
-
-      const {period, start, end} = selection.datetime || {};
-      if (start && end) {
-        transformedTableResult.start = getUtcDateString(start);
-        transformedTableResult.end = getUtcDateString(end);
-      }
-      transformedTableResult.period = period ?? '';
-      transformedTableResults.push(transformedTableResult);
-    });
+    );
     return transformedTableResults;
   }
 
