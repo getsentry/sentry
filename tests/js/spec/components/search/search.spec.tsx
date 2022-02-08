@@ -13,9 +13,9 @@ function makeSearchResultsMock(items?: ResultItem[], threshold?: number) {
     children,
     query,
   }: {
+    children: (props: ChildProps) => React.ReactElement | null;
     loading: boolean;
     query: string;
-    children: (props: ChildProps) => React.ReactElement | null;
   }): React.ReactElement<any, any> | null {
     const searchableItems: ResultItem[] = items ?? [
       {
