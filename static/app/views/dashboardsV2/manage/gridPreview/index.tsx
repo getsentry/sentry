@@ -45,6 +45,7 @@ type Props = {
 };
 
 function GridPreview({preview}: Props) {
+  // TODO(nar): Clean this up, it should be reusable with how it's handled on the dashboard
   let columnDepths = getInitialColumnDepths();
   preview
     .filter(({layout}) => defined(layout))
