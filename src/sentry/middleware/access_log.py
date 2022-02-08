@@ -22,7 +22,7 @@ class _AccessLogMetaData:
 _empty_request_metadata = _AccessLogMetaData(request_start_time=None)
 
 
-class AccessLogMiddlewware(MiddlewareMixin):
+class AccessLogMiddleware(MiddlewareMixin):
     def _get_token_name(self, request: Request):
         auth = getattr(request, "auth", None)
         if not auth:
@@ -37,8 +37,10 @@ class AccessLogMiddlewware(MiddlewareMixin):
         Create a log entry to be used for api metrics gathering
         """
         try:
-
-            view = request.resolver_match._func_path
+            try:
+                view = request.resolver_match._func_path
+            except AttributeError:
+                view = "Unknown"
 
             request_user = getattr(request, "user", None)
             user_id = getattr(request_user, "id", None)
@@ -71,7 +73,10 @@ class AccessLogMiddlewware(MiddlewareMixin):
         except Exception:
             api_access_logger.exception("api.access")
 
-    def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
+    #    def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
+    #        request.access_log_metadata = _AccessLogMetaData(request_start_time=time.time())
+    #
+    def process_request(self, request: Request):
         request.access_log_metadata = _AccessLogMetaData(request_start_time=time.time())
 
     def process_response(self, request: Request, response: Response) -> Response:
