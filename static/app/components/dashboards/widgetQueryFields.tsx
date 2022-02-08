@@ -11,7 +11,7 @@ import {
   isLegalYAxisType,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -51,6 +51,8 @@ function WidgetQueryFields({
   onChange,
   style,
 }: Props) {
+  const isMetricWidget = widgetType === WidgetType.METRICS;
+
   // Handle new fields being added.
   function handleAdd(event: React.MouseEvent) {
     event.preventDefault();
@@ -121,6 +123,16 @@ function WidgetQueryFields({
       }
     }
 
+    if (
+      widgetType === WidgetType.METRICS &&
+      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
+    ) {
+      return (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.TAG
+      );
+    }
+
     return option.value.kind === FieldValueKind.FUNCTION;
   };
 
@@ -132,6 +144,10 @@ function WidgetQueryFields({
     }
 
     if (fieldValue.kind !== 'function') {
+      return true;
+    }
+
+    if (isMetricWidget) {
       return true;
     }
 
@@ -176,6 +192,7 @@ function WidgetQueryFields({
           onChange={handleColumnChange}
           fieldOptions={fieldOptions}
           organization={organization}
+          filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
           source={widgetType}
         />
       </Field>
@@ -203,6 +220,7 @@ function WidgetQueryFields({
             onChange={handleTopNColumnChange}
             fieldOptions={fieldOptions}
             organization={organization}
+            filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
           />
         </Field>
         <Field
