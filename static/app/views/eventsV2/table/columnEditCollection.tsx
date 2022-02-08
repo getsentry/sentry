@@ -38,8 +38,8 @@ type Props = {
   onChange: (columns: Column[]) => void;
   organization: Organization;
   className?: string;
-  source?: Sources;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
+  source?: Sources;
 };
 
 type State = {
