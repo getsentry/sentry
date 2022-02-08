@@ -152,8 +152,8 @@ describe('Performance > TransactionSummary', function () {
     jest.clearAllMocks();
   });
 
-  it('renders basic UI elements when feature flagged', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
+  it('renders basic UI elements', async function () {
+    const initialData = initializeData();
     const wrapper = mountWithTheme(
       <WrappedComponent
         organization={initialData.organization}
@@ -175,29 +175,8 @@ describe('Performance > TransactionSummary', function () {
     expect(wrapper.find('TransactionHeader')).toHaveLength(1);
   });
 
-  it('renders alert when not feature flagged', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Alert').props().type).toEqual('warning');
-    expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
-    expect(wrapper.find('SearchBar')).toHaveLength(0);
-    expect(wrapper.find('TransactionsTable')).toHaveLength(0);
-    expect(wrapper.find('Pagination')).toHaveLength(0);
-    expect(wrapper.find('EventsContent')).toHaveLength(0);
-    expect(wrapper.find('TransactionHeader')).toHaveLength(0);
-  });
-
   it('renders relative span breakdown header when no filter selected', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
+    const initialData = initializeData();
     const wrapper = mountWithTheme(
       <WrappedComponent
         organization={initialData.organization}
@@ -215,7 +194,7 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders event column results correctly', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
+    const initialData = initializeData();
     const wrapper = mountWithTheme(
       <WrappedComponent
         organization={initialData.organization}
@@ -251,7 +230,6 @@ describe('Performance > TransactionSummary', function () {
 
   it('renders additional Web Vital column', async function () {
     const initialData = initializeData({
-      features: ['performance-events-page'],
       query: {webVital: WebVital.LCP},
     });
     const wrapper = mountWithTheme(

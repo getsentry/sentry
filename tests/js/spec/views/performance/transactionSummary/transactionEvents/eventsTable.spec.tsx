@@ -11,10 +11,10 @@ import {
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 type Data = {
-  features: string[];
+  features?: string[];
 };
 
-function initializeData({features: additionalFeatures = []}: Data) {
+function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = TestStubs.Organization({
     features,
@@ -143,7 +143,7 @@ describe('Performance GridEditable Table', function () {
   });
 
   it('renders ops breakdown bar when querying for span_ops_breakdown.relative', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
+    const initialData = initializeData();
     const eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -177,7 +177,7 @@ describe('Performance GridEditable Table', function () {
   });
 
   it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
+    const initialData = initializeData();
     fields = [
       'id',
       'user.display',
