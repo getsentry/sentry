@@ -17,11 +17,13 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import MenuItem from 'sentry/components/menuItem';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
+import {IconCopy, IconDelete, IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -29,7 +31,6 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
 
-import ContextMenu from '../contextMenu';
 import {cloneDashboard} from '../utils';
 
 import DashboardCard from './dashboardCard';
@@ -106,6 +107,54 @@ function DashboardList({
       .catch(() => addErrorMessage(t('Error duplicating Dashboard')));
   }
 
+  function renderDropdownMenu(dashboard: DashboardListItem) {
+    const menuItems = [
+      {
+        key: 'dashboard-duplicate',
+        label: t('Duplicate'),
+        leadingItems: <IconCopy />,
+        onAction: () => handleDuplicate(dashboard),
+      },
+      {
+        key: 'dashboard-delete',
+        label: t('Delete'),
+        leadingItems: <IconDelete />,
+        onAction: () => {
+          openConfirmModal({
+            message: t('Are you sure you want to delete this dashboard?'),
+            priority: 'danger',
+            onConfirm: () => handleDelete(dashboard),
+          });
+        },
+      },
+    ];
+
+    return (
+      <DropdownMenuControlV2
+        items={menuItems}
+        trigger={({props: triggerProps, ref: triggerRef}) => (
+          <DropdownTrigger
+            ref={triggerRef}
+            {...triggerProps}
+            aria-label={t('Dashboard actions')}
+            size="xsmall"
+            borderless
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+
+              triggerProps.onClick?.(e);
+            }}
+            icon={<IconEllipsis direction="down" size="sm" />}
+          />
+        )}
+        placement="bottom right"
+        disabledKeys={dashboards && dashboards.length <= 1 ? ['dashboard-delete'] : []}
+        offset={4}
+      />
+    );
+  }
+
   function renderMiniDashboards() {
     return dashboards?.map((dashboard, index) => {
       return (
@@ -138,33 +187,7 @@ function DashboardList({
               })}
             </WidgetGrid>
           )}
-          renderContextMenu={() => (
-            <ContextMenu>
-              <MenuItem
-                data-test-id="dashboard-delete"
-                disabled={dashboards.length <= 1}
-                onClick={event => {
-                  event.preventDefault();
-                  openConfirmModal({
-                    message: t('Are you sure you want to delete this dashboard?'),
-                    priority: 'danger',
-                    onConfirm: () => handleDelete(dashboard),
-                  });
-                }}
-              >
-                {t('Delete')}
-              </MenuItem>
-              <MenuItem
-                data-test-id="dashboard-duplicate"
-                onClick={event => {
-                  event.preventDefault();
-                  handleDuplicate(dashboard);
-                }}
-              >
-                {t('Duplicate')}
-              </MenuItem>
-            </ContextMenu>
-          )}
+          renderContextMenu={() => renderDropdownMenu(dashboard)}
         />
       );
     });
@@ -281,6 +304,10 @@ const WidgetImage = styled('img')`
 
 const PaginationRow = styled(Pagination)`
   margin-bottom: ${space(3)};
+`;
+
+const DropdownTrigger = styled(Button)`
+  transform: translateX(${space(1)});
 `;
 
 export default withApi(DashboardList);
