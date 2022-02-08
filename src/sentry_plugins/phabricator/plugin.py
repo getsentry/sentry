@@ -210,7 +210,6 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 response = api.user.search(constraints={"nameLike": query})
             else:
                 response = None
-
         except Exception as e:
             return self.handle_api_error(e)
 

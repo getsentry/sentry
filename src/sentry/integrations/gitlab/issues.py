@@ -59,8 +59,9 @@ class GitlabIssueBasic(IssueBasicMixin):
                 "choices": project_choices,
                 "defaultValue": default_project,
                 "required": True,
-            }
-        ] + fields
+            },
+            *fields,
+        ]
 
     def create_issue(self, data, **kwargs):
         client = self.get_client()

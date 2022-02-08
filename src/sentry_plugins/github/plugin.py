@@ -101,28 +101,24 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
-        return (
-            [
-                {
-                    "name": "repo",
-                    "label": "GitHub Repository",
-                    "default": self.get_option("repo", group.project),
-                    "type": "text",
-                    "readonly": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "assignee",
-                    "label": "Assignee",
-                    "default": "",
-                    "type": "select",
-                    "required": False,
-                    "choices": self.get_allowed_assignees(request, group),
-                }
-            ]
-        )
+        return [
+            {
+                "name": "repo",
+                "label": "GitHub Repository",
+                "default": self.get_option("repo", group.project),
+                "type": "text",
+                "readonly": True,
+            },
+            *fields,
+            {
+                "name": "assignee",
+                "label": "Assignee",
+                "default": "",
+                "type": "select",
+                "required": False,
+                "choices": self.get_allowed_assignees(request, group),
+            },
+        ]
 
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [
