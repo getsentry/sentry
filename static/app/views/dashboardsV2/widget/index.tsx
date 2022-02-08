@@ -13,7 +13,7 @@ type Props = React.ComponentProps<typeof WidgetBuilder>;
 function WidgetBuilderContainer({organization, ...props}: Props) {
   return (
     <Feature
-      features={['metrics', 'metrics-dashboards-ui', 'dashboards-edit']}
+      features={['metrics', 'new-widget-builder-experience', 'dashboards-edit']}
       organization={organization}
       renderDisabled={() => (
         <PageContent>
