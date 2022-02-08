@@ -13,7 +13,7 @@ import {
   getInitialColumnDepths,
   getNextAvailablePosition,
 } from '../layoutUtils';
-import {DisplayType, Preview} from '../types';
+import {DisplayType, Preview, WidgetLayout} from '../types';
 
 import WidgetArea from './chartPreviews/area';
 import WidgetBar from './chartPreviews/bar';
@@ -22,30 +22,35 @@ import WidgetBigNumber from './chartPreviews/number';
 import WidgetTable from './chartPreviews/table';
 import WidgetWorldMap from './chartPreviews/world';
 
-function GridPreview({preview}: {preview: Preview[]}) {
-  function miniWidget(displayType: DisplayType): () => JSX.Element {
-    switch (displayType) {
-      case DisplayType.BAR:
-        return WidgetBar;
-      case DisplayType.AREA:
-      case DisplayType.TOP_N:
-        return WidgetArea;
-      case DisplayType.BIG_NUMBER:
-        return WidgetBigNumber;
-      case DisplayType.TABLE:
-        return WidgetTable;
-      case DisplayType.WORLD_MAP:
-        return WidgetWorldMap;
-      case DisplayType.LINE:
-      default:
-        return WidgetLine;
-    }
+function miniWidget(displayType: DisplayType): () => JSX.Element {
+  switch (displayType) {
+    case DisplayType.BAR:
+      return WidgetBar;
+    case DisplayType.AREA:
+    case DisplayType.TOP_N:
+      return WidgetArea;
+    case DisplayType.BIG_NUMBER:
+      return WidgetBigNumber;
+    case DisplayType.TABLE:
+      return WidgetTable;
+    case DisplayType.WORLD_MAP:
+      return WidgetWorldMap;
+    case DisplayType.LINE:
+    default:
+      return WidgetLine;
   }
+}
 
+type Props = {
+  preview: Preview[];
+};
+
+function GridPreview({preview}: Props) {
   let columnDepths = getInitialColumnDepths();
   preview
     .filter(({layout}) => defined(layout))
-    .forEach(({layout: {x, y, w, h}}) => {
+    .forEach(({layout}) => {
+      const {x, y, w, h} = layout as WidgetLayout; // nulls were filtered out
       // Adjust the column depths for each column the widget takes up
       for (let col = x; col < x + w; col++) {
         columnDepths[col] = Math.max(y + h, columnDepths[col]);

@@ -43,9 +43,19 @@ export type Widget = {
   widgetType?: WidgetType;
 };
 
+// TODO(nar): Replace references to Partial<Layout> types with this type
+// We store an explicit set of keys in the backend now
+export type WidgetLayout = {
+  h: number;
+  minH: number;
+  w: number;
+  x: number;
+  y: number;
+};
+
 export type Preview = {
   displayType: DisplayType;
-  layout: Omit<Layout, 'i'>;
+  layout: WidgetLayout | null;
 };
 
 /**
