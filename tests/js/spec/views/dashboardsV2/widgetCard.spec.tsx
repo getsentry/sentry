@@ -7,8 +7,10 @@ import {Client} from 'sentry/api';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
 
 jest.mock('sentry/components/charts/simpleTableChart');
+jest.mock('sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
@@ -483,5 +485,35 @@ describe('Dashboards > WidgetCard', function () {
       expect.objectContaining({stickyHeaders: true}),
       expect.anything()
     );
+  });
+
+  it('calls metrics queries', function () {
+    const widget: Widget = {
+      title: 'Metrics Widget',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.METRICS,
+      queries: [],
+    };
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+
+    expect(MetricsWidgetQueries).toHaveBeenCalledTimes(1);
   });
 });
