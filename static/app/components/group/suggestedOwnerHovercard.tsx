@@ -21,21 +21,21 @@ type Props = {
    */
   actor: Actor;
   /**
+   * Children are required, as they are passed to the hovercard component, without it,
+   * we will not be able to trigger any hovercard actions
+   */
+  children: React.ReactNode;
+  /**
    * The list of commits the actor is suggested for. May be left blank if the
    * actor is not suggested for commits.
    */
   commits?: Commit[];
+
   /**
    * The list of ownership rules the actor is suggested for. May be left blank
    * if the actor is not suggested based on ownership rules.
    */
   rules?: any[] | null;
-
-  /**
-   * Children are required, as they are passed to the hovercard component, without it,
-   * we will not be able to trigger any hovercard actions
-   */
-  children: React.ReactNode;
 };
 
 type State = {
