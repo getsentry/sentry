@@ -5,6 +5,7 @@ from unittest import mock
 from django.http import HttpResponse
 from django.urls import reverse
 
+from sentry.api.endpoints.organization_transaction_anomaly_detection import map_snuba_queries
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
@@ -96,3 +97,39 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
         features.update(self.features)
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
+
+    @staticmethod
+    def test_map_snuba_queries_1():
+        expected_tuple = (datetime(2021, 12, 26, 0, 0), datetime(2022, 1, 2, 0, 0), 300)
+        returned_tuple = map_snuba_queries(
+            datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp(),
+            datetime(2022, 1, 2, 0, 0, tzinfo=timezone.utc).timestamp(),
+        )
+        assert returned_tuple == expected_tuple
+
+    @staticmethod
+    def test_map_snuba_queries_2():
+        expected_tuple = (datetime(2021, 12, 22, 0, 0), datetime(2022, 1, 5, 0, 0), 600)
+        returned_tuple = map_snuba_queries(
+            datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp(),
+            datetime(2022, 1, 5, 0, 0, tzinfo=timezone.utc).timestamp(),
+        )
+        assert returned_tuple == expected_tuple
+
+    @staticmethod
+    def test_map_snuba_queries_3():
+        expected_tuple = (datetime(2021, 12, 13, 0, 0), datetime(2022, 1, 10, 0, 0), 1200)
+        returned_tuple = map_snuba_queries(
+            datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp(),
+            datetime(2022, 1, 10, 0, 0, tzinfo=timezone.utc).timestamp(),
+        )
+        assert returned_tuple == expected_tuple
+
+    @staticmethod
+    def test_map_snuba_queries_4():
+        expected_tuple = (datetime(2021, 10, 18, 0, 0), datetime(2022, 1, 16, 0, 0), 3600)
+        returned_tuple = map_snuba_queries(
+            datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp(),
+            datetime(2022, 1, 16, 0, 0, tzinfo=timezone.utc).timestamp(),
+        )
+        assert returned_tuple == expected_tuple
