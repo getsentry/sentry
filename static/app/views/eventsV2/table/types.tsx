@@ -73,8 +73,8 @@ export type FieldValueColumns =
   | {
       kind: FieldValueKind.METRIC;
       meta: {
-        name: string;
         dataType: MetricsColumnType;
+        name: string;
       };
     };
 
