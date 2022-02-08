@@ -667,4 +667,22 @@ describe('Performance > VitalDetail', function () {
 
     testSupportedBrowserRendering(WebVital.FCP);
   });
+
+  it('correctly renders which browsers support FID', async function () {
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          vitalName: 'measurements.fid',
+        },
+      },
+    };
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: routerContext,
+    });
+
+    testSupportedBrowserRendering(WebVital.FID);
+  });
 });
