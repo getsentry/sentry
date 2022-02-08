@@ -20,6 +20,7 @@ import {
   fieldAlignment,
   getAggregateAlias,
 } from 'sentry/utils/discover/fields';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
@@ -201,17 +202,19 @@ class TransactionsTable extends React.PureComponent<Props> {
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
-      <PanelTable
-        data-test-id="transactions-table"
-        isEmpty={!hasResults}
-        emptyMessage={t('No transactions found')}
-        headers={this.renderHeader()}
-        isLoading={isLoading}
-        disablePadding
-        loader={loader}
-      >
-        {this.renderResults()}
-      </PanelTable>
+      <VisuallyCompleteWithData id="TransactionsTable" hasData={hasResults}>
+        <PanelTable
+          data-test-id="transactions-table"
+          isEmpty={!hasResults}
+          emptyMessage={t('No transactions found')}
+          headers={this.renderHeader()}
+          isLoading={isLoading}
+          disablePadding
+          loader={loader}
+        >
+          {this.renderResults()}
+        </PanelTable>
+      </VisuallyCompleteWithData>
     );
   }
 }
