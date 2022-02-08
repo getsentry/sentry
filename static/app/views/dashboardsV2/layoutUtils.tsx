@@ -7,7 +7,6 @@ import zip from 'lodash/zip';
 import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 
-import {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {NUM_DESKTOP_COLS} from './dashboard';
 import {DisplayType, Widget, WidgetLayout} from './types';
 
@@ -18,10 +17,7 @@ const WIDGET_PREFIX = 'grid-item';
 // Keys for grid layout values we track in the server
 const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
-export type Position = {
-  x: number;
-  y: number;
-};
+export type Position = Pick<Layout, 'x' | 'y'>;
 
 type NextPosition = [position: Position, columnDepths: number[]];
 
@@ -84,8 +80,8 @@ export function getDashboardLayout(widgets: Widget[]): Layout[] {
   type WidgetWithDefinedLayout = Omit<Widget, 'layout'> & {layout: WidgetLayout};
   return widgets
     .filter((widget): widget is WidgetWithDefinedLayout => defined(widget.layout))
-    .map(widget => ({
-      ...widget.layout,
+    .map(({layout, ...widget}) => ({
+      ...layout,
       i: constructGridItemKey(widget),
     }));
 }
@@ -110,7 +106,7 @@ export function getInitialColumnDepths() {
  * Creates an array from layouts where each column stores how deep it is.
  */
 export function calculateColumnDepths(
-  layouts: {h: number; w: number; x: number; y: number}[]
+  layouts: Pick<Layout, 'h' | 'w' | 'x' | 'y'>[]
 ): number[] {
   const depths = getInitialColumnDepths();
 
@@ -170,15 +166,12 @@ export function getNextAvailablePosition(
   return [{x: 0, y: maxColumnDepth}, [...columnDepths]];
 }
 
-export function assignDefaultLayout<
-  T extends {displayType: DisplayType; layout?: WidgetLayout | null}
->(widgets: T[], initialColumnDepths: number[]): T[] {
+export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layout'>>(
+  widgets: T[],
+  initialColumnDepths: number[]
+): T[] {
   let columnDepths = [...initialColumnDepths];
   const newWidgets = widgets.map(widget => {
-    if (defined(widget.layout)) {
-      return widget;
-    }
-
     const height = getDefaultWidgetHeight(widget.displayType);
     const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
       columnDepths,
@@ -204,7 +197,7 @@ export function enforceWidgetHeightValues(widget: Widget): Widget {
   }
 
   const minH = getDefaultWidgetHeight(displayType);
-  const nextLayout: WidgetLayout = {
+  const nextLayout = {
     ...layout,
     h: Math.max(layout?.h ?? minH, minH),
     minH,
@@ -223,8 +216,4 @@ export function generateWidgetsAfterCompaction(widgets: Widget[]) {
     }
     return {...widget, layout};
   });
-}
-
-export function isNotAddButton({i}: {i: string}) {
-  return i !== ADD_WIDGET_BUTTON_DRAG_ID;
 }

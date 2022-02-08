@@ -1,3 +1,5 @@
+import {Layout} from 'react-grid-layout';
+
 import {User} from 'sentry/types';
 
 // Max widgets per dashboard we are currently willing
@@ -42,12 +44,8 @@ export type Widget = {
 };
 
 // We store an explicit set of keys in the backend now
-export type WidgetLayout = {
-  h: number;
+export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
   minH: number;
-  w: number;
-  x: number;
-  y: number;
 };
 
 export type WidgetPreview = {
