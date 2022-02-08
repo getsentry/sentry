@@ -4,7 +4,6 @@ import time
 from collections import deque
 from concurrent.futures import Future
 from copy import deepcopy
-from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,6 +25,7 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
+from arroyo.processing.strategies.streaming.collect import OffsetRange
 from arroyo.processing.strategies.streaming.transform import ParallelTransformStep
 from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
@@ -446,6 +446,10 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
 
 
 class TemporaryConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
+    """
+    Temporary Strategy
+    """
+
     def __init__(
         self,
         max_batch_size: int,
@@ -463,6 +467,10 @@ class TemporaryConsumerStrategyFactory(ProcessingStrategyFactory):  # type: igno
 
 
 class TransformStep(ProcessingStep[MessageBatch]):
+    """
+    Temporary Transform Step
+    """
+
     def __init__(
         self,
         next_step: ProcessingStep[MessageBatch],
@@ -506,7 +514,7 @@ class TransformStep(ProcessingStep[MessageBatch]):
 
 class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     """
-    TEMPORARY PRODUCE STEP
+    Temporary Produce Step
     """
 
     def __init__(
@@ -527,17 +535,11 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
         self.__closed = False
         self.__metrics = get_metrics()
 
-        self.__offsets: MutableMapping[Partition, List[Position]] = {}
+        self.__produced_messages: MutableMapping[Partition, OffsetRange] = {}
 
     def poll(self) -> None:
-        partition_to_offset = {}
-        for partition, positions in self.__offsets.items():
-            positions.sort(key=lambda position: position.offset)
-            partition_to_offset[partition] = positions[-1]
-
-        if partition_to_offset.keys():
-            self.__commit_function(partition_to_offset)
-            self.__offsets = {}
+        if self.__produced_messages.keys():
+            self._commit(2.0)
 
     def submit(self, outer_message: Message[MessageBatch]) -> None:
         for message in outer_message.payload:
@@ -549,20 +551,20 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
                 value=json.dumps(payload.value).encode(),
                 on_delivery=self.callback,
             )
-            self.__producer.flush(4.0)
+            if message.partition in self.__produced_messages:
+                self.__produced_messages[message.partition].hi = message.next_offset
+                self.__produced_messages[message.partition].timestamp = message.timestamp
+            else:
+                self.__produced_messages[message.partition] = OffsetRange(
+                    message.offset, message.next_offset, message.timestamp
+                )
+
+        messages_left = self.__producer.flush(5.0)
+
+        if messages_left != 0:
+            logger.debug("There are {messages_left} messages left in producer queue.")
 
     def callback(self, error: Any, message: Any) -> None:
-        if message:
-            partition = Partition(Topic(message.topic()), message.partition())
-            _, timestamp_value = message.timestamp()
-
-            timestamp = datetime.utcfromtimestamp(timestamp_value / 1000.0)
-
-            if partition in self.__offsets:
-                self.__offsets[partition].append(Position(message.offset(), timestamp))
-            else:
-                self.__offsets[partition] = [Position(message.offset(), timestamp)]
-
         if error is not None:
             raise Exception(error.str())
 
@@ -572,21 +574,25 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     def close(self) -> None:
         self.__closed = True
 
+    def _commit(self, timeout: Optional[float] = 2.0) -> None:
+        if self.__produced_messages.keys():
+            messages_left = self.__producer.flush(timeout)
+
+            if messages_left != 0:
+                logger.debug("There are {messages_left} messages left in producer queue.")
+                return
+
+            offsets = {
+                partition: Position(offsets.hi, offsets.timestamp)
+                for partition, offsets in self.__produced_messages.items()
+            }
+
+            self.__commit_function(offsets)
+            self.__produced_messages = {}
+
     def join(self, timeout: Optional[float]) -> None:
-        if not timeout:
-            timeout = 5.0
-        messages_left = self.__producer.flush(timeout)
-
-        if messages_left != 0:
-            logger.debug("There were {messages_left} messages left in producer queue.")
-
-        partition_to_offset = {}
-        for partition, positions in self.__offsets.items():
-            positions.sort(key=lambda position: position.offset)
-            print("JOIN=OSEFOSDFO", positions)
-            partition_to_offset[partition] = positions[-1]
-
-        self.__commit_function(partition_to_offset)
+        if self.__produced_messages.keys():
+            self._commit(timeout)
 
 
 def get_streaming_metrics_consumer(
