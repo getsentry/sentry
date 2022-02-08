@@ -154,7 +154,7 @@ def compare_datetime(
         assert isinstance(metrics, datetime)
         dd = abs(sessions - metrics)
     if dd != timedelta(seconds=0):
-        return f"field {path} failed to mach datetimes sessions={sessions}, metrics={metrics}"
+        return f"field {path} failed to match datetimes sessions={sessions}, metrics={metrics}"
 
     return None
 
@@ -332,7 +332,7 @@ def compare_dicts(
 ) -> List[str]:
     if type(metrics) != dict:
         return [
-            f"invalid type of metrics at path {path} expecting a dictionary fouond a {type(metrics)}"
+            f"invalid type of metrics at path {path} expecting a dictionary found a {type(metrics)}"
         ]
 
     if schema is None:
@@ -536,7 +536,6 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 tags={"has_errors": str(bool(errors)), **tags},
                 sample_rate=1.0,
             )
-
             if errors:
                 # We heavily rely on Sentry's message sanitization to properly deduplicate this
                 capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")
@@ -919,11 +918,14 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
         schema = (
             [
-                {
-                    "duration_p50": ComparatorType.Quantile,
-                    "duration_p90": ComparatorType.Quantile,
-                    "*": ComparatorType.Counter,
-                }
+                (
+                    ComparatorType.Exact,  # timestamp
+                    {
+                        "duration_p50": ComparatorType.Quantile,
+                        "duration_p90": ComparatorType.Quantile,
+                        "*": ComparatorType.Counter,
+                    },
+                )
             ],
             {
                 "*": ComparatorType.Counter,
