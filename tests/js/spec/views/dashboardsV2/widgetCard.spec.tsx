@@ -15,7 +15,7 @@ jest.mock('sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries');
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
     organization: TestStubs.Organization({
-      features: ['connect-discover-and-dashboards', 'dashboards-edit', 'discover-basic'],
+      features: ['dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
     }),
     router: {orgId: 'orgId'},

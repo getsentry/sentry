@@ -67,11 +67,6 @@ type Props = WithRouterProps & {
 };
 
 class WidgetCard extends React.Component<Props> {
-  isAllowWidgetsToDiscover() {
-    const {organization} = this.props;
-    return organization.features.includes('connect-discover-and-dashboards');
-  }
-
   renderToolbar() {
     const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
       this.props;

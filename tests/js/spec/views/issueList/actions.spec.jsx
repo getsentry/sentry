@@ -1,5 +1,4 @@
-import {act} from 'react-dom/test-utils';
-
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -227,40 +226,10 @@ describe('IssueListActions', function () {
           .find('IssueListActions')
           .setState({allInQuerySelected: false, anySelected: true});
 
-        // Necessary wrapper to simulate click event on dropdown menu buttons,
-        // see: https://react-spectrum.adobe.com/react-spectrum/testing.html#triggering-events
-        const triggerPress = element => {
-          element.prop('onClick')({
-            button: 0,
-            detail: 0,
-            nativeEvent: {detail: 0},
-            currentTarget: element.getDOMNode(),
-            target: element.getDOMNode(),
-            stopPropagation: () => {},
-          });
-        };
-
-        // Open ignore dropdown menu
-        await act(async () => {
-          triggerPress(wrapper.find('IgnoreActions DropdownTrigger'));
-
-          await tick();
-          wrapper.update();
-        });
-
-        // Open the last sub-menu and select the last menu item
-        await act(async () => {
-          triggerPress(wrapper.find('IgnoreActions MenuWrap MenuItemWrap').last());
-
-          await tick();
-          wrapper.update();
-
-          triggerPress(
-            wrapper.find('IgnoreActions MenuWrap MenuWrap MenuItemWrap').last()
-          );
-
-          await tick();
-          wrapper.update();
+        await selectDropdownMenuItem({
+          wrapper,
+          specifiers: {prefix: 'IgnoreActions'},
+          itemKey: ['until-affect', 'until-affect-custom'],
         });
 
         const modal = await mountGlobalModal();
