@@ -104,11 +104,11 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   loading: boolean;
+  metricTags: MetricTag[];
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
   widgetType: WidgetType;
-  metricTags: MetricTag[];
   errors?: Record<string, any>;
   selectedDashboard?: SelectValue<string>;
 };
