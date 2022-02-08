@@ -19,12 +19,12 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import SidebarSection from '../sidebarSection';
 
 type Props = {
-  project: Project;
-  organization: Organization;
-  issueId: string;
   codeowners: CodeOwner[];
   handleCTAClose: () => void;
   isDismissed: boolean;
+  issueId: string;
+  organization: Organization;
+  project: Project;
 };
 
 const OwnershipRules = ({
@@ -38,10 +38,7 @@ const OwnershipRules = ({
   const handleOpenCreateOwnershipRule = () => {
     openCreateOwnershipRule({project, organization, issueId});
   };
-  const showCTA =
-    organization.features.includes('integrations-codeowners') &&
-    !codeowners.length &&
-    !isDismissed;
+  const showCTA = !codeowners.length && !isDismissed;
 
   const createRuleButton = (
     <Access access={['project:write']}>

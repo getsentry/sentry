@@ -24,9 +24,9 @@ const DISTRIBUTED_TRACING_FEATURE = 'distributed_tracing';
 
 type Props = {
   api: Client;
-  project: Project;
-  organization: Organization;
   event: Event;
+  organization: Organization;
+  project: Project;
 };
 
 type State = {

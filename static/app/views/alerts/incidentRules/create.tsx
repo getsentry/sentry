@@ -19,13 +19,13 @@ type RouteParams = {
 };
 
 type Props = {
+  eventView: EventView | undefined;
   organization: Organization;
   project: Project;
-  eventView: EventView | undefined;
   userTeamIds: string[];
-  wizardTemplate?: WizardRuleTemplate;
-  sessionId?: string;
   isCustomMetric?: boolean;
+  sessionId?: string;
+  wizardTemplate?: WizardRuleTemplate;
 } & RouteComponentProps<RouteParams, {}>;
 
 /**

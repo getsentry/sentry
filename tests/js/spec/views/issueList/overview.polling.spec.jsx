@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
@@ -67,14 +68,22 @@ describe('IssueList -> Polling', function () {
       routerContext
     );
 
-    await Promise.resolve();
-    jest.runAllTimers();
+    await act(async () => {
+      await Promise.resolve();
+      jest.runAllTimers();
+    });
+
     wrapper.update();
 
     return wrapper;
   };
 
   beforeEach(function () {
+    // The tests fail because we have a "component update was not wrapped in act" error.
+    // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({

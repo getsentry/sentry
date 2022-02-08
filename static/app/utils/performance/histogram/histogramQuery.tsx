@@ -13,11 +13,11 @@ type Histograms = Record<string, HistogramData>;
 type HistogramProps = {
   fields: string[];
   numBuckets: number;
-  min?: number;
-  max?: number;
-  precision?: number;
   dataFilter?: DataFilter;
   didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
+  max?: number;
+  min?: number;
+  precision?: number;
 };
 
 type RequestProps = DiscoverQueryProps & HistogramProps;

@@ -19,18 +19,18 @@ import {IssueDisplayOptions} from './utils';
 type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
 type Props = {
-  organization: Organization;
-  savedSearch: SavedSearch;
   display: IssueDisplayOptions;
-  sort: string;
-  query: string;
   isSearchDisabled: boolean;
-  selectedProjects: number[];
-
   onDisplayChange: (display: string) => void;
-  onSortChange: (sort: string) => void;
   onSearch: (query: string) => void;
   onSidebarToggle: (event: React.MouseEvent) => void;
+  onSortChange: (sort: string) => void;
+  organization: Organization;
+
+  query: string;
+  savedSearch: SavedSearch;
+  selectedProjects: number[];
+  sort: string;
   tagValueLoader: TagValueLoader;
   tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
 };
@@ -168,7 +168,7 @@ const SearchContainer = styled('div')<{
 const ProjectEnvironmentFilters = styled('div')`
   display: grid;
   gap: ${space(1)};
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 `;
 
 const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`

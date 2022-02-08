@@ -15,14 +15,14 @@ import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 type Props = {
   data: StacktraceType;
-  platform: PlatformType;
   event: Event;
-  groupingCurrentLevel?: Group['metadata']['current_level'];
-  newestFirst?: boolean;
+  platform: PlatformType;
   className?: string;
-  isHoverPreviewed?: boolean;
-  includeSystemFrames?: boolean;
   expandFirstFrame?: boolean;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
+  includeSystemFrames?: boolean;
+  isHoverPreviewed?: boolean;
+  newestFirst?: boolean;
 };
 
 function Content({
@@ -240,7 +240,7 @@ function Content({
   }
 
   return (
-    <Wrapper className={getClassName()}>
+    <Wrapper className={getClassName()} data-test-id="stack-trace-content-v2">
       <StyledPlatformIcon
         platform={stackTracePlatformIcon(platform, frames)}
         size="20px"

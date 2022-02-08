@@ -31,15 +31,15 @@ import {DisplayModes} from '../projectCharts';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
 type Props = {
-  title: string;
+  api: Client;
+  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
+  onTotalValuesChange: (value: number | null) => void;
+  organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
-  api: Client;
-  organization: Organization;
-  onTotalValuesChange: (value: number | null) => void;
-  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
-  help?: string;
+  title: string;
   disablePrevious?: boolean;
+  help?: string;
   query?: string;
 };
 
@@ -140,18 +140,18 @@ function ProjectBaseSessionsChart({
 }
 
 type ChartProps = {
-  theme: Theme;
-  zoomRenderProps: ZoomRenderProps;
-  reloading: boolean;
-  timeSeries: Series[];
-  releaseSeries: Series[];
-  previousTimeSeries?: Series[];
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
+  releaseSeries: Series[];
+  reloading: boolean;
+  theme: Theme;
+  timeSeries: Series[];
+  zoomRenderProps: ZoomRenderProps;
+  previousTimeSeries?: Series[];
 };
 
 type ChartState = {
-  seriesSelection: Record<string, boolean>;
   forceUpdate: boolean;
+  seriesSelection: Record<string, boolean>;
 };
 
 class Chart extends Component<ChartProps, ChartState> {

@@ -6,9 +6,9 @@ import type {Theme} from 'sentry/utils/theme';
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
   children?: React.ReactNode;
+  className?: string;
   text?: string | number | null;
   type?: keyof Theme['badge'];
-  className?: string;
 };
 
 const Badge = styled(({children, text, ...props}: Props) => (

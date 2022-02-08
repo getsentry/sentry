@@ -2,8 +2,8 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IntervalPeriod} from 'sentry/types';
+import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
+import {IntervalPeriod, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
@@ -154,40 +154,29 @@ function getEnvironment(maybe: ParamValue) {
 }
 
 type InputParams = {
-  pageStatsPeriod?: ParamValue;
-  pageStart?: ParamValue | Date;
-  pageEnd?: ParamValue | Date;
-  pageUtc?: ParamValue | boolean;
-
-  start?: ParamValue | Date;
-  end?: ParamValue | Date;
-  period?: ParamValue;
-  statsPeriod?: ParamValue;
-  utc?: ParamValue | boolean;
-
   [others: string]: any;
+  end?: ParamValue | Date;
+  pageEnd?: ParamValue | Date;
+  pageStart?: ParamValue | Date;
+
+  pageStatsPeriod?: ParamValue;
+  pageUtc?: ParamValue | boolean;
+  period?: ParamValue;
+  start?: ParamValue | Date;
+  statsPeriod?: ParamValue;
+
+  utc?: ParamValue | boolean;
 };
 
 type ParsedParams = {
-  start?: string;
+  [others: string]: Location['query'][string];
   end?: string;
+  start?: string;
   statsPeriod?: string | null;
   utc?: string;
-  [others: string]: Location['query'][string];
 };
 
 type DateTimeNormalizeOptions = {
-  /**
-   * When set to true allows the statsPeriod to result as `null`.
-   *
-   * @default false
-   */
-  allowEmptyPeriod?: boolean;
-  /**
-   * Include this default statsPeriod in the resulting parsed parameters when
-   * no stats period is provided (or if it is an invalid stats period)
-   */
-  defaultStatsPeriod?: string | null;
   /**
    * Parse absolute date time (`start` / `end`) from the input parameters. When
    * set to false the start and end will always be `null`.
@@ -201,6 +190,17 @@ type DateTimeNormalizeOptions = {
    * @default false
    */
   allowAbsolutePageDatetime?: boolean;
+  /**
+   * When set to true allows the statsPeriod to result as `null`.
+   *
+   * @default false
+   */
+  allowEmptyPeriod?: boolean;
+  /**
+   * Include this default statsPeriod in the resulting parsed parameters when
+   * no stats period is provided (or if it is an invalid stats period)
+   */
+  defaultStatsPeriod?: string | null;
 };
 
 /**
@@ -314,4 +314,13 @@ export function getStateFromQuery(
   };
 
   return state;
+}
+
+/**
+ * Extract the datetime component from the page filter state object
+ */
+export function getDatetimeFromState(state: PageFiltersState) {
+  return Object.fromEntries(
+    Object.entries(state).filter(([key]) => DATE_TIME_KEYS.includes(key))
+  ) as PageFilters['datetime'];
 }

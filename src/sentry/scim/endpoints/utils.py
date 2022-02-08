@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.negotiation import BaseContentNegotiation
@@ -92,6 +93,7 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
     }
 
 
+@extend_schema(tags=["SCIM"])
 class SCIMEndpoint(OrganizationEndpoint):
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"

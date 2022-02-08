@@ -12,7 +12,7 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import Menu from 'sentry/components/dropdownMenuV2';
 
 type TriggerProps = {
-  props: React.HTMLAttributes<HTMLButtonElement> & {
+  props: Omit<React.HTMLAttributes<Element>, 'children'> & {
     onClick?: (e: MouseEvent) => void;
   };
   ref: React.RefObject<HTMLButtonElement>;
@@ -26,6 +26,43 @@ type Props = {
    */
   items: MenuItemProps[];
   /**
+   * Pass class name to the outer wrap
+   */
+  className?: string;
+  /**
+   * If this is a submenu, it will in some cases need to close itself (e.g.
+   * when the user presses the arrow left key)
+   */
+  closeCurrentSubmenu?: () => void;
+  /**
+   * If this is a submenu, it will in some cases need to close the root menu
+   * (e.g. when a submenu item is clicked).
+   */
+  closeRootMenu?: () => void;
+  /**
+   * Whether the trigger is disabled.
+   */
+  isDisabled?: boolean;
+  /**
+   * Whether this is a submenu.
+   */
+  isSubmenu?: boolean;
+  /**
+   * Title for the current menu.
+   */
+  menuTitle?: string;
+  /**
+   * Tag name for the outer wrap, defaults to `div`
+   */
+  renderWrapAs?: React.ElementType;
+  /**
+   * Optionally replace the trigger button with a different component. Note
+   * that the replacement must have the `props` and `ref` (supplied in
+   * TriggerProps) forwarded its outer wrap, otherwise the accessibility
+   * features won't work correctly.
+   */
+  trigger?: (props: TriggerProps) => React.ReactNode;
+  /**
    * By default, the menu trigger will be rendered as a button, with
    * triggerLabel as the button label.
    */
@@ -36,43 +73,6 @@ type Props = {
    * component.
    */
   triggerProps?: DropdownButtonProps;
-  /**
-   * Optionally replace the trigger button with a different component. Note
-   * that the replacement must have the `props` and `ref` (supplied in
-   * TriggerProps) forwarded its outer wrap, otherwise the accessibility
-   * features won't work correctly.
-   */
-  trigger?: (props: TriggerProps) => React.ReactNode;
-  /**
-   * Whether the trigger is disabled.
-   */
-  isDisabled?: boolean;
-  /**
-   * Title for the current menu.
-   */
-  menuTitle?: string;
-  /**
-   * Whether this is a submenu.
-   */
-  isSubmenu?: boolean;
-  /**
-   * If this is a submenu, it will in some cases need to close the root menu
-   * (e.g. when a submenu item is clicked).
-   */
-  closeRootMenu?: () => void;
-  /**
-   * If this is a submenu, it will in some cases need to close itself (e.g.
-   * when the user presses the arrow left key)
-   */
-  closeCurrentSubmenu?: () => void;
-  /**
-   * Tag name for the outer wrap, defaults to `div`
-   */
-  renderWrapAs?: React.ElementType;
-  /**
-   * Pass class name to the outer wrap
-   */
-  className?: string;
 } & Partial<MenuTriggerProps> &
   Partial<AriaMenuOptions<MenuItemProps>> &
   Partial<OverlayProps> &
@@ -87,7 +87,7 @@ function MenuControl({
   trigger,
   triggerLabel,
   triggerProps = {},
-  isDisabled,
+  isDisabled: disabledProp,
   isSubmenu = false,
   closeRootMenu,
   closeCurrentSubmenu,
@@ -96,6 +96,7 @@ function MenuControl({
   ...props
 }: Props) {
   const ref = useRef(null);
+  const isDisabled = disabledProp ?? (!items || items.length === 0);
 
   // Control the menu open state. See:
   // https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
@@ -107,6 +108,7 @@ function MenuControl({
   );
   const {buttonProps} = useButton(
     {
+      isDisabled,
       ...menuTriggerProps,
       ...(isSubmenu && {
         onKeyUp: e => e.continuePropagation(),
@@ -119,25 +121,26 @@ function MenuControl({
     ref
   );
 
-  const renderTrigger = isOpen => {
+  function renderTrigger() {
     if (trigger) {
-      return trigger({props: {...buttonProps, isOpen: state.isOpen}, ref});
+      return trigger({
+        props: {
+          ...triggerProps,
+          ...buttonProps,
+          isOpen: state.isOpen,
+        },
+        ref,
+      });
     }
     return (
-      <DropdownButton
-        ref={ref}
-        isOpen={isOpen}
-        disabled={isDisabled}
-        {...triggerProps}
-        {...buttonProps}
-      >
+      <DropdownButton ref={ref} isOpen={state.isOpen} {...triggerProps} {...buttonProps}>
         {triggerLabel}
       </DropdownButton>
     );
-  };
+  }
 
-  const renderMenu = isOpen => {
-    if (!isOpen) {
+  function renderMenu() {
+    if (!state.isOpen) {
       return null;
     }
 
@@ -165,18 +168,18 @@ function MenuControl({
         }}
       </Menu>
     );
-  };
+  }
 
   return (
-    <Wrap className={className} as={renderWrapAs} role="presentation">
-      {renderTrigger(state.isOpen)}
-      {renderMenu(state.isOpen)}
-    </Wrap>
+    <MenuControlWrap className={className} as={renderWrapAs} role="presentation">
+      {renderTrigger()}
+      {renderMenu()}
+    </MenuControlWrap>
   );
 }
 
 export default MenuControl;
 
-const Wrap = styled('div')`
+const MenuControlWrap = styled('div')`
   list-style-type: none;
 `;

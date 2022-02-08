@@ -29,8 +29,8 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 type CustomProps = {
-  name?: string;
   componentPromise?: () => Promise<any>;
+  name?: string;
 };
 
 /**
@@ -1263,6 +1263,13 @@ function buildRoutes() {
           }
           component={SafeLazyLoad}
         />
+        <Route
+          path="anomalies/"
+          componentPromise={() =>
+            import('sentry/views/performance/transactionSummary/transactionAnomalies')
+          }
+          component={SafeLazyLoad}
+        />
         <Route path="spans/">
           <IndexRoute
             componentPromise={() =>
@@ -1315,11 +1322,6 @@ function buildRoutes() {
       <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
       <IndexRoute component={errorHandler(IssueListOverview)} />
       <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
-      <Route
-        path="sessionPercent"
-        componentPromise={() => import('sentry/views/issueList/testSessionPercent')}
-        component={SafeLazyLoad}
-      />
     </Route>
   );
 

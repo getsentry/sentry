@@ -6,62 +6,62 @@ import {UserExperiments} from './experiments';
  * Avatars are a more primitive version of User.
  */
 export type AvatarUser = {
+  email: string;
   id: string;
+  ip_address: string;
   name: string;
   username: string;
-  email: string;
-  ip_address: string;
-  avatarUrl?: string;
   avatar?: Avatar;
+  avatarUrl?: string;
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
+  lastSeen?: string;
   options?: {
     avatarType: Avatar['avatarType'];
   };
-  lastSeen?: string;
 };
 
 /**
  * This is an authenticator that a user is enrolled in
  */
 type UserEnrolledAuthenticator = {
-  dateUsed: EnrolledAuthenticator['lastUsedAt'];
   dateCreated: EnrolledAuthenticator['createdAt'];
-  type: Authenticator['id'];
+  dateUsed: EnrolledAuthenticator['lastUsedAt'];
   id: EnrolledAuthenticator['authId'];
   name: EnrolledAuthenticator['name'];
+  type: Authenticator['id'];
 };
 
 export type User = Omit<AvatarUser, 'options'> & {
-  lastLogin: string;
-  isSuperuser: boolean;
-  isAuthenticated: boolean;
+  authenticators: UserEnrolledAuthenticator[];
+  canReset2fa: boolean;
+  dateJoined: string;
   emails: {
-    is_verified: boolean;
-    id: string;
     email: string;
+    id: string;
+    is_verified: boolean;
   }[];
-  isManaged: boolean;
-  lastActive: string;
-  isStaff: boolean;
+  experiments: Partial<UserExperiments>;
+  flags: {newsletter_consent_prompt: boolean};
+  has2fa: boolean;
+  hasPasswordAuth: boolean;
   identities: any[];
   isActive: boolean;
-  has2fa: boolean;
-  canReset2fa: boolean;
-  authenticators: UserEnrolledAuthenticator[];
-  dateJoined: string;
+  isAuthenticated: boolean;
+  isManaged: boolean;
+  isStaff: boolean;
+  isSuperuser: boolean;
+  lastActive: string;
+  lastLogin: string;
   options: {
+    avatarType: Avatar['avatarType'];
+    clock24Hours: boolean;
+    language: string;
+    stacktraceOrder: number;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
-    stacktraceOrder: number;
-    language: string;
-    clock24Hours: boolean;
-    avatarType: Avatar['avatarType'];
   };
-  flags: {newsletter_consent_prompt: boolean};
-  hasPasswordAuth: boolean;
   permissions: Set<string>;
-  experiments: Partial<UserExperiments>;
 };
 
 // XXX(epurkhiser): we should understand how this is diff from User['emails]
@@ -77,18 +77,18 @@ export type UserEmail = {
  */
 // See src/sentry/api/serializers/models/apitoken.py for the differences based on application
 type BaseApiToken = {
+  dateCreated: string;
+  expiresAt: string;
   id: string;
   scopes: Scope[];
-  expiresAt: string;
-  dateCreated: string;
   state: string;
 };
 
 // We include the token for API tokens used for internal apps
 export type InternalAppApiToken = BaseApiToken & {
   application: null;
-  token: string;
   refreshToken: string;
+  token: string;
 };
 
 export type ApiApplication = {
@@ -105,11 +105,11 @@ export type ApiApplication = {
 
 // Used in user session history.
 export type InternetProtocol = {
+  countryCode: string | null;
+  firstSeen: string;
   id: string;
   ipAddress: string;
   lastSeen: string;
-  firstSeen: string;
-  countryCode: string | null;
   regionCode: string | null;
 };
 

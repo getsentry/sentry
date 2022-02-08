@@ -15,9 +15,9 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 
 type Props = {
+  loadingProjects: boolean;
   organization: Organization;
   projects: Project[];
-  loadingProjects: boolean;
   projectIds?: string[];
 };
 

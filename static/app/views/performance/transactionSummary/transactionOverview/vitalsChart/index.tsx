@@ -54,8 +54,8 @@ function VitalsChart({
 
   const handleLegendSelectChanged = (legendChange: {
     name: string;
-    type: string;
     selected: Record<string, boolean>;
+    type: string;
   }) => {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);

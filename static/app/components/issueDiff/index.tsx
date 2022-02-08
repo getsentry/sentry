@@ -26,18 +26,18 @@ type DefaultProps = typeof defaultProps;
 type Props = {
   api: Client;
   baseIssueId: string;
-  targetIssueId: string;
   orgId: string;
   project: Project;
+  targetIssueId: string;
   baseEventId?: string;
-  targetEventId?: string;
   className?: string;
+  targetEventId?: string;
 };
 
 type State = {
-  loading: boolean;
-  groupingDiff: boolean;
   baseEvent: Array<string>;
+  groupingDiff: boolean;
+  loading: boolean;
   targetEvent: Array<string>;
   SplitDiffAsync?: typeof SplitDiff;
 };
