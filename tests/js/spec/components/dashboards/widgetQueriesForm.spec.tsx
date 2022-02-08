@@ -6,13 +6,62 @@ import {DisplayType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 describe('WidgetQueriesForm', function () {
-  const {organization, routerContext} = initializeOrg({
+  const {organization} = initializeOrg({
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
   let onChangeHandler;
+  let queries;
 
+  const mountComponent = () =>
+    mountWithTheme(
+      <WidgetQueriesForm
+        displayType={DisplayType.TABLE}
+        organization={organization}
+        selection={{
+          projects: [1],
+          environments: ['prod'],
+          datetime: {
+            period: '14d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+        }}
+        queries={queries}
+        onChange={onChangeHandler}
+        fieldOptions={
+          {
+            'function:count': {
+              label: 'count()',
+              value: {
+                kind: 'function',
+                meta: {
+                  name: 'count',
+                  parameters: [],
+                },
+              },
+            },
+            'function:count_unique': {
+              label: 'count_unique()',
+              value: {
+                kind: 'function',
+                meta: {
+                  name: 'count_unique',
+                  parameters: [],
+                },
+              },
+            },
+          } as ReturnType<typeof generateFieldOptions>
+        }
+        canAddSearchConditions
+        handleAddSearchConditions={() => undefined}
+        handleDeleteQuery={() => undefined}
+      />
+    );
   beforeEach(() => {
-    onChangeHandler = jest.fn();
+    onChangeHandler = jest.fn((_, newQuery) => {
+      queries[0] = newQuery;
+    });
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -33,39 +82,15 @@ describe('WidgetQueriesForm', function () {
       url: '/organizations/org-slug/recent-searches/',
       method: 'POST',
     });
-
-    const fieldOptions = {};
-
-    mountWithTheme(
-      <WidgetQueriesForm
-        displayType={DisplayType.TABLE}
-        organization={organization}
-        selection={{
-          projects: [1],
-          environments: ['prod'],
-          datetime: {
-            period: '14d',
-            start: null,
-            end: null,
-            utc: false,
-          },
-        }}
-        queries={[
-          {
-            conditions: 'event.type:',
-            fields: ['count()'],
-            name: '',
-            orderby: '',
-          },
-        ]}
-        onChange={onChangeHandler}
-        fieldOptions={fieldOptions as ReturnType<typeof generateFieldOptions>}
-        canAddSearchConditions
-        handleAddSearchConditions={() => undefined}
-        handleDeleteQuery={() => undefined}
-      />,
-      {context: routerContext}
-    );
+    queries = [
+      {
+        conditions: 'event.type:',
+        fields: ['count()'],
+        name: '',
+        orderby: '-count',
+      },
+    ];
+    mountComponent();
   });
 
   it('only calls onChange once when selecting a value from the autocomplete dropdown', async function () {
@@ -76,5 +101,12 @@ describe('WidgetQueriesForm', function () {
     userEvent.click(screen.getByText(':transaction'));
     await tick();
     expect(onChangeHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('changes orderby to the new field', async function () {
+    userEvent.click(screen.getByText('count()'));
+    userEvent.click(screen.getByText('count_unique()'));
+    mountComponent();
+    expect(screen.getByText('count_unique() desc')).toBeInTheDocument();
   });
 });
