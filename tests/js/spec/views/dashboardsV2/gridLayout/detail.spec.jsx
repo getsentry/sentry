@@ -139,6 +139,7 @@ describe('Dashboards > Detail', function () {
 
     const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
     beforeEach(function () {
+      window.confirm = jest.fn();
       initialData = initializeOrg({organization});
       widgets = [
         TestStubs.Widget(
@@ -551,6 +552,41 @@ describe('Dashboards > Detail', function () {
       const resizeHandle = within(widget).getByTestId('custom-resize-handle');
 
       expect(resizeHandle).toBeVisible();
+    });
+
+    it('does not trigger an alert when the widgets have no layout and user cancels without changes', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: null,
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(await screen.findByText('Edit Dashboard'));
+      userEvent.click(await screen.findByText('Cancel'));
+
+      expect(window.confirm).not.toHaveBeenCalled();
     });
   });
 });

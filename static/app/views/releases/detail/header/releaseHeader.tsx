@@ -25,10 +25,10 @@ import ReleaseActions from './releaseActions';
 type Props = {
   location: Location;
   organization: Organization;
-  release: Release;
   project: Required<ReleaseProject>;
-  releaseMeta: ReleaseMeta;
   refetchData: () => void;
+  release: Release;
+  releaseMeta: ReleaseMeta;
 };
 
 const ReleaseHeader = ({

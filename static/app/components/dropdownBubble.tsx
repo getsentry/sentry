@@ -6,25 +6,25 @@ import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
 type Params = {
   /**
-   * If this is true, will make a single corner blended with actor (depends on anchor orientation)
-   */
-  blendCorner: boolean;
-  /**
    * Menu alignment
    */
   alignMenu: 'left' | 'right';
   /**
-   * The width of the menu
+   * If this is true, will make a single corner blended with actor (depends on anchor orientation)
    */
-  width?: string;
+  blendCorner: boolean;
+  /**
+   * If this is true, will make corners blend with its opener (so no border radius)
+   */
+  blendWithActor?: boolean;
   /**
    * enable the arrow on the menu
    */
   menuWithArrow?: boolean;
   /**
-   * If this is true, will make corners blend with its opener (so no border radius)
+   * The width of the menu
    */
-  blendWithActor?: boolean;
+  width?: string;
 };
 
 /**

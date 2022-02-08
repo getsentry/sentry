@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from enum import Enum
 from typing import TYPE_CHECKING, List
@@ -23,7 +25,7 @@ class SentryAppAvatarTypes(Enum):
 
 
 class SentryAppAvatarManager(BaseManager):
-    def get_by_apps_as_dict(self, sentry_apps: List["SentryApp"]):
+    def get_by_apps_as_dict(self, sentry_apps: List[SentryApp]):
         """
         Returns a dict mapping sentry_app_id (key) to List[SentryAppAvatar] (value)
         """

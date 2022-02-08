@@ -20,10 +20,10 @@ import {getFeatureTooltip, getFileType} from './utils';
 
 type Props = {
   debugFile: DebugFile;
-  showDetails: boolean;
-  downloadUrl: string;
   downloadRole: string;
+  downloadUrl: string;
   onDelete: (id: string) => void;
+  showDetails: boolean;
 };
 
 const DebugFileRow = ({
@@ -133,6 +133,7 @@ const DebugFileRow = ({
                     size="xsmall"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"
+                    aria-label={t('Delete')}
                   />
                 </Confirm>
               </Tooltip>

@@ -31,8 +31,8 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = AsyncView['props'] &
   RouteComponentProps<{orgId: string; projectId: string}, {}> & {
-    organization: Organization;
     onChangeSlug: (slug: string) => void;
+    organization: Organization;
   };
 
 type State = AsyncView['state'] & {

@@ -32,12 +32,11 @@ function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
     setSelectedEnvironments(environments);
   };
 
-  const handleUpdateEnvironments = () => {
-    updateEnvironments(selectedEnvironments, router, {
+  const handleUpdateEnvironments = (quickSelectedEnvs?: string[]) => {
+    updateEnvironments(quickSelectedEnvs ?? selectedEnvironments, router, {
       save: true,
       resetParams: resetParamsOnChange,
     });
-    setSelectedEnvironments(null);
   };
 
   const customDropdownButton = ({isOpen, getActorProps, summary}) => {
@@ -93,6 +92,7 @@ const DropdownTitle = styled('div')`
   display: flex;
   overflow: hidden;
   align-items: center;
+  flex: 1;
 `;
 
 export default withRouter(EnvironmentPageFilter);

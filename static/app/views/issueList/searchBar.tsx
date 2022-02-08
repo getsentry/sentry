@@ -51,12 +51,12 @@ const SEARCH_ITEMS: SearchItem[] = [
 
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   api: Client;
+  onSidebarToggle: (e: React.MouseEvent) => void;
   organization: Organization;
+  sort: string;
   tagValueLoader: TagValueLoader;
   projectIds?: string[];
   savedSearch?: SavedSearch;
-  onSidebarToggle: (e: React.MouseEvent) => void;
-  sort: string;
 };
 
 type State = {

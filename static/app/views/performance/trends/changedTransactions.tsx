@@ -59,14 +59,14 @@ import {
 } from './utils';
 
 type Props = {
-  organization: Organization;
-  trendChangeType: TrendChangeType;
-  previousTrendFunction?: TrendFunctionField;
-  previousTrendColumn?: TrendColumnField;
-  trendView: TrendView;
   location: Location;
+  organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
+  trendChangeType: TrendChangeType;
+  trendView: TrendView;
+  previousTrendColumn?: TrendColumnField;
+  previousTrendFunction?: TrendFunctionField;
 };
 
 type TrendsCursorQuery = {
@@ -327,18 +327,18 @@ function ChangedTransactions(props: Props) {
 
 type TrendsListItemProps = {
   api: Client;
-  trendView: TrendView;
-  organization: Organization;
-  transaction: NormalizedTrendsTransaction;
-  trendChangeType: TrendChangeType;
-  currentTrendFunction: string;
   currentTrendColumn: string;
-  transactions: NormalizedTrendsTransaction[];
-  projects: Project[];
-  location: Location;
-  index: number;
-  statsData: TrendsStats;
+  currentTrendFunction: string;
   handleSelectTransaction: (transaction: NormalizedTrendsTransaction) => void;
+  index: number;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  statsData: TrendsStats;
+  transaction: NormalizedTrendsTransaction;
+  transactions: NormalizedTrendsTransaction[];
+  trendChangeType: TrendChangeType;
+  trendView: TrendView;
 };
 
 function TrendsListItem(props: TrendsListItemProps) {
@@ -440,6 +440,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           <StyledButton
             size="xsmall"
             icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
+            aria-label={t('Actions')}
           />
         }
       >

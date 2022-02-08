@@ -1,4 +1,5 @@
 import {Layout} from 'react-grid-layout';
+import {compact} from 'react-grid-layout/build/utils';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
@@ -96,11 +97,15 @@ export function getDefaultWidgetHeight(displayType: DisplayType): number {
   return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
 }
 
+export function getInitialColumnDepths() {
+  return Array(NUM_DESKTOP_COLS).fill(0);
+}
+
 /**
  * Creates an array from layouts where each column stores how deep it is.
  */
 export function calculateColumnDepths(layouts: Layout[]): number[] {
-  const depths = Array(NUM_DESKTOP_COLS).fill(0);
+  const depths = getInitialColumnDepths();
 
   // For each layout's x, record the max depth
   layouts
@@ -158,4 +163,56 @@ export function getNextAvailablePosition(
     columnDepths[col] = maxColumnDepth;
   }
   return [{x: 0, y: maxColumnDepth}, [...columnDepths]];
+}
+
+export function assignDefaultLayout(
+  widgets: Widget[],
+  initialColumnDepths: number[]
+): Widget[] {
+  let columnDepths = [...initialColumnDepths];
+  const newWidgets = widgets.map(widget => {
+    if (defined(widget.layout)) {
+      return widget;
+    }
+
+    const height = getDefaultWidgetHeight(widget.displayType);
+    const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
+      columnDepths,
+      height
+    );
+    columnDepths = nextColumnDepths;
+
+    return {
+      ...widget,
+      layout: {...nextPosition, h: height, minH: height, w: DEFAULT_WIDGET_WIDTH},
+    };
+  });
+  return newWidgets;
+}
+
+export function enforceWidgetHeightValues(widget: Widget): Widget {
+  const {displayType, layout} = widget;
+  const nextWidget = {
+    ...widget,
+  };
+  const minH = getDefaultWidgetHeight(displayType);
+  const nextLayout = {
+    ...layout,
+    h: Math.max(layout?.h ?? minH, minH),
+    minH,
+  };
+  return {...nextWidget, layout: nextLayout};
+}
+
+export function generateWidgetsAfterCompaction(widgets: Widget[]) {
+  // Resolves any potential compactions that need to occur after a
+  // single widget change would affect other widget positions, e.g. deletion
+  const nextLayout = compact(getDashboardLayout(widgets), 'vertical', NUM_DESKTOP_COLS);
+  return widgets.map(widget => {
+    const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));
+    if (!layout) {
+      return widget;
+    }
+    return {...widget, layout};
+  });
 }

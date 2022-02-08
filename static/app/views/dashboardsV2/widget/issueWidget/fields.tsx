@@ -23,6 +23,7 @@ export enum FieldKey {
   USERS = 'users',
   LIFETIME_EVENTS = 'lifetimeEvents',
   LIFETIME_USERS = 'lifetimeUsers',
+  PROJECT = 'project',
 }
 
 export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
@@ -35,12 +36,13 @@ export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.IS_BOOKMARKED]: 'boolean',
   [FieldKey.IS_SUBSCRIBED]: 'boolean',
   [FieldKey.IS_HANDLED]: 'boolean',
-  [FieldKey.LAST_SEEN]: 'string',
-  [FieldKey.FIRST_SEEN]: 'string',
+  [FieldKey.LAST_SEEN]: 'date',
+  [FieldKey.FIRST_SEEN]: 'date',
   [FieldKey.EVENTS]: 'string',
   [FieldKey.USERS]: 'string',
   [FieldKey.LIFETIME_EVENTS]: 'string',
   [FieldKey.LIFETIME_USERS]: 'string',
+  [FieldKey.PROJECT]: 'string',
 };
 
 export const ISSUE_FIELD_TO_HEADER_MAP = {

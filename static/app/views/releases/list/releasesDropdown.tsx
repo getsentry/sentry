@@ -11,9 +11,9 @@ type DropdownItemProps = Pick<
 
 type Props = {
   label: string;
+  onSelect: (key: string) => void;
   options: Record<string, DropdownItemProps>;
   selected: string;
-  onSelect: (key: string) => void;
   className?: string;
 };
 

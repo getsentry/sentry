@@ -15,8 +15,8 @@ type Props = AsyncView['props'] &
   };
 
 type State = AsyncView['state'] & {
-  providerList: AuthProvider[] | null;
   provider: AuthProvider | null;
+  providerList: AuthProvider[] | null;
 };
 
 class OrganizationAuth extends AsyncView<Props, State> {

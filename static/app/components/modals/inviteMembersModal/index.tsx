@@ -23,15 +23,15 @@ import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     organization: Organization;
-    source?: string;
     initialData?: Partial<InviteRow>[];
+    source?: string;
   };
 
 type State = AsyncComponent['state'] & {
-  pendingInvites: InviteRow[];
-  sendingInvites: boolean;
   complete: boolean;
   inviteStatus: InviteStatus;
+  pendingInvites: InviteRow[];
+  sendingInvites: boolean;
 };
 
 const DEFAULT_ROLE = 'member';

@@ -40,8 +40,8 @@ const settingToVital: Record<string, WebVital> = {
 };
 
 type DataType = {
-  list: WidgetDataResult & ReturnType<typeof transformMetricsToList>;
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToVitalSeries>;
+  list: WidgetDataResult & ReturnType<typeof transformMetricsToList>;
 };
 
 export function VitalWidgetMetrics(props: PerformanceWidgetProps) {

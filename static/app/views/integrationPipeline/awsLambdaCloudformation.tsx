@@ -34,24 +34,24 @@ const testAccountNumber = (arn: string) => accountNumberRegex.test(arn);
 
 type Props = {
   baseCloudformationUrl: string;
-  templateUrl: string;
-  stackName: string;
-  regionList: string[];
   initialStepNumber: number;
   organization: Organization;
+  regionList: string[];
+  stackName: string;
+  templateUrl: string;
   accountNumber?: string;
-  region?: string;
-  error?: string;
   awsExternalId?: string;
+  error?: string;
+  region?: string;
 };
 
 type State = {
-  awsExternalId?: string;
   accountNumber?: string;
-  region?: string;
   accountNumberError?: string;
-  submitting?: boolean;
+  awsExternalId?: string;
+  region?: string;
   showInputs?: boolean;
+  submitting?: boolean;
 };
 
 export default class AwsLambdaCloudformation extends React.Component<Props, State> {

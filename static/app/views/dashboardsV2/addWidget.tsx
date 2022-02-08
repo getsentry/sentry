@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 import {DisplayType} from './types';
@@ -18,8 +19,8 @@ const initialStyles = {
 };
 
 type Props = {
-  onOpenWidgetBuilder: () => void;
   onAddWidget: () => void;
+  onOpenWidgetBuilder: () => void;
   orgFeatures: Organization['features'];
 };
 
@@ -60,6 +61,7 @@ function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
         <AddButton
           data-test-id="widget-add"
           icon={<IconAdd size="lg" isCircled color="inactive" />}
+          aria-label={t('Add widget')}
         />
       </InnerWrapper>
     </WidgetWrapper>

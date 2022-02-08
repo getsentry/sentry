@@ -64,8 +64,8 @@ class SpansInterface extends PureComponent<Props, State> {
     errors,
     parsedTrace,
   }: {
-    isLoading: boolean;
     errors: TraceError[] | undefined;
+    isLoading: boolean;
     parsedTrace: ParsedTraceType;
   }) {
     if (isLoading) {
@@ -88,7 +88,7 @@ class SpansInterface extends PureComponent<Props, State> {
 
     // mapping from span ids to the span op and the number of errors in that span
     const errorsMap: {
-      [spanId: string]: {operation: string; errorsCount: number};
+      [spanId: string]: {errorsCount: number; operation: string};
     } = {};
 
     errors.forEach(error => {

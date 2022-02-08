@@ -17,23 +17,6 @@ export type ActivityAuthorType = 'user' | 'system';
 type ChildFunction = () => React.ReactNode;
 
 type Props = {
-  children?: React.ReactChild | ChildFunction;
-  className?: string;
-  /**
-   * This is used to uniquely identify the activity item for use as an anchor
-   */
-  id?: string;
-
-  /**
-   * If supplied, will show the time that the activity started
-   */
-  date?: string | Date;
-
-  /**
-   * If supplied, will show the interval that the activity occurred in
-   */
-  interval?: number;
-
   /**
    * Used to render an avatar for the author. Currently can be a user, otherwise
    * defaults as a "system" avatar (i.e. sentry)
@@ -44,27 +27,44 @@ type Props = {
     type: ActivityAuthorType;
     user?: AvatarUser;
   };
-
   // Size of the avatar.
   avatarSize?: number;
+  bubbleProps?: React.ComponentProps<typeof ActivityBubble>;
 
-  // Hides date in header
-  hideDate?: boolean;
+  children?: React.ReactChild | ChildFunction;
 
-  // Instead of showing a relative time/date, show the time
-  showTime?: boolean;
+  className?: string;
 
   /**
-   * Can be a react node or a render function. render function will not include default wrapper
+   * If supplied, will show the time that the activity started
    */
-  header?: React.ReactNode | ChildFunction;
+  date?: string | Date;
 
   /**
    * Can be a react node or a render function. render function will not include default wrapper
    */
   footer?: React.ReactNode | ChildFunction;
 
-  bubbleProps?: React.ComponentProps<typeof ActivityBubble>;
+  /**
+   * Can be a react node or a render function. render function will not include default wrapper
+   */
+  header?: React.ReactNode | ChildFunction;
+
+  // Hides date in header
+  hideDate?: boolean;
+
+  /**
+   * This is used to uniquely identify the activity item for use as an anchor
+   */
+  id?: string;
+
+  /**
+   * If supplied, will show the interval that the activity occurred in
+   */
+  interval?: number;
+
+  // Instead of showing a relative time/date, show the time
+  showTime?: boolean;
 };
 
 function ActivityItem({

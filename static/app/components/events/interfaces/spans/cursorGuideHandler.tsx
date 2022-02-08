@@ -6,12 +6,12 @@ import {DragManagerChildrenProps} from './dragManager';
 import {ParsedTraceType} from './types';
 
 export type CursorGuideManagerChildrenProps = {
-  showCursorGuide: boolean;
-  mouseLeft: number | undefined;
-  traceViewMouseLeft: number | undefined;
-
   displayCursorGuide: (mousePageX: number) => void;
   hideCursorGuide: () => void;
+  mouseLeft: number | undefined;
+
+  showCursorGuide: boolean;
+  traceViewMouseLeft: number | undefined;
 };
 
 const CursorGuideManagerContext = React.createContext<CursorGuideManagerChildrenProps>({
@@ -24,18 +24,18 @@ const CursorGuideManagerContext = React.createContext<CursorGuideManagerChildren
 });
 
 type PropType = {
-  trace: ParsedTraceType;
   children: React.ReactNode;
   dragProps: DragManagerChildrenProps;
-
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
+
+  trace: ParsedTraceType;
 };
 
 type StateType = {
-  showCursorGuide: boolean;
   mouseLeft: number | undefined;
+  showCursorGuide: boolean;
   traceViewMouseLeft: number | undefined;
 };
 

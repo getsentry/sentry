@@ -22,6 +22,7 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 import {MetricsSwitch} from '../metricsSwitch';
 
+import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
@@ -54,21 +55,25 @@ const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
     eventKey: 'performance_views.spans.spans_tab_clicked',
     eventName: 'Performance Views: Spans tab clicked',
   },
+  [Tab.Anomalies]: {
+    eventKey: 'performance_views.anomalies.anomalies_tab_clicked',
+    eventName: 'Performance Views: Anomalies tab clicked',
+  },
 };
 
 type Props = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  projects: Project[];
-  projectId: string;
-  transactionName: string;
   currentTab: Tab;
-  hasWebVitals: 'maybe' | 'yes' | 'no';
-  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
+  eventView: EventView;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  hasWebVitals: 'maybe' | 'yes' | 'no';
+  location: Location;
+  organization: Organization;
+  projectId: string;
+  projects: Project[];
+  transactionName: string;
+  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
 class TransactionHeader extends React.Component<Props> {
@@ -238,9 +243,10 @@ class TransactionHeader extends React.Component<Props> {
     const tagsTarget = tagsRouteWithQuery(routeQuery);
     const eventsTarget = eventsRouteWithQuery(routeQuery);
     const spansTarget = spansRouteWithQuery(routeQuery);
+    const anomaliesTarget = anomaliesRouteWithQuery(routeQuery);
 
     return (
-      <Layout.Header>
+      <Layout.Header data-test-id="transaction-header">
         <Layout.HeaderContent>
           <Breadcrumb
             organization={organization}
@@ -299,6 +305,20 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTabClick(Tab.Spans)}
               >
                 {t('Spans')}
+                <FeatureBadge type="new" noTooltip />
+              </ListLink>
+            </Feature>
+            <Feature
+              organization={organization}
+              features={['organizations:performance-anomaly-detection-ui']}
+            >
+              <ListLink
+                data-test-id="anomalies-tab"
+                to={anomaliesTarget}
+                isActive={() => currentTab === Tab.Anomalies}
+                onClick={this.trackTabClick(Tab.Anomalies)}
+              >
+                {t('Anomalies')}
                 <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>

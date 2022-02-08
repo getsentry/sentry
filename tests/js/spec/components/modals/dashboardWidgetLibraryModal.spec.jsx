@@ -59,7 +59,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(screen.getByText('High Throughput Transactions')).toBeInTheDocument();
     expect(screen.getByText('LCP by Country')).toBeInTheDocument();
     expect(screen.getByText('Miserable Users')).toBeInTheDocument();
-    expect(screen.getByText('Slow vs Fast Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Slow vs. Fast Transactions')).toBeInTheDocument();
     expect(screen.getByText('Issues For Review')).toBeInTheDocument();
     expect(screen.getByText('Top Unhandled Error Types')).toBeInTheDocument();
     expect(screen.getByText('Users Affected by Errors')).toBeInTheDocument();
@@ -119,7 +119,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
         description: 'Top 5 transactions with the largest volume.',
         queries: [
           {
-            conditions: '!event.type:error',
+            conditions: 'event.type:transaction',
             fields: ['transaction', 'count()'],
             name: '',
             orderby: '-count',

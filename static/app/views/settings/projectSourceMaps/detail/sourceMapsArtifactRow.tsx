@@ -17,9 +17,9 @@ import {Artifact} from 'sentry/types';
 
 type Props = {
   artifact: Artifact;
-  onDelete: (id: string) => void;
-  downloadUrl: string;
   downloadRole: string;
+  downloadUrl: string;
+  onDelete: (id: string) => void;
 };
 
 const SourceMapsArtifactRow = ({
@@ -68,6 +68,7 @@ const SourceMapsArtifactRow = ({
                   disabled={!hasRole}
                   href={downloadUrl}
                   title={hasRole ? t('Download Artifact') : undefined}
+                  aria-label={t('Download Artifact')}
                 />
               </Tooltip>
             )}

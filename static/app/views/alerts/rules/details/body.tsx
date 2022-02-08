@@ -18,7 +18,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
-import {IconInfo, IconRectangle} from 'sentry/icons';
+import {IconDiamond, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -45,14 +45,14 @@ import RelatedTransactions from './relatedTransactions';
 
 type Props = {
   api: Client;
-  rule?: IncidentRule;
-  incidents?: Incident[];
-  timePeriod: TimePeriodType;
-  selectedIncident?: Incident | null;
-  organization: Organization;
-  location: Location;
   handleTimePeriodChange: (value: string) => void;
   handleZoom: (start: DateString, end: DateString) => void;
+  location: Location;
+  organization: Organization;
+  timePeriod: TimePeriodType;
+  incidents?: Incident[];
+  rule?: IncidentRule;
+  selectedIncident?: Incident | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
@@ -132,11 +132,11 @@ export default class DetailsBody extends React.Component<Props> {
         : t('Resolved');
     const statusIcon =
       label === 'critical' ? (
-        <StyledIconRectangle color="red300" size="md" />
+        <StyledIconDiamond color="red300" size="md" />
       ) : label === 'warning' ? (
-        <StyledIconRectangle color="yellow300" size="md" />
+        <StyledIconDiamond color="yellow300" size="md" />
       ) : (
-        <StyledIconRectangle color="green300" size="md" />
+        <StyledIconDiamond color="green300" size="md" />
       );
 
     const thresholdTypeText = (
@@ -585,6 +585,6 @@ const CreatedBy = styled('div')`
   ${overflowEllipsis}
 `;
 
-const StyledIconRectangle = styled(IconRectangle)`
+const StyledIconDiamond = styled(IconDiamond)`
   margin-top: ${space(0.5)};
 `;

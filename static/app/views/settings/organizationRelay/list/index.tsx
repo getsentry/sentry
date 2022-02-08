@@ -12,9 +12,9 @@ type CardHeaderProps = React.ComponentProps<typeof CardHeader>;
 type WaitingActivityProps = React.ComponentProps<typeof WaitingActivity>;
 
 type Props = {
-  relays: Array<Relay>;
-  relayActivities: Array<RelayActivity>;
   disabled: boolean;
+  relayActivities: Array<RelayActivity>;
+  relays: Array<Relay>;
 } & Pick<CardHeaderProps, 'onDelete' | 'onEdit'> &
   Pick<WaitingActivityProps, 'onRefresh'>;
 

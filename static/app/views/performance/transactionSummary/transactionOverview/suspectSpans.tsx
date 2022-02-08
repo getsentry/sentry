@@ -30,11 +30,11 @@ import {
 const SPANS_CURSOR_NAME = 'spansCursor';
 
 type Props = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
-  totals: SpansTotalValues | null;
   projectId: string;
+  totals: SpansTotalValues | null;
   transactionName: string;
 };
 
@@ -92,9 +92,9 @@ export default function SuspectSpans(props: Props) {
 type HeaderProps = {
   location: Location;
   organization: Organization;
+  pageLinks: string | null;
   projectId: string;
   transactionName: string;
-  pageLinks: string | null;
 };
 
 function SuspectSpansHeader(props: HeaderProps) {
@@ -118,7 +118,7 @@ function SuspectSpansHeader(props: HeaderProps) {
     <Header>
       <div>
         <SectionHeading>{t('Suspect Spans')}</SectionHeading>
-        <FeatureBadge type="alpha" />
+        <FeatureBadge type="new" />
       </div>
       <Button to={viewAllTarget} size="xsmall" data-test-id="suspect-spans-open-tab">
         {t('View All Spans')}

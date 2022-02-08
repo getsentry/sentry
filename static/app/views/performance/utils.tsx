@@ -57,9 +57,11 @@ export function platformToPerformanceType(
   if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
+
   const selectedProjects = projects.filter(p =>
     projectIds.includes(parseInt(`${p.id}`, 10))
   );
+
   if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
@@ -168,8 +170,8 @@ export function trendsTargetRoute({
 }: {
   location: Location;
   organization: Organization;
-  initialConditions?: MutableSearch;
   additionalQuery?: {[x: string]: string};
+  initialConditions?: MutableSearch;
 }) {
   const newQuery = {
     ...location.query,

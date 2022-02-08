@@ -8,17 +8,17 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type DefaultProps = {
-  clipHeight?: number;
   btnText?: string;
+  clipHeight?: number;
   defaultClipped?: boolean;
 };
 
 type Props = {
   clipHeight: number;
-  title?: string;
-  renderedHeight?: number;
-  onReveal?: () => void;
   className?: string;
+  onReveal?: () => void;
+  renderedHeight?: number;
+  title?: string;
 } & DefaultProps;
 
 type State = {
@@ -123,7 +123,12 @@ class ClippedBox extends React.PureComponent<Props, State> {
         {children}
         {isClipped && (
           <ClipFade>
-            <Button onClick={this.reveal} priority="primary" size="xsmall">
+            <Button
+              onClick={this.reveal}
+              priority="primary"
+              size="xsmall"
+              aria-label={btnText ?? t('Show More')}
+            >
               {btnText}
             </Button>
           </ClipFade>

@@ -9,13 +9,13 @@ import SearchQueryField from './searchQueryField';
 
 type Props = {
   api: Client;
+  metricTags: MetricTag[];
+  onChangeGroupBy: (groupBy?: string[]) => void;
+  onChangeSearchQuery: (searchQuery?: string) => void;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
-  metricTags: MetricTag[];
-  onChangeSearchQuery: (searchQuery?: string) => void;
-  onChangeGroupBy: (groupBy?: string[]) => void;
-  searchQuery?: string;
   groupBy?: string[];
+  searchQuery?: string;
 };
 
 function FiltersAndGroups({

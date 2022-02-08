@@ -8,10 +8,10 @@ import Http from './http';
 import LinkedEvent from './linkedEvent';
 
 type Props = Pick<React.ComponentProps<typeof LinkedEvent>, 'route' | 'router'> & {
-  searchTerm: string;
   breadcrumb: RawCrumb;
   event: Event;
   organization: Organization;
+  searchTerm: string;
 };
 
 function Data({breadcrumb, event, organization, searchTerm, route, router}: Props) {
