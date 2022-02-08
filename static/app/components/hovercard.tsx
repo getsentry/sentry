@@ -26,13 +26,9 @@ function findOrCreatePortal(): HTMLElement {
 
 interface HovercardProps {
   /**
-   * Position tooltip should take relative to the child element
+   * Classname to apply to the hovercard
    */
-  position?: PopperProps['placement'];
-  /**
-   * Time in ms until hovercard is hidden
-   */
-  displayTimeout?: number;
+  children: React.ReactNode;
   /**
    * Element to display in the body
    */
@@ -41,15 +37,15 @@ interface HovercardProps {
    * Classname to apply to body container
    */
   bodyClassName?: string;
-  /**
-   * Classname to apply to the hovercard
-   */
-  children: React.ReactNode;
   className?: string;
   /**
    * Classname to apply to the hovercard container
    */
   containerClassName?: string;
+  /**
+   * Time in ms until hovercard is hidden
+   */
+  displayTimeout?: number;
   /**
    * Element to display in the header
    */
@@ -62,6 +58,10 @@ interface HovercardProps {
    * Offset for the arrow
    */
   offset?: string;
+  /**
+   * Position tooltip should take relative to the child element
+   */
+  position?: PopperProps['placement'];
   /**
    * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
    */
@@ -214,9 +214,9 @@ function SlideInAnimation({
   placement,
   children,
 }: {
-  visible: boolean;
-  placement: PopperProps['placement'];
   children: React.ReactNode;
+  placement: PopperProps['placement'];
+  visible: boolean;
 }): React.ReactElement {
   const narrowedPlacement = getTipDirection(placement);
 
