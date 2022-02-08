@@ -131,8 +131,9 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
-    expect(screen.getByText('Open in Issues').closest('a')?.href).toContain(
+    userEvent.click(screen.getByLabelText('Widget actions'));
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Issues'})).toHaveAttribute(
+      'data-test-href',
       '/organizations/org-slug/issues/?query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
@@ -160,7 +161,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -188,7 +189,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);

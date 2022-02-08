@@ -99,7 +99,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     userEvent.click(screen.getByText('Open in Discover'));
     expect(spy).toHaveBeenCalledWith({
@@ -129,10 +129,10 @@ describe('Dashboards > WidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+      'data-test-href',
       '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
@@ -162,10 +162,10 @@ describe('Dashboards > WidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+      'data-test-href',
       '/organizations/org-slug/discover/results/?display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
     );
   });
@@ -201,10 +201,10 @@ describe('Dashboards > WidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+      'data-test-href',
       '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
   });
@@ -236,10 +236,10 @@ describe('Dashboards > WidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+      'data-test-href',
       '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
   });
@@ -270,7 +270,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -302,7 +302,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
@@ -334,7 +334,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Edit Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Edit Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -366,7 +366,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await tick();
 
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Delete Widget'));
     // Confirm Modal
