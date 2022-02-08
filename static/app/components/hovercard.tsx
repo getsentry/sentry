@@ -44,6 +44,7 @@ interface HovercardProps {
   /**
    * Classname to apply to the hovercard
    */
+  children: React.ReactNode;
   className?: string;
   /**
    * Classname to apply to the hovercard container
@@ -73,7 +74,7 @@ interface HovercardProps {
    * Color of the arrow tip
    */
   tipColor?: string;
-};
+}
 
 function Hovercard(props: HovercardProps): React.ReactElement {
   const [visible, setVisible] = React.useState(false);
@@ -269,12 +270,7 @@ function getTipDirection(
 }
 
 type StyledHovercardProps = {
-<<<<<<< HEAD
-  placement: Direction;
-  visible: boolean;
-=======
   placement: PopperProps['placement'];
->>>>>>> fbe177b829 (ref(hovercard): refactor to fc)
   offset?: string;
 };
 
@@ -323,12 +319,7 @@ const Body = styled('div')`
 export {Body};
 
 type HovercardArrowProps = {
-<<<<<<< HEAD
-  placement: Direction;
-=======
   placement: PopperProps['placement'];
-  tipColor?: string;
->>>>>>> fbe177b829 (ref(hovercard): refactor to fc)
   tipBorderColor?: string;
   tipColor?: string;
 };
