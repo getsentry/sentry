@@ -7,14 +7,14 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 type InjectedLatestContextProps = {
-  organizations?: OrganizationSummary[];
   organization?: Organization | null;
+  organizations?: OrganizationSummary[];
   project?: Project | null;
 };
 
 type HocProps = {
-  organization?: Organization | null;
   organizations: OrganizationSummary[];
+  organization?: Organization | null;
 };
 
 type State = {

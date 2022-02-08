@@ -40,21 +40,21 @@ import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
-  frame: Frame;
-  event: Event;
-  registers: Record<string, string>;
   components: Array<SentryAppComponent>;
+  event: Event;
+  frame: Frame;
   isUsedForGrouping: boolean;
   platform: PlatformType;
-  isHoverPreviewed?: boolean;
-  isExpanded?: boolean;
-  nextFrame?: Frame;
-  includeSystemFrames?: boolean;
-  prevFrame?: Frame;
-  image?: React.ComponentProps<typeof DebugImage>['image'];
-  maxLengthOfRelativeAddress?: number;
+  registers: Record<string, string>;
   emptySourceNotation?: boolean;
+  image?: React.ComponentProps<typeof DebugImage>['image'];
+  includeSystemFrames?: boolean;
+  isExpanded?: boolean;
+  isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
+  maxLengthOfRelativeAddress?: number;
+  nextFrame?: Frame;
+  prevFrame?: Frame;
 };
 
 function NativeFrame({
@@ -228,7 +228,7 @@ function NativeFrame({
       data-test-id="stack-trace-frame"
     >
       <StrictClick onClick={handleToggleContext}>
-        <Fragment>
+        <StrictClickContent>
           <StatusCell>
             {(status === 'error' || status === undefined) &&
               (packageClickable ? (
@@ -334,12 +334,11 @@ function NativeFrame({
                 tooltipProps={
                   isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
                 }
-                onClick={handleToggleContext}
                 icon={<IconChevron size="8px" direction={expanded ? 'up' : 'down'} />}
               />
             )}
           </ExpandCell>
-        </Fragment>
+        </StrictClickContent>
       </StrictClick>
       <RegistersCell>
         {expanded && (
@@ -450,7 +449,7 @@ const PackageStatusButton = styled(Button)`
   border: none;
 `;
 
-const GridRow = styled('div')<{inApp: boolean; expandable: boolean; expanded: boolean}>`
+const GridRow = styled('div')<{expandable: boolean; expanded: boolean; inApp: boolean}>`
   ${p => p.expandable && `cursor: pointer;`};
   ${p => p.inApp && `background: ${p.theme.bodyBackground};`};
   ${p =>
@@ -479,4 +478,8 @@ const GridRow = styled('div')<{inApp: boolean; expandable: boolean; expanded: bo
     grid-template-columns: 24px auto minmax(138px, 1fr) 24px;
     grid-template-rows: repeat(2, auto);
   }
+`;
+
+const StrictClickContent = styled('div')`
+  display: contents;
 `;

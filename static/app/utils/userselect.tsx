@@ -1,7 +1,7 @@
 export type UserSelectValues = {
-  userSelect: string | null;
   MozUserSelect: string | null;
   msUserSelect: string | null;
+  userSelect: string | null;
   webkitUserSelect: string | null;
 };
 

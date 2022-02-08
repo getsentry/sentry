@@ -15,15 +15,15 @@ import Type from './type';
 
 type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
   breadcrumb: Crumb;
-  event: Event;
-  organization: Organization;
-  searchTerm: string;
-  relativeTime: string;
-  displayRelativeTime: boolean;
-  style: React.CSSProperties;
-  onLoad: () => void;
   ['data-test-id']: string;
+  displayRelativeTime: boolean;
+  event: Event;
+  onLoad: () => void;
+  organization: Organization;
+  relativeTime: string;
   scrollbarSize: number;
+  searchTerm: string;
+  style: React.CSSProperties;
   height?: string;
 };
 

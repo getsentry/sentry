@@ -13,7 +13,7 @@ jest.mock('sentry/components/charts/simpleTableChart');
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
     organization: TestStubs.Organization({
-      features: ['connect-discover-and-dashboards', 'dashboards-edit', 'discover-basic'],
+      features: ['dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
     }),
     router: {orgId: 'orgId'},
@@ -368,7 +368,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Delete Widget'));
     // Confirm Modal
-    mountGlobalModal();
+    await mountGlobalModal();
     await screen.findByRole('dialog');
 
     userEvent.click(screen.getByTestId('confirm-button'));

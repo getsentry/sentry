@@ -61,17 +61,17 @@ import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 
 type Props = {
-  location: Location;
-  eventView: EventView;
-  projectId: string;
-  transactionName: string;
-  organization: Organization;
-  isLoading: boolean;
   error: string | null;
-  totalValues: Record<string, number> | null;
-  projects: Project[];
+  eventView: EventView;
+  isLoading: boolean;
+  location: Location;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  organization: Organization;
+  projectId: string;
+  projects: Project[];
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  totalValues: Record<string, number> | null;
+  transactionName: string;
   isMetricsData?: boolean;
 };
 
@@ -468,7 +468,7 @@ function getFilterOptions({
 function getTransactionsListSort(
   location: Location,
   options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
-): {selected: DropdownOption; options: DropdownOption[]} {
+): {options: DropdownOption[]; selected: DropdownOption} {
   const sortOptions = getFilterOptions(options);
   const urlParam = decodeScalar(
     location.query.showTransactions,

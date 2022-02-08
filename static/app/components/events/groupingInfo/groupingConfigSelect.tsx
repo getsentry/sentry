@@ -10,8 +10,8 @@ import {EventGroupingConfig} from 'sentry/types';
 import {GroupingConfigItem} from '.';
 
 type Props = AsyncComponent['props'] & {
-  eventConfigId: string;
   configId: string;
+  eventConfigId: string;
   onSelect: (selection: any) => void;
 };
 

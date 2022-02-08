@@ -13,11 +13,11 @@ import {defined} from 'sentry/utils';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {
-  event: Event;
-  type: string;
   data: ExceptionType;
-  projectId: string;
+  event: Event;
   hasHierarchicalGrouping: boolean;
+  projectId: string;
+  type: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
@@ -51,9 +51,9 @@ function Exception({
     stackType: newStackType,
     newestFirst: newNewestFirst,
   }: {
-    stackView?: STACK_VIEW;
-    stackType?: STACK_TYPE;
     newestFirst?: boolean;
+    stackType?: STACK_TYPE;
+    stackView?: STACK_VIEW;
   }) {
     if (newStackView) {
       setStackView(newStackView);

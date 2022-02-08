@@ -55,19 +55,19 @@ export function getProjectID(
 
 type Props = {
   eventView: EventView;
-  organization: Organization;
   location: Location;
-  setError: (msg: string | undefined) => void;
+  organization: Organization;
   projects: Project[];
-  summaryConditions?: string;
+  setError: (msg: string | undefined) => void;
   columnTitles?: string[];
+  summaryConditions?: string;
 };
 
 type State = {
-  widths: number[];
   transaction: string | undefined;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
+  widths: number[];
 };
 class _Table extends React.Component<Props, State> {
   state: State = {

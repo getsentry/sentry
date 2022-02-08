@@ -340,8 +340,8 @@ const ExternalHomeLink = styled(
 `;
 
 type SupportLinkProps<T extends boolean> = {
-  isSelfHosted: T;
   href: string;
+  isSelfHosted: T;
   to: string;
   isCentered?: boolean;
 } & React.ComponentPropsWithoutRef<

@@ -19,62 +19,38 @@ export interface LCH {
 export type Color = [number, number, number] | [number, number, number, number];
 
 export interface FlamegraphTheme {
-  CONFIG: {
-    HIGHLIGHT_RECURSION: boolean;
-  };
-  SIZES: {
-    BAR_HEIGHT: number;
-    BAR_FONT_SIZE: number;
-    BAR_PADDING: number;
-    HOVERED_FRAME_BORDER_WIDTH: number;
-    FLAMEGRAPH_DEPTH_OFFSET: number;
-    FRAME_BORDER_WIDTH: number;
-    // Spans
-    SPANS_BAR_HEIGHT: number;
-    SPANS_DEPTH_OFFSET: number;
-    SPANS_FONT_SIZE: number;
-    // Request
-    REQUEST_TAIL_HEIGHT: number;
-    REQUEST_BAR_HEIGHT: number;
-    REQUEST_FONT_SIZE: number;
-    REQUEST_DEPTH_OFFSET: number;
-
-    MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
-    TIMELINE_HEIGHT: number;
-    LABEL_FONT_SIZE: number;
-    LABEL_FONT_PADDING: number;
-  };
   // @TODO, most colors are defined as strings, which is a mistake as we loose a lot of functionality and impose constraints.
   // They should instead be defined as arrays of numbers so we can use them with glsl and avoid unnecessary parsing
   COLORS: {
-    LABEL_FONT_COLOR: string;
     BAR_LABEL_FONT_COLOR: string;
-    CURSOR_CROSSHAIR: string;
-    GRID_LINE_COLOR: string;
-    GRID_FRAME_BACKGROUND_COLOR: string;
-    SELECTED_FRAME_BORDER_COLOR: string;
-    HOVERED_FRAME_BORDER_COLOR: string;
-    MINIMAP_POSITION_OVERLAY_COLOR: string;
-    MINIMAP_POSITION_OVERLAY_BORDER_COLOR: string;
-    // Nice color picker for GLSL colors - https://keiwando.com/color-picker/
-    REQUEST_WAIT_TIME: string;
-    REQUEST_DNS_TIME: string;
-    REQUEST_TCP_TIME: string;
-    REQUEST_SSL_TIME: string;
-    REQUEST_2XX_RESPONSE: string;
-    REQUEST_4XX_RESPONSE: string;
-
-    SEARCH_RESULT_FRAME_COLOR: string;
-    SPAN_FRAME_BACKGROUND: string;
-    SPAN_FRAME_BORDER: string;
-    DIFFERENTIAL_INCREASE: Color;
-    DIFFERENTIAL_DECREASE: Color;
     COLOR_BUCKET: (t: number, frame?: Frame) => Color;
     COLOR_MAP: (
       frames: ReadonlyArray<Frame>,
       colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
       sortByKey?: (a: Frame, b: Frame) => number
     ) => Map<Frame['key'], Color>;
+    CURSOR_CROSSHAIR: string;
+    DIFFERENTIAL_DECREASE: Color;
+    DIFFERENTIAL_INCREASE: Color;
+    FRAME_FALLBACK_COLOR: [number, number, number, number];
+    GRID_FRAME_BACKGROUND_COLOR: string;
+    GRID_LINE_COLOR: string;
+    HOVERED_FRAME_BORDER_COLOR: string;
+    LABEL_FONT_COLOR: string;
+    MINIMAP_POSITION_OVERLAY_BORDER_COLOR: string;
+    MINIMAP_POSITION_OVERLAY_COLOR: string;
+    REQUEST_2XX_RESPONSE: string;
+    REQUEST_4XX_RESPONSE: string;
+
+    REQUEST_DNS_TIME: string;
+    REQUEST_SSL_TIME: string;
+    REQUEST_TCP_TIME: string;
+    // Nice color picker for GLSL colors - https://keiwando.com/color-picker/
+    REQUEST_WAIT_TIME: string;
+    SEARCH_RESULT_FRAME_COLOR: string;
+    SELECTED_FRAME_BORDER_COLOR: string;
+    SPAN_FRAME_BACKGROUND: string;
+    SPAN_FRAME_BORDER: string;
     STACK_TO_COLOR: (
       frames: ReadonlyArray<Frame>,
       colorMapFn: FlamegraphTheme['COLORS']['COLOR_MAP'],
@@ -83,11 +59,35 @@ export interface FlamegraphTheme {
       colorBuffer: Array<number>;
       colorMap: Map<Frame['key'], Color>;
     };
-    FRAME_FALLBACK_COLOR: [number, number, number, number];
+  };
+  CONFIG: {
+    HIGHLIGHT_RECURSION: boolean;
   };
   FONTS: {
     FONT: string;
     FRAME_FONT: string;
+  };
+  SIZES: {
+    BAR_FONT_SIZE: number;
+    BAR_HEIGHT: number;
+    BAR_PADDING: number;
+    FLAMEGRAPH_DEPTH_OFFSET: number;
+    FRAME_BORDER_WIDTH: number;
+    HOVERED_FRAME_BORDER_WIDTH: number;
+    LABEL_FONT_PADDING: number;
+    LABEL_FONT_SIZE: number;
+    MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
+    REQUEST_BAR_HEIGHT: number;
+    REQUEST_DEPTH_OFFSET: number;
+    REQUEST_FONT_SIZE: number;
+    // Request
+    REQUEST_TAIL_HEIGHT: number;
+
+    // Spans
+    SPANS_BAR_HEIGHT: number;
+    SPANS_DEPTH_OFFSET: number;
+    SPANS_FONT_SIZE: number;
+    TIMELINE_HEIGHT: number;
   };
 }
 

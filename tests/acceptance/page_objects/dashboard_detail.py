@@ -36,21 +36,25 @@ class DashboardDetailPage(BasePage):
         self.browser.wait_until_clickable('[data-test-id="dashboard-edit"]')
         button = self.browser.element('[data-test-id="dashboard-edit"]')
         button.click()
+        self.wait_until_loaded()
 
     def click_dashboard_add_widget_button(self):
         self.browser.wait_until_clickable('[data-test-id="widget-add"]')
         button = self.browser.element('[data-test-id="widget-add"]')
         button.click()
+        self.wait_until_loaded()
 
     def click_dashboard_header_add_widget_button(self):
         self.browser.wait_until_clickable('[data-test-id="add-widget-library"]')
         button = self.browser.element('[data-test-id="add-widget-library"]')
         button.click()
+        self.wait_until_loaded()
 
     def click_cancel_button(self):
         self.browser.wait_until_clickable('[data-test-id="dashboard-cancel"]')
         button = self.browser.element('[data-test-id="dashboard-cancel"]')
         button.click()
+        self.wait_until_loaded()
 
     def add_widget_through_dashboard(self, widget_title):
         self.click_dashboard_add_widget_button()
@@ -58,8 +62,10 @@ class DashboardDetailPage(BasePage):
         title_input.send_keys(widget_title)
         button = self.browser.element('[data-test-id="add-widget"]')
         button.click()
+        self.wait_until_loaded()
 
     def save_dashboard(self):
         self.browser.wait_until_clickable('[data-test-id="dashboard-commit"]')
         button = self.browser.element('[data-test-id="dashboard-commit"]')
         button.click()
+        self.wait_until_loaded()

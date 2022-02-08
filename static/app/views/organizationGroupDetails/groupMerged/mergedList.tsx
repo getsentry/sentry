@@ -13,16 +13,16 @@ import MergedItem from './mergedItem';
 import MergedToolbar from './mergedToolbar';
 
 type Props = {
-  /**
-   * From GroupMergedView -> handleUnmerge
-   */
-  onUnmerge: () => void;
+  groupId: Group['id'];
   /*
    * From GroupingActions.toggleCollapseFingerprints
    */
   onToggleCollapse: () => void;
+  /**
+   * From GroupMergedView -> handleUnmerge
+   */
+  onUnmerge: () => void;
   organization: Organization;
-  groupId: Group['id'];
   project: Project;
   fingerprints?: Fingerprint[];
   pageLinks?: string;

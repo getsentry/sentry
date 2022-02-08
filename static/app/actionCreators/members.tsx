@@ -74,9 +74,9 @@ export function indexMembersByProject(members: Member[]): IndexedMembersByProjec
 }
 
 type UpdateMemberOptions = {
-  orgId: string;
-  memberId: string;
   data: Member | null;
+  memberId: string;
+  orgId: string;
 };
 
 export async function updateMember(
@@ -100,10 +100,10 @@ export async function updateMember(
 }
 
 type ResendMemberInviteOptions = {
-  orgId: string;
   memberId: string;
-  regenerate?: boolean;
+  orgId: string;
   data?: object;
+  regenerate?: boolean;
 };
 
 export async function resendMemberInvite(

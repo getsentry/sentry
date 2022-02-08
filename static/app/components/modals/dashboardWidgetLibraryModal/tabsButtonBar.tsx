@@ -30,11 +30,11 @@ export enum TAB {
 
 type Props = {
   activeTab: TAB;
-  organization: Organization;
   dashboard: DashboardDetails;
-  selectedWidgets?: WidgetTemplate[];
+  organization: Organization;
   customWidget?: Widget;
   onAddWidget?: (widgets: Widget[]) => void;
+  selectedWidgets?: WidgetTemplate[];
 };
 
 export function TabsButtonBar({

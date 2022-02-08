@@ -11,13 +11,14 @@ import HistogramChart from '../chart/histogramChart';
 import {getAxisOrBackupAxis, getBackupField} from './utils';
 
 type DisplayProps = {
-  location: Location;
-  organization: Organization;
-  eventView: EventView;
   axis: AxisOption;
-  onFilterChange: (minValue: number, maxValue: number) => void; // only used for distribution graphs
-  didReceiveMultiAxis?: (useBackup: boolean) => void;
+  eventView: EventView;
+  location: Location;
+  onFilterChange: (minValue: number, maxValue: number) => void;
+  organization: Organization;
   usingBackupAxis: boolean;
+  // only used for distribution graphs
+  didReceiveMultiAxis?: (useBackup: boolean) => void;
 };
 
 export function SingleAxisChart(props: DisplayProps) {

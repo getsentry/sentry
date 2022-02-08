@@ -16,16 +16,16 @@ import {CustomRepoType} from 'sentry/types/debugFiles';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
+  hasAccess: boolean;
+  hasFeature: boolean;
+  isDetailsDisabled: boolean;
+  isDetailsExpanded: boolean;
+  onDelete: () => void;
+  onEdit: () => void;
+  onToggleDetails: () => void;
   repositoryName: string;
   repositoryType: string;
-  isDetailsExpanded: boolean;
-  isDetailsDisabled: boolean;
-  onToggleDetails: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
   showDetails: boolean;
-  hasFeature: boolean;
-  hasAccess: boolean;
 };
 
 function Actions({

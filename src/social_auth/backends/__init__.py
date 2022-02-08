@@ -738,6 +738,7 @@ def get_backends(force_load=False):
                 mod, cls_name = auth_backend.rsplit(".", 1)
                 module = __import__(mod, {}, {}, ["BACKENDS", cls_name])
                 backend = getattr(module, cls_name)
+
                 if issubclass(backend, SocialAuthBackend):
                     name = backend.name
                     backends = getattr(module, "BACKENDS", {})
@@ -748,6 +749,7 @@ def get_backends(force_load=False):
 
 def get_backend(name, *args, **kwargs):
     get_backends()
+
     try:
         # Cached backend which has previously been discovered.
         backend_cls = BACKENDSCACHE[name]

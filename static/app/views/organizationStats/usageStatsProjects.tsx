@@ -18,25 +18,25 @@ import {Outcome, UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 
 type Props = {
-  organization: Organization;
-  projects: Project[];
-  loadingProjects: boolean;
-
   dataCategory: DataCategory;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
-  tableSort?: string;
-  tableQuery?: string;
-  tableCursor?: string;
+
+  getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
   handleChangeState: (
     nextState: {
-      sort?: string;
-      query?: string;
       cursor?: string;
+      query?: string;
+      sort?: string;
     },
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
-  getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
+  loadingProjects: boolean;
+  organization: Organization;
+  projects: Project[];
+  tableCursor?: string;
+  tableQuery?: string;
+  tableSort?: string;
 } & AsyncComponent['props'];
 
 type State = {
@@ -115,8 +115,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   get tableSort(): {
-    key: SortBy;
     direction: number;
+    key: SortBy;
   } {
     const {tableSort} = this.props;
 
