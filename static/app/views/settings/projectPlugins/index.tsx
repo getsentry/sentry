@@ -13,12 +13,12 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import ProjectPlugins from './projectPlugins';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+  organization: Organization;
   plugins: {
-    plugins: Plugin[];
     error: React.ComponentProps<typeof ProjectPlugins>['error'];
     loading: boolean;
+    plugins: Plugin[];
   };
-  organization: Organization;
   project: Project;
 };
 

@@ -1,27 +1,27 @@
 export type ProjectKey = {
-  dateCreated: string;
-  id: string;
   browserSdk: {
     choices: [string, string][];
   };
-  name: string;
-  projectId: number;
-  rateLimit: {
-    window: number;
-    count: number;
-  } | null;
-  label: string;
+  browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
+  dateCreated: string;
   dsn: {
     cdn: string;
-    minidump: string;
     csp: string;
-    secret: string;
-    unreal: string;
-    security: string;
+    minidump: string;
     public: string;
+    secret: string;
+    security: string;
+    unreal: string;
   };
-  browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
-  secret: string;
+  id: string;
   isActive: boolean;
+  label: string;
+  name: string;
+  projectId: number;
   public: string;
+  rateLimit: {
+    count: number;
+    window: number;
+  } | null;
+  secret: string;
 };

@@ -49,12 +49,12 @@ type IssueAlertFragment = Parameters<
 >[0];
 
 type State = {
+  dataFragment: IssueAlertFragment | undefined;
   error: boolean;
+  inFlight: boolean;
+  platform: PlatformName | null;
   projectName: string;
   team: string;
-  platform: PlatformName | null;
-  inFlight: boolean;
-  dataFragment: IssueAlertFragment | undefined;
 };
 
 class CreateProject extends React.Component<Props, State> {

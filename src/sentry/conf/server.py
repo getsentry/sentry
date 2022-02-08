@@ -996,8 +996,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
-    # Enable metrics widget (prototype) on Dashboards
-    "organizations:metrics-dashboards-ui": False,
+    # Enable the new widget builder experience on Dashboards
+    "organizations:new-widget-builder-experience": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1069,8 +1069,6 @@ SENTRY_FEATURES = {
     "organizations:performance-ops-breakdown": False,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
-    # Enable views for transaction events page in performance
-    "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable mobile vitals

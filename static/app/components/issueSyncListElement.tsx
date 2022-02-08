@@ -10,15 +10,15 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {
-  externalIssueLink?: string | null;
+  externalIssueDisplayName?: string | null;
   externalIssueId?: string | null;
   externalIssueKey?: string | null;
-  externalIssueDisplayName?: string | null;
-  onOpen?: () => void;
-  onClose?: (externalIssueId?: string | null) => void;
-  integrationType?: string;
-  hoverCardHeader?: React.ReactNode;
+  externalIssueLink?: string | null;
   hoverCardBody?: React.ReactNode;
+  hoverCardHeader?: React.ReactNode;
+  integrationType?: string;
+  onClose?: (externalIssueId?: string | null) => void;
+  onOpen?: () => void;
   showHoverCard?: boolean;
 };
 

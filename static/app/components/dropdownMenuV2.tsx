@@ -22,32 +22,32 @@ import space from 'sentry/styles/space';
 
 type Props = {
   /**
-   * Ref object to the trigger element, needed for useOverlayPosition()
-   */
-  triggerRef: React.RefObject<HTMLButtonElement>;
-  /**
-   * Whether this is a submenu
-   */
-  isSubmenu: boolean;
-  /**
-   * Whether the menu should close when an item has been clicked/selected
-   */
-  closeOnSelect?: boolean;
-  onClose?: () => void;
-  /*
-   * Title to display on top of the menu
-   */
-  menuTitle?: string;
-  /**
    * If this is a submenu, it will in some cases need to close the root menu
    * (e.g. when a submenu item is clicked).
    */
   closeRootMenu: () => void;
   /**
+   * Whether this is a submenu
+   */
+  isSubmenu: boolean;
+  /**
+   * Ref object to the trigger element, needed for useOverlayPosition()
+   */
+  triggerRef: React.RefObject<HTMLButtonElement>;
+  /**
    * If this is a submenu, it will in some cases need to close itself (e.g.
    * when the user presses the arrow left key)
    */
   closeCurrentSubmenu?: () => void;
+  /**
+   * Whether the menu should close when an item has been clicked/selected
+   */
+  closeOnSelect?: boolean;
+  /*
+   * Title to display on top of the menu
+   */
+  menuTitle?: string;
+  onClose?: () => void;
 } & AriaMenuOptions<MenuItemProps> &
   Partial<OverlayProps> &
   Partial<AriaPositionProps>;
@@ -256,7 +256,7 @@ const MenuWrap = styled('ul')`
   padding: ${space(0.5)} 0;
   font-size: ${p => p.theme.fontSizeMedium};
   overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
 
   &:focus {
     outline: none;

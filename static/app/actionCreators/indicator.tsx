@@ -11,22 +11,22 @@ import FormModel, {FieldValue} from 'sentry/views/settings/components/forms/mode
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 
 type Options = {
-  duration?: number;
   append?: boolean;
+  disableDismiss?: boolean;
+  duration?: number;
   modelArg?: {
-    model: FormModel;
     id: string;
+    model: FormModel;
     undo: () => void;
   };
-  disableDismiss?: boolean;
   undo?: () => void;
 };
 
 export type Indicator = {
-  type: IndicatorType;
   id: string | number;
   message: React.ReactNode;
   options: Options;
+  type: IndicatorType;
   clearId?: null | number;
 };
 
@@ -124,8 +124,8 @@ const prettyFormString = (val: ChangeValue, model: FormModel, fieldName: string)
 type ChangeValue = FieldValue | Record<string, any>;
 
 type Change = {
-  old: ChangeValue;
   new: ChangeValue;
+  old: ChangeValue;
 };
 
 /**

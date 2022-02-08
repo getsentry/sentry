@@ -44,15 +44,15 @@ function getReleaseProjectId(release: Release, selection: PageFilters) {
 }
 
 type Props = {
-  release: Release;
-  organization: Organization;
   activeDisplay: ReleasesDisplayOption;
-  location: Location;
-  selection: PageFilters;
-  reloading: boolean;
-  showHealthPlaceholders: boolean;
-  isTopRelease: boolean;
   getHealthData: ReleasesRequestRenderProps['getHealthData'];
+  isTopRelease: boolean;
+  location: Location;
+  organization: Organization;
+  release: Release;
+  reloading: boolean;
+  selection: PageFilters;
+  showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
 };
 

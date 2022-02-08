@@ -20,19 +20,19 @@ import {OpenInContextLine} from './openInContextLine';
 import StacktraceLink from './stacktraceLink';
 
 type Props = {
-  frame: Frame;
-  event: Event;
-  organization?: Organization;
-  registers: {[key: string]: string};
   components: Array<SentryAppComponent>;
-  isExpanded?: boolean;
+  event: Event;
+  frame: Frame;
+  registers: {[key: string]: string};
+  className?: string;
+  emptySourceNotation?: boolean;
+  expandable?: boolean;
+  hasAssembly?: boolean;
+  hasContextRegisters?: boolean;
   hasContextSource?: boolean;
   hasContextVars?: boolean;
-  hasContextRegisters?: boolean;
-  emptySourceNotation?: boolean;
-  hasAssembly?: boolean;
-  expandable?: boolean;
-  className?: string;
+  isExpanded?: boolean;
+  organization?: Organization;
 };
 
 const Context = ({

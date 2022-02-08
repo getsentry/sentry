@@ -64,24 +64,24 @@ const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
 type Props = {
   api: Client;
-  organization: Organization;
   dashboard: DashboardDetails;
-  selection: PageFilters;
+  handleAddCustomWidget: (widget: Widget) => void;
+  handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditing: boolean;
-  router: InjectedRouter;
   location: Location;
-  widgetLimitReached: boolean;
-  isPreview?: boolean;
+  onSetWidgetToBeUpdated: (widget: Widget) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
-  onSetWidgetToBeUpdated: (widget: Widget) => void;
-  handleUpdateWidgetList: (widgets: Widget[]) => void;
-  handleAddCustomWidget: (widget: Widget) => void;
+  organization: Organization;
+  router: InjectedRouter;
+  selection: PageFilters;
+  widgetLimitReached: boolean;
+  isPreview?: boolean;
+  newWidget?: Widget;
   paramDashboardId?: string;
   paramTemplateId?: string;
-  newWidget?: Widget;
 };
 
 type State = {
@@ -337,7 +337,7 @@ class Dashboard extends Component<Props, State> {
 
     if (
       organization.features.includes('metrics') &&
-      organization.features.includes('metrics-dashboards-ui')
+      organization.features.includes('new-widget-builder-experience')
     ) {
       onSetWidgetToBeUpdated(widget);
 

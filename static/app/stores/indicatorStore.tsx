@@ -7,21 +7,6 @@ import {t} from 'sentry/locale';
 import {CommonStoreInterface} from './types';
 
 type IndicatorStoreInterface = CommonStoreInterface<Indicator[]> & {
-  init(): void;
-  addSuccess(message: string): Indicator;
-  addError(message?: string): Indicator;
-  /**
-   * Appends a message to be displayed in list of indicators
-   *
-   * @param message Toast message to be displayed
-   * @param type One of ['error', 'success', '']
-   * @param options Options object
-   */
-  append(
-    message: string,
-    type: Indicator['type'],
-    options?: Indicator['options']
-  ): Indicator;
   /**
    * When this method is called directly via older parts of the application,
    * we want to maintain the old behavior in that it is replaced (and not queued up)
@@ -35,6 +20,7 @@ type IndicatorStoreInterface = CommonStoreInterface<Indicator[]> & {
     type?: Indicator['type'],
     options?: Indicator['options']
   ): Indicator;
+  addError(message?: string): Indicator;
   /**
    * Alias for add()
    */
@@ -43,10 +29,24 @@ type IndicatorStoreInterface = CommonStoreInterface<Indicator[]> & {
     type: Indicator['type'],
     options?: Indicator['options']
   ): Indicator;
+  addSuccess(message: string): Indicator;
+  /**
+   * Appends a message to be displayed in list of indicators
+   *
+   * @param message Toast message to be displayed
+   * @param type One of ['error', 'success', '']
+   * @param options Options object
+   */
+  append(
+    message: string,
+    type: Indicator['type'],
+    options?: Indicator['options']
+  ): Indicator;
   /**
    * Remove all current indicators.
    */
   clear(): void;
+  init(): void;
   /**
    * Remove an indicator
    */

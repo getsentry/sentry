@@ -5,39 +5,39 @@ type IssueStream = {
 };
 
 export type IssueEventParameters = {
-  'event_cause.viewed': {
-    project_id?: string;
-    platform?: string;
-  };
+  'event_cause.dismissed': {};
   'event_cause.docs_clicked': {};
   'event_cause.snoozed': {};
-  'event_cause.dismissed': {};
-  'issue_error_banner.viewed': {
-    error_type: string[];
-    error_message: string[];
-    group?: string;
+  'event_cause.viewed': {
     platform?: string;
+    project_id?: string;
   };
-  'issues_tab.viewed': {
-    tab: string;
-    num_issues: number;
-  };
-  'issue_search.failed': {
-    search_type: string;
-    search_source: string;
-    error: string;
-  };
-  'issue.search_sidebar_clicked': {};
   'inbox_tab.issue_clicked': {
     group_id: string;
   };
-  'issues_stream.issue_clicked': IssueStream;
+  'issue.search_sidebar_clicked': {};
+  'issue.shared_publicly': {};
+  'issue_error_banner.viewed': {
+    error_message: string[];
+    error_type: string[];
+    group?: string;
+    platform?: string;
+  };
+  'issue_search.failed': {
+    error: string;
+    search_source: string;
+    search_type: string;
+  };
   'issues_stream.issue_assigned': IssueStream & {
-    did_assign_suggestion: boolean;
     assigned_type: string;
+    did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
-  'issue.shared_publicly': {};
+  'issues_stream.issue_clicked': IssueStream;
+  'issues_tab.viewed': {
+    num_issues: number;
+    tab: string;
+  };
   resolve_issue: {release: string};
   'tag.clicked': {
     is_clickable: boolean;

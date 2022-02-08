@@ -20,11 +20,11 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 type Props = {
   organization: Organization;
-  project: Project;
   plugins: {
     plugins: Plugin[];
   };
-} & RouteComponentProps<{orgId: string; projectId: string; pluginId: string}, {}>;
+  project: Project;
+} & RouteComponentProps<{orgId: string; pluginId: string; projectId: string}, {}>;
 
 type State = {
   pluginDetails?: Plugin;

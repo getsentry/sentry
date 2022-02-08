@@ -25,17 +25,17 @@ const ADVANCED_DATASCRUBBING_LINK =
 type Props<T extends ProjectId> = {
   endpoint: string;
   organization: Organization;
+  additionalContext?: React.ReactNode;
+  disabled?: boolean;
   onSubmitSuccess?: (data: T extends undefined ? Organization : Project) => void;
   projectId?: T;
   relayPiiConfig?: string;
-  additionalContext?: React.ReactNode;
-  disabled?: boolean;
 };
 
 type State = {
+  orgRules: Array<Rule>;
   rules: Array<Rule>;
   savedRules: Array<Rule>;
-  orgRules: Array<Rule>;
   relayPiiConfig?: string;
 };
 

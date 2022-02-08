@@ -42,15 +42,15 @@ export function transactionSummaryRouteWithQuery({
   additionalQuery,
 }: {
   orgSlug: string;
-  transaction: string;
   query: Query;
+  transaction: string;
+  additionalQuery?: Record<string, string>;
   display?: DisplayModes;
-  trendFunction?: string;
-  trendColumn?: string;
-  unselectedSeries?: string | string[];
   projectID?: string | string[];
   showTransactions?: TransactionFilterOptions;
-  additionalQuery?: Record<string, string>;
+  trendColumn?: string;
+  trendFunction?: string;
+  unselectedSeries?: string | string[];
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,

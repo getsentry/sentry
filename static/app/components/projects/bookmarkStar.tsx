@@ -12,9 +12,9 @@ import useApi from 'sentry/utils/useApi';
 type Props = {
   organization: Organization;
   project: Project;
+  className?: string;
   /* used to override when under local state */
   isBookmarked?: boolean;
-  className?: string;
   onToggle?: (isBookmarked: boolean) => void;
 };
 

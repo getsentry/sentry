@@ -14,14 +14,14 @@ const Container = styled('div')<{orientInline?: boolean}>`
 `;
 
 type RadioGroupProps<C extends string> = {
-  label: string;
-  disabled?: boolean;
   /**
    * An array of [id, name, description]
    */
   choices: [C, React.ReactNode, React.ReactNode?][];
-  value: string | number | null;
+  label: string;
   onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
+  value: string | number | null;
+  disabled?: boolean;
   /**
    * Switch the radio items to flow left to right, instead of vertically.
    */
@@ -79,8 +79,8 @@ const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
 
 export const RadioLineItem = styled('label', {shouldForwardProp})<{
-  disabled?: boolean;
   index: number;
+  disabled?: boolean;
 }>`
   display: grid;
   gap: 0.25em 0.5em;

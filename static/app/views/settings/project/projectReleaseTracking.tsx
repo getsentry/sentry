@@ -25,8 +25,8 @@ const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
 
 type Props = {
   organization: Organization;
+  plugins: {loading: boolean; plugins: Plugin[]};
   project: Project;
-  plugins: {plugins: Plugin[]; loading: boolean};
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {

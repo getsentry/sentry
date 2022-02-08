@@ -22,6 +22,12 @@ export type MenuItemProps = {
    */
   label: React.ReactNode;
   /**
+   * Sub-items that are nested inside this item. By default, sub-items are
+   * rendered collectively as menu sections inside the current menu. If
+   * `isSubmenu` is true, then they will be rendered together in a sub-menu.
+   */
+  children?: MenuItemProps[];
+  /**
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
    */
@@ -31,15 +37,6 @@ export type MenuItemProps = {
    * when `children` is also defined.
    */
   isSubmenu?: boolean;
-  /**
-   * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
-   * if `children` is defined and `isSubmenu` is true)
-   */
-  submenuTitle?: string;
-  /**
-   * Whether to show a line divider below this menu item
-   */
-  showDividers?: boolean;
   /*
    * Items to be added to the left of the label
    */
@@ -50,6 +47,25 @@ export type MenuItemProps = {
    * respect to the first line of the label element.
    */
   leadingItemsSpanFullHeight?: boolean;
+  /**
+   * Function to call when user selects/clicks/taps on the menu item. The
+   * item's key is passed as an argument.
+   */
+  onAction?: (key: MenuItemProps['key']) => void;
+  /**
+   * Whether to show a line divider below this menu item
+   */
+  showDividers?: boolean;
+  /**
+   * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
+   * if `children` is defined and `isSubmenu` is true)
+   */
+  submenuTitle?: string;
+  /**
+   * React-router destination if menu item is a link. Note: currently only
+   * internal links (callable with `router.push()`) are supported.
+   */
+  to?: string;
   /*
    * Items to be added to the right of the label.
    */
@@ -60,60 +76,44 @@ export type MenuItemProps = {
    * label element.
    */
   trailingItemsSpanFullHeight?: boolean;
-  /**
-   * Function to call when user selects/clicks/taps on the menu item. The
-   * item's key is passed as an argument.
-   */
-  onAction?: (key: MenuItemProps['key']) => void;
-  /**
-   * React-router destination if menu item is a link. Note: currently only
-   * internal links (callable with `router.push()`) are supported.
-   */
-  to?: string;
-  /**
-   * Sub-items that are nested inside this item. By default, sub-items are
-   * rendered collectively as menu sections inside the current menu. If
-   * `isSubmenu` is true, then they will be rendered together in a sub-menu.
-   */
-  children?: MenuItemProps[];
 };
 
 type Props = {
   /**
-   * Node representation (from @react-aria) of the item
+   * Whether to close the menu when an item has been clicked/selected
    */
-  node: Node<MenuItemProps>;
+  closeOnSelect: boolean;
   /**
    * Whether this is the last node in the collection
    */
   isLastNode: boolean;
   /**
-   * Tree state (from @react-stately) inherited from parent menu
+   * Node representation (from @react-aria) of the item
    */
-  state: TreeState<MenuItemProps>;
+  node: Node<MenuItemProps>;
   /**
    * Used to close the menu when needed (e.g. when the item is
    * clicked/selected)
    */
   onClose: () => void;
   /**
-   * Whether to close the menu when an item has been clicked/selected
+   * Tree state (from @react-stately) inherited from parent menu
    */
-  closeOnSelect: boolean;
+  state: TreeState<MenuItemProps>;
   /**
    * Whether this is a trigger button (displayed as a normal menu item) for a
    * submenu
    */
   isSubmenuTrigger?: boolean;
   /**
+   * Tag name for item wrapper
+   */
+  renderAs?: React.ElementType;
+  /**
    * If isSubmenuTrigger is true, then replace the internal ref object with
    * this ref
    */
   submenuTriggerRef?: React.RefObject<HTMLLIElement>;
-  /**
-   * Tag name for item wrapper
-   */
-  renderAs?: React.ElementType;
 } & WithRouterProps;
 
 /**
@@ -208,6 +208,7 @@ const MenuItem = withRouter(
         ref={ref}
         as={renderAs}
         isDisabled={isDisabled}
+        data-test-id={item.key}
         {...props}
         {...(isSubmenuTrigger && {role: 'menuitemradio'})}
       >
@@ -252,6 +253,8 @@ const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
   margin: 0;
   padding: 0 ${space(0.5)};
   cursor: pointer;
+
+  color: ${p => p.theme.textColor};
 
   ${p => p.isDisabled && `cursor: initial;`}
 

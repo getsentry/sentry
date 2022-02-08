@@ -27,16 +27,16 @@ import DetailsHeader from './header';
 
 type Props = {
   api: Client;
-  organization: Organization;
   location: Location;
-} & RouteComponentProps<{ruleId: string; orgId: string}, {}>;
+  organization: Organization;
+} & RouteComponentProps<{orgId: string; ruleId: string}, {}>;
 
 type State = {
-  isLoading: boolean;
-  hasError: boolean;
   error: ResponseMeta | null;
-  rule?: IncidentRule;
+  hasError: boolean;
+  isLoading: boolean;
   incidents?: Incident[];
+  rule?: IncidentRule;
   selectedIncident?: Incident | null;
 };
 

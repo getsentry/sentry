@@ -23,19 +23,19 @@ import withRepositories from 'sentry/utils/withRepositories';
 
 type Props = {
   api: Client;
-  projectSlug: string;
-  releaseVersion: string;
-
   organization: Organization;
-  release?: Release;
-  releaseLoading?: boolean;
-  releaseError?: Error;
+  projectSlug: string;
+
+  releaseVersion: string;
   deploys?: Array<Deploy>;
-  deploysLoading?: boolean;
   deploysError?: Error;
+  deploysLoading?: boolean;
+  release?: Release;
+  releaseError?: Error;
+  releaseLoading?: boolean;
   repositories?: Array<Repository>;
-  repositoriesLoading?: boolean;
   repositoriesError?: Error;
+  repositoriesLoading?: boolean;
 };
 
 type State = {
