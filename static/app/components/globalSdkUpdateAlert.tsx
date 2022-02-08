@@ -8,7 +8,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {PageFilters, ProjectSdkUpdates, SDKUpdatesSuggestion} from 'sentry/types';
+import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
@@ -19,11 +19,6 @@ import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 import {SidebarPanelKey} from './sidebar/types';
 import Button from './button';
 
-const flattenSuggestions = (list: ProjectSdkUpdates[]): SDKUpdatesSuggestion[] =>
-  list.reduce<SDKUpdatesSuggestion[]>(
-    (suggestions, sdk) => suggestions.concat(sdk.suggestions),
-    []
-  );
 interface InnerGlobalSdkSuggestionsProps extends AlertProps {
   sdkUpdates?: ProjectSdkUpdates[] | null;
   selection?: PageFilters;
@@ -82,8 +77,8 @@ function InnerGlobalSdkUpdateAlert(
           props.selection?.projects?.includes(parseInt(update.projectId, 10))
         );
 
-  // Are there any updates?
-  if (flattenSuggestions(projectSpecificUpdates).length === 0) {
+  // Check if we have at least one suggestion out of the list of updates
+  if (projectSpecificUpdates.every(v => v.suggestions.length === 0)) {
     return null;
   }
 
