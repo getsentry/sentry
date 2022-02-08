@@ -9,6 +9,7 @@ import {
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {User} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 
 describe('getIssueFieldRenderer', function () {
@@ -16,7 +17,10 @@ describe('getIssueFieldRenderer', function () {
 
   beforeEach(function () {
     context = initializeOrg({
+      organization,
+      router: {},
       project: TestStubs.Project(),
+      projects: [TestStubs.Project()],
     });
     organization = context.organization;
     project = context.project;
@@ -51,6 +55,7 @@ describe('getIssueFieldRenderer', function () {
       filteredEvents: 3000,
       events: 6000,
       period: '7d',
+      annotations: ['<a href="sentry.io">ANNO-123</a>'],
     };
 
     MockApiClient.addMockResponse({
@@ -80,7 +85,7 @@ describe('getIssueFieldRenderer', function () {
             avatarType: 'letter_avatar',
             avatarUuid: null,
           },
-        },
+        } as User,
       ]);
 
       const group = TestStubs.Group({project});
@@ -96,15 +101,13 @@ describe('getIssueFieldRenderer', function () {
           },
         },
       ]);
-      const renderer = getIssueFieldRenderer('assignee', {
-        assignee: 'string',
-      });
+      const renderer = getIssueFieldRenderer('assignee');
 
       rtlMountWithTheme(
-        renderer(data, {
+        renderer!(data, {
           location,
           organization,
-        })
+        }) as React.ReactElement
       );
       expect(screen.getByText('TU')).toBeInTheDocument();
       userEvent.hover(screen.getByText('TU'));
@@ -115,15 +118,13 @@ describe('getIssueFieldRenderer', function () {
     });
 
     it('can render counts', async function () {
-      const renderer = getIssueFieldRenderer('events', {
-        events: 'string',
-      });
+      const renderer = getIssueFieldRenderer('events');
 
       rtlMountWithTheme(
-        renderer(data, {
+        renderer!(data, {
           location,
           organization,
-        })
+        }) as React.ReactElement
       );
       expect(screen.getByText('3k')).toBeInTheDocument();
       expect(screen.getByText('6k')).toBeInTheDocument();
@@ -132,5 +133,41 @@ describe('getIssueFieldRenderer', function () {
       expect(screen.getByText('Matching search filters')).toBeInTheDocument();
       expect(screen.getByText('Since issue began')).toBeInTheDocument();
     });
+  });
+
+  it('can render annotations', async function () {
+    const renderer = getIssueFieldRenderer('annotations');
+
+    rtlMountWithTheme(
+      renderer!(data, {
+        location,
+        organization,
+      }) as React.ReactElement
+    );
+    expect(screen.getByText('ANNO-123')).toBeInTheDocument();
+  });
+
+  it('can render multiple annotations', async function () {
+    const renderer = getIssueFieldRenderer('annotations');
+
+    rtlMountWithTheme(
+      renderer!(
+        {
+          data,
+          ...{
+            annotations: [
+              '<a href="sentry.io">ANNO-123</a>',
+              '<a href="sentry.io">ANNO-456</a>',
+            ],
+          },
+        },
+        {
+          location,
+          organization,
+        }
+      ) as React.ReactElement
+    );
+    expect(screen.getByText('ANNO-123')).toBeInTheDocument();
+    expect(screen.getByText('ANNO-456')).toBeInTheDocument();
   });
 });

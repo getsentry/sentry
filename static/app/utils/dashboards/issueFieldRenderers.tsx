@@ -42,6 +42,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  annotations: SpecialField;
   assignee: SpecialField;
   count: SpecialField;
   events: SpecialField;
@@ -135,6 +136,12 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: null,
     renderFunc: (data, {organization}) =>
       issuesCountRenderer(data, organization, 'users'),
+  },
+  annotations: {
+    sortField: null,
+    renderFunc: ({annotations}) => (
+      <span dangerouslySetInnerHTML={{__html: annotations}} />
+    ),
   },
 };
 
