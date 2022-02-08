@@ -21,20 +21,20 @@ CLOSED_STATUSES = RESOLVED_STATUSES + (GroupHistoryStatus.IGNORED,)
 def calculate_unresolved_counts(team, project_list, start, end, environment):
     # Get the current number of unresolved issues. We can use this value for the the most recent bucket.
     group_environment_filter = (
-        {"groupenvironment__environment_id": environment.id} if environment else {}
+        Q(groupenvironment__environment_id=environment.id) if environment else Q()
     )
     project_current_unresolved = {
         r["project"]: r["total"]
         for r in (
             Group.objects.filter_to_team(team)
-            .filter(status=GroupStatus.UNRESOLVED, **group_environment_filter)
+            .filter(group_environment_filter, status=GroupStatus.UNRESOLVED)
             .values("project")
             .annotate(total=Count("id"))
         )
     }
 
     group_history_environment_filter = (
-        {"group__groupenvironment__environment_id": environment.id} if environment else {}
+        Q(group__groupenvironment__environment_id=environment.id) if environment else Q()
     )
     prev_status_sub_qs = Coalesce(
         Subquery(
@@ -56,7 +56,7 @@ def calculate_unresolved_counts(team, project_list, start, end, environment):
     # Grab the historical data bucketed by day
     new_issues = (
         Group.objects.filter_to_team(team)
-        .filter(first_seen__gte=start, first_seen__lt=end, **group_environment_filter)
+        .filter(group_environment_filter, first_seen__gte=start, first_seen__lt=end)
         .annotate(bucket=TruncDay("first_seen"))
         .order_by("bucket")
         .values("project", "bucket")
@@ -65,7 +65,7 @@ def calculate_unresolved_counts(team, project_list, start, end, environment):
 
     bucketed_issues = (
         GroupHistory.objects.filter_to_team(team)
-        .filter(date_added__gte=start, date_added__lte=end, **group_history_environment_filter)
+        .filter(group_history_environment_filter, date_added__gte=start, date_added__lte=end)
         .annotate(bucket=TruncDay("date_added"), prev_status=prev_status_sub_qs)
         .filter(dedupe_status_filter)
         .order_by("bucket")
