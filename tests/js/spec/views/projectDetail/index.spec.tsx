@@ -4,6 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import ProjectDetails from 'sentry/views/projectDetail/projectDetail';
 
 describe('ProjectDetail', function () {
@@ -13,6 +14,10 @@ describe('ProjectDetail', function () {
   beforeEach(() => {
     PageFiltersStore.reset();
     ProjectsStore.reset();
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -22,6 +27,12 @@ describe('ProjectDetail', function () {
       url: '/prompts-activity/',
       body: {},
     });
+  });
+
+  afterEach(() => {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
   });
 
   describe('project low priority queue alert', function () {
@@ -48,7 +59,9 @@ describe('ProjectDetail', function () {
       ProjectsStore.loadInitialData(projects);
 
       mountWithTheme(
-        <ProjectDetails organization={organization} {...router} params={params} />,
+        <OrganizationContext.Provider value={organization}>
+          <ProjectDetails organization={organization} {...router} params={params} />
+        </OrganizationContext.Provider>,
         {context: routerContext}
       );
 
@@ -83,7 +96,9 @@ describe('ProjectDetail', function () {
       });
 
       mountWithTheme(
-        <ProjectDetails organization={organization} {...router} params={params} />,
+        <OrganizationContext.Provider value={organization}>
+          <ProjectDetails organization={organization} {...router} params={params} />
+        </OrganizationContext.Provider>,
         {context: routerContext}
       );
 

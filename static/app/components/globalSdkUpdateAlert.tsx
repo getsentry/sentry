@@ -32,15 +32,6 @@ function InnerGlobalSdkUpdateAlert(
 
   const [showUpdateAlert, setShowUpdateAlert] = React.useState<boolean>(false);
 
-  const checkIfComponentShouldPrompt = React.useCallback(() => {
-    promptsCheck(api, {
-      organizationId: organization.id,
-      feature: 'sdk_updates',
-    }).then(prompt => {
-      setShowUpdateAlert(!promptIsDismissed(prompt));
-    });
-  }, [api, organization]);
-
   const handleSnoozePrompt = React.useCallback(() => {
     promptsUpdate(api, {
       organizationId: organization.id,
@@ -59,7 +50,23 @@ function InnerGlobalSdkUpdateAlert(
 
   React.useEffect(() => {
     trackAdvancedAnalyticsEvent('sdk_updates.seen', {organization});
-    checkIfComponentShouldPrompt();
+
+    let isUnmounted = false;
+
+    promptsCheck(api, {
+      organizationId: organization.id,
+      feature: 'sdk_updates',
+    }).then(prompt => {
+      if (isUnmounted) {
+        return;
+      }
+
+      setShowUpdateAlert(!promptIsDismissed(prompt));
+    });
+
+    return () => {
+      isUnmounted = true;
+    };
   }, []);
 
   if (!showUpdateAlert || !props.sdkUpdates?.length) {

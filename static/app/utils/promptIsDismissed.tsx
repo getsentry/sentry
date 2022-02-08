@@ -6,7 +6,7 @@ export const DEFAULT_SNOOZE_PROMPT_DAYS = 14;
 export const promptIsDismissed = (
   prompt: PromptData,
   daysToSnooze: number = DEFAULT_SNOOZE_PROMPT_DAYS
-) => {
+): boolean => {
   if (typeof prompt?.dismissedTime === 'number') {
     return true;
   }
