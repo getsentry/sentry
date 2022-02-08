@@ -104,18 +104,18 @@ export function getInitialColumnDepths() {
 /**
  * Creates an array from layouts where each column stores how deep it is.
  */
-export function calculateColumnDepths(layouts: Layout[]): number[] {
+export function calculateColumnDepths(
+  layouts: {h: number; w: number; x: number; y: number}[]
+): number[] {
   const depths = getInitialColumnDepths();
 
   // For each layout's x, record the max depth
-  layouts
-    .filter(({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID)
-    .forEach(({x, w, y, h}) => {
-      // Adjust the column depths for each column the widget takes up
-      for (let col = x; col < x + w; col++) {
-        depths[col] = Math.max(y + h, depths[col]);
-      }
-    });
+  layouts.forEach(({x, w, y, h}) => {
+    // Adjust the column depths for each column the widget takes up
+    for (let col = x; col < x + w; col++) {
+      depths[col] = Math.max(y + h, depths[col]);
+    }
+  });
 
   return depths;
 }
@@ -215,4 +215,8 @@ export function generateWidgetsAfterCompaction(widgets: Widget[]) {
     }
     return {...widget, layout};
   });
+}
+
+export function isNotAddButton({i}: {i: string}) {
+  return i !== ADD_WIDGET_BUTTON_DRAG_ID;
 }

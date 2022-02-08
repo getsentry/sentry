@@ -41,6 +41,7 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
+  isNotAddButton,
   pickDefinedStoreKeys,
   Position,
 } from './layoutUtils';
@@ -423,14 +424,13 @@ class Dashboard extends Component<Props, State> {
   handleLayoutChange = (_, allLayouts: Layouts) => {
     const {isMobile} = this.state;
     const {dashboard, onUpdate} = this.props;
-    const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE].filter(isNotAddButton),
     };
 
     // Generate a new list of widgets where the layouts are associated
-    let columnDepths = calculateColumnDepths(newLayouts[DESKTOP]);
+    let columnDepths = calculateColumnDepths(newLayouts[DESKTOP].filter(isNotAddButton));
     const newWidgets = dashboard.widgets.map(widget => {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
@@ -501,7 +501,7 @@ class Dashboard extends Component<Props, State> {
     const {isMobile, layouts} = this.state;
     let position: Position = BOTTOM_MOBILE_VIEW_POSITION;
     if (!isMobile) {
-      const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+      const columnDepths = calculateColumnDepths(layouts[DESKTOP].filter(isNotAddButton));
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
       position = nextPosition;
     }
@@ -523,7 +523,7 @@ class Dashboard extends Component<Props, State> {
       widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
     }
 
-    const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+    const columnDepths = calculateColumnDepths(layouts[DESKTOP].filter(isNotAddButton));
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
     const canModifyLayout = !isMobile && isEditing;

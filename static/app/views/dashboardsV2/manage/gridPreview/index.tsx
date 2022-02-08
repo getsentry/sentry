@@ -7,9 +7,9 @@ import styled from '@emotion/styled';
 import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {
+  calculateColumnDepths,
   DEFAULT_WIDGET_WIDTH,
   getDefaultWidgetHeight,
-  getInitialColumnDepths,
   getNextAvailablePosition,
 } from 'sentry/views/dashboardsV2/layoutUtils';
 import {DisplayType, WidgetLayout, WidgetPreview} from 'sentry/views/dashboardsV2/types';
@@ -40,23 +40,12 @@ function miniWidget(displayType: DisplayType): () => JSX.Element {
   }
 }
 
-type Props = {
-  widgetPreview: WidgetPreview[];
-};
-
-function GridPreview({widgetPreview}: Props) {
-  // TODO(nar): Clean this up, it should be reusable with how it's handled on the dashboard
-  let columnDepths = getInitialColumnDepths();
-  widgetPreview
-    .filter(({layout}) => defined(layout))
-    .forEach(({layout}) => {
-      const {x, y, w, h} = layout as WidgetLayout; // nulls were filtered out
-      // Adjust the column depths for each column the widget takes up
-      for (let col = x; col < x + w; col++) {
-        columnDepths[col] = Math.max(y + h, columnDepths[col]);
-      }
-    });
-  const renderPreview = widgetPreview.map(item => {
+function assignDefaultLayout(
+  widgetPreview: WidgetPreview[],
+  initialColumnDepths: number[]
+) {
+  let columnDepths = [...initialColumnDepths];
+  const newPreviews = widgetPreview.map(item => {
     if (defined(item.layout)) {
       return item;
     }
@@ -73,6 +62,19 @@ function GridPreview({widgetPreview}: Props) {
       layout: {...nextPosition, h: height, minH: height, w: DEFAULT_WIDGET_WIDTH},
     };
   });
+  return newPreviews;
+}
+
+type Props = {
+  widgetPreview: WidgetPreview[];
+};
+
+function GridPreview({widgetPreview}: Props) {
+  const definedLayouts = widgetPreview
+    .map(({layout}) => layout)
+    .filter((layout): layout is WidgetLayout => defined(layout));
+  const columnDepths = calculateColumnDepths(definedLayouts);
+  const renderPreview = assignDefaultLayout(widgetPreview, columnDepths);
 
   return (
     <StyledGridLayout
