@@ -37,7 +37,7 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
         <Icon color="white" />
       </AlertIconWrapper>
 
-      {!hideText && <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>}
+      {!hideText && <IncidentStatusValue>{statusText}</IncidentStatusValue>}
     </Wrapper>
   );
 }
@@ -73,7 +73,6 @@ const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
   }
 `;
 
-const IncidentStatusValue = styled('div')<{color: Color}>`
+const IncidentStatusValue = styled('div')`
   margin-left: ${space(1)};
-  color: ${p => p.theme[p.color]};
 `;

@@ -63,7 +63,7 @@ function RuleListRow({
     }
 
     if (!rule.latestIncident) {
-      return '-';
+      return 'No alerts triggered yet';
     }
 
     if (activeIncident) {
