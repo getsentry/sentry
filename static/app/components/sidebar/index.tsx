@@ -12,12 +12,12 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {
-  IconActivity,
   IconChevron,
   IconGraph,
   IconIssues,
   IconLab,
   IconLightning,
+  IconList,
   IconProject,
   IconReleases,
   IconSettings,
@@ -301,7 +301,7 @@ function Sidebar({location, organization}: Props) {
   const activity = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconActivity size="md" />}
+      icon={<IconList size="md" />}
       label={t('Activity')}
       to={`/organizations/${organization.slug}/activity/`}
       id="activity"
