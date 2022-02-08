@@ -37,6 +37,7 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
                 title={tct('Errored with [crashedInfo]', {
                   crashedInfo: crashedInfo.values[0].type,
                 })}
+                disabled={!crashedInfo}
                 position="top"
               >
                 <IconFire color="red300" />
