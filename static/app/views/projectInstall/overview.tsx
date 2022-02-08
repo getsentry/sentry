@@ -83,7 +83,13 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
           <p>
             <small>
               {tct('Already have things setup? [link:Get your DSN]', {
-                link: <Button priority="link" onClick={this.toggleDsn} />,
+                link: (
+                  <Button
+                    priority="link"
+                    onClick={this.toggleDsn}
+                    aria-label={t('Get your DSN')}
+                  />
+                ),
               })}
               .
             </small>

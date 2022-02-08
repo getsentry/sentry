@@ -60,9 +60,9 @@ function getImageStatusDetails(status: Status) {
 
 type Props = {
   image: DebugImageType;
-  showDetails: boolean;
   organization: Organization;
   projectId: Project['id'];
+  showDetails: boolean;
   style?: React.CSSProperties;
 };
 
@@ -247,13 +247,13 @@ const DebugImage = React.memo(
 
             return (
               <ImageActions>
-                <Tooltip title={t('Search for debug files in settings')}>
-                  <Button
-                    size="xsmall"
-                    icon={<IconSearch size="xs" />}
-                    to={settingsUrl}
-                  />
-                </Tooltip>
+                <Button
+                  size="xsmall"
+                  icon={<IconSearch size="xs" />}
+                  to={settingsUrl}
+                  title={t('Search for debug files in settings')}
+                  aria-label={t('Search for debug files in settings')}
+                />
               </ImageActions>
             );
           }}

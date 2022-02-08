@@ -42,16 +42,16 @@ const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
 };
 
 type Props = {
-  organization: Organization;
-  selection: PageFilters;
-  displayType: Widget['displayType'];
-  queries: WidgetQuery[];
-  errors?: Array<Record<string, any>>;
-  onChange: (queryIndex: number, widgetQuery: WidgetQuery) => void;
   canAddSearchConditions: boolean;
+  displayType: Widget['displayType'];
+  fieldOptions: ReturnType<typeof generateFieldOptions>;
   handleAddSearchConditions: () => void;
   handleDeleteQuery: (queryIndex: number) => void;
-  fieldOptions: ReturnType<typeof generateFieldOptions>;
+  onChange: (queryIndex: number, widgetQuery: WidgetQuery) => void;
+  organization: Organization;
+  queries: WidgetQuery[];
+  selection: PageFilters;
+  errors?: Array<Record<string, any>>;
 };
 
 /**

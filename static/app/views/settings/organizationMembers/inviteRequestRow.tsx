@@ -16,13 +16,13 @@ import space from 'sentry/styles/space';
 import {Member, MemberRole, Organization} from 'sentry/types';
 
 type Props = {
+  allRoles: MemberRole[];
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
-  organization: Organization;
   onApprove: (inviteRequest: Member) => void;
   onDeny: (inviteRequest: Member) => void;
   onUpdate: (data: Partial<Member>) => void;
-  allRoles: MemberRole[];
+  organization: Organization;
 };
 
 const InviteModalHook = HookOrDefault({

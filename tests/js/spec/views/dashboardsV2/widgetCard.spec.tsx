@@ -1,15 +1,21 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
+
+jest.mock('sentry/components/charts/simpleTableChart');
+jest.mock('sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
     organization: TestStubs.Organization({
-      features: ['connect-discover-and-dashboards', 'dashboards-edit', 'discover-basic'],
+      features: ['dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
     }),
     router: {orgId: 'orgId'},
@@ -362,6 +368,14 @@ describe('Dashboards > WidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Delete Widget'));
+    // Confirm Modal
+    await mountGlobalModal();
+    await screen.findByRole('dialog');
+
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    expect(mock).toHaveBeenCalled();
   });
 
   it('calls eventsV2 with a limit of 20 items', async function () {
@@ -431,5 +445,75 @@ describe('Dashboards > WidgetCard', function () {
         }),
       })
     );
+  });
+
+  it('has sticky table headers', async function () {
+    const tableWidget: Widget = {
+      title: 'Table Widget',
+      interval: '5m',
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.DISCOVER,
+      queries: [
+        {
+          conditions: '',
+          fields: ['transaction', 'count()'],
+          name: 'Table',
+          orderby: '',
+        },
+      ],
+    };
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={tableWidget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+    await tick();
+    expect(SimpleTableChart).toHaveBeenCalledWith(
+      expect.objectContaining({stickyHeaders: true}),
+      expect.anything()
+    );
+  });
+
+  it('calls metrics queries', function () {
+    const widget: Widget = {
+      title: 'Metrics Widget',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.METRICS,
+      queries: [],
+    };
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+
+    expect(MetricsWidgetQueries).toHaveBeenCalledTimes(1);
   });
 });

@@ -21,6 +21,8 @@ import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';
 
+import {setWidgetLibraryVisit, shouldShowNewBadge} from './utils';
+
 export enum TAB {
   Library = 'library',
   Custom = 'custom',
@@ -28,11 +30,11 @@ export enum TAB {
 
 type Props = {
   activeTab: TAB;
-  organization: Organization;
   dashboard: DashboardDetails;
-  selectedWidgets?: WidgetTemplate[];
+  organization: Organization;
   customWidget?: Widget;
   onAddWidget?: (widgets: Widget[]) => void;
+  selectedWidgets?: WidgetTemplate[];
 };
 
 export function TabsButtonBar({
@@ -78,6 +80,7 @@ export function TabsButtonBar({
             organization,
             to: TAB.Library,
           });
+          setWidgetLibraryVisit();
           if (defined(onAddWidget)) {
             openDashboardWidgetLibraryModal({
               organization,
@@ -90,7 +93,7 @@ export function TabsButtonBar({
         }}
       >
         {t('Widget Library')}
-        <FeatureBadge type="beta" />
+        {shouldShowNewBadge() && <FeatureBadge type="new" />}
       </LibraryButton>
     </StyledButtonBar>
   );

@@ -20,7 +20,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: false,
     });
@@ -55,7 +55,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: false,
     });
@@ -81,7 +81,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: false,
       existingMember: false,
     });
@@ -107,7 +107,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: true,
       existingMember: false,
     });
@@ -133,7 +133,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: true,
       existingMember: false,
     });
@@ -159,7 +159,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: true,
       existingMember: true,
     });
@@ -186,12 +186,34 @@ describe('AcceptOrganizationInvite', function () {
     window.location.replace = replace;
   });
 
+  it('shows right options for logged in user and optional SSO', async function () {
+    addMock({
+      orgSlug: 'test-org',
+      needsAuthentication: false,
+      needs2fa: false,
+      hasAuthProvider: true,
+      requireSso: false,
+      existingMember: false,
+    });
+
+    const wrapper = mountWithTheme(
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
+      TestStubs.routerContext()
+    );
+
+    const ssoLink = wrapper.find('[data-test-id="action-info-sso"]');
+    expect(ssoLink.exists()).toBe(true);
+
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
+    expect(joinButton.exists()).toBe(true);
+  });
+
   it('shows a logout button for existing members', async function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: true,
     });
@@ -223,7 +245,7 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: true,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: false,
     });

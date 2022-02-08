@@ -16,12 +16,12 @@ import withProject from 'sentry/utils/withProject';
 
 type Props = WithRouterProps & {
   organization: Organization;
-  error?: Error;
   /**
    * Disable logging to Sentry
    */
   disableLogSentry?: boolean;
   disableReport?: boolean;
+  error?: Error;
   project?: Project;
 };
 

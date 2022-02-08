@@ -5,46 +5,46 @@ type SampleTransactionParam = {
 };
 
 type PerformanceTourParams = {
-  step: number;
   duration: number;
+  step: number;
 };
 
 export type PerformanceEventParameters = {
   'performance_views.create_sample_transaction': SampleTransactionParam;
-  'performance_views.tour.start': {};
-  'performance_views.tour.advance': PerformanceTourParams;
-  'performance_views.tour.close': PerformanceTourParams;
   'performance_views.landingv2.transactions.sort': {
-    field?: string;
     direction?: string;
+    field?: string;
+  };
+  'performance_views.landingv3.batch_queries': {
+    num_collected: number;
+    num_saved: number;
+    num_sent: number;
+  };
+  'performance_views.landingv3.display_change': {
+    change_to_display: string;
+    current_display: string;
+    default_display: string;
+    is_default: boolean;
   };
   'performance_views.landingv3.widget.interaction': {
     widget_type?: string;
   };
   'performance_views.landingv3.widget.switch': {
+    from_default?: boolean;
     from_widget?: string;
     to_widget?: string;
-    from_default?: boolean;
   };
-  'performance_views.landingv3.batch_queries': {
-    num_collected: number;
-    num_sent: number;
-    num_saved: number;
-  };
-  'performance_views.landingv3.display_change': {
-    change_to_display: string;
-    default_display: string;
-    current_display: string;
-    is_default: boolean;
-  };
-  'performance_views.overview.navigate.summary': {};
   'performance_views.overview.cellaction': {action?: string};
+  'performance_views.overview.navigate.summary': {};
   'performance_views.spans.change_op': {
     operation_name?: string;
   };
   'performance_views.spans.change_sort': {
     sort_column?: string;
   };
+  'performance_views.tour.advance': PerformanceTourParams;
+  'performance_views.tour.close': PerformanceTourParams;
+  'performance_views.tour.start': {};
 };
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;

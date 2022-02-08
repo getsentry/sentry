@@ -3,6 +3,7 @@ import logging
 import time
 from collections import deque
 from concurrent.futures import Future
+from copy import deepcopy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -13,6 +14,7 @@ from typing import (
     MutableMapping,
     NamedTuple,
     Optional,
+    Set,
     Union,
 )
 
@@ -30,7 +32,7 @@ from django.conf import settings
 from sentry.utils import json, kafka_config
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
-DEFAULT_QUEUED_MIN_MESSAGES = 10000
+DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
 logger = logging.getLogger(__name__)
 
@@ -51,13 +53,6 @@ def get_indexer():  # type: ignore
 
 
 @functools.lru_cache(maxsize=10)
-def get_task():  # type: ignore
-    from sentry.sentry_metrics.indexer.tasks import process_indexed_metrics
-
-    return process_indexed_metrics
-
-
-@functools.lru_cache(maxsize=10)
 def get_metrics():  # type: ignore
     from sentry.utils import metrics
 
@@ -65,8 +60,9 @@ def get_metrics():  # type: ignore
 
 
 def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapping[Any, Any]:
+    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
     consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
-        "default",
+        cluster_name,
         override_params={
             "enable.auto.commit": False,
             "enable.auto.offset.store": False,
@@ -78,6 +74,10 @@ def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapp
         },
     )
     return consumer_config
+
+
+class DuplicateMessage(Exception):
+    pass
 
 
 class MetricsBatchBuilder:
@@ -93,6 +93,7 @@ class MetricsBatchBuilder:
         self.__messages: MessageBatch = []
         self.__max_batch_size = max_batch_size
         self.__deadline = time.time() + max_batch_time
+        self.__offsets: Set[int] = set()
 
     def __len__(self) -> int:
         return len(self.__messages)
@@ -102,7 +103,10 @@ class MetricsBatchBuilder:
         return self.__messages
 
     def append(self, message: Message[KafkaPayload]) -> None:
+        if message.offset in self.__offsets:
+            raise DuplicateMessage
         self.__messages.append(message)
+        self.__offsets.add(message.offset)
 
     def ready(self) -> bool:
         if len(self.messages) >= self.__max_batch_size:
@@ -144,13 +148,31 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__next_step.poll()
 
         if self.__batch and self.__batch.ready():
-            self.__flush()
+            try:
+                self.__flush()
+            except MessageRejected:
+                # Probably means that we have received back pressure due to the
+                # ParallelTransformStep.
+                logger.debug("Attempt to flush batch failed...Re-trying in next poll")
+                pass
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         if self.__batch is None:
             self.__batch = MetricsBatchBuilder(self.__max_batch_size, self.__max_batch_time)
 
-        self.__batch.append(message)
+        try:
+            self.__batch.append(message)
+        except DuplicateMessage:
+            # If we are getting back pressure from the next_step (ParallelTransformStep),
+            # the consumer will keep trying to submit the same carried over message
+            # until it succeeds and stops throwing the MessageRejected error. In this
+            # case we don't want to keep adding the same message to the batch over and
+            # over again
+            logger.debug(f"Message already added to batch with offset: {message.offset}")
+            pass
+
+        if self.__batch and self.__batch.ready():
+            self.__flush()
 
     def __flush(self) -> None:
         if not self.__batch:
@@ -170,7 +192,13 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__closed = True
 
     def join(self, timeout: Optional[float] = None) -> None:
-        self.__flush()
+        if self.__batch:
+            last = self.__batch.messages[-1]
+            logger.debug(
+                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.offset}"
+            )
+
+        self.__next_step.close()
         self.__next_step.join(timeout)
 
 
@@ -251,8 +279,8 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     def _record_commit_duration(self, commit_duration: float) -> None:
         self.__commit_duration_sum += commit_duration
 
-        # record commit durations every 5 minutes
-        if (self.__commit_start + 300) < time.time():
+        # record commit durations every 5 seconds
+        if (self.__commit_start + 5) < time.time():
             self.__metrics.incr(
                 "produce_step.commit_duration", amount=int(self.__commit_duration_sum)
             )
@@ -320,7 +348,6 @@ def process_messages(
     """
     indexer = get_indexer()
     metrics = get_metrics()
-    task = get_task()
 
     strings = set()
     parsed_payloads_by_offset = {
@@ -343,11 +370,10 @@ def process_messages(
         mapping = indexer.bulk_record(list(strings))
 
     new_messages: List[Message[KafkaPayload]] = []
-    celery_messages: List[Mapping[str, Union[str, int, Mapping[int, int]]]] = []
 
     for message in outer_message.payload:
         parsed_payload_value = parsed_payloads_by_offset[message.offset]
-        new_payload_value = parsed_payload_value
+        new_payload_value = deepcopy(parsed_payload_value)
 
         metric_name = parsed_payload_value["name"]
         tags = parsed_payload_value.get("tags", {})
@@ -373,13 +399,6 @@ def process_messages(
         )
         new_messages.append(new_message)
 
-        # TODO(meredith): Need to add kickin off the celery task in here, eventually
-        # we will use kafka to forward messages to the product data model
-        celery_messages.append(
-            {"name": metric_name, "tags": new_tags, "org_id": parsed_payload_value["org_id"]}
-        )
-
-    task.apply_async(kwargs={"messages": celery_messages})
     metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
 
     return new_messages

@@ -1,15 +1,18 @@
 import LazyLoad from 'react-lazyload';
 
+import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {t} from 'sentry/locale';
 import {Group, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 
 type Props = {
-  statsPeriod: string;
   data: Group;
+  statsPeriod: string;
   height?: number;
+  showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
 };
 
@@ -18,6 +21,7 @@ function GroupChart({
   statsPeriod,
   showSecondaryPoints = false,
   height = 24,
+  showMarkLine = false,
 }: Props) {
   const stats: TimeseriesValue[] = statsPeriod
     ? data.filtered
@@ -31,6 +35,9 @@ function GroupChart({
   if (!stats || !stats.length) {
     return null;
   }
+
+  const markLinePoint = stats.map(point => point[1]);
+  const formattedMarkLine = formatAbbreviatedNumber(Math.max(...markLinePoint));
 
   let colors: string[] | undefined = undefined;
   let emphasisColors: string[] | undefined = undefined;
@@ -53,19 +60,40 @@ function GroupChart({
     series.push({
       seriesName: t('Events'),
       data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
+      markLine:
+        showMarkLine && Math.max(...markLinePoint) > 0
+          ? MarkLine({
+              silent: true,
+              lineStyle: {color: theme.gray200, type: 'dotted', width: 1},
+              data: [
+                {
+                  type: 'max',
+                },
+              ],
+              label: {
+                show: true,
+                position: 'start',
+                color: `${theme.gray200}`,
+                fontFamily: 'Rubik',
+                fontSize: 10,
+                formatter: `${formattedMarkLine}`,
+              },
+            })
+          : undefined,
     });
   }
 
   return (
-    <LazyLoad debounce={50} height={height}>
+    <LazyLoad debounce={50} height={showMarkLine ? 30 : height}>
       <MiniBarChart
-        height={height}
+        height={showMarkLine ? 36 : height}
         isGroupedByDate
         showTimeInTooltip
         series={series}
         colors={colors}
         emphasisColors={emphasisColors}
         hideDelay={50}
+        showMarkLineLabel={showMarkLine}
       />
     </LazyLoad>
   );

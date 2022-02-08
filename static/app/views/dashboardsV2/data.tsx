@@ -225,7 +225,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
     description: t('Erroring URLs and Web Vitals'),
     widgets: [
       {
-        title: t('Top 5 Issues by Unique Users over Time'),
+        title: t('Top 5 Issues by Unique Users Over Time'),
         displayType: DisplayType.TOP_N,
         interval: '5m',
         queries: [
@@ -289,7 +289,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Urls grouped by Issue'),
+        title: t('URLs grouped by Issue'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
@@ -319,7 +319,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Layout Shift over Time'),
+        title: t('Layout Shift Over Time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
@@ -349,7 +349,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Page Load over Time'),
+        title: t('Page Load Over Time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
@@ -433,7 +433,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
     description: t('Issues and Performance'),
     widgets: [
       {
-        title: t('Top 5 Issues by Unique Users over Time'),
+        title: t('Top 5 Issues by Unique Users Over Time'),
         displayType: DisplayType.TOP_N,
         interval: '5m',
         queries: [
@@ -528,7 +528,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('p75(duration)'),
+        title: t('p75 of Duration by Country'),
         displayType: DisplayType.WORLD_MAP,
         interval: '5m',
         queries: [
@@ -579,7 +579,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Tasks Transactions with poor Apdex'),
+        title: t('Tasks Transactions with Poor Apdex'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
@@ -594,7 +594,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('HTTP Transactions with poor Apdex'),
+        title: t('HTTP Transactions with Poor Apdex'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
@@ -625,7 +625,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Overal P75'),
+        title: t('Overall p75'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [

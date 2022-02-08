@@ -6,8 +6,8 @@ import InputField, {onEvent} from 'sentry/views/settings/components/forms/inputF
 
 type Props = {
   confirm?: {
-    true?: React.ReactNode;
     false?: React.ReactNode;
+    true?: React.ReactNode;
   };
 } & InputField['props'];
 
@@ -42,10 +42,10 @@ export default class BooleanField extends React.Component<Props> {
           disabled,
           ...props
         }: {
-          onChange: onEvent;
-          onBlur: onEvent;
-          value: any;
           disabled: boolean;
+          onBlur: onEvent;
+          onChange: onEvent;
+          value: any;
         }) => {
           // Create a function with required args bound
           const handleChange = this.handleChange.bind(this, value, onChange, onBlur);

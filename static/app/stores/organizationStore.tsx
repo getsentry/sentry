@@ -12,19 +12,19 @@ type UpdateOptions = {
 };
 
 type State = {
-  organization: Organization | null;
-  loading: boolean;
   dirty: boolean;
-  errorType?: string | null;
+  loading: boolean;
+  organization: Organization | null;
   error?: RequestError | null;
+  errorType?: string | null;
 };
 
 type OrganizationStoreInterface = CommonStoreInterface<State> & {
-  init(): void;
-  reset(): void;
-  onUpdate(org: Organization, options: UpdateOptions): void;
-  onFetchOrgError(err: RequestError): void;
   get(): State;
+  init(): void;
+  onFetchOrgError(err: RequestError): void;
+  onUpdate(org: Organization, options: UpdateOptions): void;
+  reset(): void;
 };
 
 const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {

@@ -43,11 +43,11 @@ const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
 };
 
 type Props = {
+  event: Event;
+  group: Group;
+  location: Location;
   organization: Organization;
   project: Project;
-  group: Group;
-  event: Event;
-  location: Location;
 };
 
 class GroupEventToolbar extends Component<Props> {

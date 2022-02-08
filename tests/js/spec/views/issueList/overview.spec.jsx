@@ -41,6 +41,11 @@ describe('IssueList', function () {
   const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
 
   beforeEach(function () {
+    // The tests fail because we have a "component update was not wrapped in act" error.
+    // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.clearMockResponses();
     project = TestStubs.ProjectDetails({
       id: '3559',
@@ -597,6 +602,7 @@ describe('IssueList', function () {
       wrapper
         .find('SmartSearchBar textarea')
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
+
       wrapper.find('SmartSearchBar form').simulate('submit');
 
       expect(browserHistory.push.mock.calls[0][0]).toEqual(

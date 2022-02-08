@@ -6,8 +6,8 @@ import Feature from 'sentry/components/acl/feature';
 import {Organization} from 'sentry/types';
 
 type Props = {
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 } & RouteComponentProps<{organizationId: string; projectId: string}, {}>;
 
 const ProjectAlerts = ({children, organization}: Props) => (

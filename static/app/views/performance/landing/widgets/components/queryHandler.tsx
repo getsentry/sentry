@@ -3,6 +3,7 @@ import {Fragment, useEffect} from 'react';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 /*
   Component to handle switching component-style queries over to state. This should be temporary to make it easier to switch away from waterfall style api components.
@@ -25,6 +26,10 @@ export function QueryHandler<T extends WidgetDataConstraint>(
         ))}
     </Fragment>
   );
+}
+
+function genericQueryReferrer(setting: PerformanceWidgetSetting) {
+  return `api.performance.generic-widget-chart.${setting.replaceAll('_', '-')}`;
 }
 
 function SingleQueryHandler<T extends WidgetDataConstraint>(
@@ -63,6 +68,7 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
       eventView={props.queryProps.eventView}
       query={props.queryProps.eventView.getQueryWithAdditionalConditions()}
       widgetData={props.widgetData}
+      referrer={genericQueryReferrer(props.queryProps.chartSetting)}
     >
       {results => {
         return (
@@ -77,8 +83,9 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
 
 function QueryResultSaver<T extends WidgetDataConstraint>(
   props: {
-    results: any; // TODO(k-fish): Fix this any.
+    // TODO(k-fish): Fix this any.
     query: QueryDefinitionWithKey<T>;
+    results: any;
   } & QueryHandlerProps<T>
 ) {
   const {results, query} = props;

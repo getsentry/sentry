@@ -22,26 +22,27 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import ProjectSelector from './projectSelector';
 
 type Props = WithRouterProps & {
-  organization: Organization;
-  value: number[];
-  projects: Project[];
   nonMemberProjects: Project[];
-  onChange: (selected: number[]) => unknown;
-  onUpdate: () => unknown;
-  isGlobalSelectionReady?: boolean;
-  disableMultipleProjectSelection?: boolean;
-  shouldForceProject?: boolean;
-  forceProject?: MinimalProject | null;
-  showIssueStreamLink?: boolean;
-  showProjectSettingsLink?: boolean;
-  lockedMessageSubject?: React.ReactNode;
-  footerMessage?: React.ReactNode;
+  onChange: (selected: number[]) => void;
+  onUpdate: (newProjects?: number[]) => void;
+  organization: Organization;
+  projects: Project[];
+  value: number[];
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
-    selectedProjects: Project[];
     isOpen: boolean;
+    selectedProjects: Project[];
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  disableMultipleProjectSelection?: boolean;
+  footerMessage?: React.ReactNode;
+  forceProject?: MinimalProject | null;
+  isGlobalSelectionReady?: boolean;
+  lockedMessageSubject?: React.ReactNode;
+  pinned?: boolean;
+  shouldForceProject?: boolean;
+  showIssueStreamLink?: boolean;
+  showProjectSettingsLink?: boolean;
 };
 
 type State = {
@@ -64,9 +65,12 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     );
   }
 
-  // Reset "hasChanges" state and call `onUpdate` callback
-  doUpdate = () => {
-    this.setState({hasChanges: false}, this.props.onUpdate);
+  /**
+   * Reset "hasChanges" state and call `onUpdate` callback
+   * @param value optional parameter that will be passed to onUpdate callback
+   */
+  doUpdate = (value?: number[]) => {
+    this.setState({hasChanges: false}, () => this.props.onUpdate(value));
   };
 
   /**
@@ -92,7 +96,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     });
     const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
     this.props.onChange(value);
-    this.doUpdate();
+    this.doUpdate(value);
   };
 
   /**
@@ -204,6 +208,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       footerMessage,
       customDropdownButton,
       customLoadingIndicator,
+      pinned,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -290,6 +295,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 message={footerMessage}
               />
             )}
+            pinned={pinned}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
               if (customDropdownButton) {
@@ -346,14 +352,14 @@ type FeatureRenderProps = {
 };
 
 type ControlProps = {
-  organization: Organization;
   onApply: () => void;
   onShowAllProjects: () => void;
   onShowMyProjects: () => void;
-  selected?: Set<number>;
+  organization: Organization;
   disableMultipleProjectSelection?: boolean;
   hasChanges?: boolean;
   message?: React.ReactNode;
+  selected?: Set<number>;
 };
 
 const SelectorFooterControls = ({

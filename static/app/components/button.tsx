@@ -17,29 +17,37 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
-type Props = {
-  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
-  size?: 'zero' | 'xsmall' | 'small';
-  align?: 'center' | 'left' | 'right';
-  disabled?: boolean;
-  busy?: boolean;
-  to?: string | object;
-  href?: string;
-  icon?: React.ReactNode;
-  title?: React.ComponentProps<typeof Tooltip>['title'];
-  external?: boolean;
-  borderless?: boolean;
-  translucentBorder?: boolean;
-  'aria-label'?: string;
-  tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
-  onClick?: (e: React.MouseEvent) => void;
-  forwardRef?: React.Ref<ButtonElement>;
-  name?: string;
+type ConditionalAriaLabel =
+  | {
+      children: Omit<React.ReactNode, 'null' | 'undefined' | 'boolean'>;
+      'aria-label'?: string;
+    }
+  | {
+      'aria-label': string;
+      children?: null | boolean;
+    };
 
+type Props = {
+  align?: 'center' | 'left' | 'right';
   // This is only used with `<ButtonBar>`
   barId?: string;
-  children?: React.ReactNode;
-};
+  borderless?: boolean;
+  busy?: boolean;
+  disabled?: boolean;
+  external?: boolean;
+  forwardRef?: React.Ref<ButtonElement>;
+  href?: string;
+  icon?: React.ReactNode;
+  name?: string;
+  onClick?: (e: React.MouseEvent) => void;
+  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
+  size?: 'zero' | 'xsmall' | 'small';
+  title?: React.ComponentProps<typeof Tooltip>['title'];
+  to?: string | object;
+  tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
+
+  translucentBorder?: boolean;
+} & ConditionalAriaLabel;
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref' | 'label'> &
   Props;
@@ -84,9 +92,14 @@ function BaseButton({
     return disabled ? undefined : prop;
   }
 
-  // For `aria-label`
+  // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
+  // Leaving it here for a bunch of our tests that query by aria-label.
   const screenReaderLabel =
     ariaLabel || (typeof children === 'string' ? children : undefined);
+
+  const hasChildren = Array.isArray(children)
+    ? children.some(child => !!child)
+    : !!children;
 
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.
@@ -108,7 +121,7 @@ function BaseButton({
     >
       <ButtonLabel align={align} size={size} borderless={borderless}>
         {icon && (
-          <Icon size={size} hasChildren={!!children}>
+          <Icon size={size} hasChildren={hasChildren}>
             {icon}
           </Icon>
         )}
@@ -187,6 +200,26 @@ const getColors = ({
     focusShadow,
   } = theme.button[themeName];
 
+  const getFocusState = () => {
+    switch (priority) {
+      case 'primary':
+      case 'success':
+      case 'danger':
+        return `
+          border-color: ${focusBorder};
+          box-shadow: ${focusBorder} 0 0 0 1px, ${focusShadow} 0 0 0 4px;`;
+      default:
+        if (translucentBorder) {
+          return `
+            border-color: ${focusBorder};
+            box-shadow: ${focusBorder} 0 0 0 2px;`;
+        }
+        return `
+          border-color: ${focusBorder};
+          box-shadow: ${focusBorder} 0 0 0 1px;`;
+    }
+  };
+
   return css`
     color: ${color};
     background-color: ${background};
@@ -210,8 +243,8 @@ const getColors = ({
     }`}
 
     &.focus-visible {
-      border: 1px solid ${focusBorder};
-      box-shadow: ${focusBorder} 0 0 0 1px, ${focusShadow} 0 0 0 4px;
+      ${getFocusState()}
+      z-index: 1;
     }
   `;
 };
@@ -311,8 +344,8 @@ const ButtonLabel = styled('span', {
 `;
 
 type IconProps = {
-  size?: ButtonProps['size'];
   hasChildren?: boolean;
+  size?: ButtonProps['size'];
 };
 
 const getIconMargin = ({size, hasChildren}: IconProps) => {

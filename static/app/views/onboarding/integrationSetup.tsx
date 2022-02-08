@@ -30,15 +30,15 @@ import {StepProps} from './types';
 
 type Props = StepProps & {
   api: Client;
-  organization: Organization;
   integrationSlug: string;
+  organization: Organization;
 };
 
 type State = {
-  loadedPlatform: PlatformKey | null;
   hasError: boolean;
-  provider: IntegrationProvider | null;
   installed: boolean;
+  loadedPlatform: PlatformKey | null;
+  provider: IntegrationProvider | null;
 };
 
 class IntegrationSetup extends Component<Props, State> {
@@ -153,6 +153,7 @@ class IntegrationSetup extends Component<Props, State> {
                   onClick={() => {
                     openInviteMembersModal();
                   }}
+                  aria-label={t('Invite your team instead')}
                 />
               ),
             }

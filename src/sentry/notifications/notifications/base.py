@@ -4,6 +4,8 @@ import abc
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
 from urllib.parse import urljoin
 
+import sentry_sdk
+
 from sentry import analytics
 from sentry.models import Environment, NotificationSetting, Team
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
@@ -126,23 +128,32 @@ class BaseNotification(abc.ABC):
     def get_callback_data(self) -> Mapping[str, Any] | None:
         return None
 
-    def record_analytics(self, event_name: str, **kwargs: Any) -> None:
-        analytics.record(event_name, **kwargs)
+    @property
+    def analytics_instance(self) -> Any | None:
+        """
+        Returns an instance for that can be used for analytics such as an organization or project
+        """
+        return None
+
+    def record_analytics(self, event_name: str, *args: Any, **kwargs: Any) -> None:
+        analytics.record(event_name, *args, **kwargs)
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        # may want to explicitly pass in the parameters for this event
-        self.record_analytics(
-            f"integrations.{provider.name}.notification_sent",
-            category=self.get_category(),
-            **self.get_log_params(recipient),
-        )
-        # record an optional second event
-        if self.analytics_event:
+        with sentry_sdk.start_span(op="notification.send", description="record_notification_sent"):
+            # may want to explicitly pass in the parameters for this event
             self.record_analytics(
-                self.analytics_event,
-                providers=provider.name.lower(),
-                **self.get_custom_analytics_params(recipient),
+                f"integrations.{provider.name}.notification_sent",
+                category=self.get_category(),
+                **self.get_log_params(recipient),
             )
+            # record an optional second event
+            if self.analytics_event:
+                self.record_analytics(
+                    self.analytics_event,
+                    self.analytics_instance,
+                    providers=provider.name.lower(),
+                    **self.get_custom_analytics_params(recipient),
+                )
 
     def get_referrer(
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
@@ -206,13 +217,15 @@ class BaseNotification(abc.ABC):
         """The default way to send notifications that respects Notification Settings."""
         from sentry.notifications.notify import notify
 
-        participants_by_provider = self.get_participants()
-        if not participants_by_provider:
-            return
+        with sentry_sdk.start_span(op="notification.send", description="get_participants"):
+            participants_by_provider = self.get_participants()
+            if not participants_by_provider:
+                return
 
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
-            safe_execute(notify, provider, self, recipients, context)
+            with sentry_sdk.start_span(op="notification.send", description=f"send_for_{provider}"):
+                safe_execute(notify, provider, self, recipients, context)
 
 
 class ProjectNotification(BaseNotification, abc.ABC):

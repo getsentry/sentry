@@ -47,12 +47,12 @@ type Props = AsyncComponent['props'] &
     | 'onResults'
     | 'defaultOptions'
   > & {
-    organization: Organization;
     integration: Integration;
-    mappings: ExternalActorMappingOrSuggestion[];
-    type: 'team' | 'user';
+    mappings: ExternalActorMapping[];
     onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
     onDelete: (mapping: ExternalActorMapping) => void;
+    organization: Organization;
+    type: 'team' | 'user';
     pageLinks?: string;
   };
 
@@ -172,6 +172,8 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
               size="small"
               icon={<IconEllipsisVertical size="sm" />}
               disabled={!hasAccess}
+              aria-label={t('Actions')}
+              data-test-id="mapping-option"
             />
           }
         >
@@ -181,6 +183,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
             disabled={!hasAccess}
             onAction={() => onDelete(mapping)}
             title={t(`Delete External ${capitalize(type)}`)}
+            data-test-id="delete-mapping-button"
           >
             <RedText>{t('Delete')}</RedText>
           </MenuItemActionLink>
@@ -190,7 +193,16 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
       <Tooltip
         title={t(`This ${type} mapping suggestion was generated from a CODEOWNERS file`)}
       >
-        <Button borderless size="small" icon={<IconQuestion size="sm" />} disabled />
+        <Button
+          disabled
+          borderless
+          size="small"
+          icon={<IconQuestion size="sm" />}
+          aria-label={t(
+            `This ${type} mapping suggestion was generated from a CODEOWNERS file`
+          )}
+          data-test-id="suggestion-option"
+        />
       </Tooltip>
     );
   }
@@ -234,9 +246,12 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
               </Access>
             </HeaderLayout>
           </PanelHeader>
-          <PanelBody>
+          <PanelBody data-test-id="mapping-table">
             {!this.allMappings.length && (
-              <EmptyMessage icon={getIntegrationIcon(integration.provider.key, 'lg')}>
+              <EmptyMessage
+                icon={getIntegrationIcon(integration.provider.key, 'lg')}
+                data-test-id="empty-message"
+              >
                 {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
               </EmptyMessage>
             )}

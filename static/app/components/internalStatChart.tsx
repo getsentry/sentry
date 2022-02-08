@@ -8,17 +8,17 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  since: number;
-  resolution: string;
-  stat: string;
   label: string;
+  resolution: string;
+  since: number;
+  stat: string;
   height?: number;
 };
 
 type State = {
+  data: [number, number][] | null;
   error: boolean;
   loading: boolean;
-  data: [number, number][] | null;
 };
 
 class InternalStatChart extends Component<Props, State> {

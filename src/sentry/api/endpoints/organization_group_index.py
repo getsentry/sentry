@@ -16,7 +16,6 @@ from sentry.api.helpers.group_index import (
     calculate_stats_period,
     delete_groups,
     get_by_short_id,
-    rate_limit_endpoint,
     track_slo_response,
     update_groups,
 )
@@ -138,6 +137,7 @@ def inbox_search(
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
+    enforce_rate_limit = True
 
     rate_limits = {
         "GET": {
@@ -176,7 +176,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         return result, query_kwargs
 
     @track_slo_response("workflow")
-    @rate_limit_endpoint(limit=10, window=1)
     def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Issues
@@ -350,7 +349,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         return response
 
     @track_slo_response("workflow")
-    @rate_limit_endpoint(limit=5, window=5)
     def put(self, request: Request, organization) -> Response:
         """
         Bulk Mutate a List of Issues
@@ -433,7 +431,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         )
 
     @track_slo_response("workflow")
-    @rate_limit_endpoint(limit=5, window=5)
     def delete(self, request: Request, organization) -> Response:
         """
         Bulk Remove a List of Issues

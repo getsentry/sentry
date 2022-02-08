@@ -10,11 +10,11 @@ import space from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 
 type Data = {
+  config: [key: string, value: string][];
   environment: {
     config: string;
     start_date: string;
   };
-  config: [key: string, value: string][];
   pythonVersion: string;
 };
 
@@ -42,6 +42,10 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
               {version.upgradeAvailable && (
                 <Button
                   title={t(
+                    "You're running an old version of Sentry, did you know %s is available?",
+                    version.latest
+                  )}
+                  aria-label={t(
                     "You're running an old version of Sentry, did you know %s is available?",
                     version.latest
                   )}

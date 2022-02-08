@@ -6,8 +6,8 @@ import Button from 'sentry/components/button';
 import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 
 type Props = {
-  installationId: string;
   closeModal: () => void;
+  installationId: string;
 };
 
 /**

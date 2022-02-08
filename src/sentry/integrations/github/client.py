@@ -221,11 +221,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         results: Mapping[str, Any] = self.get(path="/search/code", params={"q": query})
         return results
 
-    def get_file(self, repo: str, path: str) -> bytes:
+    def get_file(self, repo: Repository, path: str, ref: str) -> bytes:
         from base64 import b64decode
 
-        # default ref will be the default_branch
-        contents = self.get(path=f"/repos/{repo}/contents/{path}")
+        contents = self.get(path=f"/repos/{repo.name}/contents/{path}", params={"ref": ref})
         encoded_content = contents["content"]
         return b64decode(encoded_content)
 

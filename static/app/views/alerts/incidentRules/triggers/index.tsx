@@ -17,29 +17,31 @@ import {
 } from '../types';
 
 type Props = {
-  organization: Organization;
-  projects: Project[];
-  ruleId?: string;
-  triggers: Trigger[];
-  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
-  thresholdType: UnsavedIncidentRule['thresholdType'];
-  comparisonType: AlertRuleComparisonType;
   aggregate: UnsavedIncidentRule['aggregate'];
-  currentProject: string;
   availableActions: MetricActionTemplate[] | null;
+  comparisonType: AlertRuleComparisonType;
+  currentProject: string;
   disabled: boolean;
-
   errors: Map<number, {[fieldName: string]: string}>;
-
   onChange: (
     triggers: Trigger[],
     triggerIndex?: number,
     changeObj?: Partial<Trigger>
   ) => void;
-  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   onResolveThresholdChange: (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => void;
+  onThresholdPeriodChange: (value: number) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  organization: Organization;
+  projects: Project[];
+
+  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
+
+  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
+  thresholdType: UnsavedIncidentRule['thresholdType'];
+  triggers: Trigger[];
+  ruleId?: string;
 };
 
 /**
@@ -99,10 +101,12 @@ class Triggers extends Component<Props> {
       disabled,
       aggregate,
       thresholdType,
+      thresholdPeriod,
       comparisonType,
       resolveThreshold,
       onThresholdTypeChange,
       onResolveThresholdChange,
+      onThresholdPeriodChange,
     } = this.props;
 
     // Note we only support 2 triggers max
@@ -119,10 +123,12 @@ class Triggers extends Component<Props> {
               aggregate={aggregate}
               resolveThreshold={resolveThreshold}
               thresholdType={thresholdType}
+              thresholdPeriod={thresholdPeriod}
               comparisonType={comparisonType}
               onChange={this.handleChangeTrigger}
               onThresholdTypeChange={onThresholdTypeChange}
               onResolveThresholdChange={onResolveThresholdChange}
+              onThresholdPeriodChange={onThresholdPeriodChange}
             />
           </PanelBody>
         </Panel>

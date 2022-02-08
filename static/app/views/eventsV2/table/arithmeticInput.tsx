@@ -15,14 +15,14 @@ import Input from 'sentry/views/settings/components/forms/controls/input';
 const NONE_SELECTED = -1;
 
 type DropdownOption = {
-  kind: 'field' | 'operator';
   active: boolean;
+  kind: 'field' | 'operator';
   value: string;
 };
 
 type DropdownOptionGroup = {
-  title: string;
   options: DropdownOption[];
+  title: string;
 };
 
 type DefaultProps = {
@@ -36,12 +36,12 @@ type Props = DefaultProps &
   };
 
 type State = {
-  query: string;
-  partialTerm: string | null;
-  rawOptions: Column[];
-  dropdownVisible: boolean;
-  dropdownOptionGroups: DropdownOptionGroup[];
   activeSelection: number;
+  dropdownOptionGroups: DropdownOptionGroup[];
+  dropdownVisible: boolean;
+  partialTerm: string | null;
+  query: string;
+  rawOptions: Column[];
 };
 
 export default class ArithmeticInput extends PureComponent<Props, State> {
@@ -306,9 +306,9 @@ const StyledInput = styled(Input)`
 `;
 
 type TermDropdownProps = {
+  handleSelect: (option: DropdownOption) => void;
   isOpen: boolean;
   optionGroups: DropdownOptionGroup[];
-  handleSelect: (option: DropdownOption) => void;
 };
 
 function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {

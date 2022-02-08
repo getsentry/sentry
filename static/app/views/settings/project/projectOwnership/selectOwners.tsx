@@ -24,10 +24,10 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 
 export type Owner = {
-  value: string;
+  actor: Actor;
   label: React.ReactNode;
   searchKey: string;
-  actor: Actor;
+  value: string;
   disabled?: boolean;
 };
 
@@ -44,18 +44,18 @@ const getSearchKeyForUser = (user: User) =>
 
 type Props = {
   api: Client;
+  disabled: boolean;
+  onChange: (owners: Owner[]) => void;
   organization: Organization;
   project: Project;
   projects: Project[];
   value: any;
-  onChange: (owners: Owner[]) => void;
-  disabled: boolean;
   onInputChange?: (text: string) => void;
 };
 
 type State = {
-  loading: boolean;
   inputValue: string;
+  loading: boolean;
 };
 
 class SelectOwners extends React.Component<Props, State> {
@@ -144,6 +144,7 @@ class SelectOwners extends React.Component<Props, State> {
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
               icon={<IconAdd isCircled />}
+              aria-label={t('Add %s to project', `#${team.slug}`)}
             />
           </Tooltip>
         </Container>
