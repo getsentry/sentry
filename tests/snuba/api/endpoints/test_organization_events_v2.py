@@ -5,6 +5,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 from pytz import utc
+from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
@@ -4784,5 +4785,108 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
 
         assert (
             Function("tuple", ["duration", 300], "project_threshold_config")
+            in mock_snql_query.call_args_list[0][0][0].select
+        )
+
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    def test_removes_unnecessary_default_project_and_transaction_thresholds_keeps_others(
+        self, mock_snql_query
+    ):
+        mock_snql_query.side_effect = [{"meta": {}, "data": []}]
+
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.organization,
+            # these are the default values that we use
+            threshold=DEFAULT_PROJECT_THRESHOLD,
+            metric=TransactionMetric.DURATION.value,
+        )
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="transaction",
+            project=self.project,
+            organization=self.organization,
+            # these are the default values that we use
+            threshold=DEFAULT_PROJECT_THRESHOLD,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=self.organization,
+            threshold=100,
+            metric=TransactionMetric.LCP.value,
+        )
+        ProjectTransactionThresholdOverride.objects.create(
+            transaction="transaction",
+            project=project,
+            organization=self.organization,
+            threshold=200,
+            metric=TransactionMetric.LCP.value,
+        )
+
+        query = {
+            "field": ["apdex()", "user_misery()"],
+            "query": "event.type:transaction",
+            "project": [self.project.id, project.id],
+        }
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:global-views": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert mock_snql_query.call_count == 1
+
+        project_threshold_override_config_index = Function(
+            "indexOf",
+            [
+                # only 1 transaction override is present here
+                # because the other use to the default values
+                [(Function("toUInt64", [project.id]), "transaction")],
+                (Column("project_id"), Column("transaction")),
+            ],
+            "project_threshold_override_config_index",
+        )
+
+        project_threshold_config_index = Function(
+            "indexOf",
+            [
+                # only 1 project override is present here
+                # because the other use to the default values
+                [Function("toUInt64", [project.id])],
+                Column("project_id"),
+            ],
+            "project_threshold_config_index",
+        )
+
+        assert (
+            Function(
+                "if",
+                [
+                    Function("equals", [project_threshold_override_config_index, 0]),
+                    Function(
+                        "if",
+                        [
+                            Function("equals", [project_threshold_config_index, 0]),
+                            ("duration", 300),
+                            Function(
+                                "arrayElement", [[("lcp", 100)], project_threshold_config_index]
+                            ),
+                        ],
+                    ),
+                    Function(
+                        "arrayElement",
+                        [[("lcp", 200)], project_threshold_override_config_index],
+                    ),
+                ],
+                "project_threshold_config",
+            )
             in mock_snql_query.call_args_list[0][0][0].select
         )
