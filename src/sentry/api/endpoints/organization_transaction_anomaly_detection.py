@@ -10,6 +10,26 @@ from sentry.snuba.discover import timeseries_query
 from sentry.utils import json
 
 
+def get_anomalies(snuba_io):
+    ads_url = "127.0.0.1:9091"
+    ads_timeout = 10
+    ads_connection_pool = connection_from_url(
+        ads_url,
+        retries=Retry(
+            total=5,
+            status_forcelist=[408, 429, 502, 503, 504],
+        ),
+        timeout=ads_timeout,
+    )
+
+    return ads_connection_pool.urlopen(
+        "POST",
+        "/anomaly/predict",
+        body=json.dumps(snuba_io),
+        headers={"content-type": "application/json;charset=utf-8"},
+    )
+
+
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         start, end = get_date_range_from_params(request.GET)
@@ -18,7 +38,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         )
         params = self.get_snuba_params(request, organization)
         query = request.GET.get("query")
-        query.append(" event.type:transaction")
+        query = f"{query} event.type:transaction" if query else "event.type:transaction"
 
         # overwrite relevant time params
         params["statsPeriodStart"] = query_start
@@ -33,7 +53,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
             zerofill_results=False,
         )
 
-        return self.get_anomalies(
+        return get_anomalies(
             {
                 "data": snuba_response.data["data"],
                 "query": query,
@@ -81,24 +101,4 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
             datetime.fromtimestamp(query_start),
             datetime.fromtimestamp(query_end),
             granularity,
-        )
-
-    @staticmethod
-    def get_anomalies(snuba_io):
-        ads_url = "127.0.0.1:9091"
-        ads_timeout = 10
-        ads_connection_pool = connection_from_url(
-            ads_url,
-            retries=Retry(
-                total=5,
-                status_forcelist=[408, 429, 502, 503, 504],
-            ),
-            timeout=ads_timeout,
-        )
-
-        return ads_connection_pool.urlopen(
-            "POST",
-            "/anomaly/predict",
-            body=json.dumps(snuba_io),
-            headers={"content-type": "application/json;charset=utf-8"},
         )
