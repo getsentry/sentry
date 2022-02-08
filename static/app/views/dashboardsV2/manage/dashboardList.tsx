@@ -34,6 +34,7 @@ import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
 import {cloneDashboard} from '../utils';
 
 import DashboardCard from './dashboardCard';
+import GridPreview from './gridPreview';
 
 type Props = {
   api: Client;
@@ -155,8 +156,35 @@ function DashboardList({
     );
   }
 
+  function renderDndPreview(dashboard) {
+    return (
+      <WidgetGrid>
+        {dashboard.widgetDisplay.map((displayType, i) => {
+          return displayType === DisplayType.BIG_NUMBER ? (
+            <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
+              <WidgetImage src={miniWidget(displayType)} />
+            </BigNumberWidgetWrapper>
+          ) : (
+            <MiniWidgetWrapper key={`${i}-${displayType}`}>
+              <WidgetImage src={miniWidget(displayType)} />
+            </MiniWidgetWrapper>
+          );
+        })}
+      </WidgetGrid>
+    );
+  }
+
+  function renderGridPreview(dashboard) {
+    return <GridPreview preview={dashboard.widgetPreview} />;
+  }
+
   function renderMiniDashboards() {
+    const isUsingGrid = organization.features.includes('dashboard-grid-layout');
     return dashboards?.map((dashboard, index) => {
+      const widgetRenderer = isUsingGrid ? renderGridPreview : renderDndPreview;
+      const widgetCount = isUsingGrid
+        ? dashboard.widgetPreview.length
+        : dashboard.widgetDisplay.length;
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -167,26 +195,12 @@ function DashboardList({
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
           }}
-          detail={tn('%s widget', '%s widgets', dashboard.widgetDisplay.length)}
+          detail={tn('%s widget', '%s widgets', widgetCount)}
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
           createdBy={dashboard.createdBy}
-          renderWidgets={() => (
-            <WidgetGrid>
-              {dashboard.widgetDisplay.map((displayType, i) => {
-                return displayType === DisplayType.BIG_NUMBER ? (
-                  <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
-                    <WidgetImage src={miniWidget(displayType)} />
-                  </BigNumberWidgetWrapper>
-                ) : (
-                  <MiniWidgetWrapper key={`${i}-${displayType}`}>
-                    <WidgetImage src={miniWidget(displayType)} />
-                  </MiniWidgetWrapper>
-                );
-              })}
-            </WidgetGrid>
-          )}
+          renderWidgets={() => widgetRenderer(dashboard)}
           renderContextMenu={() => renderDropdownMenu(dashboard)}
         />
       );

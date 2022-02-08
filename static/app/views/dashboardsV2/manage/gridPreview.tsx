@@ -1,7 +1,7 @@
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-import {Responsive, WidthProvider} from 'react-grid-layout';
+import GridLayout, {WidthProvider} from 'react-grid-layout';
 import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
@@ -22,7 +22,7 @@ import WidgetBigNumber from './chartPreviews/number';
 import WidgetTable from './chartPreviews/table';
 import WidgetWorldMap from './chartPreviews/world';
 
-function WidgetGrid({preview}: {preview: Preview[]}) {
+function GridPreview({preview}: {preview: Preview[]}) {
   function miniWidget(displayType: DisplayType): () => JSX.Element {
     switch (displayType) {
       case DisplayType.BAR:
@@ -70,13 +70,12 @@ function WidgetGrid({preview}: {preview: Preview[]}) {
   });
 
   return (
-    <GridLayout
-      cols={{lg: 6}}
+    <StyledGridLayout
+      cols={6}
       rowHeight={40}
       margin={[4, 4]}
       isResizable={false}
       isDraggable={false}
-      breakpoints={{lg: 1200}}
       useCSSTransforms={false}
       measureBeforeMount
     >
@@ -90,11 +89,11 @@ function WidgetGrid({preview}: {preview: Preview[]}) {
           </Chart>
         );
       })}
-    </GridLayout>
+    </StyledGridLayout>
   );
 }
 
-export default WidgetGrid;
+export default GridPreview;
 
 const PreviewWrapper = styled('div')`
   padding: 20px 8px 4px 12px;
@@ -129,6 +128,6 @@ const Chart = styled('div')`
   }
 `;
 
-const GridLayout = styled(WidthProvider(Responsive))`
+const StyledGridLayout = styled(WidthProvider(GridLayout))`
   margin: -4px;
 `;
