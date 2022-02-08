@@ -26,7 +26,8 @@ type Props = {
 
 function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
   const onClick =
-    orgFeatures.includes('metrics') && orgFeatures.includes('metrics-dashboards-ui')
+    orgFeatures.includes('metrics') &&
+    orgFeatures.includes('new-widget-builder-experience')
       ? onOpenWidgetBuilder
       : onAddWidget;
 
