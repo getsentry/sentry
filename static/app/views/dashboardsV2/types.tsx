@@ -53,7 +53,7 @@ export type WidgetLayout = {
   y: number;
 };
 
-export type Preview = {
+export type WidgetPreview = {
   displayType: DisplayType;
   layout: WidgetLayout | null;
 };
@@ -65,7 +65,7 @@ export type DashboardListItem = {
   id: string;
   title: string;
   widgetDisplay: DisplayType[];
-  widgetPreview: Preview[];
+  widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
 };

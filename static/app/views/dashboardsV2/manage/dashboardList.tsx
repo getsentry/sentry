@@ -149,7 +149,7 @@ function DashboardList({
   }
 
   function renderGridPreview(dashboard) {
-    return <GridPreview preview={dashboard.widgetPreview} />;
+    return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 
   function renderMiniDashboards() {

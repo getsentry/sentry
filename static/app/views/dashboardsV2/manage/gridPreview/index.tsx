@@ -12,7 +12,7 @@ import {
   getInitialColumnDepths,
   getNextAvailablePosition,
 } from 'sentry/views/dashboardsV2/layoutUtils';
-import {DisplayType, Preview, WidgetLayout} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetLayout, WidgetPreview} from 'sentry/views/dashboardsV2/types';
 
 import WidgetArea from './chartPreviews/area';
 import WidgetBar from './chartPreviews/bar';
@@ -41,13 +41,13 @@ function miniWidget(displayType: DisplayType): () => JSX.Element {
 }
 
 type Props = {
-  preview: Preview[];
+  widgetPreview: WidgetPreview[];
 };
 
-function GridPreview({preview}: Props) {
+function GridPreview({widgetPreview}: Props) {
   // TODO(nar): Clean this up, it should be reusable with how it's handled on the dashboard
   let columnDepths = getInitialColumnDepths();
-  preview
+  widgetPreview
     .filter(({layout}) => defined(layout))
     .forEach(({layout}) => {
       const {x, y, w, h} = layout as WidgetLayout; // nulls were filtered out
@@ -56,7 +56,7 @@ function GridPreview({preview}: Props) {
         columnDepths[col] = Math.max(y + h, columnDepths[col]);
       }
     });
-  const renderPreview = preview.map(item => {
+  const renderPreview = widgetPreview.map(item => {
     if (defined(item.layout)) {
       return item;
     }
@@ -85,11 +85,11 @@ function GridPreview({preview}: Props) {
       measureBeforeMount
     >
       {renderPreview.map(({displayType, layout}) => {
-        const WidgetPreview = miniWidget(displayType);
+        const Preview = miniWidget(displayType);
         return (
           <Chart key={uniqueId()} data-grid={{...layout}}>
             <PreviewWrapper>
-              <WidgetPreview />
+              <Preview />
             </PreviewWrapper>
           </Chart>
         );
@@ -107,6 +107,7 @@ const PreviewWrapper = styled('div')`
   overflow: hidden;
 `;
 
+// ::before is the widget title and ::after is the border
 const Chart = styled('div')`
   background: white;
   position: relative;
