@@ -9,7 +9,7 @@ import space from 'sentry/styles/space';
 
 import {CommonSidebarProps} from './types';
 
-interface PositionProps extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'> {}
+type PositionProps = Pick<CommonSidebarProps, 'orientation' | 'collapsed'>;
 
 const PanelContainer = styled('div')<PositionProps>`
   position: fixed;
@@ -71,13 +71,6 @@ function SidebarPanel({
 }: Props): React.ReactElement {
   const portalEl = useRef<HTMLDivElement>(getSidebarPanelContainer() || makePortal());
 
-  useEffect(() => {
-    document.addEventListener('click', panelCloseHandler);
-    return function cleanup() {
-      document.removeEventListener('click', panelCloseHandler);
-    };
-  }, []);
-
   function panelCloseHandler(evt: MouseEvent) {
     if (!(evt.target instanceof Element)) {
       return;
@@ -92,7 +85,14 @@ function SidebarPanel({
     hidePanel();
   }
 
-  const sidebar = (
+  useEffect(() => {
+    document.addEventListener('click', panelCloseHandler);
+    return function cleanup() {
+      document.removeEventListener('click', panelCloseHandler);
+    };
+  }, []);
+
+  return ReactDOM.createPortal(
     <PanelContainer
       role="dialog"
       collapsed={collapsed}
@@ -106,10 +106,9 @@ function SidebarPanel({
         </SidebarPanelHeader>
       ) : null}
       <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
-    </PanelContainer>
+    </PanelContainer>,
+    portalEl.current
   );
-
-  return ReactDOM.createPortal(sidebar, portalEl.current);
 }
 
 export default SidebarPanel;
