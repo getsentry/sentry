@@ -137,6 +137,9 @@ class AuthIdentityHandler:
         if not user_was_logged_in:
             raise self._NotCompletedSecurityChecks()
 
+        if self.request.session.test_cookie_worked():
+            self.request.session.delete_test_cookie()
+
     @staticmethod
     def _set_linked_flag(member: OrganizationMember) -> None:
         if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
