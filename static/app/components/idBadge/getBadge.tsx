@@ -4,8 +4,7 @@ import BaseBadge from 'sentry/components/idBadge/baseBadge';
 import MemberBadge from 'sentry/components/idBadge/memberBadge';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-// This imports a base badge, should we instead import teamBadge/index?
-import TeamBadge from 'sentry/components/idBadge/teamBadge/badge';
+import {TeamBadge} from 'sentry/components/idBadge/teamBadge/index';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {Member, User} from 'sentry/types';
 
@@ -13,12 +12,19 @@ type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type DisplayName = BaseBadgeProps['displayName'];
 
 type Props = Omit<BaseBadgeProps, 'displayName'> & {
-  user?: User;
-  member?: Member;
   displayName?: DisplayName;
+  member?: Member;
+  user?: User;
 };
 
-function getBadge({organization, team, project, user, member, ...props}: Props) {
+function getBadge({
+  organization,
+  team,
+  project,
+  user,
+  member,
+  ...props
+}: Props): React.ReactElement | null {
   if (organization) {
     return <OrganizationBadge organization={organization} {...props} />;
   }

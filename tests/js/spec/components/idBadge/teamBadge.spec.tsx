@@ -8,7 +8,7 @@ describe('TeamBadge', function () {
     TeamStore.init();
   });
 
-  it('renders with Avatar and team name', async function () {
+  it('renders with Avatar and team name', function () {
     mountWithTheme(<TeamBadge team={TestStubs.Team()} />, {
       context: TestStubs.routerContext(),
     });
