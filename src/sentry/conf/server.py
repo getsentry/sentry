@@ -282,6 +282,7 @@ MIDDLEWARE = (
     "sentry.middleware.env.SentryEnvMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
     "sentry.middleware.stats.RequestTimingMiddleware",
+    "sentry.middleware.access_log.AccessLogMiddlewware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -291,7 +292,6 @@ MIDDLEWARE = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
-    "sentry.middleware.access_log.AccessLogMiddlewware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
 )
