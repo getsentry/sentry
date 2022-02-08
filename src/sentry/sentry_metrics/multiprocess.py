@@ -4,6 +4,7 @@ import time
 from collections import deque
 from concurrent.futures import Future
 from copy import deepcopy
+from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -27,6 +28,7 @@ from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.processing.strategies.streaming.transform import ParallelTransformStep
 from arroyo.types import Message, Partition, Position, Topic
+from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.utils import json, kafka_config
@@ -350,54 +352,56 @@ def process_messages(
     metrics = get_metrics()
 
     strings = set()
-    parsed_payloads_by_offset = {
-        msg.offset: json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
-        for msg in outer_message.payload
-    }
-
-    for message in parsed_payloads_by_offset.values():
-        metric_name = message["name"]
-        tags = message.get("tags", {})
-
-        parsed_strings = {
-            metric_name,
-            *tags.keys(),
-            *tags.values(),
+    with metrics.timer("process_messages.parse_outer_message"):
+        parsed_payloads_by_offset = {
+            msg.offset: json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
+            for msg in outer_message.payload
         }
-        strings.update(parsed_strings)
+
+        for message in parsed_payloads_by_offset.values():
+            metric_name = message["name"]
+            tags = message.get("tags", {})
+
+            parsed_strings = {
+                metric_name,
+                *tags.keys(),
+                *tags.values(),
+            }
+            strings.update(parsed_strings)
 
     with metrics.timer("metrics_consumer.bulk_record"):
         mapping = indexer.bulk_record(list(strings))
 
     new_messages: List[Message[KafkaPayload]] = []
 
-    for message in outer_message.payload:
-        parsed_payload_value = parsed_payloads_by_offset[message.offset]
-        new_payload_value = deepcopy(parsed_payload_value)
+    with metrics.timer("process_messages.reconstruct_messages"):
+        for message in outer_message.payload:
+            parsed_payload_value = parsed_payloads_by_offset[message.offset]
+            new_payload_value = deepcopy(parsed_payload_value)
 
-        metric_name = parsed_payload_value["name"]
-        tags = parsed_payload_value.get("tags", {})
+            metric_name = parsed_payload_value["name"]
+            tags = parsed_payload_value.get("tags", {})
 
-        new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
+            new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
 
-        new_payload_value["tags"] = new_tags
-        new_payload_value["metric_id"] = mapping[metric_name]
-        new_payload_value["retention_days"] = 90
+            new_payload_value["tags"] = new_tags
+            new_payload_value["metric_id"] = mapping[metric_name]
+            new_payload_value["retention_days"] = 90
 
-        del new_payload_value["name"]
+            del new_payload_value["name"]
 
-        new_payload = KafkaPayload(
-            key=message.payload.key,
-            value=json.dumps(new_payload_value).encode(),
-            headers=message.payload.headers,
-        )
-        new_message = Message(
-            partition=message.partition,
-            offset=message.offset,
-            payload=new_payload,
-            timestamp=message.timestamp,
-        )
-        new_messages.append(new_message)
+            new_payload = KafkaPayload(
+                key=message.payload.key,
+                value=json.dumps(new_payload_value).encode(),
+                headers=message.payload.headers,
+            )
+            new_message = Message(
+                partition=message.partition,
+                offset=message.offset,
+                payload=new_payload,
+                timestamp=message.timestamp,
+            )
+            new_messages.append(new_message)
 
     metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
 
@@ -441,6 +445,150 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         return strategy
 
 
+class TemporaryConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
+    def __init__(
+        self,
+        max_batch_size: int,
+        max_batch_time: float,
+    ):
+        self.__max_batch_time = max_batch_time
+        self.__max_batch_size = max_batch_size
+
+    def create(
+        self, commit: Callable[[Mapping[Partition, Position]], None]
+    ) -> ProcessingStrategy[KafkaPayload]:
+        transform_step = TransformStep(next_step=SimpleProduceStep(commit))
+        strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
+        return strategy
+
+
+class TransformStep(ProcessingStep[MessageBatch]):
+    def __init__(
+        self,
+        next_step: ProcessingStep[MessageBatch],
+    ) -> None:
+        self.__process_messages = process_messages
+        self.__next_step = next_step
+        self.__closed = False
+        self.__metrics = get_metrics()
+
+    def poll(self) -> None:
+        self.__next_step.poll()
+
+    def submit(self, message: Message[MessageBatch]) -> None:
+        assert not self.__closed
+
+        with self.__metrics.timer("transform_step.process_messages"):
+            transformed_message = self.__process_messages(message)
+
+        self.__next_step.submit(
+            Message(
+                message.partition,
+                message.offset,
+                transformed_message,
+                message.timestamp,
+            )
+        )
+
+    def close(self) -> None:
+        self.__closed = True
+
+    def terminate(self) -> None:
+        self.__closed = True
+
+        logger.debug("Terminating %r...", self.__next_step)
+        self.__next_step.terminate()
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        self.__next_step.close()
+        self.__next_step.join(timeout)
+
+
+class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
+    """
+    TEMPORARY PRODUCE STEP
+    """
+
+    def __init__(
+        self,
+        commit_function: Callable[[Mapping[Partition, Position]], None],
+    ) -> None:
+        snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
+        snuba_metrics_producer = Producer(
+            kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
+        )
+        producer = snuba_metrics_producer
+        self.__producer = producer
+        self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
+            "topic", "snuba-metrics"
+        )
+        self.__commit_function = commit_function
+
+        self.__closed = False
+        self.__metrics = get_metrics()
+
+        self.__offsets: MutableMapping[Partition, List[Position]] = {}
+
+    def poll(self) -> None:
+        partition_to_offset = {}
+        for partition, positions in self.__offsets.items():
+            positions.sort(key=lambda position: position.offset)
+            partition_to_offset[partition] = positions[-1]
+
+        if partition_to_offset.keys():
+            self.__commit_function(partition_to_offset)
+            self.__offsets = {}
+
+    def submit(self, outer_message: Message[MessageBatch]) -> None:
+        for message in outer_message.payload:
+            payload = message.payload
+
+            self.__producer.produce(
+                topic=self.__producer_topic,
+                key=None,
+                value=json.dumps(payload.value).encode(),
+                on_delivery=self.callback,
+            )
+            self.__producer.flush(4.0)
+
+    def callback(self, error: Any, message: Any) -> None:
+        if message:
+            partition = Partition(Topic(message.topic()), message.partition())
+            _, timestamp_value = message.timestamp()
+
+            timestamp = datetime.utcfromtimestamp(timestamp_value / 1000.0)
+
+            if partition in self.__offsets:
+                self.__offsets[partition].append(Position(message.offset(), timestamp))
+            else:
+                self.__offsets[partition] = [Position(message.offset(), timestamp)]
+
+        if error is not None:
+            raise Exception(error.str())
+
+    def terminate(self) -> None:
+        self.__closed = True
+
+    def close(self) -> None:
+        self.__closed = True
+
+    def join(self, timeout: Optional[float]) -> None:
+        if not timeout:
+            timeout = 5.0
+        messages_left = self.__producer.flush(timeout)
+
+        if messages_left != 0:
+            logger.debug("There were {messages_left} messages left in producer queue.")
+
+        partition_to_offset = {}
+        for partition, positions in self.__offsets.items():
+            positions.sort(key=lambda position: position.offset)
+            print("JOIN=OSEFOSDFO", positions)
+            partition_to_offset[partition] = positions[-1]
+
+        self.__commit_function(partition_to_offset)
+
+
 def get_streaming_metrics_consumer(
     topic: str,
     max_batch_size: int,
@@ -450,16 +598,25 @@ def get_streaming_metrics_consumer(
     output_block_size: int,
     group_id: str,
     auto_offset_reset: str,
+    factory_name: str,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
 
-    processing_factory = MetricsConsumerStrategyFactory(
-        max_batch_size=max_batch_size,
-        max_batch_time=max_batch_time,
-        processes=processes,
-        input_block_size=input_block_size,
-        output_block_size=output_block_size,
-    )
+    if factory_name == "multiprocess":
+        processing_factory = MetricsConsumerStrategyFactory(
+            max_batch_size=max_batch_size,
+            max_batch_time=max_batch_time,
+            processes=processes,
+            input_block_size=input_block_size,
+            output_block_size=output_block_size,
+        )
+    else:
+        assert factory_name == "default"
+        processing_factory = TemporaryConsumerStrategyFactory(
+            max_batch_size=max_batch_size,
+            max_batch_time=max_batch_time,
+        )
+
     return StreamProcessor(
         KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
         Topic(topic),
