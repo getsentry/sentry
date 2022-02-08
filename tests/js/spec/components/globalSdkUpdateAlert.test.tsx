@@ -6,10 +6,7 @@ import {InnerGlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert'
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
-import useApi from 'sentry/utils/useApi';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-
-jest.mock('sentry/utils/useApi');
 
 const makeFilterProps = (filters: Partial<PageFilters>): PageFilters => {
   return {
@@ -44,11 +41,10 @@ const makeSdkUpdateProps = (
 describe('GlobalSDKUpdateAlert', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
   });
 
   it('does not shows prompt if projects do not match', async () => {
-    const api = new MockApiClient();
-
     // We have matching projectId, so updates should be show
     const filters: PageFilters = makeFilterProps({projects: [1]});
     const sdkUpdates = makeSdkUpdateProps({projectId: String(1)});
@@ -58,10 +54,10 @@ describe('GlobalSDKUpdateAlert', () => {
       snoozed_ts: undefined,
     };
 
-    jest.spyOn(api, 'requestPromise').mockResolvedValue({data: promptResponse});
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
 
     const {rerender} = mountWithTheme(
       <OrganizationContext.Provider value={TestStubs.Organization()}>
@@ -89,8 +85,6 @@ describe('GlobalSDKUpdateAlert', () => {
   });
 
   it('shows prompt if it has never been dismissed', async () => {
-    const api = new MockApiClient();
-
     const filters = makeFilterProps({projects: [0]});
     const sdkUpdates = makeSdkUpdateProps({projectId: String(0)});
     const promptResponse = {
@@ -98,10 +92,10 @@ describe('GlobalSDKUpdateAlert', () => {
       snoozed_ts: undefined,
     };
 
-    jest.spyOn(api, 'requestPromise').mockResolvedValue({data: promptResponse});
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {data: promptResponse},
+    });
 
     mountWithTheme(
       <OrganizationContext.Provider value={TestStubs.Organization()}>
@@ -115,8 +109,6 @@ describe('GlobalSDKUpdateAlert', () => {
   });
 
   it('never shows prompt if it has been dismissed', async () => {
-    const api = new MockApiClient();
-
     const filters = makeFilterProps({projects: [0]});
     const sdkUpdates = makeSdkUpdateProps({projectId: String(0)});
     const promptResponse = {
@@ -127,10 +119,10 @@ describe('GlobalSDKUpdateAlert', () => {
       snoozed_ts: undefined,
     };
 
-    jest.spyOn(api, 'requestPromise').mockResolvedValue({data: promptResponse});
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {data: promptResponse},
+    });
 
     mountWithTheme(
       <OrganizationContext.Provider value={TestStubs.Organization()}>
@@ -146,8 +138,6 @@ describe('GlobalSDKUpdateAlert', () => {
   });
 
   it('shows prompt if snoozed_ts days is longer than threshold', async () => {
-    const api = new MockApiClient();
-
     const filters = makeFilterProps({projects: [0]});
     const sdkUpdates = makeSdkUpdateProps({projectId: String(0)});
     const promptResponse = {
@@ -158,10 +148,10 @@ describe('GlobalSDKUpdateAlert', () => {
         .unix(),
     };
 
-    jest.spyOn(api, 'requestPromise').mockResolvedValueOnce({data: promptResponse});
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {data: promptResponse},
+    });
 
     mountWithTheme(
       <OrganizationContext.Provider value={TestStubs.Organization()}>
@@ -175,8 +165,6 @@ describe('GlobalSDKUpdateAlert', () => {
   });
 
   it('shows prompt if snoozed_ts is shorter than threshold', async () => {
-    const api = new MockApiClient();
-
     const filters = makeFilterProps({projects: [0]});
     const sdkUpdates = makeSdkUpdateProps({projectId: String(0)});
     const promptResponse = {
@@ -187,10 +175,10 @@ describe('GlobalSDKUpdateAlert', () => {
         .unix(),
     };
 
-    jest.spyOn(api, 'requestPromise').mockResolvedValue({data: promptResponse});
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {data: promptResponse},
+    });
 
     mountWithTheme(
       <OrganizationContext.Provider value={TestStubs.Organization()}>
@@ -207,8 +195,6 @@ describe('GlobalSDKUpdateAlert', () => {
   });
 
   it('shows prompt for all projects when project matches ALL_ACCESS_PROJECTS', async () => {
-    const api = new MockApiClient();
-
     // We intentionally missmatch ALL_ACCESS_PROJECTS with projectId in sdkUpdates
     const filters = makeFilterProps({projects: [ALL_ACCESS_PROJECTS]});
     const sdkUpdates = makeSdkUpdateProps({projectId: String(0)});
@@ -217,10 +203,10 @@ describe('GlobalSDKUpdateAlert', () => {
       snoozed_ts: undefined,
     };
 
-    jest.spyOn(api, 'requestPromise').mockResolvedValue({data: promptResponse});
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
 
     mountWithTheme(
       <OrganizationContext.Provider value={TestStubs.Organization()}>
@@ -234,8 +220,6 @@ describe('GlobalSDKUpdateAlert', () => {
   });
 
   it('dimisses prompt', async () => {
-    const api = new MockApiClient();
-
     const filters = makeFilterProps({projects: [0]});
     const sdkUpdates = makeSdkUpdateProps({projectId: String(0)});
     const promptResponse = {
@@ -243,12 +227,12 @@ describe('GlobalSDKUpdateAlert', () => {
       snoozed_ts: undefined,
     };
 
-    const spy = jest
-      .spyOn(api, 'requestPromise')
-      .mockResolvedValue({data: promptResponse});
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {data: promptResponse},
+    });
 
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    const spy = jest.spyOn(MockApiClient, 'requestPromise');
 
     mountWithTheme(
       <OrganizationContext.Provider value={TestStubs.Organization()}>
