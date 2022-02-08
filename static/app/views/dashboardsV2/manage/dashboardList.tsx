@@ -119,6 +119,7 @@ function DashboardList({
         key: 'dashboard-delete',
         label: t('Delete'),
         leadingItems: <IconDelete />,
+        priority: 'danger',
         onAction: () => {
           openConfirmModal({
             message: t('Are you sure you want to delete this dashboard?'),
