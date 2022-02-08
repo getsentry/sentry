@@ -47,7 +47,7 @@ def process_resource_change(instance, **kwargs):
     from sentry.tasks.code_owners import code_owners_auto_sync
 
     # CODEOWNERS file added or modified, trigger auto-sync
-    if "codeowners" in instance.filename.lower() and instance.file.type in ["A", "M"]:
+    if "codeowners" in instance.filename.lower() and instance.type in ["A", "M"]:
         code_owners_auto_sync.delay(instance.commit)
 
 

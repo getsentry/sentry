@@ -1,4 +1,5 @@
 import logging
+from types import SimpleNamespace
 
 from sentry import features
 from sentry.models.commit import Commit
@@ -65,12 +66,11 @@ def code_owners_auto_sync(commit: Commit, **kwargs):
             organization_id=commit.organization_id
         ).values_list("id", flat=True),
     )
-
     for code_mapping in code_mappings:
         try:
             project_ownership = ProjectOwnership.objects.get(project_id=code_mapping.project_id)
         except ProjectOwnership.DoesNotExist:
-            return
+            project_ownership = SimpleNamespace(codeowners_auto_sync=True)
 
         if not project_ownership.codeowners_auto_sync:
             return
@@ -97,7 +97,7 @@ def code_owners_auto_sync(commit: Commit, **kwargs):
         if codeowner_contents:
             codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
 
-            codeowners.raw = codeowner_contents
+            codeowners.raw = codeowner_contents["raw"]
             codeowners.update_schema()
 
             # TODO(Nisanthan): Record analytics on auto-sync success

@@ -7,7 +7,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
 
 
-def get_codeowner_contents(self, config):
+def get_codeowner_contents(config):
     if not config.organization_integration:
         raise Exception("No associated integration")
 
@@ -35,9 +35,8 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
         return (args, kwargs)
 
     def get(self, request: Request, config_id, organization, config) -> Response:
-
         try:
-            codeowner_contents = self.get_codeowner_contents(config)
+            codeowner_contents = get_codeowner_contents(config)
         except Exception as e:
             return self.respond({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
