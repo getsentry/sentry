@@ -3,13 +3,6 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
 
-import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
-import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
-import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
-import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
-import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
-
 import {
   createDashboard,
   deleteDashboard,
@@ -31,7 +24,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
 
-import {cloneDashboard} from '../utils';
+import {cloneDashboard, miniWidget} from '../utils';
 
 import DashboardCard from './dashboardCard';
 import GridPreview from './gridPreview';
@@ -53,25 +46,6 @@ function DashboardList({
   pageLinks,
   onDashboardsChange,
 }: Props) {
-  function miniWidget(displayType: DisplayType): string {
-    switch (displayType) {
-      case DisplayType.BAR:
-        return WidgetBar;
-      case DisplayType.AREA:
-      case DisplayType.TOP_N:
-        return WidgetArea;
-      case DisplayType.BIG_NUMBER:
-        return WidgetBigNumber;
-      case DisplayType.TABLE:
-        return WidgetTable;
-      case DisplayType.WORLD_MAP:
-        return WidgetWorldMap;
-      case DisplayType.LINE:
-      default:
-        return WidgetLine;
-    }
-  }
-
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
