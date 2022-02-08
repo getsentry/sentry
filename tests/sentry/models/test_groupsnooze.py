@@ -47,10 +47,10 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
     def test_delta_reached_pending(self):
         snooze = GroupSnooze.objects.create(group=self.group, count=100, state={"times_seen": 0})
         self.group.update(times_seen=90)
-        assert snooze.is_valid()
+        assert snooze.is_valid(use_pending_data=True)
 
         self.group.times_seen_pending = 10
-        assert not snooze.is_valid()
+        assert not snooze.is_valid(use_pending_data=True)
 
     def test_user_delta_not_reached(self):
         snooze = GroupSnooze.objects.create(

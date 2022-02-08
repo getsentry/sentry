@@ -475,7 +475,7 @@ def process_snoozes(group):
     if not snooze:
         return False
 
-    if not snooze.is_valid(group, test_rates=True):
+    if not snooze.is_valid(group, test_rates=True, use_pending_data=True):
         snooze_details = {
             "until": snooze.until,
             "count": snooze.count,
