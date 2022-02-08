@@ -5,7 +5,10 @@ from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.integrations.jira import JiraCreateTicketAction
-from sentry.models import ExternalIssue, GroupLink, Integration, Rule
+from sentry.models.externalissue import ExternalIssue
+from sentry.models.grouplink import GroupLink
+from sentry.models.integration import Integration
+from sentry.models.rule import Rule
 from sentry.testutils import RuleTestCase
 from tests.fixtures.integrations.jira import MockJira
 

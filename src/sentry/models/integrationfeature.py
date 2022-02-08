@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model
 from sentry.db.models.manager import BaseManager
-from sentry.models.integrations import DocIntegration
+from sentry.models.integration import DocIntegration
 from sentry.models.sentryapp import SentryApp
 
 

@@ -6,7 +6,7 @@ from django.http.request import HttpRequest
 
 from sentry.incidents.models import Incident, User
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
-from sentry.models import Integration
+from sentry.models.integration import Integration
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
