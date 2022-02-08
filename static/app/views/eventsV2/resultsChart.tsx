@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {isEquation} from 'sentry/utils/discover/fields';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -99,6 +99,11 @@ class ResultsChart extends Component<ResultsChartProps> {
           )
         : eventView.interval;
 
+    const seriesLabels = yAxisValue.map(stripEquationPrefix);
+    const disableableSeries = [
+      ...seriesLabels,
+      ...seriesLabels.map(label => `previous ${label}`),
+    ];
     return (
       <Fragment>
         {getDynamicText({
@@ -128,6 +133,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               chartComponent={chartComponent}
               referrer={referrer}
               fromDiscover
+              disableableSeries={disableableSeries}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
