@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping
 from django.apps import apps
 
 from sentry.db.models import Model
-from sentry.notifications.class_manager import get
+from sentry.notifications.class_manager import NotificationClassNotSetException, get
 from sentry.tasks.base import instrumented_task
 
 if TYPE_CHECKING:
@@ -20,6 +20,10 @@ def async_send_notification(NotificationClass: BaseNotification, *args: Iterable
     It converts instances of models into a JSON object that allows us to query
     the rows inside the task so the interface is just simple JSON.
     """
+    class_name = getattr(NotificationClass, "__name__")
+    if not get(class_name):
+        raise NotificationClassNotSetException()
+
     task_args = []
     for arg in args:
         if isinstance(arg, Model):
@@ -35,7 +39,7 @@ def async_send_notification(NotificationClass: BaseNotification, *args: Iterable
         # maybe we need an explicit check if it's a primitive?
         else:
             task_args.append({"type": "other", "value": arg})
-    _send_notification.delay(getattr(NotificationClass, "__name__"), task_args)
+    _send_notification.delay(class_name, task_args)
 
 
 @instrumented_task(

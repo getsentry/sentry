@@ -10,6 +10,10 @@ class NotificationClassAlreadySetException(Exception):
     pass
 
 
+class NotificationClassNotSetException(Exception):
+    pass
+
+
 class NotificationClassManager:
     def __init__(self) -> None:
         self.classes: MutableMapping[str, Type[BaseNotification]] = {}
@@ -25,6 +29,8 @@ class NotificationClassManager:
         return wrapped
 
     def get(self, class_name: str) -> Type[BaseNotification]:
+        if class_name not in self.classes:
+            raise NotificationClassNotSetException()
         return self.classes[class_name]
 
 

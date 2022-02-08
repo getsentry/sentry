@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
-from sentry.notifications.class_manager import manager, register
+from sentry.notifications.class_manager import NotificationClassNotSetException, manager, register
 from sentry.notifications.utils.tasks import _send_notification, async_send_notification
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.notifications import AnotherDummyNotification
+from sentry.testutils.helpers.notifications import AnotherDummyNotification, DummyNotification
 
 
 class NotificationTaskTests(TestCase):
@@ -24,6 +24,7 @@ class NotificationTaskTests(TestCase):
 
     @patch("sentry.notifications.utils.tasks._send_notification.delay")
     def test_call_task(self, mock_delay):
+        register()(AnotherDummyNotification)
         async_send_notification(AnotherDummyNotification, self.organization, "some_value")
         assert mock_delay.called_with(
             "AnotherDummyNotification",
@@ -59,3 +60,7 @@ class NotificationTaskTests(TestCase):
         )
         assert notification.call_args.args == (self.organization, "some_value")
         notification.return_value.send.assert_called_once_with()
+
+    def test_invalid_notification(self):
+        with self.assertRaises(NotificationClassNotSetException):
+            async_send_notification(DummyNotification, self.organization, "some_value")
