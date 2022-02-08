@@ -10,17 +10,13 @@ import {Node} from '@react-types/shared';
 import {IconChevron} from 'sentry/icons';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 export type MenuItemProps = {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
   key: string;
-  /**
-   * Item label. Should prefereably be a string. If not, make sure that
-   * there are appropriate aria-labels.
-   */
-  label: React.ReactNode;
   /**
    * Sub-items that are nested inside this item. By default, sub-items are
    * rendered collectively as menu sections inside the current menu. If
@@ -37,6 +33,11 @@ export type MenuItemProps = {
    * when `children` is also defined.
    */
   isSubmenu?: boolean;
+  /**
+   * Item label. Should prefereably be a string. If not, make sure that
+   * there are appropriate aria-labels.
+   */
+  label?: React.ReactNode;
   /*
    * Items to be added to the left of the label
    */
@@ -52,6 +53,11 @@ export type MenuItemProps = {
    * item's key is passed as an argument.
    */
   onAction?: (key: MenuItemProps['key']) => void;
+  /**
+   * Accented text and background (on hover) colors. Primary = purple, and
+   * danger = red.
+   */
+  priority?: 'primary' | 'danger';
   /**
    * Whether to show a line divider below this menu item
    */
@@ -194,6 +200,7 @@ const MenuItem = withRouter(
       keyboardProps
     );
     const {
+      priority,
       details,
       leadingItems,
       leadingItemsSpanFullHeight,
@@ -208,12 +215,13 @@ const MenuItem = withRouter(
         ref={ref}
         as={renderAs}
         isDisabled={isDisabled}
+        priority={priority}
         data-test-id={item.key}
         {...(item.to && {'data-test-href': item.to})}
         {...props}
         {...(isSubmenuTrigger && {role: 'menuitemradio'})}
       >
-        <InnerWrap isFocused={isFocused}>
+        <InnerWrap isFocused={isFocused} priority={priority}>
           {leadingItems && (
             <LeadingItems
               isDisabled={isDisabled}
@@ -224,10 +232,18 @@ const MenuItem = withRouter(
           )}
           <ContentWrap isFocused={isFocused} showDividers={showDividers}>
             <LabelWrap>
-              <Label isDisabled={isDisabled} {...labelProps} aria-hidden="true">
+              <Label {...labelProps} aria-hidden="true">
                 {label}
               </Label>
-              {details && <Details {...descriptionProps}>{details}</Details>}
+              {details && (
+                <Details
+                  isDisabled={isDisabled}
+                  priority={priority}
+                  {...descriptionProps}
+                >
+                  {details}
+                </Details>
+              )}
             </LabelWrap>
             {(trailingItems || isSubmenuTrigger) && (
               <TrailingItems
@@ -248,7 +264,11 @@ const MenuItem = withRouter(
 );
 export default MenuItem;
 
-const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
+const MenuItemWrap = styled('li')<{
+  isDisabled?: boolean;
+  isFocused?: boolean;
+  priority?: 'primary' | 'danger';
+}>`
   position: static;
   list-style-type: none;
   margin: 0;
@@ -256,8 +276,14 @@ const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
   cursor: pointer;
 
   color: ${p => p.theme.textColor};
-
-  ${p => p.isDisabled && `cursor: initial;`}
+  ${p => p.priority === 'primary' && `color: ${p.theme.activeText};`}
+  ${p => p.priority === 'danger' && `color: ${p.theme.errorText};`}
+  ${p =>
+    p.isDisabled &&
+    `
+    color: ${p.theme.subText};
+    cursor: initial;
+  `}
 
   &:focus {
     outline: none;
@@ -267,14 +293,30 @@ const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
   }
 `;
 
-const InnerWrap = styled('div')<{isFocused: boolean}>`
+const getHoverBackground = (theme: Theme, priority?: 'primary' | 'danger') => {
+  let hoverBackground: string;
+  switch (priority) {
+    case 'primary':
+      hoverBackground = theme.purple100;
+      break;
+    case 'danger':
+      hoverBackground = theme.red100;
+      break;
+    default:
+      hoverBackground = theme.hover;
+  }
+
+  return `background: ${hoverBackground}; z-index: 1;`;
+};
+
+const InnerWrap = styled('div')<{isFocused: boolean; priority?: 'primary' | 'danger'}>`
   display: flex;
   position: relative;
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
 
-  ${p => p.isFocused && `background: ${p.theme.hover}; z-index: 1;`}
+  ${p => p.isFocused && getHoverBackground(p.theme, p.priority)}
 `;
 
 const LeadingItems = styled('div')<{isDisabled?: boolean; spanFullHeight?: boolean}>`
@@ -320,21 +362,23 @@ const LabelWrap = styled('div')`
   width: 100%;
 `;
 
-const Label = styled('p')<{isDisabled?: boolean}>`
+const Label = styled('p')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
   ${overflowEllipsis}
-
-  ${p => p.isDisabled && `color: ${p.theme.subText};`}
 `;
 
-const Details = styled('p')`
+const Details = styled('p')<{isDisabled: boolean; priority?: 'primary' | 'danger'}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
   ${overflowEllipsis}
+
+  ${p => p.priority === 'primary' && `color: ${p.theme.activeText};`}
+  ${p => p.priority === 'danger' && `color: ${p.theme.errorText};`}
+  ${p => p.isDisabled && `color: ${p.theme.subText};`}
 `;
 
 const TrailingItems = styled('div')<{isDisabled?: boolean; spanFullHeight?: boolean}>`
