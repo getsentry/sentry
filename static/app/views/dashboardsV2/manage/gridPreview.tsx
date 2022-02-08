@@ -6,14 +6,13 @@ import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
-
 import {
   DEFAULT_WIDGET_WIDTH,
   getDefaultWidgetHeight,
   getInitialColumnDepths,
   getNextAvailablePosition,
-} from '../layoutUtils';
-import {DisplayType, Preview, WidgetLayout} from '../types';
+} from 'sentry/views/dashboardsV2/layoutUtils';
+import {DisplayType, Preview, WidgetLayout} from 'sentry/views/dashboardsV2/types';
 
 import WidgetArea from './chartPreviews/area';
 import WidgetBar from './chartPreviews/bar';
