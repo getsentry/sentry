@@ -17,7 +17,10 @@ from sentry.api.endpoints.organization_member_index import OrganizationMemberSer
 from sentry.api.exceptions import ConflictError
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
+from sentry.api.serializers.models.organization_member import (
+    OrganizationMemberSCIMSerializer,
+    OrganizationMemberSCIMSerializerResponse,
+)
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NOTFOUND,
@@ -39,7 +42,12 @@ from sentry.utils import json
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import SCIM_400_INVALID_PATCH, SCIM_409_USER_EXISTS, SCIM_API_ERROR, MemberPatchOps
-from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint
+from .utils import (
+    OrganizationSCIMMemberPermission,
+    SCIMEndpoint,
+    SCIMQueryParamSerializer,
+    scim_response_envelope,
+)
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 
@@ -238,10 +246,52 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(status=204)
 
 
+@public(methods={"GET"})
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
+    @extend_schema(
+        operation_id="List an Organization's Members",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIMQueryParamSerializer],
+        request=None,
+        responses={
+            200: scim_response_envelope(
+                "SCIMMemberIndexResponse", OrganizationMemberSCIMSerializerResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "List an Organization's Members",
+                value={
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+                    "totalResults": 1,
+                    "startIndex": 1,
+                    "itemsPerPage": 1,
+                    "Resources": [
+                        {
+                            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                            "id": "102",
+                            "userName": "test.user@okta.local",
+                            "emails": [
+                                {"primary": True, "value": "test.user@okta.local", "type": "work"}
+                            ],
+                            "name": {"familyName": "N/A", "givenName": "N/A"},
+                            "active": True,
+                            "meta": {"resourceType": "User"},
+                        }
+                    ],
+                },
+                status_codes=["200"],
+            ),
+        ],
+    )
     def get(self, request: Request, organization) -> Response:
+        """
+        Returns a paginated list of members bound to a organization with a SCIM Users GET Request.
+        """
         # note that SCIM doesn't care about changing results as they're queried
 
         query_params = self.get_query_parameters(request)
