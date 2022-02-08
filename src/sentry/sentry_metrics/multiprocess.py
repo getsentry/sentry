@@ -25,7 +25,7 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.processing.strategies.streaming.collect import OffsetRange
+from arroyo.processing.strategies.streaming.collect import CollectStep
 from arroyo.processing.strategies.streaming.transform import ParallelTransformStep
 from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
@@ -461,12 +461,19 @@ class TemporaryConsumerStrategyFactory(ProcessingStrategyFactory):  # type: igno
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
-        transform_step = TransformStep(next_step=SimpleProduceStep(commit))
+        last_step = CollectStep(
+            step_factory=SimpleProduceStep,
+            commit_function=commit,
+            # Need to make this separate cli arg
+            max_batch_size=1000,
+            max_batch_time=self.__max_batch_time,
+        )
+        transform_step = TransformStep(next_step=last_step)
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
         return strategy
 
 
-class TransformStep(ProcessingStep[MessageBatch]):
+class TransformStep(ProcessingStep[MessageBatch]):  # type: ignore
     """
     Temporary Transform Step
     """
@@ -513,13 +520,8 @@ class TransformStep(ProcessingStep[MessageBatch]):
 
 
 class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
-    """
-    Temporary Produce Step
-    """
-
     def __init__(
         self,
-        commit_function: Callable[[Mapping[Partition, Position]], None],
     ) -> None:
         snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
         snuba_metrics_producer = Producer(
@@ -530,16 +532,12 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
         self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
             "topic", "snuba-metrics"
         )
-        self.__commit_function = commit_function
 
         self.__closed = False
         self.__metrics = get_metrics()
 
-        self.__produced_messages: MutableMapping[Partition, OffsetRange] = {}
-
     def poll(self) -> None:
-        if self.__produced_messages.keys():
-            self._commit(2.0)
+        pass
 
     def submit(self, outer_message: Message[MessageBatch]) -> None:
         for message in outer_message.payload:
@@ -551,18 +549,6 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
                 value=json.dumps(payload.value).encode(),
                 on_delivery=self.callback,
             )
-            if message.partition in self.__produced_messages:
-                self.__produced_messages[message.partition].hi = message.next_offset
-                self.__produced_messages[message.partition].timestamp = message.timestamp
-            else:
-                self.__produced_messages[message.partition] = OffsetRange(
-                    message.offset, message.next_offset, message.timestamp
-                )
-
-        messages_left = self.__producer.flush(5.0)
-
-        if messages_left != 0:
-            logger.debug("There are {messages_left} messages left in producer queue.")
 
     def callback(self, error: Any, message: Any) -> None:
         if error is not None:
@@ -574,25 +560,13 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     def close(self) -> None:
         self.__closed = True
 
-    def _commit(self, timeout: Optional[float] = 2.0) -> None:
-        if self.__produced_messages.keys():
-            messages_left = self.__producer.flush(timeout)
-
-            if messages_left != 0:
-                logger.debug("There are {messages_left} messages left in producer queue.")
-                return
-
-            offsets = {
-                partition: Position(offsets.hi, offsets.timestamp)
-                for partition, offsets in self.__produced_messages.items()
-            }
-
-            self.__commit_function(offsets)
-            self.__produced_messages = {}
-
     def join(self, timeout: Optional[float]) -> None:
-        if self.__produced_messages.keys():
-            self._commit(timeout)
+        if not timeout:
+            timeout = 5.0
+        messages_left = self.__producer.flush(timeout)
+
+        if messages_left != 0:
+            logger.debug(f"There are {messages_left} messages left in producer queue.")
 
 
 def get_streaming_metrics_consumer(
