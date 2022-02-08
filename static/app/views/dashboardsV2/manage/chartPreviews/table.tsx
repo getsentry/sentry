@@ -12,38 +12,34 @@ const TablePreview = () => (
     <rect x="8" y="21" width="42" height="2" rx="1" fill="#D4D1EC" />
     <rect x="8" y="30" width="42" height="2" rx="1" fill="#D4D1EC" />
     <rect x="8" y="39" width="42" height="2" rx="1" fill="#D4D1EC" />
-    <rect x="8" y="92" width="42" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="8" y="101" width="42" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="8" y="110" width="42" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="8" y="119" width="42" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="136" y="92" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="136" y="101" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="136" y="110" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="136" y="119" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="8" y="128" width="42" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="8" y="137" width="42" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="8" y="146" width="42" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="8" y="155" width="42" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="136" y="128" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="136" y="137" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="136" y="146" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="136" y="155" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="118" y="92" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="118" y="101" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="118" y="110" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="118" y="119" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="118" y="128" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="118" y="137" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="118" y="146" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="118" y="155" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="100" y="92" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="100" y="101" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="100" y="110" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="100" y="119" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="100" y="128" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="100" y="137" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="100" y="146" width="12" height="2" rx="1" fill="#d4d1ec" />
-    <rect x="100" y="155" width="12" height="2" rx="1" fill="#d4d1ec" />
+    <rect x="8" y="92" width="42" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="8" y="101" width="42" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="8" y="110" width="42" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="8" y="119" width="42" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="137" y="92" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="137" y="101" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="137" y="110" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="137" y="119" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="8" y="128" width="42" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="8" y="137" width="42" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="8" y="146" width="42" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="137" y="128" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="137" y="137" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="137" y="146" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="119" y="92" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="119" y="101" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="119" y="110" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="119" y="119" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="119" y="128" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="119" y="137" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="119" y="146" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="101" y="92" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="101" y="101" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="101" y="110" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="101" y="119" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="101" y="128" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="101" y="137" width="12" height="2" rx="1" fill="#D4D1EC" />
+    <rect x="101" y="146" width="12" height="2" rx="1" fill="#D4D1EC" />
     <rect x="8" y="48" width="42" height="2" rx="1" fill="#D4D1EC" />
     <rect x="137" y="6" width="12" height="2" rx="1" fill="#9086D4" />
     <rect x="137" y="21" width="12" height="2" rx="1" fill="#D4D1EC" />
