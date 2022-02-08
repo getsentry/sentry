@@ -767,18 +767,32 @@ class DiscoverDatasetConfig(DatasetConfig):
         project_threshold_config_keys = []
         project_threshold_config_values = []
         for project_id, threshold, metric in project_threshold_configs:
+            metric = TRANSACTION_METRICS[metric]
+            if (
+                threshold == DEFAULT_PROJECT_THRESHOLD
+                and metric == DEFAULT_PROJECT_THRESHOLD_METRIC
+            ):
+                # small optimization, if the configuration is equal to the default
+                # we can skip it in the final query
+                continue
             project_threshold_config_keys.append(Function("toUInt64", [project_id]))
-            project_threshold_config_values.append((TRANSACTION_METRICS[metric], threshold))
+            project_threshold_config_values.append((metric, threshold))
 
         project_threshold_override_config_keys = []
         project_threshold_override_config_values = []
         for transaction, project_id, threshold, metric in transaction_threshold_configs:
+            metric = TRANSACTION_METRICS[metric]
+            if (
+                threshold == DEFAULT_PROJECT_THRESHOLD
+                and metric == DEFAULT_PROJECT_THRESHOLD_METRIC
+            ):
+                # small optimization, if the configuration is equal to the default
+                # we can skip it in the final query
+                continue
             project_threshold_override_config_keys.append(
                 (Function("toUInt64", [project_id]), transaction)
             )
-            project_threshold_override_config_values.append(
-                (TRANSACTION_METRICS[metric], threshold)
-            )
+            project_threshold_override_config_values.append((metric, threshold))
 
         project_threshold_config_index: SelectType = Function(
             "indexOf",
@@ -799,8 +813,8 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
 
         def _project_threshold_config(alias: Optional[str] = None) -> SelectType:
-            return (
-                Function(
+            if project_threshold_config_keys and project_threshold_config_values:
+                return Function(
                     "if",
                     [
                         Function(
@@ -821,15 +835,14 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ],
                     alias,
                 )
-                if project_threshold_configs
-                else Function(
-                    "tuple",
-                    [DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD],
-                    alias,
-                )
+
+            return Function(
+                "tuple",
+                [DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD],
+                alias,
             )
 
-        if transaction_threshold_configs:
+        if project_threshold_override_config_keys and project_threshold_override_config_values:
             return Function(
                 "if",
                 [
