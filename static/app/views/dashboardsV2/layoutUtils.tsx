@@ -172,6 +172,9 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
 ): T[] {
   let columnDepths = [...initialColumnDepths];
   const newWidgets = widgets.map(widget => {
+    if (defined(widget.layout)) {
+      return widget;
+    }
     const height = getDefaultWidgetHeight(widget.displayType);
     const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
       columnDepths,
