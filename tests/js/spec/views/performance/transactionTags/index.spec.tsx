@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -52,8 +51,6 @@ const WrappedComponent = ({
 };
 
 describe('Performance > Transaction Tags', function () {
-  enforceActOnUseLegacyStoreHook();
-
   let histogramMock: Record<string, any>;
 
   beforeEach(function () {
