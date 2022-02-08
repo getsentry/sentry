@@ -449,13 +449,16 @@ export function findRangeBinarySearch(
 
 export const ELLIPSIS = '\u2026';
 export function trimTextCenter(text: string, low: number) {
+  if (low >= text.length) {
+    return text;
+  }
   const prefixLength = Math.floor(low / 2);
   // Use 1 character less than the low value to account for ellipsis
   // and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
   return `${text.substring(0, prefixLength)}${ELLIPSIS}${text.substring(
-    text.length - postfixLength + 1
+    text.length - postfixLength + ELLIPSIS.length
   )}`;
 }
 
