@@ -208,6 +208,7 @@ const MenuItem = withRouter(
         ref={ref}
         as={renderAs}
         isDisabled={isDisabled}
+        data-test-id={item.key}
         {...props}
         {...(isSubmenuTrigger && {role: 'menuitemradio'})}
       >
@@ -252,6 +253,8 @@ const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
   margin: 0;
   padding: 0 ${space(0.5)};
   cursor: pointer;
+
+  color: ${p => p.theme.textColor};
 
   ${p => p.isDisabled && `cursor: initial;`}
 
