@@ -64,7 +64,6 @@ export const VisuallyCompleteWithData = ({
             ...t._measurements,
             visuallyCompleteData: {value: normalizedValue},
           });
-          console.log(t);
         });
         isDataCompleteSet.current = true;
       }
