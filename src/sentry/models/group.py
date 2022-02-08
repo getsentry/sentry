@@ -652,14 +652,11 @@ class Group(Model):
 
     @property
     def times_seen_pending(self) -> int:
-        pending = 0
         assert hasattr(self, "_times_seen_pending")
         if not hasattr(self, "_times_seen_pending"):
             logger.error("Attempted to fetch pending `times_seen` value without first setting it")
-        else:
-            pending = self._times_seen_pending
 
-        return pending
+        return getattr(self, "_times_seen_pending", 0)
 
     @times_seen_pending.setter
     def times_seen_pending(self, times_seen: int):
