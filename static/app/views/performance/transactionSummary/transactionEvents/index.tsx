@@ -58,7 +58,6 @@ function TransactionEvents(props: Props) {
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={EventsContentWrapper}
-      features={['performance-events-page']}
     />
   );
 }
