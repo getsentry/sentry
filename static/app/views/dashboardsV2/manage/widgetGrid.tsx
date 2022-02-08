@@ -70,10 +70,9 @@ function WidgetGrid({preview}: {preview: Preview[]}) {
   });
 
   return (
-    // TODO: Should add margin: -10px here to re-align
     <GridLayout
       cols={{lg: 6}}
-      rowHeight={50}
+      rowHeight={40}
       margin={[4, 4]}
       isResizable={false}
       isDraggable={false}
@@ -85,7 +84,9 @@ function WidgetGrid({preview}: {preview: Preview[]}) {
         const WidgetPreview = miniWidget(displayType);
         return (
           <Chart key={uniqueId()} data-grid={{...layout}}>
-            <WidgetPreview />
+            <PreviewWrapper>
+              <WidgetPreview />
+            </PreviewWrapper>
           </Chart>
         );
       })}
@@ -95,10 +96,16 @@ function WidgetGrid({preview}: {preview: Preview[]}) {
 
 export default WidgetGrid;
 
+const PreviewWrapper = styled('div')`
+  padding: 20px 8px 4px 12px;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+`;
+
 const Chart = styled('div')`
   background: white;
   position: relative;
-  padding: 20px 8px 4px 12px;
 
   &::before {
     content: '';
