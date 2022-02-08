@@ -123,13 +123,8 @@ function Hovercard(props: HovercardProps): React.ReactElement {
     return modifiers;
   }, [props.modifiers]);
 
-  const isVisible = React.useMemo(() => {
-    // If show is not set, then visibility state is uncontrolled
-    if (props.show === undefined) {
-      return visible;
-    }
-    return props.show;
-  }, [props.show, visible]);
+  // If show is not set, then visibility state is uncontrolled
+  const isVisible = props.show === undefined ? visible : props.show;
 
   const hoverProps = React.useMemo((): Pick<
     React.HTMLProps<HTMLDivElement>,
