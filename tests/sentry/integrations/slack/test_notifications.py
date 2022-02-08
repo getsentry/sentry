@@ -4,27 +4,10 @@ import responses
 
 from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.notifications.additional_attachment_manager import manager
-from sentry.notifications.notifications.base import BaseNotification
 from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.notifications import DummyNotification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-
-
-class DummyNotification(BaseNotification):
-    def build_attachment_title(self, *args):
-        return "My Title"
-
-    def get_title_link(self, *args):
-        return None
-
-    def get_notification_title(self, *args):
-        return "Notification Title"
-
-    def record_notification_sent(self, *args):
-        pass
-
-    def build_notification_footer(self, *args):
-        return ""
 
 
 def additional_attachment_generator(integration, organization):
