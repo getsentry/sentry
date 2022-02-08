@@ -45,7 +45,6 @@ const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
 type Props = {
   canAddSearchConditions: boolean;
   displayType: Widget['displayType'];
-  widgetType?: Widget['widgetType'];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   handleAddSearchConditions: () => void;
   handleDeleteQuery: (queryIndex: number) => void;
@@ -54,6 +53,7 @@ type Props = {
   queries: WidgetQuery[];
   selection: PageFilters;
   errors?: Array<Record<string, any>>;
+  widgetType?: Widget['widgetType'];
 };
 
 /**
