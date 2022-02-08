@@ -613,6 +613,7 @@ class MetricQueryBuilderTest(TestCase):
             strings=[
                 "transaction",
                 "foo_bar_transaction",
+                "foo_baz_transaction",
             ]
             + list(constants.METRICS_MAP.values())
         )
@@ -688,6 +689,46 @@ class MetricQueryBuilderTest(TestCase):
         self.assertCountEqual(
             query.where, [*self.default_conditions, Condition(transaction, Op.EQ, transaction_name)]
         )
+
+    def test_transaction_in_filter(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "transaction:[foo_bar_transaction, foo_baz_transaction]",
+            selected_columns=["transaction", "project", "p95(transaction.duration)"],
+        )
+        transaction_index = indexer.resolve("transaction")
+        transaction_name1 = indexer.resolve("foo_bar_transaction")
+        transaction_name2 = indexer.resolve("foo_baz_transaction")
+        transaction = Column(f"tags[{transaction_index}]")
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                Condition(transaction, Op.IN, [transaction_name1, transaction_name2]),
+            ],
+        )
+
+    def test_missing_transaction_index(self):
+        with self.assertRaisesRegex(
+            InvalidSearchQuery,
+            re.escape("Tag value was not found"),
+        ):
+            MetricsQueryBuilder(
+                self.params,
+                "transaction:something_else",
+                selected_columns=["transaction", "project", "p95(transaction.duration)"],
+            )
+
+    def test_missing_transaction_index_in_filter(self):
+        with self.assertRaisesRegex(
+            InvalidSearchQuery,
+            re.escape("Tag value was not found"),
+        ):
+            MetricsQueryBuilder(
+                self.params,
+                "transaction:[something_else, something_else2]",
+                selected_columns=["transaction", "project", "p95(transaction.duration)"],
+            )
 
     def test_project_filter(self):
         query = MetricsQueryBuilder(
