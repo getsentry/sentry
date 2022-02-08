@@ -1,5 +1,3 @@
-import {Layout} from 'react-grid-layout';
-
 import {User} from 'sentry/types';
 
 // Max widgets per dashboard we are currently willing
@@ -38,12 +36,11 @@ export type Widget = {
   queries: WidgetQuery[];
   title: string;
   id?: string;
-  layout?: Partial<Layout>;
+  layout?: WidgetLayout | null;
   tempId?: string;
   widgetType?: WidgetType;
 };
 
-// TODO(nar): Replace references to Partial<Layout> types with this type
 // We store an explicit set of keys in the backend now
 export type WidgetLayout = {
   h: number;

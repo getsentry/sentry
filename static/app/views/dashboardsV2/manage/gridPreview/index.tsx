@@ -7,10 +7,8 @@ import styled from '@emotion/styled';
 import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {
+  assignDefaultLayout,
   calculateColumnDepths,
-  DEFAULT_WIDGET_WIDTH,
-  getDefaultWidgetHeight,
-  getNextAvailablePosition,
 } from 'sentry/views/dashboardsV2/layoutUtils';
 import {DisplayType, WidgetLayout, WidgetPreview} from 'sentry/views/dashboardsV2/types';
 
@@ -38,31 +36,6 @@ function miniWidget(displayType: DisplayType): () => JSX.Element {
     default:
       return WidgetLine;
   }
-}
-
-function assignDefaultLayout(
-  widgetPreview: WidgetPreview[],
-  initialColumnDepths: number[]
-) {
-  let columnDepths = [...initialColumnDepths];
-  const newPreviews = widgetPreview.map(item => {
-    if (defined(item.layout)) {
-      return item;
-    }
-
-    const height = getDefaultWidgetHeight(item.displayType);
-    const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
-      columnDepths,
-      height
-    );
-    columnDepths = nextColumnDepths;
-
-    return {
-      ...item,
-      layout: {...nextPosition, h: height, minH: height, w: DEFAULT_WIDGET_WIDTH},
-    };
-  });
-  return newPreviews;
 }
 
 type Props = {

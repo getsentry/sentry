@@ -9,7 +9,7 @@ import {uniqueId} from 'sentry/utils/guid';
 
 import {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {NUM_DESKTOP_COLS} from './dashboard';
-import {DisplayType, Widget} from './types';
+import {DisplayType, Widget, WidgetLayout} from './types';
 
 export const DEFAULT_WIDGET_WIDTH = 2;
 
@@ -29,7 +29,7 @@ export function generateWidgetId(widget: Widget, index: number) {
   return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
 }
 
-export function constructGridItemKey(widget: Widget) {
+export function constructGridItemKey(widget: {id?: string; tempId?: string}) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
 }
 
@@ -81,16 +81,21 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
  * Reads the layout from an array of widgets.
  */
 export function getDashboardLayout(widgets: Widget[]): Layout[] {
+  type WidgetWithDefinedLayout = Omit<Widget, 'layout'> & {layout: WidgetLayout};
   return widgets
-    .filter(({layout}) => defined(layout))
-    .map(({layout, ...widget}) => ({
-      ...(layout as Layout),
+    .filter((widget): widget is WidgetWithDefinedLayout => defined(widget.layout))
+    .map(widget => ({
+      ...widget.layout,
       i: constructGridItemKey(widget),
     }));
 }
 
-export function pickDefinedStoreKeys(layout: Layout): Partial<Layout> {
-  return pickBy(layout, (value, key) => defined(value) && STORE_KEYS.includes(key));
+export function pickDefinedStoreKeys(layout: Layout): WidgetLayout {
+  // TODO(nar): Fix the types here
+  return pickBy(
+    layout,
+    (value, key) => defined(value) && STORE_KEYS.includes(key)
+  ) as WidgetLayout;
 }
 
 export function getDefaultWidgetHeight(displayType: DisplayType): number {
@@ -165,10 +170,9 @@ export function getNextAvailablePosition(
   return [{x: 0, y: maxColumnDepth}, [...columnDepths]];
 }
 
-export function assignDefaultLayout(
-  widgets: Widget[],
-  initialColumnDepths: number[]
-): Widget[] {
+export function assignDefaultLayout<
+  T extends {displayType: DisplayType; layout?: WidgetLayout | null}
+>(widgets: T[], initialColumnDepths: number[]): T[] {
   let columnDepths = [...initialColumnDepths];
   const newWidgets = widgets.map(widget => {
     if (defined(widget.layout)) {
@@ -195,8 +199,12 @@ export function enforceWidgetHeightValues(widget: Widget): Widget {
   const nextWidget = {
     ...widget,
   };
+  if (!defined(layout)) {
+    return nextWidget;
+  }
+
   const minH = getDefaultWidgetHeight(displayType);
-  const nextLayout = {
+  const nextLayout: WidgetLayout = {
     ...layout,
     h: Math.max(layout?.h ?? minH, minH),
     minH,
