@@ -48,7 +48,7 @@ export const VisuallyCompleteWithData = ({
       const normalizedValue = Math.abs((now - transactionStart) * 1000);
 
       if (!isVisuallyCompleteSet.current) {
-        transaction.registerBeforeFinishCallback(function (t, _) {
+        transaction.registerBeforeFinishCallback((t, _) => {
           // Should be called after performance entries finish callback.
           t.setMeasurements({
             ...t._measurements,
@@ -58,7 +58,7 @@ export const VisuallyCompleteWithData = ({
         isVisuallyCompleteSet.current = true;
       }
       if (!isDataCompleteSet.current) {
-        transaction.registerBeforeFinishCallback(function (t, _) {
+        transaction.registerBeforeFinishCallback((t, _) => {
           // Should be called after performance entries finish callback.
           t.setMeasurements({
             ...t._measurements,
