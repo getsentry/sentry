@@ -43,18 +43,27 @@ export const VisuallyCompleteWithData = ({
   useEffect(() => {
     try {
       const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
-      const now = performance.now();
+      const now = timestampWithMs();
+      const transactionStart = transaction.startTimestamp;
+      const normalizedValue = Math.abs((now - transactionStart) * 1000);
+
       if (!isVisuallyCompleteSet.current) {
-        transaction.setMeasurements({
-          ...transaction._measurements,
-          visuallyComplete: {value: now},
+        transaction.registerBeforeFinishCallback((t, _) => {
+          // Should be called after performance entries finish callback.
+          t.setMeasurements({
+            ...t._measurements,
+            visuallyComplete: {value: normalizedValue},
+          });
         });
         isVisuallyCompleteSet.current = true;
       }
       if (!isDataCompleteSet.current) {
-        transaction.setMeasurements({
-          ...transaction._measurements,
-          visuallyCompleteData: {value: now},
+        transaction.registerBeforeFinishCallback((t, _) => {
+          // Should be called after performance entries finish callback.
+          t.setMeasurements({
+            ...t._measurements,
+            visuallyCompleteData: {value: normalizedValue},
+          });
         });
         isDataCompleteSet.current = true;
       }
