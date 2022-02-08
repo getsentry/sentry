@@ -44,6 +44,24 @@ def update_code_owners_schema(organization, integration=None, projects=None, **k
         return
 
 
+def send_codeowners_auto_sync_failure_email(code_mapping):
+    from sentry.utils.email import MessageBuilder
+
+    owners = code_mapping.organization_integration.organization.get_owners()
+    msg = MessageBuilder(
+        subject="Unable to Complete CODEOWNERS Auto-Sync",
+        context={
+            "project_name": code_mapping.project.name,
+            "url": absolute_uri(
+                f"/settings/{code_mapping.project.organization.slug}/projects/{code_mapping.project.slug}/ownership/"
+            ),
+        },
+        template="sentry/emails/identity-invalid.txt",
+        html_template="sentry/emails/identity-invalid.html",
+    )
+    return msg.send_async([o.email for o in owners])
+
+
 @instrumented_task(
     name="sentry.tasks.code_owners_auto_sync",
     queue="code_owners",
@@ -58,7 +76,6 @@ def code_owners_auto_sync(commit: Commit, **kwargs):
         ProjectOwnership,
         RepositoryProjectPathConfig,
     )
-    from sentry.utils.email import MessageBuilder
 
     code_mappings = RepositoryProjectPathConfig.objects.filter(
         repository_id=commit.repository_id,
@@ -79,25 +96,14 @@ def code_owners_auto_sync(commit: Commit, **kwargs):
             codeowner_contents = get_codeowner_contents(code_mapping)
         except Exception:
             # Notify owners that auto-sync failed to fetch contents.
-            owners = code_mapping.organization_integration.organization.get_owners()
-            msg = MessageBuilder(
-                subject="Unable to Complete CODEOWNERS Auto-Sync",
-                context={
-                    "project_name": code_mapping.project.name,
-                    "url": absolute_uri(
-                        f"/settings/{code_mapping.project.organization.slug}/projects/{code_mapping.project.slug}/ownership/"
-                    ),
-                },
-                template="sentry/emails/identity-invalid.txt",
-                html_template="sentry/emails/identity-invalid.html",
-            )
+            return send_codeowners_auto_sync_failure_email(code_mapping)
 
-            return msg.send_async([o.email for o in owners])
+        if not codeowner_contents:
+            return send_codeowners_auto_sync_failure_email(code_mapping)
 
-        if codeowner_contents:
-            codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
+        codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
 
-            codeowners.raw = codeowner_contents["raw"]
-            codeowners.update_schema()
+        codeowners.raw = codeowner_contents["raw"]
+        codeowners.update_schema()
 
-            # TODO(Nisanthan): Record analytics on auto-sync success
+        # TODO(Nisanthan): Record analytics on auto-sync success

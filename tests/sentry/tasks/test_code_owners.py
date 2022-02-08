@@ -73,7 +73,7 @@ class CodeOwnersTest(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
         return_value=LATEST_GITHUB_CODEOWNERS,
     )
-    def test_codeowners_auto_sync(self, mock_get_codeowner_file):
+    def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file):
 
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             self.create_external_team()
@@ -110,3 +110,33 @@ class CodeOwnersTest(TestCase):
                 },
             ],
         }
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
+        return_value=None,
+    )
+    @patch("sentry.tasks.code_owners.send_codeowners_auto_sync_failure_email")
+    def test_codeowners_auto_sync_failed_to_fetch_file(
+        self,
+        mock_send_email,
+        mock_get_codeowner_file,
+    ):
+
+        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
+            commit = Commit.objects.create(
+                repository_id=self.repo.id,
+                organization_id=self.organization.id,
+                key="1234",
+                message="Initial commit",
+            )
+            CommitFileChange.objects.create(
+                organization_id=self.organization.id,
+                commit=commit,
+                filename=".github/CODEOWNERS",
+                type="A",
+            )
+            code_owners_auto_sync(commit)
+
+        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
+        assert code_owners.raw == self.data["raw"]
+        mock_send_email.assert_called_once_with(self.code_mapping)
