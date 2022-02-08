@@ -1,7 +1,7 @@
 from .option import Option
-from .organizationoption import OrganizationOption
-from .projectoption import ProjectOption
-from .useroption import UserOption
+from .organization_option import OrganizationOption
+from .project_option import ProjectOption
+from .user_option import UserOption
 
 __all__ = (
     "Option",
