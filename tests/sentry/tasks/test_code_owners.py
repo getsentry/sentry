@@ -76,6 +76,8 @@ class CodeOwnersTest(TestCase):
     def test_codeowners_auto_sync(self, mock_get_codeowner_file):
 
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
+            self.create_external_team()
+            self.create_external_user(external_name="@NisanthanNanthakumar")
             commit = Commit.objects.create(
                 repository_id=self.repo.id,
                 organization_id=self.organization.id,
@@ -92,3 +94,19 @@ class CodeOwnersTest(TestCase):
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
         assert code_owners.raw == LATEST_GITHUB_CODEOWNERS["raw"]
+        assert code_owners.schema == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"pattern": "docs/*", "type": "codeowners"},
+                    "owners": [
+                        {"identifier": "admin@localhost", "type": "user"},
+                        {"identifier": "tiger-team", "type": "team"},
+                    ],
+                },
+                {
+                    "matcher": {"pattern": "*", "type": "codeowners"},
+                    "owners": [{"identifier": "admin@localhost", "type": "user"}],
+                },
+            ],
+        }
