@@ -25,10 +25,10 @@ function DefaultSearchBar({
   query,
 }: {
   busy: boolean;
-  handleSubmit: React.FormEventHandler<HTMLFormElement>;
   handleInputChange: React.ChangeEventHandler<HTMLInputElement>;
-  query: string;
+  handleSubmit: React.FormEventHandler<HTMLFormElement>;
   placeholder: string;
+  query: string;
   className?: string;
 }): React.ReactElement {
   return (
@@ -45,6 +45,11 @@ function DefaultSearchBar({
 }
 
 export interface AsyncComponentSearchInputProps extends WithRouterProps {
+  // optional, otherwise app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
+  api: Client;
+  onError: () => void;
+
+  onSuccess: (data: object, resp: ResponseMeta | undefined) => void;
   /**
    * Placeholder text in the search input
    */
@@ -202,7 +207,7 @@ function AsyncComponentSearchInput({
 /**
  * This is a search input that can be easily used in AsyncComponent/Views.
  *
- * It probably doesn't make too much sense outside of an AsyncComponent atm.
+ * It probably doesn't make too much sense outside of an AsyncComponent at the moment.
  */
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

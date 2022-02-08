@@ -52,10 +52,8 @@ describe('AsyncComponentSearchInput', () => {
       context: TestStubs.routerContext(),
     });
 
-    act(() => {
-      userEvent.click(screen.getByRole('textbox'));
-      userEvent.keyboard('t');
-    });
+    userEvent.click(screen.getByRole('textbox'));
+    userEvent.keyboard('t');
 
     jest.advanceTimersByTime(debounceWait / 2);
     // Flush out promises
@@ -156,21 +154,17 @@ describe('AsyncComponentSearchInput', () => {
       }
     );
 
+    userEvent.type(screen.getByRole('textbox'), 'Te');
+
     act(() => {
-      userEvent.type(screen.getByRole('textbox'), 'Te');
+      jest.runAllTimers();
     });
 
-    jest.advanceTimersByTime(500);
-
-    // Flush out promises
-    await Promise.resolve();
-    await Promise.resolve();
-
-    // First render 1 for each character typed
+    // First render 1, then two chararcter types + busy toggle on and off
     await waitFor(() => {
-      expect(render).toHaveBeenCalledTimes(1 + 'Te'.length);
+      expect(render).toHaveBeenCalledTimes(3 + 'Te'.length);
     });
-    expect(render.mock.calls[1][0].value).toBe('Te');
+    expect(render.mock.calls[2][0].value).toBe('Te');
   });
   it('updates route on form submit', async () => {
     const props = makeProps({
