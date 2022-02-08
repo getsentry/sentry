@@ -15,11 +15,7 @@ import {DateString, Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
-import {
-  IncidentRule,
-  TimePeriod,
-  TimeWindow,
-} from 'sentry/views/alerts/incidentRules/types';
+import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {makeRuleDetailsQuery} from 'sentry/views/alerts/list/row';
 
 import {Incident} from '../../types';
@@ -80,13 +76,7 @@ class AlertRuleDetails extends Component<Props, State> {
 
   getTimePeriod(): TimePeriodType {
     const {location} = this.props;
-    const {rule} = this.state;
-
-    const defaultPeriod =
-      rule?.timeWindow && rule?.timeWindow > TimeWindow.ONE_HOUR
-        ? TimePeriod.SEVEN_DAYS
-        : TimePeriod.ONE_DAY;
-    const period = location.query.period ?? defaultPeriod;
+    const period = location.query.period ?? TimePeriod.SEVEN_DAYS;
 
     if (location.query.start && location.query.end) {
       return {
@@ -156,17 +146,14 @@ class AlertRuleDetails extends Component<Props, State> {
       this.setState({selectedIncident: null});
     }
 
+    const timePeriod = this.getTimePeriod();
+    const {start, end} = timePeriod;
     try {
-      const rule = await fetchAlertRule(orgId, ruleId);
-      this.setState({rule});
-
-      const timePeriod = this.getTimePeriod();
-      const {start, end} = timePeriod;
-
-      const incidents = await fetchIncidentsForRule(orgId, ruleId, start, end);
-      this.setState({incidents});
-
-      this.setState({isLoading: false, hasError: false});
+      const [incidents, rule] = await Promise.all([
+        fetchIncidentsForRule(orgId, ruleId, start, end),
+        fetchAlertRule(orgId, ruleId),
+      ]);
+      this.setState({incidents, rule, isLoading: false, hasError: false});
     } catch (error) {
       this.setState({isLoading: false, hasError: true, error});
     }
