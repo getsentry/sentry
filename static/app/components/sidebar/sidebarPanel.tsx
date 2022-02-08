@@ -44,7 +44,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   collapsed: CommonSidebarProps['collapsed'];
   orientation: CommonSidebarProps['orientation'];
   hidePanel: CommonSidebarProps['hidePanel'];
-  title: string;
+  title?: string;
 }
 
 /**
