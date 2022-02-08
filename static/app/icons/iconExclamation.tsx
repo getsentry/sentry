@@ -13,6 +13,6 @@ const IconExclamation = React.forwardRef<SVGSVGElement, SVGIconProps>((props, re
   );
 });
 
-IconExclamation.displayName = 'IconEllipsis';
+IconExclamation.displayName = 'IconExclamation';
 
 export {IconExclamation};
