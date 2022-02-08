@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
+import sentry_sdk
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.search.events.filter import get_filter
@@ -453,10 +454,13 @@ def _run_sessions_query(query):
         limit=SNUBA_LIMIT,
         referrer="sessions.timeseries",
     )
+
+    num_intervals = len(get_timestamps(query))
+    sentry_sdk.set_tag("sessions_v2.intervals", num_intervals)
     if len(result_timeseries["data"]) == SNUBA_LIMIT:
         # We know that for every row returned by the "totals" query, we expect
         # (end-start)/rollup rows in the "series" query:
-        expected_results = len(result_totals["data"]) * len(get_timestamps(query))
+        expected_results = len(result_totals["data"]) * num_intervals
         logger.error(
             "sessions_v2.snuba_limit_exceeded",
             extra={
