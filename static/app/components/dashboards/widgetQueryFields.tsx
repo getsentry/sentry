@@ -12,6 +12,7 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/metricWidget/fields';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -221,6 +222,7 @@ function WidgetQueryFields({
             fieldOptions={fieldOptions}
             organization={organization}
             filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
+            source={widgetType}
           />
         </Field>
         <Field
@@ -236,7 +238,11 @@ function WidgetQueryFields({
           <QueryFieldWrapper key={`${fieldValue}:0`}>
             <QueryField
               fieldValue={fieldValue}
-              fieldOptions={generateFieldOptions({organization})}
+              fieldOptions={
+                isMetricWidget
+                  ? generateMetricsWidgetFieldOptions()
+                  : generateFieldOptions({organization})
+              }
               onChange={value => handleTopNChangeField(value)}
               filterPrimaryOptions={filterPrimaryOptions}
               filterAggregateParameters={filterAggregateParameters(fieldValue)}

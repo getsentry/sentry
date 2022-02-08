@@ -19,6 +19,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 import Field from 'sentry/views/settings/components/forms/field';
 
@@ -44,6 +45,7 @@ const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
 type Props = {
   canAddSearchConditions: boolean;
   displayType: Widget['displayType'];
+  widgetType?: Widget['widgetType'];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   handleAddSearchConditions: () => void;
   handleDeleteQuery: (queryIndex: number) => void;
@@ -82,10 +84,62 @@ class WidgetQueriesForm extends React.Component<Props> {
     return errors.find(queryError => queryError && queryError[key]);
   }
 
+  renderSearchBar(widgetQuery: WidgetQuery, queryIndex: number) {
+    const {organization, selection, widgetType} = this.props;
+
+    return widgetType === WidgetType.METRICS ? (
+      <StyledMeticsSearchBar
+        searchSource="widget_builder"
+        orgSlug={organization.slug}
+        query={widgetQuery.conditions}
+        onSearch={field => {
+          // SearchBar will call handlers for both onSearch and onBlur
+          // when selecting a value from the autocomplete dropdown. This can
+          // cause state issues for the search bar in our use case. To prevent
+          // this, we set a timer in our onSearch handler to block our onBlur
+          // handler from firing if it is within 200ms, ie from clicking an
+          // autocomplete value.
+          this.blurTimeout = window.setTimeout(() => {
+            this.blurTimeout = null;
+          }, 200);
+          return this.handleFieldChange(queryIndex, 'conditions')(field);
+        }}
+        maxQueryLength={MAX_QUERY_LENGTH}
+        projectIds={selection.projects}
+      />
+    ) : (
+      <StyledSearchBar
+        searchSource="widget_builder"
+        organization={organization}
+        projectIds={selection.projects}
+        query={widgetQuery.conditions}
+        fields={[]}
+        onSearch={field => {
+          // SearchBar will call handlers for both onSearch and onBlur
+          // when selecting a value from the autocomplete dropdown. This can
+          // cause state issues for the search bar in our use case. To prevent
+          // this, we set a timer in our onSearch handler to block our onBlur
+          // handler from firing if it is within 200ms, ie from clicking an
+          // autocomplete value.
+          this.blurTimeout = window.setTimeout(() => {
+            this.blurTimeout = null;
+          }, 200);
+          return this.handleFieldChange(queryIndex, 'conditions')(field);
+        }}
+        onBlur={field => {
+          if (!this.blurTimeout) {
+            this.handleFieldChange(queryIndex, 'conditions')(field);
+          }
+        }}
+        useFormWrapper={false}
+        maxQueryLength={MAX_QUERY_LENGTH}
+      />
+    );
+  }
+
   render() {
     const {
       organization,
-      selection,
       errors,
       queries,
       canAddSearchConditions,
@@ -94,6 +148,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       displayType,
       fieldOptions,
       onChange,
+      widgetType,
     } = this.props;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
@@ -113,32 +168,7 @@ class WidgetQueriesForm extends React.Component<Props> {
               error={errors?.[queryIndex].conditions}
             >
               <SearchConditionsWrapper>
-                <StyledSearchBar
-                  searchSource="widget_builder"
-                  organization={organization}
-                  projectIds={selection.projects}
-                  query={widgetQuery.conditions}
-                  fields={[]}
-                  onSearch={field => {
-                    // SearchBar will call handlers for both onSearch and onBlur
-                    // when selecting a value from the autocomplete dropdown. This can
-                    // cause state issues for the search bar in our use case. To prevent
-                    // this, we set a timer in our onSearch handler to block our onBlur
-                    // handler from firing if it is within 200ms, ie from clicking an
-                    // autocomplete value.
-                    this.blurTimeout = window.setTimeout(() => {
-                      this.blurTimeout = null;
-                    }, 200);
-                    return this.handleFieldChange(queryIndex, 'conditions')(field);
-                  }}
-                  onBlur={field => {
-                    if (!this.blurTimeout) {
-                      this.handleFieldChange(queryIndex, 'conditions')(field);
-                    }
-                  }}
-                  useFormWrapper={false}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
+                {this.renderSearchBar(widgetQuery, queryIndex)}
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"
@@ -181,7 +211,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           </Button>
         )}
         <WidgetQueryFields
-          widgetType={WidgetType.DISCOVER}
+          widgetType={widgetType ?? WidgetType.DISCOVER}
           displayType={displayType}
           fieldOptions={fieldOptions}
           errors={this.getFirstQueryError('fields')}
@@ -196,7 +226,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             });
           }}
         />
-        {['table', 'top_n'].includes(displayType) && (
+        {['table', 'top_n'].includes(displayType) && widgetType !== WidgetType.METRICS && (
           <Field
             label={t('Sort by')}
             inline={false}
@@ -234,6 +264,10 @@ export const SearchConditionsWrapper = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+`;
+
+const StyledMeticsSearchBar = styled(MetricsSearchBar)`
   flex-grow: 1;
 `;
 

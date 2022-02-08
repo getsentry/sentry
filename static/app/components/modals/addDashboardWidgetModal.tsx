@@ -51,7 +51,10 @@ import {
   normalizeQueries,
 } from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
-import {METRICS_FIELDS} from 'sentry/views/dashboardsV2/widget/metricWidget/fields';
+import {
+  generateMetricsWidgetFieldOptions,
+  METRICS_FIELDS,
+} from 'sentry/views/dashboardsV2/widget/metricWidget/fields';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -60,9 +63,6 @@ import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGro
 import Field from 'sentry/views/settings/components/forms/field';
 import FieldLabel from 'sentry/views/settings/components/forms/field/fieldLabel';
 
-import MetricsWidgetQueriesForm, {
-  generateMetricsWidgetFieldOptions,
-} from '../dashboards/metricWidgetQueriesForm';
 import Option from '../forms/selectOption';
 import Tooltip from '../tooltip';
 
@@ -668,10 +668,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
       case WidgetType.METRICS:
         return (
-          <MetricsWidgetQueriesForm
+          <WidgetQueriesForm
             organization={organization}
             selection={querySelection}
             displayType={state.displayType}
+            widgetType={state.widgetType}
             queries={state.queries}
             errors={errors?.queries}
             fieldOptions={metricsWidgetFieldOptions}
@@ -698,6 +699,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                     selection={querySelection}
                     fieldOptions={amendedFieldOptions}
                     displayType={state.displayType}
+                    widgetType={state.widgetType}
                     queries={state.queries}
                     errors={errors?.queries}
                     onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>

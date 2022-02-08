@@ -36,7 +36,7 @@ export enum FieldValueKind {
   FIELD = 'field',
   FUNCTION = 'function',
   EQUATION = 'equation',
-  METRICS = 'metrics',
+  METRICS = 'metric',
 }
 
 export type FieldValueColumns =
