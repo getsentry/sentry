@@ -351,6 +351,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         newDisplayType === DisplayType.WORLD_MAP &&
         prevState.widgetType === WidgetType.METRICS
       ) {
+        // World Map display type only supports Discover Dataset
+        // so set state to default discover query.
         set(newState, 'queries', normalizeQueries(newDisplayType, [newQuery]));
         set(newState, 'widgetType', WidgetType.DISCOVER);
         return {...newState, errors: undefined};
