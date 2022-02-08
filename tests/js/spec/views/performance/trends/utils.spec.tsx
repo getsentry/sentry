@@ -53,7 +53,7 @@ describe('Trend parameter utils', function () {
         column: TrendColumnField.FCP,
       };
       // project with performance type 'any'
-      const projects = [TestStubs.Project({id: 1, plarform: null})];
+      const projects = [TestStubs.Project({id: 1, platform: null})];
 
       const output = getCurrentTrendParameter(location, projects, [1]);
       expect(output).toEqual(expectedTrendParameter);
@@ -66,7 +66,7 @@ describe('Trend parameter utils', function () {
         column: TrendColumnField.DURATION,
       };
       // project with performance type 'any'
-      const projects = [TestStubs.Project({id: 1, plarform: null})];
+      const projects = [TestStubs.Project({id: 1, platform: null})];
 
       const output = getCurrentTrendParameter(location, projects, [1]);
       expect(output).toEqual(expectedTrendParameter);
