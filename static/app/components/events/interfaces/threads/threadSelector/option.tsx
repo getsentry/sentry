@@ -23,7 +23,7 @@ type ThreadInfo = {
 };
 
 const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
-  const {label = `<${t('unknown')}>`} = details;
+  const label = details.label ?? `<${t('unknown')}>`;
   const optionName = name || `<${t('unknown')}>`;
 
   return (
