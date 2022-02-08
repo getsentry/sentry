@@ -279,7 +279,6 @@ class Match:
         return "frames"
 
     def matches(self, values):
-
         rv = self._positive_match(values)
         if self.negated:
             rv = not rv
