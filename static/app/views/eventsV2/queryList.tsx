@@ -295,6 +295,7 @@ class QueryList extends React.Component<Props> {
           key: 'delete',
           label: t('Delete Query'),
           leadingItems: <IconDelete />,
+          priority: 'danger',
           onAction: () => this.handleDeleteQuery(eventView),
         },
       ];
