@@ -42,9 +42,9 @@ const PanelContainer = styled('div')<PositionProps>`
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   collapsed: CommonSidebarProps['collapsed'];
-  orientation: CommonSidebarProps['orientation'];
   hidePanel: CommonSidebarProps['hidePanel'];
-  title?: string;
+  orientation: CommonSidebarProps['orientation'];
+  title: string;
 }
 
 /**
