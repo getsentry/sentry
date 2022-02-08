@@ -283,7 +283,7 @@ export default class DetailsBody extends React.Component<Props> {
         <HeaderItem>
           <Heading noMargin>{t('Last Triggered')}</Heading>
           <Status>
-            {activityDate ? <TimeSince date={activityDate} /> : 'No alerts triggered yet'}
+            {activityDate ? <TimeSince date={activityDate} /> : 'No alerts triggered'}
           </Status>
         </HeaderItem>
       </StatusContainer>
