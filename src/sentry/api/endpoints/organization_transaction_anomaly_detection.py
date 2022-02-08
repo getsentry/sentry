@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3 import Retry, connection_from_url
@@ -11,15 +12,13 @@ from sentry.utils import json
 
 
 def get_anomalies(snuba_io):
-    ads_url = "127.0.0.1:9091"
-    ads_timeout = 10
     ads_connection_pool = connection_from_url(
-        ads_url,
+        settings.ANOMALY_DETECTION_URL,
         retries=Retry(
             total=5,
             status_forcelist=[408, 429, 502, 503, 504],
         ),
-        timeout=ads_timeout,
+        timeout=settings.SENTRY_SNUBA_TIMEOUT,
     )
 
     return ads_connection_pool.urlopen(
