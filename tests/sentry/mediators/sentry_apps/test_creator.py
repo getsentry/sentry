@@ -12,7 +12,7 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
-from sentry.models.integrationfeature import IntegrationTypes
+from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.testutils import TestCase
 
 

@@ -17,7 +17,7 @@ from sentry.models import (
     SentryAppInstallation,
     SentryAppInstallationToken,
 )
-from sentry.models.sentryapp import MASKED_VALUE
+from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
