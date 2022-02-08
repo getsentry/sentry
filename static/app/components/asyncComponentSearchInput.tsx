@@ -44,7 +44,7 @@ function DefaultSearchBar({
   );
 }
 
-export interface AsyncComponentSearchInputProps extends WithRouterProps {
+interface AsyncComponentSearchInputProps extends WithRouterProps {
   // optional, otherwise app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
   api: Client;
   onError: () => void;
@@ -61,7 +61,7 @@ export interface AsyncComponentSearchInputProps extends WithRouterProps {
   /**
    * A render-prop child may be passed to handle custom rendering of the input.
    */
-  children?: (otps: RenderProps) => React.ReactElement;
+  children?: (opts: RenderProps) => React.ReactElement;
 
   className?: string;
   /**
@@ -222,4 +222,7 @@ const Form = styled('form')`
 `;
 
 const AsyncComponentSearchInputWithRouter = withRouter(AsyncComponentSearchInput);
-export {AsyncComponentSearchInputWithRouter as AsyncComponentSearchInput};
+export {
+  AsyncComponentSearchInputWithRouter as AsyncComponentSearchInput,
+  AsyncComponentSearchInputProps,
+};
