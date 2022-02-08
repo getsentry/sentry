@@ -197,6 +197,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/models/externalissue.py           @getsentry/ecosystem
 /src/sentry/models/identity.py                @getsentry/ecosystem
 /src/sentry/models/integrationfeature.py      @getsentry/ecosystem
+/src/sentry/models/integrations/              @getsentry/ecosystem
 /src/sentry/models/notificationsetting.py     @getsentry/ecosystem
 
 /src/sentry/tasks/code_owners.py              @getsentry/ecosystem

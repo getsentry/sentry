@@ -9,7 +9,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DocIntegrationSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.integration import DocIntegration
+from sentry.models import DocIntegration
 
 logger = logging.getLogger(__name__)
 
