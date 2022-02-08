@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
@@ -1521,6 +1522,101 @@ class MetricsQueryBuilder(QueryBuilder):
         inmplemented see run_query"""
         raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
 
-    def run_query(self) -> None:
-        # TODO(wmak): will implement this soon
-        pass
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        # Need to split orderby between the 3 possible tables
+        query_framework = {
+            "distribution": {
+                "orderby": [],
+                "functions": self.distributions,
+                "entity": "metrics_distributions",
+            },
+            "counter": {
+                "orderby": [],
+                "functions": self.counters,
+                "entity": "metrics_counters",
+            },
+            "set": {
+                "orderby": [],
+                "functions": self.sets,
+                "entity": "metrics_sets",
+            },
+        }
+        general_orderby = []
+        primary = None
+        # if orderby spans more than one table, the query isn't possible with metrics
+        for orderby in self.orderby:
+            if orderby.exp in self.distributions:
+                query_framework["distribution"]["orderby"].append(orderby)
+                if primary not in [None, "distribution"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "distribution"
+            elif orderby.exp in self.sets:
+                query_framework["set"]["orderby"].append(orderby)
+                if primary not in [None, "set"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "set"
+            elif orderby.exp in self.counters:
+                query_framework["counter"]["orderby"].append(orderby)
+                if primary not in [None, "counter"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "counter"
+            else:
+                general_orderby.append(orderby)
+
+        # Pick one arbitrarily, there's no orderby on functions
+        if primary is None:
+            primary = "distribution"
+
+        transaction_map = defaultdict(dict)
+        meta = []
+        for query_details in [query_framework.pop(primary), *query_framework.values()]:
+            # Only run the query if there's at least one function, can't query without metrics
+            if len(query_details["functions"]) > 0:
+                select = [
+                    column
+                    for column in self.columns
+                    if not isinstance(column, CurriedFunction)
+                    or column in query_details["functions"]
+                ]
+                if transaction_map:
+                    # This is second or third query, filter to the transactions
+                    where = self.where + [
+                        Condition(
+                            self.resolve_column("transaction"), Op.IN, list(transaction_map.keys())
+                        )
+                    ]
+                    # Always offset 0 since we filter to the transactions
+                    offset = Offset(0)
+                else:
+                    where = self.where
+                    offset = self.offset
+
+                query = Query(
+                    dataset=self.dataset.value,
+                    match=Entity(query_details["entity"], sample=self.sample_rate),
+                    select=select,
+                    array_join=self.array_join,
+                    where=where,
+                    having=self.having,
+                    groupby=self.groupby,
+                    orderby=query_details["orderby"],
+                    limit=self.limit,
+                    offset=offset,
+                    limitby=self.limitby,
+                    turbo=self.turbo,
+                )
+                result = raw_snql_query(
+                    query,
+                    referrer,
+                    use_cache,
+                )
+                for row in result["data"]:
+                    groupby_key = ",".join(
+                        str(row[key.alias])
+                        for key in self.groupby
+                        if isinstance(key, (AliasedExpression, CurriedFunction))
+                    )
+                    transaction_map[groupby_key].update(row)
+                meta += result["meta"]
+
+        return {"data": list(transaction_map.values()), "meta": meta}

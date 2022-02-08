@@ -1,5 +1,6 @@
 import datetime
 import re
+from unittest import mock
 
 from django.utils import timezone
 from snuba_sdk.aliased_expression import AliasedExpression
@@ -698,4 +699,77 @@ class MetricQueryBuilderTest(TestCase):
         self.assertCountEqual(
             query.where,
             [*self.default_conditions, Condition(Column("project_id"), Op.EQ, self.project.id)],
+        )
+
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    def test_run_query(self, mock_query):
+        mock_query.side_effect = [
+            {
+                "data": [
+                    {"transaction": 1, "project": self.project.slug, "p95_transaction_duration": 1},
+                    {"transaction": 2, "project": self.project.slug, "p95_transaction_duration": 2},
+                ],
+                "meta": [
+                    {
+                        "name": "transaction",
+                        "type": "Integer",
+                    },
+                    {
+                        "name": "project",
+                        "type": "String",
+                    },
+                    {
+                        "name": "p95_transaction_duration",
+                        "type": "Float",
+                    },
+                ],
+            },
+            {
+                "data": [
+                    {"transaction": 1, "project": self.project.slug, "count_unique_user": 5},
+                    {"transaction": 2, "project": self.project.slug, "count_unique_user": 15},
+                ],
+                "meta": [
+                    {
+                        "name": "transaction",
+                        "type": "Integer",
+                    },
+                    {
+                        "name": "project",
+                        "type": "String",
+                    },
+                    {
+                        "name": "count_unique_user",
+                        "type": "Float",
+                    },
+                ],
+            },
+        ]
+        query = MetricsQueryBuilder(
+            self.params,
+            f"project:{self.project.slug}",
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+                "count_unique(user)",
+            ],
+        )
+        result = query.run_query("test_query")
+        self.assertCountEqual(
+            result["data"],
+            [
+                {
+                    "transaction": 1,
+                    "project": self.project.slug,
+                    "count_unique_user": 5,
+                    "p95_transaction_duration": 1,
+                },
+                {
+                    "transaction": 2,
+                    "project": self.project.slug,
+                    "count_unique_user": 15,
+                    "p95_transaction_duration": 2,
+                },
+            ],
         )
