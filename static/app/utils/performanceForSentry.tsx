@@ -34,9 +34,9 @@ export const VisuallyCompleteWithData = ({
   hasData,
   children,
 }: {
-  id: string;
-  hasData: boolean;
   children: ReactNode;
+  hasData: boolean;
+  id: string;
 }) => {
   const isVisuallyCompleteSet = useRef(false);
   const isDataCompleteSet = useRef(false);
