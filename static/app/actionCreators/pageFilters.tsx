@@ -119,8 +119,8 @@ function mergeDatetime(
 type InitializeUrlStateParams = {
   memberProjects: Project[];
   organization: Organization;
-  queryParams: Location['query'];
   pathname: Location['pathname'];
+  queryParams: Location['query'];
   router: InjectedRouter;
   shouldEnforceSingleProject: boolean;
   defaultSelection?: Partial<PageFilters>;
