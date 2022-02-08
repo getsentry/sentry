@@ -9,7 +9,7 @@ import space from 'sentry/styles/space';
 
 import {CommonSidebarProps} from './types';
 
-type PositionProps = Pick<CommonSidebarProps, 'orientation' | 'collapsed'>;
+interface PositionProps extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'> {}
 
 const PanelContainer = styled('div')<PositionProps>`
   position: fixed;
@@ -40,10 +40,12 @@ const PanelContainer = styled('div')<PositionProps>`
         `};
 `;
 
-type Props = React.ComponentProps<typeof PanelContainer> &
-  Pick<CommonSidebarProps, 'collapsed' | 'orientation' | 'hidePanel'> & {
-    title?: string;
-  };
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
+  collapsed: CommonSidebarProps['collapsed'];
+  orientation: CommonSidebarProps['orientation'];
+  hidePanel: CommonSidebarProps['hidePanel'];
+  title: string;
+}
 
 /**
  * Get the container element of the sidebar that react portals into.
@@ -66,7 +68,7 @@ function SidebarPanel({
   title,
   children,
   ...props
-}: Props) {
+}: Props): React.ReactElement {
   const portalEl = useRef<HTMLDivElement>(getSidebarPanelContainer() || makePortal());
 
   useEffect(() => {
@@ -97,12 +99,12 @@ function SidebarPanel({
       orientation={orientation}
       {...props}
     >
-      {title && (
+      {title ? (
         <SidebarPanelHeader>
           <Title>{title}</Title>
           <PanelClose onClick={hidePanel} />
         </SidebarPanelHeader>
-      )}
+      ) : null}
       <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
     </PanelContainer>
   );
