@@ -6,7 +6,7 @@ import {Location} from 'history';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SearchBar from 'sentry/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageHeading from 'sentry/components/pageHeading';
