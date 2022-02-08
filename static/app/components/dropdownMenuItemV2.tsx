@@ -254,6 +254,8 @@ const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
   padding: 0 ${space(0.5)};
   cursor: pointer;
 
+  color: ${p => p.theme.textColor};
+
   ${p => p.isDisabled && `cursor: initial;`}
 
   &:focus {

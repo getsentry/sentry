@@ -256,7 +256,7 @@ const MenuWrap = styled('ul')`
   padding: ${space(0.5)} 0;
   font-size: ${p => p.theme.fontSizeMedium};
   overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
 
   &:focus {
     outline: none;
