@@ -17,6 +17,8 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
+import {BoundTooltip} from './BoundTooltip';
+
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
   colorCoding: 'by symbol name' | 'by system / application' | 'by library';
@@ -43,6 +45,8 @@ function FlamegraphZoomView({
 
   const [gridRenderer, setGridRenderer] = React.useState<GridRenderer | null>(null);
   const [textRenderer, setTextRenderer] = React.useState<TextRenderer | null>(null);
+
+  const [canvasBounds, setCanvasBounds] = React.useState<Rect>(Rect.Empty());
 
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
@@ -236,6 +240,9 @@ function FlamegraphZoomView({
     const observer = watchForResize(
       [flamegraphCanvasRef, flamegraphOverlayCanvasRef],
       () => {
+        const bounds = flamegraphOverlayCanvasRef.getBoundingClientRect();
+        setCanvasBounds(new Rect(bounds.x, bounds.y, bounds.width, bounds.height));
+
         flamegraphRenderer.onResizeUpdateSpace();
         canvasPoolManager.dispatch('setConfigView', [flamegraphRenderer.configView]);
         newScheduler.drawSync();
@@ -522,6 +529,15 @@ function FlamegraphZoomView({
           pointerEvents: 'none',
         }}
       />
+      {flamegraphRenderer ? (
+        <BoundTooltip
+          bounds={canvasBounds}
+          cursor={configSpaceCursor}
+          configToPhysicalSpace={flamegraphRenderer?.configToPhysicalSpace}
+        >
+          {hoveredNode?.frame?.name}
+        </BoundTooltip>
+      ) : null}
     </React.Fragment>
   );
 }
