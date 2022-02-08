@@ -46,7 +46,6 @@ export type AnomalyPayload = {
 
 function transformStatsTimes(stats: AnomalyStatsData) {
   stats.data.forEach(d => (d[0] = d[0] * 1000));
-  stats.data = stats.data.slice((stats.data.length * 4) / 6, stats.data.length);
   return stats;
 }
 function transformAnomaliesTimes(anoms: AnomalyInfo[]) {
