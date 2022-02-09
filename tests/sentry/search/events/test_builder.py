@@ -740,3 +740,36 @@ class MetricQueryBuilderTest(TestCase):
             query.where,
             [*self.default_conditions, Condition(Column("project_id"), Op.EQ, self.project.id)],
         )
+
+    def test_granularity(self):
+        # Need to pick granularity based on the period
+        def get_granularity(start, end):
+            params = {
+                "organization_id": self.organization_id,
+                "project_id": self.projects,
+                "start": start,
+                "end": end,
+            }
+            query = MetricsQueryBuilder(params)
+            return query.granularity.granularity
+
+        # If we're doing atleast day and its midnight we should use the daily bucket
+        start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "A day at midnight"
+
+        # If we're on the start of the hour we should use the hour granularity
+        start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "On the hour"
+
+        # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
+        # granularity
+        start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 60, "A few hours, but random minute"
+
+        # Less than a minute, no reason to work hard for such a small window, just use a minute
+        start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 19, 10, 15, 34, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 60, "less than a minute"
