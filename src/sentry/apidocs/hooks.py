@@ -32,8 +32,8 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         if view in PUBLIC_ENDPOINTS:
             # endpoints that are documented via tooling
             if method in PUBLIC_ENDPOINTS[view]["methods"]:
-                # we want to only add endpoints here that are documented
-                # via our tooling
+                # only pass declared public methods of the endpoint
+                # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))
 
         elif view in registered_endpoints:
