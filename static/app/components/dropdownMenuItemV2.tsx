@@ -12,6 +12,7 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
+type Priority = 'primary' | 'danger';
 export type MenuItemProps = {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
@@ -57,7 +58,7 @@ export type MenuItemProps = {
    * Accented text and background (on hover) colors. Primary = purple, and
    * danger = red.
    */
-  priority?: 'primary' | 'danger';
+  priority?: Priority;
   /**
    * Whether to show a line divider below this menu item
    */
@@ -267,7 +268,7 @@ export default MenuItem;
 const MenuItemWrap = styled('li')<{
   isDisabled?: boolean;
   isFocused?: boolean;
-  priority?: 'primary' | 'danger';
+  priority?: Priority;
 }>`
   position: static;
   list-style-type: none;
@@ -293,7 +294,7 @@ const MenuItemWrap = styled('li')<{
   }
 `;
 
-const getHoverBackground = (theme: Theme, priority?: 'primary' | 'danger') => {
+const getHoverBackground = (theme: Theme, priority?: Priority) => {
   let hoverBackground: string;
   switch (priority) {
     case 'primary':
@@ -309,7 +310,7 @@ const getHoverBackground = (theme: Theme, priority?: 'primary' | 'danger') => {
   return `background: ${hoverBackground}; z-index: 1;`;
 };
 
-const InnerWrap = styled('div')<{isFocused: boolean; priority?: 'primary' | 'danger'}>`
+const InnerWrap = styled('div')<{isFocused: boolean; priority?: Priority}>`
   display: flex;
   position: relative;
   padding: 0 ${space(1)};
@@ -369,7 +370,7 @@ const Label = styled('p')`
   ${overflowEllipsis}
 `;
 
-const Details = styled('p')<{isDisabled: boolean; priority?: 'primary' | 'danger'}>`
+const Details = styled('p')<{isDisabled: boolean; priority?: Priority}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1.2;
