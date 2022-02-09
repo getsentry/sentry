@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from jwt import ExpiredSignatureError
 
-from sentry.integrations.atlassian_connect import AtlassianConnectValidationError
+from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
