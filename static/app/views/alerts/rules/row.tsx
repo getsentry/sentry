@@ -275,7 +275,7 @@ const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
 
 const AlertNameAndStatus = styled('div')`
   ${overflowEllipsis}
-  margin-left: ${space(1.5)};
+  margin-left: ${space(2)};
   line-height: 1.35;
 `;
 

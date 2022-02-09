@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
-from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.mixins import RepositoryMixin
 from sentry.shared_integrations.exceptions import IntegrationError
 
 

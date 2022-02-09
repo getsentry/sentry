@@ -219,9 +219,29 @@ class WidgetQueriesForm extends React.Component<Props> {
           organization={organization}
           onChange={fields => {
             const fieldStrings = fields.map(field => generateFieldAsString(field));
+            const aggregateAliasFieldStrings = fieldStrings.map(field =>
+              getAggregateAlias(field)
+            );
             queries.forEach((widgetQuery, queryIndex) => {
+              const descending = widgetQuery.orderby.startsWith('-');
+              const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
+              const prevAggregateAliasFieldStrings = widgetQuery.fields.map(field =>
+                getAggregateAlias(field)
+              );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
+              if (!aggregateAliasFieldStrings.includes(orderbyAggregateAliasField)) {
+                if (prevAggregateAliasFieldStrings.length === fields.length) {
+                  // The Field that was used in orderby has changed. Get the new field.
+                  newQuery.orderby = `${descending && '-'}${
+                    aggregateAliasFieldStrings[
+                      prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
+                    ]
+                  }`;
+                } else {
+                  newQuery.orderby = '';
+                }
+              }
               onChange(queryIndex, newQuery);
             });
           }}

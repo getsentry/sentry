@@ -29,6 +29,7 @@ import {
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Measurements from 'sentry/utils/measurements/measurements';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {getMetricsDataSource} from 'sentry/utils/metrics/getMetricsDataSource';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
@@ -113,7 +114,7 @@ type State = {
   selectedDashboard?: SelectValue<string>;
 };
 
-const newQuery = {
+const newDiscoverQuery = {
   name: '',
   fields: ['count()'],
   conditions: '',
@@ -129,7 +130,7 @@ const newIssueQuery = {
 
 const newMetricsQuery = {
   name: '',
-  fields: ['sum(session)'] as string[],
+  fields: [SessionMetric.SENTRY_SESSIONS_SESSION],
   conditions: '',
   orderby: '',
 };
@@ -157,7 +158,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         title: defaultTitle ?? '',
         displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
-        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
+        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newDiscoverQuery}],
         errors: undefined,
         loading: !!this.omitDashboardProp,
         dashboards: [],
@@ -365,7 +366,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ) {
         // World Map display type only supports Discover Dataset
         // so set state to default discover query.
-        set(newState, 'queries', normalizeQueries(newDisplayType, [newQuery]));
+        set(newState, 'queries', normalizeQueries(newDisplayType, [newDiscoverQuery]));
         set(newState, 'widgetType', WidgetType.DISCOVER);
         return {...newState, errors: undefined};
       }
@@ -452,7 +453,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   handleAddSearchConditions = () => {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(newQuery);
+      const query = cloneDeep(newDiscoverQuery);
       query.fields = this.state.queries[0].fields;
       newState.queries.push(query);
 
@@ -468,7 +469,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         return newMetricsQuery;
       case WidgetType.DISCOVER:
       default:
-        return newQuery;
+        return newDiscoverQuery;
     }
   }
 
