@@ -162,6 +162,8 @@ export type FeatureDisabledHooks = {
   'feature-disabled:performance-page': FeatureDisabledHook;
   'feature-disabled:performance-quick-trace': FeatureDisabledHook;
   'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:profiling-page': FeatureDisabledHook;
+  'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
   'feature-disabled:project-selector-all-projects': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
