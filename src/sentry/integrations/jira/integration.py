@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models import (
     ExternalIssue,
     IntegrationExternalProject,
@@ -379,7 +379,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             return self.get_client().search_issues(query)
         except ApiError as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
     def make_choices(self, values):
         if not values:
@@ -628,30 +628,26 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        fields = (
-            [
-                {
-                    "name": "project",
-                    "label": "Jira Project",
-                    "choices": [(p["id"], p["key"]) for p in jira_projects],
-                    "default": meta["id"],
-                    "type": "select",
-                    "updatesForm": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "issuetype",
-                    "label": "Issue Type",
-                    "default": issue_type or issue_type_meta["id"],
-                    "type": "select",
-                    "choices": issue_type_choices,
-                    "updatesForm": True,
-                    "required": bool(issue_type_choices),  # required if we have any type choices
-                }
-            ]
-        )
+        fields = [
+            {
+                "name": "project",
+                "label": "Jira Project",
+                "choices": [(p["id"], p["key"]) for p in jira_projects],
+                "default": meta["id"],
+                "type": "select",
+                "updatesForm": True,
+            },
+            *fields,
+            {
+                "name": "issuetype",
+                "label": "Issue Type",
+                "default": issue_type or issue_type_meta["id"],
+                "type": "select",
+                "choices": issue_type_choices,
+                "updatesForm": True,
+                "required": bool(issue_type_choices),  # required if we have any type choices
+            },
+        ]
 
         # title is renamed to summary before sending to Jira
         standard_fields = [f["name"] for f in fields] + ["summary"]
@@ -825,7 +821,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            return self.raise_error(e)
+            raise self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:

@@ -337,7 +337,7 @@ class Dashboard extends Component<Props, State> {
 
     if (
       organization.features.includes('metrics') &&
-      organization.features.includes('metrics-dashboards-ui')
+      organization.features.includes('new-widget-builder-experience')
     ) {
       onSetWidgetToBeUpdated(widget);
 

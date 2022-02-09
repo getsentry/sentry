@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sentry.notifications.class_manager import register
+
 from .abstract_invite_request import AbstractInviteRequestNotification
 
 if TYPE_CHECKING:
     from sentry.models import Team, User
 
 
+@register()
 class InviteRequestNotification(AbstractInviteRequestNotification):
     analytics_event = "invite_request.sent"
     referrer_base = "invite_request"

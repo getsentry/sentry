@@ -28,7 +28,13 @@ class Buffer(Service, metaclass=BufferMount):
     keep up with the updates.
     """
 
-    __all__ = ("incr", "process", "process_pending", "validate")
+    __all__ = ("get", "incr", "process", "process_pending", "validate")
+
+    def get(self, model, columns, filters):
+        """
+        We can't fetch values from Celery, so just assume buffer values are all 0 here.
+        """
+        return {col: 0 for col in columns}
 
     def incr(self, model, columns, filters, extra=None, signal_only=None):
         """

@@ -151,20 +151,22 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = serializer.save()
                 return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            duplicate = request.data.get("duplicate", False)
-            if duplicate and retry < MAX_RETRIES:
-                title = request.data["title"]
-                match = re.match(DUPLICATE_TITLE_PATTERN, title)
-                if match:
-                    partial_title = match.group(1)
-                    copy_counter = match.group(2)
-                    if copy_counter:
-                        request.data["title"] = f"{partial_title} copy {int(copy_counter) + 1}"
-                    else:
-                        request.data["title"] = f"{partial_title} copy 1"
-                else:
-                    request.data["title"] = f"{title} copy"
+            pass
 
-                return self.post(request, organization, retry=retry + 1)
+        duplicate = request.data.get("duplicate", False)
+        if not duplicate or retry >= MAX_RETRIES:
+            return Response("Dashboard title already taken", status=409)
+
+        title = request.data["title"]
+        match = re.match(DUPLICATE_TITLE_PATTERN, title)
+        if match:
+            partial_title = match.group(1)
+            copy_counter = match.group(2)
+            if copy_counter:
+                request.data["title"] = f"{partial_title} copy {int(copy_counter) + 1}"
             else:
-                return Response("Dashboard title already taken", status=409)
+                request.data["title"] = f"{partial_title} copy 1"
+        else:
+            request.data["title"] = f"{title} copy"
+
+        return self.post(request, organization, retry=retry + 1)
