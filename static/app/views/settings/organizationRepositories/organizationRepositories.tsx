@@ -14,9 +14,9 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
+  api: Client;
   itemList: Repository[];
   onRepositoryChange: (data: {id: string; status: RepositoryStatus}) => void;
-  api: Client;
 };
 
 const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: Props) => {

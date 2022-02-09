@@ -14,16 +14,16 @@ import Item from './item';
 import Toolbar from './toolbar';
 
 type SimilarItem = {
-  issue: Group;
   isBelowThreshold: boolean;
+  issue: Group;
+  aggregate?: {
+    exception: number;
+    message: number;
+  };
   score?: Record<string, number | null>;
   scoresByInterface?: {
     exception: Array<[string, number | null]>;
     message: Array<[string, any | null]>;
-  };
-  aggregate?: {
-    exception: number;
-    message: number;
   };
 };
 
@@ -32,13 +32,13 @@ type DefaultProps = {
 };
 
 type Props = {
-  orgId: Organization['id'];
-  project: Project;
-  onMerge: () => void;
-  v2: boolean;
   groupId: string;
-  pageLinks: string | null;
   items: Array<SimilarItem>;
+  onMerge: () => void;
+  orgId: Organization['id'];
+  pageLinks: string | null;
+  project: Project;
+  v2: boolean;
 } & DefaultProps;
 
 type State = {

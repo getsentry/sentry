@@ -181,11 +181,14 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event_with_additional_payload(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
-        settings = {
-            "alert_prefix": "[Not Good]",
-            "channel": "#ignored-errors",
-            "best_emoji": ":fire:",
-        }
+        settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": 1},
+            {"name": "assigneeId", "value": 3},
+        ]
+
         rule_future = RuleFuture(
             rule=self.rule,
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},

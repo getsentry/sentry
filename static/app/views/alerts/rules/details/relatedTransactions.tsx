@@ -38,10 +38,10 @@ function getProjectID(eventData: EventData, projects: Project[]): string | undef
 
 type TableProps = {
   eventView: EventView;
-  organization: Organization;
   location: Location;
-  summaryConditions: string;
+  organization: Organization;
   projects: Project[];
+  summaryConditions: string;
 };
 
 type TableState = {
@@ -171,13 +171,13 @@ class Table extends React.Component<TableProps, TableState> {
 }
 
 type Props = {
-  organization: Organization;
-  location: Location;
-  rule: IncidentRule;
-  projects: Project[];
   filter: string;
-  start?: string;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  rule: IncidentRule;
   end?: string;
+  start?: string;
 };
 
 class RelatedTransactions extends React.Component<Props> {

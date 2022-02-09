@@ -53,7 +53,9 @@ export default function FirstEventFooter({
                 priority="link"
               />
             ),
-            skip: <Button priority="link" href="/" />,
+            skip: (
+              <Button priority="link" href="/" aria-label={t('Finish setup later')} />
+            ),
           }
         )}
       </CTASecondary>

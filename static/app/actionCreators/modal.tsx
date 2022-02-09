@@ -40,20 +40,20 @@ export function closeModal() {
 
 type OpenSudoModalOptions = {
   onClose?: () => void;
-  superuser?: boolean;
-  sudo?: boolean;
   retryRequest?: () => Promise<any>;
+  sudo?: boolean;
+  superuser?: boolean;
 };
 
 type emailVerificationModalOptions = {
-  onClose?: () => void;
-  emailVerified?: boolean;
   actionMessage?: string;
+  emailVerified?: boolean;
+  onClose?: () => void;
 };
 
 type inviteMembersModalOptions = {
-  onClose?: () => void;
   initialData?: Partial<InviteRow>[];
+  onClose?: () => void;
   source?: string;
 };
 
@@ -75,10 +75,10 @@ export async function openEmailVerification({
 }
 
 type OpenDiffModalOptions = {
-  targetIssueId: string;
-  project: Project;
   baseIssueId: Group['id'];
   orgId: Organization['id'];
+  project: Project;
+  targetIssueId: string;
   baseEventId?: Event['id'];
   targetEventId?: string;
 };
@@ -95,11 +95,11 @@ type CreateTeamModalOptions = {
    * The organization to create a team for
    */
   organization: Organization;
+  onClose?: (team: Team) => void;
   /**
    * An initial project to add the team to. This may be deprecated soon as we may add a project selection inside of the modal flow
    */
   project?: Project;
-  onClose?: (team: Team) => void;
 };
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {
@@ -110,6 +110,7 @@ export async function openCreateTeamModal(options: CreateTeamModalOptions) {
 }
 
 type CreateOwnershipRuleModalOptions = {
+  issueId: string;
   /**
    * The organization to create a rules for
    */
@@ -118,14 +119,13 @@ type CreateOwnershipRuleModalOptions = {
    * The project to create a rules for
    */
   project: Project;
-  issueId: string;
 };
 
 export type EditOwnershipRulesModalOptions = {
-  organization: Organization;
-  project: Project;
-  ownership: IssueOwnership;
   onSave: (text: string | null) => void;
+  organization: Organization;
+  ownership: IssueOwnership;
+  project: Project;
 };
 
 export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
@@ -162,8 +162,8 @@ export async function openRecoveryOptions(options: RecoveryModalOptions) {
 
 export type TeamAccessRequestModalOptions = {
   memberId: string;
-  teamId: string;
   orgId: string;
+  teamId: string;
 };
 
 export async function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
@@ -193,18 +193,18 @@ export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
 }
 
 export type SentryAppDetailsModalOptions = {
-  sentryApp: SentryApp;
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
+  sentryApp: SentryApp;
   onCloseModal?: () => void; // used for analytics
 };
 
 type DebugFileSourceModalOptions = {
-  organization: Organization;
-  sourceType: CustomRepoType;
   appStoreConnectSourcesQuantity: number;
   onSave: (data: Record<string, any>) => Promise<void>;
+  organization: Organization;
+  sourceType: CustomRepoType;
   appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;

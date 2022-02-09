@@ -10,8 +10,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import Grouping from './grouping';
 
 type Props = RouteComponentProps<{}, {}> & {
-  organization: Organization;
   group: Group;
+  organization: Organization;
   project: Project;
 };
 

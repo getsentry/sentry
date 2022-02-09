@@ -11,7 +11,7 @@ type Props = {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
   reinstall?: boolean;
-} & React.ComponentProps<typeof Button> &
+} & Omit<React.ComponentProps<typeof Button>, 'aria-label'> &
   Pick<
     React.ComponentProps<typeof AddIntegration>,
     'provider' | 'organization' | 'analyticsParams' | 'modalParams'
@@ -50,6 +50,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
               disabled={!provider.canAdd}
               {...buttonProps}
               onClick={() => onClick()}
+              aria-label={t('Add integration')}
             >
               {label}
             </Button>

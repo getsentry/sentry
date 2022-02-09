@@ -7,6 +7,7 @@ import TeamKeyTransaction, {
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import Tooltip from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withProjects from 'sentry/utils/withProjects';
@@ -22,7 +23,15 @@ class TitleStar extends Component<TitleProps> {
         data-test-id="team-key-transaction-column"
       />
     );
-    const button = <Button {...props} icon={star} borderless size="zero" />;
+    const button = (
+      <Button
+        {...props}
+        icon={star}
+        borderless
+        size="zero"
+        aria-label={t('Toggle star for team')}
+      />
+    );
     if (!isOpen && keyedTeams?.length) {
       const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
       return <Tooltip title={teamSlugs}>{button}</Tooltip>;
@@ -32,8 +41,8 @@ class TitleStar extends Component<TitleProps> {
 }
 
 type BaseProps = {
-  organization: Organization;
   isKeyTransaction: boolean;
+  organization: Organization;
 };
 
 type Props = BaseProps &
@@ -66,8 +75,8 @@ function TeamKeyTransactionField({
 }
 
 type WrapperProps = BaseProps & {
-  projects: Project[];
   projectSlug: string | undefined;
+  projects: Project[];
   transactionName: string | undefined;
 };
 

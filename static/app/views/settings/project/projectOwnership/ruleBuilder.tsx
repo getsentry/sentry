@@ -38,20 +38,20 @@ function getMatchPlaceholder(type: string): string {
 }
 
 type Props = {
-  organization: Organization;
-  project: Project;
-  onAddRule: (rule: string) => void;
-  urls: string[];
-  paths: string[];
   disabled: boolean;
+  onAddRule: (rule: string) => void;
+  organization: Organization;
+  paths: string[];
+  project: Project;
+  urls: string[];
 };
 
 type State = {
-  text: string;
-  tagName: string;
-  type: string;
-  owners: Owner[];
   isValid: boolean;
+  owners: Owner[];
+  tagName: string;
+  text: string;
+  type: string;
 };
 
 class RuleBuilder extends React.Component<Props, State> {
@@ -189,6 +189,7 @@ class RuleBuilder extends React.Component<Props, State> {
             onClick={this.handleAddRule}
             icon={<IconAdd isCircled />}
             size="small"
+            aria-label={t('Add rule')}
           />
         </BuilderBar>
       </React.Fragment>

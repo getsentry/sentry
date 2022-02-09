@@ -4,7 +4,9 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
+import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
@@ -14,9 +16,10 @@ import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
 import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconWindow} from 'sentry/icons';
+import {IconPin, IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -32,10 +35,7 @@ type DefaultProps = {
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  projects: Project[];
   loadingProjects: boolean;
-  selectedProjects: number[];
   /**
    * Handler whenever selector values are changed
    */
@@ -43,13 +43,17 @@ type Props = WithRouterProps & {
   /**
    * When menu is closed
    */
-  onUpdate: () => void;
+  onUpdate: (selectedEnvs?: string[]) => void;
+  organization: Organization;
+  projects: Project[];
+  selectedProjects: number[];
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
     isOpen: boolean;
     summary: string;
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  pinned?: boolean;
 } & DefaultProps;
 
 type State = {
@@ -91,9 +95,11 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
   /**
    * Checks if "onUpdate" is callable. Only calls if there are changes
+   * @param selectedEnvs optional parameter passed to onUpdate representing
+   * an array containing a directly selected environment (not multi-selected)
    */
-  doUpdate = () => {
-    this.setState({hasChanges: false}, this.props.onUpdate);
+  doUpdate = (selectedEnvs?: string[]) => {
+    this.setState({hasChanges: false}, () => this.props.onUpdate(selectedEnvs));
   };
 
   /**
@@ -178,13 +184,18 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       org_id: parseInt(this.props.organization.id, 10),
     });
 
-    this.setState(() => {
-      this.doChange([environment]);
+    const envSelection = [environment];
 
-      return {
-        selectedEnvs: new Set([environment]),
-      };
-    }, this.doUpdate);
+    this.setState(
+      () => {
+        this.doChange(envSelection);
+
+        return {
+          selectedEnvs: new Set(envSelection),
+        };
+      },
+      () => this.doUpdate(envSelection)
+    );
   };
 
   /**
@@ -221,10 +232,17 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
     return uniq(environments);
   }
 
+  handlePinClick = () => {
+    pinFilter('environments', !this.props.pinned);
+  };
+
   render() {
-    const {value, loadingProjects, customDropdownButton, customLoadingIndicator} =
+    const {value, loadingProjects, customDropdownButton, customLoadingIndicator, pinned} =
       this.props;
     const environments = this.getEnvironments();
+
+    const hasNewPageFilters =
+      this.props.organization.features.includes('selection-filters-v2');
 
     const validatedValue = value.filter(env => environments.includes(env));
     const summary = validatedValue.length
@@ -267,6 +285,17 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
             noResultsMessage={t('No environments found')}
             virtualizedHeight={theme.headerSelectorRowHeight}
             emptyHidesInput
+            inputActions={
+              hasNewPageFilters ? (
+                <PinButton
+                  aria-pressed={pinned}
+                  aria-label={t('Pin')}
+                  onClick={this.handlePinClick}
+                  size="xsmall"
+                  icon={<IconPin size="xs" isSolid={pinned} />}
+                />
+              ) : undefined
+            }
             menuFooter={({actions}) =>
               this.state.hasChanges ? (
                 <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
@@ -326,6 +355,15 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   border-radius: ${p => p.theme.borderRadiusBottom};
   margin-top: 0;
   min-width: 100%;
+`;
+
+const PinButton = styled(Button)`
+  display: block;
+  margin: 0 ${space(1)};
+  color: ${p => p.theme.gray300};
+  :hover {
+    color: ${p => p.theme.subText};
+  }
 `;
 
 type EnvironmentSelectorItemProps = {

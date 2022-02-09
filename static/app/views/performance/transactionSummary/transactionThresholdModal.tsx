@@ -35,20 +35,20 @@ export const METRIC_CHOICES = [
 
 type Props = {
   api: Client;
-  organization: Organization;
-  transactionName: string;
-  onApply?: (threshold, metric) => void;
-  project?: string;
-  projects: Project[];
   eventView: EventView;
+  organization: Organization;
+  projects: Project[];
+  transactionName: string;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
+  onApply?: (threshold, metric) => void;
+  project?: string;
 } & ModalRenderProps;
 
 type State = {
-  threshold: number | undefined;
-  metric: TransactionThresholdMetric | undefined;
   error: string | null;
+  metric: TransactionThresholdMetric | undefined;
+  threshold: number | undefined;
 };
 
 class TransactionThresholdModal extends React.Component<Props, State> {

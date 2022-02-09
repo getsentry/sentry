@@ -46,7 +46,7 @@ const TagsPageContent = (props: Props) => {
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main fullWidth data-test-id="tags-page-content">
       <SegmentExplorerQuery
         eventView={eventView}
         orgSlug={organization.slug}
@@ -167,11 +167,11 @@ const InnerContent = (
 };
 
 const TagsSideBar = (props: {
-  tagSelected?: string;
   changeTag: (tag: string) => void;
-  suspectTags: TagOption[];
   otherTags: TagOption[];
+  suspectTags: TagOption[];
   isLoading?: boolean;
+  tagSelected?: string;
 }) => {
   const {suspectTags, otherTags, changeTag, tagSelected, isLoading} = props;
   return (

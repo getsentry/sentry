@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
@@ -22,11 +23,11 @@ describe('ResolveActions', function () {
         />,
         TestStubs.routerContext()
       );
-      button = component.find('button[aria-label="Resolve"]').first();
+      button = component.find('ResolveButton').first();
     });
 
     it('has disabled prop', function () {
-      expect(button.props()['aria-disabled']).toBe(true);
+      expect(button.props().disabled).toBe(true);
     });
 
     it('does not call onUpdate when clicked', function () {
@@ -53,19 +54,19 @@ describe('ResolveActions', function () {
     });
 
     it('main button is enabled', function () {
-      button = component.find('button[aria-label="Resolve"]');
+      button = component.find('ResolveButton');
       expect(button.prop('disabled')).toBeFalsy();
     });
 
     it('main button calls onUpdate when clicked', function () {
-      button = component.find('button[aria-label="Resolve"]');
+      button = component.find('ResolveButton');
       button.simulate('click');
       expect(spy).toHaveBeenCalled();
     });
 
     it('dropdown menu is disabled', function () {
-      button = component.find('button[aria-label="More resolve options"]');
-      expect(button.props()['aria-disabled']).toBe(true);
+      button = component.find('DropdownTrigger');
+      expect(button.props().disabled).toBe(true);
     });
   });
 
@@ -139,7 +140,7 @@ describe('ResolveActions', function () {
     });
 
     it('calls spy with resolved status when clicked', function () {
-      const button = component.find('button[aria-label="Resolve"]');
+      const button = component.find('ResolveButton');
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved'});
@@ -172,7 +173,7 @@ describe('ResolveActions', function () {
     });
 
     it('displays confirmation modal with message provided', async function () {
-      button = component.find('button[aria-label="Resolve"]').first();
+      button = component.find('ResolveButton').first();
       button.simulate('click');
 
       await tick();
@@ -206,9 +207,10 @@ describe('ResolveActions', function () {
       TestStubs.routerContext()
     );
 
-    wrapper.find('ActionLink').last().simulate('click');
-    await tick();
-    wrapper.update();
+    await selectDropdownMenuItem({
+      wrapper,
+      itemKey: 'another-release',
+    });
 
     expect(wrapper.find('CustomResolutionModal Select').prop('options')).toEqual([
       expect.objectContaining({

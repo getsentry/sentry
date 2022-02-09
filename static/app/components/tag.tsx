@@ -16,31 +16,18 @@ const TAG_HEIGHT = '20px';
 
 type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
-   * Dictates color scheme of the tag.
+   * Makes the tag clickable. Use for external links.
+   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
    */
-  type?: keyof Theme['tag'];
+  href?: string;
   /**
    * Icon on the left side.
    */
   icon?: React.ReactNode;
   /**
-   * Text to show up on a hover.
-   */
-  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
-  /**
-   * Makes the tag clickable. Use for internal links handled by react router.
-   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
-   */
-  to?: React.ComponentProps<typeof Link>['to'];
-  /**
    * Triggered when the item is clicked
    */
   onClick?: (eventKey: any) => void;
-  /**
-   * Makes the tag clickable. Use for external links.
-   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
-   */
-  href?: string;
   /**
    * Shows clickable IconClose on the right side.
    */
@@ -49,6 +36,19 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
    * Max width of the tag's text
    */
   textMaxWidth?: number;
+  /**
+   * Makes the tag clickable. Use for internal links handled by react router.
+   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
+   */
+  to?: React.ComponentProps<typeof Link>['to'];
+  /**
+   * Text to show up on a hover.
+   */
+  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
+  /**
+   * Dictates color scheme of the tag.
+   */
+  type?: keyof Theme['tag'];
 };
 
 function Tag({

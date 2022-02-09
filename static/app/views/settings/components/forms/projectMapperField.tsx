@@ -31,8 +31,8 @@ type Props = InputField['props'];
 type RenderProps = Props & ProjectMapperType & {model: FormModel};
 
 type State = {
-  selectedSentryProjectId: number | null;
   selectedMappedValue: MappedValue | null;
+  selectedSentryProjectId: number | null;
 };
 
 // Get the icon
@@ -264,6 +264,7 @@ export class RenderField extends Component<RenderProps, State> {
               priority="primary"
               onClick={handleAdd}
               icon={<IconAdd />}
+              aria-label={t('Add project')}
             />
           </AddProjectWrapper>
           <FieldControlWrapper>

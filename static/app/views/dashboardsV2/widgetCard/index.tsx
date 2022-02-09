@@ -14,6 +14,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
@@ -31,6 +32,7 @@ import {ISSUE_FIELD_TO_HEADER_MAP, ISSUE_FIELDS} from '../widget/issueWidget/fie
 
 import WidgetCardChart from './chart';
 import IssueWidgetQueries from './issueWidgetQueries';
+import MetricsWidgetQueries from './metricsWidgetQueries';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 import WidgetQueries from './widgetQueries';
 
@@ -42,35 +44,31 @@ type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'>
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  location: Location;
-  isEditing: boolean;
-  widget: Widget;
-  selection: PageFilters;
-  onDelete: () => void;
-  onEdit: () => void;
-  onDuplicate: () => void;
-  isSorting: boolean;
   currentWidgetDragging: boolean;
-  showContextMenu?: boolean;
-  isPreview?: boolean;
-  hideToolbar?: boolean;
-  draggableProps?: DraggableProps;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-  noLazyLoad?: boolean;
-  hideDragHandle?: boolean;
+  isEditing: boolean;
+  isSorting: boolean;
+  location: Location;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onEdit: () => void;
+  organization: Organization;
+  selection: PageFilters;
+  widget: Widget;
   widgetLimitReached: boolean;
+  draggableProps?: DraggableProps;
+  hideToolbar?: boolean;
+  isMobile?: boolean;
+  isPreview?: boolean;
+  noLazyLoad?: boolean;
+  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  showContextMenu?: boolean;
   tableItemLimit?: number;
+  windowWidth?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
-  isAllowWidgetsToDiscover() {
-    const {organization} = this.props;
-    return organization.features.includes('connect-discover-and-dashboards');
-  }
-
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, hideDragHandle} =
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
       this.props;
 
     if (!isEditing) {
@@ -80,7 +78,7 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          {!hideDragHandle && (
+          {!isMobile && (
             <IconClick>
               <StyledIconGrabbable
                 color="textColor"
@@ -112,7 +110,12 @@ class WidgetCard extends React.Component<Props> {
       onEdit,
       onDuplicate,
       onDelete,
+      isEditing,
     } = this.props;
+
+    if (isEditing) {
+      return null;
+    }
 
     return (
       <WidgetCardContextMenu
@@ -158,6 +161,7 @@ class WidgetCard extends React.Component<Props> {
         organization={organization}
         getCustomFieldRenderer={getIssueFieldRenderer}
         fieldHeaderMap={ISSUE_FIELD_TO_HEADER_MAP}
+        stickyHeaders
       />
     );
   }
@@ -193,6 +197,55 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
+  renderMetricsChart() {
+    const {
+      widget,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+      location,
+      router,
+      tableItemLimit,
+      isMobile,
+      windowWidth,
+    } = this.props;
+
+    return (
+      <MetricsWidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        limit={tableItemLimit}
+      >
+        {({tableResults, timeseriesResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <WidgetCardChart
+                timeseriesResults={timeseriesResults}
+                tableResults={tableResults}
+                errorMessage={errorMessage}
+                loading={loading}
+                location={location}
+                widget={widget}
+                selection={selection}
+                router={router}
+                organization={organization}
+                isMobile={isMobile}
+                windowWidth={windowWidth}
+              />
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </MetricsWidgetQueries>
+    );
+  }
+
   renderDiscoverChart() {
     const {
       widget,
@@ -203,6 +256,8 @@ class WidgetCard extends React.Component<Props> {
       location,
       router,
       tableItemLimit,
+      isMobile,
+      windowWidth,
     } = this.props;
     return (
       <WidgetQueries
@@ -228,6 +283,8 @@ class WidgetCard extends React.Component<Props> {
                 selection={selection}
                 router={router}
                 organization={organization}
+                isMobile={isMobile}
+                windowWidth={windowWidth}
               />
               {this.renderToolbar()}
             </React.Fragment>
@@ -243,6 +300,11 @@ class WidgetCard extends React.Component<Props> {
     if (widget.widgetType === WidgetType.ISSUE) {
       return this.renderIssueChart();
     }
+
+    if (widget.widgetType === WidgetType.METRICS) {
+      return this.renderMetricsChart();
+    }
+
     return this.renderDiscoverChart();
   }
 
@@ -254,7 +316,9 @@ class WidgetCard extends React.Component<Props> {
       >
         <StyledPanel isDragging={false}>
           <WidgetHeader>
-            <WidgetTitle>{widget.title}</WidgetTitle>
+            <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
+              <WidgetTitle>{widget.title}</WidgetTitle>
+            </Tooltip>
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
@@ -301,7 +365,7 @@ const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
-  z-index: auto;
+  z-index: 2;
 
   width: 100%;
   height: 100%;
@@ -336,6 +400,7 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 
 const WidgetTitle = styled(HeaderTitle)`
   ${overflowEllipsis};
+  font-weight: normal;
 `;
 
 const WidgetHeader = styled('div')`

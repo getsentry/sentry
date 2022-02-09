@@ -12,8 +12,8 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  since: number;
   resolution: string;
+  since: number;
 };
 
 type State = {

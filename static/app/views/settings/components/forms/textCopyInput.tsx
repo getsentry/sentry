@@ -44,12 +44,12 @@ type Props = {
    * Text to copy
    */
   children: string;
-  style?: CSSProperties;
   onCopy?: (value: string, event: React.MouseEvent) => void;
   /**
    * Always show the ending of a long overflowing text in input
    */
   rtl?: boolean;
+  style?: CSSProperties;
 };
 
 class TextCopyInput extends React.Component<Props> {

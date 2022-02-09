@@ -63,8 +63,8 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
     const col = explodeFieldString(f.field);
     const columnName = f.field;
     if (isEquation(f.field)) {
-      column.name = `equation[${equations}]`;
-      column.key = getEquation(columnName);
+      column.key = `equation[${equations}]`;
+      column.name = getEquation(columnName);
       equations += 1;
     } else {
       column.key = columnName;
@@ -424,11 +424,11 @@ function generateExpandedConditions(
 
 type FieldGeneratorOpts = {
   organization: Organization;
-  tagKeys?: string[] | null;
-  measurementKeys?: string[] | null;
-  spanOperationBreakdownKeys?: string[];
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
+  measurementKeys?: string[] | null;
+  spanOperationBreakdownKeys?: string[];
+  tagKeys?: string[] | null;
 };
 
 export function generateFieldOptions({

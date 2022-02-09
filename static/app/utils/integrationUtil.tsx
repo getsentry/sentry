@@ -16,6 +16,7 @@ import {
   AppOrProviderOrPlugin,
   DocIntegration,
   ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -150,6 +151,12 @@ export function isDocIntegration(
   return integration.hasOwnProperty('isDraft');
 }
 
+export function isExternalActorMapping(
+  mapping: ExternalActorMappingOrSuggestion
+): mapping is ExternalActorMapping {
+  return mapping.hasOwnProperty('id');
+}
+
 export const getIntegrationType = (
   integration: AppOrProviderOrPlugin
 ): IntegrationType => {
@@ -234,14 +241,14 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
 /**
  * Uses the mapping and baseEndpoint to derive the details for the mappings request.
  * @param baseEndpoint Must have a trailing slash, since the id is appended for PUT requests!
- * @param mapping The mapping being sent to the endpoint
+ * @param mapping The mapping or suggestion being sent to the endpoint
  * @returns An object containing the request method (apiMethod), and final endpoint (apiEndpoint)
  */
 export const getExternalActorEndpointDetails = (
   baseEndpoint: string,
-  mapping?: ExternalActorMapping
-): {apiMethod: 'POST' | 'PUT'; apiEndpoint: string} => {
-  const isValidMapping = !!mapping?.id;
+  mapping?: ExternalActorMappingOrSuggestion
+): {apiEndpoint: string; apiMethod: 'POST' | 'PUT'} => {
+  const isValidMapping = mapping && isExternalActorMapping(mapping);
   return {
     apiMethod: isValidMapping ? 'PUT' : 'POST',
     apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,

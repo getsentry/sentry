@@ -10,8 +10,8 @@ import Field from 'sentry/views/settings/components/forms/field';
 import {StepOneData} from './types';
 
 type Props = {
-  stepOneData: StepOneData;
   onSetStepOneData: (stepOneData: StepOneData) => void;
+  stepOneData: StepOneData;
 };
 
 function StepOne({stepOneData, onSetStepOneData}: Props) {

@@ -21,12 +21,12 @@ const avatarStyle = {
 };
 
 type Props = {
-  isLoading: boolean;
   entries: AuditLog[] | null;
-  pageLinks: string | null;
   eventType: string;
   eventTypes: string[];
+  isLoading: boolean;
   onEventSelect: (value: string) => void;
+  pageLinks: string | null;
 };
 
 const AuditLogList = ({

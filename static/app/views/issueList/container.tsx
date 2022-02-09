@@ -10,9 +10,9 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SampleEventAlert from 'sentry/views/organizationGroupDetails/sampleEventAlert';
 
 type Props = {
+  children: React.ReactChildren;
   organization: Organization;
   projects: Project[];
-  children: React.ReactChildren;
 };
 
 function IssueListContainer({organization, children}: Props) {

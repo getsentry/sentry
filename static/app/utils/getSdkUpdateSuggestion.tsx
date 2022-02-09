@@ -12,8 +12,8 @@ import {Event} from 'sentry/types/event';
 type Props = {
   sdk: Event['sdk'];
   suggestion: NonNullable<Event['sdkUpdates']>[0];
-  shortStyle?: boolean;
   capitalized?: boolean;
+  shortStyle?: boolean;
 };
 
 function getSdkUpdateSuggestion({

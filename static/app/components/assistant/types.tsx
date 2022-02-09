@@ -1,5 +1,9 @@
 export type GuideStep = {
-  title?: string;
+  description: React.ReactNode;
+  cantDismiss?: boolean;
+  dismissText?: string;
+  hasNextGuide?: boolean;
+  nextText?: string;
   /**
    * Step is tied to an anchor target. If the anchor doesn't exist,
    * the step will not be shown. If the anchor exists but is of type
@@ -7,11 +11,7 @@ export type GuideStep = {
    * Otherwise the anchor will be pinged and scrolled to.
    */
   target?: string;
-  description: React.ReactNode;
-  nextText?: string;
-  dismissText?: string;
-  cantDismiss?: boolean;
-  hasNextGuide?: boolean;
+  title?: string;
 };
 
 type BaseGuide = {
@@ -21,20 +21,20 @@ type BaseGuide = {
    * guide to be shown regardless.
    */
   requiredTargets: string[];
+  steps: GuideStep[];
   /** Show the guide to users who've joined before the date threshold */
   dateThreshold?: Date;
-  steps: GuideStep[];
-  /**
-   * When two guides could be active, the guide with the lower priority value
-   * level takes precedent.
-   */
-  priority?: number;
   /**
    * When dismissing a guide on the same page, all subsequent guides
    * will be marked as seen.
    * Note that on a page refresh, the subsequent guides will be visible still.
    */
   markOthersAsSeen?: boolean;
+  /**
+   * When two guides could be active, the guide with the lower priority value
+   * level takes precedent.
+   */
+  priority?: number;
 };
 
 export type Guide = BaseGuide & {

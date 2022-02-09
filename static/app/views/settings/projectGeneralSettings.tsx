@@ -9,7 +9,7 @@ import {
 import ProjectActions from 'sentry/actions/projectActions';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/utils';
+import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
@@ -31,8 +31,8 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = AsyncView['props'] &
   RouteComponentProps<{orgId: string; projectId: string}, {}> & {
-    organization: Organization;
     onChangeSlug: (slug: string) => void;
+    organization: Organization;
   };
 
 type State = AsyncView['state'] & {

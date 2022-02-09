@@ -475,7 +475,7 @@ def _run_sessions_query(query):
         referrer="sessions.timeseries",
     )
 
-    return result_totals["data"], result_timeseries["data"]
+    return totals, result_timeseries["data"]
 
 
 def massage_sessions_result(

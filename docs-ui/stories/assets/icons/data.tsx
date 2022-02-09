@@ -16,12 +16,12 @@ export type IconPropName = 'size' | 'direction' | 'isCircled' | 'isSolid' | 'typ
 type IconProps = {
   [key in IconPropName]: {
     type: 'boolean' | 'select';
-    options?: [string, string][];
     default?: string;
     /**
      * Whether to list all variants of this prop in the icon list
      */
     enumerate?: boolean;
+    options?: [string, string][];
   };
 };
 
@@ -31,16 +31,16 @@ type IconGroup = {
 };
 
 export type IconData = {
+  /**
+   * Groups that the icon belongs to
+   */
+  groups: IconGroupName[];
   id: string;
   /**
    * List of alternative keywords for better icon search, e.g. the
    * icon 'checkmark' could have a ['done', 'success'] keyword list
    */
   keywords: string[];
-  /**
-   * Groups that the icon belongs to
-   */
-  groups: IconGroupName[];
   /**
    * Any additional props besides 'size' and 'color'. This includes
    * props like 'isCircled' and 'direction'.
@@ -545,9 +545,9 @@ export const icons: IconData[] = [
     keywords: ['shape', 'round'],
   },
   {
-    id: 'rectangle',
+    id: 'diamond',
     groups: ['other'],
-    keywords: ['shape', 'rect', 'diamond'],
+    keywords: ['shape', 'alert', 'diamond'],
   },
   {
     id: 'flag',
@@ -557,6 +557,11 @@ export const icons: IconData[] = [
   {
     id: 'sound',
     groups: ['content', 'action'],
+    keywords: ['audio'],
+  },
+  {
+    id: 'mute',
+    groups: ['action'],
     keywords: ['audio'],
   },
   {
@@ -603,5 +608,25 @@ export const icons: IconData[] = [
     id: 'generic',
     groups: ['logo'],
     keywords: [],
+  },
+  {
+    id: 'resize',
+    groups: ['action'],
+    keywords: ['scale', 'stretch'],
+  },
+  {
+    id: 'happy',
+    groups: ['content'],
+    keywords: ['good'],
+  },
+  {
+    id: 'meh',
+    groups: ['content'],
+    keywords: ['meh'],
+  },
+  {
+    id: 'sad',
+    groups: ['content'],
+    keywords: ['poor'],
   },
 ];

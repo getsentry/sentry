@@ -62,9 +62,45 @@ export type ColResizeMetadata = {
 };
 
 type GridEditableProps<DataRow, ColumnKey> = {
+  columnOrder: GridColumnOrder<ColumnKey>[];
+  columnSortBy: GridColumnSortBy<ColumnKey>[];
+  data: DataRow[];
+
+  /**
+   * GridEditable allows the parent component to determine how to display the
+   * data within it. Note that this is optional.
+   */
+  grid: {
+    onResizeColumn?: (
+      columnIndex: number,
+      nextColumn: GridColumnOrder<ColumnKey>
+    ) => void;
+    prependColumnWidths?: string[];
+    renderBodyCell?: (
+      column: GridColumnOrder<ColumnKey>,
+      dataRow: DataRow,
+      rowIndex: number,
+      columnIndex: number
+    ) => React.ReactNode;
+    renderHeadCell?: (
+      column: GridColumnOrder<ColumnKey>,
+      columnIndex: number
+    ) => React.ReactNode;
+    renderPrependColumns?: (
+      isHeader: boolean,
+      dataRow?: DataRow,
+      rowIndex?: number
+    ) => React.ReactNode[];
+  };
   location: Location;
-  isLoading?: boolean;
   error?: React.ReactNode | null;
+  /**
+   * Inject a set of buttons into the top of the grid table.
+   * The controlling component is responsible for handling any actions
+   * in these buttons and updating props to the GridEditable instance.
+   */
+  headerButtons?: () => React.ReactNode;
+  isLoading?: boolean;
 
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
@@ -76,42 +112,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
    *   move sorting into Grid for performance
    */
   title?: string;
-  /**
-   * Inject a set of buttons into the top of the grid table.
-   * The controlling component is responsible for handling any actions
-   * in these buttons and updating props to the GridEditable instance.
-   */
-  headerButtons?: () => React.ReactNode;
-  columnOrder: GridColumnOrder<ColumnKey>[];
-  columnSortBy: GridColumnSortBy<ColumnKey>[];
-  data: DataRow[];
-
-  /**
-   * GridEditable allows the parent component to determine how to display the
-   * data within it. Note that this is optional.
-   */
-  grid: {
-    renderHeadCell?: (
-      column: GridColumnOrder<ColumnKey>,
-      columnIndex: number
-    ) => React.ReactNode;
-    renderBodyCell?: (
-      column: GridColumnOrder<ColumnKey>,
-      dataRow: DataRow,
-      rowIndex: number,
-      columnIndex: number
-    ) => React.ReactNode;
-    onResizeColumn?: (
-      columnIndex: number,
-      nextColumn: GridColumnOrder<ColumnKey>
-    ) => void;
-    renderPrependColumns?: (
-      isHeader: boolean,
-      dataRow?: DataRow,
-      rowIndex?: number
-    ) => React.ReactNode[];
-    prependColumnWidths?: string[];
-  };
 };
 
 type GridEditableState = {

@@ -12,9 +12,9 @@ import BaseChart from './baseChart';
 import {truncationFormatter} from './utils';
 
 type Marker = {
+  color: string;
   name: string;
   value: string | number | Date;
-  color: string;
   symbolSize?: number;
 };
 
@@ -28,34 +28,9 @@ type Props = Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> & {
    */
   height: number;
   /**
-   * Show max/min values on yAxis
-   */
-  labelYAxisExtents?: boolean;
-
-  /**
    * Colors to use on the chart.
    */
   colors?: string[];
-
-  /**
-   * Whether not the series should be stacked.
-   *
-   * Some of our stats endpoints return data where the 'total' series includes
-   * breakdown data (issues). For these results `stacked` should be false.
-   * Other endpoints return decomposed results that need to be stacked (outcomes).
-   */
-  stacked?: boolean;
-
-  /**
-   * A list of series to be rendered as markLine components on the chart
-   * This is often used to indicate start/end markers on the xAxis
-   */
-  markers?: Marker[];
-
-  /**
-   * Whether timestamps are should be shown in UTC or local timezone.
-   */
-  utc?: boolean;
 
   /**
    * A list of colors to use on hover.
@@ -70,11 +45,41 @@ type Props = Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> & {
   hideDelay?: number;
 
   /**
+   * Show max/min values on yAxis
+   */
+  labelYAxisExtents?: boolean;
+
+  /**
+   * A list of series to be rendered as markLine components on the chart
+   * This is often used to indicate start/end markers on the xAxis
+   */
+  markers?: Marker[];
+
+  series?: BarChartProps['series'];
+
+  /**
+   * Whether not we show a MarkLine label
+   */
+  showMarkLineLabel?: boolean;
+
+  /**
+   * Whether not the series should be stacked.
+   *
+   * Some of our stats endpoints return data where the 'total' series includes
+   * breakdown data (issues). For these results `stacked` should be false.
+   * Other endpoints return decomposed results that need to be stacked (outcomes).
+   */
+  stacked?: boolean;
+
+  /**
    * Function to format tooltip values
    */
   tooltipFormatter?: (value: number) => string;
 
-  series?: BarChartProps['series'];
+  /**
+   * Whether timestamps are should be shown in UTC or local timezone.
+   */
+  utc?: boolean;
 };
 
 function MiniBarChart({
@@ -86,6 +91,7 @@ function MiniBarChart({
   colors,
   stacked = false,
   labelYAxisExtents = false,
+  showMarkLineLabel = false,
   height,
   ...props
 }: Props) {
@@ -183,7 +189,7 @@ function MiniBarChart({
         : undefined,
     },
     yAxis: {
-      max(value: {min: number; max: number}) {
+      max(value: {max: number; min: number}) {
         // This keeps small datasets from looking 'scary'
         // by having full bars for < 10 values.
         if (value.max < 10) {
@@ -201,9 +207,9 @@ function MiniBarChart({
     grid: {
       // Offset to ensure there is room for the marker symbols at the
       // default size.
-      top: labelYAxisExtents ? 6 : 0,
-      bottom: markers || labelYAxisExtents ? 4 : 0,
-      left: markers ? 8 : 4,
+      top: labelYAxisExtents || showMarkLineLabel ? 6 : 0,
+      bottom: markers || labelYAxisExtents || showMarkLineLabel ? 4 : 0,
+      left: markers ? 8 : showMarkLineLabel ? 35 : 4,
       right: markers ? 4 : 0,
     },
     xAxis: {

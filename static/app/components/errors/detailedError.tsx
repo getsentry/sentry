@@ -14,11 +14,11 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  className?: string;
   /**
    * Error heading
    */
   heading: React.ReactNode;
+  className?: string;
   /**
    * Detailed error explanation
    */

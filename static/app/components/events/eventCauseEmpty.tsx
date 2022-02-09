@@ -86,10 +86,10 @@ type ClickPayload = {
 };
 
 type Props = {
+  api: Client;
   event: Event;
   organization: Organization;
   project: Project;
-  api: Client;
 };
 
 type State = {
