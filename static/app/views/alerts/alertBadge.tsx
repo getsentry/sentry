@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {IconCheckmark, IconFire, IconIssues, IconWarning} from 'sentry/icons';
+import {IconCheckmark, IconExclamation, IconFire, IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Color} from 'sentry/utils/theme';
@@ -27,7 +27,7 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
     color = 'red300';
   } else if (status === IncidentStatus.WARNING) {
     statusText = t('Warning');
-    Icon = IconWarning;
+    Icon = IconExclamation;
     color = 'yellow300';
   }
 
@@ -54,28 +54,25 @@ const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  /* icon warning needs to be treated differently to look visually centered */
-  line-height: ${p => (p.icon === IconWarning ? undefined : 1)};
   left: 3px;
   min-width: 30px;
 
   &:before {
     content: '';
     position: absolute;
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
     border-radius: ${p => p.theme.borderRadius};
     background-color: ${p => p.theme[p.color]};
     transform: rotate(45deg);
   }
 
   svg {
-    width: ${p => (p.icon === IconIssues ? '11px' : '13px')};
+    width: ${p => (p.icon === IconIssues ? '13px' : '16px')};
     z-index: 1;
   }
 `;
 
-const IncidentStatusValue = styled('div')<{color: Color}>`
-  margin-left: ${space(1)};
-  color: ${p => p.theme[p.color]};
+const IncidentStatusValue = styled('div')`
+  margin-left: ${space(1.5)};
 `;

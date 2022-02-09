@@ -7,10 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers import StreamGroupSerializer, serialize
-from sentry.integrations.atlassian_connect import (
-    AtlassianConnectValidationError,
-    get_integration_from_request,
-)
+from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models import ExternalIssue, Group, GroupLink
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
