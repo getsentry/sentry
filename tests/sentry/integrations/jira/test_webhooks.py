@@ -4,7 +4,7 @@ import responses
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from sentry.integrations.issues import IssueSyncMixin
+from sentry.integrations.mixins import IssueSyncMixin
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 from tests.fixtures.integrations.mock_service import StubService

@@ -4,7 +4,7 @@ from typing import Any, Mapping, Sequence
 
 from django.urls import reverse
 
-from sentry.integrations.issues import IssueBasicMixin
+from sentry.integrations.mixins import IssueBasicMixin
 from sentry.models import ExternalIssue, Group, User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri

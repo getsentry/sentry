@@ -5,8 +5,8 @@ import responses
 from django.utils import timezone
 from jwt import ExpiredSignatureError
 
-from sentry.integrations.atlassian_connect import AtlassianConnectValidationError
 from sentry.integrations.jira import JIRA_KEY
+from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models import ExternalIssue, Group, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri

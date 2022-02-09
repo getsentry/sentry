@@ -1,8 +1,10 @@
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.integrations.serverless import ServerlessMixin
+from sentry.integrations.mixins import ServerlessMixin
 from sentry.shared_integrations.exceptions import IntegrationError
 
 ACTIONS = ["enable", "disable", "updateVersion"]
@@ -11,10 +13,6 @@ ACTIONS = ["enable", "disable", "updateVersion"]
 class ServerlessActionSerializer(CamelSnakeSerializer):
     action = serializers.ChoiceField(ACTIONS)
     target = serializers.CharField()
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegrationBaseEndpoint):

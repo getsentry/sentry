@@ -16,7 +16,7 @@ from sentry.types.activity import ActivityType
 def sync_status_inbound(
     integration_id: int, organization_id: int, issue_key: str, data: Mapping[str, Any]
 ) -> None:
-    from sentry.integrations.issues import ResolveSyncAction
+    from sentry.integrations.mixins import ResolveSyncAction
 
     integration = Integration.objects.get(id=integration_id)
     organizations = Organization.objects.filter(id=organization_id)

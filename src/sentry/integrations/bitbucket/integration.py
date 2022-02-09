@@ -11,11 +11,8 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.atlassian_connect import (
-    AtlassianConnectValidationError,
-    get_integration_from_request,
-)
-from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.exceptions import ApiError

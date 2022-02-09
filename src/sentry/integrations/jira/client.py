@@ -3,8 +3,8 @@ import logging
 import re
 from urllib.parse import parse_qs, urlparse, urlsplit
 
-from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.integrations.client import ApiClient
+from sentry.integrations.utils import get_query_hash
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri

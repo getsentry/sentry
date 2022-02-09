@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models import (
     ExternalIssue,
     IntegrationExternalProject,
