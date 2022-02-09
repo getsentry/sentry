@@ -94,13 +94,14 @@ describe('Hovercard', () => {
     expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
   });
 
-  it('Respects displayTimeout displays card', () => {
+  it('Respects displayTimeout displays card', async () => {
+    const DISPLAY_TIMEOUT = 100;
     mountWithTheme(
       <Hovercard
         position="top"
         body="Hovercard Body"
         header="Hovercard Header"
-        displayTimeout={100}
+        displayTimeout={DISPLAY_TIMEOUT}
       >
         Hovercard Trigger
       </Hovercard>
@@ -109,17 +110,14 @@ describe('Hovercard', () => {
     userEvent.hover(screen.getByText('Hovercard Trigger'));
 
     act(() => {
-      jest.advanceTimersByTime(99);
+      jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1);
     });
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
 
-    act(() => {
-      jest.advanceTimersByTime(1);
-    });
-    expect(screen.getByText(/Hovercard Body/)).toBeInTheDocument();
-    expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
+    expect(await screen.findByText(/Hovercard Body/)).toBeInTheDocument();
+    expect(await screen.findByText(/Hovercard Header/)).toBeInTheDocument();
   });
 
   it('Doesnt leak timeout', () => {
