@@ -19,7 +19,12 @@ from sentry.api.serializers.models.team import (
     OrganizationTeamSCIMSerializerResponse,
     TeamSCIMSerializer,
 )
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOTFOUND,
+    RESPONSE_SUCCESS,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.decorators import public
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.models import (
@@ -50,6 +55,22 @@ from .utils import (
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
+
+
+class SCIMTeamPatchOperationSerializer(serializers.Serializer):
+    op = serializers.ChoiceField(choices=("replace", "remove", "add"), required=True)
+    value = serializers.ListField(serializers.DictField(), allow_empty=True)
+    # TODO: define exact schema for value
+    # TODO: actually use these in the patch request for validation
+
+
+class SCIMTeamPatchRequestSerializer(serializers.Serializer):
+    # we don't actually use "schemas" for anything atm but its part of the spec
+    schemas = serializers.ListField(child=serializers.CharField(), required=True)
+
+    Operations = serializers.ListField(
+        child=SCIMTeamPatchOperationSerializer(), required=True, source="operations"
+    )
 
 
 def _team_expand(excluded_attributes):
@@ -180,7 +201,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         return super().post(request, organization)
 
 
-@public(methods={"GET"})
+@public(methods={"GET", "PATCH"})
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
@@ -292,11 +313,70 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 data=team.get_audit_log_data(),
             )
 
+    @extend_schema(
+        operation_id="Update a Team's Attributes",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.TEAM_ID],
+        request=SCIMTeamPatchRequestSerializer,
+        responses={
+            204: RESPONSE_SUCCESS,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
     def patch(self, request: Request, organization, team):
         """
         A SCIM Group PATCH request takes a series of operations to perform on a team.
         It does them sequentially and if any of them fail no operations should go through.
         The operations are add members, remove members, replace members, and rename team.
+        Update a team's attributes with a SCIM Group PATCH Request. Valid Operations are:
+        * Renaming a team:
+        ```json
+        {
+            "op": "replace",
+            "value": {
+                "id": 23,
+                "displayName": "newName"
+            }
+        }
+        ```
+        * Adding a member to a team:
+        ```json
+        {
+            "op": "add",
+            "path": "members",
+            "value": [
+                {
+                    "value": 23,
+                    "display": "testexample@example.com"
+                }
+            ]
+        }
+        ```
+        * Removing a member from a team:
+        ```json
+        {
+            "op": "remove",
+            "path": "members[value eq \"23\"]"
+        }
+        ```
+        * Replacing an entire member set of a team:
+        ```json
+        {
+            "op": "replace",
+            "path": "members",
+            "value": [
+                {
+                    "value": 23,
+                    "display": "testexample2@sentry.io"
+                },
+                {
+                    "value": 24,
+                    "display": "testexample3@sentry.io"
+                }
+            ]
+        }
+        ```
         """
         operations = request.data.get("Operations", [])
         if len(operations) > 100:
