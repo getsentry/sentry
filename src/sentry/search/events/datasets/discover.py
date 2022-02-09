@@ -764,6 +764,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
         # Arrays need to have toUint64 casting because clickhouse will define the type as the narrowest possible type
         # that can store listed argument types, which means the comparison will fail because of mismatched types
+        project_thresholds = {}
         project_threshold_config_keys = []
         project_threshold_config_values = []
         for project_id, threshold, metric in project_threshold_configs:
@@ -772,9 +773,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                 threshold == DEFAULT_PROJECT_THRESHOLD
                 and metric == DEFAULT_PROJECT_THRESHOLD_METRIC
             ):
-                # small optimization, if the configuration is equal to the default
+                # small optimization, if the configuration is equal to the default,
                 # we can skip it in the final query
                 continue
+
+            project_thresholds[project_id] = (metric, threshold)
             project_threshold_config_keys.append(Function("toUInt64", [project_id]))
             project_threshold_config_values.append((metric, threshold))
 
@@ -783,12 +786,23 @@ class DiscoverDatasetConfig(DatasetConfig):
         for transaction, project_id, threshold, metric in transaction_threshold_configs:
             metric = TRANSACTION_METRICS[metric]
             if (
-                threshold == DEFAULT_PROJECT_THRESHOLD
+                project_id in project_thresholds
+                and threshold == project_thresholds[project_id][1]
+                and metric == project_thresholds[project_id][0]
+            ):
+                # small optimization, if the configuration is equal to the project
+                # configs, we can skip it in the final query
+                continue
+
+            elif (
+                project_id not in project_thresholds
+                and threshold == DEFAULT_PROJECT_THRESHOLD
                 and metric == DEFAULT_PROJECT_THRESHOLD_METRIC
             ):
                 # small optimization, if the configuration is equal to the default
-                # we can skip it in the final query
+                # and no project configs were set, we can skip it in the final query
                 continue
+
             project_threshold_override_config_keys.append(
                 (Function("toUInt64", [project_id]), transaction)
             )
