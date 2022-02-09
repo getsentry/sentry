@@ -1046,7 +1046,7 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable dashboard widget library
     "organizations:widget-library": False,
-    # Enable dashboard widget library
+    # Enable metrics in dashboards
     "organizations:dashboards-metrics": False,
     # Enable issue widgets in dashboards
     "organizations:issues-in-dashboards": False,
