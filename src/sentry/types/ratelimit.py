@@ -46,11 +46,3 @@ class RateLimitMeta:
     limit: int
     window: int
     reset_time: int
-
-
-@dataclass
-class RateLimitConfig:
-    group: str = field(default="default")
-
-    def get_rate_limit(self, http_method: str, category: RateLimitCategory) -> RateLimit:
-        raise NotImplementedError
