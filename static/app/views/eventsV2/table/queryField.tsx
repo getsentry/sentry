@@ -630,8 +630,7 @@ function validateColumnTypes(
     return columnTypes({name: input.meta.name, dataType: input.meta.dataType});
   }
 
-  // @ts-ignore
-  return columnTypes.includes(input.meta.dataType);
+  return (columnTypes as string[]).includes(input.meta.dataType);
 }
 
 const Container = styled('div')<{

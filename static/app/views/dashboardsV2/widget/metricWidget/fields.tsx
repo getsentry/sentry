@@ -1,18 +1,16 @@
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-export type MetricsColumnType = 'set' | 'counter';
+export type MetricsColumnType = 'set' | 'counter' | 'duration';
 
-export enum FieldKey {
-  SESSION = 'session',
-  USER = 'user',
-}
-
-export const METRICS_FIELDS: Readonly<Record<FieldKey, MetricsColumnType>> = {
-  [FieldKey.SESSION]: 'counter',
-  [FieldKey.USER]: 'set',
-};
+export const METRICS_FIELDS: Readonly<Partial<Record<SessionMetric, MetricsColumnType>>> =
+  {
+    [SessionMetric.SENTRY_SESSIONS_SESSION]: 'counter',
+    [SessionMetric.SENTRY_SESSIONS_SESSION_ERROR]: 'set',
+    [SessionMetric.SENTRY_SESSIONS_USER]: 'set',
+  };
 
 export const METRICS_AGGREGATIONS = {
   count_unique: {
@@ -20,7 +18,7 @@ export const METRICS_AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: ['set'],
-        defaultValue: FieldKey.USER,
+        defaultValue: SessionMetric.SENTRY_SESSIONS_USER,
         required: true,
       },
     ],
@@ -34,7 +32,7 @@ export const METRICS_AGGREGATIONS = {
         kind: 'column',
         columnTypes: ['counter'],
         required: true,
-        defaultValue: FieldKey.SESSION,
+        defaultValue: SessionMetric.SENTRY_SESSIONS_SESSION,
       },
     ],
     outputType: 'number',

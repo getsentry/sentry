@@ -28,9 +28,9 @@ import {
   TagCollection,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {getMetricsDataSource} from 'sentry/utils/metrics/getMetricsDataSource';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -531,7 +531,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       {
         query: {
           project: !selection.projects.length ? undefined : selection.projects,
-          datasource: getMetricsDataSource(),
         },
       }
     );
@@ -542,12 +541,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         metricTags,
       });
     } catch (error) {
-      const errorResponse = error?.responseJSON ?? null;
-      if (errorResponse) {
-        addErrorMessage(errorResponse);
-      } else {
-        addErrorMessage(t('Unable to fetch metric tags'));
-      }
+      const errorResponse = error?.responseJSON ?? t('Unable to fetch metric tags');
+      addErrorMessage(errorResponse);
+      handleXhrErrorResponse(errorResponse)(error);
     }
   }
 
