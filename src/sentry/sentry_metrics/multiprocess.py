@@ -369,6 +369,8 @@ def process_messages(
             }
             strings.update(parsed_strings)
 
+    metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
+
     with metrics.timer("metrics_consumer.bulk_record"):
         mapping = indexer.bulk_record(list(strings))
 
@@ -484,7 +486,7 @@ class TransformStep(ProcessingStep[MessageBatch]):  # type: ignore
 
     def __init__(
         self,
-        next_step: ProcessingStep[MessageBatch],
+        next_step: ProcessingStep[KafkaPayload],
     ) -> None:
         self.__process_messages = process_messages
         self.__next_step = next_step
@@ -498,16 +500,10 @@ class TransformStep(ProcessingStep[MessageBatch]):  # type: ignore
         assert not self.__closed
 
         with self.__metrics.timer("transform_step.process_messages"):
-            transformed_message = self.__process_messages(message)
+            transformed_message_batch = self.__process_messages(message)
 
-        self.__next_step.submit(
-            Message(
-                message.partition,
-                message.offset,
-                transformed_message,
-                message.timestamp,
-            )
-        )
+        for transformed_message in transformed_message_batch:
+            self.__next_step.submit(transformed_message)
 
     def close(self) -> None:
         self.__closed = True
@@ -527,7 +523,7 @@ class UnflushedMessages(Exception):
     pass
 
 
-class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
+class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
     def __init__(
         self,
     ) -> None:
@@ -547,17 +543,14 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     def poll(self) -> None:
         pass
 
-    def submit(self, outer_message: Message[MessageBatch]) -> None:
-
-        for message in outer_message.payload:
-            payload = message.payload
-            with self.__metrics.timer("simple_produce_step.produce_time_duration"):
-                self.__producer.produce(
-                    topic=self.__producer_topic,
-                    key=None,
-                    value=json.dumps(payload.value).encode(),
-                    on_delivery=self.callback,
-                )
+    def submit(self, message: Message[KafkaPayload]) -> None:
+        with self.__metrics.timer("simple_produce_step.produce_time_duration"):
+            self.__producer.produce(
+                topic=self.__producer_topic,
+                key=None,
+                value=message.payload.value,
+                on_delivery=self.callback,
+            )
 
     def callback(self, error: Any, message: Any) -> None:
         if error is not None:
