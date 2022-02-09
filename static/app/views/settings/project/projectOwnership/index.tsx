@@ -15,6 +15,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconWarning} from 'sentry/icons';
@@ -380,6 +381,7 @@ tags.sku_class:enterprise #enterprise`;
           initialData={{
             fallthrough: ownership.fallthrough,
             autoAssignment: ownership.autoAssignment,
+            codeownersAutoSync: ownership.codeownersAutoSync,
           }}
           hideFooter
         >
@@ -405,6 +407,29 @@ tags.sku_class:enterprise #enterprise`;
                       'Alerts will be sent to all users who have access to this project.'
                     ),
                     disabled,
+                  },
+                  {
+                    name: 'codeownersAutoSync',
+                    type: 'boolean',
+                    label: tct(
+                      `Automatically sync changes from CODEOWNERS to Code Owners [badge]`,
+                      {
+                        badge: (
+                          <FeatureBadge
+                            type="new"
+                            title={
+                              !(this.state.codeowners || []).length
+                                ? 'Setup Code Owners to use this feature.'
+                                : undefined
+                            }
+                          />
+                        ),
+                      }
+                    ),
+                    help: t(
+                      'Sentry will watch for CODEOWNERS file changes during a Release and then update Code Owners.'
+                    ),
+                    disabled: disabled || !(this.state.codeowners || []).length,
                   },
                 ],
               },
