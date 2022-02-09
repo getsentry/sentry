@@ -15,14 +15,14 @@ import {getSortLabel, IssueSortOptions} from './utils';
 
 type Props = ModalRenderProps & {
   api: Client;
+  organization: Organization;
   query: string;
   sort?: string;
-  organization: Organization;
 };
 
 type State = {
-  isSaving: boolean;
   error: string | null;
+  isSaving: boolean;
 };
 
 const DEFAULT_SORT_OPTIONS = [

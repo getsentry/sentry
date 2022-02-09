@@ -11,6 +11,7 @@ import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import space from 'sentry/styles/space';
 import {domId} from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
+import {isOverflown} from 'sentry/utils/tooltip';
 
 export const OPEN_DELAY = 50;
 
@@ -21,14 +22,14 @@ const CLOSE_DELAY = 50;
 
 type DefaultProps = {
   /**
-   * Position for the tooltip.
-   */
-  position?: PopperJS.Placement;
-
-  /**
    * Display mode for the container element
    */
   containerDisplayMode?: React.CSSProperties['display'];
+
+  /**
+   * Position for the tooltip.
+   */
+  position?: PopperJS.Placement;
 };
 
 type Props = DefaultProps & {
@@ -38,35 +39,16 @@ type Props = DefaultProps & {
   children: React.ReactNode;
 
   /**
-   * Disable the tooltip display entirely
-   */
-  disabled?: boolean;
-
-  /**
    * The content to show in the tooltip popover
    */
   title: React.ReactNode;
 
-  /**
-   * Additional style rules for the tooltip content.
-   */
-  popperStyle?: React.CSSProperties | SerializedStyles;
+  className?: string;
 
   /**
    * Time to wait (in milliseconds) before showing the tooltip
    */
   delay?: number;
-
-  /**
-   * If true, user is able to hover tooltip without it disappearing.
-   * (nice if you want to be able to copy tooltip contents to clipboard)
-   */
-  isHoverable?: boolean;
-
-  /**
-   * If child node supports ref forwarding, you can skip apply a wrapper
-   */
-  skipWrapper?: boolean;
 
   /**
    * Stops tooltip from being opened during tooltip visual acceptance.
@@ -75,11 +57,35 @@ type Props = DefaultProps & {
   disableForVisualTest?: boolean;
 
   /**
+   * Disable the tooltip display entirely
+   */
+  disabled?: boolean;
+
+  /**
    * Force the tooltip to be visible without hovering
    */
   forceShow?: boolean;
 
-  className?: string;
+  /**
+   * If true, user is able to hover tooltip without it disappearing.
+   * (nice if you want to be able to copy tooltip contents to clipboard)
+   */
+  isHoverable?: boolean;
+
+  /**
+   * Additional style rules for the tooltip content.
+   */
+  popperStyle?: React.CSSProperties | SerializedStyles;
+
+  /**
+   * Only display the tooltip only if the content overflows
+   */
+  showOnlyOnOverflow?: boolean;
+
+  /**
+   * If child node supports ref forwarding, you can skip apply a wrapper
+   */
+  skipWrapper?: boolean;
 };
 
 type State = {
@@ -143,6 +149,7 @@ class Tooltip extends React.Component<Props, State> {
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
+  triggerEl: Element | null = null;
 
   getPortal = memoize((usesGlobalPortal): HTMLElement => {
     if (usesGlobalPortal) {
@@ -168,7 +175,11 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
-    const {delay} = this.props;
+    const {delay, showOnlyOnOverflow} = this.props;
+
+    if (this.triggerEl && showOnlyOnOverflow && !isOverflown(this.triggerEl)) {
+      return;
+    }
 
     if (this.delayHideTimeout) {
       window.clearTimeout(this.delayHideTimeout);
@@ -207,6 +218,13 @@ class Tooltip extends React.Component<Props, State> {
       onPointerLeave: this.handleClose,
     };
 
+    const setRef = el => {
+      if (typeof ref === 'function') {
+        ref(el);
+      }
+      this.triggerEl = el;
+    };
+
     // Use the `type` property of the react instance to detect whether we
     // have a basic element (type=string) or a class/function component (type=function or object)
     // Because we can't rely on the child element implementing forwardRefs we wrap
@@ -219,13 +237,13 @@ class Tooltip extends React.Component<Props, State> {
       // Basic DOM nodes can be cloned and have more props applied.
       return React.cloneElement(children, {
         ...propList,
-        ref,
+        ref: setRef,
       });
     }
 
     propList.containerDisplayMode = this.props.containerDisplayMode;
     return (
-      <Container {...propList} className={this.props.className} ref={ref}>
+      <Container {...propList} className={this.props.className} ref={setRef}>
         {children}
       </Container>
     );

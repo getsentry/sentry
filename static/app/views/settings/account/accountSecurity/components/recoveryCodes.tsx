@@ -16,8 +16,8 @@ import space from 'sentry/styles/space';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
-  isEnrolled: boolean;
   codes: string[];
+  isEnrolled: boolean;
   onRegenerateBackupCodes: () => void;
   className?: string;
 };

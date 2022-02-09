@@ -39,7 +39,7 @@ function generateWrappedComponent(
 describe('EventsV2 > SaveQueryButtonGroup', function () {
   // Organization + Location does not affect state in this component
   const organization = TestStubs.Organization({
-    features: ['discover-query', 'connect-discover-and-dashboards', 'dashboards-edit'],
+    features: ['discover-query', 'dashboards-edit'],
   });
   const location = {
     pathname: '/organization/eventsv2/',

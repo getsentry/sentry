@@ -10,11 +10,11 @@ import momentTimezone from 'moment-timezone';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
+import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
@@ -26,6 +26,7 @@ import {
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -61,22 +62,22 @@ import {TimePeriodType} from './constants';
 
 type Props = WithRouterProps & {
   api: Client;
-  rule: IncidentRule;
-  incidents?: Incident[];
-  timePeriod: TimePeriodType;
-  selectedIncident?: Incident | null;
+  filter: string[] | null;
+  handleZoom: (start: DateString, end: DateString) => void;
+  interval: string;
+  orgId: string;
   organization: Organization;
   projects: Project[] | AvatarProject[];
-  interval: string;
   query: string;
-  filter: string[] | null;
-  orgId: string;
-  handleZoom: (start: DateString, end: DateString) => void;
+  rule: IncidentRule;
+  timePeriod: TimePeriodType;
+  incidents?: Incident[];
+  selectedIncident?: Incident | null;
 };
 
 type State = {
-  width: number;
   height: number;
+  width: number;
 };
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
@@ -86,7 +87,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   return momentTimezone.tz(date, timezone).format(format);
 }
 
-function createThresholdSeries(lineColor: string, threshold: number): LineChartSeries {
+function createThresholdSeries(lineColor: string, threshold: number): AreaChartSeries {
   return {
     seriesName: 'Threshold Line',
     type: 'line',
@@ -107,7 +108,7 @@ function createStatusAreaSeries(
   startTime: number,
   endTime: number,
   yPosition: number
-): LineChartSeries {
+): AreaChartSeries {
   return {
     seriesName: '',
     type: 'line',
@@ -126,10 +127,10 @@ function createIncidentSeries(
   lineColor: string,
   incidentTimestamp: number,
   incident: Incident,
-  dataPoint?: LineChartSeries['data'][0],
+  dataPoint?: AreaChartSeries['data'][0],
   seriesName?: string,
   aggregate?: string
-): LineChartSeries {
+): AreaChartSeries {
   const formatter = ({value, marker}: any) => {
     const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
     return [
@@ -231,7 +232,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleChangeSeries = (data: LineChartSeries[]): LineSeriesOption[] => {
+  getRuleChangeSeries = (data: AreaChartSeries[]): LineSeriesOption[] => {
     const {dateModified} = this.props.rule || {};
 
     if (!data.length || !data[0].data.length || !dateModified) {
@@ -340,6 +341,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       organization,
       timePeriod: {start, end},
     } = this.props;
+    const {width} = this.state;
     const {dateModified, timeWindow, aggregate} = rule;
 
     if (loading || !timeseriesData) {
@@ -349,10 +351,12 @@ class MetricChart extends React.PureComponent<Props, State> {
     const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
 
-    const series: LineChartSeries[] = [...timeseriesData];
+    const series: AreaChartSeries[] = [...timeseriesData];
     const areaSeries: any[] = [];
-    // Ensure series data appears above incident lines
-    series[0].z = 100;
+    // Ensure series data appears below incident/mark lines
+    series[0].z = 1;
+    series[0].color = CHART_PALETTE[0][0];
+
     const dataArr = timeseriesData[0].data;
     const maxSeriesValue = dataArr.reduce(
       (currMax, coord) => Math.max(currMax, coord.value),
@@ -537,6 +541,18 @@ class MetricChart extends React.PureComponent<Props, State> {
 
     const queryFilter = filter?.join(' ');
 
+    const percentOfWidth =
+      width >= 1151
+        ? 15
+        : width < 1151 && width >= 700
+        ? 14
+        : width < 700 && width >= 515
+        ? 13
+        : width < 515 && width >= 300
+        ? 12
+        : 8;
+    const truncateWidth = (percentOfWidth / 100) * width;
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
@@ -548,7 +564,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           <ChartFilters>
             <StyledCircleIndicator size={8} />
             <Filters>{rule.aggregate}</Filters>
-            <Truncate value={queryFilter ?? ''} maxLength={75} />
+            <Truncate value={queryFilter ?? ''} maxLength={truncateWidth} />
           </ChartFilters>
           {getDynamicText({
             value: (
@@ -559,7 +575,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
               >
                 {zoomRenderProps => (
-                  <LineChart
+                  <AreaChart
                     {...zoomRenderProps}
                     isGroupedByDate
                     showTimeInTooltip
@@ -822,14 +838,9 @@ const ChartFilters = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.textColor};
-  white-space: nowrap;
-  text-overflow: ellipsis;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
+  display: inline-grid;
+  grid-template-columns: repeat(3, max-content);
+  align-items: center;
 `;
 
 const Filters = styled('span')`

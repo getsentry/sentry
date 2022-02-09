@@ -25,8 +25,8 @@ type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
 };
 
 type State = AsyncView['state'] & {
-  teamDetails: Team;
   integrations: Integration[];
+  teamDetails: Team;
 };
 
 const DOCS_LINK =

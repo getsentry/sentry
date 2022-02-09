@@ -64,21 +64,21 @@ import {TAB, TabsButtonBar} from './dashboardWidgetLibraryModal/tabsButtonBar';
 
 export type DashboardWidgetModalOptions = {
   organization: Organization;
+  source: DashboardWidgetSource;
   dashboard?: DashboardDetails;
-  selection?: PageFilters;
-  onAddWidget?: (data: Widget) => void;
-  widget?: Widget;
-  onUpdateWidget?: (nextWidget: Widget) => void;
-  defaultWidgetQuery?: WidgetQuery;
   defaultTableColumns?: readonly string[];
   defaultTitle?: string;
+  defaultWidgetQuery?: WidgetQuery;
   displayType?: DisplayType;
-  source: DashboardWidgetSource;
-  start?: DateString;
   end?: DateString;
-  statsPeriod?: string | null;
-  selectedWidgets?: WidgetTemplate[];
   onAddLibraryWidget?: (widgets: Widget[]) => void;
+  onAddWidget?: (data: Widget) => void;
+  onUpdateWidget?: (nextWidget: Widget) => void;
+  selectedWidgets?: WidgetTemplate[];
+  selection?: PageFilters;
+  start?: DateString;
+  statsPeriod?: string | null;
+  widget?: Widget;
 };
 
 type Props = ModalRenderProps &
@@ -94,16 +94,16 @@ type FlatValidationError = {
 };
 
 type State = {
-  title: string;
+  dashboards: DashboardListItem[];
   displayType: Widget['displayType'];
   interval: Widget['interval'];
-  queries: Widget['queries'];
   loading: boolean;
-  errors?: Record<string, any>;
-  dashboards: DashboardListItem[];
-  selectedDashboard?: SelectValue<string>;
+  queries: Widget['queries'];
+  title: string;
   userHasModified: boolean;
   widgetType: WidgetType;
+  errors?: Record<string, any>;
+  selectedDashboard?: SelectValue<string>;
 };
 
 const newQuery = {
@@ -219,6 +219,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         addSuccessMessage(t('Added widget.'));
         trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.confirm', {
           organization,
+          data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
         });
       }
       if (source === DashboardWidgetSource.DASHBOARDS) {
@@ -260,9 +261,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       closeModal();
 
       const queryData: {
-        queryNames: string[];
         queryConditions: string[];
         queryFields: string[];
+        queryNames: string[];
         queryOrderby: string;
       } = {
         queryNames: [],
@@ -304,7 +305,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleSubmitFromLibrary = async (errors: FlatValidationError, widgetData: Widget) => {
-    const {closeModal, dashboard, onAddLibraryWidget} = this.props;
+    const {closeModal, dashboard, onAddLibraryWidget, organization} = this.props;
     if (!dashboard) {
       errors.dashboard = t('This field may not be blank');
       this.setState({errors});
@@ -315,6 +316,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       onAddLibraryWidget([...dashboard.widgets, widgetData]);
       closeModal();
     }
+    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.save', {
+      organization,
+      data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+    });
   };
 
   handleDefaultFields = (newDisplayType: DisplayType) => {

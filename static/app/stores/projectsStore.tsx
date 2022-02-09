@@ -7,8 +7,8 @@ import {Project, Team} from 'sentry/types';
 import {CommonStoreInterface} from './types';
 
 type State = {
-  projects: Project[];
   loading: boolean;
+  projects: Project[];
 };
 
 type StatsData = Record<string, Project['stats']>;
@@ -17,26 +17,26 @@ type StatsData = Record<string, Project['stats']>;
  * Attributes that need typing but aren't part of the external interface,
  */
 type Internals = {
-  removeTeamFromProject(teamSlug: string, project: Project): void;
   itemsById: Record<string, Project>;
   loading: boolean;
+  removeTeamFromProject(teamSlug: string, project: Project): void;
 };
 
 type ProjectsStoreInterface = CommonStoreInterface<State> & {
-  init(): void;
-  reset(): void;
-  loadInitialData(projects: Project[]): void;
-  onStatsLoadSuccess(data: StatsData): void;
-  onChangeSlug(prevSlug: string, newSlug: string): void;
-  onCreateSuccess(project: Project): void;
-  onUpdateSuccess(data: Partial<Project>): void;
-  onDeleteTeam(slug: string): void;
-  onRemoveTeam(teamSlug: string, projectSlug: string): void;
-  onAddTeam(team: Team, projectSlug: string): void;
-  isLoading(): boolean;
   getAll(): Project[];
   getById(id?: string): Project | undefined;
   getBySlug(slug?: string): Project | undefined;
+  init(): void;
+  isLoading(): boolean;
+  loadInitialData(projects: Project[]): void;
+  onAddTeam(team: Team, projectSlug: string): void;
+  onChangeSlug(prevSlug: string, newSlug: string): void;
+  onCreateSuccess(project: Project): void;
+  onDeleteTeam(slug: string): void;
+  onRemoveTeam(teamSlug: string, projectSlug: string): void;
+  onStatsLoadSuccess(data: StatsData): void;
+  onUpdateSuccess(data: Partial<Project>): void;
+  reset(): void;
 };
 
 const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface = {

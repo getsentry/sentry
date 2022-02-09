@@ -1,3 +1,5 @@
+import selectEvent from 'react-select-event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -23,7 +25,9 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  const {organization, project, routerContext} = initializeOrg();
+  const {organization, project, routerContext} = initializeOrg({
+    organization: {features: ['metric-alert-threshold-period']},
+  });
   const createWrapper = props =>
     mountWithTheme(
       <RuleFormContainer
@@ -102,6 +106,9 @@ describe('Incident Rules Form', () => {
         'Incident Rule'
       );
 
+      // Set thresholdPeriod
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+
       userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenCalledWith(
@@ -111,6 +118,7 @@ describe('Incident Rules Form', () => {
             name: 'Incident Rule',
             projects: ['project-slug'],
             eventTypes: ['default'],
+            thresholdPeriod: 10,
           }),
         })
       );

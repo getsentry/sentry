@@ -12,12 +12,12 @@ import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPane
 
 type Props = {
   api: Client;
-  organization: Organization;
-  project: Project;
   codeowners: CodeOwner[];
   disabled: boolean;
   onDelete: (data: CodeOwner) => void;
   onUpdate: (data: CodeOwner) => void;
+  organization: Organization;
+  project: Project;
 };
 
 class CodeOwnersPanel extends Component<Props> {
@@ -79,6 +79,7 @@ class CodeOwnersPanel extends Component<Props> {
                 size="xsmall"
                 onClick={() => this.handleSync(codeowner)}
                 disabled={disabled}
+                aria-label={t('Sync')}
               />,
               <Confirm
                 onConfirm={() => this.handleDelete(codeowner)}
@@ -86,7 +87,12 @@ class CodeOwnersPanel extends Component<Props> {
                 key="confirm-delete"
                 disabled={disabled}
               >
-                <Button key="delete" icon={<IconDelete size="xs" />} size="xsmall" />
+                <Button
+                  key="delete"
+                  icon={<IconDelete size="xs" />}
+                  aria-label={t('Delete')}
+                  size="xsmall"
+                />
               </Confirm>,
             ]}
           />

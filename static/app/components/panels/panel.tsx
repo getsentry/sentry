@@ -4,6 +4,7 @@ import space from 'sentry/styles/space';
 
 type Props = {
   dashedBorder?: boolean;
+  'data-test-id'?: string;
 };
 
 const Panel = styled('div')<Props>`

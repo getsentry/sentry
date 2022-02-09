@@ -56,14 +56,14 @@ export enum DisplayModes {
 
 type Props = {
   api: Client;
+  chartId: string;
+  chartIndex: number;
+  hasSessions: boolean | null;
+  hasTransactions: boolean;
   location: Location;
   organization: Organization;
   router: InjectedRouter;
-  chartId: string;
-  chartIndex: number;
   theme: Theme;
-  hasSessions: boolean | null;
-  hasTransactions: boolean;
   visibleCharts: string[];
   projectId?: string;
   query?: string;

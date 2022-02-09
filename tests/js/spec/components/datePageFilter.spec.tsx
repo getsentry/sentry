@@ -17,16 +17,19 @@ describe('DatePageFilter', function () {
     },
   });
   OrganizationStore.onUpdate(organization, {replace: true});
-  PageFiltersStore.onInitializeUrlState({
-    projects: [],
-    environments: [],
-    datetime: {
-      period: '7d',
-      start: null,
-      end: null,
-      utc: null,
+  PageFiltersStore.onInitializeUrlState(
+    {
+      projects: [],
+      environments: [],
+      datetime: {
+        period: '7d',
+        start: null,
+        end: null,
+        utc: null,
+      },
     },
-  });
+    new Set()
+  );
 
   it('can change period', function () {
     mountWithTheme(
@@ -58,5 +61,35 @@ describe('DatePageFilter', function () {
         projects: [],
       },
     });
+  });
+
+  it('can pin datetime', async function () {
+    mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <DatePageFilter />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
+
+    // Confirm no filters are pinned
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(),
+      })
+    );
+
+    // Click the pin button
+    const pinButton = screen.getByRole('button', {name: 'Pin'});
+    userEvent.click(pinButton);
+
+    await screen.findByRole('button', {name: 'Pin', pressed: true});
+
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(['datetime']),
+      })
+    );
   });
 });

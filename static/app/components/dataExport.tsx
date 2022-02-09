@@ -17,17 +17,17 @@ export enum ExportQueryType {
 }
 
 interface DataExportPayload {
-  queryType: ExportQueryType;
-  queryInfo: any; // TODO(ts): Formalize different possible payloads
+  queryInfo: any;
+  queryType: ExportQueryType; // TODO(ts): Formalize different possible payloads
 }
 
 interface DataExportProps {
   api: Client;
-  disabled?: boolean;
   organization: Organization;
   payload: DataExportPayload;
-  icon?: React.ReactNode;
   children?: React.ReactNode;
+  disabled?: boolean;
+  icon?: React.ReactNode;
 }
 
 function DataExport({

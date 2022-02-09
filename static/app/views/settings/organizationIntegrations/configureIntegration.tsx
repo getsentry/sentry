@@ -29,8 +29,9 @@ import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RouteParams = {
-  orgId: string;
   integrationId: string;
+  orgId: string;
+  providerKey: string;
 };
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -54,7 +55,18 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
-    const {location} = this.props;
+    const {
+      location,
+      router,
+      organization,
+      params: {orgId, providerKey},
+    } = this.props;
+    // This page should not be accessible by members
+    if (!organization.access.includes('org:integrations')) {
+      router.push({
+        pathname: `/settings/${orgId}/integrations/${providerKey}/`,
+      });
+    }
     const value =
       (['codeMappings', 'userMappings', 'teamMappings'] as const).find(
         tab => tab === location.query.tab

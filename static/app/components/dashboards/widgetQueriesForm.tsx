@@ -42,16 +42,16 @@ const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
 };
 
 type Props = {
-  organization: Organization;
-  selection: PageFilters;
-  displayType: Widget['displayType'];
-  queries: WidgetQuery[];
-  errors?: Array<Record<string, any>>;
-  onChange: (queryIndex: number, widgetQuery: WidgetQuery) => void;
   canAddSearchConditions: boolean;
+  displayType: Widget['displayType'];
+  fieldOptions: ReturnType<typeof generateFieldOptions>;
   handleAddSearchConditions: () => void;
   handleDeleteQuery: (queryIndex: number) => void;
-  fieldOptions: ReturnType<typeof generateFieldOptions>;
+  onChange: (queryIndex: number, widgetQuery: WidgetQuery) => void;
+  organization: Organization;
+  queries: WidgetQuery[];
+  selection: PageFilters;
+  errors?: Array<Record<string, any>>;
 };
 
 /**
@@ -189,9 +189,29 @@ class WidgetQueriesForm extends React.Component<Props> {
           organization={organization}
           onChange={fields => {
             const fieldStrings = fields.map(field => generateFieldAsString(field));
+            const aggregateAliasFieldStrings = fieldStrings.map(field =>
+              getAggregateAlias(field)
+            );
             queries.forEach((widgetQuery, queryIndex) => {
+              const descending = widgetQuery.orderby.startsWith('-');
+              const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
+              const prevAggregateAliasFieldStrings = widgetQuery.fields.map(field =>
+                getAggregateAlias(field)
+              );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
+              if (!aggregateAliasFieldStrings.includes(orderbyAggregateAliasField)) {
+                if (prevAggregateAliasFieldStrings.length === fields.length) {
+                  // The Field that was used in orderby has changed. Get the new field.
+                  newQuery.orderby = `${descending && '-'}${
+                    aggregateAliasFieldStrings[
+                      prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
+                    ]
+                  }`;
+                } else {
+                  newQuery.orderby = '';
+                }
+              }
               onChange(queryIndex, newQuery);
             });
           }}

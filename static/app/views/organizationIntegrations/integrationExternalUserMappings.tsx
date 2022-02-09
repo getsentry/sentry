@@ -9,6 +9,7 @@ import IntegrationExternalMappings from 'sentry/components/integrationExternalMa
 import {t} from 'sentry/locale';
 import {
   ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
   ExternalUser,
   Integration,
   Member,
@@ -24,8 +25,8 @@ type Props = AsyncComponent['props'] &
   };
 
 type State = AsyncComponent['state'] & {
-  members: (Member & {externalUsers: ExternalUser[]})[];
   initialResults: Member[];
+  members: (Member & {externalUsers: ExternalUser[]})[];
 };
 
 class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
@@ -107,7 +108,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
       });
   }
 
-  openModal = (mapping?: ExternalActorMapping) => {
+  openModal = (mapping?: ExternalActorMappingOrSuggestion) => {
     const {integration} = this.props;
     openModal(({Body, Header, closeModal}) => (
       <Fragment>

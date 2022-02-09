@@ -1,16 +1,11 @@
+import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {triggerPress} from 'sentry-test/utils';
 
 import QueryList from 'sentry/views/eventsV2/queryList';
-
-function openContextMenu(card) {
-  card.find('DropdownMenu MoreOptions svg').simulate('click');
-}
-
-function clickMenuItem(card, selector) {
-  card.find(`DropdownMenu MenuItem[data-test-id="${selector}"]`).simulate('click');
-}
 
 describe('EventsV2 > QueryList', function () {
   let location, savedQueries, organization, deleteMock, duplicateMock, queryChangeMock;
@@ -98,18 +93,14 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    let card = wrapper.find('QueryCard').last();
+    const card = wrapper.find('QueryCard').last();
     expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
-    openContextMenu(card);
-    wrapper.update();
-
-    // Get a fresh node
-    card = wrapper.find('QueryCard').last();
-    clickMenuItem(card, 'duplicate-query');
-
-    // wait for request
-    await wrapper.update();
+    await selectDropdownMenuItem({
+      wrapper,
+      specifiers: {prefix: 'QueryCard', last: true},
+      itemKey: 'duplicate',
+    });
 
     expect(duplicateMock).toHaveBeenCalled();
     expect(queryChangeMock).toHaveBeenCalled();
@@ -126,17 +117,14 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    let card = wrapper.find('QueryCard').last();
+    const card = wrapper.find('QueryCard').last();
     expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
-    openContextMenu(card);
-    wrapper.update();
-
-    card = wrapper.find('QueryCard').last();
-    clickMenuItem(card, 'delete-query');
-
-    // wait for request
-    await wrapper.update();
+    await selectDropdownMenuItem({
+      wrapper,
+      specifiers: {prefix: 'QueryCard', last: true},
+      itemKey: 'delete',
+    });
 
     expect(deleteMock).toHaveBeenCalled();
     expect(queryChangeMock).toHaveBeenCalled();
@@ -173,18 +161,14 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    let card = wrapper.find('QueryCard').last();
+    const card = wrapper.find('QueryCard').last();
     expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
-    // Open the context menu
-    openContextMenu(card);
-    wrapper.update();
-
-    card = wrapper.find('QueryCard').last();
-    clickMenuItem(card, 'delete-query');
-
-    // wait for request
-    await wrapper.update();
+    await selectDropdownMenuItem({
+      wrapper,
+      specifiers: {prefix: 'QueryCard', last: true},
+      itemKey: 'delete',
+    });
 
     expect(deleteMock).toHaveBeenCalled();
     expect(queryChangeMock).not.toHaveBeenCalled();
@@ -196,7 +180,7 @@ describe('EventsV2 > QueryList', function () {
 
   it('renders Add to Dashboard in context menu with feature flag', async function () {
     const featuredOrganization = TestStubs.Organization({
-      features: ['connect-discover-and-dashboards', 'dashboards-edit'],
+      features: ['dashboards-edit'],
     });
     const wrapper = mountWithTheme(
       <QueryList
@@ -208,17 +192,21 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    const card = wrapper.find('QueryCard').last();
-    openContextMenu(card);
-    wrapper.update();
+    let card = wrapper.find('QueryCard').last();
 
-    const menuItems = wrapper.find('MenuItem');
-    expect(menuItems.length).toEqual(3);
-    expect(menuItems.at(0).find('span').children().first().html()).toEqual(
-      'Add to Dashboard'
-    );
-    expect(menuItems.at(1).find('span').children().html()).toEqual('Delete Query');
-    expect(menuItems.at(2).find('span').children().html()).toEqual('Duplicate Query');
+    await act(async () => {
+      triggerPress(card.find('DropdownTrigger'));
+
+      await tick();
+      wrapper.update();
+    });
+
+    card = wrapper.find('QueryCard').last();
+    const menuItems = card.find('MenuItemWrap');
+
+    expect(menuItems.length).toEqual(2);
+    expect(menuItems.at(0).text()).toEqual('Duplicate Query');
+    expect(menuItems.at(1).text()).toEqual('Delete Query');
   });
 
   it('only renders Delete Query and Duplicate Query in context menu', async function () {
@@ -232,19 +220,26 @@ describe('EventsV2 > QueryList', function () {
       />,
       TestStubs.routerContext()
     );
-    const card = wrapper.find('QueryCard').last();
-    openContextMenu(card);
-    wrapper.update();
+    let card = wrapper.find('QueryCard').last();
 
-    const menuItems = wrapper.find('MenuItem');
+    await act(async () => {
+      triggerPress(card.find('DropdownTrigger'));
+
+      await tick();
+      wrapper.update();
+    });
+
+    card = wrapper.find('QueryCard').last();
+    const menuItems = card.find('MenuItemWrap');
+
     expect(menuItems.length).toEqual(2);
-    expect(menuItems.at(0).find('span').children().html()).toEqual('Delete Query');
-    expect(menuItems.at(1).find('span').children().html()).toEqual('Duplicate Query');
+    expect(menuItems.at(0).text()).toEqual('Duplicate Query');
+    expect(menuItems.at(1).text()).toEqual('Delete Query');
   });
 
   it('passes yAxis from the savedQuery to MiniGraph', function () {
     const featuredOrganization = TestStubs.Organization({
-      features: ['connect-discover-and-dashboards', 'dashboards-edit'],
+      features: ['dashboards-edit'],
     });
     const yAxis = ['count()', 'failure_count()'];
     const savedQueryWithMultiYAxis = {

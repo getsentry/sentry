@@ -27,6 +27,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
+import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
@@ -44,8 +45,8 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 
 type Props = {
   api: Client;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   router: InjectedRouter;
 } & AsyncView['props'];
 
@@ -147,7 +148,7 @@ class ManageDashboards extends AsyncView<Props, State> {
           {DASHBOARDS_TEMPLATES.map(dashboard => (
             <TemplateCard
               title={dashboard.title}
-              widgetCount={dashboard.widgets.length}
+              description={dashboard.description}
               onPreview={() => this.onPreview(dashboard.id)}
               onAdd={() => this.onAdd(dashboard)}
               key={dashboard.title}
@@ -229,9 +230,19 @@ class ManageDashboards extends AsyncView<Props, State> {
     trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
       organization,
       dashboard_id: dashboard.id,
+      dashboard_title: dashboard.title,
+      was_previewed: false,
     });
 
-    await createDashboard(api, organization.slug, dashboard, true);
+    await createDashboard(
+      api,
+      organization.slug,
+      {
+        ...dashboard,
+        widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
+      },
+      true
+    );
     this.onDashboardsChange();
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
   }

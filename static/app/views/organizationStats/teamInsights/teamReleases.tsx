@@ -24,16 +24,16 @@ import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
-  theme: Theme;
   organization: Organization;
-  teamSlug: string;
   projects: Project[];
+  teamSlug: string;
+  theme: Theme;
 } & DateTimeObject;
 
 type ProjectReleaseCount = {
+  last_week_totals: Record<string, number>;
   project_avgs: Record<string, number>;
   release_counts: Record<string, number>;
-  last_week_totals: Record<string, number>;
 };
 
 type State = AsyncComponent['state'] & {

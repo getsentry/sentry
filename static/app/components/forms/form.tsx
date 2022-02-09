@@ -9,24 +9,24 @@ import {t} from 'sentry/locale';
 
 type FormProps = {
   cancelLabel?: string;
+  className?: string;
+  errorMessage?: React.ReactNode;
+  extraButton?: React.ReactNode;
+  footerClass?: string;
+  hideErrors?: boolean;
+  initialData?: object;
   onCancel?: () => void;
   onSubmit?: (
     data: object,
     onSubmitSuccess: (data: object) => void,
     onSubmitError: (error: object) => void
   ) => void;
-  initialData?: object;
-  onSubmitSuccess?: (data: object) => void;
   onSubmitError?: (error: object) => void;
-  resetOnError?: boolean;
+  onSubmitSuccess?: (data: object) => void;
   requireChanges?: boolean;
-  errorMessage?: React.ReactNode;
-  hideErrors?: boolean;
-  className?: string;
-  footerClass?: string;
+  resetOnError?: boolean;
   submitDisabled?: boolean;
   submitLabel?: string;
-  extraButton?: React.ReactNode;
 };
 
 type FormClassState = {
@@ -158,6 +158,7 @@ class Form<
               priority="primary"
               disabled={isSaving || this.props.submitDisabled || !hasChanges}
               type="submit"
+              aria-label={this.props.submitLabel ?? t('Submit')}
             >
               {this.props.submitLabel}
             </Button>
@@ -167,6 +168,7 @@ class Form<
                 disabled={isSaving}
                 onClick={this.props.onCancel}
                 style={{marginLeft: 5}}
+                aria-label={this.props.cancelLabel ?? t('Cancel')}
               >
                 {this.props.cancelLabel}
               </Button>

@@ -41,16 +41,14 @@ def pytest_runtest_makereport(item, call):
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return
 
-    try:
-        # If we have the pytest_rerunfailures plugin,
-        # and there are still retries to be run,
-        # then do not return the error
+    # If we have the pytest_rerunfailures plugin,
+    # and there are still retries to be run,
+    # then do not return the error
+    if hasattr(item, "execution_count"):
         import pytest_rerunfailures
 
         if item.execution_count <= pytest_rerunfailures.get_reruns_count(item):
             return
-    except ImportError:
-        pass
 
     if report.when == "call" and report.failed:
         # collect information to be annotated
@@ -70,8 +68,9 @@ def pytest_runtest_makereport(item, call):
             if not rel_path.startswith(".."):
                 filesystempath = rel_path
 
-        # 0-index to 1-index
-        lineno += 1
+        if lineno is not None:
+            # 0-index to 1-index
+            lineno += 1
 
         # get the name of the current failed test, with parametrize info
         longrepr = report.head_line or item.name
@@ -80,13 +79,10 @@ def pytest_runtest_makereport(item, call):
         try:
             longrepr += "\n\n" + report.longrepr.reprcrash.message
             lineno = report.longrepr.reprcrash.lineno
-
         except AttributeError:
             pass
 
-        print(  # noqa: B314
-            _error_workflow_command(filesystempath, lineno, longrepr), file=sys.stderr
-        )
+        print(_error_workflow_command(filesystempath, lineno, longrepr))  # noqa: B314
 
 
 def _error_workflow_command(filesystempath, lineno, longrepr):

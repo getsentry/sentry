@@ -155,6 +155,10 @@ def configure(ctx, py, yaml, skip_service_validation=False):
         skip_service_validation=skip_service_validation,
     )
 
+    if os.environ.get("OPENAPIGENERATE", False):
+        # see https://drf-spectacular.readthedocs.io/en/latest/customization.html#step-5-extensions
+        from sentry.apidocs import extensions  # NOQA
+
     __installed = True
 
 

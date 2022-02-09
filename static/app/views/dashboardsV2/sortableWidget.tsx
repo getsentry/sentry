@@ -13,16 +13,17 @@ import DnDKitWidgetWrapper from './widgetWrapper';
 const TABLE_ITEM_LIMIT = 20;
 
 type Props = {
-  widget: Widget;
   dragId: string;
   isEditing: boolean;
   onDelete: () => void;
-  onEdit: () => void;
   onDuplicate: () => void;
-  widgetLimitReached: boolean;
+  onEdit: () => void;
   organization: Organization;
-  hideDragHandle?: boolean;
+  widget: Widget;
+  widgetLimitReached: boolean;
+  isMobile?: boolean;
   isPreview?: boolean;
+  windowWidth?: number;
 };
 
 function SortableWidget(props: Props) {
@@ -32,11 +33,12 @@ function SortableWidget(props: Props) {
     dragId,
     isEditing,
     widgetLimitReached,
-    hideDragHandle,
     onDelete,
     onEdit,
     onDuplicate,
     isPreview,
+    isMobile,
+    windowWidth,
   } = props;
 
   const {
@@ -80,7 +82,8 @@ function SortableWidget(props: Props) {
   if (organization.features.includes('dashboard-grid-layout')) {
     widgetProps = {
       ...widgetProps,
-      hideDragHandle,
+      isMobile,
+      windowWidth,
       // TODO(nar): These aren't necessary for supporting RGL
       isSorting: false,
       currentWidgetDragging: false,
