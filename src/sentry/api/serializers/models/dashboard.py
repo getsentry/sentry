@@ -9,6 +9,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.utils import json
 
 
 @register(DashboardWidget)
@@ -63,17 +64,30 @@ class DashboardListSerializer(Serializer):
     def get_attrs(self, item_list, user):
         item_dict = {i.id: i for i in item_list}
 
-        widgets = list(
+        widgets = (
             DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys())
             .order_by("order")
-            .values_list("dashboard_id", "order", "display_type")
+            .values("dashboard_id", "order", "display_type", "detail", "id")
         )
 
-        result = defaultdict(lambda: {"widget_display": []})
-        for dashboard_id, _, display_type in widgets:
-            dashboard = item_dict[dashboard_id]
-            display_type = DashboardWidgetDisplayTypes.get_type_name(display_type)
+        result = defaultdict(lambda: {"widget_display": [], "widget_preview": []})
+        for widget in widgets:
+            dashboard = item_dict[widget["dashboard_id"]]
+            display_type = DashboardWidgetDisplayTypes.get_type_name(widget["display_type"])
             result[dashboard]["widget_display"].append(display_type)
+
+        for widget in widgets:
+            dashboard = item_dict[widget["dashboard_id"]]
+            widget_preview = {
+                "displayType": DashboardWidgetDisplayTypes.get_type_name(widget["display_type"]),
+                "layout": None,
+            }
+            if widget.get("detail"):
+                detail = json.loads(widget["detail"])
+                if detail.get("layout"):
+                    widget_preview["layout"] = detail["layout"]
+
+            result[dashboard]["widget_preview"].append(widget_preview)
 
         return result
 
@@ -84,6 +98,7 @@ class DashboardListSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": serialize(obj.created_by, serializer=UserSerializer()),
             "widgetDisplay": attrs.get("widget_display", []),
+            "widgetPreview": attrs.get("widget_preview", []),
         }
         return data
 
