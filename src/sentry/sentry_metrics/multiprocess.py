@@ -523,6 +523,10 @@ class TransformStep(ProcessingStep[MessageBatch]):  # type: ignore
         self.__next_step.join(timeout)
 
 
+class UnflushedMessages(Exception):
+    pass
+
+
 class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     def __init__(
         self,
@@ -544,15 +548,16 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
         pass
 
     def submit(self, outer_message: Message[MessageBatch]) -> None:
+
         for message in outer_message.payload:
             payload = message.payload
-
-            self.__producer.produce(
-                topic=self.__producer_topic,
-                key=None,
-                value=json.dumps(payload.value).encode(),
-                on_delivery=self.callback,
-            )
+            with self.__metrics.timer("simple_produce_step.produce_time_duration"):
+                self.__producer.produce(
+                    topic=self.__producer_topic,
+                    key=None,
+                    value=json.dumps(payload.value).encode(),
+                    on_delivery=self.callback,
+                )
 
     def callback(self, error: Any, message: Any) -> None:
         if error is not None:
@@ -570,7 +575,13 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
         messages_left = self.__producer.flush(timeout)
 
         if messages_left != 0:
-            logger.debug(f"There are {messages_left} messages left in producer queue.")
+            self.__metrics.incr("simple_produce_step.messages_left", amount=messages_left)
+            # lets try one more time to flush any last messages
+            unflushed_messages = self.__producer.flush(timeout)
+            if unflushed_messages != 0:
+                raise UnflushedMessages(
+                    f"There are still {unflushed_messages} unflushed messages left."
+                )
 
 
 def get_streaming_metrics_consumer(
