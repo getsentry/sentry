@@ -1116,6 +1116,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'issues-in-dashboards',
+      ];
       const onAdd = jest.fn(() => {});
       const wrapper = mountModalWithRtl({
         initialData,
@@ -1146,6 +1151,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('does not render the dataset selector', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'issues-in-dashboards',
+      ];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1160,6 +1170,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('renders the dataset selector', function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'issues-in-dashboards',
+      ];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1180,6 +1195,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('disables moving and deleting issue column', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'issues-in-dashboards',
+      ];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1208,12 +1228,12 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
   });
   describe('Metrics Widgets', function () {
-    initialData.organization.features = [
-      'performance-view',
-      'discover-query',
-      'dashboards-metrics',
-    ];
     it('renders the dataset selector', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1221,7 +1241,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await tick();
       expect(screen.getByText('Data Set')).toBeInTheDocument();
       expect(
         screen.getByText('All Events (Errors and Transactions)')
@@ -1234,6 +1253,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('maintains the selected dataset when display type is changed', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1241,7 +1265,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await tick();
       const metricsDataset = screen.getByLabelText('Metrics (Release Health)');
       expect(metricsDataset).not.toBeChecked();
       userEvent.click(metricsDataset);
