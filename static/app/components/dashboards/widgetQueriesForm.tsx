@@ -88,7 +88,7 @@ class WidgetQueriesForm extends React.Component<Props> {
     const {organization, selection, widgetType} = this.props;
 
     return widgetType === WidgetType.METRICS ? (
-      <StyledMeticsSearchBar
+      <StyledMetricsSearchBar
         searchSource="widget_builder"
         orgSlug={organization.slug}
         query={widgetQuery.conditions}
@@ -148,7 +148,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       displayType,
       fieldOptions,
       onChange,
-      widgetType,
+      widgetType = WidgetType.DISCOVER,
     } = this.props;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
@@ -211,7 +211,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           </Button>
         )}
         <WidgetQueryFields
-          widgetType={widgetType ?? WidgetType.DISCOVER}
+          widgetType={widgetType}
           displayType={displayType}
           fieldOptions={fieldOptions}
           errors={this.getFirstQueryError('fields')}
@@ -287,7 +287,7 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-const StyledMeticsSearchBar = styled(MetricsSearchBar)`
+const StyledMetricsSearchBar = styled(MetricsSearchBar)`
   flex-grow: 1;
 `;
 
