@@ -430,7 +430,6 @@ def _run_sessions_query(query):
     # queried, assuming that those are the most relevant to the user.
     # In a future iteration we might expose an `orderBy` query parameter.
     orderby = [f"-{query.primary_column}"]
-
     max_groups = SNUBA_LIMIT // len(get_timestamps(query))
 
     result_totals = raw_query(
@@ -450,7 +449,7 @@ def _run_sessions_query(query):
 
     # We only get the time series for groups which also have a total:
     totals = result_totals["data"]
-    if query.query_groupby:
+    if totals and query.query_groupby:
         # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
         groups = {tuple(row[column] for column in query.query_groupby) for row in totals}
         extra_conditions = [[["tuple", query.query_groupby], "IN", groups]] + [
