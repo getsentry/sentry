@@ -137,9 +137,6 @@ class AuthIdentityHandler:
         if not user_was_logged_in:
             raise self._NotCompletedSecurityChecks()
 
-        if self.request.session.test_cookie_worked():
-            self.request.session.delete_test_cookie()
-
     @staticmethod
     def _set_linked_flag(member: OrganizationMember) -> None:
         if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
@@ -563,8 +560,11 @@ class AuthIdentityHandler:
                 )
                 return self.user, "auth-confirm-account"
 
-        self.request.session.set_test_cookie()
-        return None if is_new_account else self.user, "auth-confirm-identity"
+        if is_new_account:
+            return None
+        else:
+            self.request.session.set_test_cookie()
+            return self.user, "auth-confirm-identity"
 
     def handle_new_user(self) -> AuthIdentity:
         user = User.objects.create(
