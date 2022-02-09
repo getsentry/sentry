@@ -112,7 +112,7 @@ class TextRenderer {
       // from the total width, so that we can truncate the center of the text accurately.
       const paddedRectangleWidth =
         frameInPhysicalSpace.width -
-        2 * (this.theme.SIZES.BAR_PADDING * window.devicePixelRatio);
+        2 * this.theme.SIZES.BAR_PADDING * window.devicePixelRatio;
 
       // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
       const y =
@@ -133,7 +133,7 @@ class TextRenderer {
             text,
             findRangeBinarySearch(
               {low: 0, high: paddedRectangleWidth},
-              n => this.measureText(this.context, text.substring(0, n + 1)),
+              n => this.measureText(this.context, text.substring(0, n)),
               paddedRectangleWidth
             )[0]
           );
