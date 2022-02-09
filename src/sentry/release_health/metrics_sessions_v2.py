@@ -330,9 +330,12 @@ class _LimitState:
         # Only "totals" queries may set the limiting conditions:
         assert Column(TS_COL_GROUP) not in groupby
 
-        groupby = sorted(groupby, key=lambda x: x.name)
+        def sort_key(col: Column) -> str:
+            return col.name  # type: ignore. But why?
 
-        self._groupby = sorted(groupby, key=lambda x: x.name)
+        groupby = sorted(groupby, key=sort_key)
+
+        self._groupby = sorted(groupby, key=sort_key)
         self._groups = [{column.name: row[column.name] for column in groupby} for row in snuba_rows]
 
         self._initialized = True
