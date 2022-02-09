@@ -185,6 +185,10 @@ export class Rect {
     this.size = vec2.fromValues(width, height);
   }
 
+  isValid(): boolean {
+    return this.toMatrix().every(n => !isNaN(n));
+  }
+
   static Empty(): Rect {
     return new Rect(0, 0, 0, 0);
   }
@@ -425,7 +429,7 @@ export function findRangeBinarySearch(
 ): [number, number] {
   if (target < low || target > high) {
     throw new Error(
-      `Target value needs to be in low-high range, got ${target} for [${low}, ${high}]`
+      `Target has to be in range of low <= target <= high, got ${low} <= ${target} <= ${high}`
     );
   }
   // eslint-disable-next-line
@@ -445,18 +449,16 @@ export function findRangeBinarySearch(
 
 export const ELLIPSIS = '\u2026';
 export function trimTextCenter(text: string, low: number) {
-  if (low > text.length) {
+  if (low >= text.length) {
     return text;
   }
-
   const prefixLength = Math.floor(low / 2);
   // Use 1 character less than the low value to account for ellipsis
   // and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
   return `${text.substring(0, prefixLength)}${ELLIPSIS}${text.substring(
-    text.length - postfixLength,
-    text.length
+    text.length - postfixLength + ELLIPSIS.length
   )}`;
 }
 
@@ -466,6 +468,9 @@ export function computeClampedConfigView(
   height: {max: number; min: number},
   inverted: boolean
 ) {
+  if (!newConfigView.isValid()) {
+    throw new Error(newConfigView.toString());
+  }
   const clampedWidth = clamp(newConfigView.width, width.min, width.max);
   const clampedHeight = clamp(newConfigView.height, height.min, height.max);
 

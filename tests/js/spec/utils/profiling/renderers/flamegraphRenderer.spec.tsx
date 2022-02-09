@@ -6,6 +6,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
+import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 const base: Profiling.EventedProfile = {
@@ -18,14 +19,17 @@ const base: Profiling.EventedProfile = {
     {type: 'O', at: 0, frame: 0},
     {type: 'C', at: 10, frame: 0},
   ],
-  shared: {
-    frames: [{name: 'f0'}],
-  },
 };
 
-const makeFlamegraph = (trace?: Partial<Profiling.EventedProfile>): Flamegraph => {
+const makeFlamegraph = (
+  trace?: Partial<Profiling.EventedProfile>,
+  frames?: Profiling.Schema['shared']['frames']
+): Flamegraph => {
   return new Flamegraph(
-    EventedProfile.FromProfile(trace ? {...base, ...trace} : base),
+    EventedProfile.FromProfile(
+      trace ? {...base, ...trace} : base,
+      createFrameIndex(frames ?? [{name: 'f0'}])
+    ),
     0,
     false,
     false
@@ -123,7 +127,7 @@ describe('flamegraphRenderer', () => {
 
       expect(renderer.colors).toEqual([1, 0, 0, 1]);
     });
-    it('uses the ones set on flamegraph', () => {
+    it('uses the colors set on flamegraph', () => {
       const canvas = makeCanvasMock({
         getContext: jest.fn().mockReturnValue(makeContextMock()),
       });
@@ -140,7 +144,7 @@ describe('flamegraphRenderer', () => {
 
       expect(renderer.colors.slice(0, 4)).toEqual([1, 0, 0, 1]);
     });
-    it('adds the alpha channel if none is set', () => {
+    it('adds the alpha color channel if none is set', () => {
       const canvas = makeCanvasMock({
         getContext: jest.fn().mockReturnValue(makeContextMock()),
       });
@@ -379,32 +383,25 @@ describe('flamegraphRenderer', () => {
   });
 
   it('getHoveredNode', () => {
-    const flamegraph = makeFlamegraph({
-      events: [
-        {type: 'O', at: 0, frame: 0},
-        {type: 'O', at: 1, frame: 1},
-        {type: 'C', at: 2, frame: 1},
-        {type: 'C', at: 3, frame: 0},
-        {type: 'O', at: 4, frame: 2},
-        {type: 'O', at: 5, frame: 3},
-        {type: 'C', at: 7, frame: 3},
-        {type: 'C', at: 8, frame: 2},
-        {type: 'O', at: 9, frame: 4},
-        {type: 'O', at: 10, frame: 5},
-        {type: 'C', at: 11, frame: 5},
-        {type: 'C', at: 12, frame: 4},
-      ],
-      shared: {
-        frames: [
-          {name: 'f0'},
-          {name: 'f1'},
-          {name: 'f2'},
-          {name: 'f3'},
-          {name: 'f4'},
-          {name: 'f5'},
+    const flamegraph = makeFlamegraph(
+      {
+        events: [
+          {type: 'O', at: 0, frame: 0},
+          {type: 'O', at: 1, frame: 1},
+          {type: 'C', at: 2, frame: 1},
+          {type: 'C', at: 3, frame: 0},
+          {type: 'O', at: 4, frame: 2},
+          {type: 'O', at: 5, frame: 3},
+          {type: 'C', at: 7, frame: 3},
+          {type: 'C', at: 8, frame: 2},
+          {type: 'O', at: 9, frame: 4},
+          {type: 'O', at: 10, frame: 5},
+          {type: 'C', at: 11, frame: 5},
+          {type: 'C', at: 12, frame: 4},
         ],
       },
-    });
+      [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}, {name: 'f3'}, {name: 'f4'}, {name: 'f5'}]
+    );
 
     const renderer = new FlamegraphRenderer(
       makeCanvasMock() as HTMLCanvasElement,
@@ -421,17 +418,17 @@ describe('flamegraphRenderer', () => {
 
   describe('setConfigView', () => {
     const makeRenderer = () => {
-      const flamegraph = makeFlamegraph({
-        startValue: 0,
-        endValue: 1000,
-        events: [
-          {type: 'O', frame: 0, at: 0},
-          {type: 'C', frame: 0, at: 500},
-        ],
-        shared: {
-          frames: [{name: 'f0'}],
+      const flamegraph = makeFlamegraph(
+        {
+          startValue: 0,
+          endValue: 1000,
+          events: [
+            {type: 'O', frame: 0, at: 0},
+            {type: 'C', frame: 0, at: 500},
+          ],
         },
-      });
+        [{name: 'f0'}]
+      );
 
       return new FlamegraphRenderer(
         makeCanvasMock() as HTMLCanvasElement,
@@ -528,35 +525,35 @@ describe('flamegraphRenderer', () => {
       // only f0 matched a search result
       const results: Record<string, FlamegraphFrame> = {f00: 1};
 
-      const flamegraph = makeFlamegraph({
-        startValue: 0,
-        endValue: 100,
-        events: [
-          {
-            type: 'O',
-            frame: 0,
-            at: 0,
-          },
-          {
-            type: 'C',
-            frame: 0,
-            at: 1,
-          },
-          {
-            type: 'O',
-            frame: 1,
-            at: 1,
-          },
-          {
-            type: 'C',
-            frame: 1,
-            at: 2,
-          },
-        ],
-        shared: {
-          frames: [{name: 'f0'}, {name: 'f1'}],
+      const flamegraph = makeFlamegraph(
+        {
+          startValue: 0,
+          endValue: 100,
+          events: [
+            {
+              type: 'O',
+              frame: 0,
+              at: 0,
+            },
+            {
+              type: 'C',
+              frame: 0,
+              at: 1,
+            },
+            {
+              type: 'O',
+              frame: 1,
+              at: 1,
+            },
+            {
+              type: 'C',
+              frame: 1,
+              at: 2,
+            },
+          ],
         },
-      });
+        [{name: 'f0'}, {name: 'f1'}]
+      );
 
       const renderer = new FlamegraphRenderer(
         canvas,
@@ -575,35 +572,35 @@ describe('flamegraphRenderer', () => {
         getContext: jest.fn().mockReturnValue(context),
       }) as HTMLCanvasElement;
 
-      const flamegraph = makeFlamegraph({
-        startValue: 0,
-        endValue: 100,
-        events: [
-          {
-            type: 'O',
-            frame: 0,
-            at: 0,
-          },
-          {
-            type: 'C',
-            frame: 0,
-            at: 1,
-          },
-          {
-            type: 'O',
-            frame: 1,
-            at: 1,
-          },
-          {
-            type: 'C',
-            frame: 1,
-            at: 2,
-          },
-        ],
-        shared: {
-          frames: [{name: 'f0'}, {name: 'f1'}],
+      const flamegraph = makeFlamegraph(
+        {
+          startValue: 0,
+          endValue: 100,
+          events: [
+            {
+              type: 'O',
+              frame: 0,
+              at: 0,
+            },
+            {
+              type: 'C',
+              frame: 0,
+              at: 1,
+            },
+            {
+              type: 'O',
+              frame: 1,
+              at: 1,
+            },
+            {
+              type: 'C',
+              frame: 1,
+              at: 2,
+            },
+          ],
         },
-      });
+        [{name: 'f0'}, {name: 'f1'}]
+      );
 
       const renderer = new FlamegraphRenderer(
         canvas,
