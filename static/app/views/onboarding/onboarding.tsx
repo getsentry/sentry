@@ -3,7 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -290,36 +290,42 @@ ProgressStatus.defaultProps = {
   transition: testableTransition(),
 };
 
-type BackProps = Omit<React.ComponentProps<typeof Button>, 'icon' | 'priority'> & {
+interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
   animate: MotionProps['animate'];
   className?: string;
-};
+}
 
-const Back = styled(({className, animate, ...props}: BackProps) => (
-  <motion.div
-    className={className}
-    animate={animate}
-    transition={testableTransition()}
-    variants={{
-      initial: {opacity: 0, visibility: 'hidden'},
-      visible: {
-        opacity: 1,
-        visibility: 'visible',
-        transition: testableTransition({delay: 1}),
-      },
-      hidden: {
-        opacity: 0,
-        transitionEnd: {
-          visibility: 'hidden',
+const Back = styled(
+  ({className, animate, ...props}: BackButtonProps): React.ReactElement => (
+    <motion.div
+      className={className}
+      animate={animate}
+      transition={testableTransition()}
+      variants={{
+        initial: {opacity: 0, visibility: 'hidden'},
+        visible: {
+          opacity: 1,
+          visibility: 'visible',
+          transition: testableTransition({delay: 1}),
         },
-      },
-    }}
-  >
-    <Button {...props} icon={<IconChevron direction="left" size="sm" />} priority="link">
-      {t('Go back')}
-    </Button>
-  </motion.div>
-))`
+        hidden: {
+          opacity: 0,
+          transitionEnd: {
+            visibility: 'hidden',
+          },
+        },
+      }}
+    >
+      <Button
+        {...props}
+        icon={<IconChevron direction="left" size="sm" />}
+        priority="link"
+      >
+        {t('Go back')}
+      </Button>
+    </motion.div>
+  )
+)`
   position: absolute;
   top: 40px;
   left: 20px;

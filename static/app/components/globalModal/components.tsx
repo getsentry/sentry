@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -25,16 +25,14 @@ const ModalHeader = styled('header')`
   }
 `;
 
-const CloseButton = styled(
-  (p: Omit<React.ComponentProps<typeof Button>, 'aria-label'>) => (
-    <Button
-      size="zero"
-      icon={<IconClose size="10px" />}
-      aria-label={t('Close Modal')}
-      {...p}
-    />
-  )
-)`
+const CloseButton = styled((p: Omit<ButtonProps, 'aria-label'>) => (
+  <Button
+    size="zero"
+    icon={<IconClose size="10px" />}
+    aria-label={t('Close Modal')}
+    {...p}
+  />
+))`
   position: absolute;
   top: 0;
   right: 0;

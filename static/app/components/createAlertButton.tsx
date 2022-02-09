@@ -11,9 +11,10 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconClose, IconInfo, IconSiren} from 'sentry/icons';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -35,6 +36,10 @@ import {getQueryDatasource} from 'sentry/views/alerts/utils';
  */
 type IncompatibleQueryProperties = {
   /**
+   * Must have exactly one project selected and not -1 (all projects)
+   */
+  hasProjectError: boolean;
+  /**
    * Must have zero or one environments
    */
   hasEnvironmentError: boolean;
@@ -42,21 +47,17 @@ type IncompatibleQueryProperties = {
    * event.type must be error or transaction
    */
   hasEventTypeError: boolean;
-  /**
-   * Must have exactly one project selected and not -1 (all projects)
-   */
-  hasProjectError: boolean;
   hasYAxisError: boolean;
 };
 
 type AlertProps = {
-  eventView: EventView;
   incompatibleQuery: IncompatibleQueryProperties;
+  eventView: EventView;
+  orgId: string;
   /**
    * Dismiss alert
    */
   onClose: () => void;
-  orgId: string;
 };
 
 /**
@@ -172,7 +173,7 @@ function IncompatibleQueryAlert({
         </React.Fragment>
       )}
       <StyledCloseButton
-        icon={<IconClose size="sm" />}
+        icon={<IconClose color="yellow300" size="sm" isCircled />}
         aria-label={t('Close')}
         size="zero"
         onClick={onClose}
@@ -182,14 +183,15 @@ function IncompatibleQueryAlert({
   );
 }
 
-type CreateAlertFromViewButtonProps = Omit<
-  React.ComponentProps<typeof Button>,
-  'aria-label'
-> & {
+type CreateAlertFromViewButtonProps = ButtonProps & {
+  className?: string;
+  projects: Project[];
   /**
    * Discover query used to create the alert
    */
   eventView: EventView;
+  organization: Organization;
+  referrer?: string;
   /**
    * Called when the current eventView does not meet the requirements of alert rules
    * @returns a function that takes an alert close function argument
@@ -202,10 +204,6 @@ type CreateAlertFromViewButtonProps = Omit<
    * Called when the user is redirected to the alert builder
    */
   onSuccess: () => void;
-  organization: Organization;
-  projects: Project[];
-  className?: string;
-  referrer?: string;
 };
 
 function incompatibleYAxis(eventView: EventView): boolean {
@@ -273,21 +271,13 @@ function CreateAlertFromViewButton({
     hasYAxisError,
   };
   const project = projects.find(p => p.id === `${eventView.project[0]}`);
-  const queryParams = eventView.generateQueryStringObject();
-  if (queryParams.query?.includes(`project:${project?.slug}`)) {
-    queryParams.query = (queryParams.query as string).replace(
-      `project:${project?.slug}`,
-      ''
-    );
-  }
-
   const hasErrors = Object.values(errors).some(x => x);
   const to = hasErrors
     ? undefined
     : {
         pathname: `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
         query: {
-          ...queryParams,
+          ...eventView.generateQueryStringObject(),
           createFromDiscover: true,
           referrer,
         },
@@ -318,7 +308,6 @@ function CreateAlertFromViewButton({
       organization={organization}
       onClick={handleClick}
       to={to}
-      aria-label={t('Create Alert')}
       {...buttonProps}
     />
   );
@@ -326,13 +315,13 @@ function CreateAlertFromViewButton({
 
 type Props = {
   organization: Organization;
-  hideIcon?: boolean;
-  iconProps?: React.ComponentProps<typeof IconSiren>;
   projectSlug?: string;
+  iconProps?: SVGIconProps;
   referrer?: string;
+  hideIcon?: boolean;
   showPermissionGuide?: boolean;
 } & WithRouterProps &
-  React.ComponentProps<typeof Button>;
+  ButtonProps;
 
 const CreateAlertButton = withRouter(
   ({
@@ -450,5 +439,6 @@ const StyledCloseButton = styled(Button)`
   &:hover,
   &:focus {
     background-color: transparent;
+    opacity: 1;
   }
 `;
