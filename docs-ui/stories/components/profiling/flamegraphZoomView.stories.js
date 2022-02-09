@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import {FlamegraphZoomView} from 'sentry/components/profiling/FlamegraphZoomView';
-import {FlamegraphZoomViewMinmap} from 'sentry/components/profiling/FlamegraphZoomViewMinimap';
+import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/FlamegraphZoomViewMinimap';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
@@ -30,7 +30,7 @@ export const EventedTrace = () => {
       }}
     >
       <div style={{height: 100, position: 'relative'}}>
-        <FlamegraphZoomViewMinmap
+        <FlamegraphZoomViewMinimap
           flamegraph={flamegraph}
           highlightRecursion={false}
           colorCoding="by symbol name"

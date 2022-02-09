@@ -1,4 +1,5 @@
 import * as React from 'react';
+import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -20,7 +21,7 @@ interface FlamegraphZoomViewMinimapProps {
   height?: number;
 }
 
-function FlamegraphZoomViewMinmap({
+function FlamegraphZoomViewMinimap({
   canvasPoolManager,
   flamegraph,
   flamegraphTheme,
@@ -29,8 +30,6 @@ function FlamegraphZoomViewMinmap({
   highlightRecursion,
   height = 100,
 }: FlamegraphZoomViewMinimapProps): React.ReactElement {
-  const flamegraphConfigViewRef = React.useRef<Rect>(Rect.Empty());
-
   const [flamegraphMiniMapCanvasRef, setFlamegraphMiniMapRef] =
     React.useState<HTMLCanvasElement | null>(null);
   const [flamegraphMiniMapOverlayCanvasRef, setFlamegraphMiniMapOverlayCanvasRef] =
@@ -123,14 +122,12 @@ function FlamegraphZoomViewMinmap({
     };
 
     const onConfigViewChange = (rect: Rect) => {
-      flamegraphConfigViewRef.current = rect;
       flamegraphMiniMapRenderer.setConfigView(rect);
       scheduler.draw();
     };
 
     const onTransformConfigView = (mat: mat3) => {
       flamegraphMiniMapRenderer.transformConfigView(mat);
-      flamegraphConfigViewRef.current = flamegraphMiniMapRenderer.configView;
       scheduler.draw();
     };
 
@@ -151,7 +148,6 @@ function FlamegraphZoomViewMinmap({
         )
       );
 
-      flamegraphConfigViewRef.current = flamegraphMiniMapRenderer.configView;
       setConfigSpaceCursor(null);
       scheduler.draw();
     });
@@ -170,7 +166,6 @@ function FlamegraphZoomViewMinmap({
               .translate(0, 0)
               .withWidth(flamegraph.configSpace.width)
       );
-      flamegraphConfigViewRef.current = flamegraphMiniMapRenderer.configView;
       setConfigSpaceCursor(null);
       scheduler.draw();
     });
@@ -183,7 +178,6 @@ function FlamegraphZoomViewMinmap({
       [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef],
       () => {
         flamegraphMiniMapRenderer.onResizeUpdateSpace();
-        flamegraphConfigViewRef.current = flamegraphMiniMapRenderer.configView;
         scheduler.drawSync();
       }
     );
@@ -280,9 +274,9 @@ function FlamegraphZoomViewMinmap({
 
         const rect = new Rect(
           start[0],
-          configSpaceMouse[1] - flamegraphConfigViewRef.current.height / 2,
+          configSpaceMouse[1] - flamegraphMiniMapRenderer.configView.height / 2,
           end[0] - start[0],
-          flamegraphConfigViewRef.current.height
+          flamegraphMiniMapRenderer.configView.height
         );
         canvasPoolManager.dispatch('setConfigView', [rect]);
       }
@@ -380,7 +374,9 @@ function FlamegraphZoomViewMinmap({
       );
 
       if (
-        flamegraphConfigViewRef.current.contains(vec2.fromValues(...configSpaceCursor))
+        flamegraphMiniMapRenderer.configView.contains(
+          vec2.fromValues(...configSpaceCursor)
+        )
       ) {
         setLastDragVector(physicalMousePos);
       } else {
@@ -423,40 +419,39 @@ function FlamegraphZoomViewMinmap({
 
   return (
     <React.Fragment>
-      <canvas
+      <Canvas
         ref={canvas => setFlamegraphMiniMapRef(canvas)}
         onMouseDown={onMinimapCanvasMouseDown}
         onMouseMove={onMinimapCanvasMouseMove}
         onMouseLeave={onMinimapCanvasMouseUp}
+        cursor={
+          configSpaceCursor &&
+          flamegraphMiniMapRenderer.configView.contains(
+            vec2.fromValues(...configSpaceCursor)
+          )
+            ? 'grab'
+            : 'col-resize'
+        }
         style={{
-          width: '100%',
-          height: '100%',
-          position: 'absolute',
-          left: 0,
-          top: 0,
           userSelect: 'none',
-          cursor:
-            configSpaceCursor &&
-            flamegraphConfigViewRef.current.contains(
-              vec2.fromValues(...configSpaceCursor)
-            )
-              ? 'grab'
-              : 'col-resize',
         }}
       />
-      <canvas
-        ref={canvas => setFlamegraphMiniMapOverlayCanvasRef(canvas)}
-        style={{
-          width: '100%',
-          height: '100%',
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          pointerEvents: 'none',
-        }}
-      />
+      <OverlayCanvas ref={canvas => setFlamegraphMiniMapOverlayCanvasRef(canvas)} />
     </React.Fragment>
   );
 }
 
-export {FlamegraphZoomViewMinmap};
+const Canvas = styled('canvas')<{cursor?: React.CSSProperties['cursor']}>`
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  cursor: ${props => props.cursor ?? 'default'};
+`;
+
+const OverlayCanvas = styled(Canvas)`
+  pointer-events: none;
+`;
+
+export {FlamegraphZoomViewMinimap};
