@@ -51,9 +51,9 @@ class FlamegraphRenderer {
   lastDragPosition: vec2 | null = null;
 
   attributes: {
-    a_position: number | null;
-    a_color: number | null;
     a_bounds: number | null;
+    a_color: number | null;
+    a_position: number | null;
   } = {
     a_position: null,
     a_color: null,
@@ -61,11 +61,11 @@ class FlamegraphRenderer {
   };
 
   uniforms: {
-    u_projection: WebGLUniformLocation | null;
-    u_model: WebGLUniformLocation | null;
-    u_is_search_result: WebGLUniformLocation | null;
     u_border_width: WebGLUniformLocation | null;
     u_draw_border: WebGLUniformLocation | null;
+    u_is_search_result: WebGLUniformLocation | null;
+    u_model: WebGLUniformLocation | null;
+    u_projection: WebGLUniformLocation | null;
   } = {
     u_border_width: null,
     u_draw_border: null,
@@ -563,7 +563,6 @@ class FlamegraphRenderer {
     );
 
     const physicalToConfig = mat3.invert(mat3.create(), configToPhysicalSpace);
-
     return vec2.transformMat3(vec2.create(), physicalSpaceCursor, physicalToConfig);
   }
 
