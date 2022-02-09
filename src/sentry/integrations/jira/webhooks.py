@@ -9,11 +9,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.integrations.atlassian_connect import (
+from sentry.integrations.utils import (
     AtlassianConnectValidationError,
     get_integration_from_jwt,
+    sync_group_assignee_inbound,
 )
-from sentry.integrations.utils import sync_group_assignee_inbound
 
 from .client import JiraApiClient, JiraCloud
 

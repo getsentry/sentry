@@ -4,12 +4,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.integrations.atlassian_connect import (
+from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.utils import (
     AtlassianConnectValidationError,
     authenticate_asymmetric_jwt,
     verify_claims,
 )
-from sentry.integrations.pipeline import ensure_integration
 from sentry.tasks.integrations import sync_metadata
 from sentry.utils import jwt
 

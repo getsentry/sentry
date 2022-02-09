@@ -8,7 +8,7 @@ from typing import Any, Iterable, List, Mapping, MutableMapping
 import sentry_sdk
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.notifications import NotifyBasicMixin
+from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackAttachment
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
