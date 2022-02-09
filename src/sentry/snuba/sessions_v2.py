@@ -449,11 +449,16 @@ def _run_sessions_query(query):
     )
 
     # We only get the time series for groups which also have a total:
+    totals = result_totals["data"]
     if query.query_groupby:
-        groups = {
-            tuple(row[column] for column in query.query_groupby) for row in result_totals["data"]
-        }
-        extra_conditions = [[["tuple", query.query_groupby], "IN", groups]]
+        # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
+        groups = {tuple(row[column] for column in query.query_groupby) for row in totals}
+        extra_conditions = [[["tuple", query.query_groupby], "IN", groups]] + [
+            # This condition is redundant but might lead to better query performance
+            # Eg. [release IN [1, 3]], [environment IN [2, 4]]
+            [column, "IN", {row[column] for row in totals}]
+            for column in query.query_groupby
+        ]
     else:
         extra_conditions = []
 
@@ -470,7 +475,7 @@ def _run_sessions_query(query):
         referrer="sessions.timeseries",
     )
 
-    return result_totals["data"], result_timeseries["data"]
+    return totals, result_timeseries["data"]
 
 
 def massage_sessions_result(
