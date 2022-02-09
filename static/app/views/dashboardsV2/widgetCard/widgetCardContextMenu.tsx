@@ -243,5 +243,8 @@ function WidgetCardContextMenu({
 export default WidgetCardContextMenu;
 
 const ContextWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  height: ${space(3)};
   margin-left: ${space(1)};
 `;
