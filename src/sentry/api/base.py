@@ -171,47 +171,6 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
-    def _create_api_access_log(self, request_start_time: float):
-        """
-        Create a log entry to be used for api metrics gathering
-        """
-        try:
-
-            token_class = getattr(self.request.auth, "__class__", None)
-            token_name = token_class.__name__ if token_class else None
-
-            view_obj = self.request.parser_context["view"]
-
-            request_user = getattr(self.request, "user", None)
-            user_id = getattr(request_user, "id", None)
-            is_app = getattr(request_user, "is_sentry_app", None)
-
-            request_access = getattr(self.request, "access", None)
-            org_id = getattr(request_access, "organization_id", None)
-
-            request_auth = getattr(self.request, "auth", None)
-            auth_id = getattr(request_auth, "id", None)
-
-            log_metrics = dict(
-                method=str(self.request.method),
-                view=f"{view_obj.__module__}.{view_obj.__class__.__name__}",
-                response=self.response.status_code,
-                user_id=str(user_id),
-                is_app=str(is_app),
-                token_type=str(token_name),
-                organization_id=str(org_id),
-                auth_id=str(auth_id),
-                path=str(self.request.path),
-                caller_ip=str(self.request.META.get("REMOTE_ADDR")),
-                user_agent=str(self.request.META.get("HTTP_USER_AGENT")),
-                rate_limited=str(getattr(self.request, "will_be_rate_limited", False)),
-                rate_limit_category=str(getattr(self.request, "rate_limit_category", None)),
-                request_duration_seconds=time.time() - request_start_time,
-            )
-            api_access_logger.info("api.access", extra=log_metrics)
-        except Exception:
-            api_access_logger.exception("api.access")
-
     def initialize_request(self, request: Request, *args, **kwargs):
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
@@ -309,8 +268,6 @@ class Endpoint(APIView):
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
-
-        self._create_api_access_log(start_time)
 
         return self.response
 
