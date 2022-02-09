@@ -90,6 +90,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
             referrer="transaction-anomaly-detection",
             zerofill_results=False,
         )
+        datetime_format = "%Y-%m-%d %H:%M:%S"
 
         return get_anomalies(
             {
@@ -97,5 +98,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
                 "query": query,
                 "params": params,
                 "granularity": granularity,
+                "start": start.strftime(datetime_format),
+                "end": end.strftime(datetime_format),
             }
         )

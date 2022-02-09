@@ -4,6 +4,7 @@ from unittest import mock
 
 from django.http import HttpResponse
 from django.urls import reverse
+from freezegun import freeze_time
 
 from sentry.api.endpoints.organization_transaction_anomaly_detection import map_snuba_queries
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -21,7 +22,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
 
     @mock.patch("sentry.api.endpoints.organization_transaction_anomaly_detection.timeseries_query")
     @mock.patch("sentry.api.endpoints.organization_transaction_anomaly_detection.get_anomalies")
-    def test_get_1(self, mock_get_anomalies, mock_timeseries_query):
+    def test_get_start_end(self, mock_get_anomalies, mock_timeseries_query):
         SnubaTSResult = namedtuple("SnubaTSResult", "data")
         mock_timeseries_query.return_value = SnubaTSResult(
             data={"data": self.snuba_raw_data},
@@ -48,6 +49,44 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
                 "statsPeriodStart": datetime(2022, 1, 26, 0, 0),
                 "statsPeriodEnd": datetime(2022, 2, 2, 0, 0),
             },
+            "start": "2022-02-01 00:00:00",
+            "end": "2022-02-02 00:00:00",
+        }
+        self.do_request(data=request)
+
+        mock_get_anomalies.assert_called_once_with(expected_snuba_io)
+
+    @freeze_time("2022-02-11 03:21:34")
+    @mock.patch("sentry.api.endpoints.organization_transaction_anomaly_detection.timeseries_query")
+    @mock.patch("sentry.api.endpoints.organization_transaction_anomaly_detection.get_anomalies")
+    def test_get_stats_period(self, mock_get_anomalies, mock_timeseries_query):
+        SnubaTSResult = namedtuple("SnubaTSResult", "data")
+        mock_timeseries_query.return_value = SnubaTSResult(
+            data={"data": self.snuba_raw_data},
+        )
+        mock_get_anomalies.return_value = HttpResponse({"key": "value"})
+        request = {
+            "project": self.project.id,
+            "query": "transaction.duration",
+            "statsPeriod": "13h",
+        }
+
+        expected_snuba_io = {
+            "query": "transaction.duration event.type:transaction",
+            "data": self.snuba_raw_data,
+            "granularity": 300,
+            "params": {
+                "start": datetime(2022, 2, 10, 14, 21, 4, tzinfo=timezone.utc),
+                "end": datetime(2022, 2, 11, 3, 21, 4, tzinfo=timezone.utc),
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+                "team_id": [self.team.id],
+                "statsPeriodStart": datetime(2022, 2, 4, 3, 21, 34),
+                "statsPeriodEnd": datetime(2022, 2, 11, 3, 21, 34),
+            },
+            "start": "2022-02-10 14:21:34",
+            "end": "2022-02-11 03:21:34",
         }
         self.do_request(data=request)
 
@@ -81,6 +120,8 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
                 "statsPeriodStart": datetime(2021, 12, 22, 0, 0),
                 "statsPeriodEnd": datetime(2022, 1, 5, 0, 0),
             },
+            "start": "2022-01-01 00:00:00",
+            "end": "2022-01-05 00:00:00",
         }
         self.do_request(data=request)
 
