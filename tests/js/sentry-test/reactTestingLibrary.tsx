@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useRef} from 'react';
 import {cache} from '@emotion/css';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {
@@ -34,7 +34,7 @@ function createProvider(contextDefs: Record<string, any>) {
 
 function makeAllTheProviders({context, organization}: ProviderOptions) {
   return function ({children}: {children?: React.ReactNode}) {
-    const ContextProvider = context ? createProvider(context) : Fragment;
+    const ContextProvider = useRef(context ? createProvider(context) : Fragment).current;
 
     return (
       <ContextProvider>
