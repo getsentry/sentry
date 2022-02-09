@@ -548,6 +548,7 @@ class Dashboard extends Component<Props, State> {
             <IconResize />
           </ResizeHandle>
         }
+        useCSSTransforms={false}
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
@@ -647,10 +648,6 @@ const GridItem = styled('div')`
 // HACK: to stack chart tooltips above other grid items
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
-
-  .react-grid-item:hover {
-    z-index: 10;
-  }
 
   .react-resizable-handle {
     background-image: none;
