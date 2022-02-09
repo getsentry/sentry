@@ -445,18 +445,22 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         return strategy
 
 
-class TemporaryConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
+class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
     """
-    Temporary Strategy
+    Batching Consumer Strategy
     """
 
     def __init__(
         self,
         max_batch_size: int,
         max_batch_time: float,
+        commit_max_batch_size: int,
+        commit_max_batch_time: float,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
+        self.__commit_max_batch_time = commit_max_batch_time
+        self.__commit_max_batch_size = commit_max_batch_size
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
@@ -464,9 +468,9 @@ class TemporaryConsumerStrategyFactory(ProcessingStrategyFactory):  # type: igno
         last_step = CollectStep(
             step_factory=SimpleProduceStep,
             commit_function=commit,
-            # Need to make this separate cli arg
-            max_batch_size=1000,
-            max_batch_time=self.__max_batch_time,
+            max_batch_size=self.__commit_max_batch_size,
+            # convert to seconds
+            max_batch_time=self.__commit_max_batch_time / 1000,
         )
         transform_step = TransformStep(next_step=last_step)
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
@@ -571,6 +575,8 @@ class SimpleProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
 
 def get_streaming_metrics_consumer(
     topic: str,
+    commit_max_batch_size: int,
+    commit_max_batch_time: int,
     max_batch_size: int,
     max_batch_time: float,
     processes: int,
@@ -592,9 +598,11 @@ def get_streaming_metrics_consumer(
         )
     else:
         assert factory_name == "default"
-        processing_factory = TemporaryConsumerStrategyFactory(
+        processing_factory = BatchConsumerStrategyFactory(
             max_batch_size=max_batch_size,
             max_batch_time=max_batch_time,
+            commit_max_batch_size=commit_max_batch_size,
+            commit_max_batch_time=commit_max_batch_time,
         )
 
     return StreamProcessor(
