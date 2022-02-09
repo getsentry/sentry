@@ -137,7 +137,7 @@ function AsyncComponentSearchInput({
       latestQuery.current = searchQuery;
       debouncedQueryResolver(searchQuery);
       // We need to immediately set state to the new query value because the handler is debounced
-      // and the input value is controlled, meaning that typing wouldnt be reflected in the UI
+      // and the input value is controlled, meaning that typing wouldn't be reflected in the UI
       setState({query: searchQuery, busy: state.busy});
     },
     [debouncedQueryResolver, state.busy]
