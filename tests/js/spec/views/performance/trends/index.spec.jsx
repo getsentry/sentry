@@ -386,7 +386,7 @@ describe('Performance > Trends', function () {
     }
   }, 10000);
 
-  it('sets LCP as a default trend parameter with frontend project if query does not specify trend parameter', async function () {
+  it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async function () {
     const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1]});
     wrapper = mountWithTheme(
