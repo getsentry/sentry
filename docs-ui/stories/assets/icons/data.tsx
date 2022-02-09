@@ -16,12 +16,12 @@ export type IconPropName = 'size' | 'direction' | 'isCircled' | 'isSolid' | 'typ
 type IconProps = {
   [key in IconPropName]: {
     type: 'boolean' | 'select';
+    options?: [string, string][];
     default?: string;
     /**
      * Whether to list all variants of this prop in the icon list
      */
     enumerate?: boolean;
-    options?: [string, string][];
   };
 };
 
@@ -31,16 +31,16 @@ type IconGroup = {
 };
 
 export type IconData = {
-  /**
-   * Groups that the icon belongs to
-   */
-  groups: IconGroupName[];
   id: string;
   /**
    * List of alternative keywords for better icon search, e.g. the
    * icon 'checkmark' could have a ['done', 'success'] keyword list
    */
   keywords: string[];
+  /**
+   * Groups that the icon belongs to
+   */
+  groups: IconGroupName[];
   /**
    * Any additional props besides 'size' and 'color'. This includes
    * props like 'isCircled' and 'direction'.
