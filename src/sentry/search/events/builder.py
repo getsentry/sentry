@@ -1504,11 +1504,11 @@ class MetricsQueryBuilder(QueryBuilder):
         return None
 
     @staticmethod
-    def _resolve_tag_value(value) -> int:
+    def _resolve_tag_value(value: str) -> int:
         result = indexer.resolve(value)
         if result is None:
             raise InvalidSearchQuery("Tag value was not found")
-        return result
+        return cast(int, result)
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         if search_filter.value.is_wildcard():
@@ -1552,6 +1552,6 @@ class MetricsQueryBuilder(QueryBuilder):
         inmplemented see run_query"""
         raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
 
-    def run_query(self) -> None:
+    def run_query(self) -> None:  # type: ignore
         # TODO(wmak): will implement this soon
         pass
