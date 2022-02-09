@@ -8,7 +8,7 @@ import {Client} from 'sentry/api';
 import AreaChart from 'sentry/components/charts/areaChart';
 import BarChart from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
-import {getInterval} from 'sentry/components/charts/utils';
+import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import WorldMapChart from 'sentry/components/charts/worldMapChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel} from 'sentry/components/panels';
@@ -102,7 +102,7 @@ class ResultsChart extends Component<ResultsChartProps> {
     const seriesLabels = yAxisValue.map(stripEquationPrefix);
     const disableableSeries = [
       ...seriesLabels,
-      ...seriesLabels.map(label => `previous ${label}`),
+      ...seriesLabels.map(getPreviousSeriesName),
     ];
     return (
       <Fragment>
