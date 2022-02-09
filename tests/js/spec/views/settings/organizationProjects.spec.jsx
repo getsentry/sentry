@@ -1,6 +1,5 @@
-import {act, waitFor} from 'sentry-test/reactTestingLibrary';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
