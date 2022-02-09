@@ -273,7 +273,7 @@ class QueryList extends React.Component<Props> {
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
-      const menuItems = (canAddToDashboard: boolean) => [
+      const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
         ...(canAddToDashboard
           ? [
               {

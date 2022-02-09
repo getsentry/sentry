@@ -20,6 +20,7 @@ import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
@@ -108,7 +109,7 @@ function DashboardList({
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem) {
-    const menuItems = [
+    const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
         label: t('Duplicate'),
