@@ -67,7 +67,7 @@ def _create_api_access_log(
         )
         api_access_logger.info("api.access", extra=log_metrics)
     except Exception:
-        api_access_logger.exception("api.access")
+        api_access_logger.exception("api.access", "Error capturing API access logs")
 
 
 def access_log_middleware(
