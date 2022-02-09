@@ -37,6 +37,12 @@ def _get_superuser():
     return click.confirm("Should this user be a superuser?", default=False)
 
 
+def _set_user_permissions(user):
+    from sentry.models import UserPermission
+
+    UserPermission.objects.create(user=user, permission="users.admin")
+
+
 @click.command()
 @click.option("--email")
 @click.option("--password")
@@ -114,5 +120,9 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
     if password:
         user.set_password(password)
         user.save()
+
+    # for self hosted to give superusers admin permissions
+    if superuser is True:
+        _set_user_permissions(user)
 
     click.echo(f"User {verb}: {email}")
