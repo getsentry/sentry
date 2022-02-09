@@ -10,7 +10,6 @@ import BarChart, {BarChartSeries} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import DiscoverButton from 'sentry/components/discoverButton';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -174,9 +173,6 @@ class VitalCard extends Component<Props, State> {
       dataFilter,
     } = this.props;
     const {slug, name, description} = vital;
-    const hasPerformanceEventsPage = organization.features.includes(
-      'performance-events-page'
-    );
 
     const column = `measurements.${slug}`;
 
@@ -222,32 +218,22 @@ class VitalCard extends Component<Props, State> {
         </StatNumber>
         <Description>{description}</Description>
         <div>
-          {hasPerformanceEventsPage ? (
-            <Button
-              size="xsmall"
-              to={newEventView
-                .withColumns([{kind: 'field', field: column}])
-                .withSorts([{kind: 'desc', field: column}])
-                .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
-                  showTransactions:
-                    dataFilter === 'all'
-                      ? EventsDisplayFilterName.p100
-                      : EventsDisplayFilterName.p75,
-                  webVital: column as WebVital,
-                })}
-              onClick={this.trackOpenAllEventsClicked}
-            >
-              {t('View All Events')}
-            </Button>
-          ) : (
-            <DiscoverButton
-              size="xsmall"
-              to={newEventView.getResultsViewUrlTarget(organization.slug)}
-              onClick={this.trackOpenInDiscoverClicked}
-            >
-              {t('Open in Discover')}
-            </DiscoverButton>
-          )}
+          <Button
+            size="xsmall"
+            to={newEventView
+              .withColumns([{kind: 'field', field: column}])
+              .withSorts([{kind: 'desc', field: column}])
+              .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+                showTransactions:
+                  dataFilter === 'all'
+                    ? EventsDisplayFilterName.p100
+                    : EventsDisplayFilterName.p75,
+                webVital: column as WebVital,
+              })}
+            onClick={this.trackOpenAllEventsClicked}
+          >
+            {t('View All Events')}
+          </Button>
         </div>
       </CardSummary>
     );

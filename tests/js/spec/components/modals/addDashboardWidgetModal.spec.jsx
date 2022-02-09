@@ -583,6 +583,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['sdk.name', 'count()'],
+          orderby: '',
         },
       ],
     };
