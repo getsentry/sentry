@@ -269,13 +269,15 @@ class Actions extends React.Component<Props, State> {
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
         <Access organization={organization} access={['event:admin']}>
-          <DeleteAction
-            disabled={disabled}
-            organization={organization}
-            project={project}
-            onDelete={this.onDelete}
-            onDiscard={this.onDiscard}
-          />
+          {({hasAccess}) => (
+            <DeleteAction
+              disabled={disabled || !hasAccess}
+              organization={organization}
+              project={project}
+              onDelete={this.onDelete}
+              onDiscard={this.onDiscard}
+            />
+          )}
         </Access>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
