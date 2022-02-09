@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 
 import click
+from arroyo import configure_metrics
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
@@ -553,7 +554,12 @@ def metrics_consumer(**options):
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def metrics_streaming_consumer(**options):
+    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
     from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
+    from sentry.utils.metrics import backend
+
+    metrics = MetricsWrapper(backend, "sentry_metrics.indexer")
+    configure_metrics(metrics)
 
     streamer = get_streaming_metrics_consumer(**options)
     streamer.run()
