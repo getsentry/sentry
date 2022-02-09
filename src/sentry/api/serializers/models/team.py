@@ -273,7 +273,7 @@ class TeamSCIMSerializer(Serializer):  # type: ignore
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> OrganizationTeamSCIMSerializerResponse:
-        result = {
+        result: OrganizationTeamSCIMSerializerResponse = {
             "schemas": [SCIM_SCHEMA_GROUP],
             "id": str(obj.id),
             "displayName": obj.name,
