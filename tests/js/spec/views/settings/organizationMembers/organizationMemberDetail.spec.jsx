@@ -142,7 +142,7 @@ describe('OrganizationMemberDetail', function () {
       wrapper.find('TeamSelect DropdownButton').simulate('click');
 
       // Click the first item
-      wrapper.find('TeamSelect DropdownTeamBadge').first().simulate('click');
+      wrapper.find('TeamSelect [title="new team"]').at(0).simulate('click');
 
       // Save Member
       wrapper.find('Button[priority="primary"]').simulate('click');
