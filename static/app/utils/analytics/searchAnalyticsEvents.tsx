@@ -10,33 +10,33 @@ type QueryEvent = {query: string};
 type ProjectSelectorEvent = {path: string};
 
 export type SearchEventParameters = {
-  'search.searched': SearchEventBase & {search_source?: string};
-  'search.operator_autocompleted': SearchEventBase & {search_operator: string};
-  'organization_saved_search.selected': {
-    search_type: string;
-    id: number;
-  };
-  'settings_search.open': OpenEvent;
   'command_palette.open': OpenEvent;
-  'sidebar_help.open': OpenEvent;
-  'settings_search.select': SelectEvent;
-  'command_palette.select': SelectEvent;
-  'sidebar_help.select': SelectEvent;
-  'settings_search.query': QueryEvent;
   'command_palette.query': QueryEvent;
-  'sidebar_help.query': QueryEvent;
+  'command_palette.select': SelectEvent;
+  'organization_saved_search.selected': {
+    id: number;
+    search_type: string;
+  };
+  'projectselector.clear': ProjectSelectorEvent;
   'projectselector.direct_selection': ProjectSelectorEvent;
+  'projectselector.multi_button_clicked': ProjectSelectorEvent & {
+    button_type: 'all' | 'my';
+  };
+  'projectselector.toggle': ProjectSelectorEvent & {
+    action: 'added' | 'removed';
+  };
   'projectselector.update': ProjectSelectorEvent & {
     count: number;
     multi: boolean;
   };
-  'projectselector.clear': ProjectSelectorEvent;
-  'projectselector.toggle': ProjectSelectorEvent & {
-    action: 'added' | 'removed';
-  };
-  'projectselector.multi_button_clicked': ProjectSelectorEvent & {
-    button_type: 'all' | 'my';
-  };
+  'search.operator_autocompleted': SearchEventBase & {search_operator: string};
+  'search.searched': SearchEventBase & {search_source?: string};
+  'settings_search.open': OpenEvent;
+  'settings_search.query': QueryEvent;
+  'settings_search.select': SelectEvent;
+  'sidebar_help.open': OpenEvent;
+  'sidebar_help.query': QueryEvent;
+  'sidebar_help.select': SelectEvent;
 };
 
 export type SearchEventKey = keyof SearchEventParameters;

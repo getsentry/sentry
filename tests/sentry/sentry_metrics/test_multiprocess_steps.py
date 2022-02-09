@@ -23,12 +23,8 @@ from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.utils import json
 
 
-def test_batch_messages() -> None:
-    next_step = Mock()
-
-    max_batch_time = 100.0  # seconds
-    max_batch_size = 2
-
+def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
+    # batch time is in seconds
     batch_messages_step = BatchMessages(
         next_step=next_step, max_batch_time=max_batch_time, max_batch_size=max_batch_size
     )
@@ -39,6 +35,13 @@ def test_batch_messages() -> None:
     message2 = Message(
         Partition(Topic("topic"), 0), 2, KafkaPayload(None, b"another value", []), datetime.now()
     )
+    return (batch_messages_step, message1, message2)
+
+
+def test_batch_messages() -> None:
+    next_step = Mock()
+
+    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
 
     # submit the first message, batch builder should should be created
     # and the messaged added to the batch
@@ -69,19 +72,8 @@ def test_batch_messages_rejected_message():
     next_step = Mock()
     next_step.submit.side_effect = MessageRejected()
 
-    max_batch_time = 100.0  # seconds
-    max_batch_size = 2
+    batch_messages_step, message1, message2 = _batch_message_set_up(next_step)
 
-    batch_messages_step = BatchMessages(
-        next_step=next_step, max_batch_time=max_batch_time, max_batch_size=max_batch_size
-    )
-
-    message1 = Message(
-        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
-    )
-    message2 = Message(
-        Partition(Topic("topic"), 0), 2, KafkaPayload(None, b"another value", []), datetime.now()
-    )
     batch_messages_step.poll()
     batch_messages_step.submit(message=message1)
 
@@ -96,6 +88,20 @@ def test_batch_messages_rejected_message():
     # caust its full but we handled the MessageRejected error
     batch_messages_step.poll()
     assert next_step.submit.called
+
+
+def test_batch_messages_join():
+    next_step = Mock()
+
+    batch_messages_step, message1, _ = _batch_message_set_up(next_step)
+
+    batch_messages_step.poll()
+    batch_messages_step.submit(message=message1)
+    # A rebalance, restart, scale up or any other event
+    # that causes partitions to be revoked will call join
+    batch_messages_step.join(timeout=3)
+    # we don't flush the batch
+    assert not next_step.submit.called
 
 
 def test_metrics_batch_builder():
@@ -191,19 +197,12 @@ set_payload = {
 
 
 def __translated_payload(
-    payload, slim_version: bool = False
+    payload,
 ) -> Dict[str, Union[str, int, List[int], MutableMapping[int, int]]]:
     """
     Translates strings to ints using the MockIndexer
     in addition to adding the retention_days
 
-    If `slim_version` is True, we just need the tags,
-    name, and org_id. This is what (currently) gets
-    forwarded to the metrics data model.*
-
-    *Nothing is actually forwarded at the moment, the task
-    just emits metrics. This will probably move from
-    celery to kafka later.
     """
     indexer = MockIndexer()
     payload = payload.copy()
@@ -212,14 +211,6 @@ def __translated_payload(
     payload["metric_id"] = indexer.resolve(payload["name"])
     payload["retention_days"] = 90
     payload["tags"] = new_tags
-
-    if slim_version:
-        slim_payload = {
-            "name": payload["name"],
-            "tags": payload["tags"],
-            "org_id": payload["org_id"],
-        }
-        return slim_payload
 
     del payload["name"]
     return payload
@@ -258,13 +249,6 @@ def test_process_messages(mock_indexer, mock_task) -> None:
     ]
 
     assert new_batch == expected_new_batch
-
-    expected_task_args = {
-        "messages": [
-            __translated_payload(payload, slim_version=True) for payload in message_payloads
-        ]
-    }
-    assert mock_task.apply_async.call_args == call(kwargs=expected_task_args)
 
 
 def test_produce_step() -> None:

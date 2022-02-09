@@ -7,7 +7,7 @@ import Confirm from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
-import TeamBadge from 'sentry/components/idBadge/teamBadge';
+import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -20,15 +20,10 @@ import useTeams from 'sentry/utils/useTeams';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
-  organization: Organization;
   /**
    * Should button be disabled
    */
   disabled: boolean;
-  /**
-   * Teams that are already selected.
-   */
-  selectedTeams: Team[];
   /**
    * callback when teams are added
    */
@@ -37,10 +32,11 @@ type Props = {
    * Callback when teams are removed
    */
   onRemoveTeam: (teamSlug: string) => void;
+  organization: Organization;
   /**
-   * Optional menu header.
+   * Teams that are already selected.
    */
-  menuHeader?: React.ReactElement;
+  selectedTeams: Team[];
   /**
    * Message to display when the last team is removed
    * if empty no confirm will be displayed.
@@ -50,6 +46,10 @@ type Props = {
    * Used to determine whether we should show a loading state while waiting for teams
    */
   loadingTeams?: boolean;
+  /**
+   * Optional menu header.
+   */
+  menuHeader?: React.ReactElement;
 };
 
 function TeamSelect({
@@ -138,11 +138,11 @@ function TeamSelect({
 }
 
 type TeamRowProps = {
+  confirmMessage: string | null;
+  disabled: boolean;
+  onRemove: Props['onRemoveTeam'];
   orgId: string;
   team: Team;
-  onRemove: Props['onRemoveTeam'];
-  disabled: boolean;
-  confirmMessage: string | null;
 };
 
 const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps) => (

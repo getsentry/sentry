@@ -64,13 +64,13 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
+  error: boolean;
+  expected: number;
   formData: object;
   loading: boolean;
-  reprocessing: boolean;
-  expected: number;
-  error: boolean;
-  processingIssues: null | ProcessingIssue;
   pageLinks: null | string;
+  processingIssues: null | ProcessingIssue;
+  reprocessing: boolean;
 };
 
 class ProjectProcessingIssues extends React.Component<Props, State> {

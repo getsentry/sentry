@@ -14,10 +14,10 @@ export type TableColumn<K> = GridColumnOrder<K> & {
   // key: K                     From GridColumn
   // name: string               From GridColumnHeader
   column: Readonly<Column>;
-  width?: number;
+  isSortable: boolean;
 
   type: ColumnValueType;
-  isSortable: boolean;
+  width?: number;
   // isPrimary: boolean         From GridColumnHeader
 };
 
@@ -41,8 +41,8 @@ export type FieldValueColumns =
   | {
       kind: FieldValueKind.TAG;
       meta: {
-        name: string;
         dataType: ColumnType;
+        name: string;
         // Set to true for tag values we invent at runtime.
         unknown?: boolean;
       };
@@ -50,22 +50,22 @@ export type FieldValueColumns =
   | {
       kind: FieldValueKind.MEASUREMENT;
       meta: {
-        name: string;
         dataType: ColumnType;
+        name: string;
       };
     }
   | {
       kind: FieldValueKind.BREAKDOWN;
       meta: {
-        name: string;
         dataType: 'duration';
+        name: string;
       };
     }
   | {
       kind: FieldValueKind.FIELD;
       meta: {
-        name: string;
         dataType: ColumnType;
+        name: string;
       };
     };
 

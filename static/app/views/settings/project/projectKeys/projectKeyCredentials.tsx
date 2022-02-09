@@ -22,8 +22,8 @@ const DEFAULT_PROPS = {
 };
 
 type Props = {
-  projectId: string;
   data: ProjectKey;
+  projectId: string;
 } & typeof DEFAULT_PROPS;
 
 type State = {

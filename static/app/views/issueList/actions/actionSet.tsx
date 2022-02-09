@@ -18,17 +18,17 @@ import ReviewAction from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
-  orgSlug: Organization['slug'];
-  queryCount: number;
-  query: string;
   allInQuerySelected: boolean;
   anySelected: boolean;
-  multiSelected: boolean;
   issues: Set<string>;
-  onShouldConfirm: (action: ConfirmAction) => boolean;
+  multiSelected: boolean;
   onDelete: () => void;
   onMerge: () => void;
+  onShouldConfirm: (action: ConfirmAction) => boolean;
   onUpdate: (data?: any) => void;
+  orgSlug: Organization['slug'];
+  query: string;
+  queryCount: number;
   selectedProjectSlug?: string;
 };
 
@@ -130,9 +130,11 @@ function ActionSet({
       </div>
 
       <DropdownLink
+        disabled={!anySelected}
         key="actions"
         customTitle={
           <ActionButton
+            disabled={!anySelected}
             aria-label={t('Open more issue actions')}
             icon={<IconEllipsis size="xs" />}
           />

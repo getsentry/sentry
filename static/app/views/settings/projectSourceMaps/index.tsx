@@ -9,9 +9,9 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  children: React.ReactNode;
   organization: Organization;
   project: Project;
-  children: React.ReactNode;
 };
 
 function ProjectSourceMapsContainer(props: Props) {

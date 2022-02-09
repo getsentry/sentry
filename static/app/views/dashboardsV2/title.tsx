@@ -8,8 +8,8 @@ import {DashboardDetails} from './types';
 type Props = {
   dashboard: DashboardDetails | null;
   isEditing: boolean;
-  organization: Organization;
   onUpdate: (dashboard: DashboardDetails) => void;
+  organization: Organization;
 };
 
 function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
@@ -28,6 +28,7 @@ function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
           }
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
           errorMessage={t('Please set a title for this dashboard')}
+          autoSelect
         />
       )}
     </div>

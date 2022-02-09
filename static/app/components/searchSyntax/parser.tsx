@@ -255,32 +255,32 @@ type InvalidFilter = {
 
 type FilterMap = {
   [F in keyof FilterTypeConfig]: {
-    type: Token.Filter;
     /**
      * The filter type being represented
      */
     filter: F;
     /**
+     * When a filter is marked as 'invalid' a reason is given. If the filter is
+     * not invalid this will always be null
+     */
+    invalid: InvalidFilter | null;
+    /**
      * The key of the filter
      */
     key: KVConverter<FilterTypeConfig[F]['validKeys'][number]>;
-    /**
-     * The value of the filter
-     */
-    value: KVConverter<FilterTypeConfig[F]['validValues'][number]>;
-    /**
-     * The operator applied to the filter
-     */
-    operator: FilterTypeConfig[F]['validOps'][number];
     /**
      * Indicates if the filter has been negated
      */
     negated: FilterTypeConfig[F]['canNegate'] extends true ? boolean : false;
     /**
-     * When a filter is marked as 'invalid' a reason is given. If the filter is
-     * not invalid this will always be null
+     * The operator applied to the filter
      */
-    invalid: InvalidFilter | null;
+    operator: FilterTypeConfig[F]['validOps'][number];
+    type: Token.Filter;
+    /**
+     * The value of the filter
+     */
+    value: KVConverter<FilterTypeConfig[F]['validValues'][number]>;
   };
 };
 
@@ -297,9 +297,9 @@ type InFilter = FilterMap[FilterType.TextIn] | FilterMap[FilterType.NumericIn];
 type FilterResult = FilterMap[FilterType];
 
 type TokenConverterOpts = {
-  text: TextFn;
-  location: LocationFn;
   config: SearchConfig;
+  location: LocationFn;
+  text: TextFn;
 };
 
 /**
@@ -726,34 +726,34 @@ export type ParseResult = Array<
  */
 export type SearchConfig = {
   /**
+   * Enables boolean filtering (AND / OR)
+   */
+  allowBoolean: boolean;
+  /**
+   * Keys considered valid for boolean filter types
+   */
+  booleanKeys: Set<string>;
+  /**
+   * Keys considered valid for date filter types
+   */
+  dateKeys: Set<string>;
+  /**
    * Keys which are considered valid for duration filters
    */
   durationKeys: Set<string>;
   /**
-   * Text filter keys we allow to have operators
+   * Keys considered valid for numeric filter types
    */
-  textOperatorKeys: Set<string>;
+  numericKeys: Set<string>;
   /**
    * Keys considered valid for the percentage aggregate and may have percentage
    * search values
    */
   percentageKeys: Set<string>;
   /**
-   * Keys considered valid for numeric filter types
+   * Text filter keys we allow to have operators
    */
-  numericKeys: Set<string>;
-  /**
-   * Keys considered valid for date filter types
-   */
-  dateKeys: Set<string>;
-  /**
-   * Keys considered valid for boolean filter types
-   */
-  booleanKeys: Set<string>;
-  /**
-   * Enables boolean filtering (AND / OR)
-   */
-  allowBoolean: boolean;
+  textOperatorKeys: Set<string>;
 };
 
 const defaultConfig: SearchConfig = {

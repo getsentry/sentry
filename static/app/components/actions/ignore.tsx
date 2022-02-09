@@ -29,11 +29,11 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
 
 type Props = {
   onUpdate: (params: UpdateResolutionStatus) => void;
-  disabled?: boolean;
-  shouldConfirm?: boolean;
-  confirmMessage?: React.ReactNode;
   confirmLabel?: string;
+  confirmMessage?: React.ReactNode;
+  disabled?: boolean;
   isIgnored?: boolean;
+  shouldConfirm?: boolean;
 };
 
 const IgnoreActions = ({
@@ -157,7 +157,7 @@ const IgnoreActions = ({
           ],
         })),
         {
-          key: 'for-custom',
+          key: 'until-reoccur-custom',
           label: t('Custom'),
           onAction: () => openCustomIgnoreCount(),
         },
@@ -193,7 +193,7 @@ const IgnoreActions = ({
           ],
         })),
         {
-          key: 'for-custom',
+          key: 'until-affect-custom',
           label: t('Custom'),
           onAction: () => openCustomIgnoreUserCount(),
         },

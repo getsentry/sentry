@@ -7,13 +7,15 @@ import {Client} from 'sentry/api';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
 
 jest.mock('sentry/components/charts/simpleTableChart');
+jest.mock('sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
     organization: TestStubs.Organization({
-      features: ['connect-discover-and-dashboards', 'dashboards-edit', 'discover-basic'],
+      features: ['dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
     }),
     router: {orgId: 'orgId'},
@@ -368,7 +370,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Delete Widget'));
     // Confirm Modal
-    mountGlobalModal();
+    await mountGlobalModal();
     await screen.findByRole('dialog');
 
     userEvent.click(screen.getByTestId('confirm-button'));
@@ -483,5 +485,35 @@ describe('Dashboards > WidgetCard', function () {
       expect.objectContaining({stickyHeaders: true}),
       expect.anything()
     );
+  });
+
+  it('calls metrics queries', function () {
+    const widget: Widget = {
+      title: 'Metrics Widget',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.METRICS,
+      queries: [],
+    };
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+
+    expect(MetricsWidgetQueries).toHaveBeenCalledTimes(1);
   });
 });

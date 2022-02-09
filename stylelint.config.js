@@ -1,11 +1,7 @@
 /* eslint-env node */
 module.exports = {
-  processors: ['stylelint-processor-styled-components'],
-  extends: [
-    'stylelint-config-recommended',
-    'stylelint-config-styled-components',
-    'stylelint-config-prettier',
-  ],
+  customSyntax: 'postcss-jsx',
+  extends: ['stylelint-config-recommended', 'stylelint-config-prettier'],
   rules: {
     'declaration-colon-newline-after': null,
 
@@ -15,11 +11,21 @@ module.exports = {
     // Doesn't work when we use values from theme
     'unit-no-unknown': null,
     'font-family-no-missing-generic-family-keyword': null,
+    'media-feature-name-no-unknown': null,
 
     // Does not seem useful
     'no-descending-specificity': null,
 
-    'property-no-unknown': [true, {ignoreProperties: [/\$dummyValue/]}],
+    'property-no-unknown': [
+      true,
+      {
+        // originX, orginY are used with framer motion
+        ignoreProperties: ['origin-x', 'origin-y'],
+      },
+    ],
+
+    // Allow empty template eg - styled(thing)``
+    'no-empty-source': null,
 
     'property-disallowed-list': [
       // Prefer `gap` over `grid-gap`, it does the same thing

@@ -30,24 +30,24 @@ import withOrganizations from 'sentry/utils/withOrganizations';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   api: Client;
-  routes: PlainRoute[];
   includeSidebar: boolean;
-  useLastOrganization: boolean;
-  organizationsLoading: boolean;
   organizations: Organization[];
+  organizationsLoading: boolean;
+  routes: PlainRoute[];
+  useLastOrganization: boolean;
 };
 
 type State = {
-  organization: Organization | null;
   loading: boolean;
+  organization: Organization | null;
   prevProps: {
+    location: RouteComponentProps<{orgId: string}, {}>['location'];
     orgId: string;
     organizationsLoading: boolean;
-    location: RouteComponentProps<{orgId: string}, {}>['location'];
   };
   dirty?: boolean;
-  errorType?: string | null;
   error?: RequestError | null;
+  errorType?: string | null;
   hooks?: React.ReactNode[];
 };
 

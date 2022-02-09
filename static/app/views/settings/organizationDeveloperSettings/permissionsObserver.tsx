@@ -8,18 +8,18 @@ import PermissionSelection from 'sentry/views/settings/organizationDeveloperSett
 import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 type DefaultProps = {
-  webhookDisabled: boolean;
   appPublished: boolean;
+  webhookDisabled: boolean;
 };
 
 type Props = DefaultProps & {
-  scopes: Scope[];
   events: WebhookEvent[];
+  scopes: Scope[];
 };
 
 type State = {
-  permissions: Permissions;
   events: WebhookEvent[];
+  permissions: Permissions;
 };
 
 export default class PermissionsObserver extends Component<Props, State> {

@@ -36,12 +36,12 @@ const INTERVALS: SelectValue<string>[] = [
 ];
 
 type Props = {
-  monitor?: Monitor;
-  projects: Project[];
-  selection: PageFilters;
   apiEndpoint: string;
   apiMethod: Form['props']['apiMethod'];
   onSubmitSuccess: Form['props']['onSubmitSuccess'];
+  projects: Project[];
+  selection: PageFilters;
+  monitor?: Monitor;
 };
 
 class MonitorForm extends Component<Props> {

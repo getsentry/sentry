@@ -24,29 +24,28 @@ type AnomalyConfidence = 'high' | 'low';
 // Should match events stats data in format.
 type AnomalyStatsData = {
   data: EventsStatsData;
-  start?: number;
   end?: number;
+  start?: number;
 };
 
 export type AnomalyInfo = {
   confidence: AnomalyConfidence;
-  start: number;
   end: number;
-  id: string;
   expected: number;
+  id: string;
   received: number;
+  start: number;
 };
 
 export type AnomalyPayload = {
+  anomalies: AnomalyInfo[];
   y: AnomalyStatsData;
-  yhat_upper: AnomalyStatsData;
   yhat_lower: AnomalyStatsData;
-  anomalies: AnomalyInfo[]; // Anomaly info describes what the anomaly service determines is an 'anomaly area'.
+  yhat_upper: AnomalyStatsData; // Anomaly info describes what the anomaly service determines is an 'anomaly area'.
 };
 
 function transformStatsTimes(stats: AnomalyStatsData) {
   stats.data.forEach(d => (d[0] = d[0] * 1000));
-  stats.data = stats.data.slice((stats.data.length * 4) / 6, stats.data.length);
   return stats;
 }
 function transformAnomaliesTimes(anoms: AnomalyInfo[]) {

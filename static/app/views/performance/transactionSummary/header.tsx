@@ -62,18 +62,18 @@ const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
 };
 
 type Props = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  projects: Project[];
-  projectId: string;
-  transactionName: string;
   currentTab: Tab;
-  hasWebVitals: 'maybe' | 'yes' | 'no';
-  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
+  eventView: EventView;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  hasWebVitals: 'maybe' | 'yes' | 'no';
+  location: Location;
+  organization: Organization;
+  projectId: string;
+  projects: Project[];
+  transactionName: string;
+  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
 class TransactionHeader extends React.Component<Props> {
@@ -285,15 +285,13 @@ class TransactionHeader extends React.Component<Props> {
             >
               {t('Tags')}
             </ListLink>
-            <Feature features={['organizations:performance-events-page']}>
-              <ListLink
-                to={eventsTarget}
-                isActive={() => currentTab === Tab.Events}
-                onClick={this.trackTabClick(Tab.Events)}
-              >
-                {t('All Events')}
-              </ListLink>
-            </Feature>
+            <ListLink
+              to={eventsTarget}
+              isActive={() => currentTab === Tab.Events}
+              onClick={this.trackTabClick(Tab.Events)}
+            >
+              {t('All Events')}
+            </ListLink>
             <Feature
               organization={organization}
               features={['organizations:performance-suspect-spans-view']}
