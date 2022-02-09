@@ -23,26 +23,29 @@ defined_tag_set = {t["name"] for t in OPENAPI_TAGS}
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     from sentry.apidocs.registry import EXCLUDED_FROM_PUBLIC_ENDPOINTS, PUBLIC_ENDPOINTS_FROM_JSON
 
+    registered_endpoints = PUBLIC_ENDPOINTS_FROM_JSON | EXCLUDED_FROM_PUBLIC_ENDPOINTS
+
     filtered = []
     for (path, path_regex, method, callback) in endpoints:
         view = f"{callback.__module__}.{callback.__name__}"
 
         if view in PUBLIC_ENDPOINTS:
-            # if the endpoint is registered as public but some methods aren't listed don't error
+            # endpoints that are documented via tooling
             if method in PUBLIC_ENDPOINTS[view]["methods"]:
+                # we want to only add endpoints here that are documented
+                # via our tooling
                 filtered.append((path, path_regex, method, callback))
-        elif view in PUBLIC_ENDPOINTS_FROM_JSON:
-            # if the endpoint was documented via openapi JSON don't error
+
+        elif view in registered_endpoints:
+            # don't error if endpoint is added to registry
             pass
-        elif view in EXCLUDED_FROM_PUBLIC_ENDPOINTS:
-            # if the endpoint was previously not documented, don't error
-            pass
+
         else:
-            # any new endpoint that isn't documented should recieve this error when building api docs
+            # any new endpoint that isn't accounted for should recieve this error when building api docs
             warn(
                 f"{view} {method} is unnacounted for. "
-                "Either document the endpoint or add it to EXCLUDED_FROM_PUBLIC_ENDPOINTS"
-                "in src/sentry/apidocs/preprocessor.py.\n"
+                "Either document the endpoint or add it to __EXCLUDED_FROM_PUBLIC_ENDPOINTS"
+                "in src/sentry/apidocs/registry.py.\n"
                 "See https://develop.sentry.dev/api/public/ for more info on "
                 "making APIs public."
             )
