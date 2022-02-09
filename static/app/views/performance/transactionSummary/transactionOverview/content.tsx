@@ -153,14 +153,6 @@ function SummaryContent({
     });
   }
 
-  function handleDiscoverViewClick() {
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.view_in_discover',
-      eventName: 'Performance Views: View in Discover from Transaction Summary',
-      organization_id: parseInt(organization.id, 10),
-    });
-  }
-
   function generateEventView(
     transactionsListEventView: EventView,
     transactionsListTitles: string[]
@@ -184,10 +176,6 @@ function SummaryContent({
     }
     return sortedEventView;
   }
-
-  const hasPerformanceEventsPage = organization.features.includes(
-    'performance-events-page'
-  );
 
   const hasPerformanceChartInterpolation = organization.features.includes(
     'performance-chart-interpolation'
@@ -280,12 +268,6 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
-  const openInDiscoverProps = {
-    generateDiscoverEventView: () =>
-      generateEventView(transactionsListEventView, transactionsListTitles),
-    handleOpenInDiscoverClick: handleDiscoverViewClick,
-  };
-
   return (
     <React.Fragment>
       <Layout.Main>
@@ -330,7 +312,7 @@ function SummaryContent({
           location={location}
           organization={organization}
           eventView={transactionsListEventView}
-          {...(hasPerformanceEventsPage ? openAllEventsProps : openInDiscoverProps)}
+          {...openAllEventsProps}
           showTransactions={
             decodeScalar(
               location.query.showTransactions,
