@@ -386,6 +386,54 @@ describe('Performance > Trends', function () {
     }
   }, 10000);
 
+  it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async function () {
+    const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
+    const data = initializeTrendsData(projects, {project: [1]});
+    wrapper = mountWithTheme(
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    const menu = wrapper.find('TrendsDropdown DropdownMenu').find('DropdownButton').at(1);
+    const label = menu.find('DropdownButton');
+    expect(label.text()).toContain('LCP');
+  });
+
+  it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
+    const projects = [TestStubs.Project({id: 1, platform: 'python'})];
+    const data = initializeTrendsData(projects, {project: [1]});
+    wrapper = mountWithTheme(
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    const menu = wrapper.find('TrendsDropdown DropdownMenu').find('DropdownButton').at(1);
+    const label = menu.find('DropdownButton');
+    expect(label.text()).toContain('Duration');
+  });
+
+  it('sets trend parameter from query and ignores default trend parameter', async function () {
+    const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
+    const data = initializeTrendsData(projects, {project: [1], trendParameter: 'FCP'});
+    wrapper = mountWithTheme(
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    const menu = wrapper.find('TrendsDropdown DropdownMenu').find('DropdownButton').at(1);
+    const label = menu.find('DropdownButton');
+    expect(label.text()).toContain('FCP');
+  });
+
   it('choosing a parameter changes location', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
