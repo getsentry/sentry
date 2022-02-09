@@ -186,7 +186,6 @@ function FlamegraphZoomView({
               .translate(0, 0)
               .withWidth(flamegraph.configSpace.width)
       );
-
       setConfigSpaceCursor(null);
       newScheduler.draw();
     });
