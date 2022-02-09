@@ -2,14 +2,17 @@ import {browserHistory, InjectedRouter} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
 import VitalDetail from 'sentry/views/performance/vitalDetail';
+import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 const api = new MockApiClient();
 const organization = TestStubs.Organization({
@@ -57,6 +60,21 @@ function TestComponent(
     </OrganizationContext.Provider>
   );
 }
+
+const testSupportedBrowserRendering = (webVital: WebVital) => {
+  Object.values(Browser).forEach(browser => {
+    const browserElement = screen.getByText(browser);
+    expect(browserElement).toBeInTheDocument();
+
+    const isSupported = vitalSupportedBrowsers[webVital]?.includes(browser);
+
+    if (isSupported) {
+      expect(within(browserElement).getByTestId('icon-check-mark')).toBeInTheDocument();
+    } else {
+      expect(within(browserElement).getByTestId('icon-close')).toBeInTheDocument();
+    }
+  });
+};
 
 describe('Performance > VitalDetail', function () {
   enforceActOnUseLegacyStoreHook();
@@ -604,5 +622,67 @@ describe('Performance > VitalDetail', function () {
 
     // The table is still a TODO
     expect(screen.getByText('TODO')).toBeInTheDocument();
+  });
+
+  it('correctly renders which browsers support LCP', async function () {
+    mountWithTheme(<TestComponent />, {
+      context: routerContext,
+    });
+
+    testSupportedBrowserRendering(WebVital.LCP);
+  });
+
+  it('correctly renders which browsers support CLS', async function () {
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          vitalName: 'measurements.cls',
+        },
+      },
+    };
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: routerContext,
+    });
+
+    testSupportedBrowserRendering(WebVital.CLS);
+  });
+
+  it('correctly renders which browsers support FCP', async function () {
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          vitalName: 'measurements.fcp',
+        },
+      },
+    };
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: routerContext,
+    });
+
+    testSupportedBrowserRendering(WebVital.FCP);
+  });
+
+  it('correctly renders which browsers support FID', async function () {
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          vitalName: 'measurements.fid',
+        },
+      },
+    };
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: routerContext,
+    });
+
+    testSupportedBrowserRendering(WebVital.FID);
   });
 });
