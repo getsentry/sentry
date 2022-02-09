@@ -426,7 +426,7 @@ function FlamegraphZoomViewMinimap({
         onMouseLeave={onMinimapCanvasMouseUp}
         cursor={
           configSpaceCursor &&
-          flamegraphMiniMapRenderer.configView.contains(
+          flamegraphMiniMapRenderer?.configView.contains(
             vec2.fromValues(...configSpaceCursor)
           )
             ? 'grab'
