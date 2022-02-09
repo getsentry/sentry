@@ -46,7 +46,7 @@ const TagsPageContent = (props: Props) => {
   );
 
   return (
-    <Layout.Main fullWidth data-test-id="tags-page-content">
+    <Layout.Main fullWidth>
       <SegmentExplorerQuery
         eventView={eventView}
         orgSlug={organization.slug}
