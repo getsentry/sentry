@@ -468,3 +468,63 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy 1"
+
+    def test_widget_preview_field_returns_empty_list_if_no_widgets(self):
+        response = self.do_request("get", self.url, data={"query": "1"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        dashboard_data = response.data[0]
+        assert "widgetPreview" in dashboard_data
+        assert dashboard_data["widgetPreview"] == []
+
+    def test_widget_preview_field_contains_display_type_and_layout(self):
+        expected_layout = {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}
+        DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": expected_layout},
+        )
+        response = self.do_request("get", self.url, data={"query": "1"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        dashboard_data = response.data[0]
+        assert "widgetPreview" in dashboard_data
+        assert len(dashboard_data["widgetPreview"]) == 1
+
+        widget_data = dashboard_data["widgetPreview"][0]
+        assert widget_data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
+            DashboardWidgetDisplayTypes.LINE_CHART
+        )
+        assert widget_data["layout"] == expected_layout
+
+    def test_widget_preview_still_provides_display_type_if_no_layout(self):
+        DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        response = self.do_request("get", self.url, data={"query": "1"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        dashboard_data = response.data[0]
+        assert "widgetPreview" in dashboard_data
+        assert len(dashboard_data["widgetPreview"]) == 1
+
+        widget_data = dashboard_data["widgetPreview"][0]
+        assert widget_data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
+            DashboardWidgetDisplayTypes.LINE_CHART
+        )
+        assert widget_data["layout"] is None
