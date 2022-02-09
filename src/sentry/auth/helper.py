@@ -560,11 +560,8 @@ class AuthIdentityHandler:
                 )
                 return self.user, "auth-confirm-account"
 
-        if is_new_account:
-            return None
-        else:
-            self.request.session.set_test_cookie()
-            return self.user, "auth-confirm-identity"
+        self.request.session.set_test_cookie()
+        return None if is_new_account else self.user, "auth-confirm-identity"
 
     def handle_new_user(self) -> AuthIdentity:
         user = User.objects.create(
