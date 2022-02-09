@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {getInterval} from 'sentry/components/charts/utils';
+import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import withApi from 'sentry/utils/withApi';
@@ -42,7 +42,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               includeTransformedData
               partial
               currentSeriesNames={[field]}
-              previousSeriesNames={[`previous ${field}`]}
+              previousSeriesNames={[getPreviousSeriesName(field)]}
               query={provided.eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {

@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {
   canIncludePreviousPeriod,
+  getPreviousSeriesName,
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
@@ -444,7 +445,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       ? this.transformPreviousPeriodData(
           current,
           previous,
-          (seriesName ? `previous ${seriesName}` : undefined) ??
+          (seriesName ? getPreviousSeriesName(seriesName) : undefined) ??
             previousSeriesNames?.[seriesIndex]
         )
       : null;
