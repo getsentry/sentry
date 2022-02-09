@@ -320,7 +320,7 @@ export function getFunctionHelpText(alertType: AlertType): {
   const timeWindowText = t('over');
   if (alertType === 'apdex') {
     return {
-      labelText: t('Select apdex value and time interval'),
+      labelText: t('Select apdex threshold and time interval'),
       timeWindowText,
     };
   }
