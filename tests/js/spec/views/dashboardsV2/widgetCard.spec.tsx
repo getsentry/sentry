@@ -97,9 +97,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     userEvent.click(screen.getByText('Open in Discover'));
     expect(spy).toHaveBeenCalledWith({
@@ -127,9 +125,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'data-test-href',
@@ -160,9 +156,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'data-test-href',
@@ -199,9 +193,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'data-test-href',
@@ -234,9 +226,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'data-test-href',
@@ -268,9 +258,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -300,9 +288,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
@@ -332,9 +318,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Edit Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Edit Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -364,9 +348,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Delete Widget'));
     // Confirm Modal
