@@ -49,7 +49,6 @@ describe('MetricsRequest', () => {
       expect.anything(),
       expect.objectContaining({
         query: {
-          end: undefined,
           environment: ['prod'],
           field: ['fieldA'],
           groupBy: ['status'],
@@ -58,7 +57,6 @@ describe('MetricsRequest', () => {
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
-          start: undefined,
           statsPeriod: '14d',
         },
       })
@@ -161,7 +159,6 @@ describe('MetricsRequest', () => {
       expect.anything(),
       expect.objectContaining({
         query: {
-          end: undefined,
           environment: ['prod'],
           field: ['fieldA'],
           groupBy: ['status'],
@@ -170,7 +167,6 @@ describe('MetricsRequest', () => {
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
-          start: undefined,
           statsPeriod: '14d',
         },
       })
@@ -251,7 +247,6 @@ describe('MetricsRequest', () => {
           project: ['2'],
           query: 'abc',
           start: '2021-12-01T01:00:00',
-          statsPeriod: undefined,
         },
       })
     );
