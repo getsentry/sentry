@@ -171,7 +171,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
             }
 
             return (
-              <div style={style}>
+              <HovercardContainer style={style}>
                 <SlideInAnimation visible={isVisible} placement={placement}>
                   <StyledHovercard
                     ref={ref}
@@ -195,7 +195,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
                     />
                   </StyledHovercard>
                 </SlideInAnimation>
-              </div>
+              </HovercardContainer>
             );
           }}
         </Popper>,
@@ -269,6 +269,11 @@ function getTipDirection(
   return (prefix || 'top') as 'top' | 'bottom' | 'left' | 'right';
 }
 
+const HovercardContainer = styled('div')`
+  /* Some hovercards overlap the toplevel header and sidebar, and we need to appear on top */
+  z-index: ${p => p.theme.zIndex.hovercard};
+`;
+
 type StyledHovercardProps = {
   placement: PopperProps['placement'];
   offset?: string;
@@ -279,8 +284,6 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
   text-align: left;
   padding: 0;
   line-height: 1;
-  /* Some hovercards overlap the toplevel header and sidebar, and we need to appear on top */
-  z-index: ${p => p.theme.zIndex.hovercard};
   white-space: initial;
   color: ${p => p.theme.textColor};
   border: 1px solid ${p => p.theme.border};
