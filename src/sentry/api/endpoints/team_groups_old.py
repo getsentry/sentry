@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,9 +16,15 @@ class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
         Return the oldest issues owned by a team
         """
         limit = min(100, int(request.GET.get("limit", 10)))
+        environment = self._get_environment_from_request(request, team.organization.id)
+        group_environment_filter = (
+            Q(groupenvironment__environment_id=environment.id) if environment else Q()
+        )
+
         group_list = list(
             Group.objects.filter_to_team(team)
             .filter(
+                group_environment_filter,
                 status=GroupStatus.UNRESOLVED,
                 last_seen__gt=datetime.now() - timedelta(days=90),
             )

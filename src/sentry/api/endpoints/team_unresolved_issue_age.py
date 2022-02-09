@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 
-from django.db.models import Case, Count, TextField, Value, When
+from django.db.models import Case, Count, Q, TextField, Value, When
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.models import Group, GroupStatus, Team
 
@@ -22,7 +23,7 @@ buckets = (
 OLDEST_LABEL = "> 1 year"
 
 
-class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint):  # type: ignore
+class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
     def get(self, request: Request, team: Team) -> Response:
         """
         Return a time bucketed list of how old unresolved issues are.
@@ -30,10 +31,16 @@ class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint):  # type: ignore
         if not features.has("organizations:team-insights", team.organization, actor=request.user):
             return Response({"detail": "You do not have the insights feature enabled"}, status=400)
 
+        environment = self._get_environment_from_request(request, team.organization.id)
+        group_environment_filter = (
+            Q(groupenvironment__environment_id=environment.id) if environment else Q()
+        )
+
         current_time = timezone.now()
         unresolved_ages = list(
             Group.objects.filter_to_team(team)
             .filter(
+                group_environment_filter,
                 status=GroupStatus.UNRESOLVED,
                 last_seen__gt=datetime.now() - timedelta(days=90),
             )
