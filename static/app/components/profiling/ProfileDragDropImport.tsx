@@ -7,8 +7,8 @@ import {
 } from 'sentry/utils/profiling/profile/importProfile';
 
 interface ProfileImportProps {
-  onImport: (profile: ProfileGroup) => void;
   children: React.ReactNode;
+  onImport: (profile: ProfileGroup) => void;
 }
 
 function ProfileDragDropImport({
