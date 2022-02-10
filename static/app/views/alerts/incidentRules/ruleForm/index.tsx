@@ -807,9 +807,8 @@ const AlertListItem = styled(StyledListItem)`
 `;
 
 const ChartHeader = styled('div')`
-  position: relative;
-  bottom: -${space(1.5)};
-  padding: ${space(1.5)} ${space(3)} 0 ${space(3)};
+  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  margin-bottom: -${space(1.5)};
 `;
 
 const AlertName = styled('div')`
