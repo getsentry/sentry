@@ -2089,7 +2089,7 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktraces/(?P<transaction_id>[\w-]+)/$",
                     ProjectStacktraceEndpoint.as_view(),
                     name="sentry-api-0-project-stacktrace",
                 ),

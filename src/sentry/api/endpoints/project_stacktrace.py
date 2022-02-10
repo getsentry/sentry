@@ -12,7 +12,8 @@ class ProjectStacktraceEndpoint(ProjectEndpoint):
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
         return safe_urlopen(
-            settings.SENTRY_PROFILING_SERVICE_URL,
+            "{}/projects/{}/stacktraces/{}".format(
+                settings.SENTRY_PROFILING_SERVICE_URL, project, transaction_id
+            ),
             method="GET",
-            params={"project_id": project, "transaction_id": transaction_id},
         )
