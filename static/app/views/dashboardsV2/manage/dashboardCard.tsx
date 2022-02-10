@@ -115,6 +115,7 @@ const CardBody = styled('div')`
   max-height: 150px;
   min-height: 150px;
   overflow: hidden;
+  border-bottom: 1px solid ${p => p.theme.gray100};
 `;
 
 const CardFooter = styled('div')`
