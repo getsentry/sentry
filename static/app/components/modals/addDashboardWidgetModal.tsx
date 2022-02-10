@@ -48,8 +48,8 @@ import {
 import {
   mapErrors,
   normalizeQueries,
-} from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
-import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
+} from 'sentry/views/dashboardsV2/widgetBuilder/eventWidget/utils';
+import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';

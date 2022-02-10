@@ -16,7 +16,7 @@ import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {Widget} from 'sentry/views/dashboardsV2/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
+import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 export type DashboardWidgetQuerySelectorModalOptions = {

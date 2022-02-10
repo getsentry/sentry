@@ -1,4 +1,4 @@
-import {mapErrors} from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
+import {mapErrors} from 'sentry/views/dashboardsV2/widgetBuilder/eventWidget/utils';
 
 describe('eventWidget utils', function () {
   describe('mapErrors', function () {
