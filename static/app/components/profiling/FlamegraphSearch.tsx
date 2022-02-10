@@ -32,9 +32,9 @@ const numericSort = (
 };
 
 interface FlamegraphSearchProps {
+  canvasPoolManager: CanvasPoolManager;
   flamegraphs: Flamegraph[];
   placement: 'top' | 'bottom';
-  canvasPoolManager: CanvasPoolManager;
 }
 
 function FlamegraphSearch({
