@@ -1537,7 +1537,7 @@ urlpatterns = [
                     name="sentry-api-0-organization-metrics-tag-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/slug-length/$",
+                    r"^(?P<organization_slug>[^\/]+)/slug-length/(v(?P<version>\d+)/)?$",
                     OrganizationSlugLengthEndpoint.as_view(),
                     name="sentry-api-0-organization-slug-length",
                 ),

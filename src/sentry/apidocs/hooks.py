@@ -32,8 +32,7 @@ def _filter_endpoint(path, path_regex, method, callback):
     if declaration["versions"]:
         for mv in declaration["versions"]:
             if mv.http_method == method.lower():
-                # This doesn't actually work but illustrates the idea of what we want
-                hacked_path = f"{path}?version={mv.version}"
+                hacked_path = path.replace("{version}", str(mv.version))
                 yield hacked_path, path_regex, method, callback
     else:
         yield path, path_regex, method, callback

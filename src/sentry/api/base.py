@@ -474,6 +474,7 @@ class VersionedEndpoint(Endpoint):
         if not self._method_version_table.supports_http_method(http_method):
             return self.http_method_not_allowed(request)
 
+        kwargs.pop("version", None)
         try:
             version = int(request.version) if request.version else 1
         except ValueError:
