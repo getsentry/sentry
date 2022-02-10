@@ -992,10 +992,11 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onIssueAction = (itemIds: string[]) => {
+    GroupStore.remove(itemIds);
     this.setState({
-      reviewedIds: itemIds,
       actionTaken: true,
     });
+    this.fetchData(true);
   };
 
   tagValueLoader = (key: string, search: string) => {
