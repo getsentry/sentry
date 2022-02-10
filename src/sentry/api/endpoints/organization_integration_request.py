@@ -72,6 +72,6 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
             provider_slug,
             provider_name,
             message_option,
-        ).send()
+        )
 
         return Response(status=201)

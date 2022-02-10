@@ -82,7 +82,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         member = create_organization_join_request(organization, email, ip_address)
 
         if member:
-            async_send_notification(JoinRequestNotification, member, request.user).send()
+            async_send_notification(JoinRequestNotification, member, request.user)
             # legacy analytics
             join_request_created.send_robust(sender=self, member=member)
 
