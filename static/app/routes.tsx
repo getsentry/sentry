@@ -215,7 +215,7 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          componentPromise={() => import('sentry/views/onboarding/onboarding')}
+          componentPromise={() => import('sentry/views/onboarding/onboardingController')}
           component={SafeLazyLoad}
         />
       </Route>
