@@ -553,6 +553,9 @@ def metrics_consumer(**options):
 )
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--factory-name", default="default")
+@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=7500)
+@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=4000)
 def metrics_streaming_consumer(**options):
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
     from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
