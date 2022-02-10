@@ -209,7 +209,6 @@ const MenuItem = withRouter(
         as={renderAs}
         isDisabled={isDisabled}
         data-test-id={item.key}
-        {...(item.to && {'data-test-href': item.to})}
         {...props}
         {...(isSubmenuTrigger && {role: 'menuitemradio'})}
       >
