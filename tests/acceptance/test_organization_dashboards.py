@@ -858,3 +858,35 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
             self.browser.snapshot("dashboards - manage overview")
+
+    def test_dashboard_manager_with_unset_layouts_and_defined_layouts(self):
+        dashboard_with_layouts = Dashboard.objects.create(
+            title="Dashboard with some defined layouts",
+            created_by=self.user,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard_with_layouts,
+            order=0,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.BAR_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 1, "y": 0, "w": 3, "h": 3, "minH": 2}},
+        )
+
+        # This widget has no layout, but should position itself at
+        # x: 4, y: 0, w: 2, h: 2
+        DashboardWidget.objects.create(
+            dashboard=dashboard_with_layouts,
+            order=1,
+            title="Widget 2",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+            self.browser.get(self.default_path)
+            self.wait_until_loaded()
+            self.browser.snapshot("dashboards - manage overview with grid layout")
