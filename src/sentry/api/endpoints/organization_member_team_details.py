@@ -49,7 +49,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
     def _can_create_team_member(
-        self, request: Request, organization: Organization, team_slug: str
+        self, request: Request, organization: Organization, team: Team
     ) -> bool:
         """
         User can join or add a member to a team:
@@ -61,7 +61,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return (
             is_active_superuser(request)
-            or self._can_admin_team(request, organization, team_slug)
+            or self._can_admin_team(request, organization, team)
             or organization.flags.allow_joinleave
         )
 
@@ -70,7 +70,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         request: Request,
         member: OrganizationMember,
         organization: Organization,
-        team_slug: str,
+        team: Team,
     ) -> bool:
         """
         User can remove a member from a team:
@@ -89,19 +89,18 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         if request.user.id == member.user_id:
             return True
 
-        if self._can_admin_team(request, organization, team_slug):
+        if self._can_admin_team(request, organization, team):
             return True
 
         return False
 
-    def _can_admin_team(self, request: Request, organization: Organization, team_slug: str) -> bool:
+    def _can_admin_team(self, request: Request, organization: Organization, team: Team) -> bool:
         global_roles = [r.id for r in roles.with_scope("org:write") if r.is_global]
         team_roles = [r.id for r in roles.with_scope("team:write")]
 
         # must be a team admin or have global write access
         return OrganizationMember.objects.filter(
-            Q(role__in=global_roles)
-            | Q(organizationmemberteam__team__slug=team_slug, role__in=team_roles),
+            Q(role__in=global_roles) | Q(organizationmemberteam__team=team, role__in=team_roles),
             organization=organization,
             user__id=request.user.id,
             user__is_active=True,
@@ -168,7 +167,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
-            if self._can_create_team_member(request, organization, team_slug):
+            if self._can_create_team_member(request, organization, team):
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
             else:
                 self._create_access_request(request, team, member)
@@ -203,13 +202,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self._can_delete(request, member, organization, team_slug):
-            return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
-
         try:
             team = Team.objects.get(organization=organization, slug=team_slug)
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self._can_delete(request, member, organization, team):
+            return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
