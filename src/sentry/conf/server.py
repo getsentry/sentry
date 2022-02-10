@@ -2530,3 +2530,6 @@ ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
 # Note: The docs have this backwards. We set this to False here so that we always add check
 # constraints instead of setting the column to not null.
 ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
+
+# This is the URL to the profiling service
+SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
