@@ -4,6 +4,10 @@
 # Migrations
 /src/sentry/migrations/  @getsentry/owners-migrations
 
+# API Owners for unowned endpoints
+endpoints/                      @getsentry/owners-api
+
+
 # Snuba
 /src/sentry/eventstream/        @getsentry/owners-snuba
 /src/sentry/utils/snuba.py      @getsentry/owners-snuba @getsentry/visibility
@@ -300,3 +304,13 @@ tests/js/spec/utils/profiling                                   @getsentry/profi
 /src/sentry/reprocessing2.py       @getsentry/owners-ingest @getsentry/owners-native
 
 ## End of Native ##
+
+
+### APIs Group ##
+
+/src/sentry/apidocs/                @getsentry/owners-api
+/src/sentry/api/urls.py             @getsentry/owners-api
+/api-docs/                          @getsentry/owners-api
+/tests/apidocs/                     @getsentry/owners-api
+/.github/workflows/openapi.yml      @getsentry/owners-api
+/.github/workflows/openapi-diff.yml @getsentry/owners-api
