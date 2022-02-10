@@ -2281,6 +2281,45 @@ class SnQLFunction(DiscoverFunction):
         self.validate_result_type(self.default_result_type)
 
 
+class MetricsFunction(SnQLFunction):
+    """Metrics needs to differentiate between aggregate types so we can send queries to the right table"""
+
+    def __init__(self, *args, **kwargs) -> None:
+        self.snql_distribution = kwargs.pop("snql_distribution", None)
+        self.snql_set = kwargs.pop("snql_set", None)
+        self.snql_counter = kwargs.pop("snql_counter", None)
+        super().__init__(*args, **kwargs)
+
+    def validate(self) -> None:
+        # assert that all optional args have defaults available
+        for i, arg in enumerate(self.optional_args):
+            assert (
+                arg.has_default
+            ), f"{self.name}: optional argument at index {i} does not have default"
+
+        assert (
+            sum(
+                [
+                    self.snql_distribution is not None,
+                    self.snql_set is not None,
+                    self.snql_counter is not None,
+                    self.snql_column is not None,
+                ]
+            )
+            == 1
+        )
+
+        # assert that no duplicate argument names are used
+        names = set()
+        for arg in self.args:
+            assert (
+                arg.name not in names
+            ), f"{self.name}: argument {arg.name} specified more than once"
+            names.add(arg.name)
+
+        self.validate_result_type(self.default_result_type)
+
+
 class FunctionDetails(NamedTuple):
     field: str
     instance: SnQLFunction
