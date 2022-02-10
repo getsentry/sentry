@@ -19,6 +19,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {SelectValue} from 'sentry/types';
 import {EChartClickHandler, SeriesDataUnit} from 'sentry/types/echarts';
+import {Trace} from 'sentry/types/profiling';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -26,7 +27,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 
 interface Props extends WithRouterProps {
   location: Location;
-  traces: any[]; // TODO
+  traces: Trace[];
   end?: string;
   start?: string;
   statsPeriod?: string | null;
@@ -77,13 +78,12 @@ function _ProfileScatterChart({
       bottom: '0px',
     },
     tooltip: {
-      // trigger: 'axis' as const,
+      trigger: 'item' as const,
       valueFormatter: (value: number) => tooltipFormatter(value, 'p50()'),
     },
     yAxis: {
       axisLabel: {
         color: theme.chartLabel,
-        // p50() coerces the axis to be time based
         formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
       },
     },

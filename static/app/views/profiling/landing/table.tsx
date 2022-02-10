@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
 import {Location} from 'history';
 
 import DateTime from 'sentry/components/dateTime';
@@ -9,24 +9,23 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {Trace} from 'sentry/types/profiling';
+import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 
 interface Props {
   location: Location;
-  traces: any[]; // TODO
+  traces: Trace[];
 }
 
 function ProfileTable({location, traces}: Props) {
-  const data = traces.map(row => ({
-    flamegraph: row.id,
-    status: !row.failed,
-    version: row.app_version,
-    interaction: row.interaction_name,
-    timestamp: row.start_time_unix,
-    duration: row.trace_duration_ms,
-    deviceModel: row.device_model,
-    deviceClass: row.device_class,
-  }));
+  const data: TableDataRow[] = useMemo(
+    () =>
+      traces.map(trace => ({
+        failed: Boolean(trace.failed), // makes this a required field
+        ...trace,
+      })),
+    [traces]
+  );
 
   return (
     <GridEditable
@@ -41,67 +40,67 @@ function ProfileTable({location, traces}: Props) {
 }
 
 type TableColumnKey =
-  | 'flamegraph'
-  | 'status'
-  | 'version'
-  | 'interaction'
-  | 'timestamp'
-  | 'duration'
-  | 'deviceModel'
-  | 'deviceClass';
+  | 'id'
+  | 'failed'
+  | 'app_version'
+  | 'interaction_name'
+  | 'start_time_unix'
+  | 'trace_duration_ms'
+  | 'device_model'
+  | 'device_class';
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
 type TableDataRow = Record<TableColumnKey, any>;
 
 const COLUMN_ORDER: TableColumnKey[] = [
-  'flamegraph',
-  'status',
-  'version',
-  'interaction',
-  'timestamp',
-  'duration',
-  'deviceModel',
-  'deviceClass',
+  'id',
+  'failed',
+  'app_version',
+  'interaction_name',
+  'start_time_unix',
+  'trace_duration_ms',
+  'device_model',
+  'device_class',
 ];
 
 const COLUMNS: Record<TableColumnKey, TableColumn> = {
-  flamegraph: {
-    key: 'flamegraph',
+  id: {
+    key: 'id',
     name: t('Flamegraph'),
     width: COL_WIDTH_UNDEFINED,
   },
-  status: {
-    key: 'status',
+  failed: {
+    key: 'failed',
     name: t('Status'),
     width: COL_WIDTH_UNDEFINED,
   },
-  version: {
-    key: 'version',
+  app_version: {
+    key: 'app_version',
     name: t('Version'),
     width: COL_WIDTH_UNDEFINED,
   },
-  interaction: {
-    key: 'interaction',
+  interaction_name: {
+    key: 'interaction_name',
     name: t('Interaction Name'),
     width: COL_WIDTH_UNDEFINED,
   },
-  timestamp: {
-    key: 'timestamp',
+  start_time_unix: {
+    key: 'start_time_unix',
     name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
-  duration: {
-    key: 'duration',
+  trace_duration_ms: {
+    key: 'trace_duration_ms',
     name: t('Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
-  deviceModel: {
-    key: 'deviceModel',
+  device_model: {
+    key: 'device_model',
     name: t('Device Model'),
     width: COL_WIDTH_UNDEFINED,
   },
-  deviceClass: {
-    key: 'deviceClass',
+  device_class: {
+    key: 'device_class',
     name: t('Device Class'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -116,26 +115,26 @@ function renderBodyCell(
   const value = dataRow[column.key];
 
   switch (column.key) {
-    case 'flamegraph':
+    case 'id':
       // TODO: this needs to be a link
       return <Container>{t('View Flamegraph')}</Container>;
-    case 'status':
+    case 'failed':
       return (
         <Container>
-          <ProfileStatus status={value} />
+          <ProfileStatus status={!value} />
         </Container>
       );
-    case 'timestamp':
+    case 'start_time_unix':
       return (
         <Container>
           <DateTime date={value} />
         </Container>
       );
-    case 'duration':
+    case 'trace_duration_ms':
       return (
-        <Container>
+        <NumberContainer>
           <Duration seconds={value / 1000} abbreviation />
-        </Container>
+        </NumberContainer>
       );
     default:
       return <Container>{value}</Container>;
@@ -149,9 +148,5 @@ function ProfileStatus({status}: {status: boolean}) {
     <IconClose size="sm" color="red300" isCircled />
   );
 }
-
-export const Container = styled('div')`
-  ${overflowEllipsis};
-`;
 
 export {ProfileTable};
