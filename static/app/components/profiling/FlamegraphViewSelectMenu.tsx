@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
-
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 
 interface FlamegraphViewSelectMenuProps {
   view: 'top down' | 'bottom up';
@@ -16,7 +15,7 @@ function FlamegraphViewSelectMenu({
   onSortingChange,
 }: FlamegraphViewSelectMenuProps): React.ReactElement {
   return (
-    <ViewSelectMenu>
+    <ButtonBar merged>
       <Button
         size="xsmall"
         priority={sorting === 'call order' ? 'primary' : undefined}
@@ -45,14 +44,8 @@ function FlamegraphViewSelectMenu({
       >
         Top Down
       </Button>
-    </ViewSelectMenu>
+    </ButtonBar>
   );
 }
-
-const ViewSelectMenu = styled('div')`
-  padding: 0 0;
-  flex: 1;
-  height: 100%;
-`;
 
 export {FlamegraphViewSelectMenu};
