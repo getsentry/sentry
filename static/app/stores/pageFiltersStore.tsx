@@ -9,19 +9,25 @@ import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 import {CommonStoreInterface} from './types';
 
 type State = {
+  filtersInUrlDifferingFromPinned: Set<PinnedPageFilter>;
   isReady: boolean;
   pinnedFilters: Set<PinnedPageFilter>;
   selection: PageFilters;
 };
 
 type Internals = {
+  filtersInUrlDifferingFromPinned: Set<PinnedPageFilter>;
   hasInitialState: boolean;
   pinnedFilters: Set<PinnedPageFilter>;
   selection: PageFilters;
 };
 
 type PageFiltersStoreInterface = CommonStoreInterface<State> & {
-  onInitializeUrlState(newSelection: PageFilters, pinned: Set<PinnedPageFilter>): void;
+  onInitializeUrlState(
+    newSelection: PageFilters,
+    pinned: Set<PinnedPageFilter>,
+    filtersInUrlDifferingFromPinned: Set<PinnedPageFilter>
+  ): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
   reset(selection?: PageFilters): void;
@@ -34,6 +40,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   selection: getDefaultSelection(),
   pinnedFilters: new Set(),
   hasInitialState: false,
+  filtersInUrlDifferingFromPinned: new Set(),
 
   init() {
     this.reset(this.selection);
@@ -54,19 +61,20 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   /**
    * Initializes the page filters store data
    */
-  onInitializeUrlState(newSelection, pinned) {
+  onInitializeUrlState(newSelection, pinned, filtersInUrlDifferingFromPinned) {
     this._hasInitialState = true;
 
     this.selection = newSelection;
     this.pinnedFilters = pinned;
+    this.filtersInUrlDifferingFromPinned = filtersInUrlDifferingFromPinned;
     this.trigger(this.getState());
   },
 
   getState() {
     const isReady = this._hasInitialState;
-    const {selection, pinnedFilters} = this;
+    const {selection, pinnedFilters, filtersInUrlDifferingFromPinned} = this;
 
-    return {selection, pinnedFilters, isReady};
+    return {selection, pinnedFilters, isReady, filtersInUrlDifferingFromPinned};
   },
 
   onReset() {
@@ -84,6 +92,11 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
       projects,
       environments: environments === null ? this.selection.environments : environments,
     };
+    this.filtersInUrlDifferingFromPinned.delete('projects');
+    if (environments !== null) {
+      this.filtersInUrlDifferingFromPinned.delete('environments');
+    }
+
     this.trigger(this.getState());
   },
 
@@ -96,6 +109,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
       ...this.selection,
       datetime,
     };
+    this.filtersInUrlDifferingFromPinned.delete('datetime');
+
     this.trigger(this.getState());
   },
 
@@ -108,6 +123,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
       ...this.selection,
       environments: environments ?? [],
     };
+    this.filtersInUrlDifferingFromPinned.delete('environments');
+
     this.trigger(this.getState());
   },
 

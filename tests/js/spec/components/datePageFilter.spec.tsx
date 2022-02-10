@@ -28,6 +28,7 @@ describe('DatePageFilter', function () {
         utc: null,
       },
     },
+    new Set(),
     new Set()
   );
 

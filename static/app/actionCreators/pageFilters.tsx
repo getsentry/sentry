@@ -31,7 +31,7 @@ import {
   PinnedPageFilter,
   Project,
 } from 'sentry/types';
-import {defined} from 'sentry/utils';
+import {defined, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 
 /**
@@ -171,8 +171,17 @@ export function initializeUrlState({
   }
 
   const hasDatetimeInUrl = Object.keys(pick(queryParams, DATE_TIME_KEYS)).length > 0;
-  const hasProjectOrEnvironmentInUrl =
-    Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
+
+  const projectFromUrl = queryParams[URL_PARAM.PROJECT];
+  const urlProjectArr =
+    typeof projectFromUrl === 'string'
+      ? [Number(projectFromUrl)]
+      : (projectFromUrl ?? []).map(Number);
+
+  const envFromUrl = queryParams[URL_PARAM.ENVIRONMENT];
+  const urlEnvArr = typeof envFromUrl === 'string' ? [envFromUrl] : envFromUrl ?? [];
+
+  const hasProjectOrEnvironmentInUrl = defined(projectFromUrl) || defined(envFromUrl);
 
   if (hasProjectOrEnvironmentInUrl) {
     pageFilters.projects = parsed.project || [];
@@ -180,6 +189,8 @@ export function initializeUrlState({
   }
 
   const storedPageFilters = skipLoadLastUsed ? null : getPageFilterStorage(orgSlug);
+
+  const filtersInUrlDifferingFromPinned = new Set<PinnedPageFilter>();
 
   // We may want to restore some page filters from local storage. In the new
   // world when they are pinned, and in the old world as long as
@@ -204,6 +215,15 @@ export function initializeUrlState({
     if (!hasDatetimeInUrl && filtersToRestore.has('datetime')) {
       const storedDatetime = getDatetimeFromState(storedState);
       pageFilters.datetime = mergeDatetime(pageFilters.datetime, storedDatetime);
+    }
+
+    // Check if stored and pinned filters differ from url query params
+    if (defined(projectFromUrl) && !valueIsEqual(storedState.project, urlProjectArr)) {
+      filtersInUrlDifferingFromPinned.add('projects');
+    }
+
+    if (defined(envFromUrl) && !valueIsEqual(storedState.environment, urlEnvArr)) {
+      filtersInUrlDifferingFromPinned.add('environments');
     }
   }
 
@@ -247,7 +267,11 @@ export function initializeUrlState({
   }
 
   const pinnedFilters = storedPageFilters?.pinnedFilters ?? new Set();
-  PageFiltersActions.initializeUrlState(pageFilters, pinnedFilters);
+  PageFiltersActions.initializeUrlState(
+    pageFilters,
+    pinnedFilters,
+    filtersInUrlDifferingFromPinned
+  );
 
   const newDatetime = {
     ...datetime,

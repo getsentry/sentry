@@ -34,6 +34,7 @@ describe('ProjectPageFilter', function () {
           environments: [],
           datetime: {start: null, end: null, period: '14d', utc: null},
         },
+        new Set(),
         new Set()
       );
     });

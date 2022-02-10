@@ -18,6 +18,7 @@ describe('PageFiltersStore', function () {
 
   it('getState()', function () {
     expect(PageFiltersStore.getState()).toEqual({
+      filtersInUrlDifferingFromPinned: new Set(),
       isReady: false,
       pinnedFilters: new Set(),
       selection: {
@@ -101,5 +102,35 @@ describe('PageFiltersStore', function () {
     pinFilter('projects', false);
     await tick();
     expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['environments']));
+  });
+
+  it('updates stored values which differ from query params', async function () {
+    expect(PageFiltersStore.getState().filtersInUrlDifferingFromPinned).toEqual(
+      new Set()
+    );
+    PageFiltersStore.onInitializeUrlState(
+      {},
+      new Set(['projects', 'environments', 'datetime']),
+      new Set(['projects', 'environments', 'datetime'])
+    );
+
+    // Updating environment should remove the difference between stored value and query param
+    updateEnvironments(['test']);
+    await tick();
+    expect(PageFiltersStore.getState().filtersInUrlDifferingFromPinned).toEqual(
+      new Set(['projects', 'datetime'])
+    );
+
+    updateProjects([1]);
+    await tick();
+    expect(PageFiltersStore.getState().filtersInUrlDifferingFromPinned).toEqual(
+      new Set(['datetime'])
+    );
+
+    updateDateTime({period: '14d'});
+    await tick();
+    expect(PageFiltersStore.getState().filtersInUrlDifferingFromPinned).toEqual(
+      new Set()
+    );
   });
 });
