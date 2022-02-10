@@ -57,7 +57,7 @@ export const VisuallyCompleteWithData = ({
         });
         isVisuallyCompleteSet.current = true;
       }
-      if (!isDataCompleteSet.current) {
+      if (!isDataCompleteSet.current && hasData) {
         transaction.registerBeforeFinishCallback((t, _) => {
           // Should be called after performance entries finish callback.
           t.setMeasurements({
