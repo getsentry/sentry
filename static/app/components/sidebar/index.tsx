@@ -12,16 +12,17 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {
-  IconActivity,
   IconChevron,
   IconGraph,
   IconIssues,
   IconLab,
   IconLightning,
+  IconList,
   IconProject,
   IconReleases,
   IconSettings,
   IconSiren,
+  IconSpan,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -298,10 +299,31 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const profiling = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:profiling-sidebar-item"
+      features={['profiling']}
+      organization={organization}
+      requireAll={false}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        index
+        onClick={(_id, evt) =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/profiling/`, evt)
+        }
+        icon={<IconSpan size="md" />}
+        label={t('Profiling')}
+        to={`/organizations/${organization.slug}/profiling/`}
+        id="profiling"
+      />
+    </Feature>
+  );
+
   const activity = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconActivity size="md" />}
+      icon={<IconList size="md" />}
       label={t('Activity')}
       to={`/organizations/${organization.slug}/activity/`}
       id="activity"
@@ -353,6 +375,7 @@ function Sidebar({location, organization}: Props) {
                 {alerts}
                 {discover2}
                 {dashboards}
+                {profiling}
               </SidebarSection>
 
               <SidebarSection>{monitors}</SidebarSection>

@@ -36,8 +36,11 @@ type SelectDropdownItemProps = {
 };
 
 /**
- * Select a dropdown menu item. This function works for both top-level and
- * nested items.
+ * @deprecated
+ * (This function is only necessary for enzyme tests, which we are migrating
+ * away from in favor if React Testing Library.)
+ *
+ * Selects a dropdown menu item. Works for both top-level and nested items.
  */
 export async function selectDropdownMenuItem({
   wrapper,

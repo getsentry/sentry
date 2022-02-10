@@ -26,7 +26,8 @@ type Props = {
 
 function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
   const onClick =
-    orgFeatures.includes('metrics') && orgFeatures.includes('metrics-dashboards-ui')
+    orgFeatures.includes('metrics') &&
+    orgFeatures.includes('new-widget-builder-experience')
       ? onOpenWidgetBuilder
       : onAddWidget;
 
@@ -57,9 +58,8 @@ function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
         duration: 0.25,
       }}
     >
-      <InnerWrapper onClick={onClick}>
+      <InnerWrapper onClick={onClick} data-test-id="widget-add">
         <AddButton
-          data-test-id="widget-add"
           icon={<IconAdd size="lg" isCircled color="inactive" />}
           aria-label={t('Add widget')}
         />
