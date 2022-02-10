@@ -12,7 +12,6 @@ import {getPeriod} from 'sentry/utils/getPeriod';
 
 import {TableData} from '../discover/discoverQuery';
 
-import {getMetricsDataSource} from './getMetricsDataSource';
 import {transformMetricsResponseToTable} from './transformMetricsResponseToTable';
 
 const propNamesToIgnore = ['api', 'children'];
@@ -137,7 +136,6 @@ class MetricsRequest extends React.Component<Props, State> {
       per_page: limit,
       cursor,
       interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
-      datasource: getMetricsDataSource(),
     };
 
     if (!previousPeriod) {

@@ -463,7 +463,6 @@ describe('Performance > TransactionSummary', function () {
           orderBy: undefined,
           per_page: undefined,
           interval: '1h',
-          datasource: undefined,
           statsPeriod: '14d',
           start: undefined,
           end: undefined,
@@ -566,7 +565,6 @@ describe('Performance > TransactionSummary', function () {
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
         query: {
-          datasource: undefined,
           end: undefined,
           environment: [],
           field: ['count(sentry.transactions.transaction.duration)'],
@@ -591,7 +589,6 @@ describe('Performance > TransactionSummary', function () {
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
         query: {
-          datasource: undefined,
           end: undefined,
           environment: [],
           field: ['count(sentry.transactions.transaction.duration)'],
