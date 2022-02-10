@@ -25,8 +25,8 @@ const DATASET_CHOICES: [DataSet, string][] = [
 ];
 
 type RouteParams = {
-  dashboardId: string;
   orgId: string;
+  dashboardId?: string;
   widgetId?: number;
 };
 
@@ -50,6 +50,7 @@ function WidgetBuilder({
   organization,
 }: Props) {
   const {widgetId, orgId, dashboardId} = params;
+
   const isEditing = !!widget;
   const dataSet = location.query.dataSet;
   const orgSlug = organization.slug;
@@ -109,7 +110,11 @@ function WidgetBuilder({
         <PageContent>
           <LoadingError message={t('Data set not found.')} />
         </PageContent>
-      ) : isEditing && (!defined(widgetId) || !dashboard.widgets[widgetId]) ? (
+      ) : isEditing &&
+        (!defined(widgetId) ||
+          !dashboard.widgets.find(
+            dashboardWidget => dashboardWidget.id === String(widgetId)
+          )) ? (
         <PageContent>
           <LoadingError message={t('Widget not found.')} />
         </PageContent>

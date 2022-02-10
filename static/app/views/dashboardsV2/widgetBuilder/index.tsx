@@ -8,9 +8,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import WidgetBuilder from './widgetBuilder';
 
-type Props = Omit<React.ComponentProps<typeof WidgetBuilder>, 'organization'>;
+type WidgetBuilderProps = Omit<
+  React.ComponentProps<typeof WidgetBuilder>,
+  'organization'
+>;
 
-function WidgetBuilderContainer(props: Props) {
+function WidgetBuilderContainer(props: WidgetBuilderProps) {
   const organization = useOrganization();
 
   return (
@@ -28,4 +31,5 @@ function WidgetBuilderContainer(props: Props) {
   );
 }
 
+export {WidgetBuilderProps};
 export default WidgetBuilderContainer;
