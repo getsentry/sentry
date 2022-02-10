@@ -300,3 +300,6 @@ tests/js/spec/utils/profiling                                   @getsentry/profi
 /src/sentry/reprocessing2.py       @getsentry/owners-ingest @getsentry/owners-native
 
 ## End of Native ##
+
+# Profiling
+/src/sentry/api/endpoints/project_stacktrace.py @getsentry/profiling
