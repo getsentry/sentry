@@ -56,6 +56,23 @@ function mountModal({
   );
 }
 
+function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, source}) {
+  return reactMountWithTheme(
+    <AddDashboardWidgetModal
+      Header={stubEl}
+      Body={stubEl}
+      Footer={stubEl}
+      CloseButton={stubEl}
+      organization={initialData.organization}
+      onAddWidget={onAddWidget}
+      onUpdateWidget={onUpdateWidget}
+      widget={widget}
+      closeModal={() => void 0}
+      source={source || types.DashboardWidgetSource.DASHBOARDS}
+    />
+  );
+}
+
 async function clickSubmit(wrapper) {
   // Click on submit.
   const button = wrapper.find('Button[data-test-id="add-widget"] button');
@@ -1098,26 +1115,15 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   describe('Issue Widgets', function () {
-    function mountModalWithRtl({onAddWidget, onUpdateWidget, widget, source}) {
-      return reactMountWithTheme(
-        <AddDashboardWidgetModal
-          Header={stubEl}
-          Body={stubEl}
-          Footer={stubEl}
-          CloseButton={stubEl}
-          organization={initialData.organization}
-          onAddWidget={onAddWidget}
-          onUpdateWidget={onUpdateWidget}
-          widget={widget}
-          closeModal={() => void 0}
-          source={source || types.DashboardWidgetSource.DASHBOARDS}
-        />
-      );
-    }
-
     it('sets widgetType to issues', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'issues-in-dashboards',
+      ];
       const onAdd = jest.fn(() => {});
       const wrapper = mountModalWithRtl({
+        initialData,
         onAddWidget: onAdd,
         onUpdateWidget: () => undefined,
       });
@@ -1145,7 +1151,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('does not render the dataset selector', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'issues-in-dashboards',
+      ];
       const wrapper = mountModalWithRtl({
+        initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DISCOVERV2,
@@ -1158,18 +1170,38 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('renders the dataset selector', function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'issues-in-dashboards',
+      ];
       const wrapper = mountModalWithRtl({
+        initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
+      expect(
+        screen.getByText('All Events (Errors and Transactions)')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Issues (States, Assignment, Time, etc.)')
+      ).toBeInTheDocument();
+      // Hide without the dashboard-metrics feature flag
+      expect(screen.queryByText('Metrics (Release Health)')).not.toBeInTheDocument();
       wrapper.unmount();
     });
 
     it('disables moving and deleting issue column', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'issues-in-dashboards',
+      ];
       const wrapper = mountModalWithRtl({
+        initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
@@ -1192,6 +1224,56 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(screen.queryAllByRole('button', {name: 'Drag to reorder'}).length).toEqual(
         0
       );
+      wrapper.unmount();
+    });
+  });
+  describe('Metrics Widgets', function () {
+    it('renders the dataset selector', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+      const wrapper = mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      expect(screen.getByText('Data Set')).toBeInTheDocument();
+      expect(
+        screen.getByText('All Events (Errors and Transactions)')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Issues (States, Assignment, Time, etc.)')
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Metrics (Release Health)')).toBeInTheDocument();
+      wrapper.unmount();
+    });
+
+    it('maintains the selected dataset when display type is changed', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+      const wrapper = mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      const metricsDataset = screen.getByLabelText('Metrics (Release Health)');
+      expect(metricsDataset).not.toBeChecked();
+      userEvent.click(metricsDataset);
+      expect(metricsDataset).toBeChecked();
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+      expect(metricsDataset).toBeChecked();
+
       wrapper.unmount();
     });
   });

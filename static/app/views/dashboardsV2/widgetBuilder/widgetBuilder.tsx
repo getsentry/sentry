@@ -1,28 +1,17 @@
 import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
-import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import Alert from 'sentry/components/alert';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 import {DashboardDetails, Widget} from '../types';
 
-import BuildStep from './buildStep';
-import BuildSteps from './buildSteps';
-import Header from './header';
-import {DataSet, DisplayType, displayTypes} from './utils';
-
-const DATASET_CHOICES: [DataSet, string][] = [
-  [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
-  [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
-  [DataSet.METRICS, t('Metrics (Release Health)')],
-];
+import EventWidget from './eventWidget';
+import MetricWidget from './metricWidget';
+import {DataSet} from './utils';
 
 type RouteParams = {
   dashboardId: string;
@@ -37,22 +26,20 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   widget?: Widget;
 };
 
-type State = {
-  title: string;
-};
-
 function WidgetBuilder({
   dashboard,
+  onSave,
   widget,
   params,
   location,
   router,
   organization,
 }: Props) {
-  const {widgetId, orgId, dashboardId} = params;
+  const [dataSet, setDataSet] = useState<DataSet | undefined>(DataSet.EVENTS);
   const isEditing = !!widget;
-  const dataSet = location.query.dataSet;
-  const orgSlug = organization.slug;
+
+  const {widgetId, orgId, dashboardId} = params;
+
   const goBackLocation = {
     pathname: dashboardId
       ? `/organizations/${orgId}/dashboard/${dashboardId}/`
@@ -60,17 +47,43 @@ function WidgetBuilder({
     query: {...location.query, dataSet: undefined},
   };
 
-  const [state, setState] = useState<State>({
-    title: t('Custom %s Widget', displayTypes[DisplayType.AREA]),
+  useEffect(() => {
+    checkDataSet();
   });
 
-  useEffect(() => {
-    if (!dataSet) {
-      handleDataSetChange(DataSet.EVENTS);
-    }
-  }, [dataSet]);
+  function checkDataSet() {
+    const {query} = location;
+    const queryDataSet = query?.dataSet;
 
-  function handleDataSetChange(newDataSet: string) {
+    if (!queryDataSet) {
+      router.replace({
+        pathname: location.pathname,
+        query: {...location.query, dataSet: DataSet.EVENTS},
+      });
+      return;
+    }
+
+    if (queryDataSet !== DataSet.EVENTS && queryDataSet !== DataSet.METRICS) {
+      setDataSet(undefined);
+      return;
+    }
+
+    if (queryDataSet === DataSet.METRICS) {
+      if (dataSet === DataSet.METRICS) {
+        return;
+      }
+      setDataSet(DataSet.METRICS);
+      return;
+    }
+
+    if (dataSet === DataSet.EVENTS) {
+      return;
+    }
+
+    setDataSet(DataSet.EVENTS);
+  }
+
+  function handleDataSetChange(newDataSet: DataSet) {
     router.replace({
       pathname: location.pathname,
       query: {
@@ -80,105 +93,74 @@ function WidgetBuilder({
     });
   }
 
-  // function handleAddWidget(newWidget: Widget) {
-  //   onSave([...dashboard.widgets, newWidget]);
-  // }
+  if (!dataSet) {
+    return (
+      <Alert type="error" icon={<IconWarning />}>
+        {t('Data set not found.')}
+      </Alert>
+    );
+  }
 
-  // function handleUpdateWidget(nextWidget: Widget) {
-  //   if (!widgetId) {
-  //     return;
-  //   }
+  function handleAddWidget(newWidget: Widget) {
+    onSave([...dashboard.widgets, newWidget]);
+  }
 
-  //   const nextList = [...dashboard.widgets];
-  //   nextList[widgetId] = nextWidget;
-  //   onSave(nextList);
-  // }
+  if (
+    (isEditing && !defined(widgetId)) ||
+    (isEditing && defined(widgetId) && !dashboard.widgets[widgetId])
+  ) {
+    return (
+      <Alert type="error" icon={<IconWarning />}>
+        {t('Widget not found.')}
+      </Alert>
+    );
+  }
 
-  // function handleDeleteWidget() {
-  //   if (!widgetId) {
-  //     return;
-  //   }
-  //   const nextList = [...dashboard.widgets];
-  //   nextList.splice(widgetId, 1);
-  //   onSave(nextList);
-  // }
+  function handleUpdateWidget(nextWidget: Widget) {
+    if (!widgetId) {
+      return;
+    }
+
+    const nextList = [...dashboard.widgets];
+    nextList[widgetId] = nextWidget;
+    onSave(nextList);
+  }
+
+  function handleDeleteWidget() {
+    if (!widgetId) {
+      return;
+    }
+    const nextList = [...dashboard.widgets];
+    nextList.splice(widgetId, 1);
+    onSave(nextList);
+  }
+
+  if (dataSet === DataSet.EVENTS) {
+    return (
+      <EventWidget
+        dashboardTitle={dashboard.title}
+        widget={widget}
+        onAdd={handleAddWidget}
+        onUpdate={handleUpdateWidget}
+        onDelete={handleDeleteWidget}
+        onChangeDataSet={handleDataSetChange}
+        goBackLocation={goBackLocation}
+        isEditing={isEditing}
+      />
+    );
+  }
 
   return (
-    <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-      {!Object.values(DataSet).includes(dataSet) ? (
-        <PageContent>
-          <LoadingError message={t('Data set not found.')} />
-        </PageContent>
-      ) : isEditing && (!defined(widgetId) || !dashboard.widgets[widgetId]) ? (
-        <PageContent>
-          <LoadingError message={t('Widget not found.')} />
-        </PageContent>
-      ) : (
-        <PageContentWithoutPadding>
-          <Header
-            orgSlug={orgSlug}
-            title={state.title}
-            dashboardTitle={dashboard.title}
-            goBackLocation={goBackLocation}
-            onChangeTitle={newTitle => setState({...state, title: newTitle})}
-          />
-          <Layout.Body>
-            <BuildSteps>
-              <BuildStep
-                title={t('Choose your data set')}
-                description={t(
-                  'Monitor specific events such as errors and transactions or metrics based on Release Health.'
-                )}
-              >
-                <DataSetChoices
-                  label="dataSet"
-                  value={dataSet}
-                  choices={DATASET_CHOICES}
-                  onChange={handleDataSetChange}
-                />
-              </BuildStep>
-              <BuildStep
-                title={t('Choose your visualization')}
-                description={t(
-                  'This is a preview of how your widget will appear in the dashboard.'
-                )}
-              >
-                WIP
-              </BuildStep>
-              <BuildStep
-                title={t('Choose your y-axis')}
-                description="Description of what this means"
-              >
-                WIP
-              </BuildStep>
-              <BuildStep
-                title={t('Filter your results')}
-                description="Description of what this means"
-              >
-                WIP
-              </BuildStep>
-              <BuildStep
-                title={t('Group your results')}
-                description="Description of what this means"
-              >
-                WIP
-              </BuildStep>
-            </BuildSteps>
-          </Layout.Body>
-        </PageContentWithoutPadding>
-      )}
-    </SentryDocumentTitle>
+    <MetricWidget
+      organization={organization}
+      router={router}
+      location={location}
+      dashboardTitle={dashboard.title}
+      params={params}
+      goBackLocation={goBackLocation}
+      onChangeDataSet={handleDataSetChange}
+    />
   );
 }
 
 export default WidgetBuilder;
-
-const PageContentWithoutPadding = styled(PageContent)`
-  padding: 0;
-`;
-
-const DataSetChoices = styled(RadioGroup)`
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-auto-flow: column;
-  }
-`;

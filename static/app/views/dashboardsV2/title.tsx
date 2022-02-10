@@ -28,6 +28,7 @@ function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
           }
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
           errorMessage={t('Please set a title for this dashboard')}
+          autoSelect
         />
       )}
     </div>

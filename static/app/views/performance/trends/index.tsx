@@ -66,13 +66,14 @@ class TrendsSummary extends Component<Props, State> {
   };
 
   renderContent() {
-    const {organization, location} = this.props;
+    const {organization, location, projects} = this.props;
     const {eventView} = this.state;
     return (
       <TrendsContent
         organization={organization}
         location={location}
         eventView={eventView}
+        projects={projects}
       />
     );
   }
