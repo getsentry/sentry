@@ -12,6 +12,7 @@ export interface FlamegraphEvents {
   selectedNode: (frame: any | null) => void;
   setConfigView: (configView: Rect) => void;
   transformConfigView: (transform: mat3) => void;
+  searchResults: (results: Record<string, FlamegraphFrame>) => void;
   zoomIntoFrame: (frame: any) => void;
 }
 
