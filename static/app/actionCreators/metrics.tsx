@@ -1,7 +1,8 @@
 import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {defined} from 'sentry/utils';
 
 export type DoMetricsRequestOptions = {
   field: string[];
@@ -18,8 +19,8 @@ export type DoMetricsRequestOptions = {
   query?: string;
   start?: DateString;
   statsPeriod?: string | null;
-  statsPeriodEnd?: string | null;
-  statsPeriodStart?: string | null;
+  statsPeriodEnd?: string;
+  statsPeriodStart?: string;
 };
 
 export const doMetricsRequest = (
@@ -41,14 +42,9 @@ export const doMetricsRequest = (
     ...dateTime
   }: DoMetricsRequestOptions
 ): Promise<MetricsApiResponse> => {
-  const {start, end, statsPeriod} =
-    statsPeriodStart && statsPeriodEnd
-      ? {start: undefined, end: undefined, statsPeriod: undefined}
-      : getPeriod({
-          period: dateTime.statsPeriod,
-          start: dateTime.start,
-          end: dateTime.end,
-        });
+  const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
+    allowEmptyPeriod: true,
+  });
 
   const urlQuery = Object.fromEntries(
     Object.entries({
@@ -57,7 +53,7 @@ export const doMetricsRequest = (
       end,
       environment,
       groupBy,
-      interval: interval || getInterval({start, end, period: dateTime.statsPeriod}),
+      interval: interval || getInterval({start, end, period: statsPeriod}),
       query: query || undefined,
       per_page: limit,
       project,
@@ -66,7 +62,7 @@ export const doMetricsRequest = (
       statsPeriod,
       statsPeriodStart,
       statsPeriodEnd,
-    }).filter(([, value]) => typeof value !== 'undefined')
+    }).filter(([, value]) => defined(value))
   );
 
   const pathname = `/organizations/${orgSlug}/metrics/data/`;
