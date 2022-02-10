@@ -1,16 +1,33 @@
+from typing import Iterable
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import EnvironmentMixin, StatsMixin
+from sentry.api.base import EnvironmentMixin, MethodVersion, StatsMixin, VersionedEndpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs.decorators import public
 from sentry.models import Environment, Project, Team
 from sentry.utils.compat import map
 
 
-class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
-    def get(self, request: Request, organization) -> Response:
+@public(methods={"GET"})
+class OrganizationStatsEndpoint(
+    OrganizationEndpoint, VersionedEndpoint, EnvironmentMixin, StatsMixin
+):
+    _V2_DELEGATE = OrganizationStatsEndpointV2()
+
+    @classmethod
+    def declare_method_versions(cls) -> Iterable[MethodVersion]:
+        yield MethodVersion(cls.get_v1, "get", 1)
+        yield MethodVersion(cls.get_v2, "get", 2)
+
+    def get_v2(self, request: Request, organization) -> Response:
+        return self._V2_DELEGATE.get(request, organization)
+
+    def get_v1(self, request: Request, organization) -> Response:
         """
         Retrieve Event Counts for an Organization
         `````````````````````````````````````````

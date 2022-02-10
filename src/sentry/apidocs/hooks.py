@@ -1,3 +1,4 @@
+import itertools
 from typing import Any, Dict, Literal, Set, TypedDict
 
 from drf_spectacular.plumbing import UnableToProceedError
@@ -20,16 +21,22 @@ defined_tag_set = {t["name"] for t in OPENAPI_TAGS}
 
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
-    filtered = []
-    for (path, path_regex, method, callback) in endpoints:
+    return itertools.chain(*(_filter_endpoint(*endpoint) for endpoint in endpoints))
 
-        if (
-            callback.__name__ in PUBLIC_ENDPOINTS
-            and method in PUBLIC_ENDPOINTS[callback.__name__]["methods"]
-        ):
-            filtered.append((path, path_regex, method, callback))
 
-    return filtered
+def _filter_endpoint(path, path_regex, method, callback):
+    declaration = PUBLIC_ENDPOINTS.get(callback.__name__)
+    if (not declaration) or (method not in declaration["methods"]):
+        return
+
+    if declaration["versions"]:
+        for mv in declaration["versions"]:
+            if mv.http_method == method.lower():
+                # This doesn't actually work but illustrates the idea of what we want
+                hacked_path = f"{path}?version={mv.version}"
+                yield hacked_path, path_regex, method, callback
+    else:
+        yield path, path_regex, method, callback
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:

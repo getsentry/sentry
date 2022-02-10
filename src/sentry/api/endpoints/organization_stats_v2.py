@@ -29,6 +29,10 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
     }
 
     def get(self, request: Request, organization) -> Response:
+        # This endpoint's native URL mapping is deprecated.
+        # The implementation is dispatched to from OrganizationStatsEndpoint.get_v2
+        # The two are separately rate-limited, which is okay.
+
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
                 query = self.build_outcomes_query(

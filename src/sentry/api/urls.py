@@ -454,6 +454,8 @@ from .endpoints.userroles_index import UserRolesEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
+from .endpoints.version_example import OrganizationSlugLengthEndpoint
+
 GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/$", GroupDetailsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/activities/$", GroupActivitiesEndpoint.as_view()),
@@ -1427,6 +1429,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-stats-v2",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/stats/v(?P<version>\d+)/$",
+                    OrganizationStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-stats-versioned",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/teams/$",
                     OrganizationTeamsEndpoint.as_view(),
                     name="sentry-api-0-organization-teams",
@@ -1528,6 +1535,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
                     OrganizationMetricsTagDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-metrics-tag-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/slug-length/$",
+                    OrganizationSlugLengthEndpoint.as_view(),
+                    name="sentry-api-0-organization-slug-length",
                 ),
             ]
         ),

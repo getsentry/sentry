@@ -3,7 +3,7 @@ import base64
 from django.http import HttpRequest
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, MethodVersion, VersionedApiValidationError, VersionedEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase
@@ -149,3 +149,18 @@ class EndpointJSONBodyTest(APITestCase):
         Endpoint().load_json_body(self.request)
 
         assert not self.request.json_body
+
+
+class VersionedEndpointTest(APITestCase):
+    def test_colliding_methods(self):
+        with self.assertRaises(VersionedApiValidationError):
+
+            class BadEndpoint(VersionedEndpoint):
+                def get(self, request):
+                    pass
+
+                def get_v2(self, request):
+                    pass
+
+                def declare_method_versions(cls):
+                    yield MethodVersion(cls.get_v2, "get", 2)
