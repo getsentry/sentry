@@ -18,7 +18,7 @@ type Props = {
   instance: IssueAlertRuleAction;
   onSubmitAction: (
     data: {[key: string]: string},
-    fetchedFieldOptionsCache: Record<string, Choices>,
+    fetchedFieldOptionsCache: Record<string, Choices>
     // dynamicFieldValues: Record<string, Choices>
   ) => void;
   organization: Organization;
