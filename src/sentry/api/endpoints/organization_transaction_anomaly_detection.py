@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import datetime
 
 from django.conf import settings
@@ -10,17 +11,19 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.snuba.discover import timeseries_query
 from sentry.utils import json
 
+ads_connection_pool = connection_from_url(
+    settings.ANOMALY_DETECTION_URL,
+    retries=Retry(
+        total=5,
+        status_forcelist=[408, 429, 502, 503, 504],
+    ),
+    timeout=settings.SNUBA_TIMEOUT_FOR_ANOMALY_DETECTION,
+)
+
+MappedParams = namedtuple("MappedParams", ["query_start", "query_end", "granularity"])
+
 
 def get_anomalies(snuba_io):
-    ads_connection_pool = connection_from_url(
-        settings.ANOMALY_DETECTION_URL,
-        retries=Retry(
-            total=5,
-            status_forcelist=[408, 429, 502, 503, 504],
-        ),
-        timeout=settings.SENTRY_SNUBA_TIMEOUT,
-    )
-
     return ads_connection_pool.urlopen(
         "POST",
         "/anomaly/predict",
@@ -40,7 +43,7 @@ def map_snuba_queries(start, end):
     end: unix timestamp representing end of visualization window
 
     Returns:
-    results: tuple containing
+    results: namedtuple containing
         query_start: datetime representing start of query window
         query_end: datetime representing end of query window
         granularity: granularity to use (in seconds)
@@ -63,7 +66,7 @@ def map_snuba_queries(start, end):
         query_start = end - days(90)
     query_end = end
 
-    return (
+    return MappedParams(
         datetime.fromtimestamp(query_start),
         datetime.fromtimestamp(query_end),
         granularity,
@@ -73,32 +76,32 @@ def map_snuba_queries(start, end):
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         start, end = get_date_range_from_params(request.GET)
-        query_start, query_end, granularity = map_snuba_queries(start.timestamp(), end.timestamp())
+        mapped_params = map_snuba_queries(start.timestamp(), end.timestamp())
         params = self.get_snuba_params(request, organization)
         query = request.GET.get("query")
         query = f"{query} event.type:transaction" if query else "event.type:transaction"
 
+        datetime_format = "%Y-%m-%d %H:%M:%S"
+        ads_request = {
+            "query": query,
+            "params": params,
+            "start": start.strftime(datetime_format),
+            "end": end.strftime(datetime_format),
+            "granularity": mapped_params.granularity,
+        }
+
         # overwrite relevant time params
-        params["statsPeriodStart"] = query_start
-        params["statsPeriodEnd"] = query_end
+        params["start"] = mapped_params.query_start
+        params["end"] = mapped_params.query_end
 
         snuba_response = timeseries_query(
             selected_columns=["count()"],
             query=query,
             params=params,
-            rollup=granularity,
+            rollup=mapped_params.granularity,
             referrer="transaction-anomaly-detection",
             zerofill_results=False,
         )
-        datetime_format = "%Y-%m-%d %H:%M:%S"
+        ads_request["data"] = snuba_response.data["data"]
 
-        return get_anomalies(
-            {
-                "data": snuba_response.data["data"],
-                "query": query,
-                "params": params,
-                "granularity": granularity,
-                "start": start.strftime(datetime_format),
-                "end": end.strftime(datetime_format),
-            }
-        )
+        return get_anomalies(ads_request)

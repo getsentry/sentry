@@ -20,6 +20,18 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
         self.features = {}
         self.snuba_raw_data = [(0, 0), (3, 0), (0, 0)]
 
+    def do_request(self, data, url=None, features=None):
+        self.url = reverse(
+            "sentry-api-0-organization-transaction-anomaly-detection",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
+        if features is None:
+            features = {"organizations:discover-basic": True}
+        features.update(self.features)
+        with self.feature(features):
+            return self.client.get(self.url if url is None else url, data=data, format="json")
+
     @mock.patch("sentry.api.endpoints.organization_transaction_anomaly_detection.timeseries_query")
     @mock.patch("sentry.api.endpoints.organization_transaction_anomaly_detection.get_anomalies")
     def test_get_start_end(self, mock_get_anomalies, mock_timeseries_query):
@@ -30,24 +42,22 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
         mock_get_anomalies.return_value = HttpResponse({"key": "value"})
         request = {
             "project": self.project.id,
-            "query": "transaction.duration",
+            "query": "transaction.duration:>5s",
             "start": "2022-02-01",
             "end": "2022-02-02",
         }
 
         expected_snuba_io = {
-            "query": "transaction.duration event.type:transaction",
+            "query": "transaction.duration:>5s event.type:transaction",
             "data": self.snuba_raw_data,
             "granularity": 300,
             "params": {
-                "start": datetime(2022, 2, 1, 0, 0, tzinfo=timezone.utc),
-                "end": datetime(2022, 2, 2, 0, 0, tzinfo=timezone.utc),
+                "start": datetime(2022, 1, 26, 0, 0),
+                "end": datetime(2022, 2, 2, 0, 0),
                 "project_id": [self.project.id],
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
                 "team_id": [self.team.id],
-                "statsPeriodStart": datetime(2022, 1, 26, 0, 0),
-                "statsPeriodEnd": datetime(2022, 2, 2, 0, 0),
             },
             "start": "2022-02-01 00:00:00",
             "end": "2022-02-02 00:00:00",
@@ -67,23 +77,21 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
         mock_get_anomalies.return_value = HttpResponse({"key": "value"})
         request = {
             "project": self.project.id,
-            "query": "transaction.duration",
+            "query": "transaction.duration:>5s",
             "statsPeriod": "13h",
         }
 
         expected_snuba_io = {
-            "query": "transaction.duration event.type:transaction",
+            "query": "transaction.duration:>5s event.type:transaction",
             "data": self.snuba_raw_data,
             "granularity": 300,
             "params": {
-                "start": datetime(2022, 2, 10, 14, 21, 4, tzinfo=timezone.utc),
-                "end": datetime(2022, 2, 11, 3, 21, 4, tzinfo=timezone.utc),
+                "start": datetime(2022, 2, 4, 3, 21, 34),
+                "end": datetime(2022, 2, 11, 3, 21, 34),
                 "project_id": [self.project.id],
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
                 "team_id": [self.team.id],
-                "statsPeriodStart": datetime(2022, 2, 4, 3, 21, 34),
-                "statsPeriodEnd": datetime(2022, 2, 11, 3, 21, 34),
             },
             "start": "2022-02-10 14:21:34",
             "end": "2022-02-11 03:21:34",
@@ -111,14 +119,12 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
             "data": self.snuba_raw_data,
             "granularity": 600,
             "params": {
-                "start": datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc),
-                "end": datetime(2022, 1, 5, 0, 0, tzinfo=timezone.utc),
+                "start": datetime(2021, 12, 22, 0, 0),
+                "end": datetime(2022, 1, 5, 0, 0),
                 "project_id": [self.project.id],
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
                 "team_id": [self.team.id],
-                "statsPeriodStart": datetime(2021, 12, 22, 0, 0),
-                "statsPeriodEnd": datetime(2022, 1, 5, 0, 0),
             },
             "start": "2022-01-01 00:00:00",
             "end": "2022-01-05 00:00:00",
@@ -127,20 +133,8 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
 
         mock_get_anomalies.assert_called_once_with(expected_snuba_io)
 
-    def do_request(self, data, url=None, features=None):
-        self.url = reverse(
-            "sentry-api-0-organization-transaction-anomaly-detection",
-            kwargs={"organization_slug": self.project.organization.slug},
-        )
-
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
-
     @staticmethod
-    def test_map_snuba_queries_1():
+    def test_map_snuba_queries_300_granularity():
         expected_tuple = (datetime(2021, 12, 26, 0, 0), datetime(2022, 1, 2, 0, 0), 300)
         returned_tuple = map_snuba_queries(
             datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp(),
@@ -149,7 +143,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
         assert returned_tuple == expected_tuple
 
     @staticmethod
-    def test_map_snuba_queries_2():
+    def test_map_snuba_queries_600_granularity():
         expected_tuple = (datetime(2021, 12, 22, 0, 0), datetime(2022, 1, 5, 0, 0), 600)
         returned_tuple = map_snuba_queries(
             datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp(),
@@ -158,7 +152,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
         assert returned_tuple == expected_tuple
 
     @staticmethod
-    def test_map_snuba_queries_3():
+    def test_map_snuba_queries_1200_granularity():
         expected_tuple = (datetime(2021, 12, 13, 0, 0), datetime(2022, 1, 10, 0, 0), 1200)
         returned_tuple = map_snuba_queries(
             datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp(),
@@ -167,7 +161,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
         assert returned_tuple == expected_tuple
 
     @staticmethod
-    def test_map_snuba_queries_4():
+    def test_map_snuba_queries_3600_granularity():
         expected_tuple = (datetime(2021, 10, 18, 0, 0), datetime(2022, 1, 16, 0, 0), 3600)
         returned_tuple = map_snuba_queries(
             datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp(),
