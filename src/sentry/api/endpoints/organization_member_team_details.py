@@ -5,7 +5,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -61,7 +60,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return (
             is_active_superuser(request)
-            or self._can_admin_team(request, organization, team)
+            or self._can_admin_team(request, team)
             or organization.flags.allow_joinleave
         )
 
@@ -89,22 +88,15 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         if request.user.id == member.user_id:
             return True
 
-        if self._can_admin_team(request, organization, team):
+        if self._can_admin_team(request, team):
             return True
 
         return False
 
-    def _can_admin_team(self, request: Request, organization: Organization, team: Team) -> bool:
-        global_roles = [r.id for r in roles.with_scope("org:write") if r.is_global]
-        team_roles = [r.id for r in roles.with_scope("team:write")]
-
-        # must be a team admin or have global write access
-        return OrganizationMember.objects.filter(
-            Q(role__in=global_roles) | Q(organizationmemberteam__team=team, role__in=team_roles),
-            organization=organization,
-            user__id=request.user.id,
-            user__is_active=True,
-        ).exists()
+    def _can_admin_team(self, request: Request, team: Team) -> bool:
+        return (request.access.has_global_access and request.access.has_scope("org:write")) or (
+            team in request.access.teams and request.access.has_team_scope(team, "team:write")
+        )
 
     def _get_member(
         self, request: Request, organization: Organization, member_id: Union[int, str]
