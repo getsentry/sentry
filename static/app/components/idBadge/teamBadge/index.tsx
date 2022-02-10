@@ -1,5 +1,4 @@
 import * as React from 'react';
-import isEqual from 'lodash/isEqual';
 
 import TeamStore from 'sentry/stores/teamStore';
 import {Team} from 'sentry/types';
@@ -10,10 +9,6 @@ function TeamBadge(props: BadgeProps) {
   const [team, setTeam] = React.useState<Team>(props.team);
 
   React.useEffect(() => {
-    if (isEqual(team, props.team)) {
-      return;
-    }
-
     setTeam(props.team);
   }, [props.team]);
 
@@ -31,7 +26,7 @@ function TeamBadge(props: BadgeProps) {
 
       setTeam(newTeam);
     },
-    [team, TeamStore]
+    [props.team]
   );
 
   React.useEffect(() => {
