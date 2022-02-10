@@ -426,7 +426,7 @@ export const getParentField = (
 export function getDocsLinkForEventType(event: 'error' | 'transaction' | 'attachment') {
   switch (event) {
     case 'transaction':
-      return 'https://docs.sentry.io/product/performance/transaction-summary/';
+      return 'https://docs.sentry.io/product/performance/transaction-summary/#what-is-a-transaction';
     case 'attachment':
       return 'https://docs.sentry.io/product/accounts/quotas/#attachment-limits';
     default:
