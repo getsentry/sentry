@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -37,13 +36,11 @@ function StatsHeader({organization, activeTab}: Props) {
         <li className={`${activeTab === 'issues' ? 'active' : ''}`}>
           <Link to={`/organizations/${organization.slug}/stats/issues/`}>
             {t('Issues')}
-            <FeatureBadge type="beta" />
           </Link>
         </li>
         <li className={`${activeTab === 'health' ? 'active' : ''}`}>
           <Link to={`/organizations/${organization.slug}/stats/health/`}>
             {t('Health')}
-            <FeatureBadge type="beta" />
           </Link>
         </li>
       </Layout.HeaderNavTabs>
