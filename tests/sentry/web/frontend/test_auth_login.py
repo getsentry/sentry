@@ -228,7 +228,7 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 302
         assert resp.get("Location", "").endswith(next)
 
-    def test_doesnt_redirect_to_external_next_url(self):
+    def test_doesnt_redirect_to_external_next_url_login(self):
         next = "http://example.com"
         self.client.get(self.path + "?next=" + urlquote(next))
 
@@ -238,6 +238,11 @@ class AuthLoginTest(TestCase):
             follow=False,
         )
         self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+
+    def test_doesnt_redirect_to_external_next_url_org(self):
+        next = "http://example.com"
+        self.client.get(self.path + "?next=" + urlquote(next))
+
         resp = self.client.post(
             self.path,
             {"username": self.user.username, "password": "admin", "op": "login"},
