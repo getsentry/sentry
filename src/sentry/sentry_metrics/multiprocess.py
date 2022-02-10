@@ -544,13 +544,12 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         pass
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        with self.__metrics.timer("simple_produce_step.produce_time_duration"):
-            self.__producer.produce(
-                topic=self.__producer_topic,
-                key=None,
-                value=message.payload.value,
-                on_delivery=self.callback,
-            )
+        self.__producer.produce(
+            topic=self.__producer_topic,
+            key=None,
+            value=message.payload.value,
+            on_delivery=self.callback,
+        )
 
     def callback(self, error: Any, message: Any) -> None:
         if error is not None:
@@ -563,18 +562,19 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__closed = True
 
     def join(self, timeout: Optional[float]) -> None:
-        if not timeout:
-            timeout = 5.0
-        messages_left = self.__producer.flush(timeout)
+        with self.__metrics.timer("simple_produce_step.join_duration"):
+            if not timeout:
+                timeout = 5.0
+            messages_left = self.__producer.flush(timeout)
 
-        if messages_left != 0:
-            self.__metrics.incr("simple_produce_step.messages_left", amount=messages_left)
-            # lets try one more time to flush any last messages
-            unflushed_messages = self.__producer.flush(timeout)
-            if unflushed_messages != 0:
-                raise UnflushedMessages(
-                    f"There are still {unflushed_messages} unflushed messages left."
-                )
+            if messages_left != 0:
+                self.__metrics.incr("simple_produce_step.messages_left", amount=messages_left)
+                # lets try one more time to flush any last messages
+                unflushed_messages = self.__producer.flush(timeout)
+                if unflushed_messages != 0:
+                    raise UnflushedMessages(
+                        f"There are still {unflushed_messages} unflushed messages left."
+                    )
 
 
 def get_streaming_metrics_consumer(
