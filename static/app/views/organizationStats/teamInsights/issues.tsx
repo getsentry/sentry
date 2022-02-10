@@ -42,6 +42,7 @@ function TeamStatsIssues({location, router}: Props) {
     | TeamWithProjects
     | undefined;
   const projects = currentTeam?.projects ?? [];
+  const environment = query.environment;
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('team_insights.viewed', {
@@ -64,9 +65,11 @@ function TeamStatsIssues({location, router}: Props) {
 
       <Body>
         <TeamStatsControls
+          showEnvironment
           location={location}
           router={router}
           currentTeam={currentTeam}
+          currentEnvironment={environment}
         />
 
         {!initiallyLoaded && <LoadingIndicator />}
