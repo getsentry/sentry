@@ -4,16 +4,18 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import WidgetBuilder from './widgetBuilder';
 
-type Props = React.ComponentProps<typeof WidgetBuilder>;
+type Props = Omit<React.ComponentProps<typeof WidgetBuilder>, 'organization'>;
 
-function WidgetBuilderContainer({organization, ...props}: Props) {
+function WidgetBuilderContainer(props: Props) {
+  const organization = useOrganization();
+
   return (
     <Feature
-      features={['metrics', 'new-widget-builder-experience', 'dashboards-edit']}
+      features={['new-widget-builder-experience', 'dashboards-edit']}
       organization={organization}
       renderDisabled={() => (
         <PageContent>
@@ -26,4 +28,4 @@ function WidgetBuilderContainer({organization, ...props}: Props) {
   );
 }
 
-export default withOrganization(WidgetBuilderContainer);
+export default WidgetBuilderContainer;
