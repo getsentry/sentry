@@ -32,6 +32,11 @@ type GlobalSelectionHeaderProps = Omit<
 type Props = WithRouterProps &
   GlobalSelectionHeaderProps & {
     /**
+     * Hide the global header
+     * Mainly used for pages which are using the new style page filters
+     */
+    hideGlobalHeader?: boolean;
+    /**
      * Skip loading from local storage
      * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
      * We do not want to load the user's last used env/project in this case, otherwise will
@@ -54,6 +59,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     showAbsolute,
     shouldForceProject,
     specificProjectSlugs,
+    hideGlobalHeader,
   } = props;
 
   const {isReady} = useLegacyStore(PageFiltersStore);
@@ -99,6 +105,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     initializeUrlState({
       organization,
       queryParams: location.query,
+      pathname: location.pathname,
       router,
       skipLoadLastUsed,
       memberProjects,
@@ -160,12 +167,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     return <PageContent />;
   }
 
-  // New-style selection filters no longer have a 'global'header
-  const hasGlobalHeader = !organization.features.includes('selection-filters-v2');
-
   return (
     <Fragment>
-      {hasGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
+      {!hideGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
       {children}
     </Fragment>
   );

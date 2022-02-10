@@ -6,7 +6,7 @@ import pickBy from 'lodash/pickBy';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
-import {PageFilters} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 
 /**
  * Make a default page filters object
@@ -68,4 +68,18 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
   }
 
   return true;
+}
+
+/**
+ * TODO(davidenwang): Temporarily used for when pages with the GSH live alongside new page filters
+ * @param organization
+ * @returns list of paths that have the new page filters, these pages
+ * should only load the pinned filters, not the whole global selection
+ */
+export function getPathsWithNewFilters(organization: Organization): string[] {
+  return (
+    organization.features.includes('selection-filters-v2')
+      ? ['issues', 'user-feedback']
+      : []
+  ).map(route => `/organizations/${organization.slug}/${route}/`);
 }
