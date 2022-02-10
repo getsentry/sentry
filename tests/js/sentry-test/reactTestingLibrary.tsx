@@ -33,9 +33,8 @@ function createProvider(contextDefs: Record<string, any>) {
 }
 
 function makeAllTheProviders({context, organization}: ProviderOptions) {
+  const ContextProvider = context ? createProvider(context) : Fragment;
   return function ({children}: {children?: React.ReactNode}) {
-    const ContextProvider = context ? createProvider(context) : Fragment;
-
     return (
       <ContextProvider>
         <CacheProvider value={cache}>
