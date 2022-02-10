@@ -26,6 +26,7 @@ def _sample_apm():
 class RelayProjectConfigsEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
+    enforce_rate_limit = False
 
     def post(self, request: Request) -> Response:
         with start_transaction(
