@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 import random
-from typing import List, MutableMapping, Set
+from typing import MutableMapping
 
 from django.conf import settings
 from rest_framework.request import Request
@@ -66,7 +68,7 @@ class RelayProjectConfigsEndpoint(Endpoint):  # type: ignore
         public_keys = set(public_keys or ())
 
         project_keys: MutableMapping[str, ProjectKey] = {}
-        project_ids: Set[int] = set()
+        project_ids: set[int] = set()
 
         with start_span(op="relay_fetch_keys"):
             with metrics.timer("relay_project_configs.fetching_keys.duration"):
@@ -78,7 +80,7 @@ class RelayProjectConfigsEndpoint(Endpoint):  # type: ignore
                     project_ids.add(key.project_id)
 
         projects: MutableMapping[int, Project] = {}
-        organization_ids: Set[int] = set()
+        organization_ids: set[int] = set()
 
         with start_span(op="relay_fetch_projects"):
             with metrics.timer("relay_project_configs.fetching_projects.duration"):
@@ -166,7 +168,7 @@ class RelayProjectConfigsEndpoint(Endpoint):  # type: ignore
                     OrganizationOption.objects.get_all_values(org_id)
 
         with start_span(op="relay_fetch_keys"):
-            project_keys: MutableMapping[int, List[ProjectKey]] = {}
+            project_keys: MutableMapping[int, list[ProjectKey]] = {}
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
 
