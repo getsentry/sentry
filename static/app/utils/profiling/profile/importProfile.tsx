@@ -58,7 +58,10 @@ function readFileAsString(file: File): Promise<string> {
       reject('Failed to read string contents of input file');
     };
 
-    reader.onerror = () => reject('Failed to read string contents of input file');
+    reader.onerror = () => {
+      reject('Failed to read string contents of input file');
+    };
+
     reader.readAsText(file);
   });
 }
@@ -68,6 +71,11 @@ export function importDroppedProfile(file: File): Promise<ProfileGroup> {
     readFileAsString(file)
       .then(fileContents => JSON.parse(fileContents))
       .then(json => {
+        if (json === null || isNaN(json)) {
+          reject('Input JSON is not an object');
+          return;
+        }
+
         if (isSchema(json)) {
           resolve(importProfile(json, ''));
           return;

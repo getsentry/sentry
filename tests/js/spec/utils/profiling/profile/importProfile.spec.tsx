@@ -1,5 +1,8 @@
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
-import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+import {
+  importDroppedProfile,
+  importProfile,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
@@ -95,5 +98,21 @@ describe('importProfile', () => {
         ''
       )
     ).toThrow();
+  });
+});
+
+describe.only('importDroppedProfile', () => {
+  it('throws if FileReader fails to read file', () => {
+    const file = new File(['null'], 'test.tsx');
+    const reader = new FileReader();
+
+    jest.spyOn
+    jest.spyOn(window, 'FileReader').mockImplementation(() => reader);
+
+    jest.spyOn(reader, 'readAsText').mockImplementation(() => {
+
+    expect(
+      async () => await importDroppedProfile(file).catch(e => console.log(e))
+    ).toThrow('test');
   });
 });
