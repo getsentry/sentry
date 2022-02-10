@@ -10,10 +10,6 @@ function TeamBadge(props: BadgeProps) {
   const [team, setTeam] = React.useState<Team>(props.team);
 
   React.useEffect(() => {
-    if (team === props.team) {
-      return;
-    }
-
     if (isEqual(team, props.team)) {
       return;
     }
