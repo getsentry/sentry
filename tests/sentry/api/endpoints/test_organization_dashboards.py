@@ -53,6 +53,18 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.assert_equal_dashboards(self.dashboard, response.data[1])
         self.assert_equal_dashboards(self.dashboard_2, response.data[2])
 
+    def test_get_default_overview_has_widget_preview_field(self):
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200, response.content
+        assert "default-overview" == response.data[0]["id"]
+
+        default_overview_data = Dashboard.get_prebuilt("default-overview")
+        default_overview = response.data[0]
+        assert default_overview["widgetPreview"] == [
+            {"displayType": w["displayType"], "layout": None}
+            for w in default_overview_data["widgets"]
+        ]
+
     def test_get_with_tombstone(self):
         DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
         response = self.do_request("get", self.url)
