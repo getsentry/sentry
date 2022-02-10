@@ -73,8 +73,8 @@ describe('Metrics ActionCreator', function () {
           per_page: 5,
           project: ['2'],
           query: 'release:123',
-          start: '2022-01-01T00:00:00',
-          end: '2022-03-01T00:00:00',
+          start: '2022-01-01T00:00:00.000',
+          end: '2022-03-01T00:00:00.000',
         },
       })
     );
