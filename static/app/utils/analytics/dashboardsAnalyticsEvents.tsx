@@ -1,3 +1,7 @@
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
+
+export type ResizeChange = 'smaller' | 'unchanged' | 'larger';
+
 export type DashboardsEventParameters = {
   'dashboards_manage.change_sort': {
     sort: string;
@@ -39,6 +43,11 @@ export type DashboardsEventParameters = {
   'dashboards_views.query_selector.selected': {
     widget_type: string;
   };
+  'dashboards_views.widget.resize': {
+    displayType: DisplayType;
+    height: ResizeChange;
+    width: ResizeChange;
+  };
   'dashboards_views.widget_library.add': {
     num_widgets: number;
   };
@@ -69,6 +78,7 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
     'Dashboards2: Widget saved directly to Dashboard from Add Widget to Dashboard modal',
   'dashboards_views.edit_widget_modal.confirm':
     'Dashboards2: Edit Dashboard Widget modal form submitted',
+  'dashboards_views.widget.resize': 'Dashboards2: Widget Resized',
   'dashboards_views.widget_library.add': 'Dashboards2: Number of prebuilt widgets added',
   'dashboards_views.widget_library.add_widget':
     'Dashboards2: Title of prebuilt widget added',

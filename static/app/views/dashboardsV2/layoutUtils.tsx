@@ -4,7 +4,10 @@ import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
 
+import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {ResizeChange} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'sentry/utils/guid';
 
 import {NUM_DESKTOP_COLS} from './dashboard';
@@ -18,6 +21,7 @@ const WIDGET_PREFIX = 'grid-item';
 const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
 export type Position = Pick<Layout, 'x' | 'y'>;
+export type Size = Pick<Layout, 'h' | 'w'>;
 
 type NextPosition = [position: Position, columnDepths: number[]];
 
@@ -218,5 +222,79 @@ export function generateWidgetsAfterCompaction(widgets: Widget[]) {
       return widget;
     }
     return {...widget, layout};
+  });
+}
+
+function getResizeChange(initialSize: number, newSize: number): ResizeChange {
+  const delta = newSize - initialSize;
+  let change: ResizeChange = 'unchanged';
+  if (delta < 0) {
+    change = 'smaller';
+  } else if (delta > 0) {
+    change = 'larger';
+  }
+  return change;
+}
+
+/**
+ * Takes a widget and a list of previous widgets and outputs the before and
+ * after sizes for doing a comparison.
+ *
+ * Used to determine resize changes
+ */
+export function getWidgetComparisonSizes(
+  newWidget,
+  previousWidgets
+): {newSize: Size; previousSize: Size} {
+  const defaultHeight = getDefaultWidgetHeight(newWidget.displayType);
+  const newSize = {
+    w: newWidget?.layout?.w ?? DEFAULT_WIDGET_WIDTH,
+    h: newWidget?.layout?.h ?? defaultHeight,
+  };
+
+  const previousWidget = previousWidgets.find(({id}) => newWidget.id === id);
+  const previousSize = {
+    w: previousWidget?.layout?.w ?? DEFAULT_WIDGET_WIDTH,
+    h: NaN,
+  };
+  if (!defined(previousWidget)) {
+    // This is a new widget, so the display type is the same as the new widget display type
+    previousSize.h = defaultHeight;
+  } else if (defined(previousWidget.layout)) {
+    // There was an old widget for this and the layout was defined
+    previousSize.h = previousWidget.layout.h;
+  } else {
+    // There was an old widget but the layout was not defined
+    previousSize.h = getDefaultWidgetHeight(previousWidget.displayType);
+  }
+
+  return {newSize, previousSize};
+}
+
+export function trackDashboardResizes(
+  organization: Organization,
+  previousWidgets: Widget[],
+  nextWidgets: Widget[]
+) {
+  // Compare new widgets to the widgets saved previously
+  nextWidgets.forEach(newSavedWidget => {
+    const {newSize, previousSize} = getWidgetComparisonSizes(
+      newSavedWidget,
+      previousWidgets
+    );
+
+    const heightChange = getResizeChange(previousSize.h, newSize.h);
+    const widthChange = getResizeChange(previousSize.w, newSize.w);
+    const heightOrWidthChanged =
+      heightChange !== 'unchanged' || widthChange !== 'unchanged';
+
+    if (heightOrWidthChanged) {
+      trackAdvancedAnalyticsEvent('dashboards_views.widget.resize', {
+        organization,
+        displayType: newSavedWidget.displayType,
+        height: heightChange,
+        width: widthChange,
+      });
+    }
   });
 }

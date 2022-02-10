@@ -35,6 +35,7 @@ import {
   assignDefaultLayout,
   calculateColumnDepths,
   getDashboardLayout,
+  trackDashboardResizes,
 } from './layoutUtils';
 import DashboardTitle from './title';
 import {
@@ -399,6 +400,11 @@ class DashboardDetail extends Component<Props, State> {
                 eventName: 'Dashboards2: Create complete',
                 organization_id: parseInt(organization.id, 10),
               });
+              trackDashboardResizes(
+                organization,
+                [], // New dashboards have no previous widgets
+                newDashboard.widgets
+              );
               this.setState({
                 dashboardState: DashboardState.VIEW,
               });
@@ -437,6 +443,11 @@ class DashboardDetail extends Component<Props, State> {
                 eventName: 'Dashboards2: Edit complete',
                 organization_id: parseInt(organization.id, 10),
               });
+              trackDashboardResizes(
+                organization,
+                dashboard.widgets,
+                newDashboard.widgets
+              );
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
