@@ -14,6 +14,7 @@
 /src/sentry/tagstore/snuba/     @getsentry/owners-snuba
 
 # Event Ingestion
+/src/sentry/api/endpoints/relay/   @getsentry/owners-ingest
 /src/sentry/attachments/           @getsentry/owners-ingest
 /src/sentry/coreapi.py             @getsentry/owners-ingest
 /src/sentry/ingest/                @getsentry/owners-ingest
