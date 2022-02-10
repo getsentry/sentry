@@ -58,9 +58,8 @@ function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
         duration: 0.25,
       }}
     >
-      <InnerWrapper onClick={onClick}>
+      <InnerWrapper onClick={onClick} data-test-id="widget-add">
         <AddButton
-          data-test-id="widget-add"
           icon={<IconAdd size="lg" isCircled color="inactive" />}
           aria-label={t('Add widget')}
         />
