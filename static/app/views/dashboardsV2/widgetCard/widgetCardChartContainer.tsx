@@ -15,7 +15,10 @@ import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 
 import {Widget, WidgetType} from '../types';
-import {ISSUE_FIELD_TO_HEADER_MAP, ISSUE_FIELDS} from '../widget/issueWidget/fields';
+import {
+  ISSUE_FIELD_TO_HEADER_MAP,
+  ISSUE_FIELDS,
+} from '../widgetBuilder/issueWidget/fields';
 
 import WidgetCardChart from './chart';
 import IssueWidgetQueries from './issueWidgetQueries';
