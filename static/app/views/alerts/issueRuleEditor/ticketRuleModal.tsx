@@ -18,7 +18,8 @@ type Props = {
   instance: IssueAlertRuleAction;
   onSubmitAction: (
     data: {[key: string]: string},
-    fetchedFieldOptionsCache: Record<string, Choices>
+    fetchedFieldOptionsCache: Record<string, Choices>,
+    // dynamicFieldValues: Record<string, Choices>
   ) => void;
   organization: Organization;
   link?: string;
@@ -35,9 +36,9 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     const issueConfigFieldsCache = Object.values(instance?.dynamic_form_fields || {});
     return {
       ...super.getDefaultState(),
-      fetchedFieldOptionsCache: Object.fromEntries(
-        issueConfigFieldsCache.map(field => [field.name, field.choices as Choices])
-      ),
+      // fetchedFieldOptionsCache: Object.fromEntries(
+      //   issueConfigFieldsCache.map(field => [field.name, field.choices as Choices])
+      // ),
       issueConfigFieldsCache,
     };
   }
@@ -68,6 +69,8 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
    */
   getValidAndSavableFieldNames = (): string[] => {
     const {issueConfigFieldsCache} = this.state;
+    // console.log({issueConfigFieldsCache})
+    // const dynamicFieldValues = this.state;
     return (issueConfigFieldsCache || [])
       .filter(field => field.hasOwnProperty('name'))
       .map(field => field.name);
@@ -89,6 +92,8 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   } => {
     const {instance} = this.props;
     const {issueConfigFieldsCache} = this.state;
+    // console.log("cached data")
+    // console.log({issueConfigFieldsCache})
     const names: string[] = this.getValidAndSavableFieldNames();
     const formData: {
       [key: string]: any;
@@ -109,6 +114,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   onFormSubmit: Form['props']['onSubmit'] = (data, _success, _error, e, model) => {
     const {onSubmitAction, closeModal} = this.props;
     const {fetchedFieldOptionsCache} = this.state;
+    // const {dynamicFieldValues} = this.state;
 
     // This is a "fake form", so don't actually POST to an endpoint.
     e.preventDefault();
