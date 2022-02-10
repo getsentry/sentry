@@ -412,7 +412,7 @@ tags.sku_class:enterprise #enterprise`;
                     name: 'codeownersAutoSync',
                     type: 'boolean',
                     label: tct(
-                      `Automatically sync changes from CODEOWNERS to Code Owners [badge]`,
+                      `Automatically sync changes from CODEOWNERS file to Code Owners [badge]`,
                       {
                         badge: (
                           <FeatureBadge
