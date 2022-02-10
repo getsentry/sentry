@@ -15,7 +15,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
+import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 import ContextMenu from '../contextMenu';
 import {Widget, WidgetType} from '../types';
