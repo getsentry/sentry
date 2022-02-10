@@ -21,7 +21,7 @@ import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboardsV2/types';
-import {FieldKey} from 'sentry/views/dashboardsV2/widget/issueWidget/fields';
+import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 
 import {generateFieldOptions} from '../utils';
 

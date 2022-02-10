@@ -179,6 +179,10 @@ export function createRuleFromWizardTemplate(
     defaultRuleOptions.timeWindow = TimeWindow.ONE_HOUR;
   }
 
+  if (aggregate.includes('apdex')) {
+    defaultRuleOptions.thresholdType = AlertRuleThresholdType.BELOW;
+  }
+
   return {
     ...createDefaultRule(defaultRuleOptions),
     eventTypes: [eventTypes],
