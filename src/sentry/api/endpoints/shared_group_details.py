@@ -1,3 +1,6 @@
+from typing import Sequence
+
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,7 +16,7 @@ from sentry.models import Group
 
 
 class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
-    permission_classes = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request: Request, share_id) -> Response:
         """

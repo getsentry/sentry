@@ -1,8 +1,10 @@
 import logging
+from typing import Sequence
 
 from django.db import IntegrityError
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -41,7 +43,7 @@ def create_organization_join_request(organization, email, ip_address=None):
 
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes: Sequence[BasePermission] = ()
 
     rate_limits = {
         "POST": {

@@ -1,3 +1,6 @@
+from typing import Sequence
+
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,7 +10,7 @@ from sentry.utils.functional import extract_lazy_object
 
 
 class IndexEndpoint(Endpoint):
-    permission_classes = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request: Request) -> Response:
         if request.user.is_authenticated:

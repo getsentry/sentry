@@ -1,6 +1,8 @@
 import logging
+from typing import Sequence
 
 from rest_framework import serializers, status
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -37,7 +39,7 @@ class MetricsSerializer(serializers.Serializer):
 
 
 class InternalBeaconEndpoint(Endpoint):
-    permission_classes = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def post(self, request: Request) -> Response:
         serializer = MetricsSerializer(data=request.data)

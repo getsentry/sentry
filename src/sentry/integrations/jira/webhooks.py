@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -103,8 +105,8 @@ def handle_status_change(integration, data):
 
 
 class JiraIssueUpdatedWebhook(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     @csrf_exempt
     def dispatch(self, request: Request, *args, **kwargs) -> Response:

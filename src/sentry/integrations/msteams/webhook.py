@@ -1,8 +1,11 @@
 import logging
 import time
+from typing import Sequence
 
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -132,8 +135,8 @@ def verify_signature(request):
 
 
 class MsTeamsWebhookEndpoint(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
     provider = "msteams"
 
     @csrf_exempt

@@ -1,5 +1,9 @@
+from typing import Sequence
+
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,8 +21,8 @@ from .integration import JiraIntegrationProvider
 
 
 class JiraInstalledEndpoint(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     @csrf_exempt
     def dispatch(self, request: Request, *args, **kwargs) -> Response:

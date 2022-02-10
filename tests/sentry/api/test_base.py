@@ -1,6 +1,8 @@
 import base64
+from typing import Sequence
 
 from django.http import HttpRequest
+from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -10,14 +12,14 @@ from sentry.testutils import APITestCase
 
 
 class DummyEndpoint(Endpoint):
-    permission_classes = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request):
         return Response({"ok": True})
 
 
 class DummyPaginationEndpoint(Endpoint):
-    permission_classes = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request):
         values = [x for x in range(0, 100)]

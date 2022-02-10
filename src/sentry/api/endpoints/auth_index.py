@@ -1,10 +1,12 @@
 import logging
+from typing import Sequence
 
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import is_safe_url
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,9 +33,8 @@ class AuthIndexEndpoint(Endpoint):
     and simple HTTP authentication.
     """
 
-    authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
-
-    permission_classes = ()
+    authentication_classes = (QuietBasicAuthentication, SessionAuthentication)
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:

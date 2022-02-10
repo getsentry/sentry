@@ -1,5 +1,9 @@
+from typing import Sequence
+
 from django.conf import settings
 from rest_framework import serializers, status
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay import create_register_challenge, is_version_supported
@@ -18,9 +22,9 @@ class RelayRegisterChallengeSerializer(RelayIdSerializer):
     public_key = serializers.CharField(max_length=64, required=True)
 
 
-class RelayRegisterChallengeEndpoint(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
+class RelayRegisterChallengeEndpoint(Endpoint):  # type: ignore
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def post(self, request: Request) -> Response:
         """

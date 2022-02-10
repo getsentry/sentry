@@ -1,3 +1,7 @@
+from typing import Sequence
+
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,8 +13,8 @@ from .client import BITBUCKET_KEY
 
 
 class BitbucketDescriptorEndpoint(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request: Request) -> Response:
         return self.respond(

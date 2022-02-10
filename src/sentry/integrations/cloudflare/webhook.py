@@ -2,8 +2,10 @@ import hmac
 import logging
 from functools import wraps
 from hashlib import sha256
+from typing import Sequence
 
 from django.utils.crypto import constant_time_compare
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -41,7 +43,7 @@ class CloudflareTokenAuthentication(TokenAuthentication):
 
 class CloudflareWebhookEndpoint(Endpoint):
     authentication_classes = (CloudflareTokenAuthentication,)
-    permission_classes = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def verify(self, payload, key, signature):
         return constant_time_compare(

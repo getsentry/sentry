@@ -4,6 +4,8 @@ from typing import Any, Mapping, MutableMapping, Sequence
 
 import requests as requests_
 from django.urls import reverse
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -123,8 +125,8 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 
 
 class SlackActionEndpoint(Endpoint):  # type: ignore
-    authentication_classes = ()
-    permission_classes = ()
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def respond_ephemeral(self, text: str) -> Response:
         return self.respond({"response_type": "ephemeral", "replace_original": False, "text": text})

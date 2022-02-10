@@ -1,3 +1,7 @@
+from typing import Sequence
+
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,8 +18,8 @@ class RelayHealthCheck(Endpoint):
     Relay doesn't need to care if it connects to another Relay or directly to sentry.
     """
 
-    authentication_classes = []
-    permission_classes = []
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request: Request) -> Response:
         return Response({"is_healthy": True}, status=200)

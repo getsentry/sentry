@@ -1,4 +1,7 @@
+from typing import Sequence
+
 from django.conf import settings
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,7 +19,7 @@ def normalize_symbol_source(key, source):
 
 
 class BuiltinSymbolSourcesEndpoint(Endpoint):
-    permission_classes = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request: Request) -> Response:
         sources = [

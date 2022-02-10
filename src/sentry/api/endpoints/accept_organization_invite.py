@@ -1,5 +1,8 @@
+from typing import Sequence
+
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,7 +14,7 @@ from sentry.utils import auth
 
 class AcceptOrganizationInvite(Endpoint):
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes: Sequence[BasePermission] = ()
 
     def respond_invalid(self, request: Request) -> Response:
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})

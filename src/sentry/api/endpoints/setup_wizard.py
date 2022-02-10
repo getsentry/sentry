@@ -1,6 +1,8 @@
 import logging
+from typing import Sequence
 
 from django.utils.crypto import get_random_string
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,7 +17,7 @@ SETUP_WIZARD_CACHE_TIMEOUT = 600
 
 
 class SetupWizard(Endpoint):
-    permission_classes = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def delete(self, request: Request, wizard_hash=None) -> Response:
         """

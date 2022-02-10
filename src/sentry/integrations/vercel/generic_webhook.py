@@ -1,11 +1,13 @@
 import hashlib
 import hmac
 import logging
-from typing import Any, Mapping, Tuple
+from typing import Any, Mapping, Sequence, Tuple
 
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import RequestException
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -126,8 +128,8 @@ def get_payload_and_token(
 
 
 class VercelGenericWebhookEndpoint(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
     provider = "vercel"
 
     @csrf_exempt

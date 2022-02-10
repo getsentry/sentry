@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from django.utils.crypto import constant_time_compare
 from rest_framework import status
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,8 +21,8 @@ PROVIDER_KEY = "vsts"
 
 
 class WorkItemWebhook(Endpoint):  # type: ignore
-    authentication_classes = ()
-    permission_classes = ()
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         data = request.data

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Sequence
 
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -30,8 +32,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
     """
 
-    authentication_classes = ()
-    permission_classes = ()
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         headers = {"Authorization": f"Bearer {self._get_access_token(slack_request.integration)}"}

@@ -1,3 +1,6 @@
+from typing import Sequence
+
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,7 +16,7 @@ from sentry.web.frontend.base import OrganizationMixin
 
 class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes: Sequence[BasePermission] = ()
 
     def post(self, request: Request, organization=None, *args, **kwargs) -> Response:
         """

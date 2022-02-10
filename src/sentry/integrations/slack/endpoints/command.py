@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from typing import Sequence
+
 from django.http import HttpResponse
 from rest_framework import status
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -60,8 +64,8 @@ def get_identity(slack_request: SlackDMRequest) -> Identity | None:
 
 
 class SlackCommandsEndpoint(SlackDMEndpoint):
-    authentication_classes = ()
-    permission_classes = ()
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         return self.respond(

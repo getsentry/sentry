@@ -1,6 +1,9 @@
+from typing import Sequence
+
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -22,7 +25,7 @@ from sentry.web.frontend.base import OrganizationMixin
 
 class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request: Request, *args, **kwargs) -> Response:
         """

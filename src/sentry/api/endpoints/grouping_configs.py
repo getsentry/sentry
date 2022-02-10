@@ -1,3 +1,6 @@
+from typing import Sequence
+
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,7 +10,7 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 
 
 class GroupingConfigsEndpoint(Endpoint):
-    permission_classes = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def get(self, request: Request) -> Response:
         return Response(

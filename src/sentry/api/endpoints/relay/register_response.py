@@ -1,5 +1,9 @@
+from typing import Sequence
+
 from django.utils import timezone
 from rest_framework import serializers, status
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay import UnpackErrorSignatureExpired, validate_register_response
@@ -19,9 +23,9 @@ class RelayRegisterResponseSerializer(RelayIdSerializer):
     token = serializers.CharField(required=True)
 
 
-class RelayRegisterResponseEndpoint(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
+class RelayRegisterResponseEndpoint(Endpoint):  # type: ignore
+    authentication_classes: Sequence[BaseAuthentication] = ()
+    permission_classes: Sequence[BasePermission] = ()
 
     def post(self, request: Request) -> Response:
         """
