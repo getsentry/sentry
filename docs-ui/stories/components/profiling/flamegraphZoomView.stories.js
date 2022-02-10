@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import {FlamegraphSearch} from 'sentry/components/profiling/FlamegraphSearch';
 import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/FlamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/FlamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/FlamegraphZoomViewMinimap';
@@ -66,6 +67,10 @@ export const EventedTrace = () => {
           colorCoding="by symbol name"
           canvasPoolManager={canvasPoolManager}
           flamegraphTheme={LightFlamegraphTheme}
+        />
+        <FlamegraphSearch
+          flamegraphs={[flamegraph]}
+          canvasPoolManager={canvasPoolManager}
         />
       </div>
     </div>
