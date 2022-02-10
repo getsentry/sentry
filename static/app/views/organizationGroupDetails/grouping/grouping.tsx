@@ -10,7 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconMegaphone} from 'sentry/icons';
+import {IconChat} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BaseGroup, Group, Organization, Project} from 'sentry/types';
@@ -56,7 +56,7 @@ function LinkFooter() {
           `URL: ${window.location.href}\n\nThanks for taking the time to provide us feedback. What's on your mind?`
         )}`}
       >
-        <StyledIconMegaphone /> {t('Give Feedback')}
+        <StyledIconChat /> {t('Give Feedback')}
       </ExternalLink>
     </Footer>
   );
@@ -297,7 +297,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
 export default withApi(Grouping);
 
-const StyledIconMegaphone = styled(IconMegaphone)`
+const StyledIconChat = styled(IconChat)`
   margin-right: ${space(0.5)};
 `;
 

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
-import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {trackAdhocEvent} from 'sentry/utils/analytics';
@@ -54,7 +53,6 @@ class OrganizationJoinRequest extends Component<Props, State> {
       return (
         <NarrowLayout maxWidth="550px">
           <SuccessModal>
-            <StyledIconMegaphone size="5em" />
             <StyledHeader>{t('Request Sent')}</StyledHeader>
             <StyledText>{t('Your request to join has been sent.')}</StyledText>
             <ReceiveEmailMessage>
@@ -67,7 +65,6 @@ class OrganizationJoinRequest extends Component<Props, State> {
 
     return (
       <NarrowLayout maxWidth="650px">
-        <StyledIconMegaphone size="5em" />
         <StyledHeader>{t('Request to Join')}</StyledHeader>
         <StyledText>
           {tct('Ask the admins if you can join the [orgId] organization.', {
@@ -101,10 +98,6 @@ const SuccessModal = styled('div')`
   text-align: center;
   padding-top: 10px;
   padding-bottom: ${space(4)};
-`;
-
-const StyledIconMegaphone = styled(IconMegaphone)`
-  padding-bottom: ${space(3)};
 `;
 
 const StyledHeader = styled('h3')`

@@ -53,7 +53,6 @@ export {IconLocation} from './iconLocation';
 export {IconLock} from './iconLock';
 export {IconMail} from './iconMail';
 export {IconMarkdown} from './iconMarkdown';
-export {IconMegaphone} from './iconMegaphone';
 export {IconMeh} from './iconMeh';
 export {IconMenu} from './iconMenu';
 export {IconMobile} from './iconMobile';
