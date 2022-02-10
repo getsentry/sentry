@@ -1,4 +1,4 @@
-import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
+import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 
 describe('generateIssueWidgetFieldOptions', function () {
   it('returns default issue fields', () => {
