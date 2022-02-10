@@ -8,6 +8,10 @@ import Badge, {BadgeProps} from './badge';
 function TeamBadge(props: BadgeProps) {
   const [team, setTeam] = React.useState<Team>(props.team);
 
+  React.useEffect(() => {
+    setTeam(props.team);
+  }, [props.team]);
+
   const onTeamStoreUpdate = React.useCallback(
     (updatedTeam: Set<string>) => {
       if (!updatedTeam.has(team.id)) {
@@ -22,7 +26,7 @@ function TeamBadge(props: BadgeProps) {
 
       setTeam(newTeam);
     },
-    [team, TeamStore]
+    [props.team]
   );
 
   React.useEffect(() => {
