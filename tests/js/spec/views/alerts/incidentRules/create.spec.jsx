@@ -53,10 +53,10 @@ describe('Incident Rules Create', function () {
       expect.anything(),
       expect.objectContaining({
         query: {
-          interval: '1m',
+          interval: '60m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '1d',
+          statsPeriod: '14d',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
         },
