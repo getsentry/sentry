@@ -26,12 +26,6 @@ export const experimentList = [
     assignments: [0, 1],
   },
   {
-    key: 'ViewSampleSandboxExperiment',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
-  {
     key: 'TargetedOnboardingWelcomePageExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
