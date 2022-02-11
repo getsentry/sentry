@@ -62,7 +62,7 @@ jobs:
           CI_NODE_TOTAL: 3
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --testTimeout=10000
+          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
