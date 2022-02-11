@@ -1187,6 +1187,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
+      expect(metricsTagsMock).not.toHaveBeenCalled();
+
       expect(screen.getByText('Data Set')).toBeInTheDocument();
       expect(
         screen.getByText('All Events (Errors and Transactions)')
@@ -1308,7 +1310,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
-      expect(screen.queryByText('sentry.sessions.user')).not.toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
       expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
@@ -1317,7 +1318,39 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(screen.queryByText('sentry.sessions.session')).not.toBeInTheDocument();
+      expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+    });
+
+    it('displays the correct options for area chart', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+      mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      await tick();
+      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
+
+      await act(async () =>
+        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
+      );
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('sum(…)'));
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
     });
   });
