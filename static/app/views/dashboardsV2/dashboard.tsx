@@ -553,13 +553,16 @@ class Dashboard extends Component<Props, State> {
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && !!!widgetLimitReached && (
-          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={this.addWidgetLayout}>
+          <AddWidgetWrapper
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={this.addWidgetLayout}
+          >
             <AddWidget
               orgFeatures={organization.features}
               onAddWidget={this.handleStartAdd}
               onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
             />
-          </div>
+          </AddWidgetWrapper>
         )}
       </GridLayout>
     );
@@ -639,19 +642,21 @@ const WidgetContainer = styled('div')`
   }
 `;
 
+// A widget being dragged has a z-index of 10
+// Allow the Add Widget tile to show above widgets when moved
+const AddWidgetWrapper = styled('div')`
+  z-index: 15;
+  background-color: ${p => p.theme.background};
+`;
+
 const GridItem = styled('div')`
   .react-resizable-handle {
     z-index: 2;
   }
 `;
 
-// HACK: to stack chart tooltips above other grid items
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
-
-  .react-grid-item:hover {
-    z-index: 10;
-  }
 
   .react-resizable-handle {
     background-image: none;
