@@ -31,7 +31,7 @@ function ProjectScoreCards({
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
-        field="sum(session)"
+        field={SessionField.SESSIONS}
         query={query}
       />
 
@@ -40,7 +40,7 @@ function ProjectScoreCards({
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
-        field="count_unique(user)"
+        field={SessionField.USERS}
         query={query}
         field={SessionField.SESSIONS}
       />
