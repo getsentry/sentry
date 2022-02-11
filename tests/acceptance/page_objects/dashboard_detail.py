@@ -39,9 +39,7 @@ class DashboardDetailPage(BasePage):
         self.wait_until_loaded()
 
     def click_dashboard_add_widget_button(self):
-        # TODO(nar): This clickable check is causing flake when CSS Transforms are
-        # disabled for the grid library
-        # self.browser.wait_until_clickable('[data-test-id="widget-add"]')
+        self.browser.wait_until_clickable('[data-test-id="widget-add"]')
         button = self.browser.element('[data-test-id="widget-add"]')
         button.click()
         self.wait_until_loaded()

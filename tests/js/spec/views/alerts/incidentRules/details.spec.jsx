@@ -160,8 +160,59 @@ describe('Incident Rules Details', function () {
     expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
     expect(screen.getByTestId('warning-threshold')).toHaveValue('13');
     expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
+  });
 
-    editRule.mockReset();
+  it('clears trigger', async function () {
+    const {organization, project, routerContext} = initializeOrg();
+    const rule = TestStubs.IncidentRule();
+    rule.triggers.push({label: 'warning', alertThreshold: 13, actions: []});
+    rule.resolveThreshold = 12;
+
+    const onChangeTitleMock = jest.fn();
+    const req = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      body: rule,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [TestStubs.Member()],
+    });
+
+    const editRule = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
+      method: 'PUT',
+      body: rule,
+    });
+
+    mountWithTheme(
+      <Fragment>
+        <GlobalModal />
+        <IncidentRulesDetails
+          params={{
+            orgId: organization.slug,
+            projectId: project.slug,
+            ruleId: rule.id,
+          }}
+          organization={organization}
+          onChangeTitle={onChangeTitleMock}
+          project={project}
+        />
+      </Fragment>,
+      {context: routerContext}
+    );
+
+    // has existing trigger
+    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
+    expect(screen.getByTestId('warning-threshold')).toHaveValue('13');
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
+
+    expect(req).toHaveBeenCalled();
+
+    // Check correct rule name is called
+    expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
+
+    userEvent.click(screen.getByLabelText('Add Action'));
 
     // Clear warning Trigger
     userEvent.clear(screen.getByTestId('warning-threshold'));

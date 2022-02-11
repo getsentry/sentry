@@ -229,6 +229,7 @@ describe('IssueListActions', function () {
         await selectDropdownMenuItem({
           wrapper,
           specifiers: {prefix: 'IgnoreActions'},
+          triggerSelector: 'DropdownTrigger',
           itemKey: ['until-affect', 'until-affect-custom'],
         });
 
