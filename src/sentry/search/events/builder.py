@@ -1544,22 +1544,9 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Filter on timestamp is outside of the selected date range."
                 )
 
-        # Tags are never null, but promoted tags are columns and so can be null.
-        # To handle both cases, use `ifNull` to convert to an empty string and
-        # compare so we need to check for empty values.
-        if is_tag:
-            if operator not in ["IN", "NOT IN"] and not isinstance(value, int):
-                sentry_sdk.set_tag("query.lhs", lhs)
-                sentry_sdk.set_tag("query.rhs", value)
-                sentry_sdk.capture_message("Tag value was not found", level="error")
-                raise InvalidSearchQuery("Tag value was not found")
-
         # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
 
-        if search_filter.value.is_wildcard():
-            raise IncompatibleMetricsQuery("wildcards not supported")
-        else:
-            return Condition(lhs, Op(search_filter.operator), value)
+        return Condition(lhs, Op(search_filter.operator), value)
 
     def get_snql_query(self) -> None:
         """Because metrics table queries need to make multiple requests per metric type this function cannot be
