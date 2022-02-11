@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import {MultipleCheckboxField} from 'sentry/components/forms';
+import {MultipleCheckboxField} from 'sentry/components/deprecatedforms';
 import Form from 'sentry/views/settings/components/forms/form';
 import FormModel from 'sentry/views/settings/components/forms/model';
 

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {MultiSelectField} from 'sentry/components/forms';
-import Form from 'sentry/components/forms/form';
+import {MultiSelectField} from 'sentry/components/deprecatedforms';
+import Form from 'sentry/components/deprecatedforms/form';
 
 describe('MultiSelectField', function () {
   describe('render()', function () {

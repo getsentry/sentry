@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
 import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
 import FormField from './formField';
-import SelectControl, {ControlProps} from './selectControl';
 
 type SelectProps = Omit<ControlProps, 'onChange' | 'name'>;
 type FormProps = FormField['props'];

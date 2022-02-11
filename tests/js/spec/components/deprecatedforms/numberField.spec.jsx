@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {NumberField} from 'sentry/components/forms';
-import Form from 'sentry/components/forms/form';
+import {NumberField} from 'sentry/components/deprecatedforms';
+import Form from 'sentry/components/deprecatedforms/form';
 
 describe('NumberField', function () {
   describe('render()', function () {

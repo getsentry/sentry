@@ -13,6 +13,6 @@ export {default as SelectAsyncField} from './selectAsyncField';
 export {default as SelectCreatableField} from './selectCreatableField';
 export {default as SelectField} from './selectField';
 export {default as Select2Field} from './selectField';
-export {default as FormState} from './state';
+export {default as FormState} from 'sentry/components/forms/state';
 export {default as TextareaField} from './textareaField';
 export {default as TextField} from './textField';

@@ -6,8 +6,8 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {APIRequestMethod, Client} from 'sentry/api';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
+import Form from 'sentry/components/deprecatedforms/form';
+import FormField from 'sentry/components/deprecatedforms/formField';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Form, RadioBooleanField} from 'sentry/components/forms';
+import {Form, RadioBooleanField} from 'sentry/components/deprecatedforms';
 import NewRadioBooleanField from 'sentry/views/settings/components/forms/radioBooleanField';
 
 describe('RadioBooleanField', function () {

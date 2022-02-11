@@ -1,4 +1,4 @@
-import InputField from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/deprecatedforms/inputField';
 
 export default class DateTimeField extends InputField {
   getType() {

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import {EmailField, Form} from 'sentry/components/forms';
+import {EmailField, Form} from 'sentry/components/deprecatedforms';
 
 describe('EmailField', function () {
   describe('render()', function () {

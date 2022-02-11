@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {FormState, GenericField} from 'sentry/components/forms';
+import {FormState, GenericField} from 'sentry/components/deprecatedforms';
 
 describe('GenericField', function () {
   it('renders text as TextInput', function () {

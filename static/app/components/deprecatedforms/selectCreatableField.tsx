@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {StyledForm} from 'sentry/components/forms/form';
+import {StyledForm} from 'sentry/components/deprecatedforms/form';
+import SelectField from 'sentry/components/deprecatedforms/selectField';
 import SelectControl from 'sentry/components/forms/selectControl';
-import SelectField from 'sentry/components/forms/selectField';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';

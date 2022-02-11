@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import InputField from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/deprecatedforms/inputField';
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {defined} from 'sentry/utils';

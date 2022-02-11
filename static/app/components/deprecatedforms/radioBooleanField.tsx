@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import InputField from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/deprecatedforms/inputField';
 import {defined} from 'sentry/utils';
 
 type Props = {

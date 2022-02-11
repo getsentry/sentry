@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {changeInputValue, openMenu} from 'sentry-test/select-new';
 
-import {Form, SelectCreatableField} from 'sentry/components/forms';
+import {Form, SelectCreatableField} from 'sentry/components/deprecatedforms';
 
 describe('SelectCreatableField', function () {
   it('can add user input into select field when using options', function () {

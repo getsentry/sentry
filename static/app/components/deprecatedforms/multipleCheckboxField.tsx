@@ -1,7 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import FormField from 'sentry/components/forms/formField';
+import FormField from 'sentry/components/deprecatedforms/formField';
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {Choices} from 'sentry/types';
