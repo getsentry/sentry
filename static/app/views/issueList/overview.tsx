@@ -51,6 +51,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
@@ -1107,7 +1108,12 @@ class IssueListOverview extends React.Component<Props, State> {
                     projectIds={projectIds}
                     showProject
                   />
-                  {this.renderStreamBody()}
+                  <VisuallyCompleteWithData
+                    hasData={this.state.groupIds.length > 0}
+                    id="IssueList-Body"
+                  >
+                    {this.renderStreamBody()}
+                  </VisuallyCompleteWithData>
                 </PanelBody>
               </Panel>
               <StyledPagination
