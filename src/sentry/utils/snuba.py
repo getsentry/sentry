@@ -24,6 +24,7 @@ from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import Query
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Environment,
     Group,
@@ -35,6 +36,7 @@ from sentry.models import (
     ReleaseProject,
 )
 from sentry.net.http import connection_from_url
+from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import json, metrics
@@ -100,12 +102,21 @@ DISCOVER_COLUMN_MAP = {
     if col.value.discover_name is not None
 }
 
+# Not using the Columns enum here, because there are far fewer columns in the metrics tables
+METRICS_COLUMN_MAP = {
+    "timestamp": "timestamp",
+    "project_id": "project_id",
+    "project.id": "project_id",
+    "organization_id": "org_id",
+}
+
 
 DATASETS = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
+    Dataset.Metrics: METRICS_COLUMN_MAP,
 }
 
 # Store the internal field names to save work later on.
@@ -1003,6 +1014,13 @@ def resolve_column(dataset):
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col == "project_id":
                 return col
+        elif dataset == Dataset.Metrics:
+            if col in DATASETS[dataset]:
+                return DATASETS[dataset][col]
+            tag_id = indexer.resolve(col)
+            if tag_id is None:
+                raise InvalidSearchQuery(f"Unknown field: {col}")
+            return f"tags[{tag_id}]"
         else:
             if (
                 col in DATASET_FIELDS[dataset]

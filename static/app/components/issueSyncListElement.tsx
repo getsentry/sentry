@@ -3,7 +3,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -23,17 +23,6 @@ type Props = {
 };
 
 class IssueSyncListElement extends React.Component<Props> {
-  componentDidUpdate(nextProps) {
-    if (
-      this.props.showHoverCard !== nextProps.showHoverCard &&
-      nextProps.showHoverCard === undefined
-    ) {
-      this.hoverCardRef.current && this.hoverCardRef.current.handleToggleOff();
-    }
-  }
-
-  hoverCardRef = React.createRef<Hovercard>();
-
   isLinked(): boolean {
     return !!(this.props.externalIssueLink && this.props.externalIssueId);
   }
@@ -103,7 +92,6 @@ class IssueSyncListElement extends React.Component<Props> {
         <ClassNames>
           {({css}) => (
             <Hovercard
-              ref={this.hoverCardRef}
               containerClassName={css`
                 display: flex;
                 align-items: center;

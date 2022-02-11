@@ -54,7 +54,7 @@ class GroupSnooze(Model):
     def get_cache_key(cls, group_id):
         return "groupsnooze_group_id:1:%s" % (group_id)
 
-    def is_valid(self, group=None, test_rates=False):
+    def is_valid(self, group=None, test_rates=False, use_pending_data=False):
         if group is None:
             group = self.group
         elif group.id != self.group_id:
@@ -69,8 +69,10 @@ class GroupSnooze(Model):
                 if test_rates:
                     if not self.test_frequency_rates():
                         return False
-            elif self.count <= group.times_seen - self.state["times_seen"]:
-                return False
+            else:
+                times_seen = group.times_seen_with_pending if use_pending_data else group.times_seen
+                if self.count <= times_seen - self.state["times_seen"]:
+                    return False
 
         if self.user_count and test_rates:
             if self.user_window:
