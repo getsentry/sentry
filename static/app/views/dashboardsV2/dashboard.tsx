@@ -27,7 +27,6 @@ import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import {DataSet} from './widgetBuilder/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
@@ -251,7 +250,7 @@ class Dashboard extends Component<Props, State> {
         pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
         query: {
           ...location.query,
-          dataSet: DataSet.EVENTS,
+          source: DashboardWidgetSource.DASHBOARDS,
         },
       });
       return;
@@ -261,7 +260,7 @@ class Dashboard extends Component<Props, State> {
       pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       query: {
         ...location.query,
-        dataSet: DataSet.EVENTS,
+        source: DashboardWidgetSource.DASHBOARDS,
       },
     });
   };
@@ -321,7 +320,7 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
-  handleEditWidget = (widget: Widget, index: number) => () => {
+  handleEditWidget = (widget: Widget) => () => {
     const {
       organization,
       dashboard,
@@ -338,20 +337,20 @@ class Dashboard extends Component<Props, State> {
 
       if (paramDashboardId) {
         router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${widget.id}/edit/`,
           query: {
             ...location.query,
-            dataSet: DataSet.EVENTS,
+            source: DashboardWidgetSource.DASHBOARDS,
           },
         });
         return;
       }
 
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${widget.id}/edit/`,
         query: {
           ...location.query,
-          dataSet: DataSet.EVENTS,
+          source: DashboardWidgetSource.DASHBOARDS,
         },
       });
     }
@@ -391,7 +390,7 @@ class Dashboard extends Component<Props, State> {
       isEditing,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
-      onEdit: this.handleEditWidget(widget, index),
+      onEdit: this.handleEditWidget(widget),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
     };

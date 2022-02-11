@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Organization} from 'sentry/types';
-import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
+import {DashboardDetails, DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 import {DataSet} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -24,6 +24,14 @@ describe('WidgetBuilder', function () {
   it('no feature access', function () {
     const {organization, router, routerContext} = initializeOrg();
 
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [],
+    };
+
     mountWithTheme(
       <TestComponent
         route={{}}
@@ -31,7 +39,7 @@ describe('WidgetBuilder', function () {
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-        dashboard={TestStubs.Dashboard()}
+        dashboard={dashboard}
         onSave={jest.fn()}
         organization={organization}
         params={{orgId: organization.slug}}
@@ -52,6 +60,14 @@ describe('WidgetBuilder', function () {
       },
     });
 
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [],
+    };
+
     mountWithTheme(
       <TestComponent
         route={{}}
@@ -59,7 +75,7 @@ describe('WidgetBuilder', function () {
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-        dashboard={TestStubs.Dashboard()}
+        dashboard={dashboard}
         onSave={jest.fn()}
         organization={organization}
         params={{orgId: organization.slug}}
@@ -95,6 +111,14 @@ describe('WidgetBuilder', function () {
       id: '1',
     };
 
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [],
+    };
+
     mountWithTheme(
       <TestComponent
         route={{}}
@@ -102,7 +126,7 @@ describe('WidgetBuilder', function () {
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-        dashboard={TestStubs.Dashboard([])}
+        dashboard={dashboard}
         onSave={jest.fn()}
         widget={widget}
         organization={organization}
@@ -131,6 +155,14 @@ describe('WidgetBuilder', function () {
       },
     });
 
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [],
+    };
+
     mountWithTheme(
       <TestComponent
         route={{}}
@@ -138,7 +170,7 @@ describe('WidgetBuilder', function () {
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-        dashboard={TestStubs.Dashboard()}
+        dashboard={dashboard}
         onSave={jest.fn()}
         organization={organization}
         params={{orgId: organization.slug}}
