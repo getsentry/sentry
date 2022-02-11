@@ -10,6 +10,7 @@ from sentry.models import Relay
 class RelayPublicKeysEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
+    enforce_rate_limit = False
 
     def post(self, request: Request) -> Response:
         calling_relay = request.relay
