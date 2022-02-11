@@ -1,6 +1,5 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
 import {
   act,
   mountWithTheme as rtlMountWithTheme,
@@ -321,6 +320,7 @@ describe('Dashboards > Detail', function () {
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
 
       const card = wrapper.find('WidgetCard').first();
       card.find('StyledPanel').simulate('mouseOver');
@@ -332,12 +332,18 @@ describe('Dashboards > Detail', function () {
         .find('IconClick[data-test-id="widget-edit"]')
         .simulate('click');
 
-      await tick();
-      await wrapper.update();
-      const modal = await mountGlobalModal();
-
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(
-        expect.objectContaining(widgets[0])
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            id: '1',
+            interval: '1d',
+            layout: {h: 2, minH: 2, w: 2, x: 0, y: 0},
+            queries: [{conditions: 'event.type:error', fields: ['count()'], name: ''}],
+            title: 'Errors',
+            type: 'line',
+          },
+        })
       );
     });
 
