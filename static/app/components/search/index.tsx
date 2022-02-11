@@ -21,12 +21,11 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
 import {Result} from './sources/types';
 
-type Item = Result['item'];
-
-type InputProps = Pick<
-  Parameters<AutoComplete<Item>['props']['children']>[0],
-  'getInputProps'
->;
+interface InputProps
+  extends Pick<
+    Parameters<AutoComplete<Result['item']>['props']['children']>[0],
+    'getInputProps'
+  > {}
 
 /**
  * Render prop for search results
@@ -38,32 +37,14 @@ type InputProps = Pick<
  *  itemProps: props that should be spread for root item
  * }
  */
-type ItemProps = {
+interface ItemProps {
   highlighted: boolean;
   index: number;
-  item: Item;
+  item: Result['item'];
   itemProps: React.ComponentProps<typeof SearchResultWrapper>;
   matches: Result['matches'];
-};
-
-// Not using typeof defaultProps because of the wrapping HOC which
-// causes defaultProp magic to fall off.
-const defaultProps = {
-  renderItem: ({
-    item,
-    matches,
-    itemProps,
-    highlighted,
-  }: ItemProps): React.ReactElement => (
-    <SearchResultWrapper {...itemProps} highlighted={highlighted}>
-      <SearchResult highlighted={highlighted} item={item} matches={matches} />
-    </SearchResultWrapper>
-  ),
-  sources: [ApiSource, FormSource, RouteSource, CommandSource] as React.ComponentType[],
-  closeOnSelect: true,
-};
-
-type Props = WithRouterProps<{orgId: string}> & {
+}
+interface SearchProps extends WithRouterProps<{orgId: string}> {
   /**
    * For analytics
    */
@@ -97,171 +78,173 @@ type Props = WithRouterProps<{orgId: string}> & {
    * Adds a footer below the results when the search is complete
    */
   resultFooter?: React.ReactElement;
+  /**
+   * Fuse search options
+   */
   searchOptions?: Fuse.FuseOptions<any>;
   /**
    * The sources to query
    */
   sources?: React.ComponentType[];
-};
+}
 
-// "Omni" search
-class Search extends React.Component<Props> {
-  static defaultProps = defaultProps;
-
-  componentDidMount() {
-    trackAdvancedAnalyticsEvent(`${this.props.entryPoint}.open`, {
+function Search(props: SearchProps): React.ReactElement {
+  React.useEffect(() => {
+    trackAdvancedAnalyticsEvent(`${props.entryPoint}.open`, {
       organization: null,
     });
-  }
+  }, [props.entryPoint]);
 
-  handleSelect = (item: Item, state?: AutoComplete<Item>['state']) => {
-    if (!item) {
-      return;
-    }
-    trackAdvancedAnalyticsEvent(`${this.props.entryPoint}.select`, {
-      query: state && state.inputValue,
-      result_type: item.resultType,
-      source_type: item.sourceType,
-      organization: null,
-    });
+  const handleSelectItem = React.useCallback(
+    (item: Result['item'], state?: AutoComplete<Result['item']>['state']) => {
+      if (!item) {
+        return;
+      }
 
-    const {to, action, configUrl} = item;
+      trackAdvancedAnalyticsEvent(`${props.entryPoint}.select`, {
+        query: state?.inputValue,
+        result_type: item.resultType,
+        source_type: item.sourceType,
+        organization: null,
+      });
 
-    // `action` refers to a callback function while
-    // `to` is a react-router route
-    if (action) {
-      action(item, state);
-      return;
-    }
+      // `action` refers to a callback function while
+      // `to` is a react-router route
+      if (typeof item.action === 'function') {
+        item.action(item, state);
+        return;
+      }
 
-    if (!to) {
-      return;
-    }
+      if (!item.to) {
+        return;
+      }
 
-    if (to.startsWith('http')) {
-      const open = window.open();
-      if (open === null) {
+      if (item.to.startsWith('http')) {
+        const open = window.open();
+
+        if (open) {
+          open.opener = null;
+          open.location.href = item.to;
+          return;
+        }
+
         addErrorMessage(
           t('Unable to open search result (a popup blocker may have caused this).')
         );
         return;
       }
 
-      open.opener = null;
-      open.location.href = to;
-      return;
-    }
+      const nextPath = replaceRouterParams(item.to, props.params);
 
-    const {params, router} = this.props;
-    const nextPath = replaceRouterParams(to, params);
+      navigateTo(nextPath, props.router, item.configUrl);
+    },
+    [props.entryPoint, props.router, props.params]
+  );
 
-    navigateTo(nextPath, router, configUrl);
-  };
+  const saveQueryMetrics = React.useCallback(
+    (query: string) => {
+      if (!query) {
+        return;
+      }
 
-  saveQueryMetrics = debounce(query => {
-    if (!query) {
-      return;
-    }
-    trackAdvancedAnalyticsEvent(`${this.props.entryPoint}.query`, {
-      query,
-      organization: null,
-    });
-  }, 200);
+      trackAdvancedAnalyticsEvent(`${props.entryPoint}.query`, {
+        query,
+        organization: null,
+      });
+    },
+    [props.entryPoint]
+  );
 
-  renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
-    // resultObj is a fuse.js result object with {item, matches, score}
-    const {renderItem} = this.props;
-    const highlighted = index === highlightedIndex;
-    const {item, matches} = resultObj;
-    const key = `${item.title}-${index}`;
-    const itemProps = {...getItemProps({item, index})};
+  const debouncedSaveQueryMetrics = React.useMemo(() => {
+    return debounce(saveQueryMetrics, 200);
+  }, [props.entryPoint, saveQueryMetrics]);
 
-    if (typeof renderItem !== 'function') {
-      throw new Error('Invalid `renderItem`');
-    }
+  return (
+    <AutoComplete
+      defaultHighlightedIndex={0}
+      onSelect={handleSelectItem}
+      closeOnSelect={props.closeOnSelect ?? true}
+    >
+      {({getInputProps, getItemProps, isOpen, inputValue, highlightedIndex}) => {
+        const searchQuery = inputValue.toLowerCase().trim();
+        const isValidSearch = inputValue.length >= props.minSearch;
 
-    const renderedItem = renderItem({
-      item,
-      matches,
-      index,
-      highlighted,
-      itemProps,
-    });
+        debouncedSaveQueryMetrics(searchQuery);
 
-    return React.cloneElement(renderedItem, {key});
-  };
+        const renderItem =
+          typeof props.renderItem === 'function'
+            ? props.renderItem
+            : ({
+                item,
+                matches,
+                itemProps,
+                highlighted,
+              }: ItemProps): React.ReactElement => (
+                <SearchResultWrapper {...itemProps} highlighted={highlighted}>
+                  <SearchResult highlighted={highlighted} item={item} matches={matches} />
+                </SearchResultWrapper>
+              );
 
-  render() {
-    const {
-      params,
-      dropdownStyle,
-      searchOptions,
-      minSearch,
-      maxResults,
-      renderInput,
-      sources,
-      closeOnSelect,
-      resultFooter,
-    } = this.props;
+        return (
+          <SearchWrapper>
+            {props.renderInput({getInputProps})}
 
-    return (
-      <AutoComplete
-        defaultHighlightedIndex={0}
-        onSelect={this.handleSelect}
-        closeOnSelect={closeOnSelect}
-      >
-        {({getInputProps, getItemProps, isOpen, inputValue, highlightedIndex}) => {
-          const searchQuery = inputValue.toLowerCase().trim();
-          const isValidSearch = inputValue.length >= minSearch;
-
-          this.saveQueryMetrics(searchQuery);
-
-          return (
-            <SearchWrapper>
-              {renderInput({getInputProps})}
-
-              {isValidSearch && isOpen ? (
-                <SearchSources
-                  searchOptions={searchOptions}
-                  query={searchQuery}
-                  params={params}
-                  sources={sources ?? defaultProps.sources}
-                >
-                  {({isLoading, results, hasAnyResults}) => (
-                    <DropdownBox className={dropdownStyle}>
-                      {isLoading && (
-                        <LoadingWrapper>
-                          <LoadingIndicator mini hideMessage relative />
-                        </LoadingWrapper>
-                      )}
-                      {!isLoading &&
-                        results.slice(0, maxResults).map((resultObj, index) =>
-                          this.renderItem({
-                            resultObj,
+            {isValidSearch && isOpen ? (
+              <SearchSources
+                searchOptions={props.searchOptions}
+                query={searchQuery}
+                params={props.params}
+                sources={
+                  props.sources ??
+                  ([
+                    ApiSource,
+                    FormSource,
+                    RouteSource,
+                    CommandSource,
+                  ] as React.ComponentType[])
+                }
+              >
+                {({isLoading, results, hasAnyResults}) => (
+                  <DropdownBox className={props.dropdownStyle}>
+                    {isLoading ? (
+                      <LoadingWrapper>
+                        <LoadingIndicator mini hideMessage relative />
+                      </LoadingWrapper>
+                    ) : !hasAnyResults ? (
+                      <EmptyItem>{t('No results found')}</EmptyItem>
+                    ) : (
+                      results.slice(0, props.maxResults).map((resultObj, index) => {
+                        return React.cloneElement(
+                          renderItem({
                             index,
-                            highlightedIndex,
-                            getItemProps,
-                          })
-                        )}
-                      {!isLoading && !hasAnyResults && (
-                        <EmptyItem>{t('No results found')}</EmptyItem>
-                      )}
-                      {!isLoading && resultFooter && (
-                        <ResultFooter>{resultFooter}</ResultFooter>
-                      )}
-                    </DropdownBox>
-                  )}
-                </SearchSources>
-              ) : null}
-            </SearchWrapper>
-          );
-        }}
-      </AutoComplete>
-    );
-  }
+                            item: resultObj.item,
+                            matches: resultObj.matches,
+                            highlighted: index === highlightedIndex,
+                            itemProps: getItemProps({
+                              item: resultObj.item,
+                              index,
+                            }),
+                          }),
+                          {key: `${resultObj.item.title}-${index}`}
+                        );
+                      })
+                    )}
+                    {!isLoading && props.resultFooter ? (
+                      <ResultFooter>{props.resultFooter}</ResultFooter>
+                    ) : null}
+                  </DropdownBox>
+                )}
+              </SearchSources>
+            ) : null}
+          </SearchWrapper>
+        );
+      }}
+    </AutoComplete>
+  );
 }
 
-export default withRouter(Search);
+const WithRouterSearch = withRouter(Search);
+export {WithRouterSearch as Search, SearchProps};
 
 const DropdownBox = styled('div')`
   background: ${p => p.theme.background};

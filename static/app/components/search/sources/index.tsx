@@ -63,8 +63,11 @@ class SearchSources extends React.Component<Props> {
   }
 
   render() {
-    const {sources} = this.props;
-    return this.renderSources(sources, new Array(sources.length), 0);
+    return this.renderSources(
+      this.props.sources,
+      new Array(this.props.sources.length),
+      0
+    );
   }
 }
 
