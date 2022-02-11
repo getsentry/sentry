@@ -1,5 +1,5 @@
 module.exports = {
-  extends: ['sentry-app/strict'],
+  extends: ['sentry-app/strict', 'plugin:escompat/typescript'],
   globals: {
     require: false,
     expect: false,
