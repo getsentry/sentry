@@ -12,9 +12,6 @@ const sampledProfile: Profiling.SampledProfile = {
   unit: 'milliseconds',
   endValue: 0,
   startValue: 100,
-  shared: {
-    frames: [],
-  },
 };
 
 const eventedProfile: Profiling.EventedProfile = {
@@ -24,9 +21,6 @@ const eventedProfile: Profiling.EventedProfile = {
   unit: 'milliseconds',
   endValue: 0,
   startValue: 100,
-  shared: {
-    frames: [],
-  },
 };
 
 const jsProfile: JSSelfProfiling.Trace = {

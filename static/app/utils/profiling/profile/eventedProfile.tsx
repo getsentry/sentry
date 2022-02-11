@@ -11,10 +11,11 @@ export class EventedProfile extends Profile {
 
   lastValue = 0;
 
-  static FromProfile(eventedProfile: Profiling.EventedProfile): EventedProfile {
+  static FromProfile(
+    eventedProfile: Profiling.EventedProfile,
+    frameIndex: ReturnType<typeof createFrameIndex>
+  ): EventedProfile {
     const {startValue, endValue, name, unit} = eventedProfile;
-
-    const frameIndex = createFrameIndex(eventedProfile.shared.frames);
 
     const profile = new EventedProfile(
       endValue - startValue,
@@ -23,6 +24,10 @@ export class EventedProfile extends Profile {
       name,
       unit
     );
+
+    // If frames are offset, we need to set lastValue to profile start, so that delta between
+    // samples is correctly offset by the start value.
+    profile.lastValue = startValue;
 
     for (const event of eventedProfile.events) {
       const frame = frameIndex[event.frame];

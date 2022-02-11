@@ -8,8 +8,10 @@ import {Profile} from './profile';
 import {createFrameIndex} from './utils';
 
 export class JSSelfProfile extends Profile {
-  static FromProfile(profile: JSSelfProfiling.Trace): JSSelfProfile {
-    const frameIndex = createFrameIndex(profile.frames, profile);
+  static FromProfile(
+    profile: JSSelfProfiling.Trace,
+    frameIndex: ReturnType<typeof createFrameIndex>
+  ): JSSelfProfile {
     // In the case of JSSelfProfiling, we need to index the abstract marker frames
     // as they will otherwise not be present in the ProfilerStack.
     const markers: JSSelfProfiling.Marker[] = [

@@ -312,7 +312,7 @@ describe('findRangeBinarySearch', () => {
   it('throws if target is out of range', () => {
     expect(() =>
       findRangeBinarySearch({low: 1, high: 2}, () => 0, 0, Number.MIN_SAFE_INTEGER)
-    ).toThrow('Target value needs to be in low-high range, got 0 for [1, 2]');
+    ).toThrow('Target has to be in range of low <= target <= high, got 1 <= 0 <= 2');
   });
 
   it('finds in single iteration', () => {
@@ -362,9 +362,9 @@ describe('trimTextCenter', () => {
     expect(trimTextCenter('abc', 4)).toBe('abc');
   });
   it('trims center perfectly', () => {
-    expect(trimTextCenter('abcdef', 5)).toBe(`ab${ELLIPSIS}ef`);
+    expect(trimTextCenter('abcdef', 5.5)).toBe(`ab${ELLIPSIS}ef`);
   });
   it('favors prefix length', () => {
-    expect(trimTextCenter('abcdef', 4)).toBe(`ab${ELLIPSIS}f`);
+    expect(trimTextCenter('abcdef', 5)).toBe(`ab${ELLIPSIS}f`);
   });
 });

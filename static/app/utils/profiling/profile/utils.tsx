@@ -3,14 +3,14 @@ import {Frame} from 'sentry/utils/profiling/frame';
 type FrameIndex = Record<string | number, Frame>;
 
 export function createFrameIndex(
-  frames: Profiling.RawProfileBase['shared']['frames']
+  frames: Profiling.Schema['shared']['frames']
 ): FrameIndex;
 export function createFrameIndex(
   frames: JSSelfProfiling.Frame[],
   trace: JSSelfProfiling.Trace
 ): FrameIndex;
 export function createFrameIndex(
-  frames: Profiling.RawProfileBase['shared']['frames'] | JSSelfProfiling.Frame[],
+  frames: Profiling.Schema['shared']['frames'] | JSSelfProfiling.Frame[],
   trace?: JSSelfProfiling.Trace
 ): FrameIndex {
   if (trace) {
@@ -25,16 +25,13 @@ export function createFrameIndex(
     }, {});
   }
 
-  return (frames as Profiling.RawProfileBase['shared']['frames']).reduce(
-    (acc, frame, index) => {
-      acc[index] = new Frame({
-        key: index,
-        ...frame,
-      });
-      return acc;
-    },
-    {}
-  );
+  return (frames as Profiling.Schema['shared']['frames']).reduce((acc, frame, index) => {
+    acc[index] = new Frame({
+      key: index,
+      ...frame,
+    });
+    return acc;
+  }, {});
 }
 
 type Cache<Arguments extends ReadonlyArray<any> | any, Value> = {

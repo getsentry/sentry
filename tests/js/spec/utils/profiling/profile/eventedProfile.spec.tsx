@@ -1,4 +1,5 @@
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
+import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 import {firstCallee, makeTestingBoilerplate} from './profile.spec';
 
@@ -11,16 +12,42 @@ describe('EventedProfile', () => {
       unit: 'milliseconds',
       type: 'evented',
       events: [],
-      shared: {
-        frames: [],
-      },
     };
 
-    const profile = EventedProfile.FromProfile(trace);
+    const profile = EventedProfile.FromProfile(trace, createFrameIndex([]));
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
     expect(profile.startedAt).toBe(0);
+    expect(profile.endedAt).toBe(1000);
+  });
+
+  it('handles offset start', () => {
+    const trace: Profiling.EventedProfile = {
+      name: 'profile',
+      startValue: 500,
+      endValue: 1000,
+      unit: 'milliseconds',
+      type: 'evented',
+      events: [
+        {
+          type: 'O',
+          frame: 0,
+          at: 500,
+        },
+        {
+          type: 'C',
+          frame: 0,
+          at: 1000,
+        },
+      ],
+    };
+
+    const profile = EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+
+    expect(profile.duration).toBe(500);
+    expect(profile.name).toBe(trace.name);
+    expect(profile.startedAt).toBe(500);
     expect(profile.endedAt).toBe(1000);
   });
 
@@ -37,14 +64,14 @@ describe('EventedProfile', () => {
         {type: 'C', at: 2, frame: 1},
         {type: 'C', at: 4, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
     const {open, close, openSpy, closeSpy, timings} = makeTestingBoilerplate();
 
-    const profile = EventedProfile.FromProfile(trace);
+    const profile = EventedProfile.FromProfile(
+      trace,
+      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+    );
 
     profile.forEach(open, close);
 
@@ -79,12 +106,9 @@ describe('EventedProfile', () => {
         {type: 'C', at: 1, frame: 0},
         {type: 'C', at: 1, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}],
-      },
     };
 
-    const profile = EventedProfile.FromProfile(trace);
+    const profile = EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
 
     expect(firstCallee(firstCallee(profile.appendOrderTree)).isRecursive()).toBe(true);
   });
@@ -104,12 +128,12 @@ describe('EventedProfile', () => {
         {type: 'C', at: 2, frame: 1},
         {type: 'C', at: 2, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
-    const profile = EventedProfile.FromProfile(trace);
+    const profile = EventedProfile.FromProfile(
+      trace,
+      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+    );
 
     expect(
       firstCallee(firstCallee(firstCallee(profile.appendOrderTree))).isRecursive()
@@ -129,12 +153,12 @@ describe('EventedProfile', () => {
         {type: 'C', at: 5.5, frame: 1},
         {type: 'C', at: 10, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}],
-      },
     };
 
-    const profile = EventedProfile.FromProfile(trace);
+    const profile = EventedProfile.FromProfile(
+      trace,
+      createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+    );
 
     expect(profile.minFrameDuration).toBe(0.5);
   });
@@ -153,14 +177,14 @@ describe('EventedProfile', () => {
         {type: 'C', at: 5.5, frame: 1},
         // Simulate unclosed frame
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}],
-      },
     };
 
-    expect(() => EventedProfile.FromProfile(trace)).toThrow(
-      'Sample delta cannot be negative, samples may be corrupt or out of order'
-    );
+    expect(() =>
+      EventedProfile.FromProfile(
+        trace,
+        createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      )
+    ).toThrow('Sample delta cannot be negative, samples may be corrupt or out of order');
   });
 
   it('throws on unbalanced stack', () => {
@@ -176,13 +200,13 @@ describe('EventedProfile', () => {
         {type: 'C', at: 5.5, frame: 1},
         // Simulate unclosed frame
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}],
-      },
     };
 
-    expect(() => EventedProfile.FromProfile(trace)).toThrow(
-      'Unbalanced append order stack'
-    );
+    expect(() =>
+      EventedProfile.FromProfile(
+        trace,
+        createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      )
+    ).toThrow('Unbalanced append order stack');
   });
 });

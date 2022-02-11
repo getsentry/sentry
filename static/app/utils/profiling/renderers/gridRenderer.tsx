@@ -99,12 +99,12 @@ class GridRenderer {
 
     // Draw top timeline lines
     context.fillStyle = this.theme.COLORS.GRID_LINE_COLOR;
-    context.fillRect(0, 0, physicalViewRect.width, LINE_WIDTH);
+    context.fillRect(0, 0, physicalViewRect.width, LINE_WIDTH / 2);
     context.fillRect(
       0,
       this.theme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio,
       physicalViewRect.width,
-      LINE_WIDTH
+      LINE_WIDTH / 2
     );
 
     const intervals = computeInterval(configViewSpace, configToPhysicalSpace);
@@ -134,7 +134,7 @@ class GridRenderer {
       context.strokeRect(
         physicalIntervalPosition - LINE_WIDTH / 2,
         0,
-        LINE_WIDTH,
+        LINE_WIDTH / 2,
         physicalViewRect.height
       );
     }

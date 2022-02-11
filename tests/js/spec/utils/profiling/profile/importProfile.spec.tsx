@@ -12,9 +12,6 @@ describe('importProfile', () => {
       unit: 'milliseconds',
       type: 'evented',
       events: [],
-      shared: {
-        frames: [],
-      },
     };
 
     const imported = importProfile(
@@ -22,6 +19,9 @@ describe('importProfile', () => {
         name: 'profile',
         activeProfileIndex: 0,
         profiles: [eventedProfile],
+        shared: {
+          frames: [],
+        },
       },
       ''
     );
@@ -37,9 +37,6 @@ describe('importProfile', () => {
       type: 'sampled',
       weights: [],
       samples: [],
-      shared: {
-        frames: [],
-      },
     };
 
     const imported = importProfile(
@@ -47,13 +44,16 @@ describe('importProfile', () => {
         name: 'profile',
         activeProfileIndex: 0,
         profiles: [sampledProfile],
+        shared: {
+          frames: [],
+        },
       },
       ''
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
   });
-  it('imports js self profile', () => {
+  it('imports JS self profile', () => {
     const jsSelfProfile: JSSelfProfiling.Trace = {
       resources: ['app.js', 'vendor.js'],
       frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
@@ -78,6 +78,9 @@ describe('importProfile', () => {
         name: 'profile',
         activeProfileIndex: 0,
         profiles: [jsSelfProfile],
+        shared: {
+          frames: [],
+        },
       },
       ''
     );
