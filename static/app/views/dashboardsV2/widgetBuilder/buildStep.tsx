@@ -12,36 +12,36 @@ type Props = {
 
 function BuildStep({title, description, children}: Props) {
   return (
-    <StyledListItem>
+    <Wrapper>
       <Header>
-        <Description>{title}</Description>
-        <SubDescription>{description}</SubDescription>
+        <Heading>{title}</Heading>
+        <SubHeading>{description}</SubHeading>
       </Header>
       <Content>{children}</Content>
-    </StyledListItem>
+    </Wrapper>
   );
 }
 
 export default BuildStep;
 
-const StyledListItem = styled(ListItem)`
+const Wrapper = styled(ListItem)`
   display: grid;
   gap: ${space(2)};
 `;
 
-const Description = styled('h4')`
-  font-weight: 400;
-  margin-bottom: 0;
-`;
-
-const SubDescription = styled('div')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
 const Header = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${space(0.25)};
+`;
+
+const Heading = styled('h5')`
+  font-weight: 500;
+  margin-bottom: 0;
+  color: ${p => p.theme.gray500};
+`;
+
+const SubHeading = styled('small')`
+  color: ${p => p.theme.gray300};
 `;
 
 const Content = styled('div')`
