@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from sentry.models import Commit, CommitFileChange, ExternalActor, Repository
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.tasks.code_owners import code_owners_auto_sync, update_code_owners_schema
+from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
 from sentry.testutils import TestCase
 
 LATEST_GITHUB_CODEOWNERS = {

@@ -4,7 +4,7 @@ from django.db.models.signals import post_delete, post_save
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
-from sentry.tasks.code_owners import update_code_owners_schema
+from sentry.tasks.codeowners import update_code_owners_schema
 
 if TYPE_CHECKING:
     from sentry.models import Team

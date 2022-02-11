@@ -16,7 +16,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.tasks.code_owners import update_code_owners_schema
+from sentry.tasks.codeowners import update_code_owners_schema
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
