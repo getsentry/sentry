@@ -67,6 +67,11 @@ class InvalidSearchQuery(Exception):
     pass
 
 
+class IncompatibleMetricsQuery(Exception):
+    # Tried to build a metrics enhanced performance query but it was incompatible
+    pass
+
+
 class UnableToAcceptMemberInvitationException(Exception):
     pass
 

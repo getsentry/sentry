@@ -275,11 +275,15 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <StatusContainer>
         <HeaderItem>
-          <Heading noMargin>{t('Current Status')}</Heading>
+          <Heading noMargin>{t('Alert Status')}</Heading>
           <Status>
-            <AlertBadge status={status} hideText />
-            {activeIncident ? t('Triggered') : t('Resolved')}
-            {activityDate ? <TimeSince date={activityDate} /> : ''}
+            <AlertBadge status={status} />
+          </Status>
+        </HeaderItem>
+        <HeaderItem>
+          <Heading noMargin>{t('Last Triggered')}</Heading>
+          <Status>
+            {activityDate ? <TimeSince date={activityDate} /> : t('No alerts triggered')}
           </Status>
         </HeaderItem>
       </StatusContainer>

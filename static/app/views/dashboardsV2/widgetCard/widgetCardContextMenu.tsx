@@ -22,7 +22,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
+import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 import {Widget, WidgetType} from '../types';
 
@@ -137,33 +137,28 @@ function WidgetCardContextMenu({
       const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
         ...discoverLocation.query,
       })}`;
-      if (widget.queries.length === 1) {
-        menuOptions.push({
-          key: 'open-in-discover',
-          label: t('Open in Discover'),
-          leadingItems: <IconTelescope />,
-          to: discoverPath,
-          onAction: () => {
+      
+      menuOptions.push({
+        key: 'open-in-discover',
+        label: t('Open in Discover'),
+        leadingItems: <IconTelescope />,
+        to: widget.queries.length === 1 ? discoverPath : undefined,
+        onAction: () => {
+          if (widget.queries.length === 1) {
             trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
               organization,
               widget_type: widget.displayType,
             });
-          },
-        });
-      } else {
-        menuOptions.push({
-          key: 'open-discover',
-          label: t('Open in Discover'),
-          leadingItems: <IconTelescope />,
-          onAction: () => {
-            trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
-              organization,
-              widget_type: widget.displayType,
-            });
-            openDashboardWidgetQuerySelectorModal({organization, widget});
-          },
-        });
-      }
+            return;
+          }
+
+          trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
+            organization,
+            widget_type: widget.displayType,
+          });
+          openDashboardWidgetQuerySelectorModal({organization, widget});
+        },
+      });
     }
   }
 
