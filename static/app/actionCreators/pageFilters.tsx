@@ -171,17 +171,8 @@ export function initializeUrlState({
   }
 
   const hasDatetimeInUrl = Object.keys(pick(queryParams, DATE_TIME_KEYS)).length > 0;
-
-  const projectFromUrl = queryParams[URL_PARAM.PROJECT];
-  const urlProjectArr =
-    typeof projectFromUrl === 'string'
-      ? [Number(projectFromUrl)]
-      : (projectFromUrl ?? []).map(Number);
-
-  const envFromUrl = queryParams[URL_PARAM.ENVIRONMENT];
-  const urlEnvArr = typeof envFromUrl === 'string' ? [envFromUrl] : envFromUrl ?? [];
-
-  const hasProjectOrEnvironmentInUrl = defined(projectFromUrl) || defined(envFromUrl);
+  const hasProjectOrEnvironmentInUrl =
+    Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
 
   if (hasProjectOrEnvironmentInUrl) {
     pageFilters.projects = parsed.project || [];
@@ -218,12 +209,26 @@ export function initializeUrlState({
     }
 
     // Check if stored and pinned filters differ from url query params
-    if (defined(projectFromUrl) && !valueIsEqual(storedState.project, urlProjectArr)) {
+    if (defined(parsed.project) && !valueIsEqual(storedState.project, parsed.project)) {
       filtersInUrlDifferingFromPinned.add('projects');
     }
 
-    if (defined(envFromUrl) && !valueIsEqual(storedState.environment, urlEnvArr)) {
+    if (
+      defined(parsed.environment) &&
+      !valueIsEqual(storedState.environment, parsed.environment)
+    ) {
       filtersInUrlDifferingFromPinned.add('environments');
+    }
+
+    const filteredDateKeys = DATE_TIME_KEYS.filter(key => key !== 'statsPeriod');
+    const parsedDatetime = pick(parsed, filteredDateKeys);
+    const storedDatetime = pick(storedState, filteredDateKeys);
+
+    if (
+      Object.values(parsedDatetime).some(defined) &&
+      !valueIsEqual(parsedDatetime, storedDatetime)
+    ) {
+      filtersInUrlDifferingFromPinned.add('datetime');
     }
   }
 

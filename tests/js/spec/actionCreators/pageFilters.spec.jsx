@@ -45,6 +45,7 @@ describe('PageFilters ActionCreators', function () {
           environments: [],
           projects: [1],
         }),
+        new Set(),
         new Set()
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -87,6 +88,7 @@ describe('PageFilters ActionCreators', function () {
             utc: null,
           },
         }),
+        new Set(),
         new Set()
       );
     });
@@ -114,6 +116,7 @@ describe('PageFilters ActionCreators', function () {
             utc: null,
           },
         }),
+        new Set(),
         new Set()
       );
     });
@@ -195,6 +198,7 @@ describe('PageFilters ActionCreators', function () {
           projects: [1],
           environments: [],
         },
+        new Set(),
         new Set()
       );
       expect(router.replace).toHaveBeenCalledWith(
@@ -213,7 +217,7 @@ describe('PageFilters ActionCreators', function () {
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
         .mockReturnValueOnce({
           state: {
-            project: ['1'],
+            project: [1],
             environment: [],
             start: null,
             end: null,
@@ -243,7 +247,7 @@ describe('PageFilters ActionCreators', function () {
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
         .mockReturnValueOnce({
           state: {
-            project: ['1'],
+            project: [1],
             environment: ['prod'],
             start: null,
             end: null,
@@ -269,6 +273,53 @@ describe('PageFilters ActionCreators', function () {
             project: [],
           },
         })
+      );
+
+      pageFilterStorageMock.mockRestore();
+    });
+
+    it('records when query params differ from stored pinned filters', function () {
+      const pinnedFilters = new Set(['projects', 'datetime', 'environments']);
+      // Mock storage to have a saved/pinned value
+      const pageFilterStorageMock = jest
+        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
+        .mockReturnValueOnce({
+          state: {
+            project: [1],
+            environment: ['prod'],
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          pinnedFilters,
+        });
+
+      initializeUrlState({
+        organization: pageFiltersOrganization,
+        queryParams: {
+          project: '2',
+          environment: 'not-prod',
+          statsPeriod: '24h',
+        },
+        pathname: '/organizations/org-slug/issues/',
+        router,
+      });
+
+      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environments: ['not-prod'],
+          projects: [2],
+          datetime: {
+            end: null,
+            period: '24h',
+            start: null,
+            utc: null,
+          },
+        }),
+        pinnedFilters,
+        // All pinned page filters should differ from query params
+        new Set(['projects', 'environments', 'datetime'])
       );
 
       pageFilterStorageMock.mockRestore();

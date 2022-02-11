@@ -309,6 +309,7 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
+      filtersInUrlDifferingFromPinned: new Set(),
       isReady: true,
       pinnedFilters: new Set(),
       selection: {
@@ -337,6 +338,7 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
+      filtersInUrlDifferingFromPinned: new Set(),
       isReady: true,
       pinnedFilters: new Set(),
       selection: {
@@ -364,6 +366,7 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
+      filtersInUrlDifferingFromPinned: new Set(),
       isReady: true,
       pinnedFilters: new Set(),
       selection: {
@@ -410,6 +413,7 @@ describe('GlobalSelectionHeader', function () {
     expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
     expect(PageFiltersStore.getState()).toEqual({
+      filtersInUrlDifferingFromPinned: new Set(),
       isReady: true,
       pinnedFilters: new Set(),
       selection: {
