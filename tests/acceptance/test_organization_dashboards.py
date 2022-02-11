@@ -118,11 +118,11 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[aria-haspopup="true"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
-            self.browser.elements('[data-test-id="context-menu"]')[0].click()
+            self.browser.element('[aria-haspopup="true"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
@@ -132,7 +132,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[aria-haspopup="true"]').click()
             self.browser.element('[data-test-id="delete-widget"]').click()
             self.browser.element('[data-test-id="confirm-button"]').click()
 
@@ -476,11 +476,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[aria-haspopup="true"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
-            self.browser.elements('[data-test-id="context-menu"]')[0].click()
+            self.browser.element('[aria-haspopup="true"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
 
@@ -507,7 +507,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
-            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[aria-haspopup="true"]').click()
             self.browser.element('[data-test-id="delete-widget"]').click()
             self.browser.element('[data-test-id="confirm-button"]').click()
 
@@ -616,7 +616,10 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def test_deleting_stacked_widgets_by_context_menu_does_not_trigger_confirm_on_edit_cancel(
         self,
     ):
-        layouts = [{"x": 0, "y": 0, "w": 2, "h": 2}, {"x": 0, "y": 2, "w": 2, "h": 2}]
+        layouts = [
+            {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2},
+            {"x": 0, "y": 2, "w": 2, "h": 2, "minH": 2},
+        ]
         existing_widgets = DashboardWidget.objects.bulk_create(
             [
                 DashboardWidget(
@@ -640,8 +643,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         ):
             self.page.visit_dashboard_detail()
 
-            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
-            context_menu_icon.click()
+            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger.click()
 
             delete_widget_menu_item = self.browser.element('[data-test-id="delete-widget"]')
             delete_widget_menu_item.click()
@@ -664,7 +667,10 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def test_changing_number_widget_to_area_updates_widget_height(
         self,
     ):
-        layouts = [{"x": 0, "y": 0, "w": 2, "h": 1}, {"x": 0, "y": 1, "w": 2, "h": 1}]
+        layouts = [
+            {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 1},
+            {"x": 0, "y": 1, "w": 2, "h": 1, "minH": 1},
+        ]
         existing_widgets = DashboardWidget.objects.bulk_create(
             [
                 DashboardWidget(
@@ -689,8 +695,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
-            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
-            context_menu_icon.click()
+            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger.click()
             edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
             edit_widget_menu_item.click()
 
@@ -728,7 +734,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
-            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3}},
+            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 1}},
         )
         DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
         with self.feature(
@@ -737,8 +743,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
-            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
-            context_menu_icon.click()
+            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger.click()
             edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
             edit_widget_menu_item.click()
 
@@ -776,7 +782,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             display_type=DashboardWidgetDisplayTypes.AREA_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
-            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3}},
+            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 2}},
         )
         DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
         with self.feature(
@@ -785,8 +791,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
-            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
-            context_menu_icon.click()
+            dropdown_trigger = self.browser.element('[aria-haspopup="true"]')
+            dropdown_trigger.click()
             edit_widget_menu_item = self.browser.element('[data-test-id="edit-widget"]')
             edit_widget_menu_item.click()
 
@@ -852,3 +858,35 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
             self.browser.snapshot("dashboards - manage overview")
+
+    def test_dashboard_manager_with_unset_layouts_and_defined_layouts(self):
+        dashboard_with_layouts = Dashboard.objects.create(
+            title="Dashboard with some defined layouts",
+            created_by=self.user,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard_with_layouts,
+            order=0,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.BAR_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 1, "y": 0, "w": 3, "h": 3, "minH": 2}},
+        )
+
+        # This widget has no layout, but should position itself at
+        # x: 4, y: 0, w: 2, h: 2
+        DashboardWidget.objects.create(
+            dashboard=dashboard_with_layouts,
+            order=1,
+            title="Widget 2",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+            self.browser.get(self.default_path)
+            self.wait_until_loaded()
+            self.browser.snapshot("dashboards - manage overview with grid layout")

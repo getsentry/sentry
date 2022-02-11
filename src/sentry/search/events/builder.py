@@ -1435,6 +1435,37 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
+        self.granularity = self.resolve_granularity()
+
+    def resolve_granularity(self) -> Granularity:
+        """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
+        pre-aggregated
+
+        Granularity is determined by checking the alignment of our start & end timestamps with the timestamps in
+        snuba. eg. we can only use the daily granularity if the query starts and ends at midnight
+        Seconds are ignored under the assumption that there currently isn't a valid use case to have
+        to-the-second accurate information
+        """
+        start = cast(datetime, self.params["start"])
+        end = cast(datetime, self.params["end"])
+        duration = (end - start).seconds
+
+        # TODO: could probably allow some leeway on the start & end (a few minutes) and use a bigger granularity
+        # eg. yesterday at 11:59pm to tomorrow at 12:01am could still use the day bucket
+
+        # Query is at least an hour
+        if start.minute == end.minute == 0 and duration % 3600 == 0:
+            # we're going from midnight -> midnight which aligns with our daily buckets
+            if start.hour == end.hour == 0 and duration % 86400 == 0:
+                granularity = 86400
+            # we're roughly going from start of hour -> next which aligns with our hourly buckets
+            else:
+                granularity = 3600
+        # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
+        # here
+        else:
+            granularity = 60
+        return Granularity(granularity)
 
     def resolve_params(self) -> List[WhereType]:
         conditions = super().resolve_params()
@@ -1473,7 +1504,17 @@ class MetricsQueryBuilder(QueryBuilder):
             return resolved_function
         return None
 
+    @staticmethod
+    def _resolve_tag_value(value: str) -> int:
+        result = indexer.resolve(value)
+        if result is None:
+            raise InvalidSearchQuery("Tag value was not found")
+        return cast(int, result)
+
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if search_filter.value.is_wildcard():
+            raise IncompatibleMetricsQuery("wildcards not supported")
+
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -1482,7 +1523,10 @@ class MetricsQueryBuilder(QueryBuilder):
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
         if is_tag:
-            value = indexer.resolve(value)
+            if isinstance(value, list):
+                value = [self._resolve_tag_value(v) for v in value]
+            else:
+                value = self._resolve_tag_value(value)
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer

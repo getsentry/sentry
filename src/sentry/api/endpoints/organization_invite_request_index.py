@@ -11,6 +11,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.app import locks
 from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
+from sentry.notifications.utils.tasks import async_send_notification
 from sentry.utils.retries import TimedRetryPolicy
 
 from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
@@ -92,6 +93,6 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 event=AuditLogEntryEvent.INVITE_REQUEST_ADD,
             )
 
-        InviteRequestNotification(om, request.user).send()
+        async_send_notification(InviteRequestNotification, om, request.user)
 
         return Response(serialize(om), status=201)
