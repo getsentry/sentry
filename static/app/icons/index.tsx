@@ -69,7 +69,6 @@ export {IconPlay} from './iconPlay';
 export {IconPrevious} from './iconPrevious';
 export {IconPrint} from './iconPrint';
 export {IconProject} from './iconProject';
-export {IconProjects} from './iconProjects';
 export {IconQuestion} from './iconQuestion';
 export {IconDiamond} from './iconDiamond';
 export {IconRefresh} from './iconRefresh';

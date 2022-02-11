@@ -9,6 +9,7 @@ from sentry.models import SentryApp
 from sentry.notifications.notifications.organization_request.integration_request import (
     IntegrationRequestNotification,
 )
+from sentry.notifications.utils.tasks import async_send_notification
 from sentry.plugins.base import plugins
 
 
@@ -63,8 +64,14 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
         if not provider_name:
             return Response({"detail": f"Provider {provider_slug} not found"}, status=400)
 
-        IntegrationRequestNotification(
-            organization, requester, provider_type, provider_slug, provider_name, message_option
-        ).send()
+        async_send_notification(
+            IntegrationRequestNotification,
+            organization,
+            requester,
+            provider_type,
+            provider_slug,
+            provider_name,
+            message_option,
+        )
 
         return Response(status=201)
