@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Highlight from 'sentry/components/highlight';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import PageFilterRow from 'sentry/components/organizations/pageFilterRow';

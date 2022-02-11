@@ -8,7 +8,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
 import {IconClose, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';

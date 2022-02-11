@@ -6,7 +6,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {IconCommit, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -21,10 +21,16 @@ type Props = {
    */
   actor: Actor;
   /**
+   * Children are required, as they are passed to the hovercard component, without it,
+   * we will not be able to trigger any hovercard actions
+   */
+  children: React.ReactNode;
+  /**
    * The list of commits the actor is suggested for. May be left blank if the
    * actor is not suggested for commits.
    */
   commits?: Commit[];
+
   /**
    * The list of ownership rules the actor is suggested for. May be left blank
    * if the actor is not suggested based on ownership rules.
