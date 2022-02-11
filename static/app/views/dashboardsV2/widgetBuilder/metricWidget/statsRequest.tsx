@@ -128,6 +128,7 @@ function StatsRequest({
         });
       }
 
+      // TODO(metrics): replace with doMetricsRequest
       return api.requestPromise(metricDataEndpoint, {
         query,
       });

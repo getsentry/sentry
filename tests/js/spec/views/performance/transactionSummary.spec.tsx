@@ -460,12 +460,8 @@ describe('Performance > TransactionSummary', function () {
           ],
           query: 'transaction:/organizations/:orgId/issues/',
           groupBy: ['measurement_rating'],
-          orderBy: undefined,
-          per_page: undefined,
           interval: '1h',
           statsPeriod: '14d',
-          start: undefined,
-          end: undefined,
         }),
       })
     );
@@ -565,16 +561,12 @@ describe('Performance > TransactionSummary', function () {
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
         query: {
-          end: undefined,
           environment: [],
           field: ['count(sentry.transactions.transaction.duration)'],
           groupBy: ['transaction.status'],
           interval: '1h',
-          per_page: undefined,
-          orderBy: undefined,
           project: [2],
           query: 'transaction:/performance',
-          start: undefined,
           statsPeriod: '14d',
         },
       })
@@ -589,16 +581,11 @@ describe('Performance > TransactionSummary', function () {
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
         query: {
-          end: undefined,
           environment: [],
           field: ['count(sentry.transactions.transaction.duration)'],
-          groupBy: undefined,
           interval: '1h',
-          per_page: undefined,
-          orderBy: undefined,
           project: [2],
           query: 'transaction:/performance',
-          start: undefined,
           statsPeriod: '14d',
         },
       })
