@@ -13,6 +13,7 @@ export enum DisplayType {
 
 export enum DataSet {
   EVENTS = 'events',
+  ISSUES = 'issues',
   METRICS = 'metrics',
 }
 

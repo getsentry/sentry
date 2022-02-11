@@ -15,7 +15,6 @@ function BuildSteps({children}: Props) {
 export default BuildSteps;
 
 const StyledList = styled(List)`
-  display: grid;
   gap: ${space(4)};
   max-width: 100%;
 
