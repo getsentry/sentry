@@ -1,19 +1,9 @@
 import * as React from 'react';
+import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {getContext, Rect} from 'sentry/utils/profiling/gl/utils';
-
-function measureText(text: string, ctx: CanvasRenderingContext2D): Rect {
-  const measures = ctx.measureText(text);
-
-  return new Rect(
-    0,
-    0,
-    measures.width,
-    // https://stackoverflow.com/questions/1134586/how-can-you-find-the-height-of-text-on-an-html-canvas
-    measures.actualBoundingBoxAscent + measures.actualBoundingBoxDescent
-  );
-}
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {getContext, measureText, Rect} from 'sentry/utils/profiling/gl/utils';
 
 const useCachedMeasure = (string: string): Rect => {
   const cache = React.useRef<Record<string, Rect>>({});
@@ -46,6 +36,7 @@ interface BoundTooltipProps {
   bounds: Rect;
   configToPhysicalSpace: mat3;
   cursor: vec2 | null;
+  theme: FlamegraphTheme;
   children?: React.ReactNode;
 }
 
@@ -54,6 +45,7 @@ function BoundTooltip({
   configToPhysicalSpace,
   cursor,
   children,
+  theme,
 }: BoundTooltipProps): React.ReactElement | null {
   const tooltipRef = React.useRef<HTMLDivElement>(null);
   const tooltipRect = useCachedMeasure(tooltipRef.current?.textContent ?? '');
@@ -64,7 +56,7 @@ function BoundTooltip({
         mat3.create(),
         vec2.fromValues(1 / window.devicePixelRatio, 1 / window.devicePixelRatio)
       ),
-    []
+    [window.devicePixelRatio]
   );
 
   const [tooltipBounds, setTooltipBounds] = React.useState<Rect>(Rect.Empty());
@@ -85,7 +77,7 @@ function BoundTooltip({
         newTooltipBounds.height
       )
     );
-  }, [tooltipRef, children, bounds, cursor]);
+  }, [children, bounds, cursor]);
 
   if (!children || !cursor || bounds.isEmpty()) {
     return null;
@@ -117,28 +109,29 @@ function BoundTooltip({
   }
 
   return children ? (
-    <div
+    <Tooltip
       ref={tooltipRef}
       style={{
-        fontSize: 12,
-        fontFamily: `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
-          'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',
-          'Courier New', monospace`,
-        background: '#fff',
-        position: 'absolute',
-        whiteSpace: 'nowrap',
-        textOverflow: 'ellipsis',
-        overflow: 'hidden',
-        pointerEvents: 'none',
-        userSelect: 'none',
+        fontSize: theme.SIZES.TOOLTIP_FONT_SIZE,
+        fontFamily: theme.FONTS.FONT,
         left: cursorHorizontalPosition,
         top: cursorVerticalPosition,
         width: Math.min(tooltipRect.width, bounds.width - cursorHorizontalPosition - 2),
       }}
     >
       {children}
-    </div>
+    </Tooltip>
   ) : null;
 }
+
+const Tooltip = styled('div')`
+  background: #fff;
+  position: absolute;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+`;
 
 export {BoundTooltip};
