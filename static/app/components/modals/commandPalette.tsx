@@ -3,7 +3,7 @@ import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Search from 'sentry/components/search';
+import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {analytics} from 'sentry/utils/analytics';
