@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.project import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.http import safe_urlopen
 
 STACKTRACE_FILTERS = [
