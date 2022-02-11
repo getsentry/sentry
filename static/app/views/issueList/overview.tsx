@@ -117,7 +117,6 @@ type State = {
   queryCounts: QueryCounts;
   queryMaxCount: number;
   realtimeActive: boolean;
-  reviewedIds: string[];
   selectAllActive: boolean;
   tagsLoading: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
@@ -157,7 +156,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     return {
       groupIds: [],
-      reviewedIds: [],
       actionTaken: false,
       selectAllActive: false,
       realtimeActive,
@@ -209,13 +207,6 @@ class IssueListOverview extends React.Component<Props, State> {
       if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
         this.transitionTo({display: undefined});
       }
-    }
-
-    if (
-      prevState.actionTaken !== this.state.actionTaken &&
-      this.state.reviewedIds.length > 0
-    ) {
-      this.fetchData();
     }
 
     // Wait for saved searches to load before we attempt to fetch stream data
@@ -520,7 +511,7 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   fetchData = (fetchAllCounts = false) => {
-    if (!this.state.reviewedIds.length && !this.state.actionTaken) {
+    if (!this.state.actionTaken) {
       GroupStore.loadInitialData([]);
       this._streamManager.reset();
 
@@ -528,7 +519,6 @@ class IssueListOverview extends React.Component<Props, State> {
         issuesLoading: true,
         queryCount: 0,
         itemsRemoved: 0,
-        reviewedIds: [],
         error: null,
       });
     }
@@ -599,8 +589,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this._streamManager.push(data);
 
-        GroupStore.remove(this.state.reviewedIds);
-
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
@@ -639,7 +627,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this.resumePolling();
 
-        this.setState({actionTaken: false, reviewedIds: []});
+        this.setState({actionTaken: false});
       },
     });
   };
@@ -712,13 +700,23 @@ class IssueListOverview extends React.Component<Props, State> {
       .getAllItems()
       .filter(id => id.status === 'ignored')
       .map(item => item.id);
-    // Remove Ignored and Resolved group ids from the issue stream, but if there's no query/you want
-    // to see ALL issues, don't trigger these group ids to be removed from the issue stream.
+    const reviewedIds = this._streamManager
+      .getAllItems()
+      .filter(id => !id.inbox)
+      .map(item => item.id);
+    // Remove Ignored and Resolved group ids from the issue stream, but if you have a query
+    // that includes these statuses or there's no query/you want to see ALL issues,
+    // don't trigger these group ids to be removed from the issue stream.
     if (resolvedIds.length > 0 && !query.includes('is:resolved') && !!query) {
       this.onIssueAction(resolvedIds);
     }
     if (ignoredIds.length > 0 && !query.includes('is:ignored') && !!query) {
       this.onIssueAction(ignoredIds);
+    }
+    // Remove issues that are marked as Reviewed from the For Review tab, but still include the
+    // issues if not on the For Review tab, or no query for ALL issues.
+    if (reviewedIds.length > 0 && isForReviewQuery(query) && !!query) {
+      this.onIssueAction(reviewedIds);
     }
 
     const groupIds = this._streamManager.getAllItems().map(item => item.id) ?? [];
@@ -985,8 +983,6 @@ class IssueListOverview extends React.Component<Props, State> {
           [query as Query]: currentQueryCount,
         },
         itemsRemoved: itemsRemoved + inInboxCount,
-        reviewedIds: itemIds,
-        actionTaken: true,
       });
     }
   };
