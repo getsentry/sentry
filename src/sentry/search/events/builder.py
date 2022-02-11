@@ -1567,8 +1567,18 @@ class MetricsQueryBuilder(QueryBuilder):
         if primary is None:
             primary = "distribution"
 
-        transaction_map = defaultdict(dict)
-        meta = []
+        value_map = defaultdict(dict)
+        groupby_aliases = [
+            groupby.alias
+            if isinstance(groupby, (AliasedExpression, CurriedFunction))
+            else groupby.name
+            for groupby in self.groupby
+        ]
+        groupby_values = []
+        result = {
+            "data": None,
+            "meta": [],
+        }
         for query_details in [query_framework.pop(primary), *query_framework.values()]:
             # Only run the query if there's at least one function, can't query without metrics
             if len(query_details["functions"]) > 0:
@@ -1578,14 +1588,25 @@ class MetricsQueryBuilder(QueryBuilder):
                     if not isinstance(column, CurriedFunction)
                     or column in query_details["functions"]
                 ]
-                if transaction_map:
-                    # This is second or third query, filter to the transactions
+                if groupby_values:
+                    # This is second or third query, filter to the group by
                     where = self.where + [
                         Condition(
-                            self.resolve_column("transaction"), Op.IN, list(transaction_map.keys())
+                            # Tuples are allowed to have multiple types in clickhouse
+                            Function(
+                                "tuple",
+                                [
+                                    groupby.exp
+                                    if isinstance(groupby, AliasedExpression)
+                                    else groupby
+                                    for groupby in self.groupby
+                                ],
+                            ),
+                            Op.IN,
+                            Function("tuple", groupby_values),
                         )
                     ]
-                    # Always offset 0 since we filter to the transactions
+                    # Always offset 0 since we filter to the group by
                     offset = Offset(0)
                 else:
                     where = self.where
@@ -1605,18 +1626,23 @@ class MetricsQueryBuilder(QueryBuilder):
                     limitby=self.limitby,
                     turbo=self.turbo,
                 )
-                result = raw_snql_query(
+                current_result = raw_snql_query(
                     query,
                     referrer,
                     use_cache,
                 )
-                for row in result["data"]:
-                    groupby_key = ",".join(
-                        str(row[key.alias])
-                        for key in self.groupby
-                        if isinstance(key, (AliasedExpression, CurriedFunction))
+                for row in current_result["data"]:
+                    # Arrays in clickhouse cannot contain multiple types, and since groupby values
+                    # can contain any type, we must use tuples instead
+                    groupby_key = tuple(
+                        value for key, value in row.items() if key in groupby_aliases
                     )
-                    transaction_map[groupby_key].update(row)
-                meta += result["meta"]
+                    value_map_key = ",".join(str(value) for value in groupby_key)
+                    # First time we're seeing this value, add it to the values we're going to filter by
+                    if value_map_key not in value_map:
+                        groupby_values.append(groupby_key)
+                    value_map[value_map_key].update(row)
+                result["meta"] += current_result["meta"]
+        result["data"] = list(value_map.values())
 
-        return {"data": list(transaction_map.values()), "meta": meta}
+        return result

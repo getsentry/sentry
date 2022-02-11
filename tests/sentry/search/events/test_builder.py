@@ -1,6 +1,5 @@
 import datetime
 import re
-from unittest import mock
 
 from django.utils import timezone
 from snuba_sdk.aliased_expression import AliasedExpression
@@ -14,7 +13,7 @@ from sentry.search.events import constants
 from sentry.search.events.builder import MetricsQueryBuilder, QueryBuilder
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SessionMetricsTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
 
@@ -591,10 +590,10 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
     )
 
 
-class MetricQueryBuilderTest(TestCase):
+class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
     def setUp(self):
-        self.start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        self.start = datetime.datetime(2021, 1, 1, 10, 15, 1, tzinfo=timezone.utc)
+        self.end = datetime.datetime(2021, 1, 19, 10, 15, 1, tzinfo=timezone.utc)
         self.projects = [self.project.id]
         self.organization_id = 1
         self.params = {
@@ -613,9 +612,41 @@ class MetricQueryBuilderTest(TestCase):
         PGStringIndexer().bulk_record(
             strings=[
                 "transaction",
-                "foo_bar_transaction",
+                "foo_transaction",
+                "bar_transaction",
             ]
             + list(constants.METRICS_MAP.values())
+        )
+
+    def store_metric(
+        self,
+        value,
+        metric=constants.METRICS_MAP["transaction.duration"],
+        entity="metrics_distributions",
+        tags=None,
+        timestamp=None,
+    ):
+        if tags is None:
+            tags = {}
+        if timestamp is None:
+            timestamp = int((self.start + datetime.timedelta(minutes=1)).timestamp())
+        if not isinstance(value, list):
+            value = [value]
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization_id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.resolve(metric),
+                    "timestamp": timestamp,
+                    "tags": tags,
+                    # First letter of the entity
+                    "type": entity[8],
+                    "value": value,
+                    "retention_days": 90,
+                }
+            ],
+            entity=entity,
         )
 
     def test_default_conditions(self):
@@ -680,11 +711,11 @@ class MetricQueryBuilderTest(TestCase):
     def test_transaction_filter(self):
         query = MetricsQueryBuilder(
             self.params,
-            "transaction:foo_bar_transaction",
+            "transaction:foo_transaction",
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve("transaction")
-        transaction_name = indexer.resolve("foo_bar_transaction")
+        transaction_name = indexer.resolve("foo_transaction")
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where, [*self.default_conditions, Condition(transaction, Op.EQ, transaction_name)]
@@ -701,50 +732,26 @@ class MetricQueryBuilderTest(TestCase):
             [*self.default_conditions, Condition(Column("project_id"), Op.EQ, self.project.id)],
         )
 
-    @mock.patch("sentry.search.events.builder.raw_snql_query")
-    def test_run_query(self, mock_query):
-        mock_query.side_effect = [
-            {
-                "data": [
-                    {"transaction": 1, "project": self.project.slug, "p95_transaction_duration": 1},
-                    {"transaction": 2, "project": self.project.slug, "p95_transaction_duration": 2},
-                ],
-                "meta": [
-                    {
-                        "name": "transaction",
-                        "type": "Integer",
-                    },
-                    {
-                        "name": "project",
-                        "type": "String",
-                    },
-                    {
-                        "name": "p95_transaction_duration",
-                        "type": "Float",
-                    },
-                ],
-            },
-            {
-                "data": [
-                    {"transaction": 1, "project": self.project.slug, "count_unique_user": 5},
-                    {"transaction": 2, "project": self.project.slug, "count_unique_user": 15},
-                ],
-                "meta": [
-                    {
-                        "name": "transaction",
-                        "type": "Integer",
-                    },
-                    {
-                        "name": "project",
-                        "type": "String",
-                    },
-                    {
-                        "name": "count_unique_user",
-                        "type": "Float",
-                    },
-                ],
-            },
-        ]
+    def test_run_query(self):
+        self.store_metric(
+            100, tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")}
+        )
+        query = MetricsQueryBuilder(
+            self.params,
+            f"project:{self.project.slug}",
+            selected_columns=[
+                "transaction",
+                "p95(transaction.duration)",
+            ],
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 1
+        assert result["data"][0] == {
+            "transaction": indexer.resolve("foo_transaction"),
+            "p95_transaction_duration": 100,
+        }
+
+    def test_run_query_with_multiple_groupby(self):
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
@@ -754,22 +761,43 @@ class MetricQueryBuilderTest(TestCase):
                 "p95(transaction.duration)",
                 "count_unique(user)",
             ],
+            orderby="-p95(transaction.duration)",
+        )
+        self.store_metric(
+            100, tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")}
+        )
+        self.store_metric(
+            1,
+            metric=constants.METRICS_MAP["user"],
+            entity="metrics_sets",
+            tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")},
+        )
+        self.store_metric(
+            50, tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")}
+        )
+        self.store_metric(
+            1,
+            metric=constants.METRICS_MAP["user"],
+            entity="metrics_sets",
+            tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")},
+        )
+        self.store_metric(
+            2,
+            metric=constants.METRICS_MAP["user"],
+            entity="metrics_sets",
+            tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")},
         )
         result = query.run_query("test_query")
-        self.assertCountEqual(
-            result["data"],
-            [
-                {
-                    "transaction": 1,
-                    "project": self.project.slug,
-                    "count_unique_user": 5,
-                    "p95_transaction_duration": 1,
-                },
-                {
-                    "transaction": 2,
-                    "project": self.project.slug,
-                    "count_unique_user": 15,
-                    "p95_transaction_duration": 2,
-                },
-            ],
-        )
+        assert len(result["data"]) == 2
+        assert result["data"][0] == {
+            "transaction": indexer.resolve("foo_transaction"),
+            "project": self.project.slug,
+            "p95_transaction_duration": 100,
+            "count_unique_user": 1,
+        }
+        assert result["data"][1] == {
+            "transaction": indexer.resolve("bar_transaction"),
+            "project": self.project.slug,
+            "p95_transaction_duration": 50,
+            "count_unique_user": 2,
+        }
