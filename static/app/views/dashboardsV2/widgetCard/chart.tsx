@@ -22,7 +22,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -39,9 +38,6 @@ import {Theme} from 'sentry/utils/theme';
 import {DisplayType, Widget} from '../types';
 
 import WidgetQueries from './widgetQueries';
-
-const BIG_NUMBER_WIDGET_DEFAULT_HEIGHT = 200;
-const BIG_NUMBER_WIDGET_DEFAULT_WIDTH = 400;
 
 type TableResultProps = Pick<
   WidgetQueries['state'],
@@ -91,6 +87,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     return !isEqual(currentProps, nextProps);
   }
+
+  bigNumberContainer = React.createRef<HTMLDivElement>();
 
   tableResultComponent({
     loading,
@@ -146,7 +144,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {organization, widget, isMobile, windowWidth} = this.props;
+    const {organization, widget, isMobile} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
@@ -167,42 +165,22 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       if (
         !!!organization.features.includes('dashboard-grid-layout') ||
         isModalWidget ||
-        isMobile ||
-        !!!defined(windowWidth)
+        isMobile
       ) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      // making it a bit more sensitive to height changes with
-      // the exponent so it doesn't go purely off of the w:h ratio
-      const transformedWidthToHeightRatio =
-        widget.layout?.w && widget.layout?.h
-          ? widget.layout.w / widget.layout.h ** 1.5
-          : 1;
+      let w = 0;
+      let h = 0;
 
-      const widthToHeightRatio =
-        widget.layout?.w && widget.layout?.h ? widget.layout.w / widget.layout.h : 1;
-
-      const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
-
-      // heuristics to maintain an aspect ratio that works
-      // most of the time, taking into account the height
-      // & width of the container and the width of the
-      // window
-      const w =
-        widget.layout?.w && widget.layout?.h
-          ? transformedWidthToHeightRatio * (300 + windowWidth / 4)
-          : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
-
-      // adjusting font size for very tall widgets to prevent
-      // text clipping
-      const fontSize =
-        transformedWidthToHeightRatio < 0.5
-          ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
-          : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+      if (this.bigNumberContainer.current) {
+        const {width, height} = this.bigNumberContainer.current.getBoundingClientRect();
+        w = width;
+        h = height;
+      }
 
       return (
-        <BigNumber fontSize={fontSize} key={`big_number:${result.title}`}>
+        <BigNumber fontSize={h} key={`big_number:${result.title}`}>
           <svg
             width="100%"
             height="100%"
@@ -261,7 +239,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          {this.bigNumberComponent({tableResults, loading, errorMessage})}
+          <BigNumberResizeWrapper ref={this.bigNumberContainer}>
+            {this.bigNumberComponent({tableResults, loading, errorMessage})}
+          </BigNumberResizeWrapper>
         </TransitionChart>
       );
     }
@@ -436,8 +416,14 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;
 
+const BigNumberResizeWrapper = styled('div')`
+  height: calc(100% - 37px);
+  width: 100%;
+  background: yellow;
+  overflow: hidden;
+`;
+
 const BigNumber = styled('div')<{fontSize?: number}>`
-  resize: both;
   line-height: 1;
   display: inline-flex;
   flex: 1;
