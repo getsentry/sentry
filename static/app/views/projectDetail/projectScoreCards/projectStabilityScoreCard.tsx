@@ -49,7 +49,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection, isProjectStabilized, hasSessions, query, field} =
+    const {organization, selection, isProjectStabilized, hasSessions, field, query, field} =
       this.props;
 
     if (!isProjectStabilized || !hasSessions) {
@@ -61,10 +61,10 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     const commonQuery = {
       environment,
       project: projects[0],
+      field: field || 'sum(session)',
       groupBy: 'session.status',
       interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
       query,
-      field,
     };
 
     // Unfortunately we can't do something like statsPeriod=28d&interval=14d to get scores for this and previous interval with the single request

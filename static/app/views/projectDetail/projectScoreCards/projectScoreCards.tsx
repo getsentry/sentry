@@ -31,6 +31,16 @@ function ProjectScoreCards({
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
+        field="sum(session)"
+        query={query}
+      />
+
+      <ProjectStabilityScoreCard
+        organization={organization}
+        selection={selection}
+        isProjectStabilized={isProjectStabilized}
+        hasSessions={hasSessions}
+        field="count_unique(user)"
         query={query}
         field={SessionField.SESSIONS}
       />
