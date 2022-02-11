@@ -163,6 +163,7 @@ default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
 default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
+default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

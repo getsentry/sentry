@@ -1051,6 +1051,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-metrics": False,
     # Enable issue widgets in dashboards
     "organizations:issues-in-dashboards": False,
+    # Enable widget viewer modal in dashboards
+    "organizations:widget-viewer-modal": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
