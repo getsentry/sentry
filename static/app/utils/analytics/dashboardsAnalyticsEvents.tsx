@@ -44,7 +44,7 @@ export type DashboardsEventParameters = {
     widget_type: string;
   };
   'dashboards_views.widget.resize': {
-    displayType: DisplayType;
+    display_type: DisplayType;
     height: ResizeChange;
     width: ResizeChange;
   };

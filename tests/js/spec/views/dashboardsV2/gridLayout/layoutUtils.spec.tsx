@@ -261,14 +261,14 @@ describe('Dashboards > Utils', () => {
         'dashboards_views.widget.resize',
         {
           organization,
-          displayType: DisplayType.BIG_NUMBER,
+          display_type: DisplayType.BIG_NUMBER,
           height: 'smaller',
           width: 'larger',
         }
       );
     });
 
-    it('sends multiple tracking events with multiple widgets', () => {
+    it('sends tracking events only for new or persisted widgets (i.e, ignores removed widgets)', () => {
       // @ts-ignore
       const previousWidget = TestStubs.Widget(
         [{name: '', conditions: 'event.type:error', fields: ['count()']}],
@@ -284,19 +284,45 @@ describe('Dashboards > Utils', () => {
       const nextWidget = TestStubs.Widget(
         [{name: '', conditions: 'event.type:error', fields: ['count()']}],
         {
-          id: '1',
+          id: '2',
           title: 'Default Widget 1',
           interval: '1d',
-          layout: {x: 0, y: 0, w: 4, h: 1},
+          layout: {x: 0, y: 0, w: 4, h: 2},
           displayType: DisplayType.BIG_NUMBER,
         }
       );
       trackDashboardResizes(
         organization,
-        [previousWidget],
-        [nextWidget, {...nextWidget, id: '2'}] // Override the id as if a new widget was added
+        [previousWidget, nextWidget],
+        [
+          // Same width and larger height
+          {...nextWidget, layout: {x: 0, y: 0, w: 4, h: 3}},
+
+          // New, so compared against big number default, w: smaller, h: larger
+          {...nextWidget, id: '3', layout: {x: 0, y: 0, w: 1, h: 2}},
+        ]
       );
       expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(2);
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenNthCalledWith(
+        1,
+        'dashboards_views.widget.resize',
+        {
+          organization,
+          display_type: DisplayType.BIG_NUMBER,
+          height: 'larger',
+          width: 'unchanged',
+        }
+      );
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenNthCalledWith(
+        2,
+        'dashboards_views.widget.resize',
+        {
+          organization,
+          display_type: DisplayType.BIG_NUMBER,
+          height: 'larger',
+          width: 'smaller',
+        }
+      );
     });
   });
 });

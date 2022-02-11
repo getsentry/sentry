@@ -291,7 +291,7 @@ export function trackDashboardResizes(
     if (heightOrWidthChanged) {
       trackAdvancedAnalyticsEvent('dashboards_views.widget.resize', {
         organization,
-        displayType: newSavedWidget.displayType,
+        display_type: newSavedWidget.displayType,
         height: heightChange,
         width: widthChange,
       });
