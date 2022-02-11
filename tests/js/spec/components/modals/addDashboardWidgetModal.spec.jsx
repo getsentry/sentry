@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   mountWithTheme as reactMountWithTheme,
   screen,
   userEvent,
@@ -120,7 +121,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     widgetDisplay: ['area'],
   });
 
-  let eventsStatsMock;
+  let eventsStatsMock, metricsTagsMock;
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
@@ -153,6 +154,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [],
+    });
+    metricsTagsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/tags/',
+      body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
     });
   });
 
@@ -1241,6 +1246,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
+      await tick();
+
       expect(screen.getByText('Data Set')).toBeInTheDocument();
       expect(
         screen.getByText('All Events (Errors and Transactions)')
@@ -1267,7 +1274,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       const metricsDataset = screen.getByLabelText('Metrics (Release Health)');
       expect(metricsDataset).not.toBeChecked();
-      userEvent.click(metricsDataset);
+      await act(async () =>
+        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
+      );
       expect(metricsDataset).toBeChecked();
 
       userEvent.click(screen.getByText('Table'));
@@ -1275,6 +1284,41 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(metricsDataset).toBeChecked();
 
       wrapper.unmount();
+    });
+
+    it('retrieves tags when modal is opened', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+      mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      await tick();
+      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
+
+      await act(async () =>
+        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
+      );
+
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
+      expect(screen.queryByText('sentry.sessions.user')).not.toBeInTheDocument();
+
+      userEvent.click(screen.getByText('sum(…)'));
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+      expect(screen.getByText('release')).toBeInTheDocument();
+      expect(screen.getByText('environment')).toBeInTheDocument();
+      expect(screen.getByText('session.status')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('count_unique(…)'));
+      expect(screen.queryByText('sentry.sessions.session')).not.toBeInTheDocument();
+      expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
     });
   });
 });
