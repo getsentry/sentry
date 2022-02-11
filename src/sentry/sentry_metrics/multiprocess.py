@@ -4,6 +4,7 @@ import time
 from collections import deque
 from concurrent.futures import Future
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -25,7 +26,6 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.processing.strategies.streaming.collect import CollectStep
 from arroyo.processing.strategies.streaming.transform import ParallelTransformStep
 from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
@@ -456,25 +456,15 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self,
         max_batch_size: int,
         max_batch_time: float,
-        commit_max_batch_size: int,
-        commit_max_batch_time: float,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
-        self.__commit_max_batch_time = commit_max_batch_time
-        self.__commit_max_batch_size = commit_max_batch_size
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
-        last_step = CollectStep(
-            step_factory=SimpleProduceStep,
-            commit_function=commit,
-            max_batch_size=self.__commit_max_batch_size,
-            # convert to seconds
-            max_batch_time=self.__commit_max_batch_time / 1000,
-        )
-        transform_step = TransformStep(next_step=last_step)
+
+        transform_step = TransformStep(next_step=SimpleProduceStep(commit))
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
         return strategy
 
@@ -523,9 +513,20 @@ class UnflushedMessages(Exception):
     pass
 
 
+class OutOfOrderOffset(Exception):
+    pass
+
+
+@dataclass
+class PartitionOffset:
+    position: Position
+    partition: Partition
+
+
 class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
     def __init__(
         self,
+        commit_function: Callable[[Mapping[Partition, Position]], None],
     ) -> None:
         snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
         snuba_metrics_producer = Producer(
@@ -536,12 +537,31 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
             "topic", "snuba-metrics"
         )
+        self.__commit_function = commit_function
 
         self.__closed = False
         self.__metrics = get_metrics()
+        self.__produced_message_offsets = []
+        self.__callbacks = 0
 
     def poll(self) -> None:
-        pass
+        if self.__callbacks and self.__produced_message_offsets:
+            success_messages = self.__produced_message_offsets[: self.__callbacks]
+            latest_offset_by_partition = {}
+            for message in success_messages:
+                latest = latest_offset_by_partition.get(message.partition)
+
+                if latest and message.position.offset < latest.offset:
+                    raise OutOfOrderOffset()
+
+                latest_offset_by_partition[message.partition] = message.position
+
+            logger.info(
+                f"Committing {len(success_messages)} messages out of {len(self.__produced_message_offsets)} total produced messages."
+            )
+            self.__commit_function(latest_offset_by_partition)
+            self.__produced_message_offsets = self.__produced_message_offsets[self.__callbacks :]
+            self.__callbacks = 0
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         self.__producer.produce(
@@ -550,8 +570,13 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
             value=message.payload.value,
             on_delivery=self.callback,
         )
+        self.__producer.poll(0.0005)
+        offset = Position(message.offset, message.timestamp)
+        self.__produced_message_offsets.append(PartitionOffset(offset, message.partition))
 
     def callback(self, error: Any, message: Any) -> None:
+        if message and error is None:
+            self.__callbacks += 1
         if error is not None:
             raise Exception(error.str())
 
@@ -562,19 +587,29 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__closed = True
 
     def join(self, timeout: Optional[float]) -> None:
-        with self.__metrics.timer("simple_produce_step.join_duration"):
-            if not timeout:
-                timeout = 5.0
-            messages_left = self.__producer.flush(timeout)
+        if not timeout:
+            timeout = 5.0
+        self.__producer.flush(timeout)
 
-            if messages_left != 0:
-                self.__metrics.incr("simple_produce_step.messages_left", amount=messages_left)
-                # lets try one more time to flush any last messages
-                unflushed_messages = self.__producer.flush(timeout)
-                if unflushed_messages != 0:
-                    raise UnflushedMessages(
-                        f"There are still {unflushed_messages} unflushed messages left."
-                    )
+        if self.__callbacks:
+            success_messages = self.__produced_message_offsets[: self.__callbacks]
+
+            latest_offset_by_partition = {}
+            for message in success_messages:
+                latest = latest_offset_by_partition.get(message.partition)
+
+                if latest and message.position.offset < latest.offset:
+                    raise OutOfOrderOffset()
+
+                latest_offset_by_partition[message.partition] = message.position
+
+            logger.info(
+                f"Committing {len(success_messages)} messages out of {len(self.__produced_message_offsets)} total produced messages."
+            )
+            logger.info(f"Latest offset: {list(latest_offset_by_partition.values())[0]}")
+            self.__commit_function(latest_offset_by_partition)
+            self.__produced_message_offsets = self.__produced_message_offsets[self.__callbacks : -1]
+            self.__callbacks = 0
 
 
 def get_streaming_metrics_consumer(
@@ -605,8 +640,6 @@ def get_streaming_metrics_consumer(
         processing_factory = BatchConsumerStrategyFactory(
             max_batch_size=max_batch_size,
             max_batch_time=max_batch_time,
-            commit_max_batch_size=commit_max_batch_size,
-            commit_max_batch_time=commit_max_batch_time,
         )
 
     return StreamProcessor(
