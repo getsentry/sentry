@@ -376,7 +376,7 @@ describe('Dashboards > Detail', function () {
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
-      wrapper.find('InnerWrapper[data-test-id="widget-add"]').simulate('click');
+      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
       expect(openEditModal).toHaveBeenCalledTimes(1);
     });
 
@@ -409,7 +409,7 @@ describe('Dashboards > Detail', function () {
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
-      wrapper.find('InnerWrapper[data-test-id="widget-add"]').simulate('click');
+      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
       expect(openEditModal).toHaveBeenCalledTimes(1);
       expect(openEditModal).toHaveBeenCalledWith(
         expect.objectContaining({
