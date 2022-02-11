@@ -4,6 +4,10 @@ from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoin
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
+from sentry.api.endpoints.organization_stacktraces import (
+    OrganizationStacktraceFiltersEndpoint,
+    OrganizationStacktracesEndpoint,
+)
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -1529,6 +1533,16 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
                     OrganizationMetricsTagDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-metrics-tag-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/stacktraces/$",
+                    OrganizationStacktracesEndpoint.as_view(),
+                    name="sentry-api-0-organization-stacktraces",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/stacktrace_filters/$",
+                    OrganizationStacktraceFiltersEndpoint.as_view(),
+                    name="sentry-api-0-organization-stacktrace-filters",
                 ),
             ]
         ),
