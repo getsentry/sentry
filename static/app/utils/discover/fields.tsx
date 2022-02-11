@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
-import {MetricsColumnType} from 'sentry/views/dashboardsV2/widget/metricWidget/fields';
+import {MetricsColumnType} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 
 import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
 

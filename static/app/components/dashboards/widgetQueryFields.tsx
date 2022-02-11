@@ -12,7 +12,7 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/metricWidget/fields';
+import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';

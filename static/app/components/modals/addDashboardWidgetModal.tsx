@@ -130,7 +130,7 @@ const newIssueQuery = {
 
 const newMetricsQuery = {
   name: '',
-  fields: [SessionMetric.SENTRY_SESSIONS_SESSION],
+  fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
   conditions: '',
   orderby: '',
 };

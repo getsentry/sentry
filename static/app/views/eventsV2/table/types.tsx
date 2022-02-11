@@ -6,7 +6,7 @@ import {
   ColumnType,
   ColumnValueType,
 } from 'sentry/utils/discover/fields';
-import {MetricsColumnType} from 'sentry/views/dashboardsV2/widget/metricWidget/fields';
+import {MetricsColumnType} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 
 /**
  * It is assumed that `aggregation` and `field` have the same ColumnValueType
