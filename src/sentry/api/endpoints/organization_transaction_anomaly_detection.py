@@ -1,5 +1,5 @@
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
 from rest_framework.request import Request
@@ -32,43 +32,61 @@ def get_anomalies(snuba_io):
     )
 
 
-def map_snuba_queries(start, end):
+def get_time_params(start, end):
     """
     Takes visualization start/end timestamps
     and returns the start/end/granularity
     of the snuba query that we should execute
-
     Attributes:
-    start: unix timestamp representing start of visualization window
-    end: unix timestamp representing end of visualization window
-
+    start: datetime representing start of visualization window
+    end: datetime representing end of visualization window
     Returns:
     results: namedtuple containing
         query_start: datetime representing start of query window
         query_end: datetime representing end of query window
         granularity: granularity to use (in seconds)
     """
+    anomaly_detection_range = end - start
 
-    def days(n):
-        return 60 * 60 * 24 * n
-
-    if end - start <= days(2):
-        granularity = 300
-        query_start = end - days(7)
-    elif end - start <= days(7):
-        granularity = 600
-        query_start = end - days(14)
-    elif end - start <= days(14):
-        granularity = 1200
-        query_start = end - days(28)
-    else:
+    if anomaly_detection_range > timedelta(days=14):
+        snuba_range = timedelta(days=90)
         granularity = 3600
-        query_start = end - days(90)
-    query_end = end
+
+    elif anomaly_detection_range > timedelta(days=1):
+        granularity = 1200
+        snuba_range = timedelta(days=28)
+
+    else:
+        snuba_range = timedelta(days=14)
+        granularity = 600
+
+    additional_time_needed = snuba_range - anomaly_detection_range
+    now = datetime.utcnow().astimezone(timezone.utc)
+    start_limit = now - timedelta(days=90)
+    end_limit = now
+    start = max(start, start_limit)
+    end = min(end, end_limit)
+    # By default, expand windows equally in both directions
+    window_increase = additional_time_needed / 2
+    query_start, query_end = None, None
+
+    # If window will go back farther than 90 days, use today - 90 as start
+    if start - window_increase < start_limit:
+        query_start = now - timedelta(days=90)
+        additional_time_needed -= start - query_start
+        window_increase = additional_time_needed
+    # If window extends beyond today, use today as end
+    if end + window_increase > end_limit:
+        query_end = now
+        additional_time_needed -= query_end - end
+        window_increase = additional_time_needed
+
+    query_start = query_start or max(start - window_increase, start_limit)
+    query_end = query_end or min(end + window_increase, end_limit)
 
     return MappedParams(
-        datetime.fromtimestamp(query_start),
-        datetime.fromtimestamp(query_end),
+        query_start,
+        query_end,
         granularity,
     )
 
@@ -76,29 +94,29 @@ def map_snuba_queries(start, end):
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         start, end = get_date_range_from_params(request.GET)
-        mapped_params = map_snuba_queries(start.timestamp(), end.timestamp())
-        params = self.get_snuba_params(request, organization)
+        time_params = get_time_params(start, end)
+        query_params = self.get_snuba_params(request, organization)
         query = request.GET.get("query")
         query = f"{query} event.type:transaction" if query else "event.type:transaction"
 
         datetime_format = "%Y-%m-%d %H:%M:%S"
         ads_request = {
             "query": query,
-            "params": params,
+            "params": query_params,
             "start": start.strftime(datetime_format),
             "end": end.strftime(datetime_format),
-            "granularity": mapped_params.granularity,
+            "granularity": time_params.granularity,
         }
 
         # overwrite relevant time params
-        params["start"] = mapped_params.query_start
-        params["end"] = mapped_params.query_end
+        query_params["start"] = time_params.query_start
+        query_params["end"] = time_params.query_end
 
         snuba_response = timeseries_query(
             selected_columns=["count()"],
             query=query,
-            params=params,
-            rollup=mapped_params.granularity,
+            params=query_params,
+            rollup=time_params.granularity,
             referrer="transaction-anomaly-detection",
             zerofill_results=False,
         )
