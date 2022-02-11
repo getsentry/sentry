@@ -22,6 +22,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -54,7 +55,6 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
-  isMobile?: boolean;
   windowWidth?: number;
 };
 
@@ -144,7 +144,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {organization, widget, isMobile} = this.props;
+    const {organization, widget} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
@@ -162,11 +162,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       const rendered = fieldRenderer(dataRow);
 
       const isModalWidget = !!!(widget.id || widget.tempId);
-      if (
-        !!!organization.features.includes('dashboard-grid-layout') ||
-        isModalWidget ||
-        isMobile
-      ) {
+      if (!!!organization.features.includes('dashboard-grid-layout') || isModalWidget) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
@@ -180,14 +176,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       }
 
       return (
-        <BigNumber fontSize={h} key={`big_number:${result.title}`}>
+        <BigNumber key={`big_number:${result.title}`} fontSize={h} paddingTop={0}>
           <svg
-            width="100%"
-            height="100%"
+            width={w}
+            height={h}
             viewBox={`0 0 ${w} ${h}`}
             preserveAspectRatio="xMinYMin meet"
           >
-            <foreignObject x="0" y="0" width="100%" height="100%">
+            <foreignObject x="0" y="0" width={w} height={h}>
               <Tooltip title={rendered} showOnlyOnOverflow>
                 {rendered}
               </Tooltip>
@@ -417,13 +413,12 @@ const LoadingPlaceholder = styled(Placeholder)`
 `;
 
 const BigNumberResizeWrapper = styled('div')`
-  height: calc(100% - 37px);
+  height: 100%;
   width: 100%;
-  background: yellow;
   overflow: hidden;
 `;
 
-const BigNumber = styled('div')<{fontSize?: number}>`
+const BigNumber = styled('div')<{fontSize?: number; paddingTop?: number}>`
   line-height: 1;
   display: inline-flex;
   flex: 1;
@@ -432,6 +427,8 @@ const BigNumber = styled('div')<{fontSize?: number}>`
   font-size: ${p => (p.fontSize ? `${p.fontSize}px` : '32px')};
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
+  ${p => defined(p.paddingTop) && `padding-top: ${p.paddingTop};`}
+
   * {
     text-align: left !important;
   }

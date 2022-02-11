@@ -210,7 +210,6 @@ class WidgetCard extends React.Component<Props> {
       location,
       router,
       tableItemLimit,
-      isMobile,
       windowWidth,
     } = this.props;
 
@@ -238,7 +237,6 @@ class WidgetCard extends React.Component<Props> {
                 selection={selection}
                 router={router}
                 organization={organization}
-                isMobile={isMobile}
                 windowWidth={windowWidth}
               />
               {this.renderToolbar()}
@@ -259,7 +257,6 @@ class WidgetCard extends React.Component<Props> {
       location,
       router,
       tableItemLimit,
-      isMobile,
       windowWidth,
     } = this.props;
     return (
@@ -286,7 +283,6 @@ class WidgetCard extends React.Component<Props> {
                 selection={selection}
                 router={router}
                 organization={organization}
-                isMobile={isMobile}
                 windowWidth={windowWidth}
               />
               {this.renderToolbar()}
