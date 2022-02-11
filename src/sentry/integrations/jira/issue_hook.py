@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.serializers import StreamGroupSerializer, serialize
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models import ExternalIssue, Group, GroupLink
+from sentry.shared_integrations.exceptions import ApiHostError, IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
@@ -31,7 +32,10 @@ class JiraIssueHookView(JiraBaseHook):
             JiraCloud(integration.metadata["shared_secret"]),
             verify_ssl=True,
         )
-        return client.set_issue_property(issue_key, group_link_num)
+        try:
+            return client.set_issue_property(issue_key, group_link_num)
+        except ApiHostError:
+            raise IntegrationError("Cannot reach host to set badge.")
 
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
         with configure_scope() as scope:
