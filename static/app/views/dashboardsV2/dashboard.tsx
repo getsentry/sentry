@@ -642,10 +642,10 @@ const WidgetContainer = styled('div')`
   }
 `;
 
-// A widget being dragged has a z-index of 10
+// A widget being dragged has a z-index of 3
 // Allow the Add Widget tile to show above widgets when moved
 const AddWidgetWrapper = styled('div')`
-  z-index: 15;
+  z-index: 5;
   background-color: ${p => p.theme.background};
 `;
 
