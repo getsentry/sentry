@@ -548,6 +548,7 @@ class Dashboard extends Component<Props, State> {
             <IconResize />
           </ResizeHandle>
         }
+        useCSSTransforms={false}
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
