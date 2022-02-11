@@ -1,10 +1,12 @@
 import {browserHistory} from 'react-router';
 
 import {createListeners} from 'sentry-test/createListeners';
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
+import {triggerPress} from 'sentry-test/utils';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -722,16 +724,15 @@ describe('Dashboards > Detail', function () {
       ).toEqual(true);
       expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
 
-      const card2 = wrapper.find('WidgetCard').first();
-      card2.find('DropdownMenu MoreOptions svg').simulate('click');
+      await act(async () => {
+        triggerPress(wrapper.first().find('MenuControlWrap Button').first());
 
-      card2.update();
-      wrapper.update();
+        await tick();
+        wrapper.update();
+      });
 
       expect(
-        wrapper
-          .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
-          .props().disabled
+        wrapper.find(`MenuItemWrap[data-test-id="duplicate-widget"]`).props().isDisabled
       ).toEqual(true);
     });
 
@@ -750,15 +751,11 @@ describe('Dashboards > Detail', function () {
 
       expect(wrapper.find('WidgetCard')).toHaveLength(3);
 
-      const card = wrapper.find('WidgetCard').first();
-      card.find('DropdownMenu MoreOptions svg').simulate('click');
-
-      card.update();
-      wrapper.update();
-
-      wrapper
-        .find(`DropdownMenu MenuItem[data-test-id="edit-widget"] MenuTarget`)
-        .simulate('click');
+      await selectDropdownMenuItem({
+        wrapper,
+        specifiers: {prefix: 'WidgetCard', first: true},
+        itemKey: 'edit-widget',
+      });
 
       expect(openEditModal).toHaveBeenCalledTimes(1);
       expect(openEditModal).toHaveBeenCalledWith(

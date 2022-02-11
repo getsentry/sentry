@@ -8,7 +8,7 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('Dashboards > IssueWidgetCard', function () {
-  const initialData = initializeOrg({
+  const {router, organization, routerContext} = initializeOrg({
     organization: TestStubs.Organization({
       features: ['dashboards-edit'],
     }),
@@ -79,7 +79,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={widget}
         selection={selection}
         isEditing={false}
@@ -94,9 +94,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       />
     );
 
-    await tick();
-
-    expect(screen.getByText('Issues')).toBeInTheDocument();
+    expect(await screen.findByText('Issues')).toBeInTheDocument();
     expect(screen.getByText('assignee')).toBeInTheDocument();
     expect(screen.getByText('title')).toBeInTheDocument();
     expect(screen.getByText('issue')).toBeInTheDocument();
@@ -114,7 +112,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={widget}
         selection={selection}
         isEditing={false}
@@ -126,16 +124,18 @@ describe('Dashboards > IssueWidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
+    userEvent.click(await screen.findByLabelText('Widget actions'));
+    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId('context-menu'));
-    expect(screen.getByText('Open in Issues').closest('a')?.href).toContain(
+    expect(screen.getByText('Open in Issues')).toBeInTheDocument();
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Issues'}));
+    expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/?query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
-    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
   });
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
@@ -143,7 +143,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={widget}
         selection={selection}
         isEditing={false}
@@ -158,9 +158,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -171,7 +169,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={widget}
         selection={selection}
         isEditing={false}
@@ -186,9 +184,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
@@ -199,7 +195,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...widget,
           queries: [
@@ -222,9 +218,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       />
     );
 
-    await tick();
-
-    expect(screen.getByText('Lifetime Events')).toBeInTheDocument();
+    expect(await screen.findByText('Lifetime Events')).toBeInTheDocument();
     expect(screen.getByText('Lifetime Users')).toBeInTheDocument();
   });
 });

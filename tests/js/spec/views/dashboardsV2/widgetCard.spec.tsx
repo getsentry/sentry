@@ -13,7 +13,7 @@ jest.mock('sentry/components/charts/simpleTableChart');
 jest.mock('sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
-  const initialData = initializeOrg({
+  const {router, organization, routerContext} = initializeOrg({
     organization: TestStubs.Organization({
       features: ['dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
@@ -82,7 +82,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={multipleQueryWidget}
         selection={selection}
         isEditing={false}
@@ -97,13 +97,11 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     userEvent.click(screen.getByText('Open in Discover'));
     expect(spy).toHaveBeenCalledWith({
-      organization: initialData.organization,
+      organization,
       widget: multipleQueryWidget,
     });
   });
@@ -112,7 +110,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
         selection={selection}
         isEditing={false}
@@ -124,15 +122,14 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
@@ -141,7 +138,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
@@ -157,15 +154,14 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
     );
   });
@@ -174,7 +170,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           queries: [
@@ -196,15 +192,14 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
   });
@@ -213,7 +208,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
@@ -231,15 +226,14 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
   });
@@ -249,7 +243,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
@@ -268,9 +262,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -281,7 +273,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
@@ -300,9 +292,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
@@ -313,7 +303,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
@@ -332,9 +322,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Edit Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Edit Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -345,7 +333,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
@@ -364,9 +352,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Delete Widget'));
     // Confirm Modal
@@ -383,7 +369,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
@@ -418,7 +404,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
@@ -465,7 +451,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={tableWidget}
         selection={selection}
         isEditing={false}
@@ -498,7 +484,7 @@ describe('Dashboards > WidgetCard', function () {
     mountWithTheme(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={widget}
         selection={selection}
         isEditing={false}
