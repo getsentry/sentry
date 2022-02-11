@@ -31,6 +31,7 @@ import {DataSet} from './widgetBuilder/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
+  assignTempId,
   calculateColumnDepths,
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
@@ -306,16 +307,15 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const widgetCopy = cloneDeep(widget);
-    widgetCopy.id = undefined;
-    widgetCopy.tempId = undefined;
+    const widgetCopy = cloneDeep(assignTempId({...widget, id: undefined}));
 
     let nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
     nextList = generateWidgetsAfterCompaction(nextList);
 
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
