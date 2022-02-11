@@ -40,13 +40,23 @@ type Props = WithRouterProps & {
   windowWidth?: number;
 };
 
-class WidgetCardChartContainer extends React.Component<Props> {
-  issueTableResultComponent({
+function WidgetCardChartContainer({
+  location,
+  router,
+  api,
+  organization,
+  selection,
+  widget,
+  isMobile,
+  renderErrorMessage,
+  tableItemLimit,
+  windowWidth,
+}: Props) {
+  function issueTableResultComponent({
     loading,
     errorMessage,
     transformedResults,
   }: TableResultProps): React.ReactNode {
-    const {location, organization, widget} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -75,9 +85,7 @@ class WidgetCardChartContainer extends React.Component<Props> {
     );
   }
 
-  renderIssueChart() {
-    const {widget, api, organization, selection, renderErrorMessage, tableItemLimit} =
-      this.props;
+  function renderIssueChart() {
     return (
       <IssueWidgetQueries
         api={api}
@@ -93,7 +101,7 @@ class WidgetCardChartContainer extends React.Component<Props> {
                 ? renderErrorMessage(errorMessage)
                 : null}
               <LoadingScreen loading={loading} />
-              {this.issueTableResultComponent({
+              {issueTableResultComponent({
                 transformedResults,
                 loading,
                 errorMessage,
@@ -105,20 +113,7 @@ class WidgetCardChartContainer extends React.Component<Props> {
     );
   }
 
-  renderMetricsChart() {
-    const {
-      widget,
-      api,
-      organization,
-      selection,
-      renderErrorMessage,
-      location,
-      router,
-      tableItemLimit,
-      isMobile,
-      windowWidth,
-    } = this.props;
-
+  function renderMetricsChart() {
     return (
       <MetricsWidgetQueries
         api={api}
@@ -153,19 +148,7 @@ class WidgetCardChartContainer extends React.Component<Props> {
     );
   }
 
-  renderDiscoverChart() {
-    const {
-      widget,
-      api,
-      organization,
-      selection,
-      renderErrorMessage,
-      location,
-      router,
-      tableItemLimit,
-      isMobile,
-      windowWidth,
-    } = this.props;
+  function renderDiscoverChart() {
     return (
       <WidgetQueries
         api={api}
@@ -200,19 +183,15 @@ class WidgetCardChartContainer extends React.Component<Props> {
     );
   }
 
-  render() {
-    const {widget} = this.props;
-
-    if (widget.widgetType === WidgetType.ISSUE) {
-      return this.renderIssueChart();
-    }
-
-    if (widget.widgetType === WidgetType.METRICS) {
-      return this.renderMetricsChart();
-    }
-
-    return this.renderDiscoverChart();
+  if (widget.widgetType === WidgetType.ISSUE) {
+    return renderIssueChart();
   }
+
+  if (widget.widgetType === WidgetType.METRICS) {
+    return renderMetricsChart();
+  }
+
+  return renderDiscoverChart();
 }
 
 export default withRouter(WidgetCardChartContainer);
