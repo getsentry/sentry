@@ -4,6 +4,7 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
 import {getContext, measureText, Rect} from 'sentry/utils/profiling/gl/utils';
+import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 
 const useCachedMeasure = (string: string): Rect => {
   const cache = React.useRef<Record<string, Rect>>({});
@@ -49,14 +50,15 @@ function BoundTooltip({
 }: BoundTooltipProps): React.ReactElement | null {
   const tooltipRef = React.useRef<HTMLDivElement>(null);
   const tooltipRect = useCachedMeasure(tooltipRef.current?.textContent ?? '');
+  const devicePixelRatio = useDevicePixelRatio();
 
   const physicalToLogicalSpace = React.useMemo(
     () =>
       mat3.fromScaling(
         mat3.create(),
-        vec2.fromValues(1 / window.devicePixelRatio, 1 / window.devicePixelRatio)
+        vec2.fromValues(1 / devicePixelRatio, 1 / devicePixelRatio)
       ),
-    [window.devicePixelRatio]
+    [devicePixelRatio]
   );
 
   const [tooltipBounds, setTooltipBounds] = React.useState<Rect>(Rect.Empty());
