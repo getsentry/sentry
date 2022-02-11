@@ -58,7 +58,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         * If the open membership organization setting is enabled
         """
 
-        return request.access.has_global_access() or self._can_admin_team(request, team)
+        return request.access.has_global_access or self._can_admin_team(request, team)
 
     def _can_delete(
         self,
