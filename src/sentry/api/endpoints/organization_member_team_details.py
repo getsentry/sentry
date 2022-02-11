@@ -68,7 +68,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         member: OrganizationMember,
-        organization: Organization,
         team: Team,
     ) -> bool:
         """
@@ -199,7 +198,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self._can_delete(request, member, organization, team):
+        if not self._can_delete(request, member, team):
             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:
