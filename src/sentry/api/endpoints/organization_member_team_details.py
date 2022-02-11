@@ -89,7 +89,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         return False
 
     def _can_admin_team(self, request: Request, team: Team) -> bool:
-        return (request.access.has_global_access and request.access.has_scope("org:write")) or (
+        return request.access.has_scope("org:write") or (
             team in request.access.teams and request.access.has_team_scope(team, "team:write")
         )
 
