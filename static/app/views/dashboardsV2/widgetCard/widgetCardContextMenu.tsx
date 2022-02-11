@@ -137,7 +137,7 @@ function WidgetCardContextMenu({
       const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
         ...discoverLocation.query,
       })}`;
-      
+
       menuOptions.push({
         key: 'open-in-discover',
         label: t('Open in Discover'),
