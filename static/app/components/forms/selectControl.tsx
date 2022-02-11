@@ -138,7 +138,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   const defaultStyles: StylesConfig = {
     control: (_, state: any) => ({
       height: '100%',
-      fontSize: theme.fontSizeLarge,
       lineHeight: theme.text.lineHeightBody,
       display: 'flex',
       // @ts-ignore Ignore merge errors as only defining the property once
