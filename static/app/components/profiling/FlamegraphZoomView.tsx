@@ -528,6 +528,7 @@ function FlamegraphZoomView({
       />
       {flamegraphRenderer ? (
         <BoundTooltip
+          theme={flamegraphTheme}
           bounds={canvasBounds}
           cursor={configSpaceCursor}
           configToPhysicalSpace={flamegraphRenderer?.configToPhysicalSpace}
