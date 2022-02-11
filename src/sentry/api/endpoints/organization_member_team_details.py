@@ -47,9 +47,7 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
-    def _can_create_team_member(
-        self, request: Request, organization: Organization, team: Team
-    ) -> bool:
+    def _can_create_team_member(self, request: Request, team: Team) -> bool:
         """
         User can join or add a member to a team:
 
@@ -154,7 +152,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
-            if self._can_create_team_member(request, organization, team):
+            if self._can_create_team_member(request, team):
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
             else:
                 self._create_access_request(request, team, member)
