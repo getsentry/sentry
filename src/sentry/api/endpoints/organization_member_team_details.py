@@ -58,11 +58,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         * If the open membership organization setting is enabled
         """
 
-        return (
-            is_active_superuser(request)
-            or self._can_admin_team(request, team)
-            or organization.flags.allow_joinleave
-        )
+        return request.access.has_global_access() or self._can_admin_team(request, team)
 
     def _can_delete(
         self,
