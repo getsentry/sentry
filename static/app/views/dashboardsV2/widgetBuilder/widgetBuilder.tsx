@@ -37,10 +37,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   widget?: Widget;
 };
 
-type State = {
-  title: string;
-};
-
 function WidgetBuilder({
   dashboard,
   widget,
@@ -51,7 +47,7 @@ function WidgetBuilder({
 }: Props) {
   const {widgetId, orgId, dashboardId} = params;
 
-  const isEditing = !!widget;
+  const isEditing = defined(widget);
   const dataSet = location.query.dataSet;
   const orgSlug = organization.slug;
   const goBackLocation = {
@@ -61,9 +57,9 @@ function WidgetBuilder({
     query: {...location.query, dataSet: undefined},
   };
 
-  const [state, setState] = useState<State>({
-    title: t('Custom %s Widget', displayTypes[DisplayType.AREA]),
-  });
+  const [title, setTitle] = useState(
+    t('Custom %s Widget', displayTypes[DisplayType.AREA])
+  );
 
   useEffect(() => {
     if (!dataSet) {
@@ -104,74 +100,84 @@ function WidgetBuilder({
   //   onSave(nextList);
   // }
 
-  return (
-    <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-      {!Object.values(DataSet).includes(dataSet) ? (
+  if (!Object.values(DataSet).includes(dataSet)) {
+    return (
+      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
           <LoadingError message={t('Data set not found.')} />
         </PageContent>
-      ) : isEditing &&
-        (!defined(widgetId) ||
-          !dashboard.widgets.find(
-            dashboardWidget => dashboardWidget.id === String(widgetId)
-          )) ? (
+      </SentryDocumentTitle>
+    );
+  }
+
+  if (
+    isEditing &&
+    (!defined(widgetId) ||
+      !dashboard.widgets.find(dashboardWidget => dashboardWidget.id === String(widgetId)))
+  ) {
+    return (
+      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
           <LoadingError message={t('Widget not found.')} />
         </PageContent>
-      ) : (
-        <PageContentWithoutPadding>
-          <Header
-            orgSlug={orgSlug}
-            title={state.title}
-            dashboardTitle={dashboard.title}
-            goBackLocation={goBackLocation}
-            onChangeTitle={newTitle => setState({...state, title: newTitle})}
-          />
-          <Layout.Body>
-            <BuildSteps>
-              <BuildStep
-                title={t('Choose your data set')}
-                description={t(
-                  'Monitor specific events such as errors and transactions or metrics based on Release Health.'
-                )}
-              >
-                <DataSetChoices
-                  label="dataSet"
-                  value={dataSet}
-                  choices={DATASET_CHOICES}
-                  onChange={handleDataSetChange}
-                />
-              </BuildStep>
-              <BuildStep
-                title={t('Choose your visualization')}
-                description={t(
-                  'This is a preview of how your widget will appear in the dashboard.'
-                )}
-              >
-                WIP
-              </BuildStep>
-              <BuildStep
-                title={t('Choose your y-axis')}
-                description="Description of what this means"
-              >
-                WIP
-              </BuildStep>
-              <BuildStep
-                title={t('Filter your results')}
-                description="Description of what this means"
-              >
-                WIP
-              </BuildStep>
-              <BuildStep
-                title={t('Group your results')}
-                description="Description of what this means"
-              >
-                WIP
-              </BuildStep>
-            </BuildSteps>
-          </Layout.Body>
-        </PageContentWithoutPadding>
-      )}
+      </SentryDocumentTitle>
+    );
+  }
+
+  return (
+    <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
+      <PageContentWithoutPadding>
+        <Header
+          orgSlug={orgSlug}
+          title={title}
+          dashboardTitle={dashboard.title}
+          goBackLocation={goBackLocation}
+          onChangeTitle={setTitle}
+        />
+        <Layout.Body>
+          <BuildSteps>
+            <BuildStep
+              title={t('Choose your data set')}
+              description={t(
+                'Monitor specific events such as errors and transactions or metrics based on Release Health.'
+              )}
+            >
+              <DataSetChoices
+                label="dataSet"
+                value={dataSet}
+                choices={DATASET_CHOICES}
+                onChange={handleDataSetChange}
+              />
+            </BuildStep>
+            <BuildStep
+              title={t('Choose your visualization')}
+              description={t(
+                'This is a preview of how your widget will appear in the dashboard.'
+              )}
+            >
+              WIP
+            </BuildStep>
+            <BuildStep
+              title={t('Choose your y-axis')}
+              description="Description of what this means"
+            >
+              WIP
+            </BuildStep>
+            <BuildStep
+              title={t('Filter your results')}
+              description="Description of what this means"
+            >
+              WIP
+            </BuildStep>
+            <BuildStep
+              title={t('Group your results')}
+              description="Description of what this means"
+            >
+              WIP
+            </BuildStep>
+          </BuildSteps>
+        </Layout.Body>
+      </PageContentWithoutPadding>
     </SentryDocumentTitle>
   );
 }

@@ -132,7 +132,6 @@ type TestStubFixtures = {
   VstsIntegrationProvider: OverridableStub;
 
   VstsPlugin: SimpleStub;
-  Widget: OverridableStub;
 
   // TODO: These need propertly typed still
 
