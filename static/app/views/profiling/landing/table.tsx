@@ -9,7 +9,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Trace} from 'sentry/types/profiling';
+import {Trace} from 'sentry/types/profiling/trace';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 
 interface Props {

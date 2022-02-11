@@ -19,7 +19,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {SelectValue} from 'sentry/types';
 import {EChartClickHandler, SeriesDataUnit} from 'sentry/types/echarts';
-import {Trace} from 'sentry/types/profiling';
+import {Trace} from 'sentry/types/profiling/trace';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
