@@ -85,6 +85,7 @@ function TeamStatsIssues({location, router}: Props) {
                 projects={projects}
                 organization={organization}
                 teamSlug={currentTeam!.slug}
+                environment={environment}
                 period={period}
                 start={start}
                 end={end}
@@ -102,6 +103,7 @@ function TeamStatsIssues({location, router}: Props) {
                 organization={organization}
                 projects={projects}
                 teamSlug={currentTeam!.slug}
+                environment={environment}
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
@@ -120,6 +122,7 @@ function TeamStatsIssues({location, router}: Props) {
                 organization={organization}
                 projects={projects}
                 teamSlug={currentTeam!.slug}
+                environment={environment}
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
@@ -143,6 +146,7 @@ function TeamStatsIssues({location, router}: Props) {
             >
               <TeamResolutionTime
                 organization={organization}
+                environment={environment}
                 teamSlug={currentTeam!.slug}
                 period={period}
                 start={start?.toString()}

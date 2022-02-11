@@ -22,6 +22,7 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   projects: Project[];
   teamSlug: string;
+  environment?: string;
 } & DateTimeObject;
 
 type UnresolvedCount = {unresolved: number};
@@ -43,7 +44,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, start, end, period, utc, teamSlug} = this.props;
+    const {organization, start, end, period, utc, teamSlug, environment} = this.props;
 
     const datetime = {start, end, period, utc};
 
@@ -54,6 +55,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
         {
           query: {
             ...normalizeDateTimeParams(datetime),
+            environment,
           },
         },
       ],

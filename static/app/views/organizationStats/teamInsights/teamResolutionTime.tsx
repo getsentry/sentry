@@ -17,6 +17,7 @@ type TimeToResolution = Record<string, {avg: number; count: number}>;
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   teamSlug: string;
+  environment?: string;
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
@@ -34,7 +35,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, start, end, period, utc, teamSlug} = this.props;
+    const {organization, start, end, period, utc, teamSlug, environment} = this.props;
     const datetime = {start, end, period, utc};
 
     return [
@@ -44,6 +45,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
         {
           query: {
             ...normalizeDateTimeParams(datetime),
+            environment,
           },
         },
       ],

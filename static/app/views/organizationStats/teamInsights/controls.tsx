@@ -61,7 +61,7 @@ function TeamStatsControls({
 
   function handleChangeTeam(teamId: string) {
     localStorage.setItem(localStorageKey, teamId);
-    // Unset environment on change, we don't know if all the environments exist
+    // TODO(workflow): Preserve environment if it exists for the new team
     setStateOnUrl({team: teamId, environment: undefined});
   }
 

@@ -40,6 +40,7 @@ type Props = AsyncComponent['props'] & {
   projects: Project[];
   statuses: Statuses[];
   teamSlug: string;
+  environment?: string;
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
@@ -59,7 +60,8 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, start, end, period, utc, teamSlug, statuses} = this.props;
+    const {organization, start, end, period, utc, teamSlug, statuses, environment} =
+      this.props;
     const datetime = {start, end, period, utc};
 
     return [
@@ -70,6 +72,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
           query: {
             ...normalizeDateTimeParams(datetime),
             statuses,
+            environment,
           },
         },
       ],

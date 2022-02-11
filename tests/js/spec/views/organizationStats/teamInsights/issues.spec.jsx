@@ -13,8 +13,19 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 }));
 
 describe('TeamStatsIssues', () => {
-  const project1 = TestStubs.Project({id: '2', name: 'js', slug: 'js'});
-  const project2 = TestStubs.Project({id: '3', name: 'py', slug: 'py'});
+  const env1 = 'prod';
+  const project1 = TestStubs.Project({
+    id: '2',
+    name: 'js',
+    slug: 'js',
+    environments: [env1],
+  });
+  const project2 = TestStubs.Project({
+    id: '3',
+    name: 'py',
+    slug: 'py',
+    environments: [env1],
+  });
   const team1 = TestStubs.Team({
     id: '2',
     slug: 'frontend',
@@ -149,6 +160,16 @@ describe('TeamStatsIssues', () => {
       'teamInsightsSelectedTeamId:org-slug',
       team1.id
     );
+  });
+
+  it('can filter by environment', () => {
+    createWrapper();
+
+    expect(screen.getByText('Environment:')).toBeInTheDocument();
+    userEvent.type(screen.getByText('Environment:'), '{mouseDown}');
+    expect(screen.getByText(env1)).toBeInTheDocument();
+    userEvent.click(screen.getByText(env1));
+    expect(mockRouter.push).toHaveBeenCalledWith({query: {environment: team1.id}});
   });
 
   it('superusers can switch to any team', () => {
