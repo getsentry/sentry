@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3 import Retry, connection_from_url
 
+from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.utils import get_date_range_from_params
 from sentry.snuba.discover import timeseries_query
@@ -92,7 +93,15 @@ def get_time_params(start, end):
 
 
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
+    def has_feature(self, organization, request):
+        return features.has(
+            "organizations:performance-anomaly-detection-ui", organization, actor=request.user
+        )
+
     def get(self, request: Request, organization) -> Response:
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
         start, end = get_date_range_from_params(request.GET)
         time_params = get_time_params(start, end)
         query_params = self.get_snuba_params(request, organization)
