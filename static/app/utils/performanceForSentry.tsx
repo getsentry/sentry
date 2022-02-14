@@ -55,14 +55,12 @@ export const VisuallyCompleteWithData = ({
       const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
 
       if (!isVisuallyCompleteSet.current) {
-        const now = timestampWithMs();
-        const transactionStart = transaction.startTimestamp;
-        const normalizedValue = Math.abs((now - transactionStart) * 1000);
+        const time = performance.now();
         transaction.registerBeforeFinishCallback((t, _) => {
           // Should be called after performance entries finish callback.
           t.setMeasurements({
             ...t._measurements,
-            visuallyComplete: {value: normalizedValue},
+            visuallyComplete: {value: time},
           });
         });
         isVisuallyCompleteSet.current = true;
@@ -78,16 +76,21 @@ export const VisuallyCompleteWithData = ({
             `${id}-vcsd-end`
           );
           num.current = num.current++;
-
-          const now = timestampWithMs();
-          const transactionStart = transaction.startTimestamp;
-          const normalizedValue = Math.abs((now - transactionStart) * 1000);
-          transaction.registerBeforeFinishCallback((t, _) => {
+          const time = performance.now();
+          transaction.registerBeforeFinishCallback(t => {
             // Should be called after performance entries finish callback.
-            t.setMeasurements({
+            const lcp = t._measurements.lcp?.value;
+
+            const newMeasurements = {
               ...t._measurements,
-              visuallyCompleteData: {value: normalizedValue},
-            });
+              visuallyCompleteData: {value: time},
+            };
+
+            if (lcp) {
+              newMeasurements.lcpDiffVCD = {value: lcp - time};
+            }
+
+            t.setMeasurements(newMeasurements);
           });
         }, 0);
       }
