@@ -80,14 +80,22 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   },
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
-    type: 'boolean',
+    type: 'select',
     label: t('My Own Activity'),
+    choices: [
+      [true as any, t('On')],
+      [false as any, t('Off')],
+    ],
     help: t('Notifications about your own actions on Sentry.'),
   },
   selfAssignOnResolve: {
     name: 'selfAssignOnResolve',
-    type: 'boolean',
+    type: 'select',
     label: t('Claim Unassigned Issues I’ve Resolved'),
+    choices: [
+      [true as any, t('On')],
+      [false as any, t('Off')],
+    ],
     help: t('You’ll receive notifications about any changes that happen afterwards.'),
   },
 };

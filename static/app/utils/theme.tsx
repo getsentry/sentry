@@ -200,11 +200,13 @@ const generateAliases = (colors: BaseColors) => ({
    * A color that denotes a "success", or something good
    */
   success: colors.green300,
+  successText: colors.green400,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: colors.red300,
+  errorText: colors.red400,
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -223,6 +225,7 @@ const generateAliases = (colors: BaseColors) => ({
    */
   active: colors.purple300,
   activeHover: colors.purple400,
+  activeText: colors.purple400,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal

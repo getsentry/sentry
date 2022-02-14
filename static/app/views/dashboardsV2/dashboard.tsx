@@ -303,10 +303,6 @@ class Dashboard extends Component<Props, State> {
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
-    // Force check lazyLoad elements that might have shifted into view after deleting an upper widget
-    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
-    // RGL doesn't provide a handler for post animation layout change
-    setTimeout(forceCheck, 400);
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
@@ -476,6 +472,11 @@ class Dashboard extends Component<Props, State> {
       layouts: newLayouts,
     });
     onUpdate(newWidgets);
+
+    // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
+    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
+    // RGL doesn't provide a handler for post animation layout change
+    setTimeout(forceCheck, 400);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {

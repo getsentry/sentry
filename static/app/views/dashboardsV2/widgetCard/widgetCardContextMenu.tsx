@@ -202,6 +202,7 @@ function WidgetCardContextMenu({
       key: 'delete-widget',
       label: t('Delete Widget'),
       leadingItems: <IconDelete />,
+      priority: 'danger',
       onAction: () => {
         openConfirmModal({
           message: t('Are you sure you want to delete this widget?'),
