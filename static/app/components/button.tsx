@@ -46,7 +46,7 @@ interface BaseButtonProps
 }
 
 export interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
-  children: NonNullable<React.ReactNode>;
+  children: React.ReactNode;
 }
 export interface ButtonPropsWithAriaLabel extends BaseButtonProps {
   'aria-label': string;
