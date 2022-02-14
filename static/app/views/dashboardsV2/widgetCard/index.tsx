@@ -84,7 +84,7 @@ class WidgetCard extends React.Component<Props> {
           <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
           </IconClick>
-          <IconClick data-test-id="widget-duplicate" onClick={onDuplicate}>
+          <IconClick aria-label={t('Duplicate Widget')} onClick={onDuplicate}>
             <IconCopy color="textColor" />
           </IconClick>
           <IconClick data-test-id="widget-delete" onClick={onDelete}>

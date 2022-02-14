@@ -250,13 +250,13 @@ describe('Dashboards > Dashboard', () => {
     it('displays the copy widget button in edit mode', () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
       mount(dashboardWithOneWidget, organization);
-      expect(screen.getByTestId('widget-duplicate')).toBeInTheDocument();
+      expect(screen.getByLabelText('Duplicate Widget')).toBeInTheDocument();
     });
 
     it('duplicates the widget', async () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
       const {rerender} = mount(dashboardWithOneWidget, organization);
-      userEvent.click(screen.getByTestId('widget-duplicate'));
+      userEvent.click(screen.getByLabelText('Duplicate Widget'));
       rerender();
       expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
     });
