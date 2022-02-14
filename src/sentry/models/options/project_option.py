@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from django.db import models
 
@@ -14,7 +16,7 @@ if TYPE_CHECKING:
 
 
 class ProjectOptionManager(OptionManager["Project"]):
-    def get_value_bulk(self, instances: Sequence["Project"], key: str) -> Mapping["Project", Any]:
+    def get_value_bulk(self, instances: Sequence[Project], key: str) -> Mapping[Project, Any]:
         instance_map = {i.id: i for i in instances}
         queryset = self.filter(project__in=instances, key=key)
         result = {i: None for i in instances}
@@ -24,10 +26,10 @@ class ProjectOptionManager(OptionManager["Project"]):
 
     def get_value(
         self,
-        project: "Project",
+        project: Project,
         key: str,
-        default: Optional[Value] = None,
-        validate: Optional[ValidateFunction] = None,
+        default: Value | None = None,
+        validate: ValidateFunction | None = None,
     ) -> Any:
         result = self.get_all_values(project)
         if key in result:
@@ -39,11 +41,11 @@ class ProjectOptionManager(OptionManager["Project"]):
                 return well_known_key.get_default(project)
         return default
 
-    def unset_value(self, project: "Project", key: str) -> None:
+    def unset_value(self, project: Project, key: str) -> None:
         self.filter(project=project, key=key).delete()
         self.reload_cache(project.id, "projectoption.unset_value")
 
-    def set_value(self, project: "Project", key: str, value: Value) -> bool:
+    def set_value(self, project: Project, key: str, value: Value) -> bool:
         inst, created = self.create_or_update(project=project, key=key, values={"value": value})
         self.reload_cache(project.id, "projectoption.set_value")
 
@@ -51,7 +53,7 @@ class ProjectOptionManager(OptionManager["Project"]):
         success: bool = created or inst > 0
         return success
 
-    def get_all_values(self, project: "Project") -> Mapping[str, Value]:
+    def get_all_values(self, project: Project) -> Mapping[str, Value]:
         if isinstance(project, models.Model):
             project_id = project.id
         else:
@@ -80,10 +82,10 @@ class ProjectOptionManager(OptionManager["Project"]):
         self._option_cache[cache_key] = result
         return result
 
-    def post_save(self, instance: "ProjectOption", **kwargs: Any) -> None:
+    def post_save(self, instance: ProjectOption, **kwargs: Any) -> None:
         self.reload_cache(instance.project_id, "projectoption.post_save")
 
-    def post_delete(self, instance: "ProjectOption", **kwargs: Any) -> None:
+    def post_delete(self, instance: ProjectOption, **kwargs: Any) -> None:
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 

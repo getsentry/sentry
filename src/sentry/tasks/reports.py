@@ -19,14 +19,18 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
-from snuba_sdk.query import Query
+from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk.query import Limit, Query
 
 from sentry import features
+from sentry.api.serializers.snuba import zerofill
 from sentry.app import tsdb
 from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import (
     Activity,
+    Group,
+    GroupHistory,
     GroupStatus,
     Organization,
     OrganizationStatus,
@@ -46,7 +50,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -231,25 +235,75 @@ def build_project_series(start__stop, project):
     assert resolution == rollup, "resolution does not match requested value"
 
     clean = partial(clean_series, start, stop, rollup)
+
+    def zerofill_clean(data):
+        return clean(zerofill(data, start, stop, rollup, fill_default=0))
+
+    # Note: this section can be removed
     issue_ids = project.group_set.filter(
         status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
     ).values_list("id", flat=True)
 
+    # TODO: The TSDB calls could be replaced with a SnQL call here
     tsdb_range_resolved = _query_tsdb_groups_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
-    resolved_series = reduce(
+    resolved_error_series = reduce(
         merge_series,
         map(clean, tsdb_range_resolved.values()),
         clean([(timestamp, 0) for timestamp in series]),
     )
+    # end
 
-    total_series = clean(
-        tsdb.get_range(tsdb.models.project, [project.id], start, stop, rollup=rollup)[project.id]
+    # Use outcomes to compute total errors and transactions
+    outcomes_query = Query(
+        dataset=Dataset.Outcomes.value,
+        match=Entity("outcomes"),
+        select=[
+            Column("time"),
+            Column("category"),
+            Function("sum", [Column("quantity")], "total"),
+        ],
+        where=[
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, stop + timedelta(days=1)),
+            Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(Column("org_id"), Op.EQ, project.organization_id),
+            Condition(Column("outcome"), Op.EQ, Outcome.ACCEPTED),
+            Condition(
+                Column("category"),
+                Op.IN,
+                [*DataCategory.error_categories(), DataCategory.TRANSACTION],
+            ),
+        ],
+        groupby=[Column("time"), Column("category")],
+        granularity=Granularity(rollup),
+        orderby=[OrderBy(Column("time"), Direction.ASC)],
+    )
+    outcome_series = raw_snql_query(outcomes_query, referrer="reports.outcome_series")
+    total_error_series = OrderedDict()
+    for v in outcome_series["data"]:
+        if v["category"] in DataCategory.error_categories():
+            timestamp = int(to_timestamp(parse_snuba_datetime(v["time"])))
+            total_error_series[timestamp] = total_error_series.get(timestamp, 0) + v["total"]
+
+    total_error_series = zerofill_clean(list(total_error_series.items()))
+    transaction_series = [
+        (int(to_timestamp(parse_snuba_datetime(v["time"]))), v["total"])
+        for v in outcome_series["data"]
+        if v["category"] == DataCategory.TRANSACTION
+    ]
+    transaction_series = zerofill_clean(transaction_series)
+
+    error_series = merge_series(
+        resolved_error_series,
+        total_error_series,
+        lambda resolved, total: (resolved, total - resolved),  # Resolved, Unresolved
     )
 
+    # Format of this series: [(resolved , unresolved, transactions)]
     return merge_series(
-        resolved_series,
-        total_series,
-        lambda resolved, total: (resolved, total - resolved),  # unresolved
+        error_series,
+        transaction_series,
+        lambda errors, transactions: errors + (transactions,),
     )
 
 
@@ -439,6 +493,94 @@ def build_project_calendar_series(interval, project):
     return clean_calendar_data(project, series, start, stop, rollup)
 
 
+def build_key_errors(interval, project):
+    start, stop = interval
+
+    # Take the 3 most frequently occuring events
+    query = Query(
+        dataset=Dataset.Events.value,
+        match=Entity("events"),
+        select=[Column("group_id"), Function("count", [])],
+        where=[
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, stop + timedelta(days=1)),
+            Condition(Column("project_id"), Op.EQ, project.id),
+        ],
+        groupby=[Column("group_id")],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limit=Limit(3),
+    )
+    query_result = raw_snql_query(query, referrer="reports.key_errors")
+    key_errors = query_result["data"]
+    return [(e["group_id"], e["count()"]) for e in key_errors]
+
+
+def build_key_transactions(interval, project):
+    start, stop = interval
+
+    # Take the 3 most frequently occuring transactions
+    query = Query(
+        dataset=Dataset.Transactions.value,
+        match=Entity("transactions"),
+        select=[
+            Column("transaction_name"),
+            Function("count", []),
+        ],
+        where=[
+            Condition(Column("finish_ts"), Op.GTE, start),
+            Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
+            Condition(Column("project_id"), Op.EQ, project.id),
+        ],
+        groupby=[Column("transaction_name")],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limit=Limit(3),
+    )
+    query_result = raw_snql_query(query, referrer="reports.key_transactions")
+    key_errors = query_result["data"]
+
+    transaction_names = map(lambda p: p["transaction_name"], key_errors)
+
+    def query_p95(interval):
+        start, stop = interval
+        query = Query(
+            dataset=Dataset.Transactions.value,
+            match=Entity("transactions"),
+            select=[
+                Column("transaction_name"),
+                Function("quantile(0.95)", [Column("duration")], "p95"),
+            ],
+            where=[
+                Condition(Column("finish_ts"), Op.GTE, start),
+                Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
+                Condition(Column("transaction_name"), Op.IN, transaction_names),
+                Condition(Column("project_id"), Op.EQ, project.id),
+            ],
+            groupby=[Column("transaction_name")],
+        )
+        return raw_snql_query(query, referrer="reports.key_transactions.p95")
+
+    query_result = query_p95((start, stop))
+    this_week_p95 = {}
+    for point in query_result["data"]:
+        this_week_p95[point["transaction_name"]] = point["p95"]
+
+    query_result = query_p95((start - timedelta(days=7), stop - timedelta(days=7)))
+    last_week_p95 = {}
+    for point in query_result["data"]:
+        last_week_p95[point["transaction_name"]] = point["p95"]
+
+    return [
+        (
+            e["transaction_name"],
+            e["count()"],
+            project.id,
+            this_week_p95.get(e["transaction_name"], None),
+            last_week_p95.get(e["transaction_name"], None),
+        )
+        for e in key_errors
+    ]
+
+
 def build_report(fields):
     """
     Constructs the Report namedtuple class, as well as the `prepare` and
@@ -462,6 +604,12 @@ def build_report(fields):
     return cls, prepare, merge
 
 
+def take_max_n(x, y, n):
+    series = x + y
+    series.sort(key=lambda group_id__count: group_id__count[1], reverse=True)
+    return series[:n]
+
+
 Report, build_project_report, merge_reports = build_report(
     [
         (
@@ -481,6 +629,8 @@ Report, build_project_report, merge_reports = build_report(
             build_project_calendar_series,
             partial(merge_series, function=safe_add),
         ),
+        ("key_events", build_key_errors, partial(take_max_n, n=3)),
+        ("key_transactions", build_key_transactions, partial(take_max_n, n=3)),
     ],
 )
 
@@ -845,6 +995,8 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         message.send()
 
 
+# Series: An array of (timestamp, value) tuples
+# Apply `function` on `value` of each tuple element in array.
 def series_map(function, series):
     return [(timestamp, function(value)) for timestamp, value in series]
 
@@ -889,7 +1041,8 @@ def build_project_breakdown_series(reports):
         for v in sorted(
             reports.items(),
             key=lambda project__report: sum(
-                sum(resolved__unresolved) for _, resolved__unresolved in project__report[1].series
+                resolved + unresolved
+                for _, (resolved, unresolved, transaction) in project__report[1].series
             ),
             reverse=True,
         )
@@ -926,22 +1079,42 @@ def build_project_breakdown_series(reports):
             0, (Key("Other", None, "#f2f0fa", get_legend_data(overflow_report)), overflow_report)
         )
 
-    def summarize(key, points):
-        total = sum(points)
+    def summarize_errors(key, points):
+        [resolved_errors, unresolved_errors, transactions] = points
+        total = resolved_errors + unresolved_errors
         return [(key, total)] if total else []
+
+    def summarize_transaction(key, points):
+        [resolved_errors, unresolved_errors, transactions] = points
+        return [(key, transactions)] if transactions else []
 
     # Collect all of the independent series into a single series to make it
     # easier to render, resulting in a series where each value is a sequence of
     # (key, count) pairs.
     series = reduce(
         merge_series,
-        [series_map(partial(summarize, key), report[0]) for key, report in selections],
+        [series_map(partial(summarize_errors, key), report.series) for key, report in selections],
+    )
+    transaction_series = reduce(
+        merge_series,
+        [
+            series_map(partial(summarize_transaction, key), report.series)
+            for key, report in selections
+        ],
     )
 
     legend = [key for key, value in reversed(selections)]
     return {
-        "points": [(to_datetime(timestamp), value) for timestamp, value in series],
+        "points": [
+            (to_datetime(timestamp), value) for timestamp, value in series
+        ],  # array of (timestamp, [(key, count)])
+        "transaction_points": [
+            (to_datetime(timestamp), value) for timestamp, value in transaction_series
+        ],  # array of (timestamp, [(key, count)])
         "maximum": max(sum(count for key, count in value) for timestamp, value in series),
+        "transaction_maximum": max(
+            sum(count for key, count in value) for timestamp, value in transaction_series
+        ),
         "legend": {
             "rows": legend,
             "total": Key(
@@ -951,15 +1124,67 @@ def build_project_breakdown_series(reports):
     }
 
 
+def build_key_errors_ctx(key_events, organization):
+    # Join with DB
+    groups = Group.objects.filter(
+        id__in=map(lambda i: i[0], key_events),
+    ).all()
+
+    group_id_to_group_history = {}
+    group_history = GroupHistory.objects.filter(
+        group__id__in=map(lambda i: i[0], key_events), organization=organization
+    ).all()
+    for g in group_history:
+        group_id_to_group_history[g.group.id] = g.get_status_display()
+
+    group_id_to_group = {}
+    for group in groups:
+        group_id_to_group[group.id] = group
+
+    return [
+        {
+            "group": group_id_to_group[e[0]],
+            "count": e[1],
+            # For new issues, group history would be None and we default to Unresolved
+            "status": group_id_to_group_history.get(e[0], "Unresolved"),
+        }
+        for e in filter(lambda e: e[0] in group_id_to_group, key_events)
+    ]
+
+
+def build_key_transactions_ctx(key_events, organization, projects):
+    # Todo: use projects arg?
+    # Fetch projects
+    project_id_to_project = {}
+    for project in projects:
+        project_id_to_project[project.id] = project
+
+    return [
+        {
+            "name": e[0],
+            "count": e[1],
+            "project": project_id_to_project[e[2]],
+            "p95": e[3],
+            "p95_prev_week": e[4],
+        }
+        for e in filter(lambda e: e[2] in project_id_to_project, key_events)
+    ]
+
+
 def to_context(organization, interval, reports):
     report = reduce(merge_reports, reports.values())
-    series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in report.series]
+    error_series = [
+        # Drop the transaction count from each series entry
+        (to_datetime(timestamp), Point(*values[:2]))
+        for timestamp, values in report.series
+    ]
     return {
-        "series": {
-            "points": series,
-            "maximum": max(sum(point) for timestamp, point in series),
-            "all": sum(sum(point) for timestamp, point in series),
-            "resolved": sum(point.resolved for timestamp, point in series),
+        # This "error_series" can be removed for new email template
+        "error_series": {
+            "points": error_series,
+            "maximum": max(sum(point) for timestamp, point in error_series),
+            "all": sum(sum(point) for timestamp, point in error_series),
+            "resolved": sum(point.resolved for timestamp, point in error_series),
         },
         "distribution": {
             "types": list(
@@ -988,6 +1213,10 @@ def to_context(organization, interval, reports):
         ],
         "projects": {"series": build_project_breakdown_series(reports)},
         "calendar": to_calendar(organization, interval, report.calendar_series),
+        "key_errors": build_key_errors_ctx(report.key_events, organization),
+        "key_transactions": build_key_transactions_ctx(
+            report.key_transactions, organization, reports.keys()
+        ),
     }
 
 

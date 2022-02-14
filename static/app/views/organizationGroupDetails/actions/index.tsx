@@ -11,6 +11,7 @@ import {
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions from 'sentry/components/actions/ignore';
@@ -267,13 +268,17 @@ class Actions extends React.Component<Props, State> {
         >
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
-        <DeleteAction
-          disabled={disabled}
-          organization={organization}
-          project={project}
-          onDelete={this.onDelete}
-          onDiscard={this.onDiscard}
-        />
+        <Access organization={organization} access={['event:admin']}>
+          {({hasAccess}) => (
+            <DeleteAction
+              disabled={disabled || !hasAccess}
+              organization={organization}
+              project={project}
+              onDelete={this.onDelete}
+              onDiscard={this.onDiscard}
+            />
+          )}
+        </Access>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
             disabled={disabled}
