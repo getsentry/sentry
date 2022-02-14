@@ -224,7 +224,7 @@ describe('Dashboards > Dashboard', () => {
   });
 
   describe('Edit mode', () => {
-    const widgets = [newWidget];
+    let widgets: Widget[];
     const mount = dashboard => {
       const getDashboardComponent = () => (
         <Dashboard
@@ -246,6 +246,10 @@ describe('Dashboards > Dashboard', () => {
       const {rerender} = rtlMountWithTheme(getDashboardComponent());
       return {rerender: () => rerender(getDashboardComponent())};
     };
+
+    beforeEach(() => {
+      widgets = [newWidget];
+    });
 
     it('displays the copy widget button in edit mode', () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
