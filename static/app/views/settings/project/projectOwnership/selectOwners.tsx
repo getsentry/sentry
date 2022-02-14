@@ -9,7 +9,7 @@ import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
-import MultiSelectControl from 'sentry/components/forms/multiSelectControl';
+import MultiSelectControl from 'sentry/components/deprecatedforms/multiSelectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Tooltip from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
@@ -24,10 +24,10 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 
 export type Owner = {
-  value: string;
+  actor: Actor;
   label: React.ReactNode;
   searchKey: string;
-  actor: Actor;
+  value: string;
   disabled?: boolean;
 };
 
@@ -44,18 +44,18 @@ const getSearchKeyForUser = (user: User) =>
 
 type Props = {
   api: Client;
+  disabled: boolean;
+  onChange: (owners: Owner[]) => void;
   organization: Organization;
   project: Project;
   projects: Project[];
   value: any;
-  onChange: (owners: Owner[]) => void;
-  disabled: boolean;
   onInputChange?: (text: string) => void;
 };
 
 type State = {
-  loading: boolean;
   inputValue: string;
+  loading: boolean;
 };
 
 class SelectOwners extends React.Component<Props, State> {

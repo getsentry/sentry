@@ -17,7 +17,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import TeamSelector from 'sentry/components/forms/teamSelector';
+import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
@@ -93,27 +93,27 @@ type ConditionOrActionProperty = 'conditions' | 'actions' | 'filters';
 
 type RuleTaskResponse = {
   status: 'pending' | 'failed' | 'success';
-  rule?: IssueAlertRule;
   error?: string;
+  rule?: IssueAlertRule;
 };
 
 type Props = {
-  project: Project;
   organization: Organization;
+  project: Project;
   userTeamIds: string[];
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
+  configs: {
+    actions: IssueAlertRuleActionTemplate[];
+    conditions: IssueAlertRuleConditionTemplate[];
+    filters: IssueAlertRuleConditionTemplate[];
+  } | null;
   detailedError: null | {
     [key: string]: string[];
   };
   environments: Environment[] | null;
-  configs: {
-    actions: IssueAlertRuleActionTemplate[];
-    filters: IssueAlertRuleConditionTemplate[];
-    conditions: IssueAlertRuleConditionTemplate[];
-  } | null;
   uuid: null | string;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
@@ -527,7 +527,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return owner && owner.split(':')[1];
   };
 
-  handleOwnerChange = ({value}: {value: string; label: string}) => {
+  handleOwnerChange = ({value}: {label: string; value: string}) => {
     const ownerValue = value && `team:${value}`;
     this.handleChange('owner', ownerValue);
   };

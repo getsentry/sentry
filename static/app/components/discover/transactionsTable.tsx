@@ -20,19 +20,19 @@ import {
   fieldAlignment,
   getAggregateAlias,
 } from 'sentry/utils/discover/fields';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
-  eventView: EventView;
-  organization: Organization;
-  location: Location;
-  isLoading: boolean;
-  tableData: TableData | TrendsDataEvents | null;
   columnOrder: TableColumn<React.ReactText>[];
-  titles?: string[];
+  eventView: EventView;
+  isLoading: boolean;
+  location: Location;
+  organization: Organization;
+  tableData: TableData | TrendsDataEvents | null;
   generateLink?: Record<
     string,
     (
@@ -44,6 +44,7 @@ type Props = {
   handleCellAction?: (
     c: TableColumn<React.ReactText>
   ) => (a: Actions, v: React.ReactText) => void;
+  titles?: string[];
 };
 
 class TransactionsTable extends React.PureComponent<Props> {
@@ -201,17 +202,19 @@ class TransactionsTable extends React.PureComponent<Props> {
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
-      <PanelTable
-        data-test-id="transactions-table"
-        isEmpty={!hasResults}
-        emptyMessage={t('No transactions found')}
-        headers={this.renderHeader()}
-        isLoading={isLoading}
-        disablePadding
-        loader={loader}
-      >
-        {this.renderResults()}
-      </PanelTable>
+      <VisuallyCompleteWithData id="TransactionsTable" hasData={hasResults}>
+        <PanelTable
+          data-test-id="transactions-table"
+          isEmpty={!hasResults}
+          emptyMessage={t('No transactions found')}
+          headers={this.renderHeader()}
+          isLoading={isLoading}
+          disablePadding
+          loader={loader}
+        >
+          {this.renderResults()}
+        </PanelTable>
+      </VisuallyCompleteWithData>
     );
   }
 }

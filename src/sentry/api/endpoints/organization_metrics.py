@@ -6,21 +6,17 @@ from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics import (
-    InvalidField,
-    InvalidParams,
-    MockDataSource,
     QueryDefinition,
-    SnubaDataSource,
+    get_metrics,
+    get_series,
+    get_single_metric,
+    get_tag_values,
+    get_tags,
 )
+from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
-
-
-def get_datasource(request):
-    if request.GET.get("datasource") == "snuba":
-        return SnubaDataSource()
-
-    return MockDataSource()
 
 
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
@@ -31,7 +27,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        metrics = get_datasource(request).get_metrics(projects)
+        metrics = get_metrics(projects)
         return Response(metrics, status=200)
 
 
@@ -44,7 +40,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         try:
-            metric = get_datasource(request).get_single_metric(projects, metric_name)
+            metric = get_single_metric(projects, metric_name)
         except InvalidParams:
             raise ResourceDoesNotExist(detail=f"metric '{metric_name}'")
 
@@ -71,7 +67,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         try:
-            tags = get_datasource(request).get_tags(projects, metric_names)
+            tags = get_tags(projects, metric_names)
         except InvalidParams as exc:
             raise (ParseError(detail=str(exc)))
 
@@ -90,7 +86,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         try:
-            tag_values = get_datasource(request).get_tag_values(projects, tag_name, metric_names)
+            tag_values = get_tag_values(projects, tag_name, metric_names)
         except InvalidParams as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
@@ -120,7 +116,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 query = QueryDefinition(
                     request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_datasource(request).get_series(projects, query)
+                data = get_series(projects, query)
             except (InvalidField, InvalidParams) as exc:
                 raise (ParseError(detail=str(exc)))
             return data

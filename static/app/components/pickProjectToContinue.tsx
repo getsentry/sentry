@@ -12,17 +12,17 @@ type Project = {
 
 type Props = {
   /**
-   * Path used on the redirect router if the user did not select a project
-   */
-  noProjectRedirectPath: LocationDescriptor;
-  /**
    * Path used on the redirect router if the user did select a project
    */
   nextPath: Pick<LocationDescriptorObject, 'query'> & {
     pathname: NonNullable<LocationDescriptorObject['pathname']>;
   };
-  router: InjectedRouter;
+  /**
+   * Path used on the redirect router if the user did not select a project
+   */
+  noProjectRedirectPath: LocationDescriptor;
   projects: Project[];
+  router: InjectedRouter;
 };
 
 function PickProjectToContinue({

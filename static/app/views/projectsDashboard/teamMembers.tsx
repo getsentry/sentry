@@ -5,8 +5,8 @@ import AvatarList from 'sentry/components/avatar/avatarList';
 import {Member} from 'sentry/types';
 
 type Props = AsyncComponent['props'] & {
-  teamId: string;
   orgId: string;
+  teamId: string;
 };
 
 type State = AsyncComponent['state'] & {

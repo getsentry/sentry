@@ -22,9 +22,9 @@ type DefaultProps = Readonly<typeof defaultProps>;
 type Props = {
   title: React.ReactNode;
   type: string;
-  toggleRaw?: (enable: boolean) => void;
   actions?: React.ReactNode;
   className?: string;
+  toggleRaw?: (enable: boolean) => void;
 } & DefaultProps;
 
 class EventDataSection extends React.Component<Props> {

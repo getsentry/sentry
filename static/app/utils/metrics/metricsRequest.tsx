@@ -3,16 +3,16 @@ import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {doMetricsRequest, DoMetricsRequestOptions} from 'sentry/actionCreators/metrics';
 import {Client, ResponseMeta} from 'sentry/api';
-import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
+import {MetricsApiResponse} from 'sentry/types';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
 import {TableData} from '../discover/discoverQuery';
 
-import {getMetricsDataSource} from './getMetricsDataSource';
 import {transformMetricsResponseToTable} from './transformMetricsResponseToTable';
 
 const propNamesToIgnore = ['api', 'children'];
@@ -20,14 +20,14 @@ const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
 export type MetricsRequestRenderProps = {
-  loading: boolean;
-  isLoading: boolean;
-  reloading: boolean;
-  errored: boolean;
   error: string | null;
+  errored: boolean;
+  isLoading: boolean;
+  loading: boolean;
+  pageLinks: string | null;
+  reloading: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
-  pageLinks: string | null;
   tableData?: TableData;
 };
 
@@ -36,43 +36,39 @@ type DefaultProps = {
    * Include data for previous period
    */
   includePrevious: boolean;
-};
-
-type Props = DefaultProps & {
-  api: Client;
-  orgSlug: Organization['slug'];
-  field: string[];
-  children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
-  project?: Readonly<number[]>;
-  environment?: Readonly<string[]>;
-  statsPeriod?: string | null;
-  start?: DateString;
-  end?: DateString;
-  query?: string;
-  groupBy?: string[];
-  orderBy?: string;
-  limit?: number;
-  cursor?: string;
-  interval?: string;
-  isDisabled?: boolean;
   /**
    * Transform the response data to be something ingestible by GridEditable tables
    */
   includeTabularData?: boolean;
+  /**
+   * If true, no request will be made
+   */
+  isDisabled?: boolean;
 };
 
+type Props = DefaultProps &
+  Omit<
+    DoMetricsRequestOptions,
+    'includeAllArgs' | 'statsPeriodStart' | 'statsPeriodEnd'
+  > & {
+    api: Client;
+    children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
+  };
+
 type State = {
-  reloading: boolean;
-  errored: boolean;
   error: string | null;
+  errored: boolean;
+  pageLinks: string | null;
+  reloading: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
-  pageLinks: string | null;
 };
 
 class MetricsRequest extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     includePrevious: false,
+    includeTabularData: false,
+    isDisabled: false,
   };
 
   state: State = {
@@ -102,13 +98,7 @@ class MetricsRequest extends React.Component<Props, State> {
 
   private unmounting: boolean = false;
 
-  get path() {
-    const {orgSlug} = this.props;
-
-    return `/organizations/${orgSlug}/metrics/data/`;
-  }
-
-  baseQueryParams({previousPeriod = false} = {}) {
+  getQueryParams({previousPeriod = false} = {}) {
     const {
       project,
       environment,
@@ -119,25 +109,23 @@ class MetricsRequest extends React.Component<Props, State> {
       limit,
       interval,
       cursor,
+      statsPeriod,
+      start,
+      end,
+      orgSlug,
     } = this.props;
 
-    const {start, end, statsPeriod} = getPeriod({
-      period: this.props.statsPeriod,
-      start: this.props.start,
-      end: this.props.end,
-    });
-
     const commonQuery = {
-      project,
-      environment,
       field,
-      query: query || undefined,
-      groupBy,
-      orderBy,
-      per_page: limit,
       cursor,
-      interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
-      datasource: getMetricsDataSource(),
+      environment,
+      groupBy,
+      interval,
+      query,
+      limit,
+      project,
+      orderBy,
+      orgSlug,
     };
 
     if (!previousPeriod) {
@@ -176,18 +164,12 @@ class MetricsRequest extends React.Component<Props, State> {
     }));
 
     const promises = [
-      api.requestPromise(this.path, {
-        includeAllArgs: true,
-        query: this.baseQueryParams(),
-      }),
+      doMetricsRequest(api, {includeAllArgs: true, ...this.getQueryParams()}),
     ];
 
+    // TODO(metrics): this could be merged into one request by doubling the statsPeriod and then splitting the response in half
     if (shouldFetchPreviousPeriod({start, end, period: statsPeriod, includePrevious})) {
-      promises.push(
-        api.requestPromise(this.path, {
-          query: this.baseQueryParams({previousPeriod: true}),
-        })
-      );
+      promises.push(doMetricsRequest(api, this.getQueryParams({previousPeriod: true})));
     }
 
     try {

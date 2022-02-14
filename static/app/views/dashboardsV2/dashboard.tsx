@@ -27,14 +27,16 @@ import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import {DataSet} from './widget/utils';
+import {DataSet} from './widgetBuilder/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
   calculateColumnDepths,
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
+  enforceWidgetHeightValues,
   generateWidgetId,
+  generateWidgetsAfterCompaction,
   getDashboardLayout,
   getDefaultWidgetHeight,
   getMobileLayout,
@@ -62,24 +64,24 @@ const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
 type Props = {
   api: Client;
-  organization: Organization;
   dashboard: DashboardDetails;
-  selection: PageFilters;
+  handleAddCustomWidget: (widget: Widget) => void;
+  handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditing: boolean;
-  router: InjectedRouter;
   location: Location;
-  widgetLimitReached: boolean;
-  isPreview?: boolean;
+  onSetWidgetToBeUpdated: (widget: Widget) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
-  onSetWidgetToBeUpdated: (widget: Widget) => void;
-  handleUpdateWidgetList: (widgets: Widget[]) => void;
-  handleAddCustomWidget: (widget: Widget) => void;
+  organization: Organization;
+  router: InjectedRouter;
+  selection: PageFilters;
+  widgetLimitReached: boolean;
+  isPreview?: boolean;
+  newWidget?: Widget;
   paramDashboardId?: string;
   paramTemplateId?: string;
-  newWidget?: Widget;
 };
 
 type State = {
@@ -242,7 +244,8 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleOpenWidgetBuilder = () => {
-    const {router, paramDashboardId, organization, location} = this.props;
+    const {router, location, paramDashboardId, organization} = this.props;
+
     if (paramDashboardId) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
@@ -253,6 +256,7 @@ class Dashboard extends Component<Props, State> {
       });
       return;
     }
+
     router.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       query: {
@@ -263,11 +267,27 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing, handleUpdateWidgetList} = this.props;
-    const nextList = [...this.props.dashboard.widgets];
+    const {isEditing, onUpdate, handleUpdateWidgetList} = this.props;
+
+    let nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
-    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
-    this.props.onUpdate(nextList);
+    const nextWidgetData = {
+      ...nextWidget,
+      tempId: prevWidget.tempId,
+    };
+
+    // Only modify and re-compact if the default height has changed
+    if (
+      getDefaultWidgetHeight(prevWidget.displayType) !==
+      getDefaultWidgetHeight(nextWidget.displayType)
+    ) {
+      nextList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+      nextList = generateWidgetsAfterCompaction(nextList);
+    } else {
+      nextList[updateIndex] = nextWidgetData;
+    }
+
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
@@ -276,16 +296,13 @@ class Dashboard extends Component<Props, State> {
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
     const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
-    onUpdate(nextList);
+    let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    nextList = generateWidgetsAfterCompaction(nextList);
 
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
-    // Force check lazyLoad elements that might have shifted into view after deleting an upper widget
-    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
-    // RGL doesn't provide a handler for post animation layout change
-    setTimeout(forceCheck, 400);
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
@@ -295,8 +312,9 @@ class Dashboard extends Component<Props, State> {
     widgetCopy.id = undefined;
     widgetCopy.tempId = undefined;
 
-    const nextList = [...dashboard.widgets];
+    let nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
+    nextList = generateWidgetsAfterCompaction(nextList);
 
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
@@ -315,10 +333,7 @@ class Dashboard extends Component<Props, State> {
       handleAddCustomWidget,
     } = this.props;
 
-    if (
-      organization.features.includes('metrics') &&
-      organization.features.includes('metrics-dashboards-ui')
-    ) {
+    if (organization.features.includes('new-widget-builder-experience')) {
       onSetWidgetToBeUpdated(widget);
 
       if (paramDashboardId) {
@@ -331,6 +346,7 @@ class Dashboard extends Component<Props, State> {
         });
         return;
       }
+
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
         query: {
@@ -456,6 +472,11 @@ class Dashboard extends Component<Props, State> {
       layouts: newLayouts,
     });
     onUpdate(newWidgets);
+
+    // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
+    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
+    // RGL doesn't provide a handler for post animation layout change
+    setTimeout(forceCheck, 400);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {
@@ -528,17 +549,21 @@ class Dashboard extends Component<Props, State> {
             <IconResize />
           </ResizeHandle>
         }
+        useCSSTransforms={false}
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && !!!widgetLimitReached && (
-          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={this.addWidgetLayout}>
+          <AddWidgetWrapper
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={this.addWidgetLayout}
+          >
             <AddWidget
               orgFeatures={organization.features}
               onAddWidget={this.handleStartAdd}
               onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
             />
-          </div>
+          </AddWidgetWrapper>
         )}
       </GridLayout>
     );
@@ -618,19 +643,21 @@ const WidgetContainer = styled('div')`
   }
 `;
 
+// A widget being dragged has a z-index of 3
+// Allow the Add Widget tile to show above widgets when moved
+const AddWidgetWrapper = styled('div')`
+  z-index: 5;
+  background-color: ${p => p.theme.background};
+`;
+
 const GridItem = styled('div')`
   .react-resizable-handle {
     z-index: 2;
   }
 `;
 
-// HACK: to stack chart tooltips above other grid items
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
-
-  .react-grid-item:hover {
-    z-index: 10;
-  }
 
   .react-resizable-handle {
     background-image: none;

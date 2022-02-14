@@ -9,7 +9,6 @@ import {
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
-import {DATE_TIME_KEYS} from 'sentry/constants/pageFilters';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -18,15 +17,7 @@ import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
-import {getStateFromQuery} from './parse';
-import {PageFiltersState} from './types';
-
-type DatetimeState = Pick<PageFiltersState, 'start' | 'end' | 'period' | 'utc'>;
-
-const getDatetimeFromState = (state: PageFiltersState) =>
-  Object.fromEntries(
-    Object.entries(state).filter(([key]) => DATE_TIME_KEYS.includes(key))
-  ) as DatetimeState;
+import {getDatetimeFromState, getStateFromQuery} from './parse';
 
 type GlobalSelectionHeaderProps = Omit<
   React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
@@ -40,6 +31,11 @@ type GlobalSelectionHeaderProps = Omit<
 
 type Props = WithRouterProps &
   GlobalSelectionHeaderProps & {
+    /**
+     * Hide the global header
+     * Mainly used for pages which are using the new style page filters
+     */
+    hideGlobalHeader?: boolean;
     /**
      * Skip loading from local storage
      * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
@@ -63,6 +59,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     showAbsolute,
     shouldForceProject,
     specificProjectSlugs,
+    hideGlobalHeader,
   } = props;
 
   const {isReady} = useLegacyStore(PageFiltersStore);
@@ -108,6 +105,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     initializeUrlState({
       organization,
       queryParams: location.query,
+      pathname: location.pathname,
       router,
       skipLoadLastUsed,
       memberProjects,
@@ -169,12 +167,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     return <PageContent />;
   }
 
-  // New-style selection filters no longer have a 'global'header
-  const hasGlobalHeader = !organization.features.includes('selection-filters-v2');
-
   return (
     <Fragment>
-      {hasGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
+      {!hideGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
       {children}
     </Fragment>
   );

@@ -205,15 +205,14 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             # This test is flakey in that we sometimes load this page before the event is processed
             # depend on pytest-retry to reload the page
-            self.browser.wait_until_not(
-                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
-            )
+            self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
             self.browser.snapshot("events-v2 - all events query - list")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
             self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
+            self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
             self.browser.snapshot("events-v2 - all events query - list - no tags")
 
     def test_errors_query_empty_state(self):
@@ -537,9 +536,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             card = self.browser.element(card_selector)
 
             # Open the context menu
-            card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
+            card.find_element_by_css_selector('[data-test-id="menu-trigger"]').click()
             # Delete the query
-            card.find_element_by_css_selector('[data-test-id="delete-query"]').click()
+            card.find_element_by_css_selector('[data-test-id="delete"]').click()
 
             # Wait for card to clear
             self.browser.wait_until_not(card_selector)
@@ -564,14 +563,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             card = self.browser.element(card_selector)
 
             # Open the context menu, and duplicate
-            card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
-            card.find_element_by_css_selector('[data-test-id="duplicate-query"]').click()
+            card.find_element_by_css_selector('[data-test-id="menu-trigger"]').click()
+            card.find_element_by_css_selector('[data-test-id="duplicate"]').click()
 
             duplicate_name = f"{query.name} copy"
+
+            # Reload the page
+            self.browser.get(self.landing_path)
+
             # Wait for new element to show up.
             self.browser.element(f'[data-test-id="card-{duplicate_name}"]')
-        # Assert the new query exists and has 'copy' added to the name.
-        assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
+
+            # Assert the new query exists and has 'copy' added to the name.
+            assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
 
     @pytest.mark.skip(reason="causing timeouts in github actions and travis")
     @patch("django.utils.timezone.now")

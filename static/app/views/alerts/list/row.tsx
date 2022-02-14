@@ -32,7 +32,7 @@ import {getIncidentMetricPreset} from '../utils';
  */
 export const makeRuleDetailsQuery = (
   incident: Incident
-): {start: string; end: string} => {
+): {end: string; start: string} => {
   const {timeWindow} = incident.alertRule;
   const timeWindowMillis = timeWindow * 60 * 1000;
   const minRange = timeWindowMillis * API_INTERVAL_POINTS_MIN;
@@ -53,10 +53,10 @@ export const makeRuleDetailsQuery = (
 
 type Props = {
   incident: Incident;
-  projects: Project[];
-  projectsLoaded: boolean;
   orgId: string;
   organization: Organization;
+  projects: Project[];
+  projectsLoaded: boolean;
 };
 
 class AlertListRow extends Component<Props> {

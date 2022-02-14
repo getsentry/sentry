@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {act} from 'react-dom/test-utils';
 
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
@@ -207,27 +207,10 @@ describe('ResolveActions', function () {
       TestStubs.routerContext()
     );
 
-    // Necessary wrapper to simulate click event on dropdown menu buttons,
-    // see: https://react-spectrum.adobe.com/react-spectrum/testing.html#triggering-events
-    const triggerPress = element => {
-      element.prop('onClick')({
-        button: 0,
-        detail: 0,
-        nativeEvent: {detail: 0},
-        currentTarget: element.getDOMNode(),
-        target: element.getDOMNode(),
-        stopPropagation: () => {},
-      });
-    };
-
-    await act(async () => {
-      triggerPress(wrapper.find('DropdownTrigger'));
-      await tick();
-      wrapper.update();
-
-      triggerPress(wrapper.find('MenuItemWrap').last());
-      await tick();
-      wrapper.update();
+    await selectDropdownMenuItem({
+      wrapper,
+      itemKey: 'another-release',
+      triggerSelector: 'DropdownTrigger',
     });
 
     expect(wrapper.find('CustomResolutionModal Select').prop('options')).toEqual([

@@ -17,16 +17,19 @@ describe('DatePageFilter', function () {
     },
   });
   OrganizationStore.onUpdate(organization, {replace: true});
-  PageFiltersStore.onInitializeUrlState({
-    projects: [],
-    environments: [],
-    datetime: {
-      period: '7d',
-      start: null,
-      end: null,
-      utc: null,
+  PageFiltersStore.onInitializeUrlState(
+    {
+      projects: [],
+      environments: [],
+      datetime: {
+        period: '7d',
+        start: null,
+        end: null,
+        utc: null,
+      },
     },
-  });
+    new Set()
+  );
 
   it('can change period', function () {
     mountWithTheme(

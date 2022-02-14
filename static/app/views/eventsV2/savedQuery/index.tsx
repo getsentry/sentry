@@ -14,7 +14,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DropdownControl from 'sentry/components/dropdownControl';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import {IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -47,6 +47,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   api: Client;
 
+  eventView: EventView;
   /**
    * DO NOT USE `Location` TO GENERATE `EventView` IN THIS COMPONENT.
    *
@@ -55,21 +56,20 @@ type Props = DefaultProps & {
    * passed down only because it is needed for navigation.
    */
   location: Location;
-  organization: Organization;
-  eventView: EventView;
-  savedQuery: SavedQuery | undefined;
-  savedQueryLoading: boolean;
-  projects: Project[];
-  updateCallback: () => void;
   onIncompatibleAlertQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  organization: Organization;
+  projects: Project[];
+  savedQuery: SavedQuery | undefined;
+  savedQueryLoading: boolean;
+  updateCallback: () => void;
   yAxis: string[];
 };
 
 type State = {
-  isNewQuery: boolean;
   isEditingQuery: boolean;
+  isNewQuery: boolean;
 
   queryName: string;
 };
@@ -430,10 +430,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
-        <Feature
-          organization={organization}
-          features={['connect-discover-and-dashboards', 'dashboards-edit']}
-        >
+        <Feature organization={organization} features={['dashboards-edit']}>
           {({hasFeature}) => hasFeature && this.renderButtonAddToDashboard()}
         </Feature>
         {renderQueryButton(disabled => this.renderButtonDelete(disabled))}

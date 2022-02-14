@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
-import SelectField from 'sentry/components/forms/selectField';
+import SelectField from 'sentry/components/deprecatedforms/selectField';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconChevron} from 'sentry/icons';
@@ -38,20 +38,20 @@ function getMatchPlaceholder(type: string): string {
 }
 
 type Props = {
-  organization: Organization;
-  project: Project;
-  onAddRule: (rule: string) => void;
-  urls: string[];
-  paths: string[];
   disabled: boolean;
+  onAddRule: (rule: string) => void;
+  organization: Organization;
+  paths: string[];
+  project: Project;
+  urls: string[];
 };
 
 type State = {
-  text: string;
-  tagName: string;
-  type: string;
-  owners: Owner[];
   isValid: boolean;
+  owners: Owner[];
+  tagName: string;
+  text: string;
+  type: string;
 };
 
 class RuleBuilder extends React.Component<Props, State> {

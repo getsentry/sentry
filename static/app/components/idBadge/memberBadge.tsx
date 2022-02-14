@@ -11,12 +11,12 @@ import {AvatarUser, Member} from 'sentry/types';
 type Props = {
   member: Member;
   avatarSize?: UserAvatar['props']['size'];
-  displayName?: React.ReactNode;
+  className?: string;
   displayEmail?: string;
+  displayName?: React.ReactNode;
+  hideEmail?: boolean;
   orgId?: string;
   useLink?: boolean;
-  hideEmail?: boolean;
-  className?: string;
 };
 
 function getMemberUser(member: Member): AvatarUser {
@@ -90,8 +90,8 @@ const StyledEmail = styled('div')`
 `;
 
 type NameProps = {
-  useLink: boolean;
   hideEmail: boolean;
+  useLink: boolean;
 } & Pick<React.ComponentProps<typeof Link>, 'to'>;
 
 const StyledName = styled(({useLink, to, ...props}: NameProps) => {

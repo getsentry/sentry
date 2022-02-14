@@ -12,12 +12,13 @@ import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
-  value: string;
   onChange: (value: string) => void;
-  name?: string;
+  value: string;
+  autoSelect?: boolean;
   errorMessage?: React.ReactNode;
-  successMessage?: React.ReactNode;
   isDisabled?: boolean;
+  name?: string;
+  successMessage?: React.ReactNode;
 };
 
 function EditableText({
@@ -27,6 +28,7 @@ function EditableText({
   errorMessage,
   successMessage,
   isDisabled = false,
+  autoSelect = false,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
@@ -148,6 +150,7 @@ function EditableText({
             ref={inputRef}
             value={inputValue}
             onChange={handleInputChange}
+            onFocus={event => autoSelect && event.target.select()}
           />
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>

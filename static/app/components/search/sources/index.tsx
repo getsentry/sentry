@@ -4,16 +4,16 @@ import flatten from 'lodash/flatten';
 import {Result} from './types';
 
 type ChildProps = {
-  results: Result[];
-  isLoading: boolean;
   hasAnyResults: boolean;
+  isLoading: boolean;
+  results: Result[];
 };
 
 type Props = {
-  sources: React.ComponentType[];
-  query: string;
   children: (props: ChildProps) => React.ReactElement;
   params: {orgId: string};
+  query: string;
+  sources: React.ComponentType[];
   searchOptions?: Fuse.FuseOptions<any>;
 };
 
@@ -63,8 +63,11 @@ class SearchSources extends React.Component<Props> {
   }
 
   render() {
-    const {sources} = this.props;
-    return this.renderSources(sources, new Array(sources.length), 0);
+    return this.renderSources(
+      this.props.sources,
+      new Array(this.props.sources.length),
+      0
+    );
   }
 }
 

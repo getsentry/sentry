@@ -89,17 +89,17 @@ const generateOpAutocompleteGroup = (
 type ActionProps = {
   api: Client;
   /**
-   * Render the actions as a menu item
+   * The organization
    */
-  menuItemVariant?: boolean;
+  organization: Organization;
   /**
    * The current query
    */
   query: string;
   /**
-   * The organization
+   * Render the actions as a menu item
    */
-  organization: Organization;
+  menuItemVariant?: boolean;
   /**
    * The saved search type passed to the search bar
    */
@@ -108,18 +108,18 @@ type ActionProps = {
 
 type ActionBarItem = {
   /**
-   * Name of the action
-   */
-  key: string;
-  /**
    * The action component to render
    */
   Action: React.ComponentType<ActionProps>;
+  /**
+   * Name of the action
+   */
+  key: string;
 };
 
 type AutocompleteGroup = {
-  searchItems: SearchItem[];
   recentSearchItems: SearchItem[] | undefined;
+  searchItems: SearchItem[];
   tagName: string;
   type: ItemType;
 };
@@ -127,19 +127,13 @@ type AutocompleteGroup = {
 type Props = WithRouterProps & {
   api: Client;
   organization: Organization;
-  dropdownClassName?: string;
-  className?: string;
-
-  defaultQuery?: string;
-  query?: string | null;
   /**
    * Additional components to render as actions on the right of the search bar
    */
   actionBarItems?: ActionBarItem[];
-  /**
-   * Prepare query value before filtering dropdown items
-   */
-  prepareQuery?: (query: string) => string;
+  className?: string;
+
+  defaultQuery?: string;
   /**
    * Search items to display when there's no tag key. Is a tuple of search
    * items and recent search items
@@ -149,36 +143,72 @@ type Props = WithRouterProps & {
    * Disabled control (e.g. read-only)
    */
   disabled?: boolean;
+  dropdownClassName?: string;
   /**
-   * Input placeholder
+   * If true, excludes the environment tag from the autocompletion list. This
+   * is because we don't want to treat environment as a tag in some places such
+   * as the stream view where it is a top level concept
    */
-  placeholder?: string;
+  excludeEnvironment?: boolean;
+  /**
+   * List user's recent searches
+   */
+  hasRecentSearches?: boolean;
   /**
    * Allows additional content to be played before the search bar and icon
    */
   inlineLabel?: React.ReactNode;
   /**
-   * Map of tags
+   * Used to enforce length on the query
    */
-  supportedTags?: {[key: string]: Tag};
-  /**
-   * Type of supported tags
-   */
-  supportedTagType?: ItemType;
+  maxQueryLength?: number;
   /**
    * Maximum number of search items to display or a falsey value for no
    * maximum
    */
   maxSearchItems?: number;
   /**
-   * List user's recent searches
+   * While the data is unused, this list of members can be updated to
+   * trigger re-renders.
    */
-  hasRecentSearches?: boolean;
+  members?: User[];
   /**
-   * Wrap the input with a form. Useful if search bar is used within a parent
-   * form
+   * Called when the search is blurred
    */
-  useFormWrapper?: boolean;
+  onBlur?: (value: string) => void;
+  /**
+   * Called when the search input changes
+   */
+  onChange?: (value: string, e: React.ChangeEvent) => void;
+  /**
+   * Get a list of recent searches for the current query
+   */
+  onGetRecentSearches?: (query: string) => Promise<SearchItem[]>;
+  /**
+   * Get a list of tag values for the passed tag
+   */
+  onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
+  /**
+   * Called on key down
+   */
+  onKeyDown?: (evt: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  /**
+   * Called when a recent search is saved
+   */
+  onSavedRecentSearch?: (query: string) => void;
+  /**
+   * Called when the user makes a search
+   */
+  onSearch?: (query: string) => void;
+  /**
+   * Input placeholder
+   */
+  placeholder?: string;
+  /**
+   * Prepare query value before filtering dropdown items
+   */
+  prepareQuery?: (query: string) => string;
+  query?: string | null;
   /**
    * If this is defined, attempt to save search term scoped to the user and
    * the current org
@@ -189,64 +219,48 @@ type Props = WithRouterProps & {
    */
   searchSource?: string;
   /**
-   * Get a list of tag values for the passed tag
+   * Type of supported tags
    */
-  onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
+  supportedTagType?: ItemType;
   /**
-   * Get a list of recent searches for the current query
+   * Map of tags
    */
-  onGetRecentSearches?: (query: string) => Promise<SearchItem[]>;
+  supportedTags?: {[key: string]: Tag};
   /**
-   * Called when the user makes a search
+   * Wrap the input with a form. Useful if search bar is used within a parent
+   * form
    */
-  onSearch?: (query: string) => void;
-  /**
-   * Called when the search input changes
-   */
-  onChange?: (value: string, e: React.ChangeEvent) => void;
-  /**
-   * Called when the search is blurred
-   */
-  onBlur?: (value: string) => void;
-  /**
-   * Called on key down
-   */
-  onKeyDown?: (evt: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  /**
-   * Called when a recent search is saved
-   */
-  onSavedRecentSearch?: (query: string) => void;
-  /**
-   * If true, excludes the environment tag from the autocompletion list. This
-   * is because we don't want to treat environment as a tag in some places such
-   * as the stream view where it is a top level concept
-   */
-  excludeEnvironment?: boolean;
-  /**
-   * Used to enforce length on the query
-   */
-  maxQueryLength?: number;
-  /**
-   * While the data is unused, this list of members can be updated to
-   * trigger re-renders.
-   */
-  members?: User[];
+  useFormWrapper?: boolean;
 };
 
 type State = {
   /**
-   * The current search query in the input
+   * Index of the focused search item
    */
-  query: string;
+  activeSearchItem: number;
+  flatSearchItems: SearchItem[];
+  inputHasFocus: boolean;
+  loading: boolean;
+  /**
+   * The number of actions that are not in the overflow menu.
+   */
+  numActionsVisible: number;
   /**
    * The query parsed into an AST. If the query fails to parse this will be
    * null.
    */
   parsedQuery: ParseResult | null;
   /**
-   * The query in the input since we last updated our autocomplete list.
+   * The current search query in the input
    */
-  previousQuery?: string;
+  query: string;
+  searchGroups: SearchGroup[];
+  /**
+   * The current search term (or 'key') that that we will be showing
+   * autocompletion for.
+   */
+  searchTerm: string;
+  tags: Record<string, string>;
   /**
    * Indicates that we have a query that we've already determined not to have
    * any values. This is used to stop the autocompleter from querying if we
@@ -254,23 +268,9 @@ type State = {
    */
   noValueQuery?: string;
   /**
-   * The current search term (or 'key') that that we will be showing
-   * autocompletion for.
+   * The query in the input since we last updated our autocomplete list.
    */
-  searchTerm: string;
-  searchGroups: SearchGroup[];
-  flatSearchItems: SearchItem[];
-  /**
-   * Index of the focused search item
-   */
-  activeSearchItem: number;
-  tags: Record<string, string>;
-  inputHasFocus: boolean;
-  loading: boolean;
-  /**
-   * The number of actions that are not in the overflow menu.
-   */
-  numActionsVisible: number;
+  previousQuery?: string;
 };
 
 class SmartSearchBar extends React.Component<Props, State> {

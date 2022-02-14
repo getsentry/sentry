@@ -22,8 +22,8 @@ type Props = {
 };
 
 type State = {
-  loading: boolean;
   error: boolean;
+  loading: boolean;
   team: string | null;
   project?: Project | null;
 };
