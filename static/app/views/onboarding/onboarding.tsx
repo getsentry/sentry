@@ -295,37 +295,31 @@ interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
   className?: string;
 }
 
-const Back = styled(
-  ({className, animate, ...props}: BackButtonProps): React.ReactElement => (
-    <motion.div
-      className={className}
-      animate={animate}
-      transition={testableTransition()}
-      variants={{
-        initial: {opacity: 0, visibility: 'hidden'},
-        visible: {
-          opacity: 1,
-          visibility: 'visible',
-          transition: testableTransition({delay: 1}),
+const Back = styled(({className, animate, ...props}: BackButtonProps) => (
+  <motion.div
+    className={className}
+    animate={animate}
+    transition={testableTransition()}
+    variants={{
+      initial: {opacity: 0, visibility: 'hidden'},
+      visible: {
+        opacity: 1,
+        visibility: 'visible',
+        transition: testableTransition({delay: 1}),
+      },
+      hidden: {
+        opacity: 0,
+        transitionEnd: {
+          visibility: 'hidden',
         },
-        hidden: {
-          opacity: 0,
-          transitionEnd: {
-            visibility: 'hidden',
-          },
-        },
-      }}
-    >
-      <Button
-        {...props}
-        icon={<IconChevron direction="left" size="sm" />}
-        priority="link"
-      >
-        {t('Go back')}
-      </Button>
-    </motion.div>
-  )
-)`
+      },
+    }}
+  >
+    <Button {...props} icon={<IconChevron direction="left" size="sm" />} priority="link">
+      {t('Go back')}
+    </Button>
+  </motion.div>
+))`
   position: absolute;
   top: 40px;
   left: 20px;

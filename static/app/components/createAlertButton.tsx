@@ -316,6 +316,7 @@ function CreateAlertFromViewButton({
       organization={organization}
       onClick={handleClick}
       to={to}
+      aria-label={t('Create Alert')}
       {...buttonProps}
     />
   );

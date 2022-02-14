@@ -7,13 +7,14 @@ import TeamKeyTransaction, {
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import Tooltip from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withProjects from 'sentry/utils/withProjects';
 
 class TitleStar extends Component<TitleProps> {
   render() {
-    const {isOpen, keyedTeams, initialValue, children, ...props} = this.props;
+    const {isOpen, keyedTeams, initialValue, ...props} = this.props;
     const keyedTeamsCount = keyedTeams?.length ?? initialValue ?? 0;
     const star = (
       <IconStar
@@ -23,9 +24,13 @@ class TitleStar extends Component<TitleProps> {
       />
     );
     const button = (
-      <Button {...props} icon={star} borderless size="zero">
-        {children}
-      </Button>
+      <Button
+        {...props}
+        icon={star}
+        borderless
+        size="zero"
+        aria-label={t('Toggle star for team')}
+      />
     );
 
     if (!isOpen && keyedTeams?.length) {
