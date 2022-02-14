@@ -927,6 +927,8 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:alert-rule-ui-component": False,
+    # Enable issue alert status page
+    "organizations:alert-rule-status-page": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -1012,8 +1014,6 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-builder-aggregate": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
-    # Enable migrating auth identities between providers automatically
-    "organizations:idp-automatic-migration": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -1365,7 +1365,7 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
-SENTRY_RATELIMITER_ENABLED = False
+SENTRY_RATELIMITER_ENABLED = True
 SENTRY_RATELIMITER_OPTIONS = {}
 # These values were determined from analysis on one week of api access logs
 SENTRY_RATELIMITER_DEFAULT_IP = 620
