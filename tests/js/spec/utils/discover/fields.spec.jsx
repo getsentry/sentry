@@ -7,7 +7,7 @@ import {
   fieldAlignment,
   generateAggregateFields,
   getAggregateAlias,
-  getEquationFields,
+  getFieldsFromEquations,
   isAggregateEquation,
   isAggregateField,
   isMeasurement,
@@ -356,18 +356,18 @@ describe('fieldAlignment()', function () {
   });
 });
 
-describe('getEquationFields', function () {
+describe('getFieldsFromEquations', function () {
   it('returns a list of fields that includes individual terms of provided equations', () => {
     const fields = [
       'equation|(count_if(transaction.duration,greater,300) / count()) * 100',
       'equation|(count_if(transaction.duration,lessOrEquals,300) / count()) * 100',
     ];
-    expect(getEquationFields(fields)).toEqual([
-      'count_if(transaction.duration,lessOrEquals,300)',
-      'count()',
-      'count_if(transaction.duration,greater,300)',
-      'equation|(count_if(transaction.duration,greater,300) / count()) * 100',
-      'equation|(count_if(transaction.duration,lessOrEquals,300) / count()) * 100',
-    ]);
+    expect(getFieldsFromEquations(fields)).toEqual(
+      expect.arrayContaining([
+        'count_if(transaction.duration,lessOrEquals,300)',
+        'count()',
+        'count_if(transaction.duration,greater,300)',
+      ])
+    );
   });
 });
