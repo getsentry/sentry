@@ -5,7 +5,7 @@ from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 
 
-class Option(Model):
+class Option(Model):  # type: ignore
     """
     Global options which apply in most situations as defaults,
     and generally can be overwritten by per-project options.
