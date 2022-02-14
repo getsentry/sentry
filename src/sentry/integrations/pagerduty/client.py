@@ -75,7 +75,7 @@ class PagerDutyClient(ApiClient):
                     "organization_id": organization.id,
                     "status_code": response.status_code,
                     "dedup_key": response.get("dedup_key"),
-                    "message": response.get("message"),
+                    "pd_message": response.get("message"),
                 },
             )
         return response
