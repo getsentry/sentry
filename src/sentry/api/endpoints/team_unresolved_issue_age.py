@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.models import Group, GroupStatus, Team
 
 buckets = (
@@ -31,9 +32,9 @@ class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint, EnvironmentMixin):  # type: i
         if not features.has("organizations:team-insights", team.organization, actor=request.user):
             return Response({"detail": "You do not have the insights feature enabled"}, status=400)
 
-        environment = self._get_environment_from_request(request, team.organization.id)
+        environments = [e.id for e in get_environments(request, team.organization)]
         group_environment_filter = (
-            Q(groupenvironment__environment_id=environment.id) if environment else Q()
+            Q(groupenvironment__environment_id=environments[0]) if environments else Q()
         )
 
         current_time = timezone.now()

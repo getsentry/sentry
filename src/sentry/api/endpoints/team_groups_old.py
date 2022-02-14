@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import GroupSerializer, serialize
 from sentry.models import Group, GroupStatus
 
@@ -16,9 +17,9 @@ class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
         Return the oldest issues owned by a team
         """
         limit = min(100, int(request.GET.get("limit", 10)))
-        environment = self._get_environment_from_request(request, team.organization.id)
+        environments = [e.id for e in get_environments(request, team.organization)]
         group_environment_filter = (
-            Q(groupenvironment__environment_id=environment.id) if environment else Q()
+            Q(groupenvironment__environment_id=environments[0]) if environments else Q()
         )
 
         group_list = list(

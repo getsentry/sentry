@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Group, GroupHistory, GroupHistoryStatus, Project, Team
 from sentry.models.grouphistory import (
@@ -32,7 +33,7 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        environment = self._get_environment_from_request(request, team.organization.id)
+        environments = [e.id for e in get_environments(request, team.organization)]
 
         if "statuses" in request.GET:
             statuses = [
@@ -54,7 +55,7 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
 
         if GroupHistoryStatus.NEW in statuses:
             group_environment_filter = (
-                Q(groupenvironment__environment_id=environment.id) if environment else Q()
+                Q(groupenvironment__environment_id=environments[0]) if environments else Q()
             )
             statuses.remove(GroupHistoryStatus.NEW)
             new_issues = list(
@@ -70,7 +71,7 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
             )
 
         group_history_enviornment_filter = (
-            Q(group__groupenvironment__environment_id=environment.id) if environment else Q()
+            Q(group__groupenvironment__environment_id=environments[0]) if environments else Q()
         )
         bucketed_issues = (
             GroupHistory.objects.filter_to_team(team)
