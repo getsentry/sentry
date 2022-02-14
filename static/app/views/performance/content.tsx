@@ -18,7 +18,7 @@ import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import {PageFilters} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,10 +56,8 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.overview.view',
-      eventName: 'Performance Views: Transaction overview view',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.overview.view', {
+      organization,
       show_onboarding: shouldShowOnboarding(),
     });
   }, []);
@@ -93,11 +91,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   }
 
   function handleSearch(searchQuery: string) {
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.overview.search',
-      eventName: 'Performance Views: Transaction overview search',
-      organization_id: parseInt(organization.id, 10),
-    });
+    trackAdvancedAnalyticsEvent('performance_views.overview.search', {organization});
 
     browserHistory.push({
       pathname: location.pathname,
