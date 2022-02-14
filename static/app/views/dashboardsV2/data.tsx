@@ -289,7 +289,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Urls grouped by Issue'),
+        title: t('URLs grouped by Issue'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
@@ -528,7 +528,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('p75(duration) by Country'),
+        title: t('p75 of Duration by Country'),
         displayType: DisplayType.WORLD_MAP,
         interval: '5m',
         queries: [

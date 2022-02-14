@@ -209,6 +209,8 @@ def pseudo_releasefile(url, info, dist):
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
     permission_classes = (ProjectReleasePermission,)
 
+    enforce_rate_limit = False
+
     def get(self, request: Request, project, version) -> Response:
         """
         List a Project Release's Files

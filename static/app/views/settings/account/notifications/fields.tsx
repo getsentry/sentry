@@ -2,12 +2,12 @@ import {t} from 'sentry/locale';
 import {SelectValue} from 'sentry/types';
 
 export type FineTuneField = {
-  title: string;
   description: string;
+  title: string;
   type: 'select';
-  options?: SelectValue<string>[];
-  defaultValue?: string;
   defaultFieldName?: string;
+  defaultValue?: string;
+  options?: SelectValue<string>[];
 };
 
 // TODO: clean up unused fields

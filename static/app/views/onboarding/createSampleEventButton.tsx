@@ -19,8 +19,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 type Props = React.ComponentProps<typeof Button> & {
   api: Client;
   organization: Organization;
-  project?: Project;
   source: string;
+  project?: Project;
 };
 
 type State = {

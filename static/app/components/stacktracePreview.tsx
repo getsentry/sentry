@@ -6,7 +6,7 @@ import StackTraceContent from 'sentry/components/events/interfaces/crashContent/
 import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
 import StackTraceContentV3 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV3';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
-import Hovercard, {Body} from 'sentry/components/hovercard';
+import {Body, Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -64,8 +64,8 @@ function StackTracePreviewContent({
 }: {
   event: Event;
   stacktrace: StacktraceType;
-  orgFeatures?: string[];
   groupingCurrentLevel?: number;
+  orgFeatures?: string[];
 }) {
   const includeSystemFrames = React.useMemo(() => {
     return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
@@ -119,13 +119,13 @@ function StackTracePreviewContent({
 }
 
 type StackTracePreviewProps = {
+  children: React.ReactNode;
   issueId: string;
   organization: Organization;
-  children: React.ReactNode;
-  groupingCurrentLevel?: number;
-  eventId?: string;
-  projectSlug?: string;
   className?: string;
+  eventId?: string;
+  groupingCurrentLevel?: number;
+  projectSlug?: string;
 };
 
 function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {

@@ -25,15 +25,15 @@ import RulesPanel from './rulesPanel';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
 type Props = AsyncView['props'] & {
-  project: Project;
-  organization: Organization;
   hasAccess: boolean;
+  organization: Organization;
+  project: Project;
 };
 
 type State = AsyncView['state'] & {
   errorRules: DynamicSamplingRules;
-  transactionRules: DynamicSamplingRules;
   projectDetails: Project | null;
+  transactionRules: DynamicSamplingRules;
 };
 
 class FiltersAndSampling extends AsyncView<Props, State> {

@@ -10,10 +10,10 @@ import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
 
 type Props = {
-  title: string;
   detail: React.ReactNode;
-  to: React.ComponentProps<typeof Link>['to'];
   renderWidgets: () => React.ReactNode;
+  title: string;
+  to: React.ComponentProps<typeof Link>['to'];
   createdBy?: User;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
@@ -115,6 +115,7 @@ const CardBody = styled('div')`
   max-height: 150px;
   min-height: 150px;
   overflow: hidden;
+  border-bottom: 1px solid ${p => p.theme.gray100};
 `;
 
 const CardFooter = styled('div')`

@@ -1,4 +1,5 @@
-import {forwardRef, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
@@ -9,17 +10,20 @@ import {Node} from '@react-types/shared';
 import {IconChevron} from 'sentry/icons';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
+type Priority = 'primary' | 'danger';
 export type MenuItemProps = {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
   key: string;
   /**
-   * Item label. Should prefereably be a string. If not, make sure that
-   * there are appropriate aria-labels.
+   * Sub-items that are nested inside this item. By default, sub-items are
+   * rendered collectively as menu sections inside the current menu. If
+   * `isSubmenu` is true, then they will be rendered together in a sub-menu.
    */
-  label: React.ReactNode;
+  children?: MenuItemProps[];
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
@@ -31,14 +35,10 @@ export type MenuItemProps = {
    */
   isSubmenu?: boolean;
   /**
-   * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
-   * if `children` is defined and `isSubmenu` is true)
+   * Item label. Should prefereably be a string. If not, make sure that
+   * there are appropriate aria-labels.
    */
-  submenuTitle?: string;
-  /**
-   * Whether to show a line divider below this menu item
-   */
-  showDividers?: boolean;
+  label?: React.ReactNode;
   /*
    * Items to be added to the left of the label
    */
@@ -49,8 +49,32 @@ export type MenuItemProps = {
    * respect to the first line of the label element.
    */
   leadingItemsSpanFullHeight?: boolean;
+  /**
+   * Function to call when user selects/clicks/taps on the menu item. The
+   * item's key is passed as an argument.
+   */
+  onAction?: (key: MenuItemProps['key']) => void;
+  /**
+   * Accented text and background (on hover) colors. Primary = purple, and
+   * danger = red.
+   */
+  priority?: Priority;
+  /**
+   * Whether to show a line divider below this menu item
+   */
+  showDividers?: boolean;
+  /**
+   * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
+   * if `children` is defined and `isSubmenu` is true)
+   */
+  submenuTitle?: string;
+  /**
+   * React-router destination if menu item is a link. Note: currently only
+   * internal links (callable with `router.push()`) are supported.
+   */
+  to?: string;
   /*
-   * Items to be added to the right of the label
+   * Items to be added to the right of the label.
    */
   trailingItems?: React.ReactNode;
   /*
@@ -59,41 +83,30 @@ export type MenuItemProps = {
    * label element.
    */
   trailingItemsSpanFullHeight?: boolean;
-  /**
-   * Function to call when user selects/clicks/taps on the menu item. The
-   * item's key is passed as an argument.
-   */
-  onAction?: (key: MenuItemProps['key']) => void;
-  /**
-   * Sub-items that are nested inside this item. By default, sub-items are
-   * rendered collectively as menu sections inside the current menu. If
-   * `isSubmenu` is true, then they will be rendered together in a sub-menu.
-   */
-  children?: MenuItemProps[];
 };
 
 type Props = {
   /**
-   * Node representation (from @react-aria) of the item
+   * Whether to close the menu when an item has been clicked/selected
    */
-  node: Node<MenuItemProps>;
+  closeOnSelect: boolean;
   /**
    * Whether this is the last node in the collection
    */
   isLastNode: boolean;
   /**
-   * Tree state (from @react-stately) inherited from parent menu
+   * Node representation (from @react-aria) of the item
    */
-  state: TreeState<MenuItemProps>;
+  node: Node<MenuItemProps>;
   /**
    * Used to close the menu when needed (e.g. when the item is
    * clicked/selected)
    */
   onClose: () => void;
   /**
-   * Whether to close the menu when an item has been clicked/selected
+   * Tree state (from @react-stately) inherited from parent menu
    */
-  closeOnSelect: boolean;
+  state: TreeState<MenuItemProps>;
   /**
    * Whether this is a trigger button (displayed as a normal menu item) for a
    * submenu
@@ -103,29 +116,33 @@ type Props = {
    * Tag name for item wrapper
    */
   renderAs?: React.ElementType;
-};
+  /**
+   * If isSubmenuTrigger is true, then replace the internal ref object with
+   * this ref
+   */
+  submenuTriggerRef?: React.RefObject<HTMLLIElement>;
+} & WithRouterProps;
 
 /**
  * A menu item with a label, optional details, leading and trailing elements.
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
-  (
-    {
-      node,
-      isLastNode,
-      state,
-      onClose,
-      closeOnSelect,
-      isSubmenuTrigger = false,
-      renderAs = 'li' as React.ElementType,
-      ...submenuTriggerProps
-    },
-    submenuTriggerRef
-  ) => {
+const MenuItem = withRouter(
+  ({
+    node,
+    isLastNode,
+    state,
+    onClose,
+    closeOnSelect,
+    isSubmenuTrigger = false,
+    submenuTriggerRef,
+    renderAs = 'li' as React.ElementType,
+    router,
+    ...submenuTriggerProps
+  }: Props) => {
     const [isHovering, setIsHovering] = useState(false);
-    const ref = (submenuTriggerRef ?? useRef(null)) as React.RefObject<HTMLLIElement>;
+    const ref = submenuTriggerRef ?? useRef(null);
     const isDisabled = state.disabledKeys.has(node.key);
     const isFocused = state.selectionManager.focusedKey === node.key;
     const item = node.value;
@@ -136,6 +153,7 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
         return;
       }
       item.onAction?.(item.key);
+      item.to && router.push(item.to);
     };
 
     // Open submenu on hover
@@ -144,9 +162,9 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
       if (isHovering && isFocused) {
         if (isSubmenuTrigger) {
           state.selectionManager.select(node.key);
-        } else {
-          state.selectionManager.clearSelection();
+          return;
         }
+        state.selectionManager.clearSelection();
       }
     }, [isHovering, isFocused]);
 
@@ -155,13 +173,13 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
       onKeyDown: e => {
         if (isSubmenuTrigger && e.key === 'ArrowRight') {
           state.selectionManager.select(node.key);
-        } else {
-          e.continuePropagation();
+          return;
         }
+        e.continuePropagation();
       },
     });
 
-    // Manage interactive events & create aria- attributes
+    // Manage interactive events & create aria attributes
     const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
       {
         key: node.key,
@@ -183,6 +201,7 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
       keyboardProps
     );
     const {
+      priority,
       details,
       leadingItems,
       leadingItemsSpanFullHeight,
@@ -197,10 +216,13 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
         ref={ref}
         as={renderAs}
         isDisabled={isDisabled}
+        priority={priority}
+        data-test-id={item.key}
+        {...(item.to && {'data-test-href': item.to})}
         {...props}
         {...(isSubmenuTrigger && {role: 'menuitemradio'})}
       >
-        <InnerWrap isFocused={isFocused} role="presentation">
+        <InnerWrap isFocused={isFocused} priority={priority}>
           {leadingItems && (
             <LeadingItems
               isDisabled={isDisabled}
@@ -209,16 +231,20 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
               {leadingItems}
             </LeadingItems>
           )}
-          <ContentWrap
-            isFocused={isFocused}
-            showDividers={showDividers}
-            role="presentation"
-          >
-            <LabelWrap role="presentation">
-              <Label isDisabled={isDisabled} {...labelProps} aria-hidden="true">
+          <ContentWrap isFocused={isFocused} showDividers={showDividers}>
+            <LabelWrap>
+              <Label {...labelProps} aria-hidden="true">
                 {label}
               </Label>
-              {details && <Details {...descriptionProps}>{details}</Details>}
+              {details && (
+                <Details
+                  isDisabled={isDisabled}
+                  priority={priority}
+                  {...descriptionProps}
+                >
+                  {details}
+                </Details>
+              )}
             </LabelWrap>
             {(trailingItems || isSubmenuTrigger) && (
               <TrailingItems
@@ -237,31 +263,61 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
     );
   }
 );
-
 export default MenuItem;
 
-const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
+const MenuItemWrap = styled('li')<{
+  isDisabled?: boolean;
+  isFocused?: boolean;
+  priority?: Priority;
+}>`
   position: static;
   list-style-type: none;
   margin: 0;
   padding: 0 ${space(0.5)};
   cursor: pointer;
 
-  ${p => p.isDisabled && `cursor: initial;`}
+  color: ${p => p.theme.textColor};
+  ${p => p.priority === 'primary' && `color: ${p.theme.activeText};`}
+  ${p => p.priority === 'danger' && `color: ${p.theme.errorText};`}
+  ${p =>
+    p.isDisabled &&
+    `
+    color: ${p.theme.subText};
+    cursor: initial;
+  `}
 
+  &:focus {
+    outline: none;
+  }
   &:focus-visible {
     outline: none;
   }
 `;
 
-const InnerWrap = styled('div')<{isFocused: boolean}>`
+const getHoverBackground = (theme: Theme, priority?: Priority) => {
+  let hoverBackground: string;
+  switch (priority) {
+    case 'primary':
+      hoverBackground = theme.purple100;
+      break;
+    case 'danger':
+      hoverBackground = theme.red100;
+      break;
+    default:
+      hoverBackground = theme.hover;
+  }
+
+  return `background: ${hoverBackground}; z-index: 1;`;
+};
+
+const InnerWrap = styled('div')<{isFocused: boolean; priority?: Priority}>`
   display: flex;
   position: relative;
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
 
-  ${p => p.isFocused && `background: ${p.theme.hover}; z-index: 1;`}
+  ${p => p.isFocused && getHoverBackground(p.theme, p.priority)}
 `;
 
 const LeadingItems = styled('div')<{isDisabled?: boolean; spanFullHeight?: boolean}>`
@@ -307,21 +363,23 @@ const LabelWrap = styled('div')`
   width: 100%;
 `;
 
-const Label = styled('p')<{isDisabled?: boolean}>`
+const Label = styled('p')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
   ${overflowEllipsis}
-
-  ${p => p.isDisabled && `color: ${p.theme.subText};`}
 `;
 
-const Details = styled('p')`
+const Details = styled('p')<{isDisabled: boolean; priority?: Priority}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
   ${overflowEllipsis}
+
+  ${p => p.priority === 'primary' && `color: ${p.theme.activeText};`}
+  ${p => p.priority === 'danger' && `color: ${p.theme.errorText};`}
+  ${p => p.isDisabled && `color: ${p.theme.subText};`}
 `;
 
 const TrailingItems = styled('div')<{isDisabled?: boolean; spanFullHeight?: boolean}>`

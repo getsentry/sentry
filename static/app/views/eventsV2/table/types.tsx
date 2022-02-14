@@ -6,6 +6,7 @@ import {
   ColumnType,
   ColumnValueType,
 } from 'sentry/utils/discover/fields';
+import {MetricsColumnType} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 
 /**
  * It is assumed that `aggregation` and `field` have the same ColumnValueType
@@ -14,10 +15,10 @@ export type TableColumn<K> = GridColumnOrder<K> & {
   // key: K                     From GridColumn
   // name: string               From GridColumnHeader
   column: Readonly<Column>;
-  width?: number;
+  isSortable: boolean;
 
   type: ColumnValueType;
-  isSortable: boolean;
+  width?: number;
   // isPrimary: boolean         From GridColumnHeader
 };
 
@@ -35,14 +36,15 @@ export enum FieldValueKind {
   FIELD = 'field',
   FUNCTION = 'function',
   EQUATION = 'equation',
+  METRICS = 'metric',
 }
 
 export type FieldValueColumns =
   | {
       kind: FieldValueKind.TAG;
       meta: {
-        name: string;
         dataType: ColumnType;
+        name: string;
         // Set to true for tag values we invent at runtime.
         unknown?: boolean;
       };
@@ -50,22 +52,29 @@ export type FieldValueColumns =
   | {
       kind: FieldValueKind.MEASUREMENT;
       meta: {
-        name: string;
         dataType: ColumnType;
+        name: string;
       };
     }
   | {
       kind: FieldValueKind.BREAKDOWN;
       meta: {
-        name: string;
         dataType: 'duration';
+        name: string;
       };
     }
   | {
       kind: FieldValueKind.FIELD;
       meta: {
-        name: string;
         dataType: ColumnType;
+        name: string;
+      };
+    }
+  | {
+      kind: FieldValueKind.METRICS;
+      meta: {
+        dataType: MetricsColumnType;
+        name: string;
       };
     };
 

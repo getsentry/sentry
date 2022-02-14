@@ -16,7 +16,10 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/persistence';
 import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
-import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
+import {
+  getDefaultSelection,
+  getPathsWithNewFilters,
+} from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {
@@ -39,21 +42,21 @@ type EnvironmentId = Environment['id'];
 
 type Options = {
   /**
-   * List of parameters to remove when changing URL params
-   */
-  resetParams?: string[];
-  /**
    * Do not reset the `cursor` query parameter when updating page filters
    */
   keepCursor?: boolean;
   /**
-   * Persist changes to the page filter selection into local storage
-   */
-  save?: boolean;
-  /**
    * Use Location.replace instead of push when updating the URL query state
    */
   replace?: boolean;
+  /**
+   * List of parameters to remove when changing URL params
+   */
+  resetParams?: string[];
+  /**
+   * Persist changes to the page filter selection into local storage
+   */
+  save?: boolean;
 };
 
 /**
@@ -61,12 +64,12 @@ type Options = {
  * here are a bit wider to allow for easy updates.
  */
 type PageFiltersUpdate = {
-  project?: Array<string | number> | null;
-  environment?: string[] | null;
-  start?: DateString;
   end?: DateString;
-  utc?: string | boolean | null;
+  environment?: string[] | null;
   period?: string | null;
+  project?: Array<string | number> | null;
+  start?: DateString;
+  utc?: string | boolean | null;
 };
 
 /**
@@ -114,24 +117,26 @@ function mergeDatetime(
 }
 
 type InitializeUrlStateParams = {
+  memberProjects: Project[];
   organization: Organization;
+  pathname: Location['pathname'];
   queryParams: Location['query'];
   router: InjectedRouter;
-  memberProjects: Project[];
-  shouldForceProject?: boolean;
   shouldEnforceSingleProject: boolean;
+  defaultSelection?: Partial<PageFilters>;
+  forceProject?: MinimalProject | null;
+  shouldForceProject?: boolean;
+  showAbsolute?: boolean;
   /**
    * If true, do not load from local storage
    */
   skipLoadLastUsed?: boolean;
-  defaultSelection?: Partial<PageFilters>;
-  forceProject?: MinimalProject | null;
-  showAbsolute?: boolean;
 };
 
 export function initializeUrlState({
   organization,
   queryParams,
+  pathname,
   router,
   memberProjects,
   skipLoadLastUsed,
@@ -182,9 +187,9 @@ export function initializeUrlState({
   if (storedPageFilters) {
     const {state: storedState, pinnedFilters} = storedPageFilters;
 
-    const hasPinning = organization.features.includes('selection-filters-v2');
+    const pageHasPinning = getPathsWithNewFilters(organization).includes(pathname);
 
-    const filtersToRestore = hasPinning
+    const filtersToRestore = pageHasPinning
       ? pinnedFilters
       : new Set<PinnedPageFilter>(['projects', 'environments']);
 
@@ -403,6 +408,7 @@ function getNewQueryParams(
   // Normalize existing query parameters
   const currentQueryState = getStateFromQuery(cleanCurrentQuery, {
     allowEmptyPeriod: true,
+    allowAbsoluteDatetime: true,
   });
 
   // Extract non page filter parameters.

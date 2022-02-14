@@ -28,10 +28,14 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget, WidgetType} from '../types';
-import {ISSUE_FIELD_TO_HEADER_MAP, ISSUE_FIELDS} from '../widget/issueWidget/fields';
+import {
+  ISSUE_FIELD_TO_HEADER_MAP,
+  ISSUE_FIELDS,
+} from '../widgetBuilder/issueWidget/fields';
 
 import WidgetCardChart from './chart';
 import IssueWidgetQueries from './issueWidgetQueries';
+import MetricsWidgetQueries from './metricsWidgetQueries';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 import WidgetQueries from './widgetQueries';
 
@@ -43,34 +47,29 @@ type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'>
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  location: Location;
-  isEditing: boolean;
-  widget: Widget;
-  selection: PageFilters;
-  onDelete: () => void;
-  onEdit: () => void;
-  onDuplicate: () => void;
-  isSorting: boolean;
   currentWidgetDragging: boolean;
-  showContextMenu?: boolean;
-  isPreview?: boolean;
-  hideToolbar?: boolean;
-  draggableProps?: DraggableProps;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-  noLazyLoad?: boolean;
-  isMobile?: boolean;
+  isEditing: boolean;
+  isSorting: boolean;
+  location: Location;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onEdit: () => void;
+  organization: Organization;
+  selection: PageFilters;
+  widget: Widget;
   widgetLimitReached: boolean;
+  draggableProps?: DraggableProps;
+  hideToolbar?: boolean;
+  isMobile?: boolean;
+  isPreview?: boolean;
+  noLazyLoad?: boolean;
+  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  showContextMenu?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
-  isAllowWidgetsToDiscover() {
-    const {organization} = this.props;
-    return organization.features.includes('connect-discover-and-dashboards');
-  }
-
   renderToolbar() {
     const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
       this.props;
@@ -201,6 +200,55 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
+  renderMetricsChart() {
+    const {
+      widget,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+      location,
+      router,
+      tableItemLimit,
+      isMobile,
+      windowWidth,
+    } = this.props;
+
+    return (
+      <MetricsWidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        limit={tableItemLimit}
+      >
+        {({tableResults, timeseriesResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <WidgetCardChart
+                timeseriesResults={timeseriesResults}
+                tableResults={tableResults}
+                errorMessage={errorMessage}
+                loading={loading}
+                location={location}
+                widget={widget}
+                selection={selection}
+                router={router}
+                organization={organization}
+                isMobile={isMobile}
+                windowWidth={windowWidth}
+              />
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </MetricsWidgetQueries>
+    );
+  }
+
   renderDiscoverChart() {
     const {
       widget,
@@ -255,6 +303,11 @@ class WidgetCard extends React.Component<Props> {
     if (widget.widgetType === WidgetType.ISSUE) {
       return this.renderIssueChart();
     }
+
+    if (widget.widgetType === WidgetType.METRICS) {
+      return this.renderMetricsChart();
+    }
+
     return this.renderDiscoverChart();
   }
 

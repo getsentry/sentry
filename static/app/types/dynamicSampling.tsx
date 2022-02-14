@@ -77,17 +77,16 @@ export enum LegacyBrowser {
 }
 
 type DynamicSamplingConditionLogicalInnerGlob = {
-  op: DynamicSamplingInnerOperator.GLOB_MATCH;
   name:
     | DynamicSamplingInnerName.EVENT_RELEASE
     | DynamicSamplingInnerName.TRACE_RELEASE
     | DynamicSamplingInnerName.EVENT_TRANSACTION
     | DynamicSamplingInnerName.TRACE_TRANSACTION;
+  op: DynamicSamplingInnerOperator.GLOB_MATCH;
   value: Array<string>;
 };
 
 type DynamicSamplingConditionLogicalInnerEq = {
-  op: DynamicSamplingInnerOperator.EQUAL;
   name:
     | DynamicSamplingInnerName.EVENT_ENVIRONMENT
     | DynamicSamplingInnerName.TRACE_ENVIRONMENT
@@ -95,33 +94,34 @@ type DynamicSamplingConditionLogicalInnerEq = {
     | DynamicSamplingInnerName.TRACE_USER_ID
     | DynamicSamplingInnerName.EVENT_USER_SEGMENT
     | DynamicSamplingInnerName.TRACE_USER_SEGMENT;
-  value: Array<string>;
+  op: DynamicSamplingInnerOperator.EQUAL;
   options: {
     ignoreCase: boolean;
   };
+  value: Array<string>;
 };
 
 type DynamicSamplingConditionLogicalInnerEqBoolean = {
-  op: DynamicSamplingInnerOperator.EQUAL;
   name:
     | DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS
     | DynamicSamplingInnerName.EVENT_LOCALHOST
     | DynamicSamplingInnerName.EVENT_WEB_CRAWLERS;
+  op: DynamicSamplingInnerOperator.EQUAL;
   value: boolean;
 };
 
 type DynamicSamplingConditionLogicalInnerCustom = {
-  op: DynamicSamplingInnerOperator.CUSTOM;
   name:
     | DynamicSamplingInnerName.EVENT_CSP
     | DynamicSamplingInnerName.EVENT_ERROR_MESSAGES
     | DynamicSamplingInnerName.EVENT_IP_ADDRESSES;
+  op: DynamicSamplingInnerOperator.CUSTOM;
   value: Array<string>;
 };
 
 type DynamicSamplingConditionLogicalInnerCustomLegacyBrowser = {
-  op: DynamicSamplingInnerOperator.CUSTOM;
   name: DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
+  op: DynamicSamplingInnerOperator.CUSTOM;
   value: Array<LegacyBrowser>;
 };
 
@@ -133,19 +133,11 @@ export type DynamicSamplingConditionLogicalInner =
   | DynamicSamplingConditionLogicalInnerCustomLegacyBrowser;
 
 export type DynamicSamplingCondition = {
-  op: DynamicSamplingConditionOperator.AND;
   inner: Array<DynamicSamplingConditionLogicalInner>;
+  op: DynamicSamplingConditionOperator.AND;
 };
 
 export type DynamicSamplingRule = {
-  /**
-   * This is a unique number within a project
-   */
-  id: number;
-  /**
-   * Describes the type of rule
-   */
-  type: DynamicSamplingRuleType;
   /**
    * It is a possibly empty list of conditions to which the rule applies.
    * The conditions are combined using the and operator (so all the conditions must be satisfied for the rule to apply).
@@ -153,9 +145,17 @@ export type DynamicSamplingRule = {
    */
   condition: DynamicSamplingCondition;
   /**
+   * This is a unique number within a project
+   */
+  id: number;
+  /**
    * It is the sampling rate that will be applied if the rule is selected
    */
   sampleRate: number;
+  /**
+   * Describes the type of rule
+   */
+  type: DynamicSamplingRuleType;
 };
 
 export type DynamicSamplingRules = Array<DynamicSamplingRule>;

@@ -11,10 +11,10 @@ import space from 'sentry/styles/space';
 import {Organization, ReleaseProject} from 'sentry/types';
 
 type Props = {
-  projects: ReleaseProject[];
   location: Location;
-  version: string;
   organization: Organization;
+  projects: ReleaseProject[];
+  version: string;
 };
 
 function OtherProjects({projects, location, version, organization}: Props) {

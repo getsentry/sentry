@@ -83,15 +83,15 @@ export type PermissionChoice = {
   scopes: Scope[];
 };
 type PermissionObj = {
-  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
-  help: string;
-  label?: string;
   choices: {
+    admin: PermissionChoice;
     'no-access': PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
-    admin: PermissionChoice;
   };
+  help: string;
+  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+  label?: string;
 };
 
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];

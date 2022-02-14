@@ -13,13 +13,13 @@ type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
 type DropdownSection = {
   id: string;
+  items: Array<{checked: boolean; filtered: boolean; label: string; value: string}>;
   label: string;
-  items: Array<{label: string; value: string; checked: boolean; filtered: boolean}>;
 };
 
 type SectionProps = DropdownSection & {
-  toggleSection: (id: string) => void;
   toggleFilter: (section: string, value: string) => void;
+  toggleSection: (id: string) => void;
 };
 
 function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionProps) {
@@ -57,9 +57,9 @@ function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionP
 }
 
 type Props = {
+  dropdownSections: DropdownSection[];
   header: React.ReactElement;
   onFilterChange: (section: string, filterSelection: Set<string>) => void;
-  dropdownSections: DropdownSection[];
 };
 
 class Filter extends Component<Props> {

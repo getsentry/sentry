@@ -168,6 +168,15 @@ build-utils/        @getsentry/owners-js-build
 ### Endof Discover/Dashboards ###
 
 
+### Profiling ###
+static/app/components/profiling                                 @getsentry/profiling
+static/app/types/jsSelfProfiling.d.ts                           @getsentry/profiling
+static/app/types/profiling.d.ts                                 @getsentry/profiling
+static/app/utils/profiling                                      @getsentry/profiling
+tests/js/spec/utils/profiling                                   @getsentry/profiling
+### Endof Profiling ###
+
+
 ### Ecosystem ###
 
 /src/sentry/api/endpoints/organization_integration_details.py           @getsentry/ecosystem
@@ -197,6 +206,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/models/externalissue.py           @getsentry/ecosystem
 /src/sentry/models/identity.py                @getsentry/ecosystem
 /src/sentry/models/integrationfeature.py      @getsentry/ecosystem
+/src/sentry/models/integrations/              @getsentry/ecosystem
 /src/sentry/models/notificationsetting.py     @getsentry/ecosystem
 
 /src/sentry/tasks/code_owners.py              @getsentry/ecosystem

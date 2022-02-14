@@ -17,8 +17,8 @@ import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 
 type Props = {
-  groupId: string;
   eventId: string;
+  groupId: string;
 };
 
 type State = {

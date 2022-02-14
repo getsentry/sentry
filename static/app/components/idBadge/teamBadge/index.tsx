@@ -1,57 +1,44 @@
 import * as React from 'react';
-import isEqual from 'lodash/isEqual';
 
 import TeamStore from 'sentry/stores/teamStore';
 import {Team} from 'sentry/types';
 
-import Badge from './badge';
+import Badge, {BadgeProps} from './badge';
 
-type Props = React.ComponentProps<typeof Badge>;
+function TeamBadge(props: BadgeProps) {
+  const [team, setTeam] = React.useState<Team>(props.team);
 
-type State = {
-  team: Team;
-};
+  React.useEffect(() => {
+    setTeam(props.team);
+  }, [props.team]);
 
-class TeamBadgeContainer extends React.Component<Props, State> {
-  state: State = {team: this.props.team};
+  const onTeamStoreUpdate = React.useCallback(
+    (updatedTeam: Set<string>) => {
+      if (!updatedTeam.has(team.id)) {
+        return;
+      }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (this.state.team === nextProps.team) {
-      return;
-    }
+      const newTeam = TeamStore.getById(team.id);
 
-    if (isEqual(this.state.team, nextProps.team)) {
-      return;
-    }
+      if (!newTeam) {
+        return;
+      }
 
-    this.setState({team: nextProps.team});
-  }
-
-  componentWillUnmount() {
-    this.unlistener?.();
-  }
-
-  unlistener = TeamStore.listen(
-    (team: Set<string>) => this.onTeamStoreUpdate(team),
-    undefined
+      setTeam(newTeam);
+    },
+    [props.team]
   );
 
-  onTeamStoreUpdate(updatedTeam: Set<string>) {
-    if (!updatedTeam.has(this.state.team.id)) {
-      return;
-    }
+  React.useEffect(() => {
+    const unsubscribeTeam = TeamStore.listen(
+      (teamSet: Set<string>) => onTeamStoreUpdate(teamSet),
+      undefined
+    );
 
-    const team = TeamStore.getById(this.state.team.id);
-    if (!team || isEqual(team.avatar, this.state.team.avatar)) {
-      return;
-    }
+    return () => unsubscribeTeam();
+  }, [onTeamStoreUpdate]);
 
-    this.setState({team});
-  }
-
-  render() {
-    return <Badge {...this.props} team={this.state.team} />;
-  }
+  return <Badge {...props} team={team} />;
 }
 
-export default TeamBadgeContainer;
+export {TeamBadge};

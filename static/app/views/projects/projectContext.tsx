@@ -30,24 +30,24 @@ type ChildFuncProps = {
 
 type Props = {
   api: Client;
+  children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
+  loadingProjects: boolean;
+  orgId: string;
+  organization: Organization;
+  projectId: string;
+  projects: Project[];
   /**
    * If true, this will not change `state.loading` during `fetchData` phase
    */
   skipReload?: boolean;
-  organization: Organization;
-  projects: Project[];
-  projectId: string;
-  orgId: string;
-  children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
-  loadingProjects: boolean;
 };
 
 type State = {
-  memberList: User[];
-  project: Project | null;
-  loading: boolean;
   error: boolean;
   errorType: ErrorTypes | null;
+  loading: boolean;
+  memberList: User[];
+  project: Project | null;
 };
 
 /**

@@ -12,11 +12,11 @@ import Form from 'sentry/views/settings/components/forms/form';
 import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
 type Props = {
-  location: Location;
-  organization: Organization;
   access: Set<Scope>;
   initialData: Organization;
+  location: Location;
   onSave: (previous: Organization, updated: Record<string, any>) => void;
+  organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncComponent['state'] & {

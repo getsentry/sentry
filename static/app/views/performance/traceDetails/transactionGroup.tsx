@@ -12,17 +12,17 @@ import TransactionBar from './transactionBar';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
 
 type Props = ScrollbarManagerChildrenProps & {
+  continuingDepths: TreeDepth[];
+  hasGuideAnchor: boolean;
+  index: number;
+  isLast: boolean;
+  isOrphan: boolean;
+  isVisible: boolean;
   location: Location;
   organization: Organization;
-  transaction: TraceRoot | TraceFullDetailed;
-  traceInfo: TraceInfo;
-  continuingDepths: TreeDepth[];
-  isOrphan: boolean;
-  isLast: boolean;
-  index: number;
-  isVisible: boolean;
-  hasGuideAnchor: boolean;
   renderedChildren: React.ReactNode[];
+  traceInfo: TraceInfo;
+  transaction: TraceRoot | TraceFullDetailed;
   barColor?: string;
 };
 

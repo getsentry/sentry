@@ -65,35 +65,35 @@ type Props = {
   routes: PlainRoute[];
   rule: IncidentRule;
   userTeamIds: string[];
+  isCustomMetric?: boolean;
   ruleId?: string;
   sessionId?: string;
-  isCustomMetric?: boolean;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
 type State = {
-  triggers: Trigger[];
-  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
-  thresholdType: UnsavedIncidentRule['thresholdType'];
-  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
-  comparisonType: AlertRuleComparisonType;
-  comparisonDelta?: number;
-  projects: Project[];
-  triggerErrors: Map<number, {[fieldName: string]: string}>;
-
+  aggregate: string;
   // `null` means loading
   availableActions: MetricActionTemplate[] | null;
-
+  comparisonType: AlertRuleComparisonType;
   // Rule conditions form inputs
   // Needed for TriggersChart
   dataset: Dataset;
-  query: string;
-  aggregate: string;
-  timeWindow: number;
   environment: string | null;
-  uuid?: string;
+  projects: Project[];
+  query: string;
+  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
+
+  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
+
+  thresholdType: UnsavedIncidentRule['thresholdType'];
+  timeWindow: number;
+  triggerErrors: Map<number, {[fieldName: string]: string}>;
+  triggers: Trigger[];
+  comparisonDelta?: number;
   eventTypes?: EventTypes[];
+  uuid?: string;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -808,6 +808,7 @@ const AlertListItem = styled(StyledListItem)`
 
 const ChartHeader = styled('div')`
   padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  margin-bottom: -${space(1.5)};
 `;
 
 const AlertName = styled('div')`

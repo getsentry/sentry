@@ -23,17 +23,17 @@ import EventsTable from './eventsTable';
 import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
 type Props = {
-  location: Location;
-  organization: Organization;
   eventView: EventView;
-  transactionName: string;
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-  onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   eventsDisplayFilterName: EventsDisplayFilterName;
+  location: Location;
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
+  onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  organization: Organization;
+  setError: SetStateAction<string | undefined>;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  transactionName: string;
   percentileValues?: Record<EventsDisplayFilterName, number>;
   webVital?: WebVital;
-  setError: SetStateAction<string | undefined>;
 };
 
 const transactionsListTitles = [
