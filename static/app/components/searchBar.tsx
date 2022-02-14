@@ -10,19 +10,19 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type DefaultProps = {
-  query: string;
   defaultQuery: string;
   onSearch: (query: string) => void;
+  query: string;
 };
 
 type Props = DefaultProps & {
-  width?: string;
   onChange?: (query: string) => void;
+  width?: string;
 } & Omit<React.ComponentProps<typeof Input>, 'onChange'>;
 
 type State = {
-  query: string;
   dropdownVisible: boolean;
+  query: string;
 };
 
 class SearchBar extends React.PureComponent<Props, State> {
@@ -132,9 +132,10 @@ class SearchBar extends React.PureComponent<Props, State> {
 
 const StyledInput = styled(Input)`
   width: ${p => (p.width ? p.width : undefined)};
+
   &.focus-visible {
-    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04), 0 0 6px rgba(177, 171, 225, 0.3);
-    border-color: #a598b2;
+    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.focusBorder};
     outline: none;
   }
 `;

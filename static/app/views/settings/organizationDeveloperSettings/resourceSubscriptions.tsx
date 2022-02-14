@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Context} from 'sentry/components/forms/form';
+import {Context} from 'sentry/components/deprecatedforms/form';
 import {Permissions, WebhookEvent} from 'sentry/types';
 import FormContext from 'sentry/views/settings/components/forms/formContext';
 import {
@@ -17,9 +17,9 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  permissions: Permissions;
   events: WebhookEvent[];
   onChange: (events: WebhookEvent[]) => void;
+  permissions: Permissions;
 };
 
 export default class Subscriptions extends Component<Props> {

@@ -21,8 +21,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
+import {ViewProps} from '../types';
 
-import {ViewProps} from './types';
 import {
   getMaxOfSeries,
   getVitalChartDefinitions,
@@ -33,10 +33,10 @@ import {
 
 type Props = WithRouterProps &
   Omit<ViewProps, 'start' | 'end'> & {
-    organization: OrganizationSummary;
-    start: DateString | null;
     end: DateString | null;
     interval: string;
+    organization: OrganizationSummary;
+    start: DateString | null;
   };
 
 function VitalChart({
@@ -66,8 +66,8 @@ function VitalChart({
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
-    type: string;
     selected: Record<string, boolean>;
+    type: string;
   }) {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);
@@ -182,17 +182,17 @@ function VitalChart({
 export default withRouter(VitalChart);
 
 export type _VitalChartProps = {
-  loading: boolean;
-  reloading: boolean;
   field: string;
   grid: React.ComponentProps<typeof LineChart>['grid'];
+  loading: boolean;
+  reloading: boolean;
   data?: Series[];
   height?: number;
   utc?: boolean;
   vitalFields?: {
-    poorCountField: string;
-    mehCountField: string;
     goodCountField: string;
+    mehCountField: string;
+    poorCountField: string;
   };
 };
 

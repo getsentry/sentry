@@ -17,8 +17,8 @@ type Props = {
 
 type Data = {
   name: string;
-  version?: string;
   kernel_version?: string;
+  version?: string;
 };
 
 type VersionElement = {

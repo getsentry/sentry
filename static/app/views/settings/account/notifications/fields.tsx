@@ -2,12 +2,12 @@ import {t} from 'sentry/locale';
 import {SelectValue} from 'sentry/types';
 
 export type FineTuneField = {
-  title: string;
   description: string;
+  title: string;
   type: 'select';
-  options?: SelectValue<string>[];
-  defaultValue?: string;
   defaultFieldName?: string;
+  defaultValue?: string;
+  options?: SelectValue<string>[];
 };
 
 // TODO: clean up unused fields
@@ -73,6 +73,15 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   approval: {
     title: t('Approvals'),
     description: t('Notifications from teammates that require review or approval.'),
+    type: 'select',
+    // No choices here because it's going to have dynamic content
+    // Component will create choices,
+  },
+  quota: {
+    title: t('Quota Notifications'),
+    description: t(
+      'Control the notifications you receive for error, transaction, and attachment quota limits.'
+    ),
     type: 'select',
     // No choices here because it's going to have dynamic content
     // Component will create choices,

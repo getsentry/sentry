@@ -2,7 +2,9 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import TableView from 'sentry/views/eventsV2/table/tableView';
 
@@ -67,6 +69,7 @@ describe('TableView > CellActions', function () {
       organization,
       router: {location},
     });
+    act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
 
     onChangeShowTags = jest.fn();
 
@@ -88,6 +91,10 @@ describe('TableView > CellActions', function () {
         },
       ],
     };
+  });
+
+  afterEach(() => {
+    ProjectsStore.reset();
   });
 
   it('handles add cell action on null value', function () {
@@ -240,7 +247,8 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles go to transaction', function () {
+  it('handles go to transaction without project column selected', function () {
+    rows.data[0]['project.name'] = 'project-slug';
     const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 1);
     menu.find('button[data-test-id="transaction-summary"]').simulate('click');
@@ -249,6 +257,22 @@ describe('TableView > CellActions', function () {
       pathname: '/organizations/org-slug/performance/summary/',
       query: expect.objectContaining({
         transaction: '/organizations/',
+        project: ['2'],
+      }),
+    });
+  });
+
+  it('handles go to transaction with project column selected', function () {
+    rows.data[0].project = 'project-slug';
+    const wrapper = makeWrapper(initialData, rows, eventView);
+    const menu = openContextMenu(wrapper, 1);
+    menu.find('button[data-test-id="transaction-summary"]').simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/performance/summary/',
+      query: expect.objectContaining({
+        transaction: '/organizations/',
+        project: ['2'],
       }),
     });
   });

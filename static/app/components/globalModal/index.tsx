@@ -17,15 +17,11 @@ import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './com
 
 type ModalOptions = {
   /**
-   * Callback for when the modal is closed
+   * Set to `false` to disable the ability to click outside the modal to
+   * close it. This is useful for modals containing user input which will
+   * disappear on an accidental click. Defaults to `true`.
    */
-  onClose?: () => void;
-  /**
-   * Additional CSS which will be applied to the modals `role="dialog"`
-   * component. You may use the `[role="document"]` selector to target the
-   * actual modal content to style the visual element of the modal.
-   */
-  modalCss?: ReturnType<typeof css>;
+  allowClickClose?: boolean;
   /**
    * Set to `false` to disable the backdrop from being rendered. Set to
    * `static` to disable the 'click outside' behavior from closing the modal.
@@ -33,36 +29,40 @@ type ModalOptions = {
    */
   backdrop?: 'static' | boolean;
   /**
-   * Set to `false` to disable the ability to click outside the modal to
-   * close it. This is useful for modals containing user input which will
-   * disappear on an accidental click. Defaults to `true`.
+   * Additional CSS which will be applied to the modals `role="dialog"`
+   * component. You may use the `[role="document"]` selector to target the
+   * actual modal content to style the visual element of the modal.
    */
-  allowClickClose?: boolean;
+  modalCss?: ReturnType<typeof css>;
+  /**
+   * Callback for when the modal is closed
+   */
+  onClose?: () => void;
 };
 
 type ModalRenderProps = {
   /**
-   * Closes the modal
+   * Body container for the modal
    */
-  closeModal: () => void;
+  Body: typeof ModalBody;
+  /**
+   * Looks like a close button. Useful for when you don't want to render the
+   * header which can include the close button.
+   */
+  CloseButton: ReturnType<typeof makeCloseButton>;
+  /**
+   * Footer container for the modal, typically for actions
+   */
+  Footer: typeof ModalFooter;
   /**
    * The modal header, optionally includes a close button which will close the
    * modal.
    */
   Header: ReturnType<typeof makeClosableHeader>;
   /**
-   * Body container for the modal
+   * Closes the modal
    */
-  Body: typeof ModalBody;
-  /**
-   * Footer container for the modal, typically for actions
-   */
-  Footer: typeof ModalFooter;
-  /**
-   * Looks like a close button. Useful for when you don't want to render the
-   * header which can include the close button.
-   */
-  CloseButton: ReturnType<typeof makeCloseButton>;
+  closeModal: () => void;
 };
 
 /**

@@ -3,24 +3,32 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import Tooltip from 'sentry/components/tooltip';
+import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import withOrganization from 'sentry/utils/withOrganization';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
 type Props = {
-  organization: Organization;
-  location: Location;
-  loading: boolean;
-  fields: string[];
-  title: string;
-  metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
+  fields: string[];
+  loading: boolean;
+  location: Location;
+  metadata: TableData['meta'] | undefined;
+  organization: Organization;
+  title: string;
   className?: string;
-  getCustomFieldRenderer?: typeof getFieldRenderer;
+  fieldHeaderMap?: Record<string, string>;
+  getCustomFieldRenderer?: (
+    field: string,
+    meta: MetaType
+  ) => ReturnType<typeof getFieldRenderer> | null;
+  stickyHeaders?: boolean;
 };
 
 class SimpleTableChart extends Component<Props> {
@@ -34,15 +42,24 @@ class SimpleTableChart extends Component<Props> {
 
     return columns.map(column => {
       const fieldRenderer =
-        getCustomFieldRenderer?.(column.name, tableMeta) ??
-        getFieldRenderer(column.name, tableMeta);
+        getCustomFieldRenderer?.(column.key, tableMeta) ??
+        getFieldRenderer(column.key, tableMeta);
       const rendered = fieldRenderer(row, {organization, location});
       return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
     });
   }
 
   render() {
-    const {className, loading, fields, metadata, data, title} = this.props;
+    const {
+      className,
+      loading,
+      fields,
+      metadata,
+      data,
+      title,
+      fieldHeaderMap,
+      stickyHeaders,
+    } = this.props;
     const meta = metadata ?? {};
     const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
@@ -53,13 +70,17 @@ class SimpleTableChart extends Component<Props> {
           isLoading={loading}
           headers={columns.map((column, index) => {
             const align = fieldAlignment(column.name, column.type, meta);
+            const header = fieldHeaderMap?.[column.key] ?? column.name;
             return (
               <HeadCell key={index} align={align}>
-                {column.name}
+                <Tooltip title={header}>
+                  <StyledTruncate value={header} maxLength={30} expandable={false} />
+                </Tooltip>
               </HeadCell>
             );
           })}
           isEmpty={!data?.length}
+          stickyHeaders={stickyHeaders}
           disablePadding
         >
           {data?.map((row, index) => this.renderRow(index, row, meta, columns))}
@@ -68,6 +89,10 @@ class SimpleTableChart extends Component<Props> {
     );
   }
 }
+
+const StyledTruncate = styled(Truncate)`
+  white-space: nowrap;
+`;
 
 const StyledPanelTable = styled(PanelTable)`
   border-radius: 0;

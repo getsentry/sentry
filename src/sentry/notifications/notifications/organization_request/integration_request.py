@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
+from sentry.notifications.class_manager import register
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.owner_recipient_strategy import (
     OwnerRecipientStrategy,
@@ -33,6 +34,7 @@ def get_url(organization: Organization, provider_type: str, provider_slug: str) 
     return url
 
 
+@register()
 class IntegrationRequestNotification(OrganizationRequestNotification):
     # TODO: switch to a strategy based on the integration write scope
     RoleBasedRecipientStrategyClass = OwnerRecipientStrategy
@@ -81,10 +83,10 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_type(self) -> str:
         return "organization.integration.request"
 
-    def build_attachment_title(self) -> str:
+    def build_attachment_title(self, recipient: Team | User) -> str:
         return "Request to Install"
 
-    def get_message_description(self) -> str:
+    def get_message_description(self, recipient: Team | User) -> str:
         requester_name = self.requester.get_display_name()
         optional_message = (
             f" They've included this message `{self.message}`" if self.message else ""

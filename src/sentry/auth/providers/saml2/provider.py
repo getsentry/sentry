@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
@@ -290,7 +290,8 @@ class SAML2Provider(Provider):
 
         # map configured provider attributes
         for key, provider_key in self.config["attribute_mapping"].items():
-            attributes[key] = raw_attributes.get(provider_key, [""])[0]
+            attribute_list = raw_attributes.get(provider_key, [""])
+            attributes[key] = attribute_list[0] if len(attribute_list) > 0 else ""
 
         # Email and identifier MUST be correctly mapped
         if not attributes[Attributes.IDENTIFIER] or not attributes[Attributes.USER_EMAIL]:
@@ -313,13 +314,6 @@ class SAML2Provider(Provider):
     def refresh_identity(self, auth_identity):
         # Nothing to refresh
         return
-
-
-class SCIMMixin:
-    def can_use_scim(self, organization, user):
-        if features.has("organizations:sso-scim", organization, actor=user):
-            return True
-        return False
 
 
 def build_saml_config(provider_config, org):

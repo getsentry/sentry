@@ -4,12 +4,12 @@ from rest_framework.response import Response
 from sentry.api import client
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
-from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class GroupEventsLatestEndpoint(GroupEndpoint):
+    enforce_rate_limit = True
     rate_limits = {
         "GET": {
             RateLimitCategory.IP: RateLimit(15, 1),
@@ -18,7 +18,6 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
         }
     }
 
-    @rate_limit_endpoint(limit=15, window=1)
     def get(self, request: Request, group) -> Response:
         """
         Retrieve the Latest Event for an Issue

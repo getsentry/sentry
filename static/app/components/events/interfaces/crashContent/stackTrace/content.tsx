@@ -20,17 +20,17 @@ type DefaultProps = typeof defaultProps;
 
 type Props = {
   data: StacktraceType;
-  platform: PlatformType;
   event: Event;
-  newestFirst?: boolean;
+  platform: PlatformType;
   className?: string;
   isHoverPreviewed?: boolean;
+  newestFirst?: boolean;
   organization?: Organization;
 } & Partial<DefaultProps>;
 
 type State = {
-  showingAbsoluteAddresses: boolean;
   showCompleteFunctionName: boolean;
+  showingAbsoluteAddresses: boolean;
 };
 
 class Content extends React.Component<Props, State> {

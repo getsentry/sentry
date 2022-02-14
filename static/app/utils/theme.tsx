@@ -200,11 +200,13 @@ const generateAliases = (colors: BaseColors) => ({
    * A color that denotes a "success", or something good
    */
   success: colors.green300,
+  successText: colors.green400,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: colors.red300,
+  errorText: colors.red400,
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -223,6 +225,7 @@ const generateAliases = (colors: BaseColors) => ({
    */
   active: colors.purple300,
   activeHover: colors.purple400,
+  activeText: colors.purple400,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -479,6 +482,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: alias.backgroundSecondary,
     border: alias.border,
     borderActive: alias.border,
+    borderTranslucent: alias.translucentBorder,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
@@ -489,6 +493,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: colors.purple400,
     border: colors.purple300,
     borderActive: colors.purple300,
+    borderTranslucent: colors.purple300,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
@@ -499,6 +504,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: colors.green400,
     border: colors.green300,
     borderActive: colors.green300,
+    borderTranslucent: colors.green300,
     focusBorder: colors.green300,
     focusShadow: colors.green200,
   },
@@ -509,6 +515,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: colors.red400,
     border: colors.red300,
     borderActive: colors.red300,
+    borderTranslucent: colors.red300,
     focusBorder: colors.red300,
     focusShadow: colors.red200,
   },
@@ -519,6 +526,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: 'transparent',
     border: 'transparent',
     borderActive: 'transparent',
+    borderTranslucent: 'transparent',
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
@@ -529,6 +537,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: alias.background,
     border: alias.disabledBorder,
     borderActive: alias.disabledBorder,
+    borderTranslucent: alias.translucentInnerBorder,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
@@ -539,6 +548,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: alias.backgroundSecondary,
     border: alias.formInputBorder,
     borderActive: alias.formInputBorder,
+    borderTranslucent: alias.translucentBorder,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },

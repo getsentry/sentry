@@ -20,8 +20,8 @@ import {barAxisLabel, convertDayValueObjectToSeries, groupByTrend} from './utils
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
-  teamSlug: string;
   projects: Project[];
+  teamSlug: string;
 } & DateTimeObject;
 
 type UnresolvedCount = {unresolved: number};
@@ -96,7 +96,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
 
     const projectTotals: Record<
       string,
-      {projectId: string; periodAvg: number; today: number; percentChange: number}
+      {percentChange: number; periodAvg: number; projectId: string; today: number}
     > = {};
     for (const projectId of Object.keys(periodIssues)) {
       const periodAvg = this.getTotalUnresolved(Number(projectId));
@@ -133,7 +133,9 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
       return acc;
     }, {});
 
-    const seriesData = convertDayValueObjectToSeries(totalByDay);
+    const seriesData = convertDayValueObjectToSeries(totalByDay).sort(
+      (a, b) => new Date(a.name).getTime() - new Date(b.name).getTime()
+    );
 
     return (
       <div>
@@ -162,7 +164,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
           isEmpty={projects.length === 0}
           isLoading={loading}
           headers={[
-            t('Projects'),
+            t('Project'),
             <RightAligned key="last">
               {tct('Last [period] Average', {period})}
             </RightAligned>,

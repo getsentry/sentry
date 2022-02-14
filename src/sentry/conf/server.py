@@ -282,6 +282,7 @@ MIDDLEWARE = (
     "sentry.middleware.env.SentryEnvMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
     "sentry.middleware.stats.RequestTimingMiddleware",
+    "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -328,6 +329,7 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.sessions",
     "django.contrib.sites",
+    "drf_spectacular",
     "crispy_forms",
     "rest_framework",
     "sentry",
@@ -451,7 +453,7 @@ SESSION_COOKIE_NAME = "sentrysid"
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
 SESSION_COOKIE_SAMESITE = None
 
-SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
+SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
 GOOGLE_OAUTH2_CLIENT_ID = ""
 GOOGLE_OAUTH2_CLIENT_SECRET = ""
@@ -762,6 +764,13 @@ CELERYBEAT_SCHEDULE = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
+    "schedule-verify-weekly-organization-reports": {
+        "task": "sentry.tasks.reports.verify_prepare_reports",
+        "schedule": crontab(
+            minute=0, hour=12, day_of_week="tuesday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60},
+    },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
         "schedule": crontab_with_minute_jitter(hour="*/6"),
@@ -881,10 +890,34 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-CRISPY_TEMPLATE_PACK = "bootstrap3"
 
+if os.environ.get("OPENAPIGENERATE", False):
+    OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
+    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
+
+    SPECTACULAR_SETTINGS = {
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+        "DISABLE_ERRORS_AND_WARNINGS": False,
+        "COMPONENT_SPLIT_REQUEST": False,
+        "COMPONENT_SPLIT_PATCH": False,
+        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
+        "TAGS": OPENAPI_TAGS,
+        "TITLE": "API Reference",
+        "DESCRIPTION": "Sentry Public API",
+        "TOS": "http://sentry.io/terms/",
+        "CONTACT": {"email": "partners@sentry.io"},
+        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "VERSION": "v0",
+        "SERVERS": [{"url": "https://sentry.io/"}],
+        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
+        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
+    }
+
+CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
@@ -964,8 +997,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
-    # Enable metrics widget (prototype) on Dashboards
-    "organizations:metrics-dashboards-ui": False,
+    # Enable the new widget builder experience on Dashboards
+    "organizations:new-widget-builder-experience": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -977,6 +1010,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
+    # Enable threshold period in metric alert rule builder
+    "organizations:metric-alert-threshold-period": False,
     # Enable migrating auth identities between providers automatically
     "organizations:idp-automatic-migration": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1012,6 +1047,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable dashboard widget library
     "organizations:widget-library": False,
+    # Enable metrics in dashboards
+    "organizations:dashboards-metrics": False,
     # Enable issue widgets in dashboards
     "organizations:issues-in-dashboards": False,
     # Enable navigation features between Discover and Dashboards
@@ -1035,8 +1072,6 @@ SENTRY_FEATURES = {
     "organizations:performance-ops-breakdown": False,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
-    # Enable views for transaction events page in performance
-    "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable mobile vitals
@@ -1073,10 +1108,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable Rippling SSO functionality.
-    "organizations:sso-rippling": False,
-    # Enable SCIM Provisioning functionality.
-    "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
     # Return unhandled information on the issue level
@@ -1095,7 +1126,6 @@ SENTRY_FEATURES = {
     "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
-    "organizations:team-insights-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

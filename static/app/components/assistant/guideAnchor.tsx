@@ -13,23 +13,24 @@ import {
 } from 'sentry/actionCreators/guides';
 import {Guide} from 'sentry/components/assistant/types';
 import Button from 'sentry/components/button';
-import Hovercard, {Body as HovercardBody} from 'sentry/components/hovercard';
+import {Body as HovercardBody, Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import GuideStore, {GuideStoreState} from 'sentry/stores/guideStore';
 import space from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 
 type Props = {
-  target?: string; // Shouldn't target be mandatory?
-  position?: React.ComponentProps<typeof Hovercard>['position'];
+  /** Hovercard renders the container */
+  containerClassName?: string;
   offset?: string;
+  onFinish?: () => void;
+  // Shouldn't target be mandatory?
+  position?: React.ComponentProps<typeof Hovercard>['position'];
+  target?: string;
   to?: {
     pathname: string;
     query: Query;
   };
-  onFinish?: () => void;
-  /** Hovercard renders the container */
-  containerClassName?: string;
 };
 
 type State = {
@@ -147,6 +148,7 @@ class GuideAnchor extends React.Component<Props, State> {
     const dismissButton = (
       <DismissButton
         size="small"
+        translucentBorder
         href={href}
         onClick={this.handleDismiss}
         priority="link"
@@ -165,7 +167,12 @@ class GuideAnchor extends React.Component<Props, State> {
           <div>
             {lastStep ? (
               <React.Fragment>
-                <StyledButton size="small" to={to} onClick={this.handleFinish}>
+                <StyledButton
+                  size="small"
+                  translucentBorder
+                  to={to}
+                  onClick={this.handleFinish}
+                >
                   {currentStep.nextText ||
                     (hasManySteps ? t('Enough Already') : t('Got It'))}
                 </StyledButton>
@@ -173,7 +180,12 @@ class GuideAnchor extends React.Component<Props, State> {
               </React.Fragment>
             ) : (
               <React.Fragment>
-                <StyledButton size="small" onClick={this.handleNextStep} to={to}>
+                <StyledButton
+                  size="small"
+                  translucentBorder
+                  onClick={this.handleNextStep}
+                  to={to}
+                >
                   {currentStep.nextText || t('Next')}
                 </StyledButton>
                 {!currentStep.cantDismiss && dismissButton}

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import DropdownMenu from 'sentry/components/dropdownMenu';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -18,6 +17,8 @@ import {DateString, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {analytics} from 'sentry/utils/analytics';
 import {
+  getDateWithTimezoneInUtc,
+  getInternalDate,
   getLocalToSystem,
   getPeriodAgo,
   getUserTimezone,
@@ -26,26 +27,6 @@ import {
 } from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-
-// Strips timezone from local date, creates a new moment date object with timezone
-// Then returns as a Date object
-const getDateWithTimezoneInUtc = (date, utc) =>
-  moment
-    .tz(
-      moment(date).local().format('YYYY-MM-DD HH:mm:ss'),
-      utc ? 'UTC' : getUserTimezone()
-    )
-    .utc()
-    .toDate();
-
-const getInternalDate = (date, utc) => {
-  if (utc) {
-    return getUtcToSystem(date);
-  }
-  return new Date(
-    moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
-  );
-};
 
 const DateRangeHook = HookOrDefault({
   hookName: 'component:header-date-range',
@@ -59,8 +40,8 @@ const SelectorItemsHook = HookOrDefault({
 
 export type ChangeData = {
   relative: string | null;
-  start?: Date;
   end?: Date;
+  start?: Date;
   utc?: boolean | null;
 };
 
@@ -90,34 +71,9 @@ const defaultProps = {
 
 type Props = WithRouterProps & {
   /**
-   * Start date value for absolute date selector
-   */
-  start: DateString;
-
-  /**
    * End date value for absolute date selector
    */
   end: DateString;
-
-  /**
-   * Relative date value
-   */
-  relative: string | null;
-
-  /**
-   * Override defaults from DEFAULT_RELATIVE_PERIODS
-   */
-  relativeOptions?: Record<string, React.ReactNode>;
-
-  /**
-   * Default initial value for using UTC
-   */
-  utc: boolean | null;
-
-  /**
-   * Replace the default calendar icon for label
-   */
-  label?: React.ReactNode;
 
   /**
    * Callback when "Update" button is clicked
@@ -125,14 +81,29 @@ type Props = WithRouterProps & {
   onUpdate: (data: ChangeData) => void;
 
   /**
-   * Callback when opening/closing dropdown date selector
-   */
-  onToggleSelector?: (isOpen: boolean) => void;
-
-  /**
    * Just used for metrics
    */
   organization: Organization;
+
+  /**
+   * Relative date value
+   */
+  relative: string | null;
+
+  /**
+   * Start date value for absolute date selector
+   */
+  start: DateString;
+
+  /**
+   * Default initial value for using UTC
+   */
+  utc: boolean | null;
+
+  /**
+   * Set an optional default value to prefill absolute date with
+   */
+  defaultAbsolute?: {end?: Date; start?: Date};
 
   /**
    * Small info icon with tooltip hint text
@@ -140,23 +111,33 @@ type Props = WithRouterProps & {
   hint?: string;
 
   /**
-   * Set an optional default value to prefill absolute date with
+   * Replace the default calendar icon for label
    */
-  defaultAbsolute?: {start?: Date; end?: Date};
+  label?: React.ReactNode;
 
   /**
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
+
+  /**
+   * Callback when opening/closing dropdown date selector
+   */
+  onToggleSelector?: (isOpen: boolean) => void;
+
+  /**
+   * Override defaults from DEFAULT_RELATIVE_PERIODS
+   */
+  relativeOptions?: Record<string, React.ReactNode>;
 } & Partial<typeof defaultProps>;
 
 type State = {
-  isOpen: boolean;
   hasChanges: boolean;
   hasDateRangeErrors: boolean;
+  isOpen: boolean;
   relative: string | null;
-  start?: Date;
   end?: Date;
+  start?: Date;
   utc?: boolean | null;
 };
 

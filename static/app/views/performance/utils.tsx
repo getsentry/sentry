@@ -23,6 +23,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 
+export const QUERY_KEYS = [
+  'environment',
+  'project',
+  'query',
+  'start',
+  'end',
+  'statsPeriod',
+] as const;
+
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
  * where we don't want to wait for transaction data to return to determine how to display aspects of a page.
@@ -35,8 +44,10 @@ export enum PROJECT_PERFORMANCE_TYPE {
   MOBILE = 'mobile',
 }
 
+// The native SDK is equally used on clients and end-devices as on
+// backend, the default view should be "All Transactions".
 const FRONTEND_PLATFORMS: string[] = [...frontend];
-const BACKEND_PLATFORMS: string[] = [...backend];
+const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
@@ -46,9 +57,11 @@ export function platformToPerformanceType(
   if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
+
   const selectedProjects = projects.filter(p =>
     projectIds.includes(parseInt(`${p.id}`, 10))
   );
+
   if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
@@ -157,8 +170,8 @@ export function trendsTargetRoute({
 }: {
   location: Location;
   organization: Organization;
-  initialConditions?: MutableSearch;
   additionalQuery?: {[x: string]: string};
+  initialConditions?: MutableSearch;
 }) {
   const newQuery = {
     ...location.query,

@@ -9,7 +9,10 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events import constants
+from sentry.search.events.builder import MetricsQueryBuilder, QueryBuilder
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
@@ -453,6 +456,7 @@ class QueryBuilderTest(TestCase):
                 Function("count", [], "count"),
             ],
         )
+
         assert query.array_join == [Column("spans.op")]
         query.get_snql_query().validate()
 
@@ -564,3 +568,208 @@ class QueryBuilderTest(TestCase):
         # With count_unique only in a condition and no auto_aggregations this should raise a invalid search query
         with self.assertRaises(InvalidSearchQuery):
             query.get_snql_query()
+
+
+def _metric_percentile_definition(quantile, field="transaction.duration") -> Function:
+    return Function(
+        "arrayElement",
+        [
+            Function(
+                f"quantilesMergeIf(0.{quantile.rstrip('0')})",
+                [
+                    Column("percentiles"),
+                    Function(
+                        "equals",
+                        [Column("metric_id"), indexer.resolve(constants.METRICS_MAP[field])],
+                    ),
+                ],
+            ),
+            1,
+        ],
+        f"p{quantile}_{field.replace('.', '_')}",
+    )
+
+
+class MetricQueryBuilderTest(TestCase):
+    def setUp(self):
+        self.start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        self.end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        self.projects = [self.project.id]
+        self.organization_id = 1
+        self.params = {
+            "organization_id": self.organization_id,
+            "project_id": self.projects,
+            "start": self.start,
+            "end": self.end,
+        }
+        # These conditions should always be on a query when self.params is passed
+        self.default_conditions = [
+            Condition(Column("timestamp"), Op.GTE, self.start),
+            Condition(Column("timestamp"), Op.LT, self.end),
+            Condition(Column("project_id"), Op.IN, self.projects),
+            Condition(Column("org_id"), Op.EQ, self.organization_id),
+        ]
+        PGStringIndexer().bulk_record(
+            strings=[
+                "transaction",
+                "foo_bar_transaction",
+                "foo_baz_transaction",
+            ]
+            + list(constants.METRICS_MAP.values())
+        )
+
+    def test_default_conditions(self):
+        query = MetricsQueryBuilder(self.params, "", selected_columns=[])
+        self.assertCountEqual(query.where, self.default_conditions)
+
+    def test_simple_aggregates(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "p50(transaction.duration)",
+                "p75(measurements.lcp)",
+                "p90(measurements.fcp)",
+                "p95(measurements.cls)",
+                "p99(measurements.fid)",
+            ],
+        )
+        self.assertCountEqual(query.where, self.default_conditions)
+        self.assertCountEqual(
+            query.distributions,
+            [
+                _metric_percentile_definition("50"),
+                _metric_percentile_definition("75", "measurements.lcp"),
+                _metric_percentile_definition("90", "measurements.fcp"),
+                _metric_percentile_definition("95", "measurements.cls"),
+                _metric_percentile_definition("99", "measurements.fid"),
+            ],
+        )
+
+    def test_grouping(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=["transaction", "project", "p95(transaction.duration)"],
+        )
+        self.assertCountEqual(query.where, self.default_conditions)
+        transaction_index = indexer.resolve("transaction")
+        transaction = AliasedExpression(
+            Column(f"tags[{transaction_index}]"),
+            "transaction",
+        )
+        project = Function(
+            "transform",
+            [
+                Column("project_id"),
+                [self.project.id],
+                [self.project.slug],
+                "",
+            ],
+            "project",
+        )
+        self.assertCountEqual(
+            query.groupby,
+            [
+                transaction,
+                project,
+            ],
+        )
+        self.assertCountEqual(query.distributions, [_metric_percentile_definition("95")])
+
+    def test_transaction_filter(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "transaction:foo_bar_transaction",
+            selected_columns=["transaction", "project", "p95(transaction.duration)"],
+        )
+        transaction_index = indexer.resolve("transaction")
+        transaction_name = indexer.resolve("foo_bar_transaction")
+        transaction = Column(f"tags[{transaction_index}]")
+        self.assertCountEqual(
+            query.where, [*self.default_conditions, Condition(transaction, Op.EQ, transaction_name)]
+        )
+
+    def test_transaction_in_filter(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "transaction:[foo_bar_transaction, foo_baz_transaction]",
+            selected_columns=["transaction", "project", "p95(transaction.duration)"],
+        )
+        transaction_index = indexer.resolve("transaction")
+        transaction_name1 = indexer.resolve("foo_bar_transaction")
+        transaction_name2 = indexer.resolve("foo_baz_transaction")
+        transaction = Column(f"tags[{transaction_index}]")
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                Condition(transaction, Op.IN, [transaction_name1, transaction_name2]),
+            ],
+        )
+
+    def test_missing_transaction_index(self):
+        with self.assertRaisesRegex(
+            InvalidSearchQuery,
+            re.escape("Tag value was not found"),
+        ):
+            MetricsQueryBuilder(
+                self.params,
+                "transaction:something_else",
+                selected_columns=["transaction", "project", "p95(transaction.duration)"],
+            )
+
+    def test_missing_transaction_index_in_filter(self):
+        with self.assertRaisesRegex(
+            InvalidSearchQuery,
+            re.escape("Tag value was not found"),
+        ):
+            MetricsQueryBuilder(
+                self.params,
+                "transaction:[something_else, something_else2]",
+                selected_columns=["transaction", "project", "p95(transaction.duration)"],
+            )
+
+    def test_project_filter(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            f"project:{self.project.slug}",
+            selected_columns=["transaction", "project", "p95(transaction.duration)"],
+        )
+        self.assertCountEqual(
+            query.where,
+            [*self.default_conditions, Condition(Column("project_id"), Op.EQ, self.project.id)],
+        )
+
+    def test_granularity(self):
+        # Need to pick granularity based on the period
+        def get_granularity(start, end):
+            params = {
+                "organization_id": self.organization_id,
+                "project_id": self.projects,
+                "start": start,
+                "end": end,
+            }
+            query = MetricsQueryBuilder(params)
+            return query.granularity.granularity
+
+        # If we're doing atleast day and its midnight we should use the daily bucket
+        start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "A day at midnight"
+
+        # If we're on the start of the hour we should use the hour granularity
+        start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "On the hour"
+
+        # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
+        # granularity
+        start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 60, "A few hours, but random minute"
+
+        # Less than a minute, no reason to work hard for such a small window, just use a minute
+        start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 19, 10, 15, 34, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 60, "less than a minute"

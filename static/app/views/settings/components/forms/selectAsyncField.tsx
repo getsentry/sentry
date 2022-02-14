@@ -1,26 +1,38 @@
 import * as React from 'react';
 
-import SelectAsyncControl from 'sentry/components/forms/selectAsyncControl';
+import SelectAsyncControl, {Result} from 'sentry/components/forms/selectAsyncControl';
 import InputField from 'sentry/views/settings/components/forms/inputField';
 
 // projects can be passed as a direct prop as well
 type Props = Omit<InputField['props'], 'highlighted' | 'visible' | 'required'>;
+import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 
 export type SelectAsyncFieldProps = React.ComponentPropsWithoutRef<
   typeof SelectAsyncControl
 > &
   Props;
 
-class SelectAsyncField extends React.Component<SelectAsyncFieldProps> {
+type SelectAsyncFieldState = {
+  results: Result[];
+  latestSelection?: GeneralSelectValue;
+};
+class SelectAsyncField extends React.Component<
+  SelectAsyncFieldProps,
+  SelectAsyncFieldState
+> {
   state = {
     results: [],
+    latestSelection: undefined,
   };
+
+  componentDidMount() {}
+
   // need to map the option object to the value
   // this is essentially the same code from ./selectField handleChange()
   handleChange = (
     onBlur: Props['onBlur'],
     onChange: Props['onChange'],
-    optionObj: {value: string | any[]},
+    optionObj: GeneralSelectValue,
     event: React.MouseEvent
   ) => {
     let {value} = optionObj;
@@ -32,18 +44,28 @@ class SelectAsyncField extends React.Component<SelectAsyncFieldProps> {
     } else if (!Array.isArray(optionObj)) {
       value = optionObj.value;
     }
+    this.setState({latestSelection: optionObj});
     onChange?.(value, event);
     onBlur?.(value, event);
   };
 
-  findValue(propsValue) {
+  findValue(propsValue: string): GeneralSelectValue {
+    const {defaultOptions} = this.props;
+    const {results, latestSelection} = this.state;
+    // We don't use defaultOptions if it is undefined or a boolean
+    const options = typeof defaultOptions === 'object' ? defaultOptions : [];
     /**
      * The propsValue is the `id` of the object (user, team, etc), and
      * react-select expects a full value object: {value: "id", label: "name"}
-     *
-     * Returning {} here will show the user a dropdown with "No options".
      **/
-    return this.state.results.find(({value}) => value === propsValue) || {};
+    return (
+      // When rendering the selected value, first look at the API results...
+      results.find(({value}) => value === propsValue) ??
+      // Then at the defaultOptions passed in props...
+      options?.find(({value}) => value === propsValue) ??
+      // Then at the latest value selected in the form
+      latestSelection
+    );
   }
 
   render() {
@@ -57,7 +79,15 @@ class SelectAsyncField extends React.Component<SelectAsyncFieldProps> {
             onChange={this.handleChange.bind(this, onBlur, onChange)}
             onResults={data => {
               const results = onResults(data);
-              this.setState({results});
+              const resultSelection = results.find(result => result.value === value);
+              this.setState(
+                resultSelection
+                  ? {
+                      results,
+                      latestSelection: resultSelection,
+                    }
+                  : {results}
+              );
               return results;
             }}
             onSelectResetsInput

@@ -5,23 +5,25 @@ import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 type Data = [number, {count: number}[]][];
 
 export type Incident = {
+  alertRule: IncidentRule;
   dateClosed: string | null;
-  dateStarted: string;
-  dateDetected: string;
   dateCreated: string;
+  dateDetected: string;
+  dateStarted: string;
+  // Array of group ids
+  discoverQuery: string;
+  groups: string[];
+  hasSeen: boolean;
   id: string;
   identifier: string;
   isSubscribed: boolean;
-  groups: string[]; // Array of group ids
-  discoverQuery: string;
   organizationId: string;
-  projects: string[]; // Array of slugs
+  projects: string[];
+  // Array of slugs
   seenBy: User[];
   status: IncidentStatus;
   statusMethod: IncidentStatusMethod;
   title: string;
-  hasSeen: boolean;
-  alertRule: IncidentRule;
   activities?: ActivityType[];
 };
 
@@ -43,9 +45,9 @@ export type ActivityTypeDraft = {
 };
 
 export type ActivityType = ActivityTypeDraft & {
-  eventStats?: {data: Data};
   previousValue: string | null;
   value: string | null;
+  eventStats?: {data: Data};
 };
 
 export enum IncidentActivityType {

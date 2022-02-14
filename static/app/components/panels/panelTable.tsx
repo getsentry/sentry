@@ -21,10 +21,21 @@ type Props = {
    */
   children?: React.ReactNode | (() => React.ReactNode);
 
+  className?: string;
+
   /**
-   * If this is true, then display a loading indicator
+   * Renders without predefined padding on the header and body cells
    */
-  isLoading?: boolean;
+  disablePadding?: boolean;
+
+  /**
+   * Action to display when isEmpty is true
+   */
+  emptyAction?: React.ReactNode;
+  /**
+   * Message to use for `<EmptyStateWarning>`
+   */
+  emptyMessage?: React.ReactNode;
 
   /**
    * Displays an `<EmptyStateWarning>` if true
@@ -32,25 +43,19 @@ type Props = {
   isEmpty?: boolean;
 
   /**
-   * Message to use for `<EmptyStateWarning>`
+   * If this is true, then display a loading indicator
    */
-  emptyMessage?: React.ReactNode;
-  /**
-   * Action to display when isEmpty is true
-   */
-  emptyAction?: React.ReactNode;
-
-  /**
-   * Renders without predefined padding on the header and body cells
-   */
-  disablePadding?: boolean;
-
-  className?: string;
+  isLoading?: boolean;
 
   /**
    * A custom loading indicator.
    */
   loader?: React.ReactNode;
+
+  /**
+   * If true, scrolling headers out of view will pin to the top of container.
+   */
+  stickyHeaders?: boolean;
 };
 
 /**
@@ -77,6 +82,7 @@ const PanelTable = ({
   emptyMessage = t('There are no items to display'),
   emptyAction,
   loader,
+  stickyHeaders = false,
   ...props
 }: Props) => {
   const shouldShowLoading = isLoading === true;
@@ -92,7 +98,9 @@ const PanelTable = ({
       {...props}
     >
       {headers.map((header, i) => (
-        <PanelTableHeader key={i}>{header}</PanelTableHeader>
+        <PanelTableHeader key={i} sticky={stickyHeaders}>
+          {header}
+        </PanelTableHeader>
       ))}
 
       {shouldShowLoading && (
@@ -124,8 +132,8 @@ type WrapperProps = {
    * The number of columns the table will have, this is derived from the headers list
    */
   columns: number;
-  hasRows: boolean;
   disablePadding: Props['disablePadding'];
+  hasRows: boolean;
 };
 
 const LoadingWrapper = styled('div')``;
@@ -155,7 +163,7 @@ const Wrapper = styled(Panel, {
   overflow: auto;
 `;
 
-export const PanelTableHeader = styled('div')`
+export const PanelTableHeader = styled('div')<{sticky: boolean}>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -167,6 +175,14 @@ export const PanelTableHeader = styled('div')`
   flex-direction: column;
   justify-content: center;
   min-height: 45px;
+
+  ${p =>
+    p.sticky &&
+    `
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  `}
 `;
 
 export default PanelTable;

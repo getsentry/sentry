@@ -23,29 +23,31 @@ import {
 } from '../types';
 
 type Props = {
+  aggregate: UnsavedIncidentRule['aggregate'];
   api: Client;
+  comparisonType: AlertRuleComparisonType;
   config: Config;
-  disabled: boolean;
-  organization: Organization;
 
+  disabled: boolean;
+  fieldHelp: React.ReactNode;
+  isCritical: boolean;
+  onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
+  onThresholdPeriodChange: (value: number) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  organization: Organization;
+  placeholder: string;
+  projects: Project[];
+  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
+  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
+  thresholdType: UnsavedIncidentRule['thresholdType'];
+  trigger: Trigger;
+
+  triggerIndex: number;
+  triggerLabel: React.ReactNode;
   /**
    * Map of fieldName -> errorMessage
    */
   error?: {[fieldName: string]: string};
-  projects: Project[];
-  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
-  thresholdType: UnsavedIncidentRule['thresholdType'];
-  comparisonType: AlertRuleComparisonType;
-  aggregate: UnsavedIncidentRule['aggregate'];
-  trigger: Trigger;
-  triggerIndex: number;
-  isCritical: boolean;
-  fieldHelp: React.ReactNode;
-  triggerLabel: React.ReactNode;
-  placeholder: string;
-
-  onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
-  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
 };
 
 class TriggerForm extends React.PureComponent<Props> {
@@ -72,11 +74,13 @@ class TriggerForm extends React.PureComponent<Props> {
       trigger,
       isCritical,
       thresholdType,
+      thresholdPeriod,
       comparisonType,
       fieldHelp,
       triggerLabel,
       placeholder,
       onThresholdTypeChange,
+      onThresholdPeriodChange,
     } = this.props;
 
     return (
@@ -91,11 +95,13 @@ class TriggerForm extends React.PureComponent<Props> {
           disableThresholdType={!isCritical}
           type={trigger.label}
           thresholdType={thresholdType}
+          thresholdPeriod={thresholdPeriod}
           threshold={trigger.alertThreshold}
           comparisonType={comparisonType}
           placeholder={placeholder}
           onChange={this.handleChangeThreshold}
           onThresholdTypeChange={onThresholdTypeChange}
+          onThresholdPeriodChange={onThresholdPeriodChange}
         />
       </Field>
     );
@@ -114,12 +120,12 @@ type TriggerFormContainerProps = Omit<
   | 'triggerLabel'
   | 'placeholder'
 > & {
-  triggers: Trigger[];
-  errors?: Map<number, {[fieldName: string]: string}>;
   onChange: (triggerIndex: number, trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onResolveThresholdChange: (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => void;
+  triggers: Trigger[];
+  errors?: Map<number, {[fieldName: string]: string}>;
 };
 
 class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
@@ -183,11 +189,13 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       organization,
       triggers,
       thresholdType,
+      thresholdPeriod,
       comparisonType,
       aggregate,
       resolveThreshold,
       projects,
       onThresholdTypeChange,
+      onThresholdPeriodChange,
     } = this.props;
 
     const resolveTrigger: UnsavedTrigger = {
@@ -212,6 +220,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               disabled={disabled}
               error={errors && errors.get(index)}
               trigger={trigger}
+              thresholdPeriod={thresholdPeriod}
               thresholdType={thresholdType}
               comparisonType={comparisonType}
               aggregate={aggregate}
@@ -244,6 +253,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               }
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
+              onThresholdPeriodChange={onThresholdPeriodChange}
             />
           );
         })}
@@ -254,6 +264,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           error={errors && errors.get(2)}
           trigger={resolveTrigger}
           // Flip rule thresholdType to opposite
+          thresholdPeriod={thresholdPeriod}
           thresholdType={+!thresholdType}
           comparisonType={comparisonType}
           aggregate={aggregate}
@@ -274,6 +285,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           placeholder={t('Automatic')}
           onChange={this.handleChangeResolveTrigger}
           onThresholdTypeChange={onThresholdTypeChange}
+          onThresholdPeriodChange={onThresholdPeriodChange}
         />
       </React.Fragment>
     );

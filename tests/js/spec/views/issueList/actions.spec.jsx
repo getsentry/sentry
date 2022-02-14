@@ -1,3 +1,4 @@
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -66,7 +67,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
+        wrapper.find('ResolveActions ResolveButton').simulate('click');
 
         const modal = await mountGlobalModal();
         expect(modal.find('Modal')).toSnapshot();
@@ -135,7 +136,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
+        wrapper.find('ResolveActions ResolveButton').simulate('click');
 
         const modal = await mountGlobalModal();
         expect(modal.find('Modal')).toSnapshot();
@@ -199,7 +200,8 @@ describe('IssueListActions', function () {
         wrapper
           .find('IssueListActions')
           .setState({allInQuerySelected: false, anySelected: true});
-        wrapper.find('ResolveActions ActionLink').first().simulate('click');
+
+        wrapper.find('ResolveActions ResolveButton').first().simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
@@ -219,12 +221,17 @@ describe('IssueListActions', function () {
         });
         jest
           .spyOn(SelectedGroupStore, 'getSelectedIds')
-          .mockImplementation(() => new Set(['3', '6', '9']));
-
+          .mockImplementation(() => new Set(['1']));
         wrapper
           .find('IssueListActions')
           .setState({allInQuerySelected: false, anySelected: true});
-        wrapper.find('DropdownMenuItem ActionSubMenu a').last().simulate('click');
+
+        await selectDropdownMenuItem({
+          wrapper,
+          specifiers: {prefix: 'IgnoreActions'},
+          triggerSelector: 'DropdownTrigger',
+          itemKey: ['until-affect', 'until-affect-custom'],
+        });
 
         const modal = await mountGlobalModal();
 
@@ -242,7 +249,7 @@ describe('IssueListActions', function () {
           expect.anything(),
           expect.objectContaining({
             query: {
-              id: ['3', '6', '9'],
+              id: ['1'],
               project: [1],
             },
             data: {

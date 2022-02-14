@@ -47,21 +47,21 @@ const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
 };
 
 type Props = {
+  alertType: AlertType;
   api: Client;
+  comparisonType: AlertRuleComparisonType;
+  dataset: Dataset;
+  disabled: boolean;
+  onComparisonDeltaChange: (value: number) => void;
+  onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
+  onFilterSearch: (query: string) => void;
+  onTimeWindowChange: (value: number) => void;
   organization: Organization;
   projectSlug: string;
-  disabled: boolean;
   thresholdChart: React.ReactNode;
-  onFilterSearch: (query: string) => void;
-  alertType: AlertType;
-  dataset: Dataset;
   timeWindow: number;
-  comparisonType: AlertRuleComparisonType;
-  onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
-  onComparisonDeltaChange: (value: number) => void;
-  onTimeWindowChange: (value: number) => void;
-  comparisonDelta?: number;
   allowChangeEventTypes?: boolean;
+  comparisonDelta?: number;
 };
 
 type State = {
@@ -319,6 +319,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     'release.stage',
                     'release.package',
                     'release.build',
+                    'project',
                   ]}
                   includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}

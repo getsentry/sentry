@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -17,9 +17,9 @@ import {Artifact} from 'sentry/types';
 
 type Props = {
   artifact: Artifact;
-  onDelete: (id: string) => void;
-  downloadUrl: string;
   downloadRole: string;
+  downloadUrl: string;
+  onDelete: (id: string) => void;
 };
 
 const SourceMapsArtifactRow = ({
@@ -68,6 +68,7 @@ const SourceMapsArtifactRow = ({
                   disabled={!hasRole}
                   href={downloadUrl}
                   title={hasRole ? t('Download Artifact') : undefined}
+                  aria-label={t('Download Artifact')}
                 />
               </Tooltip>
             )}

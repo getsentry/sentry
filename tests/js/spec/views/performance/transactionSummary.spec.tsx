@@ -21,7 +21,7 @@ function initializeData({
   features: additionalFeatures = [],
   query = {},
   project: prj,
-}: {features?: string[]; query?: Record<string, any>; project?: Project} = {}) {
+}: {features?: string[]; project?: Project; query?: Record<string, any>} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const project = prj ?? TestStubs.Project({teams});
   const organization = TestStubs.Organization({
@@ -313,7 +313,7 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.getByTestId('transactions-table')).toBeInTheDocument();
 
     // Ensure open in discover button exists.
-    expect(screen.getByTestId('discover-open')).toBeInTheDocument();
+    expect(screen.getByTestId('transaction-events-open')).toBeInTheDocument();
 
     // Ensure open issues button exists.
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
@@ -407,6 +407,24 @@ describe('Performance > TransactionSummary', function () {
       match: [MockApiClient.matchQuery({groupBy: undefined})],
     });
 
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: null,
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: undefined,
+          field: [
+            'p50(sentry.transactions.transaction.duration)',
+            'p75(sentry.transactions.transaction.duration)',
+            'p95(sentry.transactions.transaction.duration)',
+            'p99(sentry.transactions.transaction.duration)',
+            'max(sentry.transactions.transaction.duration)',
+          ],
+        }),
+      ],
+    });
+
     const {organization, router, routerContext} = initializeData({
       project: TestStubs.Project({teams, platform: 'javascript'}),
       query: {
@@ -442,13 +460,8 @@ describe('Performance > TransactionSummary', function () {
           ],
           query: 'transaction:/organizations/:orgId/issues/',
           groupBy: ['measurement_rating'],
-          orderBy: undefined,
-          per_page: undefined,
           interval: '1h',
-          datasource: undefined,
           statsPeriod: '14d',
-          start: undefined,
-          end: undefined,
         }),
       })
     );
@@ -507,6 +520,24 @@ describe('Performance > TransactionSummary', function () {
       match: [MockApiClient.matchQuery({groupBy: undefined})],
     });
 
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: null,
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: undefined,
+          field: [
+            'p50(sentry.transactions.transaction.duration)',
+            'p75(sentry.transactions.transaction.duration)',
+            'p95(sentry.transactions.transaction.duration)',
+            'p99(sentry.transactions.transaction.duration)',
+            'max(sentry.transactions.transaction.duration)',
+          ],
+        }),
+      ],
+    });
+
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
@@ -530,17 +561,12 @@ describe('Performance > TransactionSummary', function () {
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
         query: {
-          datasource: undefined,
-          end: undefined,
           environment: [],
           field: ['count(sentry.transactions.transaction.duration)'],
           groupBy: ['transaction.status'],
           interval: '1h',
-          per_page: undefined,
-          orderBy: undefined,
           project: [2],
           query: 'transaction:/performance',
-          start: undefined,
           statsPeriod: '14d',
         },
       })
@@ -555,17 +581,11 @@ describe('Performance > TransactionSummary', function () {
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
         query: {
-          datasource: undefined,
-          end: undefined,
           environment: [],
           field: ['count(sentry.transactions.transaction.duration)'],
-          groupBy: undefined,
           interval: '1h',
-          per_page: undefined,
-          orderBy: undefined,
           project: [2],
           query: 'transaction:/performance',
-          start: undefined,
           statsPeriod: '14d',
         },
       })

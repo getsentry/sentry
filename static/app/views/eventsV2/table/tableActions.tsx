@@ -6,7 +6,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import {IconDownload, IconStack, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
@@ -17,16 +17,16 @@ import EventView from 'sentry/utils/discover/eventView';
 import {downloadAsCsv} from '../utils';
 
 type Props = {
-  isLoading: boolean;
   error: string | null;
-  title: string;
-  organization: OrganizationSummary;
   eventView: EventView;
-  tableData: TableData | null | undefined;
+  isLoading: boolean;
   location: Location;
-  onEdit: () => void;
   onChangeShowTags: () => void;
+  onEdit: () => void;
+  organization: OrganizationSummary;
   showTags: boolean;
+  tableData: TableData | null | undefined;
+  title: string;
 };
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {

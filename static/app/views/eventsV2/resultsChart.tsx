@@ -8,7 +8,7 @@ import {Client} from 'sentry/api';
 import AreaChart from 'sentry/components/charts/areaChart';
 import BarChart from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
-import {getInterval} from 'sentry/components/charts/utils';
+import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import WorldMapChart from 'sentry/components/charts/worldMapChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel} from 'sentry/components/panels';
@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {isEquation} from 'sentry/utils/discover/fields';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -31,11 +31,11 @@ import ChartFooter from './chartFooter';
 
 type ResultsChartProps = {
   api: Client;
-  router: InjectedRouter;
-  organization: Organization;
+  confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
-  confirmedQuery: boolean;
+  organization: Organization;
+  router: InjectedRouter;
   yAxisValue: string[];
 };
 
@@ -57,9 +57,6 @@ class ResultsChart extends Component<ResultsChartProps> {
 
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
-    );
-    const hasConnectDiscoverAndDashboards = organization.features.includes(
-      'connect-discover-and-dashboards'
     );
 
     const globalSelection = eventView.getPageFilters();
@@ -86,7 +83,7 @@ class ResultsChart extends Component<ResultsChartProps> {
         ? WorldMapChart
         : display === DisplayModes.BAR
         ? BarChart
-        : hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
+        : yAxisValue.length > 1 && !isDaily
         ? AreaChart
         : undefined;
     const interval =
@@ -102,6 +99,11 @@ class ResultsChart extends Component<ResultsChartProps> {
           )
         : eventView.interval;
 
+    const seriesLabels = yAxisValue.map(stripEquationPrefix);
+    const disableableSeries = [
+      ...seriesLabels,
+      ...seriesLabels.map(getPreviousSeriesName),
+    ];
     return (
       <Fragment>
         {getDynamicText({
@@ -131,6 +133,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               chartComponent={chartComponent}
               referrer={referrer}
               fromDiscover
+              disableableSeries={disableableSeries}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -142,18 +145,18 @@ class ResultsChart extends Component<ResultsChartProps> {
 
 type ContainerProps = {
   api: Client;
-  router: InjectedRouter;
+  confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
-  organization: Organization;
-  confirmedQuery: boolean;
-  yAxis: string[];
-
-  // chart footer props
-  total: number | null;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
+
+  organization: Organization;
+  router: InjectedRouter;
+  // chart footer props
+  total: number | null;
+  yAxis: string[];
 };
 
 class ResultsChartContainer extends Component<ContainerProps> {
@@ -187,9 +190,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
     } = this.props;
 
     const hasQueryFeature = organization.features.includes('discover-query');
-    const hasConnectDiscoverAndDashboards = organization.features.includes(
-      'connect-discover-and-dashboards'
-    );
     const displayOptions = eventView
       .getDisplayOptions()
       .filter(opt => {
@@ -202,9 +202,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
           ) &&
           !hasQueryFeature
         ) {
-          return false;
-        }
-        if (!hasConnectDiscoverAndDashboards && opt.value === DisplayModes.WORLDMAP) {
           return false;
         }
         return true;
@@ -231,7 +228,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
         return opt;
       });
 
-    const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
     let yAxisOptions = eventView.getYAxisOptions();
     // Hide multi y axis checkbox when in an unsupported Display Mode
     if (
@@ -256,7 +252,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
 
     return (
       <StyledPanel>
-        {(yAxisValue.length > 0 && (
+        {(yAxis.length > 0 && (
           <ResultsChart
             api={api}
             eventView={eventView}
@@ -264,13 +260,13 @@ class ResultsChartContainer extends Component<ContainerProps> {
             organization={organization}
             router={router}
             confirmedQuery={confirmedQuery}
-            yAxisValue={yAxisValue}
+            yAxisValue={yAxis}
           />
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
           organization={organization}
           total={total}
-          yAxisValue={yAxisValue}
+          yAxisValue={yAxis}
           yAxisOptions={yAxisOptions}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
@@ -287,7 +283,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
 export default withApi(ResultsChartContainer);
 
 const StyledPanel = styled(Panel)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     margin: 0;
   }
 `;

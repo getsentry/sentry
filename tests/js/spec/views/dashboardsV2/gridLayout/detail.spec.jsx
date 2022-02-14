@@ -1,11 +1,11 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
 import {
   act,
   mountWithTheme as rtlMountWithTheme,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
@@ -138,6 +138,7 @@ describe('Dashboards > Detail', function () {
 
     const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
     beforeEach(function () {
+      window.confirm = jest.fn();
       initialData = initializeOrg({organization});
       widgets = [
         TestStubs.Widget(
@@ -319,6 +320,7 @@ describe('Dashboards > Detail', function () {
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
 
       const card = wrapper.find('WidgetCard').first();
       card.find('StyledPanel').simulate('mouseOver');
@@ -330,12 +332,18 @@ describe('Dashboards > Detail', function () {
         .find('IconClick[data-test-id="widget-edit"]')
         .simulate('click');
 
-      await tick();
-      await wrapper.update();
-      const modal = await mountGlobalModal();
-
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(
-        expect.objectContaining(widgets[0])
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            id: '1',
+            interval: '1d',
+            layout: {h: 2, minH: 2, w: 2, x: 0, y: 0},
+            queries: [{conditions: 'event.type:error', fields: ['count()'], name: ''}],
+            title: 'Errors',
+            type: 'line',
+          },
+        })
       );
     });
 
@@ -514,6 +522,77 @@ describe('Dashboards > Detail', function () {
 
       expect(screen.getByText('Edit Dashboard')).toBeInTheDocument();
       expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('renders the custom resize handler for a widget', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(await screen.findByText('Edit Dashboard'));
+      const widget = screen.getByText('First Widget').closest('.react-grid-item');
+      const resizeHandle = within(widget).getByTestId('custom-resize-handle');
+
+      expect(resizeHandle).toBeVisible();
+    });
+
+    it('does not trigger an alert when the widgets have no layout and user cancels without changes', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: null,
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(await screen.findByText('Edit Dashboard'));
+      userEvent.click(await screen.findByText('Cancel'));
+
+      expect(window.confirm).not.toHaveBeenCalled();
     });
   });
 });

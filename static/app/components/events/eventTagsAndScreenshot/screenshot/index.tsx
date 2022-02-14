@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -21,10 +21,10 @@ import Modal, {modalCss} from './modal';
 
 type Props = {
   event: Event;
+  onDelete: (attachmentId: EventAttachment['id']) => void;
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
-  onDelete: (attachmentId: EventAttachment['id']) => void;
 };
 
 function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {

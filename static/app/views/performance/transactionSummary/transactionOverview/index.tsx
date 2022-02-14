@@ -35,8 +35,8 @@ import {
   VITAL_GROUPS,
 } from '../transactionVitals/constants';
 
+import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import SummaryContent from './content';
-import {ZOOM_END, ZOOM_START} from './latencyChart';
 
 // Used to cast the totals request to numbers
 // as React.ReactText
@@ -44,9 +44,9 @@ type TotalValues = Record<string, number>;
 
 type Props = {
   location: Location;
-  selection: PageFilters;
   organization: Organization;
   projects: Project[];
+  selection: PageFilters;
 };
 
 function TransactionOverview(props: Props) {
@@ -158,9 +158,9 @@ function generateEventView({
   transactionName,
   isMetricsData,
 }: {
+  isMetricsData: boolean;
   location: Location;
   transactionName: string;
-  isMetricsData: boolean;
 }): EventView {
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.

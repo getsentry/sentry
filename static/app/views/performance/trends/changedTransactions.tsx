@@ -59,14 +59,14 @@ import {
 } from './utils';
 
 type Props = {
-  organization: Organization;
-  trendChangeType: TrendChangeType;
-  previousTrendFunction?: TrendFunctionField;
-  previousTrendColumn?: TrendColumnField;
-  trendView: TrendView;
   location: Location;
+  organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
+  trendChangeType: TrendChangeType;
+  trendView: TrendView;
+  previousTrendColumn?: TrendColumnField;
+  previousTrendFunction?: TrendFunctionField;
 };
 
 type TrendsCursorQuery = {
@@ -170,8 +170,14 @@ function handleFilterTransaction(location: Location, transaction: string) {
   });
 }
 
-function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
-  const durationTag = getCurrentTrendParameter(location).column;
+function handleFilterDuration(
+  location: Location,
+  value: number,
+  symbol: FilterSymbols,
+  projects: Project[],
+  projectIds: Readonly<number[]>
+) {
+  const durationTag = getCurrentTrendParameter(location, projects, projectIds).column;
   const queryString = decodeScalar(location.query.query);
   const conditions = new MutableSearch(queryString ?? '');
 
@@ -213,7 +219,7 @@ function ChangedTransactions(props: Props) {
 
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
-  modifyTrendView(trendView, location, trendChangeType);
+  modifyTrendView(trendView, location, trendChangeType, projects);
 
   const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
@@ -230,7 +236,11 @@ function ChangedTransactions(props: Props) {
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
-        const trendParameter = getCurrentTrendParameter(location);
+        const trendParameter = getCurrentTrendParameter(
+          location,
+          projects,
+          trendView.project
+        );
         const events = normalizeTrends(
           (trendsData && trendsData.events && trendsData.events.data) || []
         );
@@ -327,18 +337,18 @@ function ChangedTransactions(props: Props) {
 
 type TrendsListItemProps = {
   api: Client;
-  trendView: TrendView;
-  organization: Organization;
-  transaction: NormalizedTrendsTransaction;
-  trendChangeType: TrendChangeType;
-  currentTrendFunction: string;
   currentTrendColumn: string;
-  transactions: NormalizedTrendsTransaction[];
-  projects: Project[];
-  location: Location;
-  index: number;
-  statsData: TrendsStats;
+  currentTrendFunction: string;
   handleSelectTransaction: (transaction: NormalizedTrendsTransaction) => void;
+  index: number;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  statsData: TrendsStats;
+  transaction: NormalizedTrendsTransaction;
+  transactions: NormalizedTrendsTransaction[];
+  trendChangeType: TrendChangeType;
+  trendView: TrendView;
 };
 
 function TrendsListItem(props: TrendsListItemProps) {
@@ -352,6 +362,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     location,
     projects,
     handleSelectTransaction,
+    trendView,
   } = props;
   const color = trendToColor[trendChangeType].default;
 
@@ -440,6 +451,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           <StyledButton
             size="xsmall"
             icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
+            aria-label={t('Actions')}
           />
         }
       >
@@ -448,7 +460,9 @@ function TrendsListItem(props: TrendsListItemProps) {
             handleFilterDuration(
               location,
               longestPeriodValue,
-              FilterSymbols.LESS_THAN_EQUALS
+              FilterSymbols.LESS_THAN_EQUALS,
+              projects,
+              trendView.project
             )
           }
         >
@@ -459,7 +473,9 @@ function TrendsListItem(props: TrendsListItemProps) {
             handleFilterDuration(
               location,
               longestPeriodValue,
-              FilterSymbols.GREATER_THAN_EQUALS
+              FilterSymbols.GREATER_THAN_EQUALS,
+              projects,
+              trendView.project
             )
           }
         >

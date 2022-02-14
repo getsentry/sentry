@@ -9,7 +9,7 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconCheckmark, IconFire, IconOpen, IconWarning} from 'sentry/icons';
+import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -25,15 +25,15 @@ import {didProjectOrEnvironmentChange} from './utils';
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
 
 type Props = AsyncComponent['props'] & {
+  isProjectStabilized: boolean;
+  location: Location;
   organization: Organization;
   projectSlug: string;
-  location: Location;
-  isProjectStabilized: boolean;
 };
 
 type State = {
-  unresolvedAlerts: Incident[] | null;
   resolvedAlerts: Incident[] | null;
+  unresolvedAlerts: Incident[] | null;
   hasAlertRule?: boolean;
 } & AsyncComponent['state'];
 
@@ -143,7 +143,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     const isResolved = status === IncidentStatus.CLOSED;
     const isWarning = status === IncidentStatus.WARNING;
 
-    const Icon = isResolved ? IconCheckmark : isWarning ? IconWarning : IconFire;
+    const Icon = isResolved ? IconCheckmark : isWarning ? IconExclamation : IconFire;
 
     const statusProps = {isResolved, isWarning};
 
@@ -255,7 +255,7 @@ const AlertBadge = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
   justify-content: center;
   flex-shrink: 0;
   /* icon warning needs to be treated differently to look visually centered */
-  line-height: ${p => (p.icon === IconWarning ? undefined : 1)};
+  line-height: ${p => (p.icon === IconExclamation ? undefined : 1)};
 
   &:before {
     content: '';
@@ -275,6 +275,7 @@ const AlertDetails = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-left: ${space(2)};
   ${overflowEllipsis}
+  line-height: 1.35;
 `;
 
 const AlertTitle = styled('div')`

@@ -2,11 +2,9 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import partial from 'lodash/partial';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import Tooltip from 'sentry/components/tooltip';
@@ -15,17 +13,16 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import EventView, {EventData} from 'sentry/utils/discover/eventView';
 
-import {FIELD_FORMATTERS} from '../discover/fieldRenderers';
 import {Container, FieldShortId, OverflowLink} from '../discover/styles';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
 type RenderFunctionBaggage = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
   eventView?: EventView;
 };
 
@@ -40,19 +37,21 @@ type SpecialFieldRenderFunc = (
 ) => React.ReactNode;
 
 type SpecialField = {
-  sortField: string | null;
   renderFunc: SpecialFieldRenderFunc;
+  sortField: string | null;
 };
 
 type SpecialFields = {
-  issue: SpecialField;
   assignee: SpecialField;
-  lifetimeCount: SpecialField;
-  lifetimeUserCount: SpecialField;
   count: SpecialField;
+  events: SpecialField;
+  issue: SpecialField;
+  lifetimeCount: SpecialField;
+  lifetimeEvents: SpecialField;
+  lifetimeUserCount: SpecialField;
+  lifetimeUsers: SpecialField;
   userCount: SpecialField;
-  firstSeen: SpecialField;
-  lastSeen: SpecialField;
+  users: SpecialField;
 };
 
 /**
@@ -97,47 +96,59 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
+  lifetimeEvents: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeEvents'),
+  },
+  lifetimeUsers: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeUsers'),
+  },
+  events: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'events'),
+  },
+  users: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'users'),
+  },
   lifetimeCount: {
     sortField: null,
     renderFunc: (data, {organization}) =>
-      issuesCountRenderer(data, organization, 'lifetimeCount'),
+      issuesCountRenderer(data, organization, 'lifetimeEvents'),
   },
   lifetimeUserCount: {
     sortField: null,
     renderFunc: (data, {organization}) =>
-      issuesCountRenderer(data, organization, 'lifetimeUserCount'),
+      issuesCountRenderer(data, organization, 'lifetimeUsers'),
   },
   count: {
     sortField: null,
     renderFunc: (data, {organization}) =>
-      issuesCountRenderer(data, organization, 'count'),
+      issuesCountRenderer(data, organization, 'events'),
   },
   userCount: {
     sortField: null,
     renderFunc: (data, {organization}) =>
-      issuesCountRenderer(data, organization, 'userCount'),
-  },
-  firstSeen: {
-    sortField: null,
-    renderFunc: ({firstSeen}) => <StyledDateTime date={firstSeen} />,
-  },
-  lastSeen: {
-    sortField: null,
-    renderFunc: ({lastSeen}) => <StyledDateTime date={lastSeen} />,
+      issuesCountRenderer(data, organization, 'users'),
   },
 };
 
 const issuesCountRenderer = (
   data: EventData,
   organization: Organization,
-  field: 'count' | 'userCount' | 'lifetimeCount' | 'lifetimeUserCount'
+  field: 'events' | 'users' | 'lifetimeEvents' | 'lifetimeUsers'
 ) => {
   const {start, end, period} = data;
   const isUserField = !!/user/i.exec(field.toLowerCase());
   const primaryCount = data[field];
-  const count = data[isUserField ? 'userCount' : 'count'];
-  const lifetimeCount = data[isUserField ? 'lifetimeUserCount' : 'lifetimeCount'];
-  const filteredCount = data[isUserField ? 'filteredUserCount' : 'filteredCount'];
+  const count = data[isUserField ? 'users' : 'events'];
+  const lifetimeCount = data[isUserField ? 'lifetimeUsers' : 'lifetimeEvents'];
+  const filteredCount = data[isUserField ? 'filteredUsers' : 'filteredEvents'];
   const discoverLink = getDiscoverUrl(data, organization);
   const filteredDiscoverLink = getDiscoverUrl(data, organization, true);
   const selectionDateString =
@@ -174,7 +185,7 @@ const issuesCountRenderer = (
         }
       >
         <span>
-          {['count', 'userCount'].includes(field) && filteredCount ? (
+          {['events', 'users'].includes(field) && filteredCount ? (
             <React.Fragment>
               <Count value={filteredCount} />
               <SecondaryCount value={primaryCount} />
@@ -255,10 +266,6 @@ const Divider = styled('div')`
   background-color: ${p => p.theme.innerBorder};
 `;
 
-const StyledDateTime = styled(DateTime)`
-  white-space: nowrap;
-`;
-
 const ActorContainer = styled('div')`
   display: flex;
   justify-content: left;
@@ -276,18 +283,13 @@ const ActorContainer = styled('div')`
  * @returns {Function}
  */
 export function getIssueFieldRenderer(
-  field: string,
-  meta: MetaType
-): FieldFormatterRenderFunctionPartial {
+  field: string
+): FieldFormatterRenderFunctionPartial | null {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
-  const fieldType = meta[field];
-
-  // Defaults to fieldRenderer formatters if the field is not a special issue field
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    return partial(FIELD_FORMATTERS[fieldType].renderFunc, field);
-  }
-  return partial(FIELD_FORMATTERS.string.renderFunc, field);
+  // Return null if there is no field renderer for this field
+  // Should check the discover field renderer for this field
+  return null;
 }

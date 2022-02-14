@@ -3,8 +3,8 @@ import {MultiValueProps, StylesConfig} from 'react-select';
 import {withTheme} from '@emotion/react';
 
 import Button from 'sentry/components/button';
+import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
 import SelectControl from 'sentry/components/forms/selectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -17,21 +17,21 @@ import {InviteStatus} from './types';
 type SelectOption = SelectValue<string>;
 
 type Props = {
-  className?: string;
-  disabled: boolean;
   disableRemove: boolean;
+  disabled: boolean;
   emails: string[];
-  role: string;
-  teams: string[];
-  roleOptions: MemberRole[];
-  roleDisabledUnallowed: boolean;
   inviteStatus: InviteStatus;
-  onRemove: () => void;
-  theme: Theme;
-
   onChangeEmails: (emails: null | SelectOption[]) => void;
   onChangeRole: (role: SelectOption) => void;
   onChangeTeams: (teams?: SelectOption[] | null) => void;
+  onRemove: () => void;
+  role: string;
+  roleDisabledUnallowed: boolean;
+  roleOptions: MemberRole[];
+
+  teams: string[];
+  theme: Theme;
+  className?: string;
 };
 
 type State = {
@@ -142,6 +142,7 @@ class InviteRowControl extends React.Component<Props, State> {
           size="zero"
           onClick={onRemove}
           disabled={disableRemove}
+          aria-label={t('Remove')}
         />
       </div>
     );

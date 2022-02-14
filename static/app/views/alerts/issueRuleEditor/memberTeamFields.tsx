@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
+import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
 import SelectControl from 'sentry/components/forms/selectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import {PanelItem} from 'sentry/components/panels';
 import SelectMembers from 'sentry/components/selectMembers';
 import space from 'sentry/styles/space';
@@ -10,19 +10,19 @@ import {Organization, Project} from 'sentry/types';
 import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 
 interface OptionRecord {
-  value: string;
   label: string;
+  value: string;
 }
 
 type Props = {
-  project: Project;
-  organization: Organization;
   disabled: boolean;
   loading: boolean;
-  ruleData: IssueAlertRuleAction | IssueAlertRuleCondition;
+  memberValue: string | number;
   onChange: (action: IssueAlertRuleAction) => void;
   options: OptionRecord[];
-  memberValue: string | number;
+  organization: Organization;
+  project: Project;
+  ruleData: IssueAlertRuleAction | IssueAlertRuleCondition;
   teamValue: string | number;
 };
 

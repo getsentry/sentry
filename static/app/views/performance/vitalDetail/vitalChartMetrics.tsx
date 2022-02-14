@@ -19,20 +19,20 @@ import {WebVital} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
+import {ViewProps} from '../types';
 
-import {ViewProps} from './types';
 import {getMaxOfSeries, getVitalChartDefinitions} from './utils';
 
 type Props = WithRouterProps &
   Omit<ViewProps, 'query' | 'start' | 'end'> & {
-    loading: boolean;
-    response: MetricsApiResponse | null;
-    errored: boolean;
-    reloading: boolean;
-    field: string;
-    vital: WebVital;
-    start: DateString | null;
     end: DateString | null;
+    errored: boolean;
+    field: string;
+    loading: boolean;
+    reloading: boolean;
+    response: MetricsApiResponse | null;
+    start: DateString | null;
+    vital: WebVital;
   };
 
 function VitalChartMetrics({
@@ -61,8 +61,8 @@ function VitalChartMetrics({
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
-    type: string;
     selected: Record<string, boolean>;
+    type: string;
   }) {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);

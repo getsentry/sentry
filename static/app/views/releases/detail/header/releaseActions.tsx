@@ -27,9 +27,9 @@ type Props = {
   location: Location;
   organization: Organization;
   projectSlug: string;
+  refetchData: () => void;
   release: Release;
   releaseMeta: ReleaseMeta;
-  refetchData: () => void;
 };
 
 function ReleaseActions({

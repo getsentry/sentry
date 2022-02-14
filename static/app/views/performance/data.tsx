@@ -100,8 +100,8 @@ export function getAxisOptions(organization: Organization): TooltipOption[] {
 
 export type AxisOption = TooltipOption & {
   field: string;
-  backupOption?: AxisOption;
   label: string;
+  backupOption?: AxisOption;
   isDistribution?: boolean;
   isLeftDefault?: boolean;
   isRightDefault?: boolean;
@@ -459,7 +459,9 @@ function generateGenericPerformanceEventView(
   }
 
   if (query.trendParameter) {
-    const trendParameter = getCurrentTrendParameter(location);
+    // projects and projectIds are not necessary here since trendParameter will always
+    // be present in location and will not be determined based on the project type
+    const trendParameter = getCurrentTrendParameter(location, [], []);
     if (Boolean(WEB_VITAL_DETAILS[trendParameter.column])) {
       eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
     }

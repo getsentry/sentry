@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -9,8 +8,8 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
 type Props = {
+  activeTab: 'stats' | 'issues' | 'health';
   organization: Organization;
-  activeTab: 'stats' | 'team';
 };
 
 function StatsHeader({organization, activeTab}: Props) {
@@ -20,7 +19,7 @@ function StatsHeader({organization, activeTab}: Props) {
         <StyledLayoutTitle>{t('Stats')}</StyledLayoutTitle>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        {activeTab === 'team' && (
+        {activeTab !== 'stats' && (
           <Button
             title={t('Send us feedback via email')}
             size="small"
@@ -32,14 +31,16 @@ function StatsHeader({organization, activeTab}: Props) {
       </Layout.HeaderActions>
       <Layout.HeaderNavTabs underlined>
         <li className={`${activeTab === 'stats' ? 'active' : ''}`}>
-          <Link to={`/organizations/${organization.slug}/stats/`}>
-            {t('Usage Stats')}
+          <Link to={`/organizations/${organization.slug}/stats/`}>{t('Usage')}</Link>
+        </li>
+        <li className={`${activeTab === 'issues' ? 'active' : ''}`}>
+          <Link to={`/organizations/${organization.slug}/stats/issues/`}>
+            {t('Issues')}
           </Link>
         </li>
-        <li className={`${activeTab === 'team' ? 'active' : ''}`}>
-          <Link to={`/organizations/${organization.slug}/stats/team/`}>
-            {t('Team Stats')}
-            <FeatureBadge type="beta" />
+        <li className={`${activeTab === 'health' ? 'active' : ''}`}>
+          <Link to={`/organizations/${organization.slug}/stats/health/`}>
+            {t('Health')}
           </Link>
         </li>
       </Layout.HeaderNavTabs>

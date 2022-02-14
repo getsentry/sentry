@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import identity from 'lodash/identity';
 import isEqual from 'lodash/isEqual';
@@ -7,11 +6,7 @@ import pickBy from 'lodash/pickBy';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {PageFilters} from 'sentry/types';
-import localStorage from 'sentry/utils/localStorage';
-
-import {PageFiltersStringified} from './types';
+import {Organization, PageFilters} from 'sentry/types';
 
 /**
  * Make a default page filters object
@@ -75,94 +70,16 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
   return true;
 }
 
-function makeLocalStorageKey(orgSlug: string) {
-  return `global-selection:${orgSlug}`;
-}
-
-// XXX(epurkhiser): Note the difference here between the update input type and
-// retrieved output type. It is like this historically because of how these
-// functions have been used
-
-type RetrievedData = {
-  projects: number[];
-  environments: string[];
-};
-
 /**
- * Updates the localstorage page filters data
- *
- * e.g. if localstorage is empty, user loads issue details for project "foo"
- * this should not consider "foo" as last used and should not save to local
- * storage.
- *
- * However, if user then changes environment, it should...? Currently it will
- * save the current project alongside environment to local storage. It's
- * debatable if this is the desired behavior.
- *
- * This will be a no-op if a inaccessible organization slug is passed.
+ * TODO(davidenwang): Temporarily used for when pages with the GSH live alongside new page filters
+ * @param organization
+ * @returns list of paths that have the new page filters, these pages
+ * should only load the pinned filters, not the whole global selection
  */
-export function setPageFiltersStorage(
-  orgSlug: string | null,
-  current: PageFilters,
-  newQuery: PageFiltersStringified
-) {
-  const org = orgSlug && OrganizationsStore.get(orgSlug);
-
-  // Do nothing if no org is loaded or user is not an org member. Only
-  // organizations that a user has membership in will be available via the
-  // organizations store
-  if (!org) {
-    return;
-  }
-
-  const dataToSave = {
-    projects: newQuery.project || current.projects,
-    environments: newQuery.environment || current.environments,
-  };
-
-  const localStorageKey = makeLocalStorageKey(org.slug);
-
-  try {
-    localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
-  } catch (ex) {
-    // Do nothing
-  }
-}
-
-/**
- * Retrives the page filters from local storage
- */
-export function getPageFilterStorage(orgSlug: string) {
-  const localStorageKey = makeLocalStorageKey(orgSlug);
-  const value = localStorage.getItem(localStorageKey);
-
-  if (!value) {
-    return null;
-  }
-
-  let decoded: any;
-
-  try {
-    decoded = JSON.parse(value);
-  } catch (err) {
-    // use default if invalid
-    Sentry.captureException(err);
-    console.error(err); // eslint-disable-line no-console
-
-    return null;
-  }
-
-  const result: RetrievedData = {
-    projects: decoded.projects?.map(Number) ?? [],
-    environments: decoded.environments ?? [],
-  };
-
-  return result;
-}
-
-/**
- * Removes page filters from localstorage
- */
-export function removePageFiltersStorage(orgSlug: string) {
-  localStorage.removeItem(makeLocalStorageKey(orgSlug));
+export function getPathsWithNewFilters(organization: Organization): string[] {
+  return (
+    organization.features.includes('selection-filters-v2')
+      ? ['issues', 'user-feedback']
+      : []
+  ).map(route => `/organizations/${organization.slug}/${route}/`);
 }

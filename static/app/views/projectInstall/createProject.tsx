@@ -8,10 +8,9 @@ import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import ProjectActions from 'sentry/actions/projectActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import TeamSelector from 'sentry/components/forms/teamSelector';
+import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
 import PageHeading from 'sentry/components/pageHeading';
 import PlatformPicker from 'sentry/components/platformPicker';
-import Tooltip from 'sentry/components/tooltip';
 import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -50,12 +49,12 @@ type IssueAlertFragment = Parameters<
 >[0];
 
 type State = {
+  dataFragment: IssueAlertFragment | undefined;
   error: boolean;
+  inFlight: boolean;
+  platform: PlatformName | null;
   projectName: string;
   team: string;
-  platform: PlatformName | null;
-  inFlight: boolean;
-  dataFragment: IssueAlertFragment | undefined;
 };
 
 class CreateProject extends React.Component<Props, State> {
@@ -115,20 +114,20 @@ class CreateProject extends React.Component<Props, State> {
               onChange={choice => this.setState({team: choice.value})}
               teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
             />
-            <Tooltip title={t('Create a team')}>
-              <Button
-                borderless
-                data-test-id="create-team"
-                type="button"
-                icon={<IconAdd isCircled />}
-                onClick={() =>
-                  openCreateTeamModal({
-                    organization,
-                    onClose: ({slug}) => this.setState({team: slug}),
-                  })
-                }
-              />
-            </Tooltip>
+            <Button
+              borderless
+              data-test-id="create-team"
+              type="button"
+              icon={<IconAdd isCircled />}
+              onClick={() =>
+                openCreateTeamModal({
+                  organization,
+                  onClose: ({slug}) => this.setState({team: slug}),
+                })
+              }
+              title={t('Create a team')}
+              aria-label={t('Create a team')}
+            />
           </TeamSelectInput>
         </div>
         <div>

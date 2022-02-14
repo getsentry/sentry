@@ -33,8 +33,8 @@ const PanelBodyLineItem = styled(PanelBody)`
 `;
 
 type ANBPProps = {
-  projects: Project[];
   field: FineTuneField;
+  projects: Project[];
 };
 
 const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
@@ -77,8 +77,8 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
 };
 
 type ANBOProps = {
-  organizations: Organization[];
   field: FineTuneField;
+  organizations: Organization[];
 };
 
 const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) => {
@@ -121,9 +121,9 @@ type Props = AsyncView['props'] &
 
 type State = AsyncView['state'] & {
   emails: UserEmail[] | null;
-  projects: Project[] | null;
-  notifications: Record<string, any> | null;
   fineTuneData: Record<string, any> | null;
+  notifications: Record<string, any> | null;
+  projects: Project[] | null;
 };
 
 class AccountNotificationFineTuning extends AsyncView<Props, State> {
@@ -169,7 +169,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
     const {params} = this.props;
     const {fineTuneType} = params;
 
-    if (['alerts', 'deploy', 'workflow', 'approval'].includes(fineTuneType)) {
+    if (['alerts', 'deploy', 'workflow', 'approval', 'quota'].includes(fineTuneType)) {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 

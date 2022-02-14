@@ -14,7 +14,7 @@ import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {decodeHistogramZoom} from './transactionOverview/latencyChart';
+import {decodeHistogramZoom} from './transactionOverview/latencyChart/utils';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
@@ -46,9 +46,9 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
 export const spanOperationBreakdownSingleColumns = OPTIONS.map(o => `spans.${o}`);
 
 type Props = {
-  organization: OrganizationSummary;
   currentFilter: SpanOperationBreakdownFilter;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  organization: OrganizationSummary;
 };
 
 function Filter(props: Props) {

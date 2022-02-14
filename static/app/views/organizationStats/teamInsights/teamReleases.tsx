@@ -9,7 +9,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import BarChart from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
@@ -24,16 +24,16 @@ import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
-  theme: Theme;
   organization: Organization;
-  teamSlug: string;
   projects: Project[];
+  teamSlug: string;
+  theme: Theme;
 } & DateTimeObject;
 
 type ProjectReleaseCount = {
+  last_week_totals: Record<string, number>;
   project_avgs: Record<string, number>;
   release_counts: Record<string, number>;
-  last_week_totals: Record<string, number>;
 };
 
 type State = AsyncComponent['state'] & {
@@ -238,7 +238,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                   `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                   '</div>',
                   `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
-                  getTooltipArrow(),
+                  '<div class="tooltip-arrow"></div>',
                 ].join('');
               },
             }}

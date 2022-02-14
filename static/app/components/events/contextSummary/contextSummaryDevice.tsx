@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import DeviceName from 'sentry/components/deviceName';
+import {DeviceName} from 'sentry/components/deviceName';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -17,8 +17,8 @@ type Props = {
 };
 
 type Data = {
-  model?: string;
   arch?: string;
+  model?: string;
   model_id?: string;
 };
 

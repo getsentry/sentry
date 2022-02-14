@@ -63,8 +63,12 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     );
 
     expect(wrapper.find('AlertRowLink').at(0).find('IconFire').exists()).toBeTruthy();
-    expect(wrapper.find('AlertRowLink').at(0).find('IconWarning').exists()).toBeFalsy();
-    expect(wrapper.find('AlertRowLink').at(1).find('IconWarning').exists()).toBeTruthy();
+    expect(
+      wrapper.find('AlertRowLink').at(0).find('IconExclamation').exists()
+    ).toBeFalsy();
+    expect(
+      wrapper.find('AlertRowLink').at(1).find('IconExclamation').exists()
+    ).toBeTruthy();
     expect(
       wrapper.find('AlertRowLink').at(2).find('IconCheckmark').exists()
     ).toBeTruthy();

@@ -20,14 +20,14 @@ export enum DisplayOption {
 }
 
 type Props = {
-  platform: PlatformType;
   activeDisplayOptions: DisplayOption[];
-  onChange: (activeDisplayOptions: DisplayOption[]) => void;
+  hasAbsoluteAddresses: boolean;
+  hasAbsoluteFilePaths: boolean;
+  hasAppOnlyFrames: boolean;
   hasMinified: boolean;
   hasVerboseFunctionNames: boolean;
-  hasAbsoluteFilePaths: boolean;
-  hasAbsoluteAddresses: boolean;
-  hasAppOnlyFrames: boolean;
+  onChange: (activeDisplayOptions: DisplayOption[]) => void;
+  platform: PlatformType;
   raw: boolean;
 };
 

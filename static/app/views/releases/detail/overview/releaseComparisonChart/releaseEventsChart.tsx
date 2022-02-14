@@ -29,15 +29,15 @@ import {
 } from '../../utils';
 
 type Props = WithRouterProps & {
-  release: ReleaseWithHealth;
-  project: ReleaseProject;
   chartType: ReleaseComparisonChartType;
-  value: React.ReactNode;
   diff: React.ReactNode;
   organization: Organization;
+  project: ReleaseProject;
+  release: ReleaseWithHealth;
+  value: React.ReactNode;
+  end?: string;
   period?: string | null;
   start?: string;
-  end?: string;
   utc?: boolean;
 };
 
