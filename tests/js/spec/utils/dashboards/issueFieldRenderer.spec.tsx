@@ -1,15 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme as rtlMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {User} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 
 describe('getIssueFieldRenderer', function () {
@@ -77,15 +71,14 @@ describe('getIssueFieldRenderer', function () {
   describe('Issue fields', () => {
     it('can render assignee', async function () {
       MemberListStore.loadInitialData([
-        {
-          id: '1',
+        TestStubs.User({
           name: 'Test User',
           email: 'test@sentry.io',
           avatar: {
             avatarType: 'letter_avatar',
             avatarUuid: null,
           },
-        } as User,
+        }),
       ]);
 
       const group = TestStubs.Group({project});
@@ -103,7 +96,7 @@ describe('getIssueFieldRenderer', function () {
       ]);
       const renderer = getIssueFieldRenderer('assignee');
 
-      rtlMountWithTheme(
+      mountWithTheme(
         renderer!(data, {
           location,
           organization,
@@ -112,15 +105,15 @@ describe('getIssueFieldRenderer', function () {
       expect(screen.getByText('TU')).toBeInTheDocument();
       userEvent.hover(screen.getByText('TU'));
       expect(await screen.findByText('Assigned to')).toBeInTheDocument();
-      expect(await screen.findByText('Test User')).toBeInTheDocument();
-      expect(await screen.findByText('Based on')).toBeInTheDocument();
-      expect(await screen.findByText('commit data')).toBeInTheDocument();
+      expect(screen.getByText('Test User')).toBeInTheDocument();
+      expect(screen.getByText('Based on')).toBeInTheDocument();
+      expect(screen.getByText('commit data')).toBeInTheDocument();
     });
 
     it('can render counts', async function () {
       const renderer = getIssueFieldRenderer('events');
 
-      rtlMountWithTheme(
+      mountWithTheme(
         renderer!(data, {
           location,
           organization,
@@ -135,10 +128,10 @@ describe('getIssueFieldRenderer', function () {
     });
   });
 
-  it('can render annotations', async function () {
+  it('can render annotations', function () {
     const renderer = getIssueFieldRenderer('annotations');
 
-    rtlMountWithTheme(
+    mountWithTheme(
       renderer!(data, {
         location,
         organization,
@@ -147,10 +140,10 @@ describe('getIssueFieldRenderer', function () {
     expect(screen.getByText('ANNO-123')).toBeInTheDocument();
   });
 
-  it('can render multiple annotations', async function () {
+  it('can render multiple annotations', function () {
     const renderer = getIssueFieldRenderer('annotations');
 
-    rtlMountWithTheme(
+    mountWithTheme(
       renderer!(
         {
           data,
