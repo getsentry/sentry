@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import warnings
 from collections import defaultdict
@@ -41,7 +43,7 @@ ProjectStatus = ObjectStatus
 
 
 class ProjectManager(BaseManager):
-    def get_by_users(self, users: Iterable["User"]) -> Mapping[int, Iterable[int]]:
+    def get_by_users(self, users: Iterable[User]) -> Mapping[int, Iterable[int]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
             projectteam__team__organizationmemberteam__is_active=True,

@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models.query import in_iexact
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
@@ -31,6 +32,22 @@ class UserEmailManager(BaseManager):
     def get_primary_email(self, user: User) -> UserEmail:
         user_email, _ = self.get_or_create(user=user, email=user.email)
         return user_email
+
+    def get_users_by_emails(
+        self, emails: Iterable[str], organization: Organization
+    ) -> Mapping[str, User]:
+        if not emails:
+            return {}
+
+        return {
+            ue.email: ue.user
+            for ue in self.get_for_organization(organization)
+            .filter(
+                in_iexact("email", emails),
+                is_verified=True,
+            )
+            .select_related("user")
+        }
 
 
 class UserEmail(Model):

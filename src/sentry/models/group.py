@@ -11,7 +11,6 @@ from functools import reduce
 from operator import or_
 from typing import TYPE_CHECKING, Mapping, Sequence
 
-from django.core.cache import cache
 from django.db import models
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -341,6 +340,20 @@ class GroupManager(BaseManager):
             id__in=assigned_groups,
         )
 
+    def get_issues_mapping(
+        self,
+        group_ids: Sequence[int],
+        project_ids: Sequence[int],
+        organization: Organization,
+    ) -> Mapping[int, str | None]:
+        """Create a dictionary of group_ids to their qualified_short_ids."""
+        return {
+            i.id: i.qualified_short_id
+            for i in self.filter(
+                id__in=group_ids, project_id__in=project_ids, project__organization=organization
+            )
+        }
+
 
 class Group(Model):
     """
@@ -526,39 +539,23 @@ class Group(Model):
             project_id=self.project_id,
         )
 
-    def _get_cache_key(self, project_id, group_id, first):
-        return f"g-r:{group_id}-{project_id}-{first}"
+    def get_first_release(self) -> str | None:
+        from sentry.models import Release
 
-    def __get_release(self, project_id, group_id, first=True, use_cache=True):
-        from sentry.models import GroupRelease, Release
-
-        orderby = "first_seen" if first else "-last_seen"
-        cache_key = self._get_cache_key(project_id, group_id, first)
-        try:
-            release_version = cache.get(cache_key) if use_cache else None
-            if release_version is None:
-                release_version = Release.objects.get(
-                    id__in=GroupRelease.objects.filter(group_id=group_id)
-                    .order_by(orderby)
-                    .values("release_id")[:1]
-                ).version
-                cache.set(cache_key, release_version, 3600)
-            elif release_version is False:
-                release_version = None
-            return release_version
-        except Release.DoesNotExist:
-            cache.set(cache_key, False, 3600)
-            return None
-
-    def get_first_release(self):
         if self.first_release_id is None:
-            first_release = self.__get_release(self.project_id, self.id, True)
-            return first_release
+            return Release.objects.get_group_release_version(self.project_id, self.id)
 
         return self.first_release.version
 
-    def get_last_release(self, use_cache=True):
-        return self.__get_release(self.project_id, self.id, False, use_cache=use_cache)
+    def get_last_release(self, use_cache: bool = True) -> str | None:
+        from sentry.models import Release
+
+        return Release.objects.get_group_release_version(
+            project_id=self.project_id,
+            group_id=self.id,
+            first=False,
+            use_cache=use_cache,
+        )
 
     def get_event_type(self):
         """
@@ -616,16 +613,6 @@ class Group(Model):
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
-
-    @staticmethod
-    def issues_mapping(group_ids, project_ids, organization):
-        """Create a dictionary of group_ids to their qualified_short_ids"""
-        return {
-            i.id: i.qualified_short_id
-            for i in Group.objects.filter(
-                id__in=group_ids, project_id__in=project_ids, project__organization=organization
-            )
-        }
 
     def get_assignee(self) -> Team | User | None:
         from sentry.models import GroupAssignee
