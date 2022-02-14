@@ -2,7 +2,8 @@ __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import warnings
 from dataclasses import dataclass
-from typing import FrozenSet, Iterable, Mapping, Optional, Tuple
+from functools import cached_property
+from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -15,10 +16,12 @@ from sentry.models import (
     AuthProvider,
     Organization,
     OrganizationMember,
+    OrganizationMemberTeam,
     Project,
     ProjectStatus,
     SentryApp,
     Team,
+    TeamStatus,
     UserPermission,
     UserRole,
 )
@@ -76,6 +79,20 @@ def _sso_params(member: OrganizationMember) -> Tuple[bool, bool]:
     return requires_sso, sso_is_valid
 
 
+@dataclass(frozen=True, eq=True)
+class TeamMembership:
+    team: Team
+    role: Optional[str] = None
+    scopes: FrozenSet[str] = frozenset()
+
+    @classmethod
+    def from_team_member(cls, omt: OrganizationMemberTeam) -> "TeamMembership":
+        return cls(omt.team, omt.role, omt.get_scopes())
+
+    def has_scope(self, scope: str) -> bool:
+        return scope in self.scopes
+
+
 @dataclass(frozen=True)
 class Access:
     # TODO(dcramer): this is still a little gross, and ideally backend access
@@ -87,7 +104,7 @@ class Access:
     requires_sso: bool = False
     organization_id: Optional[int] = None
 
-    teams: FrozenSet[Team] = frozenset()  # teams with membership
+    team_memberships: FrozenSet[TeamMembership] = frozenset()
     projects: FrozenSet[Project] = frozenset()  # projects with membership
 
     # if has_global_access is True, then any project
@@ -99,6 +116,14 @@ class Access:
     scopes: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
     role: Optional[str] = None
+
+    @cached_property
+    def _team_table(self) -> Mapping[Team, TeamMembership]:
+        return {tm.team: tm for tm in self.team_memberships}
+
+    @property
+    def teams(self) -> Collection[Team]:
+        return self._team_table.keys()
 
     def has_permission(self, permission: str) -> bool:
         """
@@ -143,7 +168,12 @@ class Access:
 
         >>> access.has_team_scope(team, 'team:read')
         """
-        return self.has_team_access(team) and self.has_scope(scope)
+        if not self.has_team_access(team):
+            return False
+        if self.has_scope(scope):
+            return True
+        membership = self._team_table.get(team)
+        return membership is not None and membership.has_scope(scope)
 
     def has_project_access(self, project: Project) -> bool:
         """
@@ -289,17 +319,18 @@ def _from_sentry_app(user, organization: Optional[Organization] = None) -> Acces
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
 
-    team_list = frozenset(Team.objects.filter(organization=organization))
-    project_list = frozenset(
-        Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=team_list).distinct()
+    all_teams = list(Team.objects.filter(organization=organization))
+    team_memberships = frozenset(TeamMembership(team) for team in all_teams)
+    projects = frozenset(
+        Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=all_teams).distinct()
     )
 
     return Access(
         scopes=sentry_app.scope_list,
         is_active=True,
         organization_id=organization.id,
-        teams=team_list,
-        projects=project_list,
+        team_memberships=team_memberships,
+        projects=projects,
         sso_is_valid=True,
     )
 
@@ -340,7 +371,13 @@ def from_member(
     # network hops and needed in a lot of places
     requires_sso, sso_is_valid = _sso_params(member)
 
-    team_list = frozenset(member.get_teams())
+    team_memberships = frozenset(
+        TeamMembership.from_team_member(omt)
+        for omt in OrganizationMemberTeam.objects.filter(organizationmember=member, is_active=True)
+        if omt.team.status == TeamStatus.VISIBLE
+    )
+    team_list = [m.team for m in team_memberships]
+
     with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
         project_list = frozenset(
             Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=team_list).distinct()
@@ -359,7 +396,7 @@ def from_member(
         sso_is_valid=sso_is_valid,
         scopes=scopes,
         organization_id=member.organization_id,
-        teams=team_list,
+        team_memberships=team_memberships,
         projects=project_list,
         has_global_access=(
             bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global

@@ -36,25 +36,35 @@ class MemberTeamFixtures(APITestCase):
         return self.create_member(organization=self.org, user=self.create_user(), role="manager")
 
     @fixture
-    def team_member(self):
+    def member_on_team(self):
         return self.create_member(
             organization=self.org, user=self.create_user(), role="member", teams=[self.team]
         )
 
     @fixture
-    def team_admin(self):
+    def admin_on_team(self):
         return self.create_member(
             organization=self.org, user=self.create_user(), role="admin", teams=[self.team]
         )
 
     @fixture
-    def team_manager(self):
+    def member_with_team_admin_role(self):
+        member = self.create_member(
+            organization=self.org, user=self.create_user(), role="member", teams=[self.team]
+        )
+        omt = OrganizationMemberTeam.objects.get(team=self.team, organizationmember=member)
+        omt.role = "admin"
+        omt.save()
+        return member
+
+    @fixture
+    def manager_on_team(self):
         return self.create_member(
             organization=self.org, user=self.create_user(), role="manager", teams=[self.team]
         )
 
     @fixture
-    def team_owner(self):
+    def owner_on_team(self):
         return self.create_member(
             organization=self.org, user=self.create_user(), role="owner", teams=[self.team]
         )
@@ -84,7 +94,7 @@ class CreateOrganizationMemberTeamTest(MemberTeamFixtures):
         ).exists()
 
     def test_team_admin_can_add_members_to_team(self):
-        self.login_as(self.team_admin.user)
+        self.login_as(self.admin_on_team.user)
 
         # member
         resp = self.get_response(self.org.slug, self.member.id, self.team.slug)
@@ -149,6 +159,16 @@ class CreateOrganizationMemberTeamTest(MemberTeamFixtures):
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=target_owner
+        ).exists()
+
+    def test_member_with_team_admin_role_can_add_members_to_team(self):
+        self.login_as(self.member_with_team_admin_role.user)
+
+        resp = self.get_response(self.org.slug, self.member.id, self.team.slug)
+        assert resp.status_code == 201
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
         ).exists()
 
 
@@ -230,7 +250,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
     def test_team_member_must_request_access_to_add_member_to_team(self):
-        self.login_as(self.team_member.user)
+        self.login_as(self.member_on_team.user)
         resp = self.get_response(self.org.slug, self.member.id, self.team.slug)
         assert resp.status_code == 202
 
@@ -239,7 +259,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
         assert OrganizationAccessRequest.objects.filter(
-            team=self.team, member=self.member, requester=self.team_member.user
+            team=self.team, member=self.member, requester=self.member_on_team.user
         ).exists()
 
     def test_admin_must_request_access_to_add_member_to_team(self):
@@ -261,7 +281,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         resp = self.get_response(self.org.slug, self.admin.id, self.team.slug)
         assert resp.status_code == 202
 
-        self.login_as(self.team_member.user)
+        self.login_as(self.member_on_team.user)
         resp = self.get_response(self.org.slug, self.admin.id, self.team.slug)
         assert resp.status_code == 202
 
@@ -278,12 +298,12 @@ class DeleteOrganizationMemberTeamTest(MemberTeamFixtures):
     method = "delete"
 
     def test_member_can_leave(self):
-        self.login_as(self.team_member.user)
-        resp = self.get_response(self.org.slug, self.team_member.id, self.team.slug)
+        self.login_as(self.member_on_team.user)
+        resp = self.get_response(self.org.slug, self.member_on_team.id, self.team.slug)
         assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.team_member
+            team=self.team, organizationmember=self.member_on_team
         ).exists()
 
     def test_member_can_leave_without_membership(self):
@@ -312,7 +332,7 @@ class DeleteOrganizationMemberTeamTest(MemberTeamFixtures):
             organization=self.org, user=self.create_user(), role="member", teams=[self.team]
         )
 
-        self.login_as(self.team_member.user)
+        self.login_as(self.member_on_team.user)
         resp = self.get_response(self.org.slug, target_member.id, self.team.slug)
         assert resp.status_code == 400
 
@@ -323,74 +343,84 @@ class DeleteOrganizationMemberTeamTest(MemberTeamFixtures):
     def test_admin_cannot_remove_member(self):
         # admin not in team
         self.login_as(self.admin.user)
-        resp = self.get_response(self.org.slug, self.team_member.id, self.team.slug)
+        resp = self.get_response(self.org.slug, self.member_on_team.id, self.team.slug)
         assert resp.status_code == 400
 
         assert OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.team_member
+            team=self.team, organizationmember=self.member_on_team
         ).exists()
 
     def test_team_admin_can_remove_members(self):
-        self.login_as(self.team_admin.user)
+        self.login_as(self.admin_on_team.user)
 
         # member
-        resp = self.get_response(self.org.slug, self.team_member.id, self.team.slug)
+        resp = self.get_response(self.org.slug, self.member_on_team.id, self.team.slug)
         assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.team_member
+            team=self.team, organizationmember=self.member_on_team
         ).exists()
 
         # manager
-        resp = self.get_response(self.org.slug, self.team_manager.id, self.team.slug)
+        resp = self.get_response(self.org.slug, self.manager_on_team.id, self.team.slug)
         assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.team_manager
+            team=self.team, organizationmember=self.manager_on_team
         ).exists()
 
     def test_manager_can_remove_members(self):
-        self.login_as(self.team_manager.user)
+        self.login_as(self.manager_on_team.user)
 
         # member
-        resp = self.get_response(self.org.slug, self.team_member.id, self.team.slug)
+        resp = self.get_response(self.org.slug, self.member_on_team.id, self.team.slug)
         assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.team_member
+            team=self.team, organizationmember=self.member_on_team
         ).exists()
 
         # owner
-        resp = self.get_response(self.org.slug, self.team_owner.id, self.team.slug)
+        resp = self.get_response(self.org.slug, self.owner_on_team.id, self.team.slug)
         assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.team_owner
+            team=self.team, organizationmember=self.owner_on_team
         ).exists()
 
     def test_owner_can_remove_members(self):
         self.login_as(self.owner.user)
 
         # member
-        resp = self.get_response(self.org.slug, self.team_member.id, self.team.slug)
+        resp = self.get_response(self.org.slug, self.member_on_team.id, self.team.slug)
         assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.team_member
+            team=self.team, organizationmember=self.member_on_team
         ).exists()
 
         # manager
-        resp = self.get_response(self.org.slug, self.team_manager.id, self.team.slug)
+        resp = self.get_response(self.org.slug, self.manager_on_team.id, self.team.slug)
         assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.team_manager
+            team=self.team, organizationmember=self.manager_on_team
         ).exists()
 
         # owner
-        resp = self.get_response(self.org.slug, self.team_owner.id, self.team.slug)
+        resp = self.get_response(self.org.slug, self.owner_on_team.id, self.team.slug)
         assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.team_owner
+            team=self.team, organizationmember=self.owner_on_team
+        ).exists()
+
+    def test_member_with_team_admin_role_can_remove_members(self):
+        self.login_as(self.member_with_team_admin_role.user)
+
+        resp = self.get_response(self.org.slug, self.member_on_team.id, self.team.slug)
+        assert resp.status_code == 200
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
         ).exists()

@@ -1,3 +1,5 @@
+from typing import FrozenSet
+
 from django.db import models
 
 from sentry.db.models import BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
@@ -16,6 +18,7 @@ class OrganizationMemberTeam(BaseModel):
     # an inactive membership simply removes the team from the default list
     # but still allows them to re-join without request
     is_active = models.BooleanField(default=True)
+    role = models.CharField(max_length=32, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"
@@ -31,3 +34,8 @@ class OrganizationMemberTeam(BaseModel):
             "email": self.organizationmember.get_email(),
             "is_active": self.is_active,
         }
+
+    def get_scopes(self) -> FrozenSet[str]:
+        if self.role is None:
+            return frozenset()
+        return self.organizationmember.organization.get_scopes(self.role)

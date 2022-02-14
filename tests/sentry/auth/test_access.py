@@ -8,6 +8,9 @@ from sentry.models import (
     AuthProvider,
     ObjectStatus,
     Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    TeamStatus,
     UserPermission,
     UserRole,
 )
@@ -240,6 +243,47 @@ class FromUserTest(TestCase):
 
         result = access.from_user(user, is_superuser=True)
         assert result.has_permission("test.permission")
+
+    def test_excludes_invisible_teams(self):
+        organization = self.create_organization(owner=self.user)
+        member = OrganizationMember.objects.get(user=self.user, organization=organization)
+
+        visible_team = self.create_team(organization=organization)
+        pending_team = self.create_team(
+            organization=organization, status=TeamStatus.PENDING_DELETION
+        )
+        deleting_team = self.create_team(
+            organization=organization, status=TeamStatus.DELETION_IN_PROGRESS
+        )
+
+        for team in (visible_team, pending_team, deleting_team):
+            OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
+
+        result = access.from_user(self.user, organization)
+        assert set(result.teams) == {visible_team}
+
+    def test_team_scope_with_role(self):
+        organization = self.create_organization(owner=self.user)
+        team = self.create_team(organization=organization)
+
+        def create_team_member(team_role):
+            user = self.create_user()
+            member = self.create_member(organization=organization, user=user, role="member")
+            OrganizationMemberTeam.objects.create(
+                organizationmember=member, team=team, role=team_role
+            )
+            return user
+
+        team_member = create_team_member(None)
+        team_admin = create_team_member("admin")
+
+        member_access = access.from_user(team_member, organization)
+        assert not member_access.has_scope("team:write")
+        assert not member_access.has_team_scope(team, "team:write")
+
+        admin_access = access.from_user(team_admin, organization)
+        assert not admin_access.has_scope("team:write")
+        assert admin_access.has_team_scope(team, "team:write")
 
 
 class FromRequestTest(TestCase):

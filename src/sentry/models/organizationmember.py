@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, List, Mapping, MutableMapping
+from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -19,7 +19,6 @@ from structlog import get_logger
 
 from bitfield import BitField
 from sentry import features, roles
-from sentry.constants import ALERTS_MEMBER_WRITE_DEFAULT, EVENTS_MEMBER_ADMIN_DEFAULT
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -369,23 +368,8 @@ class OrganizationMember(Model):
             ).values("team"),
         )
 
-    def get_scopes(self):
-        scopes = roles.get(self.role).scopes
-
-        disabled_scopes = set()
-
-        if self.role == "member":
-            if not self.organization.get_option(
-                "sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT
-            ):
-                disabled_scopes.add("event:admin")
-            if not self.organization.get_option(
-                "sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT
-            ):
-                disabled_scopes.add("alerts:write")
-
-        scopes = frozenset(s for s in scopes if s not in disabled_scopes)
-        return scopes
+    def get_scopes(self) -> FrozenSet[str]:
+        return self.organization.get_scopes(self.role)
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
