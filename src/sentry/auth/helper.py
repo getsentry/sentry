@@ -549,16 +549,15 @@ class AuthIdentityHandler:
         if self._logged_in_user:
             return self._logged_in_user, "auth-confirm-link"
 
-        if features.has("organizations:idp-automatic-migration", self.organization):
-            if self._app_user and not self._has_usable_password():
-                send_one_time_account_confirm_link(
-                    self._app_user,
-                    self.organization,
-                    self.auth_provider,
-                    self.identity["email"],
-                    self.identity["id"],
-                )
-                return self.user, "auth-confirm-account"
+        if self._app_user and not self._has_usable_password():
+            send_one_time_account_confirm_link(
+                self._app_user,
+                self.organization,
+                self.auth_provider,
+                self.identity["email"],
+                self.identity["id"],
+            )
+            return self.user, "auth-confirm-account"
 
         self.request.session.set_test_cookie()
         return None if is_new_account else self.user, "auth-confirm-identity"
