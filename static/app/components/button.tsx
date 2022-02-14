@@ -28,6 +28,7 @@ interface BaseButtonProps
   borderless?: boolean;
   busy?: boolean;
   disabled?: boolean;
+  download?: HTMLAnchorElement['download'];
   external?: boolean;
   forwardRef?: React.Ref<ButtonElement>;
   href?: string;
@@ -35,7 +36,9 @@ interface BaseButtonProps
   name?: string;
   onClick?: (e: React.MouseEvent) => void;
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
+  rel?: HTMLAnchorElement['rel'];
   size?: 'zero' | 'xsmall' | 'small';
+  target?: HTMLAnchorElement['target'];
   title?: React.ComponentProps<typeof Tooltip>['title'];
   to?: string | object;
   tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;

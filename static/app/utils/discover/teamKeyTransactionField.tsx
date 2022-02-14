@@ -14,7 +14,7 @@ import withProjects from 'sentry/utils/withProjects';
 
 class TitleStar extends Component<TitleProps> {
   render() {
-    const {isOpen, keyedTeams, initialValue, ...props} = this.props;
+    const {isOpen, keyedTeams, initialValue, children: _children, ...props} = this.props;
     const keyedTeamsCount = keyedTeams?.length ?? initialValue ?? 0;
     const star = (
       <IconStar
@@ -32,6 +32,7 @@ class TitleStar extends Component<TitleProps> {
         aria-label={t('Toggle star for team')}
       />
     );
+
     if (!isOpen && keyedTeams?.length) {
       const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
       return <Tooltip title={teamSlugs}>{button}</Tooltip>;

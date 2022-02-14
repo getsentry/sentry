@@ -16,12 +16,12 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-interface CreateSampleEventButtonProps extends ButtonProps {
+type CreateSampleEventButtonProps = {
   api: Client;
   organization: Organization;
   source: string;
   project?: Project;
-}
+} & ButtonProps;
 
 type State = {
   creating: boolean;

@@ -5,8 +5,7 @@ import Button, {ButtonProps} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
-  children?: React.ReactNode;
+export type DropdownButtonProps = {
   /**
    * Whether or not the button should render as open
    */
@@ -19,7 +18,7 @@ export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
-}
+} & Omit<ButtonProps, 'type' | 'prefix'>;
 
 const DropdownButton = forwardRef<
   React.RefObject<HTMLElement> | null,

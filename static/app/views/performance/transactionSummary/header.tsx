@@ -123,6 +123,7 @@ class TransactionHeader extends React.Component<Props> {
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={this.handleCreateAlertSuccess}
         referrer="performance"
+        aria-label={t('Create alert')}
       />
     );
   }
