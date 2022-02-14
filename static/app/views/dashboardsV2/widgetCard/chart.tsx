@@ -58,12 +58,24 @@ type WidgetCardChartProps = Pick<
   windowWidth?: number;
 };
 
-class WidgetCardChart extends React.Component<WidgetCardChartProps> {
-  shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
+type State = {
+  bigNumberContainer: HTMLDivElement | null;
+};
+
+class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
+  constructor(props) {
+    super(props);
+    this.state = {
+      bigNumberContainer: null,
+    };
+  }
+
+  shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
     if (
       this.props.widget.displayType === DisplayType.BIG_NUMBER &&
       nextProps.widget.displayType === DisplayType.BIG_NUMBER &&
-      this.props.windowWidth !== nextProps.windowWidth
+      (this.props.windowWidth !== nextProps.windowWidth ||
+        !isEqual(this.props.widget?.layout, nextProps.widget?.layout))
     ) {
       return true;
     }
@@ -85,10 +97,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       },
     };
 
-    return !isEqual(currentProps, nextProps);
+    return !isEqual(currentProps, nextProps) || !isEqual(this.state, nextState);
   }
-
-  bigNumberContainer = React.createRef<HTMLDivElement>();
 
   tableResultComponent({
     loading,
@@ -144,6 +154,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
+    const {bigNumberContainer} = this.state;
     const {organization, widget} = this.props;
 
     return tableResults.map(result => {
@@ -169,8 +180,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       let w = 0;
       let h = 0;
 
-      if (this.bigNumberContainer.current) {
-        const {width, height} = this.bigNumberContainer.current.getBoundingClientRect();
+      if (bigNumberContainer) {
+        const {width, height} = bigNumberContainer.getBoundingClientRect();
         w = width;
         h = height;
       }
@@ -235,7 +246,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          <BigNumberResizeWrapper ref={this.bigNumberContainer}>
+          <BigNumberResizeWrapper
+            ref={el => {
+              this.setState({bigNumberContainer: el});
+            }}
+          >
             {this.bigNumberComponent({tableResults, loading, errorMessage})}
           </BigNumberResizeWrapper>
         </TransitionChart>
