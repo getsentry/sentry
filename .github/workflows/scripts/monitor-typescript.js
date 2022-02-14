@@ -2,15 +2,12 @@
 
 // eslint-disable-next-line
 const fs = require('fs');
-// eslint-disable-next-line
-const crypto = require('crypto');
-
 const Sentry = require('@sentry/node');
 
 Sentry.init({
-  dsn: '',
+  dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
   tracesSampleRate: 1.0,
-  debug: true,
+  environment: 'ci',
 });
 
 if (!fs.existsSync('/tmp/typescript-monitor.log')) {
@@ -90,26 +87,17 @@ const parseTime = parsedDiagnostics['Parse time'];
 const totalTime = parsedDiagnostics['Total time'];
 const memoryUsage = parsedDiagnostics['Memory used'];
 
-const now = new Date().getTime() / 1000;
+const transaction = Sentry.startTransaction({name: 'typescript.compilation'});
 
-const totalTimeTransaction = {
-  event_id: crypto.randomBytes(16).toString('hex'),
-  environment: 'local',
-  timestamp: now,
-  start_timestamp: now - totalTime.value * 1000,
-  measurements: {
-    'time.check': {value: checkTime.value},
-    'time.bind': {value: bindTime.value},
-    'time.parse': {value: parseTime.value},
-    'time.total': {value: totalTime.value},
-    memory: {value: memoryUsage.value},
-  },
-  name: 'typescript.compilation',
-  transaction: 'typescript.compilation',
-  type: 'transaction',
-};
+transaction.setMeasurements({
+  'typescript.time.check': {value: checkTime.value},
+  'typescript.time.bind': {value: bindTime.value},
+  'typescript.time.parse': {value: parseTime.value},
+  'typescript.time.total': {value: totalTime.value},
+  'typescript.memory.used': {value: memoryUsage.value},
+});
 
-Sentry.captureEvent(totalTimeTransaction);
+transaction.finish();
 
 (async () => {
   await Sentry.flush(5000);
