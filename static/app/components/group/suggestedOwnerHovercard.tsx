@@ -5,7 +5,7 @@ import moment from 'moment';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Button, {ButtonProps} from 'sentry/components/button';
+import Button from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {IconCommit, IconWarning} from 'sentry/icons';
@@ -105,8 +105,12 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                 </div>
                 {commits.length > 3 && !commitsExpanded ? (
                   <ViewMoreButton
+                    priority="link"
+                    size="zero"
                     onClick={() => this.setState({commitsExpanded: true})}
-                  />
+                  >
+                    {t('View more')}
+                  </ViewMoreButton>
                 ) : null}
               </React.Fragment>
             )}
@@ -126,7 +130,13 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                     ))}
                 </div>
                 {rules.length > 3 && !rulesExpanded ? (
-                  <ViewMoreButton onClick={() => this.setState({rulesExpanded: true})} />
+                  <ViewMoreButton
+                    priority="link"
+                    size="zero"
+                    onClick={() => this.setState({rulesExpanded: true})}
+                  >
+                    {t('View more')}
+                  </ViewMoreButton>
                 ) : null}
               </React.Fragment>
             )}
@@ -198,11 +208,7 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   text-align: center;
 `;
 
-const ViewMoreButton = styled((p: Omit<ButtonProps, 'aria-label'>) => (
-  <Button {...p} priority="link" size="zero">
-    {t('View more')}
-  </Button>
-))`
+const ViewMoreButton = styled(Button)`
   border: none;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};

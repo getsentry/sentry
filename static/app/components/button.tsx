@@ -17,7 +17,7 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
-export interface ButtonProps
+interface BaseButtonProps
   extends Omit<
     React.ButtonHTMLAttributes<ButtonElement>,
     'ref' | 'label' | 'size' | 'title'
@@ -42,10 +42,15 @@ export interface ButtonProps
   translucentBorder?: boolean;
 }
 
-export interface ButtonPropsWithAriaLabel extends ButtonProps {
-  'aria-label': string;
-  children: never;
+export interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
+  children: NonNullable<React.ReactNode>;
 }
+export interface ButtonPropsWithAriaLabel extends BaseButtonProps {
+  'aria-label': string;
+  children?: never;
+}
+
+export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
@@ -66,7 +71,7 @@ function BaseButton({
   tooltipProps,
   onClick,
   ...buttonProps
-}: ButtonPropsWithAriaLabel | ButtonProps) {
+}: ButtonProps) {
   // Intercept onClick and propagate
   function handleClick(e: React.MouseEvent) {
     // Don't allow clicks when disabled or busy
@@ -142,7 +147,6 @@ const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
 ));
 
 Button.displayName = 'Button';
-
 export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
