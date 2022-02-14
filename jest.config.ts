@@ -201,6 +201,7 @@ const config: Config.InitialOptions = {
   testEnvironmentOptions: {
     sentryConfig: {
       init: {
+        // jest project under Sentry organization (dev productivity team)
         dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
         environment: !!CI ? 'ci' : 'local',
         tracesSampleRate: 1.0,
