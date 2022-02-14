@@ -4,7 +4,6 @@ import {
   mountWithTheme as rtlMountWithTheme,
   screen,
   userEvent,
-  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -259,9 +258,7 @@ describe('Dashboards > Dashboard', () => {
       const {rerender} = mount(dashboardWithOneWidget, organization);
       userEvent.click(screen.getByTestId('widget-duplicate'));
       rerender();
-      await waitFor(() => {
-        expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
-      });
+      expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
     });
   });
 });
