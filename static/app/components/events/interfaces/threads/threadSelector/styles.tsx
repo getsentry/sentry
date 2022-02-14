@@ -8,10 +8,7 @@ const Grid = styled('div')`
   display: grid;
   gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 30px 2.5fr 4fr 0fr 40px;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 40px 2.5fr 3.5fr 105px 40px;
-  }
+  grid-template-columns: 16px repeat(2, 1fr) 3fr;
 `;
 
 const GridCell = styled('div')`
