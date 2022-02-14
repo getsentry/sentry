@@ -9,7 +9,7 @@ import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
-import MultiSelectControl from 'sentry/components/forms/multiSelectControl';
+import MultiSelectControl from 'sentry/components/deprecatedforms/multiSelectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Tooltip from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
