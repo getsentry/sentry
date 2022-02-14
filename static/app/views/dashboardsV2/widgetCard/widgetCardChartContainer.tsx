@@ -47,7 +47,6 @@ function WidgetCardChartContainer({
   organization,
   selection,
   widget,
-  isMobile,
   renderErrorMessage,
   tableItemLimit,
   windowWidth,
@@ -138,7 +137,6 @@ function WidgetCardChartContainer({
                 selection={selection}
                 router={router}
                 organization={organization}
-                isMobile={isMobile}
                 windowWidth={windowWidth}
               />
             </React.Fragment>
@@ -173,7 +171,6 @@ function WidgetCardChartContainer({
                 selection={selection}
                 router={router}
                 organization={organization}
-                isMobile={isMobile}
                 windowWidth={windowWidth}
               />
             </React.Fragment>
