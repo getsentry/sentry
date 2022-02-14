@@ -162,6 +162,7 @@ default_manager.add("organizations:transaction-metrics-extraction", Organization
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
 default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
+default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 
