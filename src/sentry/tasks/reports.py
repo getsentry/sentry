@@ -851,7 +851,7 @@ def build_message(timestamp, duration, organization, user, reports):
             date_format(stop),
         ),
         template="sentry/emails/reports/body.txt",
-        html_template="sentry/emails/reports/new.html",
+        html_template="sentry/emails/reports/body.html",
         type="report.organization",
         context={
             "duration": duration_spec,
@@ -1145,6 +1145,7 @@ def build_key_errors_ctx(key_events, organization):
         {
             "group": group_id_to_group[e[0]],
             "count": e[1],
+            # For new issues, group history would be None and we default to Unresolved
             "status": group_id_to_group_history.get(e[0], "Unresolved"),
         }
         for e in filter(lambda e: e[0] in group_id_to_group, key_events)
@@ -1178,7 +1179,7 @@ def to_context(organization, interval, reports):
         for timestamp, values in report.series
     ]
     return {
-        # This "error_series" can be removed
+        # This "error_series" can be removed for new email template
         "error_series": {
             "points": error_series,
             "maximum": max(sum(point) for timestamp, point in error_series),
