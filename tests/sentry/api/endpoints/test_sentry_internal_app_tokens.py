@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models import ApiToken
-from sentry.models.sentryapp import MASKED_VALUE
+from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.testutils import APITestCase
 from sentry.utils import json
 

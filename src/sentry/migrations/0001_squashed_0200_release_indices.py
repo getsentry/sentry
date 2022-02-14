@@ -25,9 +25,9 @@ import sentry.models.apigrant
 import sentry.models.apitoken
 import sentry.models.broadcast
 import sentry.models.groupshare
+import sentry.models.integrations.sentry_app
+import sentry.models.integrations.sentry_app_installation
 import sentry.models.scheduledeletion
-import sentry.models.sentryapp
-import sentry.models.sentryappinstallation
 import sentry.models.servicehook
 import sentry.models.user
 import sentry.models.useremail
@@ -3310,7 +3310,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.CharField(default=sentry.models.sentryapp.default_uuid, max_length=64),
+                    models.CharField(
+                        default=sentry.models.integrations.sentry_app.default_uuid, max_length=64
+                    ),
                 ),
                 ("redirect_url", models.URLField(null=True)),
                 ("webhook_url", models.URLField()),
@@ -3429,7 +3431,8 @@ class Migration(migrations.Migration):
                 (
                     "uuid",
                     models.CharField(
-                        default=sentry.models.sentryappinstallation.default_uuid, max_length=64
+                        default=sentry.models.integrations.sentry_app_installation.default_uuid,
+                        max_length=64,
                     ),
                 ),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),

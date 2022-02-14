@@ -5,7 +5,6 @@ from sentry.utils.cache import memoize
 
 
 class Migrator(Mediator):
-    # TODO MARCOS FIRST
     integration = Param("sentry.models.integrations.integration.Integration")
     organization = Param("sentry.models.organization.Organization")
 

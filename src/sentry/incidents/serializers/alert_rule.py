@@ -243,7 +243,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             try:
                 raw_snql_query(snql_query, referrer="alertruleserializer.test_query")
             except Exception:
-                # TODO MARCOS 1
                 logger.exception("Error while validating snuba alert rule query")
                 raise serializers.ValidationError(
                     "Invalid Query or Metric: An error occurred while attempting "

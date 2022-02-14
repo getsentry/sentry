@@ -3,7 +3,7 @@ from itertools import chain
 
 from sentry.mediators import Mediator, Param
 from sentry.models import ServiceHook
-from sentry.models.sentryapp import EVENT_EXPANSION
+from sentry.models.integrations.sentry_app import EVENT_EXPANSION
 
 
 def expand_events(rolled_up_events):

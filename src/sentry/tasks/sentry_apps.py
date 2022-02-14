@@ -19,7 +19,7 @@ from sentry.models import (
     ServiceHookProject,
     User,
 )
-from sentry.models.sentryapp import VALID_EVENTS, track_response_code
+from sentry.models.integrations.sentry_app import VALID_EVENTS, track_response_code
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics

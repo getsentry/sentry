@@ -4,7 +4,7 @@ from jsonschema import Draft7Validator
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry.http import safe_urlopen
-from sentry.models.sentryapp import track_response_code
+from sentry.models.integrations.sentry_app import track_response_code
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 logger = logging.getLogger(__name__)
