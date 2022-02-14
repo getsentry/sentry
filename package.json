@@ -156,7 +156,7 @@
     "@storybook/addons": "6.3.13",
     "@storybook/builder-webpack5": "6.3.13",
     "@storybook/manager-webpack5": "6.3.13",
-    "@storybook/react": "6.3.13",
+    "@storybook/react": "6.4.19",
     "@storybook/router": "6.3.13",
     "@storybook/theming": "6.3.13",
     "@visual-snapshot/jest": "5.0.0",
