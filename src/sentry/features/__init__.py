@@ -127,7 +127,7 @@ default_manager.add(
     "organizations:pagerduty-metric-alert-resolve-logging", OrganizationFeature, True
 )
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
-default_manager.add("organizations:performance-landing-widgets", OrganizationFeature, True)
+# default_manager.add("organizations:performance-landing-widgets", OrganizationFeature, True)
 default_manager.add("organizations:performance-mobile-vitals", OrganizationFeature, True)
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)
 default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
