@@ -14,17 +14,18 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 
 describe('TeamStatsIssues', () => {
   const env1 = 'prod';
+  const env2 = 'dev';
   const project1 = TestStubs.Project({
     id: '2',
     name: 'js',
     slug: 'js',
-    environments: [env1],
+    environments: [env1, env2],
   });
   const project2 = TestStubs.Project({
     id: '3',
     name: 'py',
     slug: 'py',
-    environments: [env1],
+    environments: [env1, env2],
   });
   const team1 = TestStubs.Team({
     id: '2',
@@ -122,6 +123,7 @@ describe('TeamStatsIssues', () => {
   function createWrapper() {
     const teams = [team1, team2, team3];
     const projects = [project1, project2];
+    ProjectsStore.loadInitialData(projects);
     const organization = TestStubs.Organization({
       teams,
       projects,
@@ -165,11 +167,12 @@ describe('TeamStatsIssues', () => {
   it('can filter by environment', () => {
     createWrapper();
 
-    expect(screen.getByText('Environment:')).toBeInTheDocument();
-    userEvent.type(screen.getByText('Environment:'), '{mouseDown}');
+    // For some reason the "Environment:" is rendered via css :before
+    expect(screen.getByText('All')).toBeInTheDocument();
+    userEvent.type(screen.getByText('All'), '{mouseDown}');
     expect(screen.getByText(env1)).toBeInTheDocument();
     userEvent.click(screen.getByText(env1));
-    expect(mockRouter.push).toHaveBeenCalledWith({query: {environment: team1.id}});
+    expect(mockRouter.push).toHaveBeenCalledWith({query: {environment: 'prod'}});
   });
 
   it('superusers can switch to any team', () => {
