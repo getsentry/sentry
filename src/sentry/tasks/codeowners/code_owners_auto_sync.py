@@ -1,37 +1,10 @@
 from typing import TYPE_CHECKING
 
-from django.utils.translation import ugettext as _
-
+from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.tasks.base import instrumented_task
-from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models.commit import Commit
-
-
-def get_codeowners_auto_sync_failure_email_builder_args(project):
-    return {
-        "subject": _("Unable to Complete CODEOWNERS Auto-Sync"),
-        "type": "project.codeowners-auto-sync-failure-email",
-        "context": {
-            "project_name": project.name,
-            "url": absolute_uri(
-                f"/settings/{project.organization.slug}/projects/{project.slug}/ownership/"
-            ),
-        },
-        "template": "sentry/emails/codeowners-auto-sync-failure.txt",
-        "html_template": "sentry/emails/codeowners-auto-sync-failure.html",
-    }
-
-
-def send_codeowners_auto_sync_failure_email(code_mapping):
-    from sentry.utils.email import MessageBuilder
-
-    owners = code_mapping.organization_integration.organization.get_owners()
-    msg = MessageBuilder(
-        **get_codeowners_auto_sync_failure_email_builder_args(code_mapping.project)
-    )
-    return msg.send_async([o.email for o in owners])
 
 
 @instrumented_task(
@@ -70,7 +43,7 @@ def code_owners_auto_sync(commit: Commit, **kwargs):
             codeowner_contents = None
 
         if not codeowner_contents:
-            return send_codeowners_auto_sync_failure_email(code_mapping)
+            return AutoSyncNotification(code_mapping).send()
 
         codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
 

@@ -3,9 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.models import Organization, OrganizationMember, Project, User
-from sentry.tasks.codeowners.code_owners_auto_sync import (
-    get_codeowners_auto_sync_failure_email_builder_args,
-)
+from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.web.frontend.debug.mail import MailPreviewAdapter
 from sentry.web.helpers import render_to_response
 
@@ -18,6 +16,14 @@ class DebugCodeOwnersAutoSyncFailureView(View):
         project = Project(id=1, slug="nodejs", name="Node.js", organization=org)
         user = User(name=recipient_name)
         OrganizationMember(organization=org, user=user, role="admin")
-        preview = MailPreviewAdapter(**get_codeowners_auto_sync_failure_email_builder_args(project))
+        notification = AutoSyncNotification(project)
+        mail_args = {
+            "subject": notification.get_subject(),
+            "type": notification.get_type(),
+            "context": notification.get_context(),
+            "template": notification.get_template(),
+            "html_template": notification.get_html_template(),
+        }
+        preview = MailPreviewAdapter(**mail_args)
 
         return render_to_response("sentry/debug/mail/preview.html", {"preview": preview})
