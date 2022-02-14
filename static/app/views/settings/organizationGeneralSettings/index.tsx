@@ -9,6 +9,7 @@ import {
 } from 'sentry/actionCreators/organizations';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import Field from 'sentry/components/forms/field';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelHeader} from 'sentry/components/panels';
@@ -18,7 +19,6 @@ import {Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-import Field from 'sentry/views/settings/components/forms/field';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';

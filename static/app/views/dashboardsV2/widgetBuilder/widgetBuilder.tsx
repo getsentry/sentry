@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -9,7 +10,6 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 import {DashboardDetails, Widget} from '../types';
 

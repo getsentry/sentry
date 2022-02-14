@@ -4,15 +4,13 @@ import {Observer} from 'mobx-react';
 
 import {APIRequestMethod} from 'sentry/api';
 import Button from 'sentry/components/button';
+import FormContext, {FormContextData} from 'sentry/components/forms/formContext';
+import FormModel, {FormOptions} from 'sentry/components/forms/model';
+import {Data, OnSubmitCallback} from 'sentry/components/forms/type';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
-import FormContext, {
-  FormContextData,
-} from 'sentry/views/settings/components/forms/formContext';
-import FormModel, {FormOptions} from 'sentry/views/settings/components/forms/model';
-import {Data, OnSubmitCallback} from 'sentry/views/settings/components/forms/type';
 
 type RenderProps = {
   model: FormModel;

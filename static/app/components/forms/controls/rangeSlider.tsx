@@ -1,10 +1,10 @@
 import {forwardRef as reactFowardRef, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Input from 'sentry/components/forms/controls/input';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
   name: string;

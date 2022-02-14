@@ -5,18 +5,18 @@ import {Observer} from 'mobx-react';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import Field from 'sentry/components/forms/field';
+import FieldControl from 'sentry/components/forms/field/fieldControl';
+import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
+import FormContext from 'sentry/components/forms/formContext';
+import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import FormModel, {MockModel} from 'sentry/components/forms/model';
+import ReturnButton from 'sentry/components/forms/returnButton';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
-import Field from 'sentry/views/settings/components/forms/field';
-import FieldControl from 'sentry/views/settings/components/forms/field/fieldControl';
-import FieldErrorReason from 'sentry/views/settings/components/forms/field/fieldErrorReason';
-import FormContext from 'sentry/views/settings/components/forms/formContext';
-import FormFieldControlState from 'sentry/views/settings/components/forms/formField/controlState';
-import FormModel, {MockModel} from 'sentry/views/settings/components/forms/model';
-import ReturnButton from 'sentry/views/settings/components/forms/returnButton';
 
 import {FieldValue} from '../type';
 

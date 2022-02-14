@@ -1,8 +1,8 @@
 import * as React from 'react';
 import omit from 'lodash/omit';
 
-import Textarea from 'sentry/views/settings/components/forms/controls/textarea';
-import InputField from 'sentry/views/settings/components/forms/inputField';
+import Textarea from 'sentry/components/forms/controls/textarea';
+import InputField from 'sentry/components/forms/inputField';
 
 type Props = Omit<InputField['props'], 'field'> &
   Pick<

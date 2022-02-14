@@ -1,8 +1,8 @@
 import * as React from 'react';
 import omit from 'lodash/omit';
 
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import FormField from 'sentry/views/settings/components/forms/formField';
+import Input from 'sentry/components/forms/controls/input';
+import FormField from 'sentry/components/forms/formField';
 
 type Props = {
   // TODO(ts) Add base types for this. Each input field

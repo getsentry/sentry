@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import Confirm from 'sentry/components/confirm';
+import InputField, {onEvent} from 'sentry/components/forms/inputField';
 import Switch from 'sentry/components/switchButton';
-import InputField, {onEvent} from 'sentry/views/settings/components/forms/inputField';
 
 type Props = {
   confirm?: {

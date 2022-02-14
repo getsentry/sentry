@@ -2,8 +2,8 @@ import {Component} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
-import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = Form['props'] & {
   apiEndpoint: string;

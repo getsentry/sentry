@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
-import InputField, {onEvent} from 'sentry/views/settings/components/forms/inputField';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import InputField, {onEvent} from 'sentry/components/forms/inputField';
 
 type RadioGroupProps = React.ComponentProps<typeof RadioGroup>;
 
