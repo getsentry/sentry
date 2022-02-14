@@ -13,6 +13,63 @@ function uniqueFrameKey(frame: FlamegraphFrame): string {
   return `${frame.frame.key + String(frame.start)}`;
 }
 
+function frameSearch(
+  query: string,
+  frames: ReadonlyArray<FlamegraphFrame>,
+  index: Fuse<
+    FlamegraphFrame,
+    {includeMatches: true; keys: 'frame.name'[]; threshold: number}
+  >
+): Record<string, FlamegraphFrame> {
+  const results = {};
+  if (isRegExpString(query)) {
+    const [_, lookup, flags] = parseRegExp(query) ?? [];
+
+    try {
+      if (!lookup) {
+        throw new Error('Invalid RegExp');
+      }
+
+      for (let i = 0; i < frames.length; i++) {
+        const frame = frames[i];
+
+        if (new RegExp(lookup, flags ?? 'g').test(frame.frame.name.trim())) {
+          results[
+            `${
+              frame.frame.name +
+              (frame.frame.file ? frame.frame.file : '') +
+              String(frame.start)
+            }`
+          ] = frame;
+        }
+      }
+
+      return results;
+    } catch (e) {
+      Sentry.captureMessage(e.message);
+      return results;
+    }
+  }
+
+  const fuseResults = index
+    .search(query)
+    .sort((a, b) => numericSort(a.item.start, b.item.start, 'asc'));
+
+  for (let i = 0; i < fuseResults.length; i++) {
+    const frame = fuseResults[i];
+
+    results[
+      `${
+        frame.item.frame.name +
+        (frame.item.frame.file ? frame.item.frame.file : '') +
+        String(frame.item.start)
+      }`
+    ] = frame.item;
+  }
+
+  return results;
+}
+
 const numericSort = (
   a: null | undefined | number,
   b: null | undefined | number,
@@ -75,55 +132,14 @@ function FlamegraphSearch({
   const handleSearchInput = React.useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
       const query = evt.currentTarget.value;
-      const results: Record<string, FlamegraphFrame> = {};
 
       if (!query) {
-        setSearchResults(results);
-        canvasPoolManager.dispatch('searchResults', [results]);
+        setSearchResults({});
+        canvasPoolManager.dispatch('searchResults', [{}]);
         return;
       }
 
-      if (isRegExpString(query)) {
-        const [_, lookup, flags] = parseRegExp(query) ?? [];
-
-        try {
-          if (!lookup) {
-            throw new Error('Invalid RegExp');
-          }
-
-          const userQuery = new RegExp(lookup, flags || 'g');
-
-          for (let i = 0; i < allFrames.length; i++) {
-            const frame = allFrames[i];
-
-            if (userQuery.test(frame.frame.name.trim())) {
-              results[
-                `${
-                  frame.frame.name +
-                  (frame.frame.file ? frame.frame.file : '') +
-                  String(frame.start)
-                }`
-              ] = frame;
-            }
-          }
-        } catch (e) {
-          Sentry.captureMessage(e.message);
-        }
-      } else {
-        const fuseResults = searchIndex
-          .search(query)
-          .sort((a, b) => numericSort(a.item.start, b.item.start, 'asc'));
-
-        for (const frame of fuseResults) {
-          results[
-            `${
-              frame.item.frame.name +
-              (frame.item.frame.file ? frame.item.frame.file : '') +
-              String(frame.item.start)
-            }`
-          ] = frame.item;
-        }
-      }
+      const results = frameSearch(query, allFrames, searchIndex);
 
       setSearchResults(results);
       canvasPoolManager.dispatch('searchResults', [results]);
