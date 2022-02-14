@@ -3,7 +3,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.models import Organization, OrganizationMember, Project, User
-from sentry.tasks.codeowners import get_codeowners_auto_sync_failure_email_builder_args
+from sentry.tasks.codeowners.code_owners_auto_sync import (
+    get_codeowners_auto_sync_failure_email_builder_args,
+)
 from sentry.web.frontend.debug.mail import MailPreviewAdapter
 from sentry.web.helpers import render_to_response
 

@@ -1,8 +1,12 @@
+from typing import TYPE_CHECKING
+
 from django.utils.translation import ugettext as _
 
-from sentry.models.commit import Commit
 from sentry.tasks.base import instrumented_task
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.models.commit import Commit
 
 
 def get_codeowners_auto_sync_failure_email_builder_args(project):
