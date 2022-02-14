@@ -1365,7 +1365,7 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
-SENTRY_RATELIMITER_ENABLED = False
+SENTRY_RATELIMITER_ENABLED = True
 SENTRY_RATELIMITER_OPTIONS = {}
 # These values were determined from analysis on one week of api access logs
 SENTRY_RATELIMITER_DEFAULT_IP = 620
