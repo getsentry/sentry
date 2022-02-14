@@ -18,7 +18,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {getEquationFields} from 'sentry/utils/discover/fields';
+import {getFieldsFromEquations} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
@@ -117,8 +117,14 @@ function WidgetCardContextMenu({
           break;
       }
 
+      const fields = discoverLocation.query.field;
+      const equationFields = getFieldsFromEquations(widget.queries[0].fields);
       // Updates fields by adding any individual terms from equation fields as a column
-      discoverLocation.query.field = getEquationFields(widget.queries[0].fields);
+      equationFields.forEach(term => {
+        if (Array.isArray(fields) && !fields.includes(term)) {
+          fields.unshift(term);
+        }
+      });
       const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
         ...discoverLocation.query,
       })}`;

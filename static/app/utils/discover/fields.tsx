@@ -1199,23 +1199,15 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
   return columnList.filter(newColumn => isEqual(newColumn, column)).length > 1;
 }
 
-export function getEquationFields(fields: string[]): string[] {
+export function getFieldsFromEquations(fields: string[]): string[] {
   // Gather all fields and functions used in equations and prepend them to the provided fields
-  const fieldsClone = [...fields];
   const termsSet: Set<string> = new Set();
-  // Gets equation terms
-  fieldsClone.forEach(field => {
+  fields.forEach(field => {
     if (isEquation(field)) {
       const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
       parsed.fields.forEach(({term}) => termsSet.add(term as string));
       parsed.functions.forEach(({term}) => termsSet.add(term as string));
     }
   });
-  // Pushes terms to returned fields
-  termsSet.forEach(term => {
-    if (Array.isArray(fieldsClone) && !fieldsClone.includes(term)) {
-      fieldsClone.unshift(term);
-    }
-  });
-  return fieldsClone;
+  return Array.from(termsSet);
 }
