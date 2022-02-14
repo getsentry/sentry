@@ -225,12 +225,12 @@ describe('Dashboards > Dashboard', () => {
 
   describe('Edit mode', () => {
     const widgets = [newWidget];
-    const mount = (dashboard, mockedOrg = initialData.organization) => {
+    const mount = dashboard => {
       const getDashboardComponent = () => (
         <Dashboard
           paramDashboardId="1"
           dashboard={dashboard}
-          organization={mockedOrg}
+          organization={initialData.organization}
           isEditing
           onUpdate={newWidgets => {
             widgets.splice(0, widgets.length, ...newWidgets);
@@ -249,13 +249,13 @@ describe('Dashboards > Dashboard', () => {
 
     it('displays the copy widget button in edit mode', () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
-      mount(dashboardWithOneWidget, organization);
+      mount(dashboardWithOneWidget);
       expect(screen.getByLabelText('Duplicate Widget')).toBeInTheDocument();
     });
 
     it('duplicates the widget', async () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
-      const {rerender} = mount(dashboardWithOneWidget, organization);
+      const {rerender} = mount(dashboardWithOneWidget);
       userEvent.click(screen.getByLabelText('Duplicate Widget'));
       rerender();
       expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
