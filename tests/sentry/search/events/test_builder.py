@@ -8,7 +8,7 @@ from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import MetricsQueryBuilder, QueryBuilder
 from sentry.sentry_metrics import indexer
@@ -591,6 +591,12 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
 
 
 class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
+    TYPE_MAP = {
+        "metrics_distributions": "d",
+        "metrics_sets": "s",
+        "metrics_counters": "c",
+    }
+
     def setUp(self):
         self.start = datetime.datetime(2021, 1, 1, 10, 15, 1, tzinfo=timezone.utc)
         self.end = datetime.datetime(2021, 1, 19, 10, 15, 1, tzinfo=timezone.utc)
@@ -640,13 +646,38 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
                     "metric_id": indexer.resolve(metric),
                     "timestamp": timestamp,
                     "tags": tags,
-                    # First letter of the entity
-                    "type": entity[8],
+                    "type": self.TYPE_MAP[entity],
                     "value": value,
                     "retention_days": 90,
                 }
             ],
             entity=entity,
+        )
+
+    def setup_orderby_data(self):
+        self.store_metric(
+            100, tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")}
+        )
+        self.store_metric(
+            1,
+            metric=constants.METRICS_MAP["user"],
+            entity="metrics_sets",
+            tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")},
+        )
+        self.store_metric(
+            50, tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")}
+        )
+        self.store_metric(
+            1,
+            metric=constants.METRICS_MAP["user"],
+            entity="metrics_sets",
+            tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")},
+        )
+        self.store_metric(
+            2,
+            metric=constants.METRICS_MAP["user"],
+            entity="metrics_sets",
+            tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")},
         )
 
     def test_default_conditions(self):
@@ -824,7 +855,62 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
             "p95_transaction_duration": 100,
         }
 
-    def test_run_query_with_multiple_groupby(self):
+    def test_run_query_multiple_tables(self):
+        self.store_metric(
+            100, tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")}
+        )
+        self.store_metric(
+            1,
+            metric=constants.METRICS_MAP["user"],
+            entity="metrics_sets",
+            tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")},
+        )
+        query = MetricsQueryBuilder(
+            self.params,
+            f"project:{self.project.slug}",
+            selected_columns=[
+                "transaction",
+                "p95(transaction.duration)",
+                "count_unique(user)",
+            ],
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 1
+        assert result["data"][0] == {
+            "transaction": indexer.resolve("foo_transaction"),
+            "p95_transaction_duration": 100,
+            "count_unique_user": 1,
+        }
+
+    def test_run_query_orderby_transaction(self):
+        self.store_metric(
+            100, tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")}
+        )
+        self.store_metric(
+            100, tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")}
+        )
+        query = MetricsQueryBuilder(
+            self.params,
+            f"project:{self.project.slug}",
+            selected_columns=[
+                "transaction",
+                "p95(transaction.duration)",
+            ],
+            orderby="transaction",
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 2
+        assert result["data"][0] == {
+            "transaction": indexer.resolve("bar_transaction"),
+            "p95_transaction_duration": 100,
+        }
+        assert result["data"][1] == {
+            "transaction": indexer.resolve("foo_transaction"),
+            "p95_transaction_duration": 100,
+        }
+
+    def test_run_query_with_multiple_groupby_orderby_distribution(self):
+        self.setup_orderby_data()
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
@@ -835,30 +921,6 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
                 "count_unique(user)",
             ],
             orderby="-p95(transaction.duration)",
-        )
-        self.store_metric(
-            100, tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")}
-        )
-        self.store_metric(
-            1,
-            metric=constants.METRICS_MAP["user"],
-            entity="metrics_sets",
-            tags={indexer.resolve("transaction"): indexer.resolve("foo_transaction")},
-        )
-        self.store_metric(
-            50, tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")}
-        )
-        self.store_metric(
-            1,
-            metric=constants.METRICS_MAP["user"],
-            entity="metrics_sets",
-            tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")},
-        )
-        self.store_metric(
-            2,
-            metric=constants.METRICS_MAP["user"],
-            entity="metrics_sets",
-            tags={indexer.resolve("transaction"): indexer.resolve("bar_transaction")},
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
@@ -874,3 +936,48 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
+
+    def test_run_query_with_multiple_groupby_orderby_set(self):
+        self.setup_orderby_data()
+        query = MetricsQueryBuilder(
+            self.params,
+            f"project:{self.project.slug}",
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+                "count_unique(user)",
+            ],
+            orderby="-count_unique(user)",
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 2
+        assert result["data"][0] == {
+            "transaction": indexer.resolve("bar_transaction"),
+            "project": self.project.slug,
+            "p95_transaction_duration": 50,
+            "count_unique_user": 2,
+        }
+        assert result["data"][1] == {
+            "transaction": indexer.resolve("foo_transaction"),
+            "project": self.project.slug,
+            "p95_transaction_duration": 100,
+            "count_unique_user": 1,
+        }
+
+    # TODO: multiple groupby with counter
+
+    def test_multiple_entity_orderby_fails(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            query = MetricsQueryBuilder(
+                self.params,
+                f"project:{self.project.slug}",
+                selected_columns=[
+                    "transaction",
+                    "project",
+                    "p95(transaction.duration)",
+                    "count_unique(user)",
+                ],
+                orderby=["-count_unique(user)", "p95(transaction.duration)"],
+            )
+            query.run_query("test_query")

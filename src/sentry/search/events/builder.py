@@ -57,7 +57,13 @@ from sentry.search.events.fields import (
     parse_combinator,
 )
 from sentry.search.events.filter import ParsedTerm, ParsedTerms
-from sentry.search.events.types import HistogramParams, ParamsType, SelectType, WhereType
+from sentry.search.events.types import (
+    HistogramParams,
+    ParamsType,
+    QueryFramework,
+    SelectType,
+    WhereType,
+)
 from sentry.sentry_metrics import indexer
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, raw_snql_query, resolve_column
@@ -1553,50 +1559,58 @@ class MetricsQueryBuilder(QueryBuilder):
         inmplemented see run_query"""
         raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        # Need to split orderby between the 3 possible tables
-        query_framework = {
-            "distribution": {
-                "orderby": [],
-                "functions": self.distributions,
-                "entity": "metrics_distributions",
-            },
-            "counter": {
-                "orderby": [],
-                "functions": self.counters,
-                "entity": "metrics_counters",
-            },
-            "set": {
-                "orderby": [],
-                "functions": self.sets,
-                "entity": "metrics_sets",
-            },
+    def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
+        query_framework: Dict[str, QueryFramework] = {
+            "distribution": QueryFramework(
+                orderby=[],
+                functions=self.distributions,
+                entity=Entity("metrics_distributions", sample=self.sample_rate),
+            ),
+            "counter": QueryFramework(
+                orderby=[],
+                functions=self.counters,
+                entity=Entity("metrics_counters", sample=self.sample_rate),
+            ),
+            "set": QueryFramework(
+                orderby=[],
+                functions=self.sets,
+                entity=Entity("metrics_sets", sample=self.sample_rate),
+            ),
         }
-        general_orderby = []
         primary = None
         # if orderby spans more than one table, the query isn't possible with metrics
         for orderby in self.orderby:
             if orderby.exp in self.distributions:
-                query_framework["distribution"]["orderby"].append(orderby)
+                query_framework["distribution"].orderby.append(orderby)
                 if primary not in [None, "distribution"]:
                     raise IncompatibleMetricsQuery("Can't order across tables")
                 primary = "distribution"
             elif orderby.exp in self.sets:
-                query_framework["set"]["orderby"].append(orderby)
+                query_framework["set"].orderby.append(orderby)
                 if primary not in [None, "set"]:
                     raise IncompatibleMetricsQuery("Can't order across tables")
                 primary = "set"
             elif orderby.exp in self.counters:
-                query_framework["counter"]["orderby"].append(orderby)
+                query_framework["counter"].orderby.append(orderby)
                 if primary not in [None, "counter"]:
                     raise IncompatibleMetricsQuery("Can't order across tables")
                 primary = "counter"
             else:
-                general_orderby.append(orderby)
+                # An orderby that isn't on a function add it to all of them
+                for framework in query_framework.values():
+                    framework.orderby.append(orderby)
 
         # Pick one arbitrarily, there's no orderby on functions
         if primary is None:
             primary = "distribution"
+
+        return primary, query_framework
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        # Need to split orderby between the 3 possible tables
+        # TODO: need to validate orderby, ordering by tag values is impossible unless the values have low cardinality
+        # and we can transform them (eg. project)
+        primary, query_framework = self._create_query_framework()
 
         value_map = defaultdict(dict)
         groupby_aliases = [
@@ -1610,17 +1624,21 @@ class MetricsQueryBuilder(QueryBuilder):
             "data": None,
             "meta": [],
         }
+        # We need to run the same logic on all 3 queries, since the `primary` query could come back with no results. The
+        # goal is to get n=limit results from one query, then use those n results to create a condition for the
+        # remaining queries. This is so that we can respect function orderbys from the first query, but also so we don't
+        # get 50 different results from each entity
         for query_details in [query_framework.pop(primary), *query_framework.values()]:
             # Only run the query if there's at least one function, can't query without metrics
-            if len(query_details["functions"]) > 0:
+            if len(query_details.functions) > 0:
                 select = [
                     column
                     for column in self.columns
-                    if not isinstance(column, CurriedFunction)
-                    or column in query_details["functions"]
+                    if not isinstance(column, CurriedFunction) or column in query_details.functions
                 ]
                 if groupby_values:
-                    # This is second or third query, filter to the group by
+                    # We already got the groupby values we want, add them to the conditions to limit our results so we
+                    # can get the aggregates for the same values
                     where = self.where + [
                         Condition(
                             # Tuples are allowed to have multiple types in clickhouse
@@ -1637,21 +1655,22 @@ class MetricsQueryBuilder(QueryBuilder):
                             Function("tuple", groupby_values),
                         )
                     ]
-                    # Always offset 0 since we filter to the group by
+                    # Because we've added a condition for each groupby value we don't want an offset here
                     offset = Offset(0)
                 else:
+                    # We don't have our groupby values yet, this means this is the query where we're getting them
                     where = self.where
                     offset = self.offset
 
                 query = Query(
                     dataset=self.dataset.value,
-                    match=Entity(query_details["entity"], sample=self.sample_rate),
+                    match=query_details.entity,
                     select=select,
                     array_join=self.array_join,
                     where=where,
                     having=self.having,
                     groupby=self.groupby,
-                    orderby=query_details["orderby"],
+                    orderby=query_details.orderby,
                     limit=self.limit,
                     offset=offset,
                     limitby=self.limitby,
@@ -1665,9 +1684,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 for row in current_result["data"]:
                     # Arrays in clickhouse cannot contain multiple types, and since groupby values
                     # can contain any type, we must use tuples instead
-                    groupby_key = tuple(
-                        value for key, value in row.items() if key in groupby_aliases
-                    )
+                    groupby_key = tuple(row[key] for key in groupby_aliases)
                     value_map_key = ",".join(str(value) for value in groupby_key)
                     # First time we're seeing this value, add it to the values we're going to filter by
                     if value_map_key not in value_map:
