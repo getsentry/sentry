@@ -39,7 +39,7 @@ from sentry.tasks.reports import (
     user_subscribed_to_organization_reports,
     verify_prepare_reports,
 )
-from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase, TestCase
+from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -168,7 +168,7 @@ def test_has_valid_aggregates(interval):
     project = None  # parameter is unused
 
     def make_report(aggregates):
-        return Report(None, aggregates, None, None, None)
+        return Report(None, aggregates, None, None, None, None, None)
 
     assert has_valid_aggregates(interval, (project, make_report([None] * 4))) is False
 
@@ -218,7 +218,7 @@ def test_calendar_range():
     )
 
 
-class ReportTestCase(TestCase, SnubaTestCase):
+class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):
     def test_integration(self):
         Project.objects.all().delete()
 
@@ -369,14 +369,14 @@ class ReportTestCase(TestCase, SnubaTestCase):
 
         now = timezone.now()
         two_days_ago = now - timedelta(days=2)
-        three_days_ago = iso_format(now - timedelta(days=3))
+        three_days_ago = now - timedelta(days=3)
         seven_days_back = now - timedelta(days=7)
 
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "message",
-                "timestamp": three_days_ago,
+                "timestamp": iso_format(three_days_ago),
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
@@ -387,11 +387,34 @@ class ReportTestCase(TestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "message",
-                "timestamp": three_days_ago,
+                "timestamp": iso_format(three_days_ago),
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": three_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.TRANSACTION,
+                "timestamp": three_days_ago,
+                "key_id": 1,
+            },
+            num_times=10,
         )
 
         group1 = event1.group
@@ -410,7 +433,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
         )
 
         assert any(
-            map(lambda x: x[1] == (2, 0), response)
+            map(lambda x: x[1] == (2, 0, 10), response)
         ), "must show two issues resolved in one rollup window"
 
 
@@ -491,7 +514,8 @@ class ReportAcceptanceTest(OutcomesSnubaTest, SnubaTestCase):
         }
 
         # Validate issue distribution
-        assert ctx["report"]["distribution"]["types"][0][1] == 1
-        assert ctx["report"]["distribution"]["types"][1][1] == 0
-        assert ctx["report"]["distribution"]["types"][2][1] == 0
-        assert ctx["report"]["distribution"]["total"] == 1
+        distribution = ctx["report"]["distribution"]
+        assert distribution["types"][0][1] == 1
+        assert distribution["types"][1][1] == 0
+        assert distribution["types"][2][1] == 0
+        assert distribution["total"] == 1
