@@ -17,7 +17,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import TeamSelector from 'sentry/components/forms/teamSelector';
+import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';

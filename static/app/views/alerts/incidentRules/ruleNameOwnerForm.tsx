@@ -1,6 +1,6 @@
 import {PureComponent} from 'react';
 
-import TeamSelector from 'sentry/components/forms/teamSelector';
+import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Project, Team} from 'sentry/types';

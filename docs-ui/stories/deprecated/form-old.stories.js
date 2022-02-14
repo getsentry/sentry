@@ -2,7 +2,10 @@ import {Component} from 'react';
 import {action} from '@storybook/addon-actions';
 import PropTypes from 'prop-types';
 
-import {Form as LegacyForm, TextField as LegacyTextField} from 'sentry/components/forms';
+import {
+  Form as LegacyForm,
+  TextField as LegacyTextField,
+} from 'sentry/components/deprecatedforms';
 
 class UndoButton extends Component {
   handleClick(e) {

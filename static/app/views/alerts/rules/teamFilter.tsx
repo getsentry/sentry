@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Input from 'sentry/components/forms/input';
+import Input from 'sentry/components/deprecatedforms/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';

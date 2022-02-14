@@ -4,10 +4,10 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
-import Form from 'sentry/components/forms/form';
-import PasswordField from 'sentry/components/forms/passwordField';
-import RadioBooleanField from 'sentry/components/forms/radioBooleanField';
-import TextField from 'sentry/components/forms/textField';
+import Form from 'sentry/components/deprecatedforms/form';
+import PasswordField from 'sentry/components/deprecatedforms/passwordField';
+import RadioBooleanField from 'sentry/components/deprecatedforms/radioBooleanField';
+import TextField from 'sentry/components/deprecatedforms/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';

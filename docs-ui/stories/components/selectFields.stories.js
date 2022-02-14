@@ -1,8 +1,8 @@
 import {action} from '@storybook/addon-actions';
 
-import {Form as LegacyForm} from 'sentry/components/forms';
-import SelectCreatableField from 'sentry/components/forms/selectCreatableField';
-import SelectField from 'sentry/components/forms/selectField';
+import {Form as LegacyForm} from 'sentry/components/deprecatedforms';
+import SelectCreatableField from 'sentry/components/deprecatedforms/selectCreatableField';
+import SelectField from 'sentry/components/deprecatedforms/selectField';
 
 export default {
   title: 'Deprecated/SelectFields',

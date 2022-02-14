@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
-import Form from 'sentry/components/forms/form';
-import PasswordField from 'sentry/components/forms/passwordField';
-import TextField from 'sentry/components/forms/textField';
+import Form from 'sentry/components/deprecatedforms/form';
+import PasswordField from 'sentry/components/deprecatedforms/passwordField';
+import TextField from 'sentry/components/deprecatedforms/textField';
 import Link from 'sentry/components/links/link';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';

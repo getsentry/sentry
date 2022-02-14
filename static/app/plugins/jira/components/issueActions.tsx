@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import {Form, FormState} from 'sentry/components/forms';
+import {Form, FormState} from 'sentry/components/deprecatedforms';
 import DefaultIssueActions from 'sentry/plugins/components/issueActions';
 import {Writable} from 'sentry/types';
 

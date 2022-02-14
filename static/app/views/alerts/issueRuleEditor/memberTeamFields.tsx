@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
+import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
 import SelectControl from 'sentry/components/forms/selectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import {PanelItem} from 'sentry/components/panels';
 import SelectMembers from 'sentry/components/selectMembers';
 import space from 'sentry/styles/space';

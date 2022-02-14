@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
-import SelectField from 'sentry/components/forms/selectField';
+import SelectField from 'sentry/components/deprecatedforms/selectField';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconChevron} from 'sentry/icons';

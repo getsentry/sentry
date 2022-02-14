@@ -8,7 +8,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {FormState, GenericField} from 'sentry/components/forms';
+import {FormState, GenericField} from 'sentry/components/deprecatedforms';
 import {t} from 'sentry/locale';
 
 const callbackWithArgs = function (context: any, callback: any, ...args: any) {

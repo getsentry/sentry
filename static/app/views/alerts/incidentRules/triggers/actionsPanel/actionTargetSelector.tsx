@@ -1,7 +1,7 @@
 import * as React from 'react';
 
+import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
 import SelectControl from 'sentry/components/forms/selectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import SelectMembers from 'sentry/components/selectMembers';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {
