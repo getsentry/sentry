@@ -14,6 +14,8 @@ Sentry.init({
 if (!fs.existsSync('/tmp/typescript-monitor.log')) {
   // We failed to retrieve the log file, but we dont want to impact the pipeline so just exit.
   // The absence of metrics in sentry should warn us here
+  // eslint-disable-next-line
+  console.warn('No diagnostics fil found in /tmp/typescript-monitor.log');
   process.exit(0);
 }
 
@@ -79,16 +81,35 @@ const parsedDiagnostics = toKeyValue(tsLogFile);
 if (parsedDiagnostics === null) {
   // We failed to parse here, but we dont want to impact the pipeline so just exit.
   // The absence of metrics in sentry should warn us here
+  // eslint-disable-next-line
+  console.warn('Failed to parse diagnostics file');
   process.exit(0);
 }
 
-const bindTime = parsedDiagnostics['Bind time'];
-const checkTime = parsedDiagnostics['Check time'];
-const parseTime = parsedDiagnostics['Parse time'];
-const totalTime = parsedDiagnostics['Total time'];
-const memoryUsage = parsedDiagnostics['Memory used'];
+const bindTime = parsedDiagnostics['Bind time'] || {value: 0};
+const checkTime = parsedDiagnostics['Check time'] || {value: 0};
+const parseTime = parsedDiagnostics['Parse time'] || {value: 0};
+const totalTime = parsedDiagnostics['Total time'] || {value: 0};
+const memoryUsage = parsedDiagnostics['Memory used'] || {value: 0};
 
-const transaction = Sentry.startTransaction({name: 'typescript.compilation'});
+if (
+  !bindTime.value &&
+  !checkTime.value &&
+  !parseTime.value &&
+  !totalTime.value &&
+  !memoryUsage.value
+) {
+  // Output may have been corrupted - we dont want to impact the pipeline so just exit.
+  // eslint-disable-next-line
+  console.warn('No diagnostics found in typescript-monitor.log');
+  process.exit(0);
+}
+
+const transaction = Sentry.startTransaction({
+  name: 'typescript.compilation',
+});
+
+transaction.setName('typescript.compile');
 
 transaction.setMeasurements({
   'typescript.time.check': {value: checkTime.value},
