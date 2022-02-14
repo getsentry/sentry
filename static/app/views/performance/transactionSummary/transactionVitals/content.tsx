@@ -78,7 +78,7 @@ function VitalsContent(props: Props) {
                         {
                           link: (
                             <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#browser-support">
-                              t('Read more about browser support').
+                              {t('Read more about browser support.')}
                             </ExternalLink>
                           ),
                         }
