@@ -4,6 +4,7 @@ import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
+import {createFrameIndex} from './utils';
 
 export interface ProfileGroup {
   activeProfileIndex: number;
@@ -12,31 +13,22 @@ export interface ProfileGroup {
   traceID: string;
 }
 
-type ProfileType =
-  | Profiling.EventedProfile
-  | Profiling.SampledProfile
-  | JSSelfProfiling.Trace;
+export function importProfile(input: Profiling.Schema, traceID: string): ProfileGroup {
+  const frameIndex = createFrameIndex(input.shared.frames);
 
-interface Schema {
-  activeProfileIndex: number;
-  name: string;
-  profiles: ProfileType[];
-}
-
-export function importProfile(input: Schema, traceID: string): ProfileGroup {
   return {
     traceID,
     name: input.name,
     activeProfileIndex: input.activeProfileIndex ?? 0,
     profiles: input.profiles.map(profile => {
       if (isEventedProfile(profile)) {
-        return EventedProfile.FromProfile(profile);
+        return EventedProfile.FromProfile(profile, frameIndex);
       }
       if (isSampledProfile(profile)) {
-        return SampledProfile.FromProfile(profile);
+        return SampledProfile.FromProfile(profile, frameIndex);
       }
       if (isJSProfile(profile)) {
-        return JSSelfProfile.FromProfile(profile);
+        return JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames));
       }
       throw new Error('Unrecognized trace format');
     }),
