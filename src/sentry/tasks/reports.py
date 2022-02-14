@@ -547,7 +547,7 @@ def build_key_transactions(interval, project):
             match=Entity("transactions"),
             select=[
                 Column("transaction_name"),
-                Function("quantile(0.95)", [Column("duration")], "q95"),
+                Function("quantile(0.95)", [Column("duration")], "p95"),
             ],
             where=[
                 Condition(Column("finish_ts"), Op.GTE, start),
@@ -562,12 +562,12 @@ def build_key_transactions(interval, project):
     query_result = query_p95((start, stop))
     this_week_p95 = {}
     for point in query_result["data"]:
-        this_week_p95[point["transaction_name"]] = point["q95"]
+        this_week_p95[point["transaction_name"]] = point["p95"]
 
     query_result = query_p95((start - timedelta(days=7), stop - timedelta(days=7)))
     last_week_p95 = {}
     for point in query_result["data"]:
-        last_week_p95[point["transaction_name"]] = point["q95"]
+        last_week_p95[point["transaction_name"]] = point["p95"]
 
     return [
         (
