@@ -158,16 +158,16 @@ class ProjectSerializerResponse(TypedDict):
     isBookmarked: bool
     color: str
     dateCreated: str
-    firstEvent: Any  # TODO
-    firstTransactionevent: bool
+    firstEvent: str
+    firstTransactionEvent: bool
     hasSessions: bool
-    features: Any  # TODO
-    status: str  # TODO
-    platform: str  # TODO
+    features: List[str]
+    status: str  # TODO enum/literal
+    platform: str
     isInternal: bool
     isMember: bool
     hasAccess: bool
-    avatar: Any  # TODO: use avatar
+    avatar: Any  # TODO: use Avatar type from other serializers
 
 
 @register(Project)
