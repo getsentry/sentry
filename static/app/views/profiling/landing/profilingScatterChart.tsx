@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import React from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location} from 'history';
@@ -17,16 +17,18 @@ import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {SelectValue} from 'sentry/types';
-import {EChartClickHandler, SeriesDataUnit} from 'sentry/types/echarts';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {Trace} from 'sentry/types/profiling/trace';
-import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {Theme} from 'sentry/utils/theme';
 
-interface Props extends WithRouterProps {
+import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
+
+interface ProfilingScatterChartProps extends WithRouterProps {
+  loading: boolean;
   location: Location;
+  reloading: boolean;
   traces: Trace[];
   end?: string;
   start?: string;
@@ -34,25 +36,30 @@ interface Props extends WithRouterProps {
   utc?: string;
 }
 
-function _ProfileScatterChart({
+function ProfilingScatterChart({
   router,
   location,
   traces,
+  loading,
+  reloading,
   start,
   end,
   statsPeriod,
   utc,
-}: Props) {
+}: ProfilingScatterChartProps) {
   const theme = useTheme();
 
-  const colorEncoding = useMemo(() => getColorEncodingFromLocation(location), [location]);
+  const colorEncoding = React.useMemo(
+    () => getColorEncodingFromLocation(location),
+    [location]
+  );
 
-  const series = useMemo(() => {
+  const series: Series[] = React.useMemo(() => {
     const seriesMap: Record<string, SeriesDataUnit[]> = {};
 
     for (const row of traces) {
       const seriesName = row[colorEncoding];
-      if (!seriesMap.hasOwnProperty(seriesName)) {
+      if (!seriesMap[seriesName]) {
         seriesMap[seriesName] = [];
       }
       seriesMap[seriesName].push({
@@ -64,36 +71,23 @@ function _ProfileScatterChart({
     return Object.entries(seriesMap).map(([seriesName, data]) => ({seriesName, data}));
   }, [colorEncoding]);
 
-  // TODO
-  const onClickHandler: EChartClickHandler = _params => {};
+  const chartOptions = React.useMemo(
+    () => makeScatterChartOptions({location, theme}),
+    [location, theme]
+  );
 
-  const loading = false;
-  const reloading = false;
-
-  const chartOptions = {
-    grid: {
-      left: '10px',
-      right: '10px',
-      top: '40px',
-      bottom: '0px',
+  const handleColorEncodingChange = React.useCallback(
+    value => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          colorEncoding: value,
+        },
+      });
     },
-    tooltip: {
-      trigger: 'item' as const,
-      valueFormatter: (value: number) => tooltipFormatter(value, 'p50()'),
-    },
-    yAxis: {
-      axisLabel: {
-        color: theme.chartLabel,
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-      },
-    },
-    legend: {
-      right: 10,
-      top: 5,
-      selected: getSeriesSelection(location),
-    },
-    onClick: onClickHandler,
-  };
+    [location]
+  );
 
   return (
     <Panel>
@@ -125,21 +119,12 @@ function _ProfileScatterChart({
         </ChartZoom>
       </ChartContainer>
       <ChartControls>
-        <InlineContainer />
         <InlineContainer>
           <OptionSelector
             title={t('Group By')}
             selected={colorEncoding}
             options={COLOR_ENCODINGS}
-            onChange={value => {
-              browserHistory.push({
-                ...location,
-                query: {
-                  ...location.query,
-                  colorEncoding: value,
-                },
-              });
-            }}
+            onChange={handleColorEncodingChange}
           />
         </InlineContainer>
       </ChartControls>
@@ -147,38 +132,33 @@ function _ProfileScatterChart({
   );
 }
 
-const ProfileScatterChart = withRouter(_ProfileScatterChart);
-
-enum ColorEncoding {
-  AppVersion = 'app_version',
-  DeviceManufacturer = 'device_manufacturer',
-  DeviceModel = 'device_model',
-  DeviceOsVersion = 'device_os_version',
-  InteractionName = 'interaction_name',
-  AndroidApiLevel = 'android_api_level',
+function makeScatterChartOptions({location, theme}: {location: Location; theme: Theme}) {
+  return {
+    grid: {
+      left: '10px',
+      right: '10px',
+      top: '40px',
+      bottom: '0px',
+    },
+    tooltip: {
+      trigger: 'item' as const,
+      valueFormatter: (value: number) => tooltipFormatter(value, 'p50()'),
+    },
+    yAxis: {
+      axisLabel: {
+        color: theme.chartLabel,
+        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+      },
+    },
+    legend: {
+      right: 10,
+      top: 5,
+      selected: getSeriesSelection(location),
+    },
+    onClick: _params => {}, // TODO
+  };
 }
 
-const COLOR_ENCODING_LABELS: Record<ColorEncoding, string> = {
-  [ColorEncoding.AppVersion]: t('App Version'),
-  [ColorEncoding.DeviceManufacturer]: t('Device Manufacturer'),
-  [ColorEncoding.DeviceModel]: t('Device Model'),
-  [ColorEncoding.DeviceOsVersion]: t('Device Os Version'),
-  [ColorEncoding.InteractionName]: t('Interaction Name'),
-  [ColorEncoding.AndroidApiLevel]: t('Android Api Level'),
-};
+const ProfilingScatterChartWithRouter = withRouter(ProfilingScatterChart);
 
-const COLOR_ENCODINGS: SelectValue<ColorEncoding>[] = Object.entries(
-  COLOR_ENCODING_LABELS
-).map(([value, label]) => ({label, value: value as ColorEncoding}));
-
-function getColorEncodingFromLocation(location: Location): ColorEncoding {
-  const colorCoding = decodeScalar(location.query.colorEncoding);
-
-  if (defined(colorCoding) && COLOR_ENCODING_LABELS.hasOwnProperty(colorCoding)) {
-    return colorCoding as ColorEncoding;
-  }
-
-  return ColorEncoding.InteractionName;
-}
-
-export {ProfileScatterChart};
+export {ProfilingScatterChartWithRouter as ProfilingScatterChart};

@@ -11,14 +11,14 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {ProfileScatterChart} from './landing/chart';
-import {ProfileTable} from './landing/table';
+import {ProfilingScatterChart} from './landing/profilingScatterChart';
+import {ProfilingTable} from './landing/profilingTable';
 
-interface Props {
+interface ProfilingContentProps {
   location: Location;
 }
 
-function ProfilingContent({location}: Props) {
+function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
   const dateSelection = normalizeDateTimeParams(location.query);
 
@@ -34,8 +34,13 @@ function ProfilingContent({location}: Props) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                <ProfileScatterChart {...dateSelection} traces={[]} />
-                <ProfileTable location={location} traces={[]} />
+                <ProfilingScatterChart
+                  {...dateSelection}
+                  traces={[]}
+                  loading={false}
+                  reloading={false}
+                />
+                <ProfilingTable location={location} traces={[]} />
               </Layout.Main>
             </Layout.Body>
           </StyledPageContent>

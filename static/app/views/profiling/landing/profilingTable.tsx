@@ -12,12 +12,12 @@ import {t} from 'sentry/locale';
 import {Trace} from 'sentry/types/profiling/trace';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 
-interface Props {
+interface ProfilingTableProps {
   location: Location;
   traces: Trace[];
 }
 
-function ProfileTable({location, traces}: Props) {
+function ProfilingTable({location, traces}: ProfilingTableProps) {
   const data: TableDataRow[] = useMemo(
     () =>
       traces.map(trace => ({
@@ -39,18 +39,61 @@ function ProfileTable({location, traces}: Props) {
   );
 }
 
-type TableColumnKey =
-  | 'id'
-  | 'failed'
-  | 'app_version'
-  | 'interaction_name'
-  | 'start_time_unix'
-  | 'trace_duration_ms'
-  | 'device_model'
-  | 'device_class';
+function renderBodyCell(
+  column: TableColumn,
+  dataRow: TableDataRow,
+  _rowIndex: number,
+  _columnIndex: number
+) {
+  const value = dataRow[column.key];
+
+  switch (column.key) {
+    case 'id':
+      // TODO: this needs to be a link
+      return <Container>{t('View Flamegraph')}</Container>;
+    case 'failed':
+      return (
+        <Container>
+          {status ? (
+            <IconCheckmark size="sm" color="green300" isCircled />
+          ) : (
+            <IconClose size="sm" color="red300" isCircled />
+          )}
+        </Container>
+      );
+    case 'start_time_unix':
+      return (
+        <Container>
+          <DateTime date={value} />
+        </Container>
+      );
+    case 'trace_duration_ms':
+      return (
+        <NumberContainer>
+          <Duration seconds={value / 1000} abbreviation />
+        </NumberContainer>
+      );
+    default:
+      return <Container>{value}</Container>;
+  }
+}
+
+type TableColumnKey = keyof Trace;
+
+type NonTableColumnKey =
+  | 'device_locale'
+  | 'device_manufacturer'
+  | 'backtrace_available'
+  | 'error_code'
+  | 'error_code_name'
+  | 'error_description'
+  | 'span_annotations'
+  | 'spans'
+  | 'trace_annotations';
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
-type TableDataRow = Record<TableColumnKey, any>;
+
+type TableDataRow = Omit<Record<TableColumnKey, any>, NonTableColumnKey>;
 
 const COLUMN_ORDER: TableColumnKey[] = [
   'id',
@@ -63,7 +106,7 @@ const COLUMN_ORDER: TableColumnKey[] = [
   'device_class',
 ];
 
-const COLUMNS: Record<TableColumnKey, TableColumn> = {
+const COLUMNS: Omit<Record<TableColumnKey, TableColumn>, NonTableColumnKey> = {
   id: {
     key: 'id',
     name: t('Flamegraph'),
@@ -106,47 +149,4 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
 };
 
-function renderBodyCell(
-  column: TableColumn,
-  dataRow: TableDataRow,
-  _rowIndex: number,
-  _columnIndex: number
-) {
-  const value = dataRow[column.key];
-
-  switch (column.key) {
-    case 'id':
-      // TODO: this needs to be a link
-      return <Container>{t('View Flamegraph')}</Container>;
-    case 'failed':
-      return (
-        <Container>
-          <ProfileStatus status={!value} />
-        </Container>
-      );
-    case 'start_time_unix':
-      return (
-        <Container>
-          <DateTime date={value} />
-        </Container>
-      );
-    case 'trace_duration_ms':
-      return (
-        <NumberContainer>
-          <Duration seconds={value / 1000} abbreviation />
-        </NumberContainer>
-      );
-    default:
-      return <Container>{value}</Container>;
-  }
-}
-
-function ProfileStatus({status}: {status: boolean}) {
-  return status ? (
-    <IconCheckmark size="sm" color="green300" isCircled />
-  ) : (
-    <IconClose size="sm" color="red300" isCircled />
-  );
-}
-
-export {ProfileTable};
+export {ProfilingTable};

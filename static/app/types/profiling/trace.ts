@@ -18,9 +18,9 @@ export type Trace = {
   error_code_name?: string;
   error_description?: string;
   failed?: boolean;
-  span_annotations?: Annotation[];
-  spans?: Span[];
-  trace_annotations?: Annotation[];
+  span_annotations?: Readonly<Annotation[]>;
+  spans?: Readonly<Span[]>;
+  trace_annotations?: Readonly<Annotation[]>;
 };
 
 export type Span = {
@@ -29,12 +29,12 @@ export type Span = {
   name: string;
   relative_start_ms: number;
   thread_name: string;
-  annotations?: Annotation[];
-  children?: Span[];
-  network_request?: {
+  annotations?: Readonly<Annotation[]>;
+  children?: Readonly<Span[]>;
+  network_request?: Readonly<{
     method: string;
     status_code: number;
     success: boolean;
-  };
+  }>;
   queue_label?: string;
 };
