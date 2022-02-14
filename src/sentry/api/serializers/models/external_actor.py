@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import Any, List, Mapping, MutableMapping, Optional
 
+from typing_extensions import TypedDict
+
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
     ACTOR_TYPES,
@@ -10,6 +12,19 @@ from sentry.models import (
     actor_type_to_string,
 )
 from sentry.types.integrations import get_provider_string
+
+
+class ExternalActorResponseOptional(TypedDict, total=False):
+    externalId: str
+    userId: str
+    teamId: str
+
+
+class ExternalActorResponse(ExternalActorResponseOptional):
+    id: str
+    provider: str
+    externalName: str
+    integrationId: str
 
 
 @register(ExternalActor)
@@ -50,9 +65,9 @@ class ExternalActorSerializer(Serializer):  # type: ignore
         user: User,
         key: Optional[str] = None,
         **kwargs: Any,
-    ) -> Mapping[str, Any]:
+    ) -> ExternalActorResponse:
         provider = get_provider_string(obj.provider)
-        data = {
+        data: ExternalActorResponse = {
             "id": str(obj.id),
             "provider": provider,
             "externalName": obj.external_name,
