@@ -1,9 +1,10 @@
+from typing import Union
+
 from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -11,6 +12,7 @@ from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent,
+    Organization,
     OrganizationAccessRequest,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -45,7 +47,7 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
-    def _can_create_team_member(self, request: Request, organization, team_slug):
+    def _can_create_team_member(self, request: Request, team: Team) -> bool:
         """
         User can join or add a member to a team:
 
@@ -54,13 +56,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         * If the open membership organization setting is enabled
         """
 
-        return (
-            is_active_superuser(request)
-            or self._can_admin_team(request, organization, team_slug)
-            or organization.flags.allow_joinleave
-        )
+        return request.access.has_global_access or self._can_admin_team(request, team)
 
-    def _can_delete(self, request: Request, member, organization, team_slug):
+    def _can_delete(
+        self,
+        request: Request,
+        member: OrganizationMember,
+        team: Team,
+    ) -> bool:
         """
         User can remove a member from a team:
 
@@ -78,25 +81,19 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         if request.user.id == member.user_id:
             return True
 
-        if self._can_admin_team(request, organization, team_slug):
+        if self._can_admin_team(request, team):
             return True
 
         return False
 
-    def _can_admin_team(self, request: Request, organization, team_slug):
-        global_roles = [r.id for r in roles.with_scope("org:write") if r.is_global]
-        team_roles = [r.id for r in roles.with_scope("team:write")]
+    def _can_admin_team(self, request: Request, team: Team) -> bool:
+        return request.access.has_scope("org:write") or (
+            team in request.access.teams and request.access.has_team_scope(team, "team:write")
+        )
 
-        # must be a team admin or have global write access
-        return OrganizationMember.objects.filter(
-            Q(role__in=global_roles)
-            | Q(organizationmemberteam__team__slug=team_slug, role__in=team_roles),
-            organization=organization,
-            user__id=request.user.id,
-            user__is_active=True,
-        ).exists()
-
-    def _get_member(self, request: Request, organization, member_id):
+    def _get_member(
+        self, request: Request, organization: Organization, member_id: Union[int, str]
+    ) -> OrganizationMember:
         if member_id == "me":
             queryset = OrganizationMember.objects.filter(
                 organization=organization, user__id=request.user.id, user__is_active=True
@@ -109,7 +106,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             )
         return queryset.select_related("user").get()
 
-    def _create_access_request(self, request: Request, team, member):
+    def _create_access_request(
+        self, request: Request, team: Team, member: OrganizationMember
+    ) -> None:
         omt, created = OrganizationAccessRequest.objects.get_or_create(team=team, member=member)
 
         if not created:
@@ -121,7 +120,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         omt.send_request_email()
 
-    def post(self, request: Request, organization, member_id, team_slug) -> Response:
+    def post(
+        self,
+        request: Request,
+        organization: Organization,
+        member_id: Union[int, str],
+        team_slug: str,
+    ) -> Response:
         """
         Join, request access to or add a member to a team.
 
@@ -147,7 +152,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
-            if self._can_create_team_member(request, organization, team_slug):
+            if self._can_create_team_member(request, team):
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
             else:
                 self._create_access_request(request, team, member)
@@ -167,7 +172,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=201)
 
-    def delete(self, request: Request, organization, member_id, team_slug) -> Response:
+    def delete(
+        self,
+        request: Request,
+        organization: Organization,
+        member_id: Union[int, str],
+        team_slug: str,
+    ) -> Response:
         """
         Leave or remove a member from a team
         """
@@ -176,13 +187,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self._can_delete(request, member, organization, team_slug):
-            return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
-
         try:
             team = Team.objects.get(organization=organization, slug=team_slug)
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self._can_delete(request, member, team):
+            return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
