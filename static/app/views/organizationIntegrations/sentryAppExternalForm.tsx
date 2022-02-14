@@ -95,7 +95,14 @@ export class SentryAppExternalForm extends Component<Props, State> {
     });
     // For alert-rule-actions, the forms are entirely custom, extra fields are
     // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
-    if (element !== 'alert-rule-action') {
+    if (element === 'alert-rule-action') {
+      const defaultResetValues = (this.props.resetValues || {}).settings || [];
+      const initialData = defaultResetValues.reduce((acc, curr) => {
+        acc[curr.name] = curr.value;
+        return acc;
+      }, {});
+      this.model.setInitialData({...initialData});
+    } else {
       this.model.setInitialData({
         ...extraFields,
         // we need to pass these fields in the API so just set them as values so we don't need hidden form fields

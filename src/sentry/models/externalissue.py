@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Sequence
 
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, JSONField, Model, sane_repr
+from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
     from sentry.models import Integration
@@ -25,6 +26,24 @@ class ExternalIssueManager(BaseManager):
             kwargs["key"] = external_issue_key
 
         return self.filter(**kwargs)
+
+    def get_linked_issues(self, event: Event, integration: Integration) -> QuerySet[ExternalIssue]:
+        from sentry.models import GroupLink
+
+        return self.filter(
+            id__in=GroupLink.objects.filter(
+                project_id=event.group.project_id,
+                group_id=event.group.id,
+                linked_type=GroupLink.LinkedType.issue,
+            ).values_list("linked_id", flat=True),
+            integration_id=integration.id,
+        )
+
+    def get_linked_issue_ids(self, event: Event, integration: Integration) -> Sequence[str]:
+        return self.get_linked_issues(event, integration).values_list("key", flat=True)
+
+    def has_linked_issue(self, event: Event, integration: Integration) -> bool:
+        return self.get_linked_issues(event, integration).exists()
 
 
 class ExternalIssue(Model):
