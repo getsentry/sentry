@@ -1183,7 +1183,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
-    @mock.patch("sentry.models.Group.issues_mapping")
+    @mock.patch("sentry.models.GroupManager.get_issues_mapping")
     def test_top_events_with_unknown_issue(self, mock_issues_mapping):
         event = self.events[0]
         event_data = self.event_data[0]

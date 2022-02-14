@@ -1,8 +1,12 @@
+from typing import Any, Dict, Union
+
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiExample, extend_schema
-from rest_framework.exceptions import PermissionDenied
+from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_field
+from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.fields import Field
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,17 +35,52 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.signals import member_invited
+from sentry.utils import json
 from sentry.utils.cursors import SCIMCursor
 
-from .constants import (
-    SCIM_400_INVALID_PATCH,
-    SCIM_400_TOO_MANY_PATCH_OPS_ERROR,
-    SCIM_409_USER_EXISTS,
-    MemberPatchOps,
-)
+from .constants import SCIM_400_INVALID_PATCH, SCIM_409_USER_EXISTS, SCIM_API_ERROR, MemberPatchOps
 from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
+
+
+@extend_schema_field(Any)  # union field types are kind of hard, leaving Any for now.
+class OperationValue(Field):
+    """
+    A SCIM PATCH operation value can either be a boolean,
+    or an object depending on the client.
+    """
+
+    def to_representation(self, value) -> Union[Dict, bool]:
+        if isinstance(value, bool):
+            return value
+        elif isinstance(value, dict):
+            return value
+        else:
+            raise ValidationError("value must be a boolean or object")
+
+    def to_internal_value(self, data) -> Union[Dict, bool]:
+        if isinstance(data, bool):
+            return data
+        elif isinstance(data, dict):
+            return data
+        else:
+            raise ValidationError("value must be a boolean or object")
+
+
+class SCIMPatchOperationSerializer(serializers.Serializer):
+    op = serializers.ChoiceField(choices=("replace",), required=True)
+    value = OperationValue()
+    path = serializers.CharField(required=False)
+
+
+class SCIMPatchRequestSerializer(serializers.Serializer):
+    # we don't actually use "schemas" for anything atm but its part of the spec
+    schemas = serializers.ListField(child=serializers.CharField(), required=False)
+
+    Operations = serializers.ListField(
+        child=SCIMPatchOperationSerializer(), required=True, source="operations", max_length=100
+    )
 
 
 def _scim_member_serializer_with_expansion(organization):
@@ -59,7 +98,7 @@ def _scim_member_serializer_with_expansion(organization):
     return OrganizationMemberSCIMSerializer(expand=expand)
 
 
-@public(methods={"GET", "DELETE"})
+@public(methods={"GET", "DELETE", "PATCH"})
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
@@ -129,11 +168,44 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         )
         return Response(context)
 
+    @extend_schema(
+        operation_id="Update an Organization Member's Attributes",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        request=SCIMPatchRequestSerializer,
+        responses={
+            204: RESPONSE_SUCCESS,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "Set member inactive",
+                value={
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                    "Operations": [{"op": "replace", "value": {"active": False}}],
+                },
+                status_codes=["204"],
+            ),
+        ],
+    )
     def patch(self, request: Request, organization, member):
-        operations = request.data.get("Operations", [])
-        if len(operations) > 100:
-            return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
-        for operation in operations:
+        """
+        Update an organization member's attributes with a SCIM PATCH Request.
+        The only supported attribute is `active`. After setting `active` to false
+        Sentry will permanently delete the Organization Member.
+        """
+
+        serializer = SCIMPatchRequestSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                {"schemas": SCIM_API_ERROR, "detail": json.dumps(serializer.errors)}, status=400
+            )
+
+        result = serializer.validated_data
+
+        for operation in result["operations"]:
             # we only support setting active to False which deletes the orgmember
             if self._should_delete_member(operation):
                 self._delete_member(request, organization, member)
