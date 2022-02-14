@@ -120,8 +120,10 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const unresolvedQuery = omit(query, 'status');
     const allIssuesQuery = {...query, status: ''};
 
+    const hasNewPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
-      <PageFiltersContainer>
+      <PageFiltersContainer hideGlobalHeader={hasNewPageFilters}>
         <PageContent>
           <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">

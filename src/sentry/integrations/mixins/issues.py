@@ -6,8 +6,7 @@ from collections import defaultdict
 from typing import Any, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
-from sentry.models import ExternalIssue, GroupLink, User
-from sentry.models.useroption import UserOption
+from sentry.models import ExternalIssue, GroupLink, User, UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
 from sentry.utils.compat import filter
