@@ -55,6 +55,7 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  isMobile?: boolean;
   windowWidth?: number;
 };
 
@@ -155,7 +156,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     }
 
     const {bigNumberContainer} = this.state;
-    const {organization, widget} = this.props;
+    const {organization, widget, isMobile} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
@@ -173,7 +174,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       const rendered = fieldRenderer(dataRow);
 
       const isModalWidget = !!!(widget.id || widget.tempId);
-      if (!!!organization.features.includes('dashboard-grid-layout') || isModalWidget) {
+      if (
+        !!!organization.features.includes('dashboard-grid-layout') ||
+        isModalWidget ||
+        isMobile
+      ) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 

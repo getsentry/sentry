@@ -124,6 +124,7 @@ class WidgetCard extends React.Component<Props> {
       organization,
       selection,
       widget,
+      isMobile,
       renderErrorMessage,
       tableItemLimit,
       windowWidth,
@@ -146,6 +147,7 @@ class WidgetCard extends React.Component<Props> {
               organization={organization}
               selection={selection}
               widget={widget}
+              isMobile={isMobile}
               renderErrorMessage={renderErrorMessage}
               tableItemLimit={tableItemLimit}
               windowWidth={windowWidth}
@@ -157,6 +159,7 @@ class WidgetCard extends React.Component<Props> {
                 organization={organization}
                 selection={selection}
                 widget={widget}
+                isMobile={isMobile}
                 renderErrorMessage={renderErrorMessage}
                 tableItemLimit={tableItemLimit}
                 windowWidth={windowWidth}
