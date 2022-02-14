@@ -17,17 +17,7 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
-type ConditionalAriaLabelProps =
-  | {
-      children: Omit<React.ReactNode, 'null' | 'undefined' | 'boolean'>;
-      'aria-label'?: string;
-    }
-  | {
-      'aria-label': string;
-      children?: null | boolean;
-    };
-
-interface Props
+export interface ButtonProps
   extends Omit<
     React.ButtonHTMLAttributes<ButtonElement>,
     'ref' | 'label' | 'size' | 'title'
@@ -52,7 +42,10 @@ interface Props
   translucentBorder?: boolean;
 }
 
-export type ButtonProps = Props & ConditionalAriaLabelProps;
+export interface ButtonPropsWithAriaLabel extends ButtonProps {
+  'aria-label': string;
+  children: never;
+}
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
@@ -73,7 +66,7 @@ function BaseButton({
   tooltipProps,
   onClick,
   ...buttonProps
-}: ButtonProps) {
+}: ButtonPropsWithAriaLabel | ButtonProps) {
   // Intercept onClick and propagate
   function handleClick(e: React.MouseEvent) {
     // Don't allow clicks when disabled or busy
@@ -274,7 +267,7 @@ const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
 const StyledButton = styled(
   reactForwardRef<any, ButtonProps>(
     (
-      {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: Props,
+      {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: ButtonProps,
       forwardRefAlt
     ) => {
       // XXX: There may be two forwarded refs here, one potentially passed from a
@@ -311,7 +304,7 @@ const StyledButton = styled(
       prop === 'external' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
-)<Props>`
+)<ButtonProps>`
   display: inline-block;
   border-radius: ${p => p.theme.button.borderRadius};
   text-transform: none;
