@@ -9,8 +9,9 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
+import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
 import {PageFilters} from 'sentry/types';
-import {getUtcDateString} from 'sentry/utils/dates';
+import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   DashboardDetails,
@@ -118,4 +119,33 @@ export function miniWidget(displayType: DisplayType): string {
     default:
       return WidgetLine;
   }
+}
+
+export function getWidgetInterval(
+  widget: Widget,
+  datetimeObj: Partial<PageFilters['datetime']>
+): string {
+  // Don't fetch more than 66 bins as we're plotting on a small area.
+  const MAX_BIN_COUNT = 66;
+
+  // Bars charts are daily totals to aligned with discover. It also makes them
+  // usefully different from line/area charts until we expose the interval control, or remove it.
+  let interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  if (!interval) {
+    // Default to 5 minutes
+    interval = '5m';
+  }
+  const desiredPeriod = parsePeriodToHours(interval);
+  const selectedRange = getDiffInMinutes(datetimeObj);
+
+  // selectedRange is in minutes, desiredPeriod is in hours
+  // convert desiredPeriod to minutes
+  if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
+    const highInterval = getInterval(datetimeObj, 'high');
+    // Only return high fidelity interval if desired interval is higher fidelity
+    if (desiredPeriod < parsePeriodToHours(highInterval)) {
+      return highInterval;
+    }
+  }
+  return interval;
 }
