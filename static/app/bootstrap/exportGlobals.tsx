@@ -30,8 +30,8 @@ const globals = {
 // modules that are not compiled with the sentry bundle.
 const SentryApp = {
   // The following components are used in sentry-plugins.
-  Form: require('sentry/components/forms/form').default,
-  FormState: require('sentry/components/forms/index').FormState,
+  Form: require('sentry/components/deprecatedforms/form').default,
+  FormState: require('sentry/components/forms/state').default,
   LoadingIndicator: require('sentry/components/loadingIndicator').default,
   plugins: {
     add: plugins.add,

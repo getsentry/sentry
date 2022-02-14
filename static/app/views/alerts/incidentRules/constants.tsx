@@ -130,7 +130,7 @@ export function createDefaultRule(
     eventTypes: [EventTypes.ERROR],
     aggregate: DEFAULT_AGGREGATE,
     query: '',
-    timeWindow: 1,
+    timeWindow: 60,
     thresholdPeriod: 1,
     triggers: [createDefaultTrigger('critical'), createDefaultTrigger('warning')],
     projects: [],
