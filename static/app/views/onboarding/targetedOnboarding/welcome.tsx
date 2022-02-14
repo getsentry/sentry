@@ -5,7 +5,10 @@ import {motion, MotionProps} from 'framer-motion';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import DemoSandboxButton from 'sentry/components/demoSandboxButton';
-import {t} from 'sentry/locale';
+import Link from 'sentry/components/links/link';
+import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -20,6 +23,23 @@ const fadeAway: MotionProps = {
   },
   transition: testableTransition({duration: 0.8}),
 };
+
+type TextWrapperProps = {
+  subText: React.ReactNode;
+  title: React.ReactNode;
+};
+
+function InnerAction({title, subText}: TextWrapperProps) {
+  return (
+    <React.Fragment>
+      <TextWrapper>
+        <ActionTitle>{title}</ActionTitle>
+        <SubText>{subText}</SubText>
+      </TextWrapper>
+      <IconChevron direction="right" />
+    </React.Fragment>
+  );
+}
 
 type Props = {
   organization: Organization;
@@ -37,43 +57,70 @@ function TargetedOnboardingWelcome({organization}: Props) {
     <Wrapper>
       <WelcomeBackground />
       <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
-      <motion.p {...fadeAway}>
-        {t(
-          'Find the errors and performance slowdowns that keep you up at night. In two steps.'
-        )}
-      </motion.p>
+      <SubHeaderText {...fadeAway}>
+        {t('Your code is probably broken.')}
+        <br />
+        {t('Maybe not. Find out in two steps.')}
+      </SubHeaderText>
+      <ActionItem
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
+            organization,
+            source,
+          });
+          window.location.replace(`/onboarding/${organization.slug}/select-platform/`);
+        }}
+      >
+        <InnerAction
+          title={t('Install Sentry')}
+          subText={t(
+            'Select your lanaguages or frameworks and install the SDKs to start tracking issues'
+          )}
+        />
+      </ActionItem>
+      <ActionItem
+        onClick={() => {
+          openInviteMembersModal({source});
+        }}
+      >
+        <InnerAction
+          title={t('Setup my team')}
+          subText={tct(
+            'Invite [friends] coworkers. You shouldn’t have to fix what you didn’t break',
+            {friends: <Strike>{t('friends')}</Strike>}
+          )}
+        />
+      </ActionItem>
+      {!organization.features.includes('sandbox-kill-switch') && (
+        <SandboxAction scenario="oneIssue" {...{source}}>
+          <InnerAction
+            title={t('Preview before you (git) commit')}
+            subText={t(
+              'Check out sample issue reports, transactions, and tour all of Sentry '
+            )}
+          />
+        </SandboxAction>
+      )}
       <motion.p>
-        <Button
+        {t("Gee, I've used Sentry before.")}
+        <br />
+        <Link
           onClick={() =>
-            trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
+            trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
               organization,
               source,
             })
           }
-          to={`/onboarding/${organization.slug}/select-platform/`}
+          to={`/organizations/${organization.slug}/issues/`}
         >
-          {t('Instrument my application')}
-        </Button>
+          {t('Skip onboarding.')}
+        </Link>
       </motion.p>
-      <motion.p>
-        <Button
-          onClick={() => {
-            openInviteMembersModal({source});
-          }}
-        >
-          {t('Setup my team and invite')}
-        </Button>
-      </motion.p>
-      {!organization.features.includes('sandbox-kill-switch') && (
-        <motion.p>
-          <DemoSandboxButton scenario="oneIssue" {...{source}}>
-            {t('Check out Sandbox')}
-          </DemoSandboxButton>
-        </motion.p>
-      )}
     </Wrapper>
   );
 }
+
+export default withOrganization(TargetedOnboardingWelcome);
 
 const Wrapper = styled(motion.div)`
   max-width: 400px;
@@ -88,4 +135,42 @@ const Wrapper = styled(motion.div)`
   }
 `;
 
-export default withOrganization(TargetedOnboardingWelcome);
+const actionStyles = `
+  width: 680px;
+  height: 90px;
+  border-radius: ${space(0.5)};
+  margin: ${space(2)};
+  justify-content: flex-end;
+  display: flex;
+`;
+
+const ActionItem = styled(Button)`
+  ${actionStyles};
+`;
+
+const SandboxAction = styled(DemoSandboxButton)`
+  ${actionStyles};
+`;
+
+const TextWrapper = styled('div')`
+  text-align: left;
+`;
+
+const Strike = styled('span')`
+  text-decoration: line-through;
+`;
+
+const ActionTitle = styled('h5')`
+  font-weight: 500;
+  margin: 0 0 ${space(2)};
+  color: ${p => p.theme.gray400};
+`;
+
+const SubText = styled('span')`
+  font-weight: 400;
+  color: ${p => p.theme.gray400};
+`;
+
+const SubHeaderText = styled(motion.h6)`
+  color: ${p => p.theme.gray300};
+`;

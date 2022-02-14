@@ -59,6 +59,7 @@ export type GrowthEventParameters = {
   'growth.dismissed_mobile_prompt_banner': MobilePromptBannerParams;
   'growth.issue_open_in_discover_btn_clicked': {};
   'growth.onboarding_clicked_instrument_app': {source?: string};
+  'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_set_up_your_project': PlatformParam;
   'growth.onboarding_start_onboarding': {
@@ -122,6 +123,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
   'growth.onboarding_start_onboarding': 'Growth: Onboarding Start Onboarding',
+  'growth.onboarding_clicked_skip': 'Growth: Onboarding Clicked Skip',
   'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
   'growth.onboarding_view_full_docs': 'Growth: Onboarding View Full Docs',
   'growth.onboarding_view_sample_event': 'Growth: Onboarding View Sample Event',
