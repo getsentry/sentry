@@ -88,6 +88,7 @@ export interface FlamegraphTheme {
     SPANS_DEPTH_OFFSET: number;
     SPANS_FONT_SIZE: number;
     TIMELINE_HEIGHT: number;
+    TOOLTIP_FONT_SIZE: number;
   };
 }
 
@@ -129,6 +130,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_PADDING: 6,
     FRAME_BORDER_WIDTH: 2,
     HOVERED_FRAME_BORDER_WIDTH: 1,
+    TOOLTIP_FONT_SIZE: 12,
   },
   COLORS: {
     LABEL_FONT_COLOR: '#1f233a',
@@ -185,6 +187,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_PADDING: 6,
     FRAME_BORDER_WIDTH: 2,
     HOVERED_FRAME_BORDER_WIDTH: 1,
+    TOOLTIP_FONT_SIZE: 12,
   },
   COLORS: {
     LABEL_FONT_COLOR: 'rgba(255, 255, 255, 0.8)',
