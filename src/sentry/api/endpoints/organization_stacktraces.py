@@ -1,7 +1,6 @@
 from typing import Any
 
 from django.conf import settings
-from requests.exceptions import JSONDecodeError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from semtry.api.paginator import GenericOffsetPaginator
@@ -45,12 +44,9 @@ class OrganizationStacktracesEndpoint(OrganizationEndpoint):
                 method="GET",
                 params=params,
             )
-            try:
-                return response.json().get("stacktraces", [])
-            except (JSONDecodeError, KeyError):
-                return []
+            return response.json().get("stacktraces", [])
 
-        with self.handle_query_errors():
+        with self.handle_exception():
             return self.paginate(
                 request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -70,8 +66,10 @@ class OrganizationStacktraceFiltersEndpoint(OrganizationEndpoint):
         if len(projects) > 0:
             params["project_id"] = [p.id for p in projects]
 
-        return safe_urlopen(
-            f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/stacktrace_filters",
-            method="GET",
-            params=params,
-        )
+        with self.handle_exception():
+            response = safe_urlopen(
+                f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/stacktrace_filters",
+                method="GET",
+                params=params,
+            )
+            return Response(response.json(), status=200)
