@@ -414,15 +414,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         release: ReleaseName,
         org_id: OrganizationId,
         environments: Optional[Sequence[EnvironmentName]] = None,
-        now: Optional[datetime] = None,
     ) -> ReleaseSessionsTimeBounds:
         select: List[SelectableExpression] = [
             Function("min", [Column("timestamp")], "min"),
             Function("max", [Column("timestamp")], "max"),
         ]
-
-        if now is None:
-            now = datetime.now(pytz.utc)
 
         try:
             where: List[Condition] = [
@@ -432,7 +428,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 Condition(
                     Column("timestamp"), Op.GTE, datetime(2008, 5, 8)
                 ),  # Date of sentry's first commit
-                Condition(Column("timestamp"), Op.LT, now),
+                Condition(
+                    Column("timestamp"), Op.LT, datetime.now(pytz.utc) + timedelta(seconds=10)
+                ),
             ]
 
             if environments is not None:

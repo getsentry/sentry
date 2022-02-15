@@ -702,7 +702,6 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         release: ReleaseName,
         org_id: OrganizationId,
         environments: Optional[Sequence[EnvironmentName]] = None,
-        now: Optional[datetime] = None,
     ) -> ReleaseSessionsTimeBounds:
         rollup = self.DEFAULT_ROLLUP  # TODO is this the proper ROLLUP ?
         schema = {
@@ -719,9 +718,6 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         organization = self._org_from_id(org_id)
 
-        if now is None:
-            now = datetime.now(pytz.utc)
-
         return self._dispatch_call(  # type: ignore
             "get_release_sessions_time_bounds",
             should_compare,
@@ -732,7 +728,6 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             release,
             org_id,
             environments,
-            now,
         )
 
     def check_has_health_data(
