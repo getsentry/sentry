@@ -12,6 +12,7 @@ from sentry.models import ExternalIssue, Group, GroupLink
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
+from ..utils import set_badge
 from . import JiraBaseHook
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class JiraIssueHookView(JiraBaseHook):
                 group = Group.objects.get(id=group_link.group_id)
             except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist) as e:
                 scope.set_tag("failure", e.__class__.__name__)
-                self.set_badge(integration, issue_key, 0)
+                set_badge(integration, issue_key, 0)
                 return self.get_response({"issue_not_linked": True})
             scope.set_tag("organization.slug", group.organization.slug)
 
@@ -116,5 +117,5 @@ class JiraIssueHookView(JiraBaseHook):
             # XXX(CEO): group_link_num is hardcoded as 1 now, but when we handle
             #  displaying multiple linked issues this should be updated to the
             #  actual count.
-            self.set_badge(integration, issue_key, 1)
+            set_badge(integration, issue_key, 1)
             return result
