@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {Client, ResponseMeta} from 'sentry/api';
+import Input from 'sentry/components/forms/controls/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type RenderProps = {
   busy: boolean;

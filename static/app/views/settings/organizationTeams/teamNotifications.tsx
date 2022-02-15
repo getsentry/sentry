@@ -6,6 +6,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import TextField from 'sentry/components/forms/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -17,7 +18,6 @@ import {toTitleCase} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-import TextField from 'sentry/views/settings/components/forms/textField';
 
 type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
   organization: Organization;

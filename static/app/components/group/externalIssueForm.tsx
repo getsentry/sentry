@@ -5,10 +5,10 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import AbstractExternalIssueForm, {
   ExternalIssueAction,
 } from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import Form from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import {Group, Integration, IntegrationExternalIssue} from 'sentry/types';
-import Form from 'sentry/views/settings/components/forms/form';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),

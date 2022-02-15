@@ -7,6 +7,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
+import Field from 'sentry/components/forms/field';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
@@ -17,7 +18,6 @@ import {Organization, ServiceHook} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-import Field from 'sentry/views/settings/components/forms/field';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {

@@ -1,6 +1,10 @@
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import Form from 'sentry/components/forms/form';
+import FormField from 'sentry/components/forms/formField';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
@@ -8,10 +12,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {ApiApplication} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AsyncView from 'sentry/views/asyncView';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormField from 'sentry/views/settings/components/forms/formField';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{appId: string}, {}>;

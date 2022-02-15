@@ -4,6 +4,8 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import Button from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
@@ -20,8 +22,6 @@ import {
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import WidgetQueryFields from './widgetQueryFields';
 

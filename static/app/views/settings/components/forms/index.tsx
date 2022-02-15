@@ -1,21 +1,12 @@
-export {default as ApiForm} from './apiForm';
-export {default as BooleanField} from './booleanField';
-export {default as CheckboxField} from './checkboxField';
-export {default as ChoiceMapperField} from './choiceMapperField';
-export {default as DatePickerField} from './datePickerField';
-export {default as DateTimeField} from './dateTimeField';
-export {default as EmailField} from './emailField';
-export {default as FieldFromConfig} from './fieldFromConfig';
-export {default as FieldSeparator} from './fieldSeparator';
-export {default as Form} from './form';
-export {default as FormPanel} from './formPanel';
-export {default as HiddenField} from './hiddenField';
-export {default as InputField} from './inputField';
-export {default as JSONForm} from './jsonForm';
-export {default as NumberField} from './numberField';
-export {default as RadioBooleanField} from './radioBooleanField';
-export {default as RangeField} from './rangeField';
-export {default as SelectField} from './selectField';
-export {default as TextareaField} from './textareaField';
-export {default as TestCopyInput} from './textCopyInput';
-export {default as TextField} from './textField';
+/**
+ * @deprecated These shims and all other shims in this directory are to ease getsentry upgrade
+ */
+export {default as BooleanField} from 'sentry/components/forms/booleanField';
+export {default as EmailField} from 'sentry/components/forms/emailField';
+export {default as Form} from 'sentry/components/forms/form';
+export {default as InputField} from 'sentry/components/forms/inputField';
+export {default as NumberField} from 'sentry/components/forms/numberField';
+export {default as RadioBooleanField} from 'sentry/components/forms/radioBooleanField';
+export {default as SelectField} from 'sentry/components/forms/selectField';
+export {default as TextareaField} from 'sentry/components/forms/textareaField';
+export {default as TextField} from 'sentry/components/forms/textField';

@@ -1,6 +1,6 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import MultipleCheckbox from 'sentry/views/settings/components/forms/controls/multipleCheckbox';
+import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 
 describe('MultipleCheckbox', function () {
   it('renders', function () {

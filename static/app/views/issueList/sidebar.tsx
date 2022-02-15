@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
 
+import Input from 'sentry/components/forms/controls/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SidebarSection from 'sentry/components/sidebarSection';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -10,7 +11,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Tag, TagCollection} from 'sentry/types';
 import {objToQuery, QueryObj, queryToObj} from 'sentry/utils/stream';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import IssueListTagFilter from './tagFilter';
 import {TagValueLoader} from './types';

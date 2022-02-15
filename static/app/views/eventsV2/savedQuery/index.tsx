@@ -14,6 +14,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DropdownControl from 'sentry/components/dropdownControl';
+import InputControl from 'sentry/components/forms/controls/input';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -31,7 +32,6 @@ import {
   DisplayType,
   WidgetQuery,
 } from 'sentry/views/dashboardsV2/types';
-import InputControl from 'sentry/views/settings/components/forms/controls/input';
 
 import {
   displayModeToDisplayType,

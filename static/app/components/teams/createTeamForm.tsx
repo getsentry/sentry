@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
+import Form from 'sentry/components/forms/form';
+import TextField from 'sentry/components/forms/textField';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import slugify from 'sentry/utils/slugify';
-import Form from 'sentry/views/settings/components/forms/form';
-import TextField from 'sentry/views/settings/components/forms/textField';
 
 type Payload = {
   slug: string;

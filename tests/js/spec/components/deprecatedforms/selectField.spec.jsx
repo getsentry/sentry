@@ -3,7 +3,7 @@ import selectEvent from 'react-select-event';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form, SelectField} from 'sentry/components/deprecatedforms';
-import FormModel from 'sentry/views/settings/components/forms/model';
+import FormModel from 'sentry/components/forms/model';
 
 describe('SelectField', function () {
   it('renders without form context', function () {

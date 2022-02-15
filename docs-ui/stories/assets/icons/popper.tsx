@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import Code from 'docs-ui/components/code';
 
 import SelectField from 'sentry/components/deprecatedforms/selectField';
+import BooleanField from 'sentry/components/forms/booleanField';
 import space from 'sentry/styles/space';
-import BooleanField from 'sentry/views/settings/components/forms/booleanField';
 
 import {iconProps} from './data';
 import IconSample from './sample';

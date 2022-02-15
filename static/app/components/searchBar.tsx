@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import Button from 'sentry/components/button';
+import Input from 'sentry/components/forms/controls/input';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type DefaultProps = {
   defaultQuery: string;

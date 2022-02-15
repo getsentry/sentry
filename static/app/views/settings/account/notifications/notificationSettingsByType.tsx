@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import {Field} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
@@ -35,9 +38,6 @@ import {
   mergeNotificationSettings,
   providerListToString,
 } from 'sentry/views/settings/account/notifications/utils';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import {Field} from 'sentry/views/settings/components/forms/type';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {openMenu, selectByValue} from 'sentry-test/select-new';
 
-import Form from 'sentry/views/settings/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {

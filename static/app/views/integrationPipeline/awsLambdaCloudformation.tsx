@@ -5,14 +5,14 @@ import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/actions/button';
+import SelectField from 'sentry/components/forms/selectField';
+import TextField from 'sentry/components/forms/textField';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
-import TextField from 'sentry/views/settings/components/forms/textField';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';

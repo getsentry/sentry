@@ -1,7 +1,3 @@
-import InputField from './inputField';
+import DateTimeField from 'sentry/components/forms/dateTimeField';
 
-type Props = InputField['props'];
-
-export default function DateTimeField(props: Omit<Props, 'type'>) {
-  return <InputField {...props} type="datetime-local" />;
-}
+export default DateTimeField;

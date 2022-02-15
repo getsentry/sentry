@@ -5,11 +5,11 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarChooser from 'sentry/components/avatarChooser';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {Organization, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
 type Props = {
   access: Set<Scope>;

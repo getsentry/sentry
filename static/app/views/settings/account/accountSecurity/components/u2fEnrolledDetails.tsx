@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
+import Input from 'sentry/components/forms/controls/input';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconDelete} from 'sentry/icons';
@@ -11,7 +12,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const U2fEnrolledDetails = props => {

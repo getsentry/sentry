@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
+import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconChevron} from 'sentry/icons';
 import {Scope} from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
-import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
 
 import {FieldObject, JsonFormObject} from './type';
 

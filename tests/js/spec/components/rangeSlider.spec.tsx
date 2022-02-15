@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
+import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 
 describe('RangeSlider', function () {
   it('changes value / has right label', function () {

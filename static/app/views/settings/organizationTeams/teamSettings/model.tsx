@@ -1,5 +1,5 @@
 import {updateTeam} from 'sentry/actionCreators/teams';
-import FormModel from 'sentry/views/settings/components/forms/model';
+import FormModel from 'sentry/components/forms/model';
 
 class TeamFormModel extends FormModel {
   public orgId: string;

@@ -2,11 +2,11 @@ import * as React from 'react';
 import {createFilter} from 'react-select';
 
 import Alert from 'sentry/components/alert';
+import {ChoiceMapperProps} from 'sentry/components/forms/choiceMapperField';
+import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import FormModel from 'sentry/components/forms/model';
+import {SelectAsyncFieldProps} from 'sentry/components/forms/selectAsyncField';
 import {AvatarProject, Project} from 'sentry/types';
-import {ChoiceMapperProps} from 'sentry/views/settings/components/forms/choiceMapperField';
-import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
-import FormModel from 'sentry/views/settings/components/forms/model';
-import {SelectAsyncFieldProps} from 'sentry/views/settings/components/forms/selectAsyncField';
 
 export const FieldType = [
   'array',

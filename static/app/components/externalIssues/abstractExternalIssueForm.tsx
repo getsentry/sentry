@@ -4,6 +4,9 @@ import * as qs from 'query-string';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
+import Form from 'sentry/components/forms/form';
+import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
 import {
@@ -13,9 +16,6 @@ import {
   SelectValue,
 } from 'sentry/types';
 import {FormField} from 'sentry/views/alerts/issueRuleEditor/ruleNode';
-import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormModel, {FieldValue} from 'sentry/views/settings/components/forms/model';
 
 export type ExternalIssueAction = 'create' | 'link';
 

@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Spinner from 'sentry/components/forms/spinner';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
-import Spinner from 'sentry/views/settings/components/forms/spinner';
 
 type Props = {
   /**

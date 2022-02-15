@@ -2,6 +2,7 @@ import {createContext, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import BooleanField from 'sentry/components/forms/booleanField';
 import {IconAnchor} from 'sentry/icons/iconAnchor';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -11,7 +12,6 @@ import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import BooleanField from 'sentry/views/settings/components/forms/booleanField';
 
 import EventDataSection from '../eventDataSection';
 

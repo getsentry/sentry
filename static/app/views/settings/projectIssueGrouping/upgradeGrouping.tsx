@@ -7,12 +7,12 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import Field from 'sentry/components/forms/field';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {EventGroupingConfig, Organization, Project} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import marked from 'sentry/utils/marked';
-import Field from 'sentry/views/settings/components/forms/field';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {getGroupingChanges, getGroupingRisk} from './utils';

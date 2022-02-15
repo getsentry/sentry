@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
 import FormSearchActions from 'sentry/actions/formSearchActions';
-import {FieldObject} from 'sentry/views/settings/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/type';
 
 /**
  * Processed form field metadata.

@@ -1,9 +1,9 @@
-import NewBooleanField from 'sentry/views/settings/components/forms/booleanField';
-import Form from 'sentry/views/settings/components/forms/form';
-import RadioField from 'sentry/views/settings/components/forms/radioField';
-import RangeField from 'sentry/views/settings/components/forms/rangeField';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
-import TextField from 'sentry/views/settings/components/forms/textField';
+import NewBooleanField from 'sentry/components/forms/booleanField';
+import Form from 'sentry/components/forms/form';
+import RadioField from 'sentry/components/forms/radioField';
+import RangeField from 'sentry/components/forms/rangeField';
+import SelectField from 'sentry/components/forms/selectField';
+import TextField from 'sentry/components/forms/textField';
 
 export default {
   title: 'Components/Forms/Form',

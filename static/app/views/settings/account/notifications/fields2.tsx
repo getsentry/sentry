@@ -1,7 +1,7 @@
+import {Field} from 'sentry/components/forms/type';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
 export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   alerts: {

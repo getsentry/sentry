@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
 import NumberDragControl from 'sentry/components/numberDragControl';
 import Tooltip from 'sentry/components/tooltip';
@@ -12,7 +13,6 @@ import {
   AlertRuleThresholdType,
   ThresholdControlValue,
 } from 'sentry/views/alerts/incidentRules/types';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = ThresholdControlValue & {
   comparisonType: AlertRuleComparisonType;
