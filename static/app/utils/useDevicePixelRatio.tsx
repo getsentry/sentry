@@ -10,21 +10,21 @@ function useDevicePixelRatio(): number {
     window.devicePixelRatio
   );
 
-  const updatePixelRatio = React.useCallback(() => {
+  const updateDevicePixelRatio = React.useCallback(() => {
     setDevicePixelRatio(window.devicePixelRatio);
   }, []);
 
   React.useLayoutEffect(() => {
     window
       .matchMedia(`(resolution: ${devicePixelRatio}dppx)`)
-      .addEventListener('change', updatePixelRatio, {once: true});
+      .addEventListener('change', updateDevicePixelRatio, {once: true});
 
     return () => {
       window
         .matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
-        .removeEventListener('change', updatePixelRatio);
+        .removeEventListener('change', updateDevicePixelRatio);
     };
-  }, [devicePixelRatio]);
+  }, [devicePixelRatio, updateDevicePixelRatio]);
 
   return devicePixelRatio;
 }
