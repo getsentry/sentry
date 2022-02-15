@@ -1,4 +1,7 @@
-from typing import Any, Dict, FrozenSet, List, Mapping, MutableMapping, Sequence, cast
+from __future__ import annotations
+
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, cast
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -56,7 +59,7 @@ class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
         ("last_modified", "lastModified"),
     )
 
-    def to_representation(self, instance: Any) -> Dict[str, Any]:
+    def to_representation(self, instance: Any) -> dict[str, Any]:
         ret_val = {}
         for internal_key, external_key in TrustedRelaySerializer.internal_external:
             val = instance.get(internal_key)
@@ -64,7 +67,7 @@ class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
                 ret_val[external_key] = val
         return ret_val
 
-    def to_internal_value(self, data: Any) -> Dict[str, str]:
+    def to_internal_value(self, data: Any) -> dict[str, str]:
         try:
             key_name = data.get("name")
             public_key = data.get("publicKey") or ""
@@ -244,14 +247,14 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     quota: Any
     isDefault: bool
     defaultRole: bool
-    availableRoles: List[Any]  # TODO replace with enum/literal
+    availableRoles: list[Any]  # TODO replace with enum/literal
     openMembership: bool
     allowSharedIssues: bool
     enahncedPrivacy: bool
     dataScrubber: bool
     dataScrubberDefaults: bool
-    sensitiveFields: List[Any]  # TODO
-    safeFields: List[Any]
+    sensitiveFields: list[Any]  # TODO
+    safeFields: list[Any]
     storeCrashReports: Any  # TODO
     attachmentsRole: Any  # TODO
     debugFilesRole: str
@@ -263,7 +266,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     relayPiiConfig: str
     apdexThreshold: int
     trustedRelays: Any  # TODO
-    access: FrozenSet[str]
+    access: frozenset[str]
     pendingAccessRequests: int
     onboardingTasks: Any  # TODO
 
@@ -393,7 +396,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         return super().get_attrs(item_list, user)
 
-    def _project_list(self, organization: Organization, access: Access) -> List[Project]:
+    def _project_list(self, organization: Organization, access: Access) -> list[Project]:
         member_projects = list(access.projects)
         member_project_ids = [p.id for p in member_projects]
         other_projects = list(
@@ -408,7 +411,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         return project_list
 
-    def _team_list(self, organization: Organization, access: Access) -> List[Team]:
+    def _team_list(self, organization: Organization, access: Access) -> list[Team]:
         member_teams = list(access.teams)
         member_team_ids = [p.id for p in member_teams]
         other_teams = list(
