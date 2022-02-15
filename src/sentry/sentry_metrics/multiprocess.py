@@ -547,7 +547,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__started = time.time()
         # TODO: Need to make these flags
         self.__commit_max_batch_size = 25000
-        self.__commit_max_batch_time = 5.0
+        self.__commit_max_batch_time = 10.0
         self.__producer_queue_max_size = 80000
         self.__producer_long_poll_timeout = 3.0
 
