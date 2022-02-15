@@ -204,14 +204,6 @@ class TestGetRateLimitValue(TestCase):
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)
         assert get_rate_limit_value("POST", TestEndpoint, "user") == RateLimit(20, 4)
 
-    def test_non_endpoint(self):
-        """views that don't inherit Endpoint shouldn not return a value"""
-
-        class TestEndpoint:
-            pass
-
-        assert get_rate_limit_value("GET", TestEndpoint, "ip") is None
-
 
 class RateLimitHeaderTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
