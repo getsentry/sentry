@@ -54,6 +54,7 @@ default_manager.add("organizations:create")
 default_manager.add("organizations:advanced-search", OrganizationFeature)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:alert-rule-ui-component", OrganizationFeature, True)
+default_manager.add("organizations:alert-rule-status-page", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, False)
 default_manager.add("organizations:boolean-search", OrganizationFeature)
@@ -87,7 +88,6 @@ default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature,
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
 default_manager.add("organizations:higher-ownership-limit", OrganizationFeature)
-default_manager.add("organizations:idp-automatic-migration", OrganizationFeature, True)
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)
 default_manager.add("organizations:improved-search", OrganizationFeature, True)
 default_manager.add("organizations:incidents", OrganizationFeature)
@@ -162,7 +162,9 @@ default_manager.add("organizations:transaction-metrics-extraction", Organization
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
 default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
+default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
+default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Any, Mapping, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Mapping
 
 from django.conf import settings
 from django.db import models
@@ -17,9 +19,9 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 class UserOptionManager(OptionManager["User"]):
     def _make_key(
         self,
-        user: "User",
-        project: Optional["Project"] = None,
-        organization: Optional["Organization"] = None,
+        user: User,
+        project: Project | None = None,
+        organization: Organization | None = None,
     ) -> str:
         if project:
             metakey = f"{user.pk}:{project.id}:project"
@@ -32,9 +34,7 @@ class UserOptionManager(OptionManager["User"]):
         key: str = super()._make_key(metakey)
         return key
 
-    def get_value(
-        self, user: "User", key: str, default: Optional[Value] = None, **kwargs: Any
-    ) -> Value:
+    def get_value(self, user: User, key: str, default: Value | None = None, **kwargs: Any) -> Value:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
@@ -46,7 +46,7 @@ class UserOptionManager(OptionManager["User"]):
             result = self.get_all_values(user, project)
         return result.get(key, default)
 
-    def unset_value(self, user: "User", project: "Project", key: str) -> None:
+    def unset_value(self, user: User, project: Project, key: str) -> None:
         """
         This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
         """
@@ -61,7 +61,7 @@ class UserOptionManager(OptionManager["User"]):
             return
         self._option_cache[metakey].pop(key, None)
 
-    def set_value(self, user: "User", key: str, value: Value, **kwargs: Any) -> None:
+    def set_value(self, user: User, key: str, value: Value, **kwargs: Any) -> None:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
@@ -86,9 +86,9 @@ class UserOptionManager(OptionManager["User"]):
 
     def get_all_values(
         self,
-        user: "User",
-        project: Optional["Project"] = None,
-        organization: Optional["Organization"] = None,
+        user: User,
+        project: Project | None = None,
+        organization: Organization | None = None,
         force_reload: bool = False,
     ) -> Mapping[str, Value]:
         if organization and project:
@@ -107,12 +107,12 @@ class UserOptionManager(OptionManager["User"]):
         values: Mapping[str, Value] = self._option_cache.get(metakey, {})
         return values
 
-    def post_save(self, instance: "UserOption", **kwargs: Any) -> None:
+    def post_save(self, instance: UserOption, **kwargs: Any) -> None:
         self.get_all_values(
             instance.user, instance.project, instance.organization, force_reload=True
         )
 
-    def post_delete(self, instance: "UserOption", **kwargs: Any) -> None:
+    def post_delete(self, instance: UserOption, **kwargs: Any) -> None:
         self.get_all_values(
             instance.user, instance.project, instance.organization, force_reload=True
         )
