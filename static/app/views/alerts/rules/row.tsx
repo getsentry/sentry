@@ -45,6 +45,7 @@ const getProject = memoize((slug: string, projects: Project[]) =>
 
 function RuleListRow({
   rule,
+  organization,
   projectsLoaded,
   projects,
   orgId,
@@ -145,8 +146,18 @@ function RuleListRow({
     : null;
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
+  const hasAlertRuleStatusPage = organization.features.includes('alert-rule-status-page');
+  // TODO(workflow): Refactor when removing alert-rule-status-page flag
   const alertLink = isIssueAlert(rule) ? (
-    rule.name
+    hasAlertRuleStatusPage ? (
+      <Link
+        to={`/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`}
+      >
+        {rule.name}
+      </Link>
+    ) : (
+      rule.name
+    )
   ) : (
     <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
   );
