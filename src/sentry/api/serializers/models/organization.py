@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, cast
+from typing import Any, Optional, Union, cast
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -9,7 +9,13 @@ from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
 from sentry import features, roles
-from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers import (
+    Serializer,
+    UserSerializerResponse,
+    UserSerializerResponseSelf,
+    register,
+    serialize,
+)
 from sentry.api.serializers.models import UserSerializer
 from sentry.app import quotas
 from sentry.auth.access import Access
@@ -45,7 +51,6 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.models.user import User
-from sentry.utils.json import JSONData
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
@@ -211,23 +216,37 @@ class OrganizationSerializer(Serializer):  # type: ignore
         }
 
 
+class _OnboardingTasksAttrs(TypedDict):
+    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+
+
+class OnboardingTasksSerializerResponse(TypedDict):
+
+    task: str  # TODO: literal/enum
+    status: str  # TODO: literal/enum
+    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    completionSeen: str
+    dateCompleted: str
+    data: Any  # JSON object
+
+
 class OnboardingTasksSerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
-    ) -> MutableMapping[OrganizationOnboardingTask, MutableMapping[str, Any]]:
+    ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
         # Unique user list
         users = {item.user for item in item_list if item.user}
         serialized_users = serialize(users, user, UserSerializer())
         user_map = {user["id"]: user for user in serialized_users}
 
-        data: MutableMapping[OrganizationOnboardingTask, MutableMapping[str, Any]] = {}
+        data: MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs] = {}
         for item in item_list:
             data[item] = {"user": user_map.get(str(item.user_id))}
         return data
 
     def serialize(
-        self, obj: OrganizationOnboardingTask, attrs: Mapping[str, Any], user: User
-    ) -> MutableMapping[str, JSONData]:
+        self, obj: OrganizationOnboardingTask, attrs: _OnboardingTasksAttrs, user: User
+    ) -> OnboardingTasksSerializerResponse:
         return {
             "task": OrganizationOnboardingTask.TASK_KEY_MAP.get(obj.task),
             "status": OrganizationOnboardingTask.STATUS_KEY_MAP.get(obj.status),
@@ -268,7 +287,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     trustedRelays: Any  # TODO
     access: frozenset[str]
     pendingAccessRequests: int
-    onboardingTasks: Any  # TODO
+    onboardingTasks: OnboardingTasksSerializerResponse
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
