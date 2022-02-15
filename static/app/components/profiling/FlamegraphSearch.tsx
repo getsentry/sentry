@@ -43,12 +43,11 @@ function frameSearch(
           ] = frame;
         }
       }
-
-      return results;
     } catch (e) {
       Sentry.captureMessage(e.message);
-      return results;
     }
+
+    return results;
   }
 
   const fuseResults = index
@@ -119,7 +118,7 @@ function FlamegraphSearch({
       threshold: 0.3,
       includeMatches: true,
     });
-  }, [allFrames.length]);
+  }, [allFrames]);
 
   const onZoomIntoFrame = React.useCallback(
     (frame: FlamegraphFrame) => {
@@ -144,7 +143,7 @@ function FlamegraphSearch({
       setSearchResults(results);
       canvasPoolManager.dispatch('searchResults', [results]);
     },
-    [searchIndex, frames, canvasPoolManager]
+    [searchIndex, frames, canvasPoolManager, allFrames]
   );
 
   const onNextSearchClick = React.useCallback(() => {
