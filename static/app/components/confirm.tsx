@@ -305,7 +305,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
                 onClick={this.handleClose}
                 aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
               >
-                {cancelText ? cancelText : t('Cancel')}
+                {cancelText ??  t('Cancel')}
               </Button>
             )}
             {renderConfirmButton ? (
