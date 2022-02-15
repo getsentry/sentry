@@ -19,11 +19,14 @@ describe('IssueAlertOptions', function () {
     props = {...baseProps};
   });
 
-  const selectControlVerifier = (wrapper, dataTestId, optionsText) => {
+  const selectControlVerifier = async (wrapper, dataTestId, optionsText) => {
     wrapper
       .find(`[data-test-id="${dataTestId}"] input[id*="react-select"]`)
       .last()
       .simulate('focus');
+
+    await tick();
+    wrapper.update();
 
     expect(
       wrapper.find(`InlineSelectControl[data-test-id="${dataTestId}"] Option`)

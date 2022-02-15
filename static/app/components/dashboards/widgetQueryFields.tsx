@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import Field from 'sentry/components/forms/field';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -17,7 +18,6 @@ import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollecti
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = {
   /**

@@ -33,8 +33,6 @@ from .event import *  # NOQA
 from .eventattachment import *  # NOQA
 from .eventerror import *  # NOQA
 from .eventuser import *  # NOQA
-from .externalactor import *  # NOQA
-from .externalissue import *  # NOQA
 from .featureadoption import *  # NOQA
 from .file import *  # NOQA
 from .group import *  # NOQA
@@ -59,7 +57,6 @@ from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
-from .integrationfeature import *  # NOQA
 from .integrations import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
@@ -102,11 +99,6 @@ from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .scheduledjob import *  # NOQA
 from .search_common import *  # NOQA
-from .sentryapp import *  # NOQA
-from .sentryappcomponent import *  # NOQA
-from .sentryappinstallation import *  # NOQA
-from .sentryappinstallationforprovider import *  # NOQA
-from .sentryappinstallationtoken import *  # NOQA
 from .servicehook import *  # NOQA
 from .team import *  # NOQA
 from .transaction_threshold import *  # NOQA
