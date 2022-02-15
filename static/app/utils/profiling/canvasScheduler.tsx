@@ -9,10 +9,10 @@ type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 export interface FlamegraphEvents {
   resetZoom: () => void;
   searchResults: (results: Record<string, FlamegraphFrame>) => void;
+  searchResults: (results: Record<string, FlamegraphFrame>) => void;
   selectedNode: (frame: any | null) => void;
   setConfigView: (configView: Rect) => void;
   transformConfigView: (transform: mat3) => void;
-  searchResults: (results: Record<string, FlamegraphFrame>) => void;
   zoomIntoFrame: (frame: any) => void;
 }
 
