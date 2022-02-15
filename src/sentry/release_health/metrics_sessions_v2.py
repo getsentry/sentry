@@ -91,6 +91,19 @@ _SessionStatus = Literal[
     "healthy",
 ]
 
+_DURATION_PERCENTILES = (
+    "p50(session.duration)",
+    "p75(session.duration)",
+    "p90(session.duration)",
+    "p95(session.duration)",
+    "p99(session.duration)",
+)
+
+_DURATION_FIELDS = (
+    "avg(session.duration)",
+    "max(session.duration)",
+) + _DURATION_PERCENTILES
+
 
 @dataclass(frozen=True)
 class _SessionStatusValue:
@@ -116,13 +129,7 @@ def _to_column(
     parameters = (Column("value"), column_condition)
 
     # distribution columns
-    if query_func in [
-        "p50(session.duration)",
-        "p75(session.duration)",
-        "p90(session.duration)",
-        "p95(session.duration)",
-        "p99(session.duration)",
-    ]:
+    if query_func in _DURATION_PERCENTILES:
         return Function(
             alias="percentiles",
             function="quantilesIf(0.5,0.75,0.9,0.95,0.99)",
@@ -321,7 +328,7 @@ class _LimitState:
 
     def __init__(self) -> None:
         self._initialized = False
-        self.skip_columns: List[Column] = []  # Will not be added to limiting conditions
+        self.skip_columns: Set[Column] = set()  # Will not be added to limiting conditions
 
     def update(self, groupby: Collection[Column], snuba_rows: _SnubaData) -> None:
         if self._initialized:
@@ -330,12 +337,7 @@ class _LimitState:
         # Only "totals" queries may set the limiting conditions:
         assert Column(TS_COL_GROUP) not in groupby
 
-        def sort_key(col: Column) -> str:
-            return col.name  # type: ignore. But why?
-
-        groupby = sorted(groupby, key=sort_key)
-
-        self._groupby = sorted(groupby, key=sort_key)
+        self._groupby = groupby = list(groupby)  # Make sure groupby has a fixed order
         self._groups = [{column.name: row[column.name] for column in groupby} for row in snuba_rows]
 
         self._initialized = True
@@ -374,9 +376,9 @@ def _get_snuba_query(
     metric_id: int,
     columns: List[SelectableExpression],
     series: bool,
-    limit_state: _LimitState,
+    limiting_conditions: Optional[List[Condition]],
     extra_conditions: List[Condition],
-) -> Tuple[Query, List[Column]]:
+) -> Query:
     """Build the snuba query"""
     conditions = [
         Condition(Column("org_id"), Op.EQ, org_id),
@@ -417,15 +419,15 @@ def _get_snuba_query(
     # In case of group by, either set a limit or use the groups from the
     # first query to limit the results:
     if query.raw_groupby:
-        if limit_state.limiting_conditions is None:
+        if limiting_conditions is None:
             # Set limit and order by to be consistent with sessions_v2
             max_groups = SNUBA_LIMIT // len(get_timestamps(query))
             query_args["limit"] = Limit(max_groups)
             query_args["orderby"] = [OrderBy(columns[0], Direction.DESC)]
         else:
-            query_args["where"] += limit_state.limiting_conditions
+            query_args["where"] += limiting_conditions
 
-    return Query(**query_args), full_groupby
+    return Query(**query_args)
 
 
 def _get_snuba_query_data(
@@ -441,20 +443,20 @@ def _get_snuba_query_data(
     """Get data from snuba"""
 
     for query_type in ("totals", "series"):
-        snuba_query, groupby = _get_snuba_query(
+        snuba_query = _get_snuba_query(
             org_id,
             query,
             entity_key,
             metric_id,
             columns,
             series=query_type == "series",
-            limit_state=limit_state,
+            limiting_conditions=limit_state.limiting_conditions,
             extra_conditions=extra_conditions or [],
         )
         referrer = REFERRERS[metric_key][query_type]
         query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
 
-        limit_state.update(groupby, query_data)
+        limit_state.update(snuba_query.groupby, query_data)
 
         if len(query_data) == SNUBA_LIMIT:
             logger.error("metrics_sessions_v2.snuba_limit_exceeded")
@@ -468,7 +470,6 @@ def _fetch_data(
 ) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
     """Build & run necessary snuba queries"""
 
-    #
     combined_data: _SnubaDataByMetric = []
 
     # Find the field that needs a specific column in a specific metric
@@ -519,7 +520,7 @@ def _fetch_data_for_field(
             )
             metric_to_output_field[(MetricKey.USER, "value")] = _UserField()
 
-    if "session.duration" in raw_field:
+    if raw_field in _DURATION_FIELDS:
         metric_id = indexer.resolve(MetricKey.SESSION_DURATION.value)
         if metric_id is not None:
 
@@ -584,7 +585,7 @@ def _fetch_data_for_field(
                 if error_metric_id is not None:
                     # Should not limit session.error to session.status=X,
                     # because that tag does not exist for this metric
-                    limit_state.skip_columns.append(Column(tag_key_session_status))
+                    limit_state.skip_columns.add(Column(tag_key_session_status))
                     data.extend(
                         _get_snuba_query_data(
                             org_id,
@@ -597,7 +598,7 @@ def _fetch_data_for_field(
                         )
                     )
                     # Remove skip_column again:
-                    limit_state.skip_columns.pop()
+                    limit_state.skip_columns.remove(Column(tag_key_session_status))
             else:
                 # Simply count the number of started sessions:
                 init = indexer.resolve("init")
