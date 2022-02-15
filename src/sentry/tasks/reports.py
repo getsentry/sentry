@@ -799,9 +799,12 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
     # actually a pending invitation, so no report should be delivered.
     member_set = organization.member_set.filter(user_id__isnull=False, user__is_active=True)
 
-    for user_id in member_set.values_list("user_id", flat=True):
+    for member in member_set:
+        if member.flags["member-limit:restricted"]:
+            # Skip disabled members
+            continue
         deliver_organization_user_report.delay(
-            timestamp, duration, organization_id, user_id, dry_run=dry_run
+            timestamp, duration, organization_id, member.user_id, dry_run=dry_run
         )
 
 
