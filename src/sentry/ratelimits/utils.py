@@ -28,16 +28,15 @@ DEFAULT_CONFIG = {
 }
 
 
-def can_be_ratelimited(request: Request, view_func: EndpointFunction) -> bool:
-    return hasattr(view_func, "view_class") and not request.path_info.startswith(
-        settings.ANONYMOUS_STATIC_PREFIXES
-    )
-
-
 def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
+    if not hasattr(view_func, "view_class") or request.path_info.startswith(
+        settings.ANONYMOUS_STATIC_PREFIXES
+    ):
+        return None
+
     view = view_func.__qualname__
-    rate_limit_config = get_rate_limit_config(view_func.view_class)
+    rate_limit_config = get_rate_limit_config(view_func.view_class)  # type: ignore
     http_method = request.method
 
     # This avoids touching user session, which means we avoid
