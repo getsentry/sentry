@@ -194,9 +194,11 @@ class TestGetRateLimitValue(TestCase):
             }
 
         assert get_rate_limit_value("GET", TestEndpoint, "ip") == RateLimit(100, 5)
+        # get is not overriddent for user, hence we use the default
         assert get_rate_limit_value(
             "GET", TestEndpoint, "user"
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.USER)
+        # get is not overriddent for IP, hence we use the default
         assert get_rate_limit_value(
             "POST", TestEndpoint, "ip"
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)

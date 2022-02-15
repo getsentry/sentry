@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Type
+from functools import lru_cache
+from typing import TYPE_CHECKING, Any, Callable, Hashable, Mapping, Type, cast
 
 from django.conf import settings
 from rest_framework.request import Request
@@ -94,10 +95,12 @@ def get_organization_id_from_token(token_id: str) -> int | None:
     return installation.organization_id if installation else None
 
 
-def get_rate_limit_value(
-    http_method: str, endpoint: Type[object], category: RateLimitCategory
-) -> RateLimit | None:
-    """Read the rate limit from the view function to be used for the rate limit check."""
+@lru_cache(maxsize=128)
+def get_rate_limit_config(endpoint: Type[object]) -> RateLimitConfig | None:
+    """Read the rate limit config from the view function to be used for the rate limit check.
+
+    Endpoints can inherit their rate limit config from a different base class or mixin.
+    """
     found_endpoint_class = False
     seen_classes = {endpoint}
     classes_queue = [endpoint]
@@ -106,11 +109,7 @@ def get_rate_limit_value(
         rate_limit_config = getattr(next_class, "rate_limits", None)
         if rate_limit_config is not None:
             found_endpoint_class = True
-            rate_limit_config = RateLimitConfig.from_rate_limit_override_dict(rate_limit_config)
-            ratelimit_option = rate_limit_config.get_rate_limit(http_method, category)
-            if ratelimit_option:
-                return ratelimit_option
-
+            return RateLimitConfig.from_rate_limit_override_dict(rate_limit_config)
         # Everything will eventually hit `object`, which has no __bases__.
         for klass in next_class.__bases__:
             # Short-circuit for diamond inheritance.
@@ -120,7 +119,18 @@ def get_rate_limit_value(
 
     if not found_endpoint_class:
         return None
-    return DEFAULT_RATE_LIMIT_CONFIG.get_rate_limit(http_method, category)
+    return DEFAULT_RATE_LIMIT_CONFIG
+
+
+def get_rate_limit_value(
+    http_method: str, endpoint: Type[object], category: RateLimitCategory
+) -> RateLimit | None:
+    """Read the rate limit from the view function to be used for the rate limit check."""
+    # types are hashable in python, the type checker disagrees though
+    rate_limit_config = get_rate_limit_config(cast(Hashable, endpoint))
+    if not rate_limit_config:
+        return None
+    return rate_limit_config.get_rate_limit(http_method, category)
 
 
 def above_rate_limit_check(key: str, rate_limit: RateLimit) -> RateLimitMeta:

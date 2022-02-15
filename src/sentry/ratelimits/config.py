@@ -23,7 +23,9 @@ _SENTRY_RATELIMITER_DEFAULT = 620
 
 
 _SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory, RateLimit]] = {
-    "default": {RateLimitCategory.ORGANIZATION: RateLimit(_SENTRY_RATELIMITER_DEFAULT, 1)}
+    "default": {
+        category: RateLimit(_SENTRY_RATELIMITER_DEFAULT, 1) for category in RateLimitCategory
+    }
 }
 
 
@@ -37,14 +39,7 @@ def get_default_rate_limits_for_group(group_name: str, category: RateLimitCatego
     )
     if category in group_config:
         return group_config[category]
-    else:
-        # if the specific category is not configured, try and find one in order of the enum
-        for category in iter(RateLimitCategory):
-            limit = group_config.get(category, None)
-            if isinstance(limit, RateLimit):
-                return limit
-
-    return _SENTRY_RATELIMITER_GROUP_DEFAULTS["default"][RateLimitCategory.ORGANIZATION]
+    return _SENTRY_RATELIMITER_GROUP_DEFAULTS["default"][category]
 
 
 @dataclass(frozen=True)
