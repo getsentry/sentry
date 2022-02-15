@@ -9,6 +9,7 @@ export type Trace = {
   device_locale: string;
   device_manufacturer: string;
   device_model: string;
+  failed: boolean;
   id: string;
   interaction_name: string;
   start_time_unix: number;
@@ -17,7 +18,6 @@ export type Trace = {
   error_code?: number;
   error_code_name?: string;
   error_description?: string;
-  failed?: boolean;
   span_annotations?: Readonly<Annotation[]>;
   spans?: Readonly<Span[]>;
   trace_annotations?: Readonly<Annotation[]>;

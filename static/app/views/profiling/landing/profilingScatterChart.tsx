@@ -15,12 +15,10 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
-import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {Trace} from 'sentry/types/profiling/trace';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
 import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
@@ -103,16 +101,7 @@ function ProfilingScatterChart({
             return (
               <TransitionChart loading={loading} reloading={reloading}>
                 <TransparentLoadingMask visible={reloading} />
-                {getDynamicText({
-                  value: (
-                    <ScatterChart
-                      series={series}
-                      {...chartOptions}
-                      {...zoomRenderProps}
-                    />
-                  ),
-                  fixed: <Placeholder height="200px" />,
-                })}
+                <ScatterChart series={series} {...chartOptions} {...zoomRenderProps} />
               </TransitionChart>
             );
           }}
