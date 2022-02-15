@@ -542,7 +542,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
 
         self.__closed = False
         self.__metrics = get_metrics()
-        self.__produced_message_offsets = {}
+        self.__produced_message_offsets: MutableMapping[Partition, Position] = {}
         self.__callbacks = 0
         self.__started = time.time()
         # Need to make these flags
@@ -565,7 +565,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
 
         return False
 
-    def _record_poll_duration(self, poll_duration) -> None:
+    def _record_poll_duration(self, poll_duration: float) -> None:
         self.__poll_duration_sum += poll_duration
 
         # record poll time durations every 5 seconds
