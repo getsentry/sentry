@@ -3,10 +3,10 @@ from typing import Any
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
-from semtry.api.paginator import GenericOffsetPaginator
 
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.http import safe_urlopen
 from sentry.models import Organization
 
