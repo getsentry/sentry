@@ -4,6 +4,7 @@ import re
 import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.template.defaultfilters import slugify
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,7 +14,13 @@ from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerialize
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.team import TeamSCIMSerializer
+from sentry.api.serializers.models.team import (
+    OrganizationTeamSCIMSerializerResponse,
+    TeamSCIMSerializer,
+)
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.decorators import public
+from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.models import (
     AuditLogEntryEvent,
     OrganizationMember,
@@ -36,7 +43,9 @@ from .utils import (
     OrganizationSCIMTeamPermission,
     SCIMEndpoint,
     SCIMFilterError,
+    SCIMQueryParamSerializer,
     parse_filter_conditions,
+    scim_response_envelope,
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -46,6 +55,7 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
+@public(methods={"GET"})
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
@@ -55,7 +65,45 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     def should_add_creator_to_team(self, request: Request):
         return False
 
+    @extend_schema(
+        operation_id="List an Organization's Paginated Teams",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIMQueryParamSerializer],
+        request=None,
+        responses={
+            200: scim_response_envelope(
+                "SCIMTeamIndexResponse", OrganizationTeamSCIMSerializerResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "listGroups",
+                value={
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+                    "totalResults": 1,
+                    "startIndex": 1,
+                    "itemsPerPage": 1,
+                    "Resources": [
+                        {
+                            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                            "id": "23232",
+                            "displayName": "test-scimv2",
+                            "members": [],
+                            "meta": {"resourceType": "Group"},
+                        }
+                    ],
+                },
+                status_codes=["200"],
+            ),
+        ],
+    )
     def get(self, request: Request, organization) -> Response:
+        """
+        Returns a paginated list of teams bound to a organization with a SCIM Groups GET Request.
+        - Note that the members field will only contain up to 10000 members.
+        """
 
         query_params = self.get_query_parameters(request)
 
