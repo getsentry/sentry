@@ -21,6 +21,9 @@ def parametrize_backend(cls):
     hopefully we won't have more than one backend in the future.
     """
 
+    assert not hasattr(cls, "backend")
+    cls.backend = SessionsReleaseHealthBackend()
+
     class MetricsTest(SessionMetricsTestCase, cls):
         __doc__ = f"Repeat tests from {cls} with metrics"
         backend = MetricsReleaseHealthBackend()
@@ -54,8 +57,6 @@ def make_24h_stats(ts):
 
 @parametrize_backend
 class SnubaSessionsTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-
     def setUp(self):
         super().setUp()
         self.received = time.time()
@@ -920,8 +921,6 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         In the previous 24h (>24h & <48h) -> 4 Exited + 1 Crashed / 5 Total Sessions -> 80%
     """
 
-    backend = SessionsReleaseHealthBackend()
-
     def setUp(self):
         super().setUp()
         self.session_started = time.time() // 60 * 60
@@ -1049,8 +1048,6 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
 
 @parametrize_backend
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-
     def test_empty(self):
         # Test no errors when no session data
         org = self.create_organization()
@@ -1117,8 +1114,6 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
 
 @parametrize_backend
 class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-
     def run_test(self, expected, projects, releases, start=None, end=None):
         if not start:
             start = datetime.now() - timedelta(days=1)
@@ -1162,8 +1157,6 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
 
 @parametrize_backend
 class CheckNumberOfSessions(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-
     def setUp(self):
         super().setUp()
         self.dev_env = self.create_environment(name="development", project=self.project)
