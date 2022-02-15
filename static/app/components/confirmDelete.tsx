@@ -2,9 +2,9 @@ import * as React from 'react';
 
 import Alert from 'sentry/components/alert';
 import Confirm from 'sentry/components/confirm';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
 import {t} from 'sentry/locale';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = Omit<React.ComponentProps<typeof Confirm>, 'renderConfirmMessage'> & {
   /**

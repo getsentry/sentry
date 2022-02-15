@@ -12,7 +12,7 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
-from sentry.models.integrationfeature import IntegrationTypes
+from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.testutils import TestCase
 
 
@@ -108,7 +108,7 @@ class TestCreator(TestCase):
         ).exists()
 
     @patch("sentry.mediators.sentry_apps.creator.Creator.log")
-    @patch("sentry.models.integrationfeature.IntegrationFeature.objects.create")
+    @patch("sentry.models.integrations.integration_feature.IntegrationFeature.objects.create")
     def test_raises_error_creating_integration_feature(self, mock_create, mock_log):
         mock_create.side_effect = IntegrityError()
         self.creator.call()
