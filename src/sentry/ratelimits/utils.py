@@ -36,8 +36,8 @@ def can_be_ratelimited(request: Request, view_func: EndpointFunction) -> bool:
 
 def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
-
     view = view_func.__qualname__
+    rate_limit_config = get_rate_limit_config(view_func.view_class)
     http_method = request.method
 
     # This avoids touching user session, which means we avoid
@@ -84,7 +84,9 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
     # If IP address doesn't exist, skip ratelimiting for now
     else:
         return None
-    return f"{category}:{view}:{http_method}:{id}"
+    # TODO: remove view from this key, it's not necessary
+    group = rate_limit_config.group if rate_limit_config else "default"
+    return f"{category}:{group}:{view}:{http_method}:{id}"
 
 
 def get_organization_id_from_token(token_id: str) -> int | None:
