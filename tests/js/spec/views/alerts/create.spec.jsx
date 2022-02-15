@@ -173,7 +173,54 @@ describe('ProjectAlertsCreate', function () {
       expect(screen.getByDisplayValue('30')).toBeInTheDocument();
     });
 
-    it('can remove filters, conditions and actions', async function () {
+    it('can remove filters', async function () {
+      createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
+
+      await waitFor(() => {
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+      });
+
+      // Change name of alert rule
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+
+      // Add a filter and remove it
+      await selectEvent.select(screen.getByText('Add optional filter...'), [
+        'The issue is {comparison_type} than {value} {time}',
+      ]);
+
+      userEvent.click(screen.getByLabelText('Delete Node'));
+
+      userEvent.click(screen.getByText('Save Rule'));
+
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
+    });
+
+    it('can remove conditions', async function () {
       createWrapper({
         organization: {
           features: ['alert-filters'],
@@ -208,12 +255,45 @@ describe('ProjectAlertsCreate', function () {
         type: 'conditions',
       });
 
-      // Add a filter and remove it
-      await selectEvent.select(screen.getByText('Add optional filter...'), [
-        'The issue is {comparison_type} than {value} {time}',
-      ]);
+      userEvent.click(screen.getByText('Save Rule'));
 
-      userEvent.click(screen.getByLabelText('Delete Node'));
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
+    });
+
+    it('can remove actions', async function () {
+      createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
+
+      await waitFor(() => {
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+      });
+
+      // Change name of alert rule
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
