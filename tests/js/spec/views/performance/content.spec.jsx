@@ -286,7 +286,7 @@ describe('Performance > Content', function () {
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);
 
-    // Chart and Table should render.
+    // Table should render.
     expect(wrapper.find('Table')).toHaveLength(1);
     wrapper.unmount();
   });
@@ -310,8 +310,7 @@ describe('Performance > Content', function () {
     // onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(1);
 
-    // Chart and table should not show.
-    expect(wrapper.find('ChartFooter')).toHaveLength(0);
+    // Table should not show.
     expect(wrapper.find('Table')).toHaveLength(0);
     wrapper.unmount();
   });
