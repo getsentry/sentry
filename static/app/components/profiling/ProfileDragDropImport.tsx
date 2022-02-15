@@ -20,26 +20,30 @@ function ProfileDragDropImport({
   );
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
-  const onDrop = React.useCallback((evt: React.DragEvent<HTMLDivElement>) => {
-    evt.preventDefault();
-    evt.stopPropagation();
+  const onDrop = React.useCallback(
+    (evt: React.DragEvent<HTMLDivElement>) => {
+      evt.preventDefault();
+      evt.stopPropagation();
 
-    const file = evt.dataTransfer.items[0].getAsFile();
-    setDropState('processing');
+      const file = evt.dataTransfer.items[0].getAsFile();
 
-    if (file) {
-      importDroppedProfile(file)
-        .then(profile => {
-          setDropState('idle');
-          setErrorMessage(null);
+      if (file) {
+        setDropState('processing');
+        importDroppedProfile(file)
+          .then(profile => {
+            setDropState('idle');
+            setErrorMessage(null);
 
-          onImport(profile);
-        })
-        .catch(e => {
-          setErrorMessage(e.message);
-        });
-    }
-  }, []);
+            onImport(profile);
+          })
+          .catch(e => {
+            setDropState('idle');
+            setErrorMessage(e.message);
+          });
+      }
+    },
+    [onImport]
+  );
 
   const onDragEnter = React.useCallback((evt: React.DragEvent<HTMLDivElement>) => {
     evt.preventDefault();
@@ -53,6 +57,7 @@ function ProfileDragDropImport({
     setDropState('idle');
   }, []);
 
+  // This is required to indicate that onDrop is supported on this element
   const onDragOver = React.useCallback((evt: React.DragEvent<HTMLDivElement>) => {
     evt.preventDefault();
   }, []);

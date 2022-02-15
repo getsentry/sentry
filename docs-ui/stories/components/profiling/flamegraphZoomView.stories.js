@@ -35,6 +35,10 @@ export const EventedTrace = () => {
     [view.inverted, view.leftHeavy]
   );
 
+  React.useEffect(() => {
+    setFlamegraph(new Flamegraph(profiles.profiles[0], 0, view.inverted, view.leftHeavy));
+  }, [view.inverted, view.leftHeavy]);
+
   return (
     <div
       style={{
