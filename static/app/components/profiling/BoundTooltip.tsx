@@ -2,7 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {getContext, measureText, Rect} from 'sentry/utils/profiling/gl/utils';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 
@@ -37,7 +37,6 @@ interface BoundTooltipProps {
   bounds: Rect;
   configToPhysicalSpace: mat3;
   cursor: vec2 | null;
-  theme: FlamegraphTheme;
   children?: React.ReactNode;
 }
 
@@ -46,11 +45,11 @@ function BoundTooltip({
   configToPhysicalSpace,
   cursor,
   children,
-  theme,
 }: BoundTooltipProps): React.ReactElement | null {
   const tooltipRef = React.useRef<HTMLDivElement>(null);
   const tooltipRect = useCachedMeasure(tooltipRef.current?.textContent ?? '');
   const devicePixelRatio = useDevicePixelRatio();
+  const flamegraphTheme = useFlamegraphTheme();
 
   const physicalToLogicalSpace = React.useMemo(
     () =>
@@ -114,8 +113,8 @@ function BoundTooltip({
     <Tooltip
       ref={tooltipRef}
       style={{
-        fontSize: theme.SIZES.TOOLTIP_FONT_SIZE,
-        fontFamily: theme.FONTS.FONT,
+        fontSize: flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE,
+        fontFamily: flamegraphTheme.FONTS.FONT,
         left: cursorHorizontalPosition,
         top: cursorVerticalPosition,
         width: Math.min(tooltipRect.width, bounds.width - cursorHorizontalPosition - 2),
