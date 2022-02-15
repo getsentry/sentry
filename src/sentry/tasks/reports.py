@@ -843,6 +843,12 @@ def build_message(timestamp, duration, organization, user, reports):
     start, stop = interval = _to_interval(timestamp, duration)
 
     duration_spec = durations[duration]
+    html_template = None
+    if features.has("organizations:new-weekly-report", organization, actor=user):
+        html_template = "sentry/emails/reports/new.html"
+    else:
+        html_template = "sentry/emails/reports/body.html"
+
     message = MessageBuilder(
         subject="{} Report for {}: {} - {}".format(
             duration_spec.adjective.title(),
@@ -851,7 +857,7 @@ def build_message(timestamp, duration, organization, user, reports):
             date_format(stop),
         ),
         template="sentry/emails/reports/body.txt",
-        html_template="sentry/emails/reports/body.html",
+        html_template=html_template,
         type="report.organization",
         context={
             "duration": duration_spec,

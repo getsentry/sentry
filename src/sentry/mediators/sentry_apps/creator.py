@@ -14,8 +14,8 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
-from sentry.models.integrationfeature import IntegrationTypes
-from sentry.models.sentryapp import default_uuid, generate_slug
+from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.integrations.sentry_app import default_uuid, generate_slug
 
 from .mixin import SentryAppMixin
 

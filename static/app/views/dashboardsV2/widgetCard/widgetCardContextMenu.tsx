@@ -26,14 +26,14 @@ import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import {Widget, WidgetType} from '../types';
 
 type Props = {
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onEdit: () => void;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
   isPreview?: boolean;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onEdit?: () => void;
   showContextMenu?: boolean;
 };
 
@@ -178,7 +178,7 @@ function WidgetCardContextMenu({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       leadingItems: <IconCopy />,
-      onAction: () => onDuplicate(),
+      onAction: () => onDuplicate?.(),
     });
     widgetLimitReached && disabledKeys.push('duplicate-widget');
 
@@ -186,7 +186,7 @@ function WidgetCardContextMenu({
       key: 'edit-widget',
       label: t('Edit Widget'),
       leadingItems: <IconEdit />,
-      onAction: () => onEdit(),
+      onAction: () => onEdit?.(),
     });
 
     menuOptions.push({
@@ -198,7 +198,7 @@ function WidgetCardContextMenu({
         openConfirmModal({
           message: t('Are you sure you want to delete this widget?'),
           priority: 'danger',
-          onConfirm: () => onDelete(),
+          onConfirm: () => onDelete?.(),
         });
       },
     });
