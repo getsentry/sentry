@@ -8,6 +8,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
+import NumberField from 'sentry/components/forms/numberField';
 import MenuItem from 'sentry/components/menuItem';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -22,7 +23,6 @@ import {
 } from 'sentry/types/dynamicSampling';
 import {defined} from 'sentry/utils';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-import NumberField from 'sentry/views/settings/components/forms/numberField';
 
 import Conditions from './conditions';
 import {getErrorMessage, isLegacyBrowser} from './utils';

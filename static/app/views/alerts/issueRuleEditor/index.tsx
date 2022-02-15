@@ -18,6 +18,10 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
+import Form from 'sentry/components/forms/form';
+import SelectField from 'sentry/components/forms/selectField';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
@@ -45,10 +49,6 @@ import {
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/changeAlerts/constants';
 import AsyncView from 'sentry/views/asyncView';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Field from 'sentry/views/settings/components/forms/field';
-import Form from 'sentry/views/settings/components/forms/form';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import RuleNodeList from './ruleNodeList';
 import SetupAlertIntegrationButton from './setupAlertIntegrationButton';

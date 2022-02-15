@@ -5,6 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import Alert from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
@@ -14,7 +15,6 @@ import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import AsyncView from 'sentry/views/asyncView';
-import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 

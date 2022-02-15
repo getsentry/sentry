@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {MultipleCheckboxField} from 'sentry/components/deprecatedforms';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormModel from 'sentry/views/settings/components/forms/model';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 
 describe('MultipleCheckboxField', function () {
   it('renders without form context', function () {

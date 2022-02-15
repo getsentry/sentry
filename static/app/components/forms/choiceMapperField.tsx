@@ -5,12 +5,12 @@ import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
+import InputField from 'sentry/components/forms/inputField';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
-import InputField from 'sentry/views/settings/components/forms/inputField';
 
 type InputFieldProps = React.ComponentProps<typeof InputField>;
 

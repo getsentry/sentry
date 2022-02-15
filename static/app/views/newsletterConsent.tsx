@@ -1,11 +1,11 @@
 import {useEffect} from 'react';
 
+import {ApiForm, InputField} from 'sentry/components/forms';
+import RadioBoolean from 'sentry/components/forms/controls/radioBoolean';
+import FieldWrapper from 'sentry/components/forms/field/fieldWrapper';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
-import {ApiForm, InputField} from 'sentry/views/settings/components/forms';
-import RadioBoolean from 'sentry/views/settings/components/forms/controls/radioBoolean';
-import FieldWrapper from 'sentry/views/settings/components/forms/field/fieldWrapper';
 
 type Props = {
   onSubmitSuccess?: () => void;
