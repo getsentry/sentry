@@ -1,3 +1,35 @@
+22.2.0
+------
+
+### Various fixes & improvements
+
+- ref(ui) Move forms out of views/settings/components (#31785) by @markstory
+- feat(perf): Show link to docs when some web vitals data is missing (#31764) by @0Calories
+- feat(dashboard): Add duplicate widget button in dashboard edit mode (#31776) by @edwardgou-sentry
+- feat(metrics): Add metrics to series transformer (#31783) by @matejminar
+- ref(new-widget-builder-experience): Add visualization & query fields  (#31786) by @priscilawebdev
+- feat(profiling): add flamegraph tooltip (#31663) by @JonasBa
+- ref(endpoints): SentryApp endpoints module (#31749) by @mgaeta
+- feat(ui): Add empty state for for review tab (#31782) by @taylangocmen
+- ref(models): Move more models to submodules (#31583) by @mgaeta
+- Select weekly email template based on feature flag (#31802) by @Neo-Zhixing
+- feat(workflow): Add alert-rule-status-page flag (#31796) by @scttcper
+- fix(perf): Transaction is missing in perfForSentry (#31801) by @k-fish
+- feat(codeowners): add api owners group to CODEOWNERS (#31739) by @JoshFerge
+- meta(gha): Deploy workflow issue-routing-helper.yml (#31798) by @chadwhitacre
+- chore(auth): Enable automatic IdP migration for all users (#31774) by @RyanSkonnord
+- feat(ratelimits): Turn on rate limit enforcement (#31789) by @AniketDas-Tekky
+- ref(perf): Switch VC component to use perf.now (#31795) by @k-fish
+- ref(api): Refactor organization_member_team_details (#31751) by @RyanSkonnord
+- fix(pagerduty): Fix logging params (#31794) by @ceorourke
+- feat(dashboards): widget viewer modal feature flags (#31792) by @edwardgou-sentry
+- feat(reports): Include transactions in project series histogram (#30839) by @Neo-Zhixing
+- feat(apidocs): document SCIM member index post with new tooling (#31695) by @JoshFerge
+- feat(apidocs): document SCIM member index get with new tooling (#31694) by @JoshFerge
+- fix(alert-rule-action): Initialize formdata with existing values (#31710) by @NisanthanNanthakumar
+
+_Plus 502 more_
+
 22.1.0
 ------
 
