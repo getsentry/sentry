@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta
 from sentry.utils.hashlib import md5_text
 
@@ -102,15 +103,13 @@ def get_rate_limit_value(
     classes_queue = [endpoint]
     while len(classes_queue) > 0:
         next_class = classes_queue.pop(0)
-        rate_limit_lookup_dict = getattr(next_class, "rate_limits", None)
-        if rate_limit_lookup_dict is not None:
+        rate_limit_config = getattr(next_class, "rate_limits", None)
+        if rate_limit_config is not None:
             found_endpoint_class = True
-        else:
-            rate_limit_lookup_dict = {}
-        ratelimits_by_category = rate_limit_lookup_dict.get(http_method, {})
-        ratelimit_option = ratelimits_by_category.get(category)
-        if ratelimit_option:
-            return ratelimit_option
+            rate_limit_config = RateLimitConfig.from_rate_limit_override_dict(rate_limit_config)
+            ratelimit_option = rate_limit_config.get_rate_limit(http_method, category)
+            if ratelimit_option:
+                return ratelimit_option
 
         # Everything will eventually hit `object`, which has no __bases__.
         for klass in next_class.__bases__:
@@ -121,7 +120,7 @@ def get_rate_limit_value(
 
     if not found_endpoint_class:
         return None
-    return settings.SENTRY_RATELIMITER_DEFAULTS[category]
+    return DEFAULT_RATE_LIMIT_CONFIG.get_rate_limit(http_method, category)
 
 
 def above_rate_limit_check(key: str, rate_limit: RateLimit) -> RateLimitMeta:

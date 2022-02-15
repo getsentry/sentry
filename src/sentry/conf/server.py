@@ -15,7 +15,6 @@ from urllib.parse import urlparse
 from django.conf.global_settings import *  # NOQA
 
 import sentry
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -1365,15 +1364,6 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_ENABLED = True
 SENTRY_RATELIMITER_OPTIONS = {}
-# These values were determined from analysis on one week of api access logs
-SENTRY_RATELIMITER_DEFAULT_IP = 620
-SENTRY_RATELIMITER_DEFAULT_USER = 620
-SENTRY_RATELIMITER_DEFAULT_ORG = 620
-SENTRY_RATELIMITER_DEFAULTS = {
-    RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),
-    RateLimitCategory.USER: RateLimit(SENTRY_RATELIMITER_DEFAULT_USER, 1),
-    RateLimitCategory.ORGANIZATION: RateLimit(SENTRY_RATELIMITER_DEFAULT_ORG, 1),
-}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"

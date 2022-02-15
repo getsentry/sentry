@@ -2,7 +2,6 @@ from time import time
 from unittest.mock import patch
 
 from before_after import before
-from django.conf import settings
 from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
@@ -20,6 +19,7 @@ from sentry.middleware.ratelimit import (
     get_rate_limit_value,
 )
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
+from sentry.ratelimits.config import get_default_rate_limits_for_group
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -174,18 +174,15 @@ class TestGetRateLimitValue(TestCase):
         class TestEndpoint(Endpoint):
             pass
 
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, "ip")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["ip"]
+        assert get_rate_limit_value("GET", TestEndpoint, "ip") == get_default_rate_limits_for_group(
+            "default", RateLimitCategory.IP
         )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, "org")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["org"]
-        )
-        assert (
-            get_rate_limit_value("DELETE", TestEndpoint, "user")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["user"]
-        )
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, "org"
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)
+        assert get_rate_limit_value(
+            "DELETE", TestEndpoint, "user"
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
     def test_override_rate_limit(self):
         """Override one or more of the default rate limits"""
@@ -197,14 +194,12 @@ class TestGetRateLimitValue(TestCase):
             }
 
         assert get_rate_limit_value("GET", TestEndpoint, "ip") == RateLimit(100, 5)
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, "user")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["user"]
-        )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, "ip")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["ip"]
-        )
+        assert get_rate_limit_value(
+            "GET", TestEndpoint, "user"
+        ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.USER)
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, "ip"
+        ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)
         assert get_rate_limit_value("POST", TestEndpoint, "user") == RateLimit(20, 4)
 
     def test_non_endpoint(self):
