@@ -9,9 +9,7 @@ import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {VitalGroup} from 'sentry/utils/performance/vitals/types';
-import VitalsCardDiscoverQuery, {
-  VitalData,
-} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {NUM_BUCKETS, VITAL_GROUPS} from './constants';
@@ -21,6 +19,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  results: object;
   dataFilter?: DataFilter;
 };
 
@@ -148,30 +147,17 @@ class VitalsPanel extends Component<Props> {
   }
 
   render() {
-    const {location, organization, eventView} = this.props;
-
-    const allVitals = VITAL_GROUPS.reduce((keys: WebVital[], {vitals}) => {
-      return keys.concat(vitals);
-    }, []);
+    const {results} = this.props;
 
     return (
       <Panel>
-        <VitalsCardDiscoverQuery
-          eventView={eventView}
-          orgSlug={organization.slug}
-          location={location}
-          vitals={allVitals}
-        >
-          {results => (
-            <Fragment>
-              {VITAL_GROUPS.map(vitalGroup => (
-                <Fragment key={vitalGroup.vitals.join('')}>
-                  {this.renderVitalGroup(vitalGroup, results)}
-                </Fragment>
-              ))}
+        <Fragment>
+          {VITAL_GROUPS.map(vitalGroup => (
+            <Fragment key={vitalGroup.vitals.join('')}>
+              {this.renderVitalGroup(vitalGroup, results)}
             </Fragment>
-          )}
-        </VitalsCardDiscoverQuery>
+          ))}
+        </Fragment>
       </Panel>
     );
   }
