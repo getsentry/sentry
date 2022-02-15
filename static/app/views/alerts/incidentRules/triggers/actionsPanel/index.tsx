@@ -105,7 +105,7 @@ const getFullActionTitle = ({
   'type' | 'integrationName' | 'sentryAppName' | 'status'
 >) => {
   if (sentryAppName) {
-    if (status) {
+    if (status && status !== 'published') {
       return `${sentryAppName} (${status})`;
     }
     return `${sentryAppName}`;

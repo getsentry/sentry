@@ -1,9 +1,9 @@
 import isUndefined from 'lodash/isUndefined';
 
+import {Form} from 'sentry/components/forms';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
-import {Form} from 'sentry/views/settings/components/forms';
 
 import {getOption, getOptionField} from './options';
 
