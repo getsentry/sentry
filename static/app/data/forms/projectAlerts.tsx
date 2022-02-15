@@ -1,5 +1,5 @@
+import {Field} from 'sentry/components/forms/type';
 import {t, tn} from 'sentry/locale';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/alerts/';

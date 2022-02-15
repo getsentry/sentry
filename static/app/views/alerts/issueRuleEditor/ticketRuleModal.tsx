@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Choices, IssueConfigField, Organization} from 'sentry/types';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
 import AsyncView from 'sentry/views/asyncView';
-import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = {
   // Comes from the in-code definition of a `TicketEventAction`.

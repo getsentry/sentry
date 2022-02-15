@@ -1,54 +1,51 @@
 import * as React from 'react';
+import omit from 'lodash/omit';
 
+import Input from 'sentry/components/forms/controls/input';
 import FormField from 'sentry/components/forms/formField';
 
-type InputFieldProps = FormField['props'] & {
-  autoComplete?: string;
-  inputStyle?: object;
-  min?: number;
-  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
-  onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
-  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  onKeyPress?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  placeholder?: string;
-  step?: number;
-};
+type Props = {
+  // TODO(ts) Add base types for this. Each input field
+  // has different props, but we could use have a base type that contains
+  // the common properties.
+  field?: (props) => React.ReactNode;
+  value?: any;
+} & Omit<FormField['props'], 'children'> &
+  Omit<
+    React.ComponentPropsWithoutRef<'input'>,
+    'value' | 'placeholder' | 'disabled' | 'onBlur' | 'onKeyDown' | 'onChange'
+  >;
 
-class InputField<
-  Props extends InputFieldProps = InputFieldProps,
-  State extends FormField['state'] = FormField['state']
-> extends FormField<Props, State> {
-  getField() {
-    return (
-      <input
-        id={this.getId()} // TODO(Priscila): check the reason behind this. We are getting warnings if we have 2 or more fields with the same name, for instance in the DATA PRIVACY RULES
-        type={this.getType()}
-        className="form-control"
-        autoComplete={this.props.autoComplete}
-        placeholder={this.props.placeholder}
-        onChange={this.onChange}
-        disabled={this.props.disabled}
-        name={this.props.name}
-        required={this.props.required}
-        value={this.state.value as string | number} // can't pass in boolean here
-        style={this.props.inputStyle}
-        onBlur={this.props.onBlur}
-        onFocus={this.props.onFocus}
-        onKeyPress={this.props.onKeyPress}
-        onKeyDown={this.props.onKeyDown}
-        min={this.props.min}
-        step={this.props.step}
+export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
+
+export default class InputField extends React.Component<Props> {
+  static defaultProps = {
+    field: ({
+      onChange,
+      onBlur,
+      onKeyDown,
+      ...props
+    }: {
+      onBlur: onEvent;
+      onChange: onEvent;
+      onKeyDown: onEvent;
+    }) => (
+      <Input
+        {...props}
+        onBlur={e => onBlur(e.target.value, e)}
+        onKeyDown={e => onKeyDown((e.target as any).value, e)}
+        onChange={e => onChange(e.target.value, e)}
       />
+    ),
+  };
+
+  render() {
+    const {className, field} = this.props;
+
+    return (
+      <FormField className={className} {...this.props}>
+        {formFieldProps => field && field(omit(formFieldProps, 'children'))}
+      </FormField>
     );
   }
-
-  getClassName() {
-    return 'control-group';
-  }
-
-  getType(): string {
-    throw new Error('Must be implemented by child.');
-  }
 }
-
-export default InputField;
