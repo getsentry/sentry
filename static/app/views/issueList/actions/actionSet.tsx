@@ -60,7 +60,7 @@ function ActionSet({
   const canMarkReviewed =
     anySelected && (allInQuerySelected || selectedIssues.some(issue => !!issue?.inbox));
 
-  // Determine whether to nest "Merge" and "Mark as Reviewed" buttons insde
+  // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeButton = useMedia(`(max-width: ${theme.breakpoints[2]})`);
