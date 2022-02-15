@@ -34,9 +34,6 @@ type Props = WithRouterProps & {
   isEditing: boolean;
   isSorting: boolean;
   location: Location;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onEdit: () => void;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -46,6 +43,9 @@ type Props = WithRouterProps & {
   isMobile?: boolean;
   isPreview?: boolean;
   noLazyLoad?: boolean;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onEdit?: () => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
   tableItemLimit?: number;
