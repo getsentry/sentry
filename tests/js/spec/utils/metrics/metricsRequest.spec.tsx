@@ -1,6 +1,11 @@
 import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
+import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
+
+jest.mock('sentry/utils/metrics/transformMetricsResponseToSeries', () => ({
+  transformMetricsResponseToSeries: jest.fn().mockReturnValue([]),
+}));
 
 describe('MetricsRequest', () => {
   const project = TestStubs.Project();
@@ -250,5 +255,31 @@ describe('MetricsRequest', () => {
         },
       })
     );
+  });
+
+  it('includes series data', () => {
+    mountWithTheme(
+      <MetricsRequest {...props} includeSeriesData includePrevious>
+        {childrenMock}
+      </MetricsRequest>
+    );
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+
+    expect(childrenMock).toHaveBeenLastCalledWith({
+      error: null,
+      errored: false,
+      isLoading: true,
+      loading: true,
+      pageLinks: null,
+      reloading: false,
+      response: null,
+      responsePrevious: null,
+      seriesData: [],
+      seriesDataPrevious: [],
+      tableData: undefined,
+    });
+
+    expect(transformMetricsResponseToSeries).toHaveBeenCalledWith(null);
   });
 });
