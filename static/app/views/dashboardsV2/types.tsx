@@ -22,6 +22,7 @@ export enum DisplayType {
 export enum WidgetType {
   DISCOVER = 'discover',
   ISSUE = 'issue',
+  METRICS = 'metrics',
 }
 
 export type WidgetQuery = {
@@ -37,9 +38,19 @@ export type Widget = {
   queries: WidgetQuery[];
   title: string;
   id?: string;
-  layout?: Partial<Layout>;
+  layout?: WidgetLayout | null;
   tempId?: string;
   widgetType?: WidgetType;
+};
+
+// We store an explicit set of keys in the backend now
+export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
+  minH: number;
+};
+
+export type WidgetPreview = {
+  displayType: DisplayType;
+  layout: WidgetLayout | null;
 };
 
 /**
@@ -49,6 +60,7 @@ export type DashboardListItem = {
   id: string;
   title: string;
   widgetDisplay: DisplayType[];
+  widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
 };

@@ -260,3 +260,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     }),
   };
 };
+
+export const getPreviousSeriesName = (seriesName: string) => {
+  return `previous ${seriesName}`;
+};

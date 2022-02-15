@@ -1,39 +1,5 @@
-interface LocalStorage {
-  getItem(key: string): string | null;
-  removeItem(key: string): void;
-  setItem(key: string, value: string): void;
-}
+import createLocalStorage from './createStorage';
 
-function createLocalStorage(): LocalStorage {
-  try {
-    const localStorage = window.localStorage;
+const Storage = createLocalStorage(() => window.localStorage);
 
-    const mod = 'sentry';
-    localStorage.setItem(mod, mod);
-    localStorage.removeItem(mod);
-
-    return {
-      setItem: localStorage.setItem.bind(localStorage),
-      getItem: localStorage.getItem.bind(localStorage),
-      removeItem: localStorage.removeItem.bind(localStorage),
-    } as LocalStorage;
-  } catch (e) {
-    return {
-      setItem() {
-        return;
-      },
-      // Returns null if key doesn't exist:
-      // https://developer.mozilla.org/en-US/docs/Web/API/Storage/getItem
-      getItem() {
-        return null;
-      },
-      removeItem() {
-        return null;
-      },
-    } as LocalStorage;
-  }
-}
-
-const functions = createLocalStorage();
-
-export default functions;
+export default Storage;

@@ -29,6 +29,7 @@ export function mountWithTheme(tree, opts) {
 export const shallow = enzymeShallow;
 
 /**
+ * @deprecated
  * Force the useLegacyStore setState updates to be wrapped in act.
  *
  * This is useful for old-style enzyme tests where enzyme does not correctly

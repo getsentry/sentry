@@ -1,9 +1,8 @@
 from typing import Any, List, Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import DocIntegrationAvatar
-from sentry.models.integration import DocIntegration
-from sentry.models.integrationfeature import IntegrationFeature, IntegrationTypes
+from sentry.models import DocIntegration, DocIntegrationAvatar, IntegrationFeature
+from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.models.user import User
 from sentry.utils.compat import map
 from sentry.utils.json import JSONData

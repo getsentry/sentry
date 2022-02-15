@@ -1,19 +1,20 @@
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
+import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 const makeEmptyEventedTrace = (): EventedProfile => {
-  return EventedProfile.FromProfile({
-    name: 'profile',
-    startValue: 0,
-    endValue: 0,
-    unit: 'microseconds',
-    type: 'evented',
-    events: [],
-    shared: {
-      frames: [],
+  return EventedProfile.FromProfile(
+    {
+      name: 'profile',
+      startValue: 0,
+      endValue: 0,
+      unit: 'microseconds',
+      type: 'evented',
+      events: [],
     },
-  });
+    createFrameIndex([])
+  );
 };
 
 describe('flamegraph', () => {
@@ -38,12 +39,14 @@ describe('flamegraph', () => {
         {type: 'C', at: 600, frame: 1},
         {type: 'C', at: 1000, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
-    const flamegraph = new Flamegraph(EventedProfile.FromProfile(trace), 10, true, true);
+    const flamegraph = new Flamegraph(
+      EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}, {name: 'f1'}])),
+      10,
+      true,
+      true
+    );
     expect(flamegraph.formatter(1000)).toBe('1.00s');
     expect(flamegraph.formatter(500)).toBe('500.00ms');
   });
@@ -61,12 +64,14 @@ describe('flamegraph', () => {
         {type: 'C', at: 2, frame: 1},
         {type: 'C', at: 3, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
-    const flamegraph = new Flamegraph(EventedProfile.FromProfile(trace), 10, true, true);
+    const flamegraph = new Flamegraph(
+      EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}, {name: 'f1'}])),
+      10,
+      true,
+      true
+    );
 
     expect(flamegraph.inverted).toBe(true);
     expect(flamegraph.leftHeavy).toBe(true);
@@ -94,13 +99,13 @@ describe('flamegraph', () => {
         {type: 'C', at: 4, frame: 1},
         {type: 'C', at: 5, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}],
-      },
     };
 
     const flamegraph = new Flamegraph(
-      EventedProfile.FromProfile(trace),
+      EventedProfile.FromProfile(
+        trace,
+        createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      ),
       10,
       false,
       false
@@ -126,13 +131,10 @@ describe('flamegraph', () => {
         {type: 'C', at: 1, frame: 1},
         {type: 'C', at: 3, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
     const flamegraph = new Flamegraph(
-      EventedProfile.FromProfile(trace),
+      EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}, {name: 'f1'}])),
       10,
       false,
       false
@@ -156,13 +158,10 @@ describe('flamegraph', () => {
         {type: 'C', at: 4, frame: 1},
         {type: 'C', at: 5, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
     const flamegraph = new Flamegraph(
-      EventedProfile.FromProfile(trace),
+      EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}, {name: 'f1'}])),
       10,
       false,
       false
@@ -183,13 +182,19 @@ describe('flamegraph', () => {
         {type: 'O', at: 1, frame: 1},
         {type: 'C', at: 1, frame: 1},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
     expect(
-      () => new Flamegraph(EventedProfile.FromProfile(trace), 10, false, false)
+      () =>
+        new Flamegraph(
+          EventedProfile.FromProfile(
+            trace,
+            createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+          ),
+          10,
+          false,
+          false
+        )
     ).toThrow('Unbalanced append order stack');
   });
 
@@ -206,12 +211,14 @@ describe('flamegraph', () => {
         {type: 'O', at: 2, frame: 1},
         {type: 'C', at: 4, frame: 1},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
-    const flamegraph = new Flamegraph(EventedProfile.FromProfile(trace), 10, false, true);
+    const flamegraph = new Flamegraph(
+      EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}, {name: 'f1'}])),
+      10,
+      false,
+      true
+    );
 
     expect(flamegraph.frames[0].frame.name).toBe('f0');
     expect(flamegraph.frames[0].frame.totalWeight).toBe(1);
@@ -239,12 +246,17 @@ describe('flamegraph', () => {
         {type: 'C', at: 4, frame: 2},
         {type: 'C', at: 6, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}],
-      },
     };
 
-    const flamegraph = new Flamegraph(EventedProfile.FromProfile(trace), 10, false, true);
+    const flamegraph = new Flamegraph(
+      EventedProfile.FromProfile(
+        trace,
+        createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      ),
+      10,
+      false,
+      true
+    );
 
     expect(flamegraph.frames[0].frame.name).toBe('f0');
   });
@@ -264,12 +276,17 @@ describe('flamegraph', () => {
         {type: 'C', at: 4, frame: 2},
         {type: 'C', at: 6, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}],
-      },
     };
 
-    const flamegraph = new Flamegraph(EventedProfile.FromProfile(trace), 10, false, true);
+    const flamegraph = new Flamegraph(
+      EventedProfile.FromProfile(
+        trace,
+        createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      ),
+      10,
+      false,
+      true
+    );
 
     expect(
       Flamegraph.From(flamegraph, false, false).configSpace.equals(flamegraph.configSpace)
@@ -295,12 +312,14 @@ describe('flamegraph', () => {
         {type: 'C', at: 2, frame: 1},
         {type: 'C', at: 3, frame: 0},
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
-    const flamegraph = new Flamegraph(EventedProfile.FromProfile(trace), 10, false, true);
+    const flamegraph = new Flamegraph(
+      EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}, {name: 'f1'}])),
+      10,
+      false,
+      true
+    );
     flamegraph.withOffset(500);
 
     expect(flamegraph.frames[0].start).toBe(500);
