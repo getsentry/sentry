@@ -11,7 +11,7 @@ type Props = {
 function RuleDetailsContainer({children}: Props) {
   const organization = useOrganization();
   return (
-    <Feature organization={organization} features={['incidents']}>
+    <Feature organization={organization} features={['alert-rule-status-page']}>
       {children && React.isValidElement(children) ? children : null}
     </Feature>
   );

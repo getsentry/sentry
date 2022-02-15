@@ -1042,6 +1042,17 @@ function buildRoutes() {
             component={SafeLazyLoad}
           />
         </Route>
+        <Route
+          path=":projectId/:ruleId/details/"
+          name={t('Alert Rule Details')}
+          componentPromise={() => import('sentry/views/alerts/details')}
+          component={SafeLazyLoad}
+        >
+          <IndexRoute
+            component={SafeLazyLoad}
+            componentPromise={() => import('sentry/views/alerts/details/ruleDetails')}
+          />
+        </Route>
       </Route>
       <Route path="metric-rules/">
         <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
