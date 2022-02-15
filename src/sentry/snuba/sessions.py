@@ -154,7 +154,13 @@ def _check_releases_have_health_data(
 
 
 def _get_project_releases_by_stability(
-    project_ids, offset, limit, scope, stats_period=None, environments=None
+    project_ids,
+    offset,
+    limit,
+    scope,
+    stats_period=None,
+    environments=None,
+    now=None,
 ):
     """Given some project IDs returns adoption rates that should be updated
     on the postgres tables.
@@ -167,7 +173,7 @@ def _get_project_releases_by_stability(
         scope = scope[:-4]
         stats_period = "24h"
 
-    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
 
     orderby = {
         "crash_free_sessions": [["-divide", ["sessions_crashed", "sessions"]]],
@@ -373,6 +379,7 @@ def _get_release_health_data_overview(
     summary_stats_period=None,
     health_stats_period=None,
     stat=None,
+    now=None,
 ):
     """Checks quickly for which of the given project releases we have
     health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -383,10 +390,12 @@ def _get_release_health_data_overview(
         stat = "sessions"
     assert stat in ("sessions", "users")
 
-    _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
+    _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h", now=now)
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
 
-    stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(health_stats_period)
+    stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(
+        health_stats_period, now=now
+    )
 
     missing_releases = set(project_releases)
     rv = {}

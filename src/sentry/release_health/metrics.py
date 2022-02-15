@@ -857,7 +857,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         session_init_tag_value = resolve_weak("init")
 
         stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(
-            health_stats_period
+            health_stats_period, now=now
         )
 
         aggregates: List[SelectableExpression] = [
@@ -927,7 +927,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
+        _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h", now=now)
         rollup = LEGACY_SESSIONS_DEFAULT_ROLLUP
 
         org_id = self._get_org_id([x for x, _ in project_releases])
@@ -1324,7 +1324,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if scope.endswith("_24h"):
             stats_period = "24h"
 
-        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
         where = [
             Condition(Column("timestamp"), Op.GTE, stats_start),
             Condition(Column("timestamp"), Op.LT, now),
@@ -1863,7 +1863,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
 
         query_cols = [
             Column("project_id"),

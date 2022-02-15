@@ -132,6 +132,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
         stat: Optional[OverviewStat] = None,
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         return _get_release_health_data_overview(  # type: ignore
             project_releases=project_releases,
@@ -139,6 +140,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             summary_stats_period=summary_stats_period,
             health_stats_period=health_stats_period,
             stat=stat,
+            now=now,
         )
 
     def get_crash_free_breakdown(
@@ -241,7 +243,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         scope: str,
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[str]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
         return _get_project_releases_by_stability(  # type: ignore
-            project_ids, offset, limit, scope, stats_period, environments
+            project_ids, offset, limit, scope, stats_period, environments, now
         )
