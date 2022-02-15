@@ -313,13 +313,13 @@ class AsyncComponent<
         return state;
       },
       () => {
+        this.onRequestSuccess({stateKey, data, resp});
         // if everything is loaded and we don't have an error, call the callback
         if (this.state.remainingRequests === 0 && !this.state.error) {
           this.onLoadAllEndpointsSuccess();
         }
       }
     );
-    this.onRequestSuccess({stateKey, data, resp});
   }
 
   handleError(error, args) {
