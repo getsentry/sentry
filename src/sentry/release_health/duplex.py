@@ -619,7 +619,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        should_compare = lambda _: now - timedelta(hours=24) > self.metrics_start  # type: ignore
+        should_compare = lambda _: now - timedelta(hours=24) > self.metrics_start
 
         if org_id is not None:
             organization = self._org_from_id(org_id)
@@ -740,7 +740,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         rollup = self.DEFAULT_ROLLUP  # not used
         schema = {ComparatorType.Exact}
-        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start  # type: ignore
+        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(projects_list)
         return self._dispatch_call(  # type: ignore
             "check_has_health_data",
@@ -801,7 +801,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        should_compare = lambda _: now - timedelta(days=1) > self.metrics_start  # type: ignore
+        should_compare = lambda _: now - timedelta(days=1) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_release_health_data_overview",
@@ -889,7 +889,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         rollup = self.DEFAULT_ROLLUP  # TODO check if this is correct ?
         schema = {"*": ComparatorType.DateTime}
-        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start  # type: ignore
+        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_oldest_health_data_for_releases",
@@ -1051,7 +1051,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             now = datetime.now(pytz.utc)
 
         rollup, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
-        should_compare = lambda _: now > self.metrics_start  # type: ignore
+        should_compare = lambda _: now > self.metrics_start
         organization = self._org_from_projects(project_ids)
 
         return self._dispatch_call(  # type: ignore
