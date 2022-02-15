@@ -322,7 +322,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
                 autoFocus
                 aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
               >
-                {confirmText ? confirmText : t('Confirm')}
+                {confirmText ?? t('Confirm')}
               </Button>
             )}
           </ButtonBar>
