@@ -22,7 +22,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -184,27 +183,25 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
       let w = 0;
       let h = 0;
+      let fontSize;
 
       if (bigNumberContainer) {
         const {width, height} = bigNumberContainer.getBoundingClientRect();
         w = width;
         h = height;
+
+        // Account for top and bottom padding
+        fontSize = h - parseInt(space(1), 10) - parseInt(space(3), 10);
       }
 
       return (
-        <BigNumber key={`big_number:${result.title}`} fontSize={h} paddingTop={0}>
-          <svg
-            width={w}
-            height={h}
-            viewBox={`0 0 ${w} ${h}`}
-            preserveAspectRatio="xMinYMin meet"
-          >
-            <foreignObject x="0" y="0" width={w} height={h}>
-              <Tooltip title={rendered} showOnlyOnOverflow>
-                {rendered}
-              </Tooltip>
-            </foreignObject>
-          </svg>
+        <BigNumber
+          key={`big_number:${result.title}`}
+          style={{width: w, height: h, fontSize}}
+        >
+          <Tooltip title={rendered} showOnlyOnOverflow>
+            {rendered}
+          </Tooltip>
         </BigNumber>
       );
     });
@@ -438,16 +435,15 @@ const BigNumberResizeWrapper = styled('div')`
   overflow: hidden;
 `;
 
-const BigNumber = styled('div')<{fontSize?: number; paddingTop?: number}>`
+const BigNumber = styled('div')`
   line-height: 1;
   display: inline-flex;
   flex: 1;
   width: 100%;
   min-height: 0;
-  font-size: ${p => (p.fontSize ? `${p.fontSize}px` : '32px')};
+  font-size: 32px;
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
-  ${p => defined(p.paddingTop) && `padding-top: ${p.paddingTop};`}
 
   * {
     text-align: left !important;
