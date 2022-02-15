@@ -62,6 +62,7 @@ def get_group_counts_by_project(
         Group.objects.filter(
             project__in=projects,
             id__in=GroupLink.objects.filter(
+                project__in=projects,
                 linked_type=GroupLink.LinkedType.commit,
                 linked_id__in=ReleaseCommit.objects.filter(release=release).values_list(
                     "commit_id", flat=True
