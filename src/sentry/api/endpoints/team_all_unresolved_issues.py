@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Group, GroupHistory, GroupHistoryStatus, GroupStatus, Project, Team
 from sentry.models.grouphistory import RESOLVED_STATUSES, UNRESOLVED_STATUSES
@@ -128,6 +129,7 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        environment = self._get_environment_from_request(request, team.organization.id)
+        environments = [e.id for e in get_environments(request, team.organization)]
+        environment = environments[0] if environments else None
 
         return Response(calculate_unresolved_counts(team, project_list, start, end, environment))
