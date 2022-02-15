@@ -5,12 +5,35 @@ import pytz
 from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
+from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
+
+
+def parametrize_backend(cls):
+    class MetricsTest(SessionMetricsTestCase, cls):
+        __doc__ = f"Repeat tests from {cls} with metrics"
+        backend = MetricsReleaseHealthBackend()
+
+    MetricsTest.__name__ = f"{cls.__name__}Metrics"
+
+    globals()[MetricsTest.__name__] = MetricsTest
+
+    class DuplexTest(cls):
+        __doc__ = f"Repeat tests from {cls} with duplex backend"
+        backend = DuplexReleaseHealthBackend(
+            metrics_start=datetime.now(pytz.utc) - timedelta(days=120)
+        )
+
+    DuplexTest.__name__ = f"{cls.__name__}Duplex"
+
+    globals()[DuplexTest.__name__] = DuplexTest
+
+    return cls
 
 
 def format_timestamp(dt):
@@ -23,10 +46,7 @@ def make_24h_stats(ts):
     return _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
 
 
-class ReleaseHealthMetricsTestCase(SessionMetricsTestCase):
-    backend = MetricsReleaseHealthBackend()
-
-
+@parametrize_backend
 class SnubaSessionsTest(TestCase, SnubaTestCase):
     backend = SessionsReleaseHealthBackend()
 
@@ -874,14 +894,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
 
 
-class SnubaSessionsTestMetrics(ReleaseHealthMetricsTestCase, SnubaSessionsTest):
-    """
-    Same tests as in SnunbaSessionsTest but using the Metrics backend
-    """
-
-    pass
-
-
+@parametrize_backend
 class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
     """
     TestClass that tests that `get_current_and_previous_crash_free_rates` returns the correct
@@ -1028,10 +1041,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
 
-class GetCrashFreeRateTestCaseMetrics(ReleaseHealthMetricsTestCase, GetCrashFreeRateTestCase):
-    """Repeat tests with metrics backend"""
-
-
+@parametrize_backend
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
     backend = SessionsReleaseHealthBackend()
 
@@ -1099,10 +1109,7 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
         )
 
 
-class GetProjectReleasesCountTestMetrics(ReleaseHealthMetricsTestCase, GetProjectReleasesCountTest):
-    """Repeat tests with metric backend"""
-
-
+@parametrize_backend
 class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
     backend = SessionsReleaseHealthBackend()
 
@@ -1147,14 +1154,7 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
         self.run_test([release_1, release_2], [self.project, other_project], [release_1, release_2])
 
 
-class CheckReleasesHaveHealthDataTestMetrics(
-    ReleaseHealthMetricsTestCase, CheckReleasesHaveHealthDataTest
-):
-    """Repeat tests with metrics backend"""
-
-    pass
-
-
+@parametrize_backend
 class CheckNumberOfSessions(TestCase, SnubaTestCase):
     backend = SessionsReleaseHealthBackend()
 
@@ -1387,11 +1387,3 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             )
 
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
-
-
-class CheckNumberOfSessionsMetrics(ReleaseHealthMetricsTestCase, CheckNumberOfSessions):
-    """
-    Repeat CheckNumberOfSessions tests with the release backend
-    """
-
-    pass
