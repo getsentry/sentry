@@ -48,7 +48,7 @@ const CloseButton = styled(
 `;
 
 const ModalBody = styled('section')`
-  font-size: 15px;
+  font-size: ${p => p.theme.fontSizeMedium};
 
   p:last-child {
     margin-bottom: 0;

@@ -971,12 +971,12 @@ function buildRoutes() {
       >
         <Route
           path="widget/:widgetId/edit/"
-          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
         <Route
           path="widget/new/"
-          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -996,12 +996,12 @@ function buildRoutes() {
       >
         <Route
           path="widget/:widgetId/edit/"
-          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
         <Route
           path="widget/new/"
-          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -1815,6 +1815,19 @@ function buildRoutes() {
     </Route>
   );
 
+  const profilingRoutes = (
+    <Route
+      path="/organizations/:orgId/profiling/"
+      componentPromise={() => import('sentry/views/profiling')}
+      component={SafeLazyLoad}
+    >
+      <IndexRoute
+        componentPromise={() => import('sentry/views/profiling/content')}
+        component={SafeLazyLoad}
+      />
+    </Route>
+  );
+
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationDetails)}>
       {settingsRoutes}
@@ -1830,6 +1843,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {profilingRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}
       {legacyGettingStartedRoutes}

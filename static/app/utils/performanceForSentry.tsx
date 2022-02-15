@@ -40,32 +40,62 @@ export const VisuallyCompleteWithData = ({
 }) => {
   const isVisuallyCompleteSet = useRef(false);
   const isDataCompleteSet = useRef(false);
+
+  const num = useRef(1);
+
+  const isVCDSet = useRef(false);
+
+  if (isVCDSet && hasData && performance && performance.mark) {
+    performance.mark(`${id}-vcsd-start`);
+    isVCDSet.current = true;
+  }
+
   useEffect(() => {
     try {
       const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
-      const now = timestampWithMs();
-      const transactionStart = transaction.startTimestamp;
-      const normalizedValue = Math.abs((now - transactionStart) * 1000);
+      if (!transaction) {
+        return;
+      }
 
       if (!isVisuallyCompleteSet.current) {
+        const time = performance.now();
         transaction.registerBeforeFinishCallback((t, _) => {
           // Should be called after performance entries finish callback.
           t.setMeasurements({
             ...t._measurements,
-            visuallyComplete: {value: normalizedValue},
+            visuallyComplete: {value: time},
           });
         });
         isVisuallyCompleteSet.current = true;
       }
-      if (!isDataCompleteSet.current) {
-        transaction.registerBeforeFinishCallback((t, _) => {
-          // Should be called after performance entries finish callback.
-          t.setMeasurements({
-            ...t._measurements,
-            visuallyCompleteData: {value: normalizedValue},
-          });
-        });
+      if (!isDataCompleteSet.current && hasData) {
         isDataCompleteSet.current = true;
+
+        setTimeout(() => {
+          performance.mark(`${id}-vcsd-end`);
+          performance.measure(
+            `VCD [${id}] #${num.current}`,
+            `${id}-vcsd-start`,
+            `${id}-vcsd-end`
+          );
+          num.current = num.current++;
+          const time = performance.now();
+          transaction.registerBeforeFinishCallback(t => {
+            // Should be called after performance entries finish callback.
+            const lcp = t._measurements.lcp?.value;
+
+            const newMeasurements = {
+              ...t._measurements,
+              visuallyCompleteData: {value: time},
+            };
+
+            if (lcp) {
+              newMeasurements.lcpDiffVCD = {value: lcp - time};
+            }
+
+            t.setMeasurements(newMeasurements);
+          });
+        }, 0);
       }
     } catch (_) {
       // Defensive catch since this code is auxiliary.

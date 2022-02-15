@@ -4,18 +4,23 @@ from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry_relay import parse_release
 
-from sentry.models import Activity, CommitFileChange, Project, Team, User
+from sentry.models import (
+    Activity,
+    CommitFileChange,
+    OrganizationMember,
+    Project,
+    Team,
+    User,
+    UserEmail,
+)
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import (
     get_commits_for_release,
     get_deploy,
     get_environment_for_deploy,
     get_group_counts_by_project,
-    get_projects,
     get_release,
     get_repos,
-    get_users_by_emails,
-    get_users_by_teams,
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import get_participants_for_release
@@ -49,7 +54,7 @@ class ReleaseActivityNotification(ActivityNotification):
         self.projects = set(self.release.projects.all())
         self.commit_list = get_commits_for_release(self.release)
         self.email_list = {c.author.email for c in self.commit_list if c.author}
-        users = get_users_by_emails(self.email_list, self.organization)
+        users = UserEmail.objects.get_users_by_emails(self.email_list, self.organization)
         self.user_ids = {u.id for u in users.values()}
         self.repos = get_repos(self.commit_list, users, self.organization)
         self.environment = get_environment_for_deploy(self.deploy)
@@ -68,7 +73,10 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:
         if not self.user_id_team_lookup:
-            self.user_id_team_lookup = get_users_by_teams(self.organization)
+            lookup: Mapping[int, list[int]] = OrganizationMember.objects.get_teams_by_user(
+                self.organization
+            )
+            self.user_id_team_lookup = lookup
         return self.user_id_team_lookup
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -87,13 +95,21 @@ class ReleaseActivityNotification(ActivityNotification):
         }
 
     def get_projects(self, recipient: Team | User) -> set[Project]:
+        if not self.release:
+            return set()
+
         if isinstance(recipient, User):
             if recipient.is_superuser or self.organization.flags.allow_joinleave:
+                # Admins can see all projects.
                 return self.projects
             team_ids = self.get_users_by_teams()[recipient.id]
         else:
             team_ids = [recipient.id]
-        return get_projects(self.projects, team_ids)
+
+        projects: set[Project] = Project.objects.get_for_team_ids(team_ids).filter(
+            id__in={p.id for p in self.projects}
+        )
+        return projects
 
     def get_recipient_context(
         self, recipient: Team | User, extra_context: Mapping[str, Any]

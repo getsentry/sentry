@@ -73,7 +73,6 @@ const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
   }
 `;
 
-const IncidentStatusValue = styled('div')<{color: Color}>`
-  margin-left: ${space(1)};
-  color: ${p => p.theme[p.color]};
+const IncidentStatusValue = styled('div')`
+  margin-left: ${space(1.5)};
 `;
