@@ -178,6 +178,17 @@ function CompactSelect({
     setLabel(newLabel);
   }, [valueProp ?? internalValue]);
 
+  // Calculate & update the trigger button's width, to be used as the
+  // overlay's min-width
+  const [triggerWidth, setTriggerWidth] = useState<number>(null);
+  useEffect(() => {
+    // Wait until the trigger label has been updated before calculating the
+    // new width
+    setTimeout(() => {
+      setTriggerWidth(triggerRef.current?.offsetWidth);
+    }, 0);
+  }, [triggerRef.current, internalValue]);
+
   function onValueChange(option) {
     const newValue = Array.isArray(option) ? option.map(opt => opt.value) : option?.value;
     setInternalValue(newValue);
@@ -218,7 +229,11 @@ function CompactSelect({
 
     return (
       <FocusScope restoreFocus autoFocus>
-        <Overlay ref={overlayRef} {...mergeProps(overlayProps, positionProps)}>
+        <Overlay
+          minWidth={triggerWidth}
+          ref={overlayRef}
+          {...mergeProps(overlayProps, positionProps)}
+        >
           <SelectControl
             {...props}
             options={options}
@@ -265,7 +280,7 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const Overlay = styled('div')`
+const Overlay = styled('div')<{minWidth?: number}>`
   max-width: calc(100% - ${space(2)});
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundElevated};
@@ -275,6 +290,8 @@ const Overlay = styled('div')`
 
   /* Override z-index from useOverlayPosition */
   z-index: ${p => p.theme.zIndex.dropdown} !important;
+
+  ${p => p.minWidth && `min-width: ${p.minWidth}px;`}
 `;
 
 const MenuHeader = styled('div')`
