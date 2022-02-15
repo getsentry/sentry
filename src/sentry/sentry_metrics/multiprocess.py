@@ -457,15 +457,26 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self,
         max_batch_size: int,
         max_batch_time: float,
+        commit_max_batch_size: int,
+        commit_max_batch_time: int,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
+        self.__commit_max_batch_time = commit_max_batch_time
+        self.__commit_max_batch_size = commit_max_batch_size
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
 
-        transform_step = TransformStep(next_step=SimpleProduceStep(commit))
+        transform_step = TransformStep(
+            next_step=SimpleProduceStep(
+                commit,
+                commit_max_batch_size=self.__commit_max_batch_size,
+                # convert to seconds
+                commit_max_batch_time=self.__commit_max_batch_time / 1000,
+            )
+        )
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
         return strategy
 
@@ -528,6 +539,8 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
     def __init__(
         self,
         commit_function: Callable[[Mapping[Partition, Position]], None],
+        commit_max_batch_size: int,
+        commit_max_batch_time: float,
     ) -> None:
         snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
         snuba_metrics_producer = Producer(
@@ -546,8 +559,8 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__callbacks = 0
         self.__started = time.time()
         # TODO: Need to make these flags
-        self.__commit_max_batch_size = 25000
-        self.__commit_max_batch_time = 10.0
+        self.__commit_max_batch_size = commit_max_batch_size
+        self.__commit_max_batch_time = commit_max_batch_time
         self.__producer_queue_max_size = 80000
         self.__producer_long_poll_timeout = 3.0
 
@@ -671,6 +684,8 @@ def get_streaming_metrics_consumer(
         processing_factory = BatchConsumerStrategyFactory(
             max_batch_size=max_batch_size,
             max_batch_time=max_batch_time,
+            commit_max_batch_size=commit_max_batch_size,
+            commit_max_batch_time=commit_max_batch_time,
         )
 
     return StreamProcessor(
