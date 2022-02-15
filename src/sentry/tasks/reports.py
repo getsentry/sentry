@@ -11,6 +11,7 @@ from itertools import zip_longest
 from typing import Iterable, Mapping, NamedTuple, Tuple
 
 import pytz
+from django.db.models import F
 from django.urls.base import reverse
 from django.utils import dateformat, timezone
 from django.utils.http import urlencode
@@ -33,6 +34,7 @@ from sentry.models import (
     GroupHistory,
     GroupStatus,
     Organization,
+    OrganizationMember,
     OrganizationStatus,
     Project,
     Team,
@@ -797,14 +799,13 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
 
     # If an OrganizationMember row doesn't have an associated user, this is
     # actually a pending invitation, so no report should be delivered.
-    member_set = organization.member_set.filter(user_id__isnull=False, user__is_active=True)
+    member_set = organization.member_set.filter(
+        user_id__isnull=False, user__is_active=True
+    ).exclude(flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"]))
 
-    for member in member_set:
-        if member.flags["member-limit:restricted"]:
-            # Skip disabled members
-            continue
+    for user_id in member_set.values_list("user_id", flat=True):
         deliver_organization_user_report.delay(
-            timestamp, duration, organization_id, member.user_id, dry_run=dry_run
+            timestamp, duration, organization_id, user_id, dry_run=dry_run
         )
 
 
