@@ -6,6 +6,7 @@ import {Location, LocationDescriptor} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
+import SelectField from 'sentry/components/forms/selectField';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
@@ -24,7 +25,6 @@ import {Theme} from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {DashboardDetails} from '../../types';
 import BuildStep from '../buildStep';

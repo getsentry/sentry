@@ -2,17 +2,17 @@ import {Component, Fragment} from 'react';
 import {Observer} from 'mobx-react';
 
 import Access from 'sentry/components/acl/access';
+import Field from 'sentry/components/forms/field';
+import Form from 'sentry/components/forms/form';
+import NumberField from 'sentry/components/forms/numberField';
+import SelectField from 'sentry/components/forms/selectField';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import TextField from 'sentry/components/forms/textField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import Field from 'sentry/views/settings/components/forms/field';
-import Form from 'sentry/views/settings/components/forms/form';
-import NumberField from 'sentry/views/settings/components/forms/numberField';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
-import TextField from 'sentry/views/settings/components/forms/textField';
 
 import MonitorModel from './monitorModel';
 import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';

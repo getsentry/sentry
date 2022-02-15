@@ -1,7 +1,7 @@
+import {JsonFormObject} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {MemberRole} from 'sentry/types';
 import slugify from 'sentry/utils/slugify';
-import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
