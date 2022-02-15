@@ -1,10 +1,15 @@
+from typing import Any
+
 from django.conf import settings
+from requests.exceptions import JSONDecodeError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from semtry.api.paginator import GenericOffsetPaginator
 
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.http import safe_urlopen
+from sentry.models import Organization
 
 STACKTRACE_FILTERS = [
     "android_api_level",
@@ -22,7 +27,7 @@ STACKTRACE_FILTERS = [
 
 
 class OrganizationStacktracesEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
@@ -32,15 +37,30 @@ class OrganizationStacktracesEndpoint(OrganizationEndpoint):
         if len(projects) > 0:
             params["project_id"] = [p.id for p in projects]
 
-        return safe_urlopen(
-            f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/stacktraces",
-            method="GET",
-            params=params,
-        )
+        def data_fn(offset: int, limit: int) -> Any:
+            params["offset"] = offset
+            params["limit"] = limit
+            response = safe_urlopen(
+                f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/stacktraces",
+                method="GET",
+                params=params,
+            )
+            try:
+                return response.json().get("stacktraces", [])
+            except (JSONDecodeError, KeyError):
+                return []
+
+        with self.handle_query_errors():
+            return self.paginate(
+                request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                default_per_page=50,
+                max_per_page=500,
+            )
 
 
 class OrganizationStacktraceFiltersEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
