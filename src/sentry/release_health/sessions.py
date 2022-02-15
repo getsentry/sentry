@@ -155,8 +155,9 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
-        return _get_changed_project_release_model_adoptions(project_ids)  # type: ignore
+        return _get_changed_project_release_model_adoptions(project_ids, now=now)  # type: ignore
 
     def get_oldest_health_data_for_releases(
         self,
