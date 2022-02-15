@@ -210,6 +210,7 @@ describe('ResolveActions', function () {
     await selectDropdownMenuItem({
       wrapper,
       itemKey: 'another-release',
+      triggerSelector: 'DropdownTrigger',
     });
 
     expect(wrapper.find('CustomResolutionModal Select').prop('options')).toEqual([

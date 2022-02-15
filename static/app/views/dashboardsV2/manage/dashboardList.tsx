@@ -3,13 +3,6 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
 
-import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
-import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
-import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
-import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
-import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
-
 import {
   createDashboard,
   deleteDashboard,
@@ -20,10 +13,11 @@ import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCopy, IconDelete, IconEllipsis} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -31,9 +25,10 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
 
-import {cloneDashboard} from '../utils';
+import {cloneDashboard, miniWidget} from '../utils';
 
 import DashboardCard from './dashboardCard';
+import GridPreview from './gridPreview';
 
 type Props = {
   api: Client;
@@ -52,25 +47,6 @@ function DashboardList({
   pageLinks,
   onDashboardsChange,
 }: Props) {
-  function miniWidget(displayType: DisplayType): string {
-    switch (displayType) {
-      case DisplayType.BAR:
-        return WidgetBar;
-      case DisplayType.AREA:
-      case DisplayType.TOP_N:
-        return WidgetArea;
-      case DisplayType.BIG_NUMBER:
-        return WidgetBigNumber;
-      case DisplayType.TABLE:
-        return WidgetTable;
-      case DisplayType.WORLD_MAP:
-        return WidgetWorldMap;
-      case DisplayType.LINE:
-      default:
-        return WidgetLine;
-    }
-  }
-
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
@@ -108,17 +84,16 @@ function DashboardList({
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem) {
-    const menuItems = [
+    const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
         label: t('Duplicate'),
-        leadingItems: <IconCopy />,
         onAction: () => handleDuplicate(dashboard),
       },
       {
         key: 'dashboard-delete',
         label: t('Delete'),
-        leadingItems: <IconDelete />,
+        priority: 'danger',
         onAction: () => {
           openConfirmModal({
             message: t('Are you sure you want to delete this dashboard?'),
@@ -155,8 +130,35 @@ function DashboardList({
     );
   }
 
+  function renderDndPreview(dashboard) {
+    return (
+      <WidgetGrid>
+        {dashboard.widgetDisplay.map((displayType, i) => {
+          return displayType === DisplayType.BIG_NUMBER ? (
+            <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
+              <WidgetImage src={miniWidget(displayType)} />
+            </BigNumberWidgetWrapper>
+          ) : (
+            <MiniWidgetWrapper key={`${i}-${displayType}`}>
+              <WidgetImage src={miniWidget(displayType)} />
+            </MiniWidgetWrapper>
+          );
+        })}
+      </WidgetGrid>
+    );
+  }
+
+  function renderGridPreview(dashboard) {
+    return <GridPreview widgetPreview={dashboard.widgetPreview} />;
+  }
+
   function renderMiniDashboards() {
+    const isUsingGrid = organization.features.includes('dashboard-grid-layout');
     return dashboards?.map((dashboard, index) => {
+      const widgetRenderer = isUsingGrid ? renderGridPreview : renderDndPreview;
+      const widgetCount = isUsingGrid
+        ? dashboard.widgetPreview.length
+        : dashboard.widgetDisplay.length;
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -167,26 +169,12 @@ function DashboardList({
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
           }}
-          detail={tn('%s widget', '%s widgets', dashboard.widgetDisplay.length)}
+          detail={tn('%s widget', '%s widgets', widgetCount)}
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
           createdBy={dashboard.createdBy}
-          renderWidgets={() => (
-            <WidgetGrid>
-              {dashboard.widgetDisplay.map((displayType, i) => {
-                return displayType === DisplayType.BIG_NUMBER ? (
-                  <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
-                    <WidgetImage src={miniWidget(displayType)} />
-                  </BigNumberWidgetWrapper>
-                ) : (
-                  <MiniWidgetWrapper key={`${i}-${displayType}`}>
-                    <WidgetImage src={miniWidget(displayType)} />
-                  </MiniWidgetWrapper>
-                );
-              })}
-            </WidgetGrid>
-          )}
+          renderWidgets={() => widgetRenderer(dashboard)}
           renderContextMenu={() => renderDropdownMenu(dashboard)}
         />
       );

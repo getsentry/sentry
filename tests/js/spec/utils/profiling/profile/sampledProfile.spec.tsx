@@ -1,4 +1,5 @@
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
+import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 import {firstCallee, makeTestingBoilerplate} from './profile.spec';
 
@@ -12,16 +13,32 @@ describe('SampledProfile', () => {
       type: 'sampled',
       weights: [],
       samples: [],
-      shared: {
-        frames: [],
-      },
     };
 
-    const profile = SampledProfile.FromProfile(trace);
+    const profile = SampledProfile.FromProfile(trace, createFrameIndex([]));
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
     expect(profile.startedAt).toBe(0);
+    expect(profile.endedAt).toBe(1000);
+  });
+
+  it('handles offset start', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 500,
+      endValue: 1000,
+      unit: 'milliseconds',
+      type: 'sampled',
+      weights: [500],
+      samples: [[0]],
+    };
+
+    const profile = SampledProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+
+    expect(profile.duration).toBe(500);
+    expect(profile.name).toBe(trace.name);
+    expect(profile.startedAt).toBe(500);
     expect(profile.endedAt).toBe(1000);
   });
 
@@ -37,14 +54,14 @@ describe('SampledProfile', () => {
         [0, 1],
         [0, 1],
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
     const {open, close, openSpy, closeSpy, timings} = makeTestingBoilerplate();
 
-    const profile = SampledProfile.FromProfile(trace);
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+    );
 
     profile.forEach(open, close);
 
@@ -75,12 +92,12 @@ describe('SampledProfile', () => {
       type: 'sampled',
       weights: [1],
       samples: [[0, 0]],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
-    const profile = SampledProfile.FromProfile(trace);
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+    );
 
     expect(firstCallee(firstCallee(profile.appendOrderTree)).isRecursive()).toBe(true);
   });
@@ -94,12 +111,12 @@ describe('SampledProfile', () => {
       type: 'sampled',
       weights: [1],
       samples: [[0, 1, 0]],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}],
-      },
     };
 
-    const profile = SampledProfile.FromProfile(trace);
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+    );
 
     expect(
       firstCallee(firstCallee(firstCallee(profile.appendOrderTree))).isRecursive()
@@ -118,12 +135,12 @@ describe('SampledProfile', () => {
         [0, 1],
         [0, 2],
       ],
-      shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}],
-      },
     };
 
-    const profile = SampledProfile.FromProfile(trace);
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+    );
 
     expect(profile.minFrameDuration).toBe(0.5);
   });

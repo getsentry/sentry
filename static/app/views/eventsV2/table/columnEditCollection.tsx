@@ -25,7 +25,7 @@ import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fiel
 
 import {generateFieldOptions} from '../utils';
 
-import {QueryField} from './queryField';
+import {FieldValueOption, QueryField} from './queryField';
 import {FieldValueKind} from './types';
 
 type Sources = WidgetType;
@@ -38,6 +38,7 @@ type Props = {
   onChange: (columns: Column[]) => void;
   organization: Organization;
   className?: string;
+  filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   source?: Sources;
 };
 
@@ -399,7 +400,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       isGhost?: boolean;
     }
   ) {
-    const {columns, fieldOptions} = this.props;
+    const {columns, fieldOptions, filterPrimaryOptions} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -450,6 +451,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             otherColumns={columns}
             shouldRenderTag
             disabled={disabled}
+            filterPrimaryOptions={filterPrimaryOptions}
           />
           {canDelete || col.kind === 'equation' ? (
             <Button
@@ -526,7 +528,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {source !== WidgetType.ISSUE && (
+            {source !== WidgetType.ISSUE && source !== WidgetType.METRICS && (
               <Button
                 size="small"
                 aria-label={t('Add an Equation')}

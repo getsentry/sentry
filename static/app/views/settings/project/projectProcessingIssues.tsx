@@ -9,6 +9,8 @@ import AlertLink from 'sentry/components/alertLink';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -28,8 +30,6 @@ import {inputStyles} from 'sentry/styles/input';
 import {Organization, ProcessingIssue, ProcessingIssueItem} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

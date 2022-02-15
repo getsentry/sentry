@@ -1,7 +1,7 @@
-import InputField from 'sentry/components/forms/inputField';
+import InputField from './inputField';
 
-export default class DateTimeField extends InputField {
-  getType() {
-    return 'datetime-local';
-  }
+type Props = InputField['props'];
+
+export default function DateTimeField(props: Omit<Props, 'type'>) {
+  return <InputField {...props} type="datetime-local" />;
 }
