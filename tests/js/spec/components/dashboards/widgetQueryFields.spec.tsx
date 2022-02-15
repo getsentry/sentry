@@ -164,8 +164,7 @@ describe('WidgetQueryFields', function () {
       userEvent.click(screen.getByText('Add a Column'));
       mountComponent();
       expect(screen.getByText('(Required)')).toBeInTheDocument();
-      userEvent.click(screen.getByText('(Required)'));
-      mountComponent();
+      userEvent.keyboard('a');
       userEvent.click(screen.getByText('assignee'));
       mountComponent();
       expect(screen.getByText('assignee')).toBeInTheDocument();
