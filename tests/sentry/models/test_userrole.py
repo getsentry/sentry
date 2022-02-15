@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from sentry.models import UserRole
 from sentry.testutils import TestCase
 
@@ -12,3 +14,7 @@ class UserRoleTest(TestCase):
         role2.users.add(user)
         assert sorted(UserRole.permissions_for_user(user.id)) == ["test1", "test2", "test3"]
         assert sorted(UserRole.permissions_for_user(user2.id)) == []
+
+    def test_creates_super_admin_role(self):
+        role = UserRole.objects.get(name="Super Admin")
+        assert sorted(role.permissions) == sorted(settings.SENTRY_USER_PERMISSIONS)
