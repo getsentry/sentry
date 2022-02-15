@@ -105,9 +105,11 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
     def check_has_health_data(
-        self, projects_list: Sequence[ProjectOrRelease]
+        self,
+        projects_list: Sequence[ProjectOrRelease],
+        now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
-        return _check_has_health_data(projects_list)  # type: ignore
+        return _check_has_health_data(projects_list, now=now)  # type: ignore
 
     def check_releases_have_health_data(
         self,
@@ -149,9 +151,10 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         release: ReleaseName,
         start: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[CrashFreeBreakdown]:
         return _get_crash_free_breakdown(  # type: ignore
-            project_id=project_id, release=release, start=start, environments=environments
+            project_id=project_id, release=release, start=start, environments=environments, now=now
         )
 
     def get_changed_project_release_model_adoptions(
@@ -164,8 +167,9 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, str]:
-        return _get_oldest_health_data_for_releases(project_releases)  # type: ignore
+        return _get_oldest_health_data_for_releases(project_releases, now=now)  # type: ignore
 
     def get_project_releases_count(
         self,
