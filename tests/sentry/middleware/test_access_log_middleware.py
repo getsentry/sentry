@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.models import ApiToken
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils import APITestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -29,13 +30,16 @@ class DummyFailEndpoint(Endpoint):
 class RateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(0, 1),
-            RateLimitCategory.USER: RateLimit(0, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(0, 1),
+    rate_limits = RateLimitConfig(
+        group="foo",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(0, 1),
+                RateLimitCategory.USER: RateLimit(0, 1),
+                RateLimitCategory.ORGANIZATION: RateLimit(0, 1),
+            },
         },
-    }
+    )
 
     def get(self, request):
         return Response({"ok": True})
