@@ -274,13 +274,15 @@ STATS_PERIODS = {
 }
 
 
-def get_rollup_starts_and_buckets(period):
+def get_rollup_starts_and_buckets(period, now=None):
     if period is None:
         return None, None, None
     if period not in STATS_PERIODS:
         raise TypeError("Invalid stats period")
     seconds, buckets = STATS_PERIODS[period]
-    start = datetime.now(pytz.utc) - timedelta(seconds=seconds * buckets)
+    if now is None:
+        now = datetime.now(pytz.utc)
+    start = now - timedelta(seconds=seconds * buckets)
     return seconds, start, buckets
 
 

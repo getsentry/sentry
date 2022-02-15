@@ -414,11 +414,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         release: ReleaseName,
         org_id: OrganizationId,
         environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
     ) -> ReleaseSessionsTimeBounds:
         select: List[SelectableExpression] = [
             Function("min", [Column("timestamp")], "min"),
             Function("max", [Column("timestamp")], "max"),
         ]
+
+        if now is None:
+            now = datetime.now(pytz.utc)
 
         try:
             where: List[Condition] = [
@@ -428,7 +432,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 Condition(
                     Column("timestamp"), Op.GTE, datetime(2008, 5, 8)
                 ),  # Date of sentry's first commit
-                Condition(Column("timestamp"), Op.LT, datetime.now(pytz.utc)),
+                Condition(Column("timestamp"), Op.LT, now),
             ]
 
             if environments is not None:
@@ -542,9 +546,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         }
 
     def check_has_health_data(
-        self, projects_list: Sequence[ProjectOrRelease]
+        self,
+        projects_list: Sequence[ProjectOrRelease],
+        now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
-        now = datetime.now(pytz.utc)
+        if now is None:
+            now = datetime.now(pytz.utc)
+
         start = now - timedelta(days=3)
 
         projects_list = list(projects_list)
@@ -911,11 +919,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
         stat: Optional[OverviewStat] = None,
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         if stat is None:
             stat = "sessions"
         assert stat in ("sessions", "users")
-        now = datetime.now(pytz.utc)
+        if now is None:
+            now = datetime.now(pytz.utc)
+
         _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
         rollup = LEGACY_SESSIONS_DEFAULT_ROLLUP
 
@@ -1152,11 +1163,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         release: ReleaseName,
         start: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[CrashFreeBreakdown]:
 
         org_id = self._get_org_id([project_id])
 
-        now = datetime.now(pytz.utc)
+        if now is None:
+            now = datetime.now(pytz.utc)
+
         query_fn = self._get_crash_free_breakdown_fn(
             org_id, project_id, release, start, environments
         )
@@ -1187,9 +1201,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
 
-        now = datetime.now(pytz.utc)
+        if now is None:
+            now = datetime.now(pytz.utc)
+
         start = now - timedelta(days=3)
 
         project_ids = list(project_ids)
@@ -1232,9 +1249,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, str]:
+        if now is None:
+            now = datetime.now(pytz.utc)
 
-        now = datetime.now(pytz.utc)
         # TODO: assumption about retention?
         start = now - timedelta(days=90)
 
@@ -1292,7 +1311,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         scope: str,
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
     ) -> int:
+
+        if now is None:
+            now = datetime.now(pytz.utc)
 
         if stats_period is None:
             stats_period = "24h"
@@ -1304,7 +1327,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
         where = [
             Condition(Column("timestamp"), Op.GTE, stats_start),
-            Condition(Column("timestamp"), Op.LT, datetime.now()),
+            Condition(Column("timestamp"), Op.LT, now),
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("org_id"), Op.EQ, organization_id),
         ]
@@ -1813,6 +1836,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         scope: str,
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[str]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
 
         if len(project_ids) == 0:
@@ -1836,7 +1860,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             scope = scope[:-4]
             stats_period = "24h"
 
-        now = datetime.now(pytz.utc)
+        if now is None:
+            now = datetime.now(pytz.utc)
+
         granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
 
         query_cols = [
