@@ -1,6 +1,5 @@
 import isEqual from 'lodash/isEqual';
 
-import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
@@ -1197,17 +1196,4 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
     return false;
   }
   return columnList.filter(newColumn => isEqual(newColumn, column)).length > 1;
-}
-
-export function getFieldsFromEquations(fields: string[]): string[] {
-  // Gather all fields and functions used in equations and prepend them to the provided fields
-  const termsSet: Set<string> = new Set();
-  fields.forEach(field => {
-    if (isEquation(field)) {
-      const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
-      parsed.fields.forEach(({term}) => termsSet.add(term as string));
-      parsed.functions.forEach(({term}) => termsSet.add(term as string));
-    }
-  });
-  return Array.from(termsSet);
 }
