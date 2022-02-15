@@ -9,10 +9,12 @@ import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {MetricsApiResponse} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
 import {TableData} from '../discover/discoverQuery';
 
+import {transformMetricsResponseToSeries} from './transformMetricsResponseToSeries';
 import {transformMetricsResponseToTable} from './transformMetricsResponseToTable';
 
 const propNamesToIgnore = ['api', 'children'];
@@ -28,6 +30,8 @@ export type MetricsRequestRenderProps = {
   reloading: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
+  seriesData?: Series[];
+  seriesDataPrevious?: Series[];
   tableData?: TableData;
 };
 
@@ -37,9 +41,13 @@ type DefaultProps = {
    */
   includePrevious: boolean;
   /**
+   * Transform the response data to be something ingestible by charts
+   */
+  includeSeriesData: boolean;
+  /**
    * Transform the response data to be something ingestible by GridEditable tables
    */
-  includeTabularData?: boolean;
+  includeTabularData: boolean;
   /**
    * If true, no request will be made
    */
@@ -67,6 +75,7 @@ type State = {
 class MetricsRequest extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     includePrevious: false,
+    includeSeriesData: false,
     includeTabularData: false,
     isDisabled: false,
   };
@@ -203,7 +212,8 @@ class MetricsRequest extends React.Component<Props, State> {
 
   render() {
     const {reloading, errored, error, response, responsePrevious, pageLinks} = this.state;
-    const {children, isDisabled, includeTabularData} = this.props;
+    const {children, isDisabled, includeTabularData, includeSeriesData, includePrevious} =
+      this.props;
 
     const loading = response === null && !isDisabled && !error;
 
@@ -219,6 +229,13 @@ class MetricsRequest extends React.Component<Props, State> {
       tableData: includeTabularData
         ? transformMetricsResponseToTable({response})
         : undefined,
+      seriesData: includeSeriesData
+        ? transformMetricsResponseToSeries(response)
+        : undefined,
+      seriesDataPrevious:
+        includeSeriesData && includePrevious
+          ? transformMetricsResponseToSeries(responsePrevious)
+          : undefined,
     });
   }
 }
