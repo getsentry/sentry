@@ -59,7 +59,7 @@ function SelectOption(props: Props) {
 
 export default SelectOption;
 
-const InnerWrap = styled('div')<{isFocused: boolean; isDisabled: boolean}>`
+const InnerWrap = styled('div')<{isDisabled: boolean; isFocused: boolean}>`
   display: flex;
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
