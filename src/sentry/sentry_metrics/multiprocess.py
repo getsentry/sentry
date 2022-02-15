@@ -5,6 +5,7 @@ from collections import deque
 from concurrent.futures import Future
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -541,42 +542,55 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
 
         self.__closed = False
         self.__metrics = get_metrics()
-        self.__produced_message_offsets = []
+        self.__produced_message_offsets = {}
         self.__callbacks = 0
+        self.__started = time.time()
+        # Need to make these flags
+        self.__commit_max_batch_size = 10000
+        self.__commit_max_batch_time = 4.0
+        self.__producer_queue_max_size = 8000
+        self.__producer_long_poll_timeout = 3.0
+
+    def _ready(self) -> bool:
+        if self.__callbacks >= self.__commit_max_batch_size:
+            return True
+        now = time.time()
+        if now >= (self.__started + self.__commit_max_batch_time):
+            return True
+
+        return False
+
+    def poll_producer(self) -> None:
+        timeout = 0.0
+        if len(self.__producer) >= self.__producer_queue_max_size:
+            logger.info(f"Producer queue a lil backedup at {len(self.__producer)} messages")
+            timeout = self.__producer_long_poll_timeout
+
+        self.__producer.poll(timeout)
 
     def poll(self) -> None:
-        if self.__callbacks and self.__produced_message_offsets:
-            success_messages = self.__produced_message_offsets[: self.__callbacks]
-            latest_offset_by_partition = {}
-            for message in success_messages:
-                latest = latest_offset_by_partition.get(message.partition)
+        self.poll_producer()
 
-                if latest and message.position.offset < latest.offset:
-                    raise OutOfOrderOffset()
-
-                latest_offset_by_partition[message.partition] = message.position
-
-            logger.info(
-                f"Committing {len(success_messages)} messages out of {len(self.__produced_message_offsets)} total produced messages."
-            )
-            self.__commit_function(latest_offset_by_partition)
-            self.__produced_message_offsets = self.__produced_message_offsets[self.__callbacks :]
+        if self._ready():
+            logger.info(f"Committing {self.__callbacks} messages...")
+            self.__commit_function(self.__produced_message_offsets)
             self.__callbacks = 0
+            self.__produced_message_offsets = {}
+            self.__started = time.time()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
+        position = Position(message.offset, message.timestamp)
         self.__producer.produce(
             topic=self.__producer_topic,
             key=None,
             value=message.payload.value,
-            on_delivery=self.callback,
+            on_delivery=partial(self.callback, partition=message.partition, position=position),
         )
-        self.__producer.poll(0.0005)
-        offset = Position(message.offset, message.timestamp)
-        self.__produced_message_offsets.append(PartitionOffset(offset, message.partition))
 
-    def callback(self, error: Any, message: Any) -> None:
+    def callback(self, error: Any, message: Any, partition: Partition, position: Position) -> None:
         if message and error is None:
             self.__callbacks += 1
+            self.__produced_message_offsets[partition] = position
         if error is not None:
             raise Exception(error.str())
 
@@ -592,24 +606,11 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__producer.flush(timeout)
 
         if self.__callbacks:
-            success_messages = self.__produced_message_offsets[: self.__callbacks]
-
-            latest_offset_by_partition = {}
-            for message in success_messages:
-                latest = latest_offset_by_partition.get(message.partition)
-
-                if latest and message.position.offset < latest.offset:
-                    raise OutOfOrderOffset()
-
-                latest_offset_by_partition[message.partition] = message.position
-
-            logger.info(
-                f"Committing {len(success_messages)} messages out of {len(self.__produced_message_offsets)} total produced messages."
-            )
-            logger.info(f"Latest offset: {list(latest_offset_by_partition.values())[0]}")
-            self.__commit_function(latest_offset_by_partition)
-            self.__produced_message_offsets = self.__produced_message_offsets[self.__callbacks : -1]
+            logger.info(f"Committing {self.__callbacks} messages...")
+            self.__commit_function(self.__produced_message_offsets)
             self.__callbacks = 0
+            self.__produced_message_offsets = {}
+            self.__started = time.time()
 
 
 def get_streaming_metrics_consumer(

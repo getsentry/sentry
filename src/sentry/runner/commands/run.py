@@ -565,4 +565,11 @@ def metrics_streaming_consumer(**options):
     configure_metrics(metrics)
 
     streamer = get_streaming_metrics_consumer(**options)
+
+    def handler(signum, frame):
+        streamer.signal_shutdown()
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
     streamer.run()
