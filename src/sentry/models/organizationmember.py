@@ -1,7 +1,10 @@
+from __future__ import annotations
+
+from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Mapping, MutableMapping
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -25,7 +28,7 @@ from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, User
+    from sentry.models import Integration, Organization, User
 
 
 INVITE_DAYS_VALID = 30
@@ -64,14 +67,14 @@ class OrganizationMemberManager(BaseManager):
             user_id__exact=None,
         ).exclude(email__exact=None).delete()
 
-    def get_for_integration(self, integration: "Integration", actor: "User") -> QuerySet:
+    def get_for_integration(self, integration: Integration, actor: User) -> QuerySet:
         return self.filter(
             user=actor,
             organization__organizationintegration__integration=integration,
         ).select_related("organization")
 
     def get_member_invite_query(self, id: int) -> QuerySet:
-        return OrganizationMember.objects.filter(
+        return self.filter(
             invite_status__in=[
                 InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 InviteStatus.REQUESTED_TO_JOIN.value,
@@ -79,6 +82,13 @@ class OrganizationMemberManager(BaseManager):
             user__isnull=True,
             id=id,
         )
+
+    def get_teams_by_user(self, organization: Organization) -> Mapping[int, List[int]]:
+        user_teams: MutableMapping[int, List[int]] = defaultdict(list)
+        queryset = self.filter(organization_id=organization.id).values_list("user_id", "teams")
+        for user_id, team_id in queryset:
+            user_teams[user_id].append(team_id)
+        return user_teams
 
 
 class OrganizationMember(Model):

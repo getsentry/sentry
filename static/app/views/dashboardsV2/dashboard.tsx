@@ -244,7 +244,8 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleOpenWidgetBuilder = () => {
-    const {router, paramDashboardId, organization, location} = this.props;
+    const {router, location, paramDashboardId, organization} = this.props;
+
     if (paramDashboardId) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
@@ -255,6 +256,7 @@ class Dashboard extends Component<Props, State> {
       });
       return;
     }
+
     router.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       query: {
@@ -301,10 +303,6 @@ class Dashboard extends Component<Props, State> {
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
-    // Force check lazyLoad elements that might have shifted into view after deleting an upper widget
-    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
-    // RGL doesn't provide a handler for post animation layout change
-    setTimeout(forceCheck, 400);
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
@@ -335,10 +333,7 @@ class Dashboard extends Component<Props, State> {
       handleAddCustomWidget,
     } = this.props;
 
-    if (
-      organization.features.includes('metrics') &&
-      organization.features.includes('new-widget-builder-experience')
-    ) {
+    if (organization.features.includes('new-widget-builder-experience')) {
       onSetWidgetToBeUpdated(widget);
 
       if (paramDashboardId) {
@@ -351,6 +346,7 @@ class Dashboard extends Component<Props, State> {
         });
         return;
       }
+
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
         query: {
@@ -476,6 +472,11 @@ class Dashboard extends Component<Props, State> {
       layouts: newLayouts,
     });
     onUpdate(newWidgets);
+
+    // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
+    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
+    // RGL doesn't provide a handler for post animation layout change
+    setTimeout(forceCheck, 400);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {
@@ -553,13 +554,16 @@ class Dashboard extends Component<Props, State> {
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && !!!widgetLimitReached && (
-          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={this.addWidgetLayout}>
+          <AddWidgetWrapper
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={this.addWidgetLayout}
+          >
             <AddWidget
               orgFeatures={organization.features}
               onAddWidget={this.handleStartAdd}
               onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
             />
-          </div>
+          </AddWidgetWrapper>
         )}
       </GridLayout>
     );
@@ -637,6 +641,13 @@ const WidgetContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[4]}) {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
+`;
+
+// A widget being dragged has a z-index of 3
+// Allow the Add Widget tile to show above widgets when moved
+const AddWidgetWrapper = styled('div')`
+  z-index: 5;
+  background-color: ${p => p.theme.background};
 `;
 
 const GridItem = styled('div')`
