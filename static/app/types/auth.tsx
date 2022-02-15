@@ -1,6 +1,6 @@
 import u2f from 'u2f-api';
 
-import {Field} from 'sentry/views/settings/components/forms/type';
+import {Field} from 'sentry/components/forms/type';
 
 import {Organization} from './organization';
 

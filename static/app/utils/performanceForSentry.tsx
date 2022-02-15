@@ -53,6 +53,9 @@ export const VisuallyCompleteWithData = ({
   useEffect(() => {
     try {
       const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
+      if (!transaction) {
+        return;
+      }
 
       if (!isVisuallyCompleteSet.current) {
         const time = performance.now();

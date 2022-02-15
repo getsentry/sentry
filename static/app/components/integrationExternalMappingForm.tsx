@@ -2,7 +2,11 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
+import {FieldFromConfig} from 'sentry/components/forms';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import {SelectAsyncControlProps} from 'sentry/components/forms/selectAsyncControl';
+import {Field} from 'sentry/components/forms/type';
 import {t, tct} from 'sentry/locale';
 import {
   ExternalActorMapping,
@@ -14,10 +18,6 @@ import {
   isExternalActorMapping,
   sentryNameToOption,
 } from 'sentry/utils/integrationUtil';
-import {FieldFromConfig} from 'sentry/views/settings/components/forms';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormModel from 'sentry/views/settings/components/forms/model';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
 type Props = Pick<Form['props'], 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> &
   Pick<SelectAsyncControlProps, 'defaultOptions'> & {

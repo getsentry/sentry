@@ -54,6 +54,7 @@ default_manager.add("organizations:create")
 default_manager.add("organizations:advanced-search", OrganizationFeature)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:alert-rule-ui-component", OrganizationFeature, True)
+default_manager.add("organizations:alert-rule-status-page", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, False)
 default_manager.add("organizations:boolean-search", OrganizationFeature)
@@ -123,12 +124,7 @@ default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, 
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, True)
 default_manager.add("organizations:onboarding", OrganizationFeature)
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
-default_manager.add(
-    "organizations:pagerduty-metric-alert-resolve-logging", OrganizationFeature, True
-)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
-default_manager.add("organizations:performance-landing-widgets", OrganizationFeature, True)
-default_manager.add("organizations:performance-mobile-vitals", OrganizationFeature, True)
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)
 default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, True)
@@ -161,6 +157,7 @@ default_manager.add("organizations:transaction-metrics-extraction", Organization
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
 default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
+default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 

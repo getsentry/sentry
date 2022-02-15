@@ -927,6 +927,8 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:alert-rule-ui-component": False,
+    # Enable issue alert status page
+    "organizations:alert-rule-status-page": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -1064,18 +1066,12 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable logging for select organizations
-    "organizations:pagerduty-metric-alert-resolve-logging": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
-    # Enable landing improvements for performance
-    "organizations:performance-landing-widgets": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable mobile vitals
-    "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
