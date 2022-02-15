@@ -59,14 +59,16 @@ type WidgetCardChartProps = Pick<
 };
 
 type State = {
-  bigNumberContainer: HTMLDivElement | null;
+  // For tracking height of the container wrapping BigNumber widgets
+  // so we can dynamically scale font-size
+  containerHeight: number;
 };
 
 class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
   constructor(props) {
     super(props);
     this.state = {
-      bigNumberContainer: null,
+      containerHeight: 0,
     };
   }
 
@@ -154,7 +156,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {bigNumberContainer} = this.state;
+    const {containerHeight} = this.state;
     const {organization, widget, isMobile} = this.props;
 
     return tableResults.map(result => {
@@ -181,24 +183,10 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      let w = 0;
-      let h = 0;
-      let fontSize;
-
-      if (bigNumberContainer) {
-        const {width, height} = bigNumberContainer.getBoundingClientRect();
-        w = width;
-        h = height;
-
-        // Account for top and bottom padding
-        fontSize = h - parseInt(space(1), 10) - parseInt(space(3), 10);
-      }
+      const fontSize = containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10);
 
       return (
-        <BigNumber
-          key={`big_number:${result.title}`}
-          style={{width: w, height: h, fontSize}}
-        >
+        <BigNumber key={`big_number:${result.title}`} style={{fontSize}}>
           <Tooltip title={rendered} showOnlyOnOverflow>
             {rendered}
           </Tooltip>
@@ -250,7 +238,10 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           <LoadingScreen loading={loading} />
           <BigNumberResizeWrapper
             ref={el => {
-              this.setState({bigNumberContainer: el});
+              if (el !== null) {
+                const {height} = el.getBoundingClientRect();
+                this.setState({containerHeight: height});
+              }
             }}
           >
             {this.bigNumberComponent({tableResults, loading, errorMessage})}
