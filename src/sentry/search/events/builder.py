@@ -36,6 +36,7 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
+    METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
@@ -111,7 +112,7 @@ class QueryBuilder:
         self.function_alias_map: Dict[str, FunctionDetails] = {}
 
         self.auto_aggregations = auto_aggregations
-        self.limit = None if limit is None else Limit(limit)
+        self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
         self.turbo = Turbo(turbo)
         self.sample_rate = sample_rate
@@ -178,6 +179,9 @@ class QueryBuilder:
         search_filter_converter = self.config.search_filter_converter
 
         return field_alias_converter, function_converter, search_filter_converter
+
+    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+        return None if limit is None else Limit(limit)
 
     def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
         if limitby is None:
@@ -1480,6 +1484,16 @@ class MetricsQueryBuilder(QueryBuilder):
         )
         return conditions
 
+    def resolve_limit(self, limit: Optional[int]) -> Limit:
+        """Impose a max limit, since we may need to create a large condition based on the group by values when the query
+        is run"""
+        if limit is not None and limit > METRICS_MAX_LIMIT:
+            raise IncompatibleMetricsQuery(f"Can't have a limit larger than {METRICS_MAX_LIMIT}")
+        elif limit is None:
+            return Limit(METRICS_MAX_LIMIT)
+        else:
+            return Limit(limit)
+
     def resolve_snql_function(
         self,
         snql_function: MetricsFunction,
@@ -1612,15 +1626,16 @@ class MetricsQueryBuilder(QueryBuilder):
         # and we can transform them (eg. project)
         primary, query_framework = self._create_query_framework()
 
-        value_map = defaultdict(dict)
         groupby_aliases = [
             groupby.alias
             if isinstance(groupby, (AliasedExpression, CurriedFunction))
             else groupby.name
             for groupby in self.groupby
         ]
-        groupby_values = []
-        result = {
+        # The typing for these are weak (all using Any) since the results from snuba can contain an assortment of types
+        value_map: Dict[str, Any] = defaultdict(dict)
+        groupby_values: List[Any] = []
+        result: Any = {
             "data": None,
             "meta": [],
         }
