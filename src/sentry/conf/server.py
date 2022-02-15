@@ -1075,7 +1075,7 @@ SENTRY_FEATURES = {
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable mobile vitals
-    "organizations:performance-mobile-vitals": False,
+    # "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
