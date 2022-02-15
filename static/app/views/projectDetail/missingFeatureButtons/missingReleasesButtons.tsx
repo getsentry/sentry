@@ -58,7 +58,7 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
         >
           {({showModal}) => (
             <Button size="small" onClick={showModal}>
-              {t('Get a tour')}
+              {t('Get Tour')}
             </Button>
           )}
         </FeatureTourModal>

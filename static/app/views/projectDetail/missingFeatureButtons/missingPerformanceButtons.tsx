@@ -54,7 +54,7 @@ function MissingPerformanceButtons({organization}: Props) {
         >
           {({showModal}) => (
             <Button size="small" onClick={showModal}>
-              {t('Get a tour')}
+              {t('Get Tour')}
             </Button>
           )}
         </FeatureTourModal>
