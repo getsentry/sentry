@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from django.db.models.query import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -10,6 +12,8 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 @register(DiscoverSavedQuery)
 class DiscoverSavedQuerySerializer(Serializer):
     def get_attrs(self, item_list, user):
+        prefetch_related_objects(item_list, "created_by")
+
         result = defaultdict(lambda: {"created_by": {}})
 
         user_serializer = UserSerializer()
