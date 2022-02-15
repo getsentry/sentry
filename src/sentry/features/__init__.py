@@ -125,8 +125,6 @@ default_manager.add("organizations:notification-all-recipients", OrganizationFea
 default_manager.add("organizations:onboarding", OrganizationFeature)
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
-default_manager.add("organizations:performance-landing-widgets", OrganizationFeature, True)
-default_manager.add("organizations:performance-mobile-vitals", OrganizationFeature, True)
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)
 default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, True)
