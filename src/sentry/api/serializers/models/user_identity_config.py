@@ -3,8 +3,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
 
+import sentry.integrations
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.provider import Provider
+from sentry.exceptions import NotRegistered
 from sentry.identity import is_login_provider
 from sentry.models import AuthIdentity, Identity, Organization
 from social_auth.models import UserSocialAuth
@@ -75,8 +77,13 @@ class UserIdentityConfig:
                 is_login=False,
             )
         elif isinstance(identity, Identity):
+            try:
+                provider = identity.get_provider()
+            except NotRegistered:
+                provider = sentry.integrations.get(identity.idp.type)
+
             return base(
-                provider=UserIdentityProvider.adapt(identity.get_provider()),
+                provider=UserIdentityProvider.adapt(provider),
                 name=identity.external_id,
                 is_login=supports_login(identity),
                 date_added=identity.date_added,
