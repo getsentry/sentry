@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {IntegrationWithConfig} from 'sentry/types';
@@ -8,7 +8,7 @@ import {IntegrationWithConfig} from 'sentry/types';
 import AddIntegration from './addIntegration';
 
 interface AddIntegrationButtonProps
-  extends Omit<ButtonProps, 'aria-label'>,
+  extends ButtonPropsWithoutAriaLabel,
     Pick<
       React.ComponentProps<typeof AddIntegration>,
       'provider' | 'organization' | 'analyticsParams' | 'modalParams'
