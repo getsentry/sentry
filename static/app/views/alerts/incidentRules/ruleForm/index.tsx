@@ -719,8 +719,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
+    const hasAlertWizardV3 =
+      Boolean(isCustomMetric) && organization.features.includes('alert-wizard-v3');
+
     const ruleNameOwnerForm = (hasAccess: boolean) => (
-      <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
+      <RuleNameOwnerForm
+        disabled={!hasAccess || !canEdit}
+        project={project}
+        hasAlertWizardV3={hasAlertWizardV3}
+      />
     );
 
     return (
@@ -775,6 +782,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 onFilterSearch={this.handleFilterUpdate}
                 allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                 alertType={isCustomMetric ? 'custom' : alertType}
+                hasAlertWizardV3={hasAlertWizardV3}
                 dataset={dataset}
                 timeWindow={timeWindow}
                 comparisonType={comparisonType}
@@ -787,7 +795,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               />
               <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
               {triggerForm(hasAccess)}
-              <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
               {ruleNameOwnerForm(hasAccess)}
             </List>
           </Form>
