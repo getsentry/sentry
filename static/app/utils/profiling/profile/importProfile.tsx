@@ -71,7 +71,7 @@ export function importDroppedProfile(file: File): Promise<ProfileGroup> {
     readFileAsString(file)
       .then(fileContents => JSON.parse(fileContents))
       .then(json => {
-        if (json === null || isNaN(json)) {
+        if (typeof json !== 'object' || json === null) {
           reject('Input JSON is not an object');
           return;
         }
