@@ -548,8 +548,13 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         # Need to make these flags
         self.__commit_max_batch_size = 10000
         self.__commit_max_batch_time = 4.0
-        self.__producer_queue_max_size = 8000
+        self.__producer_queue_max_size = 80000
         self.__producer_long_poll_timeout = 3.0
+
+        # poll duration metrics
+        self.__poll_start_time = time.time()
+        self.__poll_duration_sum = 0.0
+        self.__poll_sample_batch = 0
 
     def _ready(self) -> bool:
         if self.__callbacks >= self.__commit_max_batch_size:
@@ -560,16 +565,43 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
 
         return False
 
-    def poll_producer(self) -> None:
+    def _record_poll_duration(self, poll_duration) -> None:
+        self.__poll_duration_sum += poll_duration
+
+        # record poll time durations every 5 seconds
+        if (self.__poll_start_time + 5) < time.time():
+            self.__metrics.incr(
+                "simple_produce_step.join_duration", amount=int(self.__poll_duration_sum)
+            )
+            self.__poll_duration_sum = 0
+            self.__poll_start_time = time.time()
+
+    def poll_producer(self, timeout: float) -> None:
+        # XXX(meredith): There are two metrics we are trying to capture:
+        #  1. How long are we spending per poll. Let's only record this metric for every 100 messages.
+        if self.__poll_sample_batch >= 100:
+            with self.__metrics.timer("produce_step.producer_poll_duration"):
+                self.__producer.poll(timeout)
+            self.__poll_sample_batch = 0
+            return
+        #  2. On avg whats the time spent polling in total. This excludes
+        #     the time for polls that we capture above ^, I didn't want the
+        #     datadog metrics included in the start and end times. This metric
+        #     will use "simple_produce_step.join_duration" name so that we can
+        #     compare easily in datadog.
+        start = time.time()
+        self.__producer.poll(timeout)
+        end = time.time()
+        poll_duration = end - start
+        self._record_poll_duration(poll_duration)
+
+    def poll(self) -> None:
         timeout = 0.0
         if len(self.__producer) >= self.__producer_queue_max_size:
             logger.info(f"Producer queue a lil backedup at {len(self.__producer)} messages")
             timeout = self.__producer_long_poll_timeout
 
-        self.__producer.poll(timeout)
-
-    def poll(self) -> None:
-        self.poll_producer()
+        self.poll_producer(timeout)
 
         if self._ready():
             logger.info(f"Committing {self.__callbacks} messages...")
@@ -590,6 +622,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
     def callback(self, error: Any, message: Any, partition: Partition, position: Position) -> None:
         if message and error is None:
             self.__callbacks += 1
+            self.__poll_sample_batch += 1
             self.__produced_message_offsets[partition] = position
         if error is not None:
             raise Exception(error.str())
@@ -601,9 +634,10 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__closed = True
 
     def join(self, timeout: Optional[float]) -> None:
-        if not timeout:
-            timeout = 5.0
-        self.__producer.flush(timeout)
+        with self.__metrics.timer("simple_produce_step.join_duration"):
+            if not timeout:
+                timeout = 5.0
+            self.__producer.flush(timeout)
 
         if self.__callbacks:
             logger.info(f"Committing {self.__callbacks} messages...")
