@@ -280,6 +280,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     def serialize(  # type: ignore
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerResponse:
+        # TODO: rectify access argument overriding parent if we want to remove above type ignore
 
         from sentry import experiments
 
