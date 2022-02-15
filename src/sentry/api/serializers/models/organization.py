@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -9,13 +9,7 @@ from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
 from sentry import features, roles
-from sentry.api.serializers import (
-    Serializer,
-    UserSerializerResponse,
-    UserSerializerResponseSelf,
-    register,
-    serialize,
-)
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
 from sentry.app import quotas
 from sentry.auth.access import Access
@@ -53,6 +47,9 @@ from sentry.models import (
 from sentry.models.user import User
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
+
+if TYPE_CHECKING:
+    from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
 
 
 class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
