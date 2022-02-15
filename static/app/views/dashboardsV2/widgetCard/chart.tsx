@@ -183,6 +183,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
+      // The font size is the container height, minus the top and bottom padding
       const fontSize = containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10);
 
       return (
