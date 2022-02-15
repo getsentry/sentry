@@ -262,6 +262,7 @@ const ButtonLabel = styled('span')`
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
+  top: auto;
 `;
 
 const Overlay = styled('div')`
