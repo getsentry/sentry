@@ -232,16 +232,6 @@ function WidgetBuilder({
     });
   }
 
-  if (!Object.values(DataSet).includes(state.dataSet)) {
-    return (
-      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-        <PageContent>
-          <LoadingError message={t('Data set not found.')} />
-        </PageContent>
-      </SentryDocumentTitle>
-    );
-  }
-
   if (
     isEditing &&
     (!defined(widgetId) ||
@@ -348,7 +338,10 @@ function WidgetBuilder({
             >
               WIP
             </BuildStep>
-            <BuildStep title={t('Query')} description="Description of what this means">
+            <BuildStep
+              title={t('Filter your results')}
+              description="Description of what this means"
+            >
               <div>
                 {state.queries.map((query, queryIndex) => {
                   return (
