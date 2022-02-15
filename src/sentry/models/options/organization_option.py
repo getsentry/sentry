@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from django.db import models
 
@@ -14,8 +16,8 @@ if TYPE_CHECKING:
 
 class OrganizationOptionManager(OptionManager["Organization"]):
     def get_value_bulk(
-        self, instances: Sequence["Organization"], key: str
-    ) -> Mapping["Organization", Any]:
+        self, instances: Sequence[Organization], key: str
+    ) -> Mapping[Organization, Any]:
         instance_map = {i.id: i for i in instances}
         queryset = self.filter(organization__in=instances, key=key)
         result = {i: None for i in instances}
@@ -24,12 +26,12 @@ class OrganizationOptionManager(OptionManager["Organization"]):
         return result
 
     def get_value(
-        self, organization: "Organization", key: str, default: Optional[Value] = None
+        self, organization: Organization, key: str, default: Value | None = None
     ) -> Value:
         result = self.get_all_values(organization)
         return result.get(key, default)
 
-    def unset_value(self, organization: "Organization", key: str) -> None:
+    def unset_value(self, organization: Organization, key: str) -> None:
         try:
             inst = self.get(organization=organization, key=key)
         except self.model.DoesNotExist:
@@ -37,11 +39,11 @@ class OrganizationOptionManager(OptionManager["Organization"]):
         inst.delete()
         self.reload_cache(organization.id, "organizationoption.unset_value")
 
-    def set_value(self, organization: "Organization", key: str, value: Value) -> None:
+    def set_value(self, organization: Organization, key: str, value: Value) -> None:
         self.create_or_update(organization=organization, key=key, values={"value": value})
         self.reload_cache(organization.id, "organizationoption.set_value")
 
-    def get_all_values(self, organization: "Organization") -> Mapping[str, Value]:
+    def get_all_values(self, organization: Organization) -> Mapping[str, Value]:
         if isinstance(organization, models.Model):
             organization_id = organization.id
         else:
@@ -71,10 +73,10 @@ class OrganizationOptionManager(OptionManager["Organization"]):
         self._option_cache[cache_key] = result
         return result
 
-    def post_save(self, instance: "OrganizationOption", **kwargs: Any) -> None:
+    def post_save(self, instance: OrganizationOption, **kwargs: Any) -> None:
         self.reload_cache(instance.organization_id, "organizationoption.post_save")
 
-    def post_delete(self, instance: "OrganizationOption", **kwargs: Any) -> None:
+    def post_delete(self, instance: OrganizationOption, **kwargs: Any) -> None:
         self.reload_cache(instance.organization_id, "organizationoption.post_delete")
 
 

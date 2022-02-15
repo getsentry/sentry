@@ -1,7 +1,6 @@
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey
-from sentry.models import DefaultFieldsModel
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
 
 
 class SentryAppInstallationForProvider(DefaultFieldsModel):

@@ -7,7 +7,7 @@ from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
 from sentry.mediators.sentry_app_installation_tokens import Creator
 from sentry.models import ApiToken, SentryAppInstallation
-from sentry.models.sentryapp import MASKED_VALUE
+from sentry.models.integrations.sentry_app import MASKED_VALUE
 
 
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
