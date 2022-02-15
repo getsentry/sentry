@@ -21,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DateString,
+  MetricMeta,
   MetricTag,
   Organization,
   PageFilters,
@@ -55,6 +56,7 @@ import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetB
 import {
   generateMetricsWidgetFieldOptions,
   METRICS_FIELDS,
+  METRICS_FIELDS_ALLOW_LIST,
 } from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
@@ -105,6 +107,7 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   loading: boolean;
+  metricFields: MetricMeta[];
   metricTags: MetricTag[];
   queries: Widget['queries'];
   title: string;
@@ -163,6 +166,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         loading: !!this.omitDashboardProp,
         dashboards: [],
         metricTags: [],
+        metricFields: [],
         userHasModified: false,
         widgetType: WidgetType.DISCOVER,
       };
@@ -178,6 +182,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       loading: false,
       dashboards: [],
       metricTags: [],
+      metricFields: [],
       userHasModified: false,
       widgetType: widget.widgetType ?? WidgetType.DISCOVER,
     };
@@ -189,6 +194,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
     if (this.props.organization.features.includes('dashboards-metrics')) {
       this.fetchMetricsTags();
+      this.fetchMetricsFields();
     }
   }
 
@@ -547,6 +553,32 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
   }
 
+  async fetchMetricsFields() {
+    const {api, organization, selection} = this.props;
+    const promise: Promise<MetricMeta[]> = api.requestPromise(
+      `/organizations/${organization.slug}/metrics/meta/`,
+      {
+        query: {
+          project: !selection.projects.length ? undefined : selection.projects,
+        },
+      }
+    );
+
+    try {
+      const metricFields = await promise;
+      const filteredFields = metricFields.filter(field =>
+        METRICS_FIELDS_ALLOW_LIST.includes(field.name)
+      );
+      this.setState({
+        metricFields: filteredFields,
+      });
+    } catch (error) {
+      const errorResponse = error?.responseJSON ?? t('Unable to fetch metric fields');
+      addErrorMessage(errorResponse);
+      handleXhrErrorResponse(errorResponse)(error);
+    }
+  }
+
   handleDashboardChange(option: SelectValue<string>) {
     this.setState({selectedDashboard: option});
   }
@@ -619,7 +651,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      METRICS_FIELDS,
+      state.metricFields.length ? state.metricFields : METRICS_FIELDS,
       Object.values(state.metricTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
