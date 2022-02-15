@@ -1,3 +1,7 @@
+from collections import defaultdict
+
+from django.db.models.query import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -7,6 +11,32 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 
 @register(DiscoverSavedQuery)
 class DiscoverSavedQuerySerializer(Serializer):
+    def get_attrs(self, item_list, user):
+        prefetch_related_objects(item_list, "created_by")
+
+        result = defaultdict(lambda: {"created_by": {}})
+
+        user_serializer = UserSerializer()
+        serialized_users = {
+            user["id"]: user
+            for user in serialize(
+                [
+                    discover_saved_query.created_by
+                    for discover_saved_query in item_list
+                    if discover_saved_query.created_by
+                ],
+                user=user,
+                serializer=user_serializer,
+            )
+        }
+
+        for discover_saved_query in item_list:
+            result[discover_saved_query]["created_by"] = serialized_users.get(
+                str(discover_saved_query.created_by_id)
+            )
+
+        return result
+
     def serialize(self, obj, attrs, user, **kwargs):
         query_keys = [
             "environment",
@@ -32,9 +62,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "expired": False,
             "dateCreated": obj.date_created,
             "dateUpdated": obj.date_updated,
-            "createdBy": serialize(obj.created_by, serializer=UserSerializer())
-            if obj.created_by
-            else None,
+            "createdBy": attrs.get("created_by"),
         }
 
         for key in query_keys:
