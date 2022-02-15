@@ -60,12 +60,14 @@ const DropdownButton = forwardRef<
 
 const StyledChevron = styled(IconChevron)`
   margin-left: ${space(0.75)};
+  flex-shrink: 0;
 `;
 
 const StyledButton = styled(Button)<
   Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'priority'>>
 >`
   position: relative;
+  max-width: 100%;
   z-index: 2;
 
   ${p => p.isOpen || (p.disabled && 'box-shadow: none;')}
