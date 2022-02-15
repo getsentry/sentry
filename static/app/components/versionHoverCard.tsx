@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

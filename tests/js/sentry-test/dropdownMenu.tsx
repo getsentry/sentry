@@ -46,7 +46,7 @@ export async function selectDropdownMenuItem({
   wrapper,
   itemKey,
   specifiers,
-  triggerSelector = 'DropdownTrigger',
+  triggerSelector = 'Button',
 }: SelectDropdownItemProps) {
   /**
    * Returns a ReactWrapper which we'll use to find the
