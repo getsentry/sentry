@@ -8,7 +8,7 @@ from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
-from .base_hook import JiraBaseHook
+from .base import JiraBaseHook
 
 
 class JiraUiHookView(JiraBaseHook):

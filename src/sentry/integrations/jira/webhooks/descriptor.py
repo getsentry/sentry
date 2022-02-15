@@ -7,7 +7,7 @@ from sentry.api.base import Endpoint
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
-from .client import JIRA_KEY
+from .. import JIRA_KEY
 
 scopes = ["read", "write", "act_as_user"]
 # For Jira, only approved apps can use the access_email_addresses scope

@@ -9,12 +9,10 @@ from rest_framework.response import Response
 from sentry.api.serializers import StreamGroupSerializer, serialize
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models import ExternalIssue, Group, GroupLink
-from sentry.shared_integrations.exceptions import ApiHostError, IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
-from .base_hook import JiraBaseHook
-from .client import JiraApiClient, JiraCloud
+from . import JiraBaseHook
 
 logger = logging.getLogger(__name__)
 
@@ -25,17 +23,6 @@ def accum(tot, item):
 
 class JiraIssueHookView(JiraBaseHook):
     html_file = "sentry/integrations/jira-issue.html"
-
-    def set_badge(self, integration, issue_key, group_link_num):
-        client = JiraApiClient(
-            integration.metadata["base_url"],
-            JiraCloud(integration.metadata["shared_secret"]),
-            verify_ssl=True,
-        )
-        try:
-            return client.set_issue_property(issue_key, group_link_num)
-        except ApiHostError:
-            raise IntegrationError("Cannot reach host to set badge.")
 
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
         with configure_scope() as scope:
@@ -125,6 +112,9 @@ class JiraIssueHookView(JiraBaseHook):
             )
             result = self.get_response(context)
             scope.set_tag("status_code", result.status_code)
-            # XXX(CEO): group_link_num is hardcoded as 1 now, but when we handle displaying multiple linked issues this should be updated to the actual count
+
+            # XXX(CEO): group_link_num is hardcoded as 1 now, but when we handle
+            #  displaying multiple linked issues this should be updated to the
+            #  actual count.
             self.set_badge(integration, issue_key, 1)
             return result
