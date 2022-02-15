@@ -38,7 +38,8 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
-import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {metric} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -442,10 +443,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
 
     const {organization, project} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'edit_alert_rule.add_row',
-      eventName: 'Edit Alert Rule: Add Row',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('edit_alert_rule.add_row', {
+      organization,
       project_id: project.id,
       type,
       name: id,
