@@ -49,18 +49,18 @@ function readFileAsString(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      if (e.target && typeof e.target.result === 'string') {
+    reader.addEventListener('load', (e: ProgressEvent<FileReader>) => {
+      if (typeof e.target?.result === 'string') {
         resolve(e.target.result);
         return;
       }
 
       reject('Failed to read string contents of input file');
-    };
+    });
 
-    reader.onerror = () => {
+    reader.addEventListener('error', () => {
       reject('Failed to read string contents of input file');
-    };
+    });
 
     reader.readAsText(file);
   });
