@@ -8,7 +8,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
@@ -37,11 +37,8 @@ class ProjectAlertsEditor extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, project} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'edit_alert_rule.viewed',
-      eventName: 'Edit Alert Rule: Viewed',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('edit_alert_rule.viewed', {
+      organization,
       project_id: project.id,
       alert_type: this.getAlertType(),
     });
