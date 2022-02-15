@@ -7,12 +7,13 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
-import {IconArrow, IconDelete, IconEdit, IconEllipsis} from 'sentry/icons';
+import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -158,17 +159,16 @@ function RuleListRow({
     [IncidentStatus.OPENED]: t('Resolved'),
   };
 
-  const actions = [
+  const actions: MenuItemProps[] = [
     {
       key: 'edit',
       label: t('Edit'),
-      leadingItems: <IconEdit />,
       to: editLink,
     },
     {
       key: 'delete',
       label: t('Delete'),
-      leadingItems: <IconDelete />,
+      priority: 'danger',
       onAction: () => {
         openConfirmModal({
           onConfirm: () => onDelete(slug, rule),
