@@ -1061,7 +1061,7 @@ function buildRoutes() {
       </Route>
       <Route
         path=":alertId/"
-        componentPromise={() => import('sentry/views/alerts/details')}
+        componentPromise={() => import('sentry/views/alerts/incidentRedirect')}
         component={SafeLazyLoad}
       />
       <Route
