@@ -75,7 +75,7 @@ function ActionSet({
             onAction: () => {
               openConfirmModal({
                 bypass: !onShouldConfirm(ConfirmAction.MERGE),
-                onConfirm: () => onMerge(),
+           onConfirm: onMerge
                 message: confirm(ConfirmAction.MERGE, false),
                 confirmText: label('merge'),
               });
