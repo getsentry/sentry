@@ -54,6 +54,7 @@ ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join.
 class OrganizationMemberManager(BaseManager):
     def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
         """Get a list of members we can contact for an organization through email."""
+        # TODO(Steve): check member-limit:restricted
         return self.select_related("user").filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
