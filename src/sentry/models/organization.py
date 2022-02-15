@@ -489,9 +489,9 @@ class Organization(Model):
         scopes = set(roles.get(role).scopes)
 
         if role == "member":
-            if self.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT):
+            if not self.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT):
                 scopes.discard("event:admin")
-            if self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
+            if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
                 scopes.discard("alerts:write")
 
         return frozenset(scopes)
