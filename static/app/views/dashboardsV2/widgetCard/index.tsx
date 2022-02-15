@@ -11,7 +11,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -34,9 +34,6 @@ type Props = WithRouterProps & {
   isEditing: boolean;
   isSorting: boolean;
   location: Location;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onEdit: () => void;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -46,6 +43,9 @@ type Props = WithRouterProps & {
   isMobile?: boolean;
   isPreview?: boolean;
   noLazyLoad?: boolean;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onEdit?: () => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
   tableItemLimit?: number;
@@ -54,8 +54,15 @@ type Props = WithRouterProps & {
 
 class WidgetCard extends React.Component<Props> {
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
-      this.props;
+    const {
+      onEdit,
+      onDelete,
+      onDuplicate,
+      draggableProps,
+      hideToolbar,
+      isEditing,
+      isMobile,
+    } = this.props;
 
     if (!isEditing) {
       return null;
@@ -76,6 +83,9 @@ class WidgetCard extends React.Component<Props> {
           )}
           <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
+          </IconClick>
+          <IconClick aria-label={t('Duplicate Widget')} onClick={onDuplicate}>
+            <IconCopy color="textColor" />
           </IconClick>
           <IconClick data-test-id="widget-delete" onClick={onDelete}>
             <IconDelete color="textColor" />

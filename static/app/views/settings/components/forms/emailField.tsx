@@ -1,7 +1,3 @@
-import InputField from './inputField';
+import EmailField from 'sentry/components/forms/emailField';
 
-type Props = InputField['props'];
-
-export default function EmailField(props: Omit<Props, 'type'>) {
-  return <InputField {...props} type="email" />;
-}
+export default EmailField;

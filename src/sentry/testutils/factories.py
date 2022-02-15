@@ -85,7 +85,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
-from sentry.models.integrationfeature import Feature, IntegrationTypes
+from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets

@@ -179,14 +179,10 @@ def test_project_delete_option(default_project, task_runner, redis_cache):
 
 @pytest.mark.django_db
 def test_project_get_option_does_not_reload(default_project, task_runner, monkeypatch):
-
     ProjectOption.objects._option_cache.clear()
-
     with task_runner():
-        with patch("sentry.models.projectoption.cache.get", return_value=None):
-            with patch(
-                "sentry.models.projectoption.schedule_update_config_cache"
-            ) as update_config_cache:
+        with patch("sentry.utils.cache.cache.get", return_value=None):
+            with patch("sentry.tasks.relay.schedule_update_config_cache") as update_config_cache:
                 default_project.get_option(
                     "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
                 )
