@@ -18,9 +18,11 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {getFieldsFromEquations} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
+import {
+  eventViewFromWidget,
+  getFieldsFromEquations,
+} from 'sentry/views/dashboardsV2/utils';
 import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 import {Widget, WidgetType} from '../types';
