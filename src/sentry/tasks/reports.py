@@ -1138,9 +1138,14 @@ def build_key_errors_ctx(key_events, organization):
     ).all()
 
     group_id_to_group_history = defaultdict(lambda: (GroupHistoryStatus.NEW, "New Issue"))
-    group_history = GroupHistory.objects.filter(
-        group__id__in=map(lambda i: i[0], key_events), organization=organization
-    ).all()
+    group_history = (
+        GroupHistory.objects.filter(
+            group__id__in=map(lambda i: i[0], key_events), organization=organization
+        )
+        .order_by("date_added")
+        .all()
+    )
+    # The order_by ensures that the group_id_to_group_history contains the latest GroupHistory entry
     for g in group_history:
         group_id_to_group_history[g.group.id] = (g.status, g.get_status_display())
 
