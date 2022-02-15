@@ -2,10 +2,9 @@ import logging
 
 from django.http import Http404
 
-from sentry import features
 from sentry.incidents.models import IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info, incident_status_info
-from sentry.models import Organization, PagerDutyService
+from sentry.models import PagerDutyService
 from sentry.shared_integrations.exceptions import ApiError
 
 from .client import PagerDutyClient
@@ -60,9 +59,8 @@ def send_incident_alert_notification(action, incident, metric_value, method):
     integration_key = service.integration_key
     client = PagerDutyClient(integration_key=integration_key)
     attachment = build_incident_attachment(action, incident, integration_key, metric_value, method)
-    organization = Organization.objects.get(id=incident.organization_id)
     try:
-        client.send_trigger(attachment, organization, method)
+        client.send_trigger(attachment)
     except ApiError as e:
         logger.info(
             "rule.fail.pagerduty_metric_alert",
@@ -74,14 +72,3 @@ def send_incident_alert_notification(action, incident, metric_value, method):
             },
         )
         raise e
-
-    if method == "resolve" and features.has(
-        "organizations:pagerduty-metric-alert-resolve-logging", organization
-    ):
-        logger.info(
-            "resolve.sent.pagerduty_metric_alert",
-            extra={
-                "integration_id": integration.id,
-                "organization_id": incident.organization_id,
-            },
-        )
