@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {WidgetQuery} from '../../types';
 import {DisplayType} from '../utils';

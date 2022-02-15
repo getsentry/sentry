@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client} from 'sentry/api';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import Field from 'sentry/components/forms/field';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Config, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import ThresholdControl from 'sentry/views/alerts/incidentRules/triggers/thresholdControl';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {isSessionAggregate} from '../../utils';
 import {

@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import omit from 'lodash/omit';
 
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import InputField from 'sentry/views/settings/components/forms/inputField';
+import Input from 'sentry/components/forms/controls/input';
+import InputField from 'sentry/components/forms/inputField';
 
 type Props = Omit<InputField['props'], 'type' | 'accept'> & {
   accept?: string[];

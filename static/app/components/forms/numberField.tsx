@@ -1,6 +1,7 @@
-import NumberField from '../deprecatedforms/numberField';
+import InputField from './inputField';
 
-/**
- * @deprecated Use imports from sentry/components/deprecatedforms. This shim is to support getsentry temporarily
- */
-export default NumberField;
+type Props = InputField['props'];
+
+export default function NumberField(props: Omit<Props, 'type'>) {
+  return <InputField {...props} type="number" />;
+}
