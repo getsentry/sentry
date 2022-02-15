@@ -1,24 +1,29 @@
 import {createContext} from 'react';
 
-/**
- * Context type used on 'classic' or 'old' forms.
- *
- * This is a very different type than what is used on the 'settings'
- * forms which have MobX under the hood.
- */
-export type FormContextData = {
-  form?: {
-    data: object;
-    errors: object;
-    onFieldChange: (name: string, value: string | number) => void;
-  };
-};
+import FormModel from 'sentry/components/forms/model';
 
 /**
- * Default to undefined to preserve backwards compatibility.
- * The FormField component uses a truthy test to see if it is connected
- * to context or if the control is 'uncontrolled'.
+ * Context type used in 'settings' forms.
+ *
+ * These differ from the 'old' forms in that they use mobx observers
+ * to update state and expose it via the `FormModel`
  */
-const FormContext = createContext<FormContextData>({});
+export type FormContextData = {
+  /**
+   * The default value is undefined so that FormField components
+   * not within a form context boundary create MockModels based
+   * on their props.
+   */
+  form?: FormModel;
+  /**
+   * Should fields do save requests on blur?
+   */
+  saveOnBlur?: boolean;
+};
+
+const FormContext = createContext<FormContextData>({
+  form: undefined,
+  saveOnBlur: undefined,
+});
 
 export default FormContext;

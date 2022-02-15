@@ -6,44 +6,27 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {Widget, WidgetType} from '../types';
-import {
-  ISSUE_FIELD_TO_HEADER_MAP,
-  ISSUE_FIELDS,
-} from '../widgetBuilder/issueWidget/fields';
+import {Widget} from '../types';
 
-import WidgetCardChart from './chart';
-import IssueWidgetQueries from './issueWidgetQueries';
-import MetricsWidgetQueries from './metricsWidgetQueries';
+import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
-import WidgetQueries from './widgetQueries';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
-
-type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'> & {
-  transformedResults: TableDataRow[];
-};
 
 type Props = WithRouterProps & {
   api: Client;
@@ -51,9 +34,6 @@ type Props = WithRouterProps & {
   isEditing: boolean;
   isSorting: boolean;
   location: Location;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onEdit: () => void;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -63,6 +43,9 @@ type Props = WithRouterProps & {
   isMobile?: boolean;
   isPreview?: boolean;
   noLazyLoad?: boolean;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onEdit?: () => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
   tableItemLimit?: number;
@@ -71,8 +54,15 @@ type Props = WithRouterProps & {
 
 class WidgetCard extends React.Component<Props> {
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
-      this.props;
+    const {
+      onEdit,
+      onDelete,
+      onDuplicate,
+      draggableProps,
+      hideToolbar,
+      isEditing,
+      isMobile,
+    } = this.props;
 
     if (!isEditing) {
       return null;
@@ -93,6 +83,9 @@ class WidgetCard extends React.Component<Props> {
           )}
           <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
+          </IconClick>
+          <IconClick aria-label={t('Duplicate Widget')} onClick={onDuplicate}>
+            <IconCopy color="textColor" />
           </IconClick>
           <IconClick data-test-id="widget-delete" onClick={onDelete}>
             <IconDelete color="textColor" />
@@ -135,184 +128,18 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  issueTableResultComponent({
-    loading,
-    errorMessage,
-    transformedResults,
-  }: TableResultProps): React.ReactNode {
-    const {location, organization, widget} = this.props;
-    if (errorMessage) {
-      return (
-        <ErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
-      );
-    }
-
-    if (loading) {
-      // Align height to other charts.
-      return <LoadingPlaceholder height="200px" />;
-    }
-    return (
-      <StyledSimpleTableChart
-        location={location}
-        title=""
-        fields={widget.queries[0].fields}
-        loading={loading}
-        metadata={ISSUE_FIELDS}
-        data={transformedResults}
-        organization={organization}
-        getCustomFieldRenderer={getIssueFieldRenderer}
-        fieldHeaderMap={ISSUE_FIELD_TO_HEADER_MAP}
-        stickyHeaders
-      />
-    );
-  }
-
-  renderIssueChart() {
-    const {widget, api, organization, selection, renderErrorMessage, tableItemLimit} =
-      this.props;
-    return (
-      <IssueWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={tableItemLimit}
-      >
-        {({transformedResults, errorMessage, loading}) => {
-          return (
-            <React.Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <LoadingScreen loading={loading} />
-              {this.issueTableResultComponent({
-                transformedResults,
-                loading,
-                errorMessage,
-              })}
-              {this.renderToolbar()}
-            </React.Fragment>
-          );
-        }}
-      </IssueWidgetQueries>
-    );
-  }
-
-  renderMetricsChart() {
-    const {
-      widget,
-      api,
-      organization,
-      selection,
-      renderErrorMessage,
-      location,
-      router,
-      tableItemLimit,
-      isMobile,
-      windowWidth,
-    } = this.props;
-
-    return (
-      <MetricsWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={tableItemLimit}
-      >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => {
-          return (
-            <React.Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <WidgetCardChart
-                timeseriesResults={timeseriesResults}
-                tableResults={tableResults}
-                errorMessage={errorMessage}
-                loading={loading}
-                location={location}
-                widget={widget}
-                selection={selection}
-                router={router}
-                organization={organization}
-                isMobile={isMobile}
-                windowWidth={windowWidth}
-              />
-              {this.renderToolbar()}
-            </React.Fragment>
-          );
-        }}
-      </MetricsWidgetQueries>
-    );
-  }
-
-  renderDiscoverChart() {
-    const {
-      widget,
-      api,
-      organization,
-      selection,
-      renderErrorMessage,
-      location,
-      router,
-      tableItemLimit,
-      isMobile,
-      windowWidth,
-    } = this.props;
-    return (
-      <WidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={tableItemLimit}
-      >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => {
-          return (
-            <React.Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <WidgetCardChart
-                timeseriesResults={timeseriesResults}
-                tableResults={tableResults}
-                errorMessage={errorMessage}
-                loading={loading}
-                location={location}
-                widget={widget}
-                selection={selection}
-                router={router}
-                organization={organization}
-                isMobile={isMobile}
-                windowWidth={windowWidth}
-              />
-              {this.renderToolbar()}
-            </React.Fragment>
-          );
-        }}
-      </WidgetQueries>
-    );
-  }
-
-  renderChart() {
-    const {widget} = this.props;
-
-    if (widget.widgetType === WidgetType.ISSUE) {
-      return this.renderIssueChart();
-    }
-
-    if (widget.widgetType === WidgetType.METRICS) {
-      return this.renderMetricsChart();
-    }
-
-    return this.renderDiscoverChart();
-  }
-
   render() {
-    const {widget, noLazyLoad} = this.props;
+    const {
+      api,
+      organization,
+      selection,
+      widget,
+      isMobile,
+      renderErrorMessage,
+      tableItemLimit,
+      windowWidth,
+      noLazyLoad,
+    } = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -325,12 +152,31 @@ class WidgetCard extends React.Component<Props> {
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
-            this.renderChart()
+            <WidgetCardChartContainer
+              api={api}
+              organization={organization}
+              selection={selection}
+              widget={widget}
+              isMobile={isMobile}
+              renderErrorMessage={renderErrorMessage}
+              tableItemLimit={tableItemLimit}
+              windowWidth={windowWidth}
+            />
           ) : (
             <LazyLoad once resize height={200}>
-              {this.renderChart()}
+              <WidgetCardChartContainer
+                api={api}
+                organization={organization}
+                selection={selection}
+                widget={widget}
+                isMobile={isMobile}
+                renderErrorMessage={renderErrorMessage}
+                tableItemLimit={tableItemLimit}
+                windowWidth={windowWidth}
+              />
             </LazyLoad>
           )}
+          {this.renderToolbar()}
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -411,35 +257,4 @@ const WidgetHeader = styled('div')`
   width: 100%;
   display: flex;
   justify-content: space-between;
-`;
-
-const StyledTransparentLoadingMask = styled(props => (
-  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
-))`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const LoadingScreen = ({loading}: {loading: boolean}) => {
-  if (!loading) {
-    return null;
-  }
-  return (
-    <StyledTransparentLoadingMask visible={loading}>
-      <LoadingIndicator mini />
-    </StyledTransparentLoadingMask>
-  );
-};
-
-const LoadingPlaceholder = styled(Placeholder)`
-  background-color: ${p => p.theme.surface200};
-`;
-
-const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  box-shadow: none;
 `;

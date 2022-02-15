@@ -42,31 +42,6 @@ export const LANDING_DISPLAYS = [
     field: LandingDisplayField.ALL,
   },
   {
-    label: 'Frontend (Pageload)',
-    field: LandingDisplayField.FRONTEND_PAGELOAD,
-  },
-  {
-    label: 'Frontend (Other)',
-    field: LandingDisplayField.FRONTEND_OTHER,
-  },
-  {
-    label: 'Backend',
-    field: LandingDisplayField.BACKEND,
-  },
-  {
-    label: 'Mobile',
-    field: LandingDisplayField.MOBILE,
-    isShown: (organization: Organization) =>
-      organization.features.includes('performance-mobile-vitals'),
-  },
-];
-
-export const LANDING_V3_DISPLAYS = [
-  {
-    label: 'All Transactions',
-    field: LandingDisplayField.ALL,
-  },
-  {
     label: 'Web Vitals',
     field: LandingDisplayField.FRONTEND_PAGELOAD,
   },
@@ -81,8 +56,6 @@ export const LANDING_V3_DISPLAYS = [
   {
     label: 'Mobile',
     field: LandingDisplayField.MOBILE,
-    isShown: (organization: Organization) =>
-      organization.features.includes('performance-mobile-vitals'),
   },
 ];
 
