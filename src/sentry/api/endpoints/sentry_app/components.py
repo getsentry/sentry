@@ -14,6 +14,9 @@ from sentry.mediators import sentry_app_components
 from sentry.models import Project, SentryAppComponent, SentryAppInstallation
 
 
+# TODO(mgaeta): These endpoints are doing the same thing, but one takes a
+#  project and the other takes a sentry app. It would be better to have a single
+#  endpoint that can take project_id or sentry_app_id as a query parameter.
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
     def get(self, request: Request, sentry_app) -> Response:
         return self.paginate(
@@ -22,10 +25,6 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):

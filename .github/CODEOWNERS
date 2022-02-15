@@ -190,8 +190,7 @@ tests/js/spec/utils/profiling                                   @getsentry/profi
 /src/sentry/api/endpoints/organization_plugins_configs.py               @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_plugins.py                       @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_release_previous_commits.py      @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_internal_app_token_details.py          @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_internal_app_tokens.py                 @getsentry/ecosystem
+/src/sentry/api/endpoints/sentry_app/                                   @getsentry/ecosystem
 
 /static/app/views/organizationIntegrations  @getsentry/ecosystem
 
