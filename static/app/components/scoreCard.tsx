@@ -67,6 +67,7 @@ export const HeaderTitle = styled('div')`
 
 const Title = styled('div')`
   ${overflowEllipsis};
+  font-weight: 600;
 `;
 
 export const ScoreWrapper = styled('div')`
