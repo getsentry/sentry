@@ -1,0 +1,583 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block head %}
+
+  {{ block.super }}
+
+  <style type="text/css">
+
+    .container {
+      padding-top: 18px;
+      padding-bottom: 10px;
+    }
+
+    .header td {
+      text-align: right;
+      font-size: 14px;
+    }
+
+    td, th {
+      text-align: left;
+    }
+
+    .legend {
+      font-size: 14px;
+      text-align: right;
+    }
+
+    .legend span.swatch {
+      width: 16px;
+      height: 16px;
+      vertical-align: bottom;
+      display: inline-block;
+      margin: 0 15px 0 15px;
+      border-radius: 3px;
+      color: #fff;
+    }
+
+    .graph .bar {
+      margin-bottom: 0;
+    }
+
+    .graph .bar td,
+    .graph .bar th {
+      line-height: 0;
+    }
+
+    .issue-graph {
+      table-layout: fixed;
+    }
+
+    .issue-graph .graph > td,
+    .issue-graph .labels > td {
+      padding-right: 5px;
+    }
+
+    .issue-graph .labels td {
+      padding-top: 3px;
+      font-size: 10px;
+      text-align: center;
+      color: #848296;
+    }
+
+    #events-seen .legend .all,
+    #events-seen .bar .all {
+      background-color: #ebe9f7;
+    }
+
+    #events-seen .legend .resolved,
+    #events-seen .bar .resolved {
+      background-color: #6C5FC7;
+    }
+
+    .issues-resolved .issues-resolved-column {
+      text-align: right;
+    }
+
+    .issues-resolved .empty {
+      display: block;
+      text-align: center;
+    }
+
+    .issues-resolved .issues-resolved-column-left {
+      padding-right: 15px;
+      vertical-align: bottom;
+    }
+
+    .issues-resolved .issues-resolved-column-middle {
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    .issues-resolved .issues-resolved-column .stat {
+      font-size: 35px;
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+
+    .issues-resolved .issues-resolved-column .stat img {
+      vertical-align: middle;
+    }
+
+    .issue-graph, .issue-graph .bar {
+      margin-bottom: 0;
+    }
+
+    .issue-graph .bar td {
+      font-size: 0;
+    }
+
+    .project-breakdown {
+      margin-bottom: 20px;
+    }
+    .project-breakdown table.project-breakdown-graph-deck {
+      table-layout: fixed;
+      border-collapse: collapse;
+      border-spacing: 3px;
+      border-style: hidden;
+      width: 100%;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell {
+      border: 1px solid #C4C4C4;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.errors {
+      padding-right: 10px;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions {
+      padding-left: 10px;
+    }
+    .project-breakdown .total-count-title {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    .project-breakdown .total-count {
+      margin-top: 5px;
+      margin-bottom: 18px;
+    }
+
+    .project-breakdown .graph {
+      table-layout: fixed;
+      margin: 0;
+    }
+
+    .project-breakdown .graph td {
+        font-size: 0;
+        border-right: 10px solid #fff;
+    }
+
+    .project-breakdown .graph td:last-child {
+        border-right: none;
+    }
+
+    .project-breakdown .graph .label {
+      font-size: 14px;
+      color: #848296;
+      text-align: center;
+      padding-top: 10px;
+    }
+
+    .project-breakdown .summary thead th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #88859a;
+      font-weight: 500;
+    }
+
+    .project-breakdown .summary tr {
+      border-bottom: 1px solid #DEE7EB;
+    }
+
+    .project-breakdown .summary th,
+    .project-breakdown .summary td {
+      font-size: 14px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    .project-breakdown .summary .numeric {
+      text-align: center;
+    }
+
+    .project-breakdown .col-errors-dropped {
+      padding-right: 2rem;
+    }
+
+    td.spectrum {  /* XXX: td qualifier is a hack */
+      margin: 0;
+      padding: 0;
+      font-size: 12px;
+      text-align: right;
+      color: #555;
+    }
+
+    .spectrum .range {
+      font-size: 0px;
+      display: inline-block;
+      vertical-align: middle;
+      margin: 0 6px;
+    }
+
+    .spectrum .range span {
+      display: inline-block;
+      height: 5px;
+      width: 5px;
+    }
+
+    .calendar {
+      vertical-align: top;
+      padding-right: 10px;
+    }
+
+    .calendar table {
+      table-layout: fixed;
+    }
+
+    .calendar:last-child {
+      padding-right: 0;
+    }
+
+    .calendar h5 {
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .calendar th {
+      font-size: 12px;
+      color: #848296;
+      text-align: center;
+      padding: 0 0 10px 0;
+    }
+
+    .calendar .day {
+      width: 14.2%;
+      padding: 0 5px 5px 0;
+    }
+
+    .calendar .day span,
+    .calendar .day a {
+      display: inline-block;
+      width: 100%;
+      height: 20px;
+    }
+
+    .user-impact-stat table {
+      width: 90px;
+      height: 90px;
+      margin: 0 18px 0 0;
+    }
+
+    .user-impact-stat td {
+      margin: 0;
+      padding: 0;
+    }
+
+    .user-impact-stat img {
+      display: block;
+    }
+
+    .user-impact-stat td.count {
+      text-align: center;
+      line-height: 1;
+      font-size: 32px;
+      vertical-align: middle;
+      color: #6C5FC7;
+      width: 64px;
+      max-width: 64px;
+      overflow: hidden;
+    }
+
+    .user-impact-text {
+      font-size: 18px;
+      font-weight: 500;
+      padding-right: 20px;
+    }
+
+    #history-calendars h4 {
+      margin-bottom: 0px;
+    }
+
+  </style>
+
+  <style type="text/css" inline="false">
+
+    .issues-resolved .issues-resolved-column-middle {
+      border-left: 1px solid #D6DBE4;
+      border-right: 1px solid #D6DBE4;
+    }
+
+    @media only screen and (max-device-width: 480px) {
+
+      .mobile-full-width > th,
+      .mobile-full-width > td {
+          display: block;
+          width: 100%;
+      }
+
+      h4 {
+        text-align: center !important;
+      }
+
+      .header td {
+        text-align: center !important;
+      }
+
+      #events-seen .bar .all {
+        background-color: #6C5FC7 !important;
+      }
+
+      .project-breakdown .col-dropped {
+        display: none;
+      }
+
+      #events-seen .legend {
+        display: none;
+      }
+
+      #events-seen .issue-graph {
+        margin-bottom: 10px !important;
+      }
+
+      #events-by-issue-type .legend {
+        margin-bottom: 20px !important;
+        text-align: center !important;
+      }
+
+      #events-by-issue-type .quantity {
+        display: none;
+      }
+
+      .issues-resolved .issues-resolved-column-middle {
+        border-left: none;
+        border-right: none;
+      }
+
+      .issues-resolved .issues-resolved-column-middle,
+      .issues-resolved .issues-resolved-column-right {
+        text-align: center !important;
+        vertical-align: top !important;
+        padding: 0 !important;
+      }
+
+      .issues-resolved .issues-resolved-column-middle .stat,
+      .issues-resolved .issues-resolved-column-right .stat {
+        font-size: 24px !important;
+      }
+
+      .issues-resolved .issues-resolved-column-middle .stat img,
+      .issues-resolved .issues-resolved-column-right .stat img {
+        width: 16px !important;
+        height: 8px !important;
+      }
+
+      .spectrum {
+        margin: 20px 0 0 !important;
+        text-align: center !important;
+      }
+
+    }
+
+  </style>
+
+{% endblock %}
+
+{% block header %}
+  <table>
+    <tr class="mobile-full-width">
+      <td width="125px">
+        <h1>
+          <a href="{% absolute_uri %}"><img src="{% absolute_asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
+        </h1>
+      </td>
+      <td class="align-right">
+        <strong>{{ duration.adjective|title }} Update for {{ organization.name }}</strong><br />
+        {{ interval.start }} &ndash; {{ interval.stop }}
+      </td>
+    </tr>
+  </table>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+  <div class="project-breakdown">
+
+    {% with series=report.projects.series height=110 %}
+    <table class="project-breakdown-graph-deck"><tbody><tr>
+
+    <td class="project-breakdown-graph-cell errors">
+    <h4 class="total-count-title">Total Project Errors</h4>
+    <h1 class="total-count">{{ series.legend.total.data.accepted_errors|small_count:1 }}</h1>
+
+    <table class="graph">
+      <tr>
+        {% for timestamp, values in series.points %}
+        <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
+            <table class="bar">
+              {% for key, count in values %}
+                <tr>
+                  <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td height="1" style="background-color: #ebe9f7;"></td>
+                </tr>
+              {% endfor %}
+            </table>
+          </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for timestamp, values in series.points %}
+          <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
+            {{ timestamp|date:duration.date_format }}
+          </td>
+        {% endfor %}
+      </tr>
+    </table>
+    </td>
+
+
+    <td class="project-breakdown-graph-cell transactions">
+      <h4 class="total-count-title">Total Project Transactions</h4>
+      <h1 class="total-count">{{ series.legend.total.data.accepted_transactions|small_count:1 }}</h1>
+
+      <table class="graph">
+        <tr>
+          {% for timestamp, values in series.transaction_points %}
+          <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
+              <table class="bar">
+                {% for key, count in values %}
+                  <tr>
+                    <td height="{% widthratio count series.transaction_maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td height="1" style="background-color: #ebe9f7;"></td>
+                  </tr>
+                {% endfor %}
+              </table>
+            </td>
+          {% endfor %}
+        </tr>
+        <tr>
+          {% for timestamp, values in series.transaction_points %}
+            <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
+              {{ timestamp|date:duration.date_format }}
+            </td>
+          {% endfor %}
+        </tr>
+      </table>
+      </td>
+
+    </tr></tbody></table>
+
+    <table class="summary">
+      <thead>
+        <tr>
+          <th style="width: 2em; padding-right: 0.5em"></th>
+          <th>Project</th>
+          <th style="width: 5em;" class="numeric">Errors</th>
+          <th style="width: 5em;" class="numeric col-dropped col-errors-dropped">Dropped</th>
+          <th style="width: 7em;" class="numeric">Transactions</th>
+          <th style="width: 7em;" class="numeric col-dropped">Dropped</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for key in series.legend.rows %}
+        <tr>
+          <td>
+              {% if key.color %}<span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
+          </td>
+          <td>
+              {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
+          </td>
+          <td class="numeric">{{ key.data.accepted_errors|small_count:1 }}</td>
+          <td class="numeric col-dropped col-errors-dropped">{{ key.data.dropped_errors|small_count:1 }}</td>
+          <td class="numeric">{{ key.data.accepted_transactions|small_count:1 }}</td>
+          <td class="numeric col-dropped">{{ key.data.dropped_transactions|small_count:1 }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      {% if series.legend.rows|length > 1 %}
+        <tfoot>
+          {% with key=series.legend.total %}
+            <tr>
+              <td>
+                  {% if key.color %}<span style="background: {{ key.color }}; background-size: 4px 4px; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
+              </td>
+              <td>
+                  {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
+              </td>
+              <td class="numeric">{{ key.data.accepted_errors|small_count:1 }}</td>
+              <td class="numeric col-dropped col-errors-dropped">{{ key.data.dropped_errors|small_count:1 }}</td>
+              <td class="numeric">{{ key.data.accepted_transactions|small_count:1 }}</td>
+              <td class="numeric col-dropped">{{ key.data.dropped_transactions|small_count:1 }}</td>
+            </tr>
+          {% endwith %}
+        </tfoot>
+      {% endif %}
+    </table>
+    {% endwith %}
+
+  </div>
+
+  <div id="events-by-issue-type">
+
+    {% with report.distribution.total as total %}
+    <table class="issue-breakdown">
+      <tr class="mobile-full-width">
+        <td>
+          <h4>Errors by Issue Type</h4>
+        </td>
+        <td class="legend">
+          {% for type, count in report.distribution.types %}
+            <span class="swatch" style="background-color: {{ type.color }};"></span>{{ type.label }}<span class="quantity">: {% percent count total "0.1f" %}%</span>
+          {% endfor %}
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <table>
+            <tr>
+              {% for type, count in report.distribution.types %}
+                <td width="{% widthratio count total 100 %}%" title="{{ type.label }}: {{ count }} events" style="background-color: {{ type.color }}">
+                  &nbsp;
+                </td>
+              {% endfor %}
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    {% endwith %}
+
+  </div>
+
+  {%if report.key_errors|length > 0 %}
+  <div id="key-errors">
+    {% with report.key_errors as errors %}
+    <h4>Key Errors</h4>
+    {% for a in errors %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 65%;">
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug %}">{{a.group.message}}</a>
+        <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
+      </div>
+      <span style="background-color: rgba(245, 176, 0, 0.55); border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto;">{{a.status}}</span>
+    </div>
+    {% endfor %}
+    {% endwith %}
+  </div>
+  {% endif %}
+
+  {%if report.key_errors|length > 0 %}
+  <div id="key-errors">
+    {% with report.key_transactions as transactions %}
+    <h4>Key Transactions</h4>
+    {% for a in transactions %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 65%;">
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="#">{{a.name}}</a>
+        <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
+      </div>
+      <div style="font-size: 14px; margin-left: auto; display: flex;">
+        {% if a.p95_prev_week %}
+        <span>{{a.p95_prev_week | duration}}</span>
+        <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-right.png' %}" width="16px" height="16px" style="margin: 0 8px;">
+        {% endif %}
+        <span>{{a.p95 | duration}}</span>
+      </div>
+    </div>
+    {% endfor %}
+    {% endwith %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
