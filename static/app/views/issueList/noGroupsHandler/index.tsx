@@ -7,6 +7,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import {Query} from 'sentry/views/issueList/utils';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
@@ -150,7 +151,23 @@ class NoGroupsHandler extends React.Component<Props, State> {
       return this.renderAwaitingEvents(firstEventProjects);
     }
     if (query === DEFAULT_QUERY) {
-      return <NoUnresolvedIssues />;
+      return (
+        <NoUnresolvedIssues
+          title={t("We couldn't find any issues that matched your filters.")}
+          subtitle={t('Get out there and write some broken code!')}
+        />
+      );
+    }
+
+    if (query === Query.FOR_REVIEW) {
+      return (
+        <NoUnresolvedIssues
+          title={t('Well, would you look at that.')}
+          subtitle={t(
+            'No more issues to review. Better get back out there and write some broken code.'
+          )}
+        />
+      );
     }
 
     return this.renderEmpty();
