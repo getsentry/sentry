@@ -18,8 +18,10 @@ from django.conf import settings
 from django.core.signing import BadSignature
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
+from simplejson.errors import JSONDecodeError
 
 from sentry.auth.system import is_system_auth
+from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
 
 logger = logging.getLogger("sentry.superuser")
@@ -285,6 +287,29 @@ class Superuser:
             "superuser.logged-in",
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
         )
+
+        # is there anything else that calls this besides suodalModal?
+        if request.method == "PUT":
+            try:
+                SU_access_info = json.loads(request.body)
+
+                logger.info(
+                    "SU_access.give_SU_access",
+                    extra={
+                        "user_id": request.user.id,
+                        "user_email": request.user.email,
+                        "SU_access_catergory": SU_access_info["categoryOfSUAccess"],
+                        "reason_for_SU": SU_access_info["reasonForSU"],
+                        "orgs_accessed": request.session["orgs_accessed"],
+                    },
+                )
+
+                request.session["SU_access"] = {
+                    "SU_access_catergory": SU_access_info["categoryOfSUAccess"],
+                    "reason_for_SU": SU_access_info["reasonForSU"],
+                }
+            except JSONDecodeError:
+                pass
 
     def set_logged_out(self):
         """

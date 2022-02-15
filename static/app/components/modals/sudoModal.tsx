@@ -14,6 +14,7 @@ import space from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 import Form from 'sentry/views/settings/components/forms/form';
 import InputField from 'sentry/views/settings/components/forms/inputField';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
@@ -86,6 +87,10 @@ class SudoModal extends React.Component<Props, State> {
     const {superuser} = this.props;
     const {error} = this.state;
     const user = ConfigStore.get('user');
+    const placeholderForSUCategories = [
+      {value: '1', name: 'a'},
+      {value: '2', name: 'b'},
+    ];
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>
@@ -133,6 +138,27 @@ class SudoModal extends React.Component<Props, State> {
             autoFocus
             flexibleControlStateSize
           />
+          {/* only show the 2 below if they are superusers */}
+          <StyledSelectField
+            name="categoryOfSUAccess"
+            label={t('Catergory of Superuser Access')}
+            options={placeholderForSUCategories.map(SUCategory => ({
+              value: SUCategory.value,
+              label: SUCategory.name,
+            }))}
+            placeholder={t('Select Catergory')}
+            inline={false}
+            flexibleControlStateSize
+            required
+          />
+          <StyledInputField
+            type="text"
+            inline={false}
+            label={t('Reason for Superuser')}
+            name="reasonForSU"
+            flexibleControlStateSize
+            required
+          />
           <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
         </Form>
       </React.Fragment>
@@ -159,6 +185,10 @@ const StyledTextBlock = styled(TextBlock)`
 `;
 
 const StyledInputField = styled(InputField)`
+  padding-left: 0;
+`;
+
+const StyledSelectField = styled(SelectField)`
   padding-left: 0;
 `;
 

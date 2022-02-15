@@ -20,6 +20,7 @@ from rest_framework.views import APIView
 
 from sentry import analytics, tsdb
 from sentry.auth import access
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import Environment
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -40,6 +41,7 @@ ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
 LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+ORGANIZATION_PATH = "/api/0/organizations/"
 
 DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
 
@@ -177,6 +179,26 @@ class Endpoint(APIView):
         # request. Then when we call `rv.auth` it attempts to authenticate,
         # fails and sets `user` and `auth` to None on the internal request. We
         # keep track of these here and reassign them as needed.
+        if request.user.is_superuser and is_active_superuser(request):
+            if ORGANIZATION_PATH in request.path_info:
+                org_slug = request.path_info.replace(ORGANIZATION_PATH, "").split("/", 1)[0]
+                if not request.session.get("orgs_accessed"):
+                    request.session["orgs_accessed"] = [org_slug]
+                elif org_slug not in request.session["orgs_accessed"]:
+                    request.session["orgs_accessed"].append(org_slug)
+                    logger.info(
+                        "SU_access.give_SU_access",
+                        extra={
+                            "user_id": request.user.id,
+                            "user_email": request.user.email,
+                            "SU_access_catergory": request.session["SU_access"][
+                                "SU_access_catergory"
+                            ],
+                            "reason_for_SU": request.session["SU_access"]["reason_for_SU"],
+                            "orgs_accessed": request.session["orgs_accessed"],
+                        },
+                    )
+
         orig_auth = getattr(request, "auth", None)
         orig_user = getattr(request, "user", None)
         rv = super().initialize_request(request, *args, **kwargs)
