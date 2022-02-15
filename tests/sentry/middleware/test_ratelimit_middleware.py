@@ -265,7 +265,7 @@ class TestRatelimitHeader(APITestCase):
             assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
-    @patch("sentry.ratelimits.utils.can_be_ratelimited")
+    @patch("sentry.ratelimits.utils.get_rate_limit_key")
     def test_omit_header(self, can_be_ratelimited_patch):
         """
         Ensure that functions that can't be rate limited don't have rate limit headers
@@ -274,7 +274,7 @@ class TestRatelimitHeader(APITestCase):
             - UI Statistics Endpoints
             - Endpoints that don't inherit api.base.Endpoint
         """
-        can_be_ratelimited_patch.return_value = False
+        can_be_ratelimited_patch.return_value = None
         response = self.get_response()
         assert "X-Sentry-Rate-Limit-Remaining" not in response._headers
         assert "X-Sentry-Rate-Limit-Limit" not in response._headers
