@@ -6,14 +6,11 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {getContext, measureText, Rect} from 'sentry/utils/profiling/gl/utils';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 
-const useCachedMeasure = (string: string): Rect => {
+const useCachedMeasure = (string: string, font: string): Rect => {
   const cache = React.useRef<Record<string, Rect>>({});
   const ctx = React.useMemo(() => {
     const context = getContext(document.createElement('canvas'), '2d');
-
-    context.font = `12px ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
-    'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',
-    'Courier New', monospace`;
+    context.font = font;
     return context;
   }, []);
 
@@ -47,9 +44,12 @@ function BoundTooltip({
   children,
 }: BoundTooltipProps): React.ReactElement | null {
   const tooltipRef = React.useRef<HTMLDivElement>(null);
-  const tooltipRect = useCachedMeasure(tooltipRef.current?.textContent ?? '');
-  const devicePixelRatio = useDevicePixelRatio();
   const flamegraphTheme = useFlamegraphTheme();
+  const tooltipRect = useCachedMeasure(
+    tooltipRef.current?.textContent ?? '',
+    `${flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE}px ${flamegraphTheme.FONTS.FONT}`
+  );
+  const devicePixelRatio = useDevicePixelRatio();
 
   const physicalToLogicalSpace = React.useMemo(
     () =>
