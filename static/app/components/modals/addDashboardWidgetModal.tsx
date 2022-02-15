@@ -686,7 +686,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       default:
         return (
           <React.Fragment>
-            <Measurements organization={organization}>
+            <Measurements>
               {({measurements}) => {
                 const measurementKeys = Object.values(measurements).map(({key}) => key);
                 const amendedFieldOptions = fieldOptions(measurementKeys);

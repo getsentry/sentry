@@ -708,7 +708,6 @@ function generateFrontendPageloadPerformanceEventView(
 
 function generateFrontendOtherPerformanceEventView(
   location: Location,
-  organization: Organization,
   isMetricsData: boolean
 ): EventView {
   const {query} = location;
@@ -773,11 +772,6 @@ function generateFrontendOtherPerformanceEventView(
   // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-
-    if (!organization.features.includes('organizations:performance-landing-widgets')) {
-      // Original landing page still should use Frontend (other) with pageload excluded.
-      eventView.additionalConditions.addFilterValues('!transaction.op', ['pageload']);
-    }
   }
 
   return eventView;
@@ -785,7 +779,6 @@ function generateFrontendOtherPerformanceEventView(
 
 export function generatePerformanceEventView(
   location: Location,
-  organization: Organization,
   projects: Project[],
   {isTrends = false, isMetricsData = false} = {}
 ) {
@@ -800,11 +793,7 @@ export function generatePerformanceEventView(
     case LandingDisplayField.FRONTEND_PAGELOAD:
       return generateFrontendPageloadPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(
-        location,
-        organization, // TODO(k-fish): Remove with tag change
-        isMetricsData
-      );
+      return generateFrontendOtherPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.BACKEND:
       return generateBackendPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.MOBILE:
