@@ -120,7 +120,7 @@ function CompactSelect({
 }: Props) {
   // Manage the dropdown menu's open state
   const isDisabled = disabledProp || options?.length === 0;
-  const triggerRef = useRef(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const state = useMenuTriggerState(props);
   const {menuTriggerProps} = useMenuTrigger(
     {type: 'listbox', isDisabled},
@@ -180,12 +180,13 @@ function CompactSelect({
 
   // Calculate & update the trigger button's width, to be used as the
   // overlay's min-width
-  const [triggerWidth, setTriggerWidth] = useState<number>(null);
+  const [triggerWidth, setTriggerWidth] = useState<number>();
   useEffect(() => {
     // Wait until the trigger label has been updated before calculating the
     // new width
     setTimeout(() => {
-      setTriggerWidth(triggerRef.current?.offsetWidth);
+      const newTriggerWidth = triggerRef.current?.offsetWidth;
+      newTriggerWidth ?? setTriggerWidth(newTriggerWidth);
     }, 0);
   }, [triggerRef.current, internalValue]);
 
