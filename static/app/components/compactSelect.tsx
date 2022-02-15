@@ -155,7 +155,11 @@ function CompactSelect({
 
   // Keep an internal copy of the current select value and update the control
   // button's label when the value changes
-  const getLabel = (newValue): React.ReactNode => {
+  const [internalValue, setInternalValue] = useState(valueProp ?? defaultValue);
+  const [label, setLabel] = useState(getLabel(valueProp ?? null));
+
+  // Update the button label when the value changes
+  function getLabel(newValue): React.ReactNode {
     const valueSet = Array.isArray(newValue) ? newValue : [newValue];
     const optionSet = valueSet.map(val => options.find(opt => opt.value === val));
     const firstOptionLabel = optionSet[0] ? optionSet[0]?.label : '';
@@ -166,19 +170,15 @@ function CompactSelect({
         {optionSet.length > 1 && <StyledBadge text={`+${optionSet.length - 1}`} />}
       </Fragment>
     );
-  };
+  }
 
-  const [internalValue, setInternalValue] = useState(valueProp ?? defaultValue);
-  const [label, setLabel] = useState(getLabel(valueProp ?? null));
-
-  // Update the button label when the value changes
   useEffect(() => {
     const newValue = valueProp ?? internalValue;
     const newLabel = getLabel(newValue);
     setLabel(newLabel);
   }, [valueProp ?? internalValue]);
 
-  const onValueChange = option => {
+  function onValueChange(option) {
     const newValue = Array.isArray(option) ? option.map(opt => opt.value) : option?.value;
     setInternalValue(newValue);
     onChange?.(option);
@@ -186,7 +186,7 @@ function CompactSelect({
     if (closeOnSelect && !multiple) {
       state.close();
     }
-  };
+  }
 
   function renderTrigger() {
     if (trigger) {
