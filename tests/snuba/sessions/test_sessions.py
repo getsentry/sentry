@@ -15,6 +15,12 @@ from sentry.utils.dates import to_timestamp
 
 
 def parametrize_backend(cls):
+    """
+    hack to parametrize test-classes by backend. Ideally we'd move
+    over to pytest-style tests so we can use `pytest.mark.parametrize`, but
+    hopefully we won't have more than one backend in the future.
+    """
+
     class MetricsTest(SessionMetricsTestCase, cls):
         __doc__ = f"Repeat tests from {cls} with metrics"
         backend = MetricsReleaseHealthBackend()
