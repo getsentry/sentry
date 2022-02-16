@@ -152,7 +152,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
           issue: shortId,
           title,
           project: project.slug,
-          annotations: annotations.join(', '),
+          annotations: annotations?.join(', '),
         };
 
         // Get lifetime stats
