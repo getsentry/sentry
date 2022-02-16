@@ -129,7 +129,7 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.DELETE),
-          onConfirm: () => onDelete(),
+          onConfirm: onDelete,
           priority: 'danger',
           message: confirm(ConfirmAction.DELETE, false),
           confirmText: label('delete'),
