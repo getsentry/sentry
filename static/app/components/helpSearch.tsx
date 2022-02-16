@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Search from 'sentry/components/search';
+import {Search} from 'sentry/components/search';
 import SearchResult from 'sentry/components/search/searchResult';
 import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
 import HelpSource from 'sentry/components/search/sources/helpSource';

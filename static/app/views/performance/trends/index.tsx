@@ -34,26 +34,16 @@ class TrendsSummary extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceEventView(
-        nextProps.location,
-        nextProps.organization,
-        nextProps.projects,
-        {
-          isTrends: true,
-        }
-      ),
+      eventView: generatePerformanceEventView(nextProps.location, nextProps.projects, {
+        isTrends: true,
+      }),
     };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(
-      this.props.location,
-      this.props.organization,
-      this.props.projects,
-      {
-        isTrends: true,
-      }
-    ),
+    eventView: generatePerformanceEventView(this.props.location, this.props.projects, {
+      isTrends: true,
+    }),
     error: undefined,
   };
 
@@ -66,13 +56,14 @@ class TrendsSummary extends Component<Props, State> {
   };
 
   renderContent() {
-    const {organization, location} = this.props;
+    const {organization, location, projects} = this.props;
     const {eventView} = this.state;
     return (
       <TrendsContent
         organization={organization}
         location={location}
         eventView={eventView}
+        projects={projects}
       />
     );
   }

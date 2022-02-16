@@ -1,69 +1,92 @@
 import * as React from 'react';
 
-import InputField from 'sentry/components/forms/inputField';
-import Tooltip from 'sentry/components/tooltip';
-import {IconQuestion} from 'sentry/icons';
-import {defined} from 'sentry/utils';
+import Confirm from 'sentry/components/confirm';
+import InputField, {onEvent} from 'sentry/components/forms/inputField';
+import Switch from 'sentry/components/switchButton';
 
-type Props = InputField['props'];
+type Props = {
+  confirm?: {
+    false?: React.ReactNode;
+    true?: React.ReactNode;
+  };
+} & InputField['props'];
 
-type State = InputField['state'] & {
-  value: boolean;
-};
-
-export default class BooleanField extends InputField<Props, State> {
-  coerceValue(initialValue: string | number) {
-    const value = super.coerceValue(initialValue);
-    return value ? true : false;
+export default class BooleanField extends React.Component<Props> {
+  coerceValue(value: any) {
+    return !!value;
   }
 
-  onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.checked;
-    this.setValue(value);
+  handleChange = (
+    value: any,
+    onChange: onEvent,
+    onBlur: onEvent,
+    e: React.FormEvent<HTMLInputElement>
+  ) => {
+    // We need to toggle current value because Switch is not an input
+    const newValue = this.coerceValue(!value);
+    onChange(newValue, e);
+    onBlur(newValue, e);
   };
 
-  getField() {
+  render() {
+    const {confirm, ...fieldProps} = this.props;
+
     return (
-      <input
-        id={this.getId()}
-        type={this.getType()}
-        checked={this.state.value}
-        onChange={this.onChange.bind(this)}
-        disabled={this.props.disabled}
+      <InputField
+        {...fieldProps}
+        resetOnError
+        field={({
+          onChange,
+          onBlur,
+          value,
+          disabled,
+          ...props
+        }: {
+          disabled: boolean;
+          onBlur: onEvent;
+          onChange: onEvent;
+          value: any;
+        }) => {
+          // Create a function with required args bound
+          const handleChange = this.handleChange.bind(this, value, onChange, onBlur);
+
+          const switchProps = {
+            ...props,
+            size: 'lg' as React.ComponentProps<typeof Switch>['size'],
+            isActive: !!value,
+            isDisabled: disabled,
+            toggle: handleChange,
+          };
+
+          if (confirm) {
+            return (
+              <Confirm
+                renderMessage={() => confirm[(!value).toString()]}
+                onConfirm={() => handleChange({})}
+              >
+                {({open}) => (
+                  <Switch
+                    {...switchProps}
+                    toggle={(e: React.MouseEvent) => {
+                      // If we have a `confirm` prop and enabling switch
+                      // Then show confirm dialog, otherwise propagate change as normal
+                      if (confirm[(!value).toString()]) {
+                        // Open confirm modal
+                        open();
+                        return;
+                      }
+
+                      handleChange(e);
+                    }}
+                  />
+                )}
+              </Confirm>
+            );
+          }
+
+          return <Switch {...switchProps} />;
+        }}
       />
     );
-  }
-
-  render() {
-    const {error} = this.state;
-    let className = this.getClassName();
-    if (error) {
-      className += ' has-error';
-    }
-    return (
-      <div className={className}>
-        <div className="controls">
-          <label className="control-label">
-            {this.getField()}
-            {this.props.label}
-            {this.props.disabled && this.props.disabledReason && (
-              <Tooltip title={this.props.disabledReason}>
-                <IconQuestion size="xs" />
-              </Tooltip>
-            )}
-          </label>
-          {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
-          {error && <p className="error">{error}</p>}
-        </div>
-      </div>
-    );
-  }
-
-  getClassName() {
-    return 'control-group checkbox';
-  }
-
-  getType() {
-    return 'checkbox';
   }
 }

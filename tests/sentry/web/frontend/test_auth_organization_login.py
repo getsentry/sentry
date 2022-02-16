@@ -636,9 +636,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         path = reverse("sentry-auth-sso")
 
         resp = self.client.post(path, {"email": "bar@example.com"})
-        self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
         assert resp.status_code == 200
-        assert resp.context["existing_user"] is None
+        assert resp.context["existing_user"] == user
 
     def test_flow_managed_duplicate_users_without_membership(self):
         """
@@ -1010,7 +1010,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert resp.redirect_chain == [("/auth/2fa/", 302)]
 
-    @with_feature("organizations:idp-automatic-migration")
     def test_anonymous_user_with_automatic_migration(self):
         AuthProvider.objects.create(organization=self.organization, provider="dummy")
         resp = self.client.post(self.path, {"init": True})
@@ -1049,7 +1048,6 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         self.auth_sso_path = reverse("sentry-auth-sso")
         UserEmail.objects.filter(user=self.user, email="bar@example.com").update(is_verified=False)
 
-    @with_feature("organizations:idp-automatic-migration")
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
     def test_flow_verify_and_link_without_password_sends_email(self, email):
         assert not self.user.has_usable_password()
@@ -1087,7 +1085,6 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
         assert self.user == auth_identity.user
 
-    @with_feature("organizations:idp-automatic-migration")
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
     def test_flow_verify_without_org_membership(self, email):
         assert not self.user.has_usable_password()
@@ -1129,7 +1126,6 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
             organization=self.organization, user=self.user
         ).exists()
 
-    @with_feature("organizations:idp-automatic-migration")
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
     def test_flow_verify_and_link_without_password_login_success(self, email):
         assert not self.user.has_usable_password()
@@ -1172,7 +1168,6 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
-    @with_feature("organizations:idp-automatic-migration")
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
     def test_flow_verify_and_link_without_password_need_2fa(self, email):
         assert not self.user.has_usable_password()

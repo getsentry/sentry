@@ -108,6 +108,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     cloned = item.copy()
                     widgets = cloned.pop("widgets", [])
                     cloned["widgetDisplay"] = [w["displayType"] for w in widgets]
+                    cloned["widgetPreview"] = [
+                        {"displayType": w["displayType"], "layout": None} for w in widgets
+                    ]
                     serialized.append(cloned)
                 else:
                     dashboards.append(item)
