@@ -5,8 +5,8 @@ from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
 from sentry.api.endpoints.organization_stacktraces import (
-    OrganizationStacktraceFiltersEndpoint,
-    OrganizationStacktracesEndpoint,
+    OrganizationProfilingFiltersEndpoint,
+    OrganizationProfilingStacktracesEndpoint,
 )
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
@@ -352,7 +352,7 @@ from .endpoints.project_searches import ProjectSearchesEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
-from .endpoints.project_stacktrace import ProjectStacktraceEndpoint
+from .endpoints.project_stacktrace import ProjectProfilingStacktraceEndpoint
 from .endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
@@ -1535,14 +1535,21 @@ urlpatterns = [
                     name="sentry-api-0-organization-metrics-tag-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^/]+)/stacktraces/$",
-                    OrganizationStacktracesEndpoint.as_view(),
-                    name="sentry-api-0-organization-stacktraces",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/stacktrace_filters/$",
-                    OrganizationStacktraceFiltersEndpoint.as_view(),
-                    name="sentry-api-0-organization-stacktrace-filters",
+                    r"^(?P<organization_slug>[^/]+)/profiling/",
+                    include(
+                        [
+                            url(
+                                r"^stacktraces/$",
+                                OrganizationProfilingFiltersEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-stacktraces",
+                            ),
+                            url(
+                                r"^filters/$",
+                                OrganizationProfilingStacktracesEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-filters",
+                            ),
+                        ],
+                    ),
                 ),
             ]
         ),
@@ -2103,9 +2110,9 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktraces/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-                    ProjectStacktraceEndpoint.as_view(),
-                    name="sentry-api-0-project-stacktrace",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/stacktraces/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingStacktraceEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-stacktrace",
                 ),
             ]
         ),

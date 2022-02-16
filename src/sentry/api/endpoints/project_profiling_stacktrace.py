@@ -7,7 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.http import safe_urlopen
 
 
-class ProjectStacktraceEndpoint(ProjectEndpoint):
+class ProjectProfilingStacktraceEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, transaction_id: str) -> Response:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)

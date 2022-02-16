@@ -3,8 +3,8 @@ from uuid import uuid4
 from sentry.testutils import APITestCase
 
 
-class ProjectStacktraceTest(APITestCase):
-    endpoint = "sentry-api-0-project-stacktrace"
+class ProjectProfilingStacktraceTest(APITestCase):
+    endpoint = "sentry-api-0-project-profiling-stacktrace"
 
     def setUp(self):
         self.login_as(user=self.user)

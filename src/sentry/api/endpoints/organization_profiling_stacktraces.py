@@ -25,7 +25,7 @@ STACKTRACE_FILTERS = [
 ]
 
 
-class OrganizationStacktracesEndpoint(OrganizationEndpoint):
+class OrganizationProfilingStacktracesEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
@@ -55,7 +55,7 @@ class OrganizationStacktracesEndpoint(OrganizationEndpoint):
             )
 
 
-class OrganizationStacktraceFiltersEndpoint(OrganizationEndpoint):
+class OrganizationProfilingFiltersEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
