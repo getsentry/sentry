@@ -29,11 +29,13 @@ export function textWithMarkupMatcher(textMatch: string | RegExp) {
 }
 
 /**
- * Trigger onPress events on components that use react-aria (e.g. the dropdown
- * menu). These components require more complex events than what enzyme can
- * simulate with `.simulate('click')`. Preferably, we should use the
- * 'user-event' library from react testing library. This function is a
- * workaround for test files that still use enzyme. Read more:
+ * @deprecated  (This function is a workaround for test files that still use
+ * enzyme.)
+ *
+ * Triggers onPress events on components that use react-aria (e.g. the
+ * dropdown menu). These components require more complex events than what
+ * enzyme can simulate with `.simulate('click')`. Preferably, we should use
+ * the 'user-event' library from react testing library. Read more:
  * https://react-spectrum.adobe.com/react-spectrum/testing.html#triggering-events
  */
 export function triggerPress(element) {

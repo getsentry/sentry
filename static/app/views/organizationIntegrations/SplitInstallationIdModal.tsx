@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 
 type Props = {
   closeModal: () => void;

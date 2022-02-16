@@ -1,3 +1,12 @@
+export function isSchema(input: any): input is Profiling.Schema {
+  return (
+    typeof input === 'object' &&
+    'name' in input &&
+    'profiles' in input &&
+    Array.isArray(input.profiles) &&
+    'shared' in input
+  );
+}
 export function isEventedProfile(
   profile: Profiling.ProfileTypes
 ): profile is Profiling.EventedProfile {

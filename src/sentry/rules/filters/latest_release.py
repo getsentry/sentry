@@ -57,7 +57,11 @@ class LatestReleaseFilter(EventFilter):
                 )
             except Release.DoesNotExist:
                 return None
-            latest_releases = list(Release.objects.filter(version=latest_release_versions[0]))
+            latest_releases = list(
+                Release.objects.filter(
+                    version=latest_release_versions[0], organization_id=organization_id
+                )
+            )
             if latest_releases:
                 cache.set(cache_key, latest_releases[0], 600)
                 return latest_releases[0]

@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 import {EventQuery} from 'sentry/actionCreators/events';
-import {EventsStatsData} from 'sentry/types';
+import {EventsStatsData, Project} from 'sentry/types';
 import EventView, {LocationQuery} from 'sentry/utils/discover/eventView';
 
 export type TrendView = EventView & {
@@ -86,6 +86,7 @@ export type TrendsDataEvents = {
 
 export type TrendsData = {
   events: TrendsDataEvents;
+  projects: Project[];
   stats: TrendsStats;
 };
 

@@ -82,37 +82,33 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
                 field["label"] = "Notes"
                 field["required"] = False
 
-        return (
-            [
-                {
-                    "name": "workspace",
-                    "label": "Asana Workspace",
-                    "default": workspace,
-                    "type": "select",
-                    "choices": workspace_choices,
-                    "readonly": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "project",
-                    "label": "Project",
-                    "type": "select",
-                    "has_autocomplete": True,
-                    "required": False,
-                    "placeholder": "Start typing to search for a project",
-                },
-                {
-                    "name": "assignee",
-                    "label": "Assignee",
-                    "type": "select",
-                    "has_autocomplete": True,
-                    "required": False,
-                    "placeholder": "Start typing to search for a user",
-                },
-            ]
-        )
+        return [
+            {
+                "name": "workspace",
+                "label": "Asana Workspace",
+                "default": workspace,
+                "type": "select",
+                "choices": workspace_choices,
+                "readonly": True,
+            },
+            *fields,
+            {
+                "name": "project",
+                "label": "Project",
+                "type": "select",
+                "has_autocomplete": True,
+                "required": False,
+                "placeholder": "Start typing to search for a project",
+            },
+            {
+                "name": "assignee",
+                "label": "Assignee",
+                "type": "select",
+                "has_autocomplete": True,
+                "required": False,
+                "placeholder": "Start typing to search for a user",
+            },
+        ]
 
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [
@@ -241,12 +237,14 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
 
         client = self.get_client(request.user)
         workspace = self.get_option("workspace", group.project)
-        results = []
-        field_name = field
+
         if field == "issue_id":
             field_name = "task"
         elif field == "assignee":
             field_name = "user"
+        else:
+            field_name = field
+
         try:
             response = client.search(workspace, field_name, query.encode("utf-8"))
         except Exception as e:
@@ -254,10 +252,9 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
                 {"error_type": "validation", "errors": [{"__all__": self.message_from_error(e)}]},
                 status=400,
             )
-        else:
-            results = [
-                {"text": "(#{}) {}".format(i["gid"], i["name"]), "id": i["gid"]}
-                for i in response.get("data", [])
-            ]
 
+        results = [
+            {"text": "(#{}) {}".format(i["gid"], i["name"]), "id": i["gid"]}
+            for i in response.get("data", [])
+        ]
         return Response({field: results})

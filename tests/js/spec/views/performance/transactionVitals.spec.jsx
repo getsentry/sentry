@@ -217,173 +217,6 @@ describe('Performance > Web Vitals', function () {
     expect(vitalCards.find('BarChart')).toHaveLength(5);
   });
 
-  describe('Open in Discover button', function () {
-    it('renders open in discover buttons with required props', async function () {
-      const {project, organization, router, routerContext} = initialize();
-
-      const wrapper = mountWithTheme(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
-        routerContext
-      );
-
-      await tick();
-      wrapper.update();
-
-      const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(5);
-
-      buttons.forEach((button, i) => {
-        expect(button.prop('to')).toEqual(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/discover/results/',
-            query: expect.objectContaining({
-              field: expect.arrayContaining([
-                `percentile(measurements.${vitals[i].slug},0.75)`,
-              ]),
-              sort: [`-percentile_measurements_${vitals[i].slug}_0_75`],
-              query: expect.stringContaining('transaction:/'),
-              project: [parseInt(project.id, 10)],
-            }),
-          })
-        );
-      });
-    });
-
-    it('renders open in discover buttons with greater than condition', async function () {
-      const query = {
-        fpStart: '10',
-        fcpStart: '10',
-        lcpStart: '10',
-        fidStart: '10',
-        clsStart: '0.01',
-      };
-      const {organization, router, routerContext} = initialize({query});
-
-      const wrapper = mountWithTheme(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
-        routerContext
-      );
-
-      await tick();
-      wrapper.update();
-
-      const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(5);
-
-      buttons.forEach((button, i) => {
-        const slug = vitals[i].slug;
-        const key = `measurements.${slug}`;
-        const value = query[`${slug}Start`];
-        expect(button.prop('to')).toEqual(
-          expect.objectContaining({
-            query: expect.objectContaining({
-              query: expect.stringContaining(`${key}:>=${value}`),
-            }),
-          })
-        );
-      });
-    });
-
-    it('renders open in discover buttons with less than condition', async function () {
-      const query = {
-        fpEnd: '20',
-        fcpEnd: '20',
-        lcpEnd: '20',
-        fidEnd: '20',
-        clsEnd: '0.03',
-      };
-      const {organization, router, routerContext} = initialize({query});
-
-      const wrapper = mountWithTheme(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
-        routerContext
-      );
-
-      await tick();
-      wrapper.update();
-
-      const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(5);
-
-      buttons.forEach((button, i) => {
-        const slug = vitals[i].slug;
-        const key = `measurements.${slug}`;
-        const value = query[`${slug}End`];
-        expect(button.prop('to')).toEqual(
-          expect.objectContaining({
-            query: expect.objectContaining({
-              query: expect.stringContaining(`${key}:<=${value}`),
-            }),
-          })
-        );
-      });
-    });
-
-    it('renders open in discover buttons with both condition', async function () {
-      const query = {
-        fpStart: '10',
-        fpEnd: '20',
-        fcpStart: '10',
-        fcpEnd: '20',
-        lcpStart: '10',
-        lcpEnd: '20',
-        fidStart: '10',
-        fidEnd: '20',
-        clsStart: '0.01',
-        clsEnd: '0.03',
-      };
-      const {organization, router, routerContext} = initialize({query});
-
-      const wrapper = mountWithTheme(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
-        routerContext
-      );
-
-      await tick();
-      wrapper.update();
-
-      const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(5);
-
-      buttons.forEach((button, i) => {
-        const slug = vitals[i].slug;
-        const key = `measurements.${slug}`;
-        const start = query[`${slug}Start`];
-        const end = query[`${slug}End`];
-        expect(button.prop('to')).toEqual(
-          expect.objectContaining({
-            query: expect.objectContaining({
-              query: expect.stringContaining(`${key}:>=${start}`),
-            }),
-          })
-        );
-        expect(button.prop('to')).toEqual(
-          expect.objectContaining({
-            query: expect.objectContaining({
-              query: expect.stringContaining(`${key}:<=${end}`),
-            }),
-          })
-        );
-      });
-    });
-  });
-
   describe('reset view', function () {
     it('disables button on default view', async function () {
       const {organization, router, routerContext} = initialize();
@@ -507,6 +340,58 @@ describe('Performance > Web Vitals', function () {
           }, {})
         ),
       });
+    });
+
+    it('renders an info alert when missing web vitals data', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-vitals/',
+        body: {
+          'measurements.fp': {poor: 1, meh: 2, good: 3, total: 6, p75: 4567},
+          'measurements.fcp': {poor: 1, meh: 2, good: 3, total: 6, p75: 1456},
+        },
+      });
+
+      const {organization, router, routerContext} = initialize({
+        query: {
+          lcpStart: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('Alert')).toHaveLength(1);
+    });
+
+    it('does not render an info alert when data from all web vitals is present', async function () {
+      const {organization, router, routerContext} = initialize({
+        query: {
+          lcpStart: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('Alert')).toHaveLength(0);
     });
   });
 });

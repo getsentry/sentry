@@ -3,7 +3,7 @@ import {components as selectComponents} from 'react-select';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
-import {SelectAsyncField} from 'sentry/components/forms';
+import {SelectAsyncField} from 'sentry/components/deprecatedforms';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';

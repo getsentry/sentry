@@ -5,7 +5,7 @@ import forOwn from 'lodash/forOwn';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';

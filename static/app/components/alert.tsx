@@ -42,7 +42,7 @@ const alertStyles = ({
   return css`
     display: flex;
     flex-direction: column;
-    margin: 0 0 ${space(3)};
+    margin: 0 0 ${space(2)};
     padding: ${space(1.5)} ${space(2)};
     font-size: ${theme.fontSizeLarge};
     box-shadow: ${theme.dropShadowLight};

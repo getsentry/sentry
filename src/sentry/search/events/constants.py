@@ -13,6 +13,7 @@ PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
 TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 ERROR_HANDLED_ALIAS = "error.handled"
+EVENT_TYPE_ALIAS = "event.type"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
@@ -117,4 +118,17 @@ SEMVER_WILDCARDS = frozenset(["X", "*"])
 FUNCTION_ALIASES = {
     "tpm": "epm",
     "tps": "eps",
+}
+
+# Mapping of public aliases back to the metrics identifier
+METRICS_MAP = {
+    "measurements.fp": "sentry.transactions.measurements.fp",
+    "measurements.fcp": "sentry.transactions.measurements.fcp",
+    "measurements.lcp": "sentry.transactions.measurements.lcp",
+    "measurements.fid": "sentry.transactions.measurements.fid",
+    "measurements.cls": "sentry.transactions.measurements.cls",
+    "measurements.ttfb": "sentry.transactions.measurements.ttfb",
+    "measurements.ttfb.requesttime": "sentry.transactions.measurements.ttfb.requesttime",
+    "transaction.duration": "sentry.transactions.transaction.duration",
+    "user": "sentry.transactions.user",
 }

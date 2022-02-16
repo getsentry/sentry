@@ -29,11 +29,19 @@ jobs:
           team_name="${team_label:6}" # Strip the first 6 chars, which is the 'Team: ' part
           team_slug="${team_name// /-}" # Replace spaces with hyphens for url/slug friendliness
           mention_slug=$(gh api "/orgs/getsentry/teams/$team_slug" -q .slug || true)
+          if [ "${mention_slug::1}" = "{" ]; then
+            # Hack around https://github.com/getsentry/.github/issues/77
+            mention_slug=""
+          fi
 
           if [[ -z "$mention_slug" ]]; then
             echo "Couldn't find team mention from slug, trying the label description"
             team_slug=$(gh api "/repos/$GH_REPO/labels/$team_label" -q '.description')
             mention_slug=$(gh api "/orgs/getsentry/teams/$team_slug" -q .slug || true)
+            if [ "${mention_slug::1}" = "{" ]; then
+              # Hack around https://github.com/getsentry/.github/issues/77
+              mention_slug=""
+            fi
           fi
 
           if [[ -n "$mention_slug" ]]; then
