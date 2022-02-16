@@ -52,7 +52,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
           accumulator[name] = instance[name];
           return accumulator;
         },
-        {action: 'create', ignore_sprint: true}
+        {action: 'create'}
       );
     return [['integrationDetails', this.getEndPointString(), {query}]];
   }
@@ -75,7 +75,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
   getEndPointString(): string {
     const {instance, organization} = this.props;
-    return `/organizations/${organization.slug}/integrations/${instance.integration}/`;
+    return `/organizations/${organization.slug}/integrations/${instance.integration}/?ignore_sprint=true`;
   }
 
   /**
