@@ -1,11 +1,16 @@
 import styled from '@emotion/styled';
 
-import {IconCheckmark, IconExclamation, IconFire, IconIssues} from 'sentry/icons';
+import {
+  IconAlertCritical,
+  IconAlertIssues,
+  IconAlertResolved,
+  IconAlertWarning,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Color} from 'sentry/utils/theme';
 
-import {IncidentStatus} from './types';
+import {IncidentStatus} from '../views/alerts/types';
 
 type Props = {
   hideText?: boolean;
@@ -15,26 +20,26 @@ type Props = {
 
 function AlertBadge({status, hideText = false, isIssue}: Props) {
   let statusText = t('Resolved');
-  let Icon = IconCheckmark;
+  let Icon = IconAlertResolved;
   let color: Color = 'green300';
   if (isIssue) {
     statusText = t('Issue');
-    Icon = IconIssues;
+    Icon = IconAlertIssues;
     color = 'gray300';
   } else if (status === IncidentStatus.CRITICAL) {
     statusText = t('Critical');
-    Icon = IconFire;
+    Icon = IconAlertCritical;
     color = 'red300';
   } else if (status === IncidentStatus.WARNING) {
     statusText = t('Warning');
-    Icon = IconExclamation;
+    Icon = IconAlertWarning;
     color = 'yellow300';
   }
 
   return (
-    <Wrapper data-test-id="alert-badge" displayFlex={!hideText}>
+    <Wrapper data-test-id="alert-badge">
       <AlertIconWrapper color={color} icon={Icon}>
-        <Icon color="white" />
+        <Icon color="white" size="xl" />
       </AlertIconWrapper>
 
       {!hideText && <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>}
@@ -44,8 +49,8 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
 
 export default AlertBadge;
 
-const Wrapper = styled('div')<{displayFlex: boolean}>`
-  display: ${p => (p.displayFlex ? `flex` : `block`)};
+const Wrapper = styled('div')`
+  display: flex;
   align-items: center;
 `;
 
@@ -56,21 +61,6 @@ const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
   flex-shrink: 0;
   left: 3px;
   min-width: 30px;
-
-  &:before {
-    content: '';
-    position: absolute;
-    width: 28px;
-    height: 28px;
-    border-radius: ${p => p.theme.borderRadius};
-    background-color: ${p => p.theme[p.color]};
-    transform: rotate(45deg);
-  }
-
-  svg {
-    width: ${p => (p.icon === IconIssues ? '13px' : '16px')};
-    z-index: 1;
-  }
 `;
 
 const IncidentStatusValue = styled('div')`
