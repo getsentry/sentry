@@ -14,6 +14,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
+import CollapsePanel, {COLLAPSE_COUNT} from './collapsePanel';
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
   barAxisLabel,
@@ -170,32 +171,49 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
             />
           )}
         </IssuesChartWrapper>
-        <StyledPanelTable
-          numActions={statuses.length}
-          headers={[
-            t('Project'),
-            ...statuses.map(action => <AlignRight key={action}>{t(action)}</AlignRight>),
-            <AlignRight key="total">
-              {t('total')} <IconArrow direction="down" size="12px" color="gray300" />
-            </AlignRight>,
-          ]}
-          isLoading={loading}
-        >
-          {sortedProjectIds.map(({projectId}) => {
-            const project = projects.find(p => p.id === projectId);
-            return (
-              <Fragment key={projectId}>
-                <ProjectBadgeContainer>
-                  {project && <ProjectBadge avatarSize={18} project={project} />}
-                </ProjectBadgeContainer>
-                {statuses.map(action => (
-                  <AlignRight key={action}>{projectTotals[projectId][action]}</AlignRight>
-                ))}
-                <AlignRight>{projectTotals[projectId].total}</AlignRight>
-              </Fragment>
-            );
-          })}
-        </StyledPanelTable>
+        <CollapsePanel items={sortedProjectIds.length}>
+          {({isExpanded, showMoreButton}) => (
+            <Fragment>
+              <StyledPanelTable
+                numActions={statuses.length}
+                headers={[
+                  t('Project'),
+                  ...statuses.map(action => (
+                    <AlignRight key={action}>{t(action)}</AlignRight>
+                  )),
+                  <AlignRight key="total">
+                    {t('total')}{' '}
+                    <IconArrow direction="down" size="12px" color="gray300" />
+                  </AlignRight>,
+                ]}
+                isLoading={loading}
+              >
+                {sortedProjectIds.map(({projectId}, idx) => {
+                  const project = projects.find(p => p.id === projectId);
+
+                  if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                    return null;
+                  }
+
+                  return (
+                    <Fragment key={projectId}>
+                      <ProjectBadgeContainer>
+                        {project && <ProjectBadge avatarSize={18} project={project} />}
+                      </ProjectBadgeContainer>
+                      {statuses.map(action => (
+                        <AlignRight key={action}>
+                          {projectTotals[projectId][action]}
+                        </AlignRight>
+                      ))}
+                      <AlignRight>{projectTotals[projectId].total}</AlignRight>
+                    </Fragment>
+                  );
+                })}
+              </StyledPanelTable>
+              {!loading && showMoreButton}
+            </Fragment>
+          )}
+        </CollapsePanel>
       </Fragment>
     );
   }
