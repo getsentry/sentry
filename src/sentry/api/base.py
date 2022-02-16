@@ -187,7 +187,7 @@ class Endpoint(APIView):
                 elif org_slug not in request.session["orgs_accessed"]:
                     request.session["orgs_accessed"].append(org_slug)
                     logger.info(
-                        "SU_access.give_SU_access",
+                        "SU_access.organization_change",
                         extra={
                             "user_id": request.user.id,
                             "user_email": request.user.email,

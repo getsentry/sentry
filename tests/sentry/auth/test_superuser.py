@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
@@ -22,6 +23,7 @@ from sentry.auth.system import SystemToken
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
@@ -141,6 +143,33 @@ class SuperuserTestCase(TestCase):
         request = self.build_request(idle_expires=self.current_datetime)
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
+
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_su_access_logs(self, logger):
+        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        request = self.make_request(user=user, method="PUT")
+        request._body = json.dumps(
+            {
+                "categoryOfSUAccess": "Edit organization settings",
+                "reasonForSU": "Edit organization settings",
+            }
+        )
+        request.session["orgs_accessed"] = ["sentry"]
+
+        superuser = Superuser(request, org_id=None)
+        superuser.set_logged_in(request.user)
+        assert superuser.is_active is True
+        assert logger.info.call_count == 2
+        logger.info.assert_called_with(
+            "SU_access.give_SU_access",
+            extra={
+                "user_id": 10,
+                "user_email": "test@sentry.io",
+                "SU_access_catergory": "Edit organization settings",
+                "reason_for_SU": "Edit organization settings",
+                "orgs_accessed": ["sentry"],
+            },
+        )
 
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)
