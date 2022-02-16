@@ -9,21 +9,11 @@ export const METRICS_FIELDS_ALLOW_LIST: string[] = [
   SessionMetric.SENTRY_SESSIONS_USER,
 ];
 
-export const METRICS_FIELDS: MetricMeta[] = [
+export const DEFAULT_METRICS_FIELDS: MetricMeta[] = [
   {
     name: SessionMetric.SENTRY_SESSIONS_SESSION,
     operations: ['sum'],
     type: 'counter',
-  },
-  {
-    name: SessionMetric.SENTRY_SESSIONS_SESSION_ERROR,
-    operations: ['count_unique'],
-    type: 'set',
-  },
-  {
-    name: SessionMetric.SENTRY_SESSIONS_USER,
-    operations: ['count_unique'],
-    type: 'set',
   },
 ];
 
@@ -57,7 +47,7 @@ export const METRICS_AGGREGATIONS = {
 };
 
 export function generateMetricsWidgetFieldOptions(
-  fields: MetricMeta[] = METRICS_FIELDS,
+  fields: MetricMeta[] = DEFAULT_METRICS_FIELDS,
   tagKeys?: string[]
 ) {
   const aggregations = METRICS_AGGREGATIONS;

@@ -121,7 +121,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     widgetDisplay: ['area'],
   });
 
-  let eventsStatsMock, metricsTagsMock;
+  let eventsStatsMock, metricsTagsMock, metricsMetaMock;
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
@@ -158,6 +158,29 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     metricsTagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/tags/',
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
+    });
+    metricsMetaMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/meta/',
+      body: [
+        {
+          name: 'sentry.sessions.session',
+          type: 'counter',
+          operations: ['sum'],
+          unit: null,
+        },
+        {
+          name: 'sentry.sessions.session.error',
+          type: 'set',
+          operations: ['count_unique'],
+          unit: null,
+        },
+        {
+          name: 'sentry.sessions.user',
+          type: 'set',
+          operations: ['count_unique'],
+          unit: null,
+        },
+      ],
     });
   });
 
@@ -1188,6 +1211,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       expect(metricsTagsMock).not.toHaveBeenCalled();
+      expect(metricsMetaMock).not.toHaveBeenCalled();
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
       expect(
@@ -1274,6 +1298,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
+      await tick();
+
       const metricsDataset = screen.getByLabelText('Metrics (Release Health)');
       expect(metricsDataset).not.toBeChecked();
       await act(async () =>
@@ -1294,7 +1320,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
-      mountModalWithRtl({
+      const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
@@ -1303,6 +1329,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       await tick();
       expect(metricsTagsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMetaMock).toHaveBeenCalledTimes(1);
 
       await act(async () =>
         userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
@@ -1319,6 +1346,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+
+      wrapper.unmount();
     });
 
     it('displays the correct options for area chart', async function () {
@@ -1327,7 +1356,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
-      mountModalWithRtl({
+      const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
@@ -1336,6 +1365,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       await tick();
       expect(metricsTagsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMetaMock).toHaveBeenCalledTimes(1);
 
       await act(async () =>
         userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
@@ -1352,6 +1382,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+      wrapper.unmount();
     });
   });
 });

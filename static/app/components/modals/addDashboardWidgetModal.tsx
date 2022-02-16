@@ -54,8 +54,8 @@ import {
 } from 'sentry/views/dashboardsV2/widgetBuilder/eventWidget/utils';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {
+  DEFAULT_METRICS_FIELDS,
   generateMetricsWidgetFieldOptions,
-  METRICS_FIELDS,
   METRICS_FIELDS_ALLOW_LIST,
 } from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
@@ -651,7 +651,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      state.metricFields.length ? state.metricFields : METRICS_FIELDS,
+      state.metricFields.length ? state.metricFields : DEFAULT_METRICS_FIELDS,
       Object.values(state.metricTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
