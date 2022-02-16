@@ -52,6 +52,21 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
     ];
   }
 
+  componentDidUpdate(prevProps: Props) {
+    const {start, end, period, utc, teamSlug, environment} = this.props;
+
+    if (
+      prevProps.start !== start ||
+      prevProps.end !== end ||
+      prevProps.period !== period ||
+      prevProps.utc !== utc ||
+      prevProps.teamSlug !== teamSlug ||
+      prevProps.environment !== environment
+    ) {
+      this.remountComponent();
+    }
+  }
+
   renderLoading() {
     return (
       <ChartWrapper>

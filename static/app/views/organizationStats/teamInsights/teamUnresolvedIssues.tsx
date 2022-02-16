@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart from 'sentry/components/charts/barChart';
@@ -65,14 +64,15 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {teamSlug, start, end, period, utc} = this.props;
+    const {teamSlug, start, end, period, utc, environment} = this.props;
 
     if (
       prevProps.start !== start ||
       prevProps.end !== end ||
       prevProps.period !== period ||
       prevProps.utc !== utc ||
-      !isEqual(prevProps.teamSlug, teamSlug)
+      prevProps.environment !== environment ||
+      prevProps.teamSlug !== teamSlug
     ) {
       this.remountComponent();
     }

@@ -80,7 +80,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {start, end, period, utc, teamSlug, projects} = this.props;
+    const {start, end, period, utc, teamSlug, projects, environment} = this.props;
 
     if (
       prevProps.start !== start ||
@@ -88,6 +88,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
       prevProps.period !== period ||
       prevProps.utc !== utc ||
       prevProps.teamSlug !== teamSlug ||
+      prevProps.environment !== environment ||
       !isEqual(prevProps.projects, projects)
     ) {
       this.remountComponent();
