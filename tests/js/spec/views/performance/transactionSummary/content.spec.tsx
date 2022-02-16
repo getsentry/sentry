@@ -148,59 +148,13 @@ describe('Transaction Summary Content', function () {
     expect(wrapper.find('DiscoverQuery')).toHaveLength(2);
 
     const transactionListProps = wrapper.find('TransactionsList').first().props();
-    expect(transactionListProps.generateDiscoverEventView).toBeDefined();
-    expect(transactionListProps.handleOpenInDiscoverClick).toBeDefined();
-    expect(transactionListProps.generatePerformanceTransactionEventsView).toBeUndefined();
-    expect(transactionListProps.handleOpenAllEventsClick).toBeUndefined();
-  });
-
-  it('Renders with generatePerformanceTransactionEventsView instead when feature flagged', async function () {
-    const project = TestStubs.Project();
-    const {
-      organization,
-      location,
-      eventView,
-      spanOperationBreakdownFilter,
-      transactionName,
-    } = initialize(project, {}, ['performance-events-page']);
-    const routerContext = TestStubs.routerContext([{organization}]);
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        projectId={project.id}
-        transactionName={transactionName}
-        isLoading={false}
-        totalValues={null}
-        spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-        error={null}
-        onChangeFilter={() => {}}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('SearchBar')).toHaveLength(1);
-    expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
-    expect(wrapper.find('TransactionsList')).toHaveLength(1);
-    expect(wrapper.find('UserStats')).toHaveLength(1);
-    expect(wrapper.find('StatusBreakdown')).toHaveLength(1);
-    expect(wrapper.find('SidebarCharts')).toHaveLength(1);
-    expect(wrapper.find('DiscoverQuery')).toHaveLength(2);
-
-    const transactionListProps = wrapper.find('TransactionsList').first().props();
     expect(transactionListProps.generateDiscoverEventView).toBeUndefined();
     expect(transactionListProps.handleOpenInDiscoverClick).toBeUndefined();
     expect(transactionListProps.generatePerformanceTransactionEventsView).toBeDefined();
     expect(transactionListProps.handleOpenAllEventsClick).toBeDefined();
   });
 
-  it('Renders TransactionSummaryCharts withoutZerofill when feature flagged', async function () {
+  it('Renders TransactionSummaryCharts withoutZerofill', async function () {
     const project = TestStubs.Project();
     const {
       organization,
@@ -208,10 +162,7 @@ describe('Transaction Summary Content', function () {
       eventView,
       spanOperationBreakdownFilter,
       transactionName,
-    } = initialize(project, {}, [
-      'performance-events-page',
-      'performance-chart-interpolation',
-    ]);
+    } = initialize(project, {}, ['performance-chart-interpolation']);
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(

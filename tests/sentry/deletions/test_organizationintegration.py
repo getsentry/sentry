@@ -5,11 +5,11 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     Project,
+    ProjectCodeOwners,
     Repository,
+    RepositoryProjectPathConfig,
     ScheduledDeletion,
 )
-from sentry.models.integration import RepositoryProjectPathConfig
-from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TransactionTestCase
 

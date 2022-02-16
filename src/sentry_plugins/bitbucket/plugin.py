@@ -77,34 +77,30 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
-        return (
-            [
-                {
-                    "name": "repo",
-                    "label": "Bitbucket Repository",
-                    "default": self.get_option("repo", group.project),
-                    "type": "text",
-                    "readonly": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "issue_type",
-                    "label": "Issue type",
-                    "default": ISSUE_TYPES[0][0],
-                    "type": "select",
-                    "choices": ISSUE_TYPES,
-                },
-                {
-                    "name": "priority",
-                    "label": "Priority",
-                    "default": PRIORITIES[0][0],
-                    "type": "select",
-                    "choices": PRIORITIES,
-                },
-            ]
-        )
+        return [
+            {
+                "name": "repo",
+                "label": "Bitbucket Repository",
+                "default": self.get_option("repo", group.project),
+                "type": "text",
+                "readonly": True,
+            },
+            *fields,
+            {
+                "name": "issue_type",
+                "label": "Issue type",
+                "default": ISSUE_TYPES[0][0],
+                "type": "select",
+                "choices": ISSUE_TYPES,
+            },
+            {
+                "name": "priority",
+                "label": "Priority",
+                "default": PRIORITIES[0][0],
+                "type": "select",
+                "choices": PRIORITIES,
+            },
+        ]
 
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [

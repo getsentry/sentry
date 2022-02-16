@@ -13,6 +13,8 @@ import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
@@ -29,8 +31,6 @@ import {getEventTypeFilter} from 'sentry/views/alerts/incidentRules/utils/getEve
 import hasThresholdValue from 'sentry/views/alerts/incidentRules/utils/hasThresholdValue';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormModel from 'sentry/views/settings/components/forms/model';
 
 import {addOrUpdateRule} from '../actions';
 import {
@@ -808,6 +808,7 @@ const AlertListItem = styled(StyledListItem)`
 
 const ChartHeader = styled('div')`
   padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  margin-bottom: -${space(1.5)};
 `;
 
 const AlertName = styled('div')`

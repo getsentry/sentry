@@ -9,11 +9,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.integrations.atlassian_connect import (
+from sentry.integrations.utils import (
     AtlassianConnectValidationError,
     get_integration_from_jwt,
+    sync_group_assignee_inbound,
 )
-from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.shared_integrations.exceptions import ApiHostError, IntegrationError
 
 from .client import JiraApiClient, JiraCloud
 
@@ -37,7 +38,10 @@ def get_assignee_email(
             JiraCloud(integration.metadata["shared_secret"]),
             verify_ssl=True,
         )
-        email = client.get_email(account_id)
+        try:
+            email = client.get_email(account_id)
+        except ApiHostError:
+            raise IntegrationError("Cannot reach host to get email.")
     return email
 
 

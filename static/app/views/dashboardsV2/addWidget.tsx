@@ -25,10 +25,9 @@ type Props = {
 };
 
 function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
-  const onClick =
-    orgFeatures.includes('metrics') && orgFeatures.includes('metrics-dashboards-ui')
-      ? onOpenWidgetBuilder
-      : onAddWidget;
+  const onClick = orgFeatures.includes('new-widget-builder-experience')
+    ? onOpenWidgetBuilder
+    : onAddWidget;
 
   const {setNodeRef, transform} = useSortable({
     disabled: true,

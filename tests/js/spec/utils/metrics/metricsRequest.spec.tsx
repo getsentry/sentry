@@ -1,6 +1,11 @@
 import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
+import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
+
+jest.mock('sentry/utils/metrics/transformMetricsResponseToSeries', () => ({
+  transformMetricsResponseToSeries: jest.fn().mockReturnValue([]),
+}));
 
 describe('MetricsRequest', () => {
   const project = TestStubs.Project();
@@ -49,7 +54,6 @@ describe('MetricsRequest', () => {
       expect.anything(),
       expect.objectContaining({
         query: {
-          end: undefined,
           environment: ['prod'],
           field: ['fieldA'],
           groupBy: ['status'],
@@ -58,7 +62,6 @@ describe('MetricsRequest', () => {
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
-          start: undefined,
           statsPeriod: '14d',
         },
       })
@@ -161,7 +164,6 @@ describe('MetricsRequest', () => {
       expect.anything(),
       expect.objectContaining({
         query: {
-          end: undefined,
           environment: ['prod'],
           field: ['fieldA'],
           groupBy: ['status'],
@@ -170,7 +172,6 @@ describe('MetricsRequest', () => {
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
-          start: undefined,
           statsPeriod: '14d',
         },
       })
@@ -241,7 +242,7 @@ describe('MetricsRequest', () => {
       expect.anything(),
       expect.objectContaining({
         query: {
-          end: '2021-12-17T00:59:59',
+          end: '2021-12-17T00:59:59.000',
           environment: ['prod'],
           field: ['fieldA'],
           groupBy: ['status'],
@@ -250,10 +251,35 @@ describe('MetricsRequest', () => {
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
-          start: '2021-12-01T01:00:00',
-          statsPeriod: undefined,
+          start: '2021-12-01T01:00:00.000',
         },
       })
     );
+  });
+
+  it('includes series data', () => {
+    mountWithTheme(
+      <MetricsRequest {...props} includeSeriesData includePrevious>
+        {childrenMock}
+      </MetricsRequest>
+    );
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+
+    expect(childrenMock).toHaveBeenLastCalledWith({
+      error: null,
+      errored: false,
+      isLoading: true,
+      loading: true,
+      pageLinks: null,
+      reloading: false,
+      response: null,
+      responsePrevious: null,
+      seriesData: [],
+      seriesDataPrevious: [],
+      tableData: undefined,
+    });
+
+    expect(transformMetricsResponseToSeries).toHaveBeenCalledWith(null);
   });
 });

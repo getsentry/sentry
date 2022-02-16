@@ -3,8 +3,7 @@ import logging
 from django import forms
 
 from sentry.constants import ObjectStatus
-from sentry.models import ExternalIssue, GroupLink
-from sentry.models.integration import Integration
+from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.rules.base import RuleBase
 
 logger = logging.getLogger("sentry.rules")
@@ -98,25 +97,6 @@ class IntegrationEventAction(EventAction):
         return self.form_cls(self.data, integrations=self.get_integrations())
 
 
-def _linked_issues(event, integration):
-    return ExternalIssue.objects.filter(
-        id__in=GroupLink.objects.filter(
-            project_id=event.group.project_id,
-            group_id=event.group.id,
-            linked_type=GroupLink.LinkedType.issue,
-        ).values_list("linked_id", flat=True),
-        integration_id=integration.id,
-    )
-
-
-def get_linked_issue_ids(event, integration):
-    return _linked_issues(event, integration).values_list("key", flat=True)
-
-
-def has_linked_issue(event, integration):
-    return _linked_issues(event, integration).exists()
-
-
 def create_link(integration, installation, event, response):
     """
     After creating the event on a third-party service, create a link to the
@@ -185,7 +165,7 @@ def create_issue(event, futures):
         if data.get("dynamic_form_fields"):
             del data["dynamic_form_fields"]
 
-        if has_linked_issue(event, integration):
+        if ExternalIssue.objects.has_linked_issue(event, integration):
             logger.info(
                 f"{integration.provider}.rule_trigger.link_already_exists",
                 extra={

@@ -233,6 +233,8 @@ export function Chart({
   disableLegend,
   grid,
   height,
+  projects,
+  project,
 }: Props) {
   const theme = useTheme();
 
@@ -263,7 +265,7 @@ export function Chart({
   const data = events?.data ?? [];
 
   const trendFunction = getCurrentTrendFunction(location, trendFunctionField);
-  const trendParameter = getCurrentTrendParameter(location);
+  const trendParameter = getCurrentTrendParameter(location, projects, project);
   const chartLabel = generateTrendFunctionAsString(
     trendFunction.field,
     trendParameter.column
