@@ -14,7 +14,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {alertDetailsLink} from 'sentry/views/alerts/details';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {
   ActivityType,
@@ -23,6 +22,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from 'sentry/views/alerts/types';
+import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
 export function getTriggerName(value: string | null) {
   if (value === `${IncidentStatus.WARNING}`) {

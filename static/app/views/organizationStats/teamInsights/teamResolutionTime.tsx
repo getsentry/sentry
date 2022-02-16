@@ -10,7 +10,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 
-import {barAxisLabel, convertDaySeriesToWeeks} from './utils';
+import {barAxisLabel, sortSeriesByDay} from './utils';
 
 type TimeToResolution = Record<string, {avg: number; count: number}>;
 
@@ -64,7 +64,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
       value: avg,
       name: new Date(bucket).getTime(),
     }));
-    const seriesData = convertDaySeriesToWeeks(data);
+    const seriesData = sortSeriesByDay(data);
 
     return (
       <ChartWrapper>
