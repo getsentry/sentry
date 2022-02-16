@@ -61,17 +61,20 @@ function parseContentsToKeyValue(
           const value = v.trim();
 
           if (ALLOWED_KEYS.has(key)) {
-            let number = parseFloat(value);
-            let unit = undefined;
+            const parsedValue = parseFloat(value);
 
-            if (!isNaN(number)) {
-              acc[key] = {value: number, unit};
+            if (!isNaN(parsedValue)) {
+              acc[key] = {
+                value: parsedValue,
+                unit: undefined,
+              };
             }
 
             if (/([a-zA-Z]$)/.test(value)) {
-              number = parseFloat(v.substring(0, v.length - 2));
-              unit = v.match(/([a-zA-Z]$)/)?.[0];
-              acc[key] = {value: number, unit};
+              acc[key] = {
+                value: parsedValue,
+                unit: v.match(/([a-zA-Z]$)/)?.[0],
+              };
             }
           }
 
@@ -79,7 +82,7 @@ function parseContentsToKeyValue(
         },
         {}
       );
-  } catch (e) {
+  } catch {
     return null;
   }
 }
