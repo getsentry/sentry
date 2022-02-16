@@ -1,6 +1,6 @@
 import {Frame} from '../frame';
 
-import {Color, FlamegraphTheme, LCH} from './../flamegraph/FlamegraphTheme';
+import {ColorChannels, FlamegraphTheme, LCH} from './../flamegraph/FlamegraphTheme';
 
 const uniqueBy = <T,>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array<T> => {
   const cb = typeof predicate === 'function' ? predicate : (o: T) => o[predicate];
@@ -24,7 +24,7 @@ const uniqueBy = <T,>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Arra
 // https://en.wikipedia.org/wiki/HSL_and_HSV#From_luma/chroma/hue
 export const fract = (x: number): number => x - Math.floor(x);
 export const triangle = (x: number): number => 2.0 * Math.abs(fract(x) - 0.5) - 1.0;
-export function fromLumaChromaHue(L: number, C: number, H: number): Color {
+export function fromLumaChromaHue(L: number, C: number, H: number): ColorChannels {
   const hPrime = H / 60;
   const X = C * (1 - Math.abs((hPrime % 2) - 1));
   const [R1, G1, B1] =
@@ -123,7 +123,7 @@ function defaultFrameSort(a: Frame, b: Frame): number {
 }
 
 export const makeColorBucketTheme = (lch: LCH) => {
-  return (t: number): Color => {
+  return (t: number): ColorChannels => {
     const x = triangle(30.0 * t);
     const H = 360.0 * (0.9 * t);
     const C = lch.C_0 + lch.C_d * x;
@@ -136,8 +136,8 @@ export const makeColorMap = (
   frames: ReadonlyArray<Frame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
   sortBy: (a: Frame, b: Frame) => number = defaultFrameSort
-): Map<Frame['key'], Color> => {
-  const colors = new Map<Frame['key'], Color>();
+): Map<Frame['key'], ColorChannels> => {
+  const colors = new Map<Frame['key'], ColorChannels>();
 
   const sortedFrames = [...frames].sort(sortBy);
   const length = sortedFrames.length;
@@ -155,8 +155,8 @@ export const makeColorMap = (
 export const makeColorMapByRecursion = (
   frames: ReadonlyArray<Frame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
-): Map<Frame['key'], Color> => {
-  const colors = new Map<Frame['key'], Color>();
+): Map<Frame['key'], ColorChannels> => {
+  const colors = new Map<Frame['key'], ColorChannels>();
 
   const sortedFrames = uniqueBy(
     frames.filter(f => f.recursive),
@@ -178,8 +178,8 @@ export const makeColorMapByRecursion = (
 export const makeColorMapByImage = (
   frames: ReadonlyArray<Frame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
-): Map<Frame['key'], Color> => {
-  const colors = new Map<Frame['key'], Color>();
+): Map<Frame['key'], ColorChannels> => {
+  const colors = new Map<Frame['key'], ColorChannels>();
 
   const reverseFrameToImageIndex: Record<string, Frame[]> = {};
 
