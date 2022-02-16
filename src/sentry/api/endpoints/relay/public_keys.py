@@ -7,7 +7,7 @@ from sentry.api.permissions import RelayPermission
 from sentry.models import Relay
 
 
-class RelayPublicKeysEndpoint(Endpoint):
+class RelayPublicKeysEndpoint(Endpoint):  # type: ignore
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False

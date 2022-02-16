@@ -7,7 +7,7 @@ from sentry.api.permissions import RelayPermission
 from sentry.models import ProjectKey
 
 
-class RelayProjectIdsEndpoint(Endpoint):
+class RelayProjectIdsEndpoint(Endpoint):  # type: ignore
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
 

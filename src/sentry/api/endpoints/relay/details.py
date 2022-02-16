@@ -7,10 +7,10 @@ from sentry.api.permissions import SuperuserPermission
 from sentry.models import Relay
 
 
-class RelayDetailsEndpoint(Endpoint):
+class RelayDetailsEndpoint(Endpoint):  # type: ignore
     permission_classes = (SuperuserPermission,)
 
-    def delete(self, request: Request, relay_id) -> Response:
+    def delete(self, request: Request, relay_id: str) -> Response:
         """
         Delete one Relay
         ````````````````

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 import random
+from typing import MutableMapping
 
 from django.conf import settings
 from rest_framework.request import Request
@@ -19,11 +22,12 @@ logger = logging.getLogger(__name__)
 PROJECT_CONFIG_SIZE_THRESHOLD = 10000
 
 
-def _sample_apm():
-    return random.random() < getattr(settings, "SENTRY_RELAY_ENDPOINT_APM_SAMPLING", 0)
+def _sample_apm() -> bool:
+    sampled: bool = random.random() < getattr(settings, "SENTRY_RELAY_ENDPOINT_APM_SAMPLING", 0)
+    return sampled
 
 
-class RelayProjectConfigsEndpoint(Endpoint):
+class RelayProjectConfigsEndpoint(Endpoint):  # type: ignore
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False
@@ -34,7 +38,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         ):
             return self._post(request)
 
-    def _post(self, request: Request):
+    def _post(self, request: Request) -> Response:
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
 
@@ -59,12 +63,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
         else:
             return Response("Unsupported version, we only support version null, 1 and 2.", 400)
 
-    def _post_by_key(self, request: Request, full_config_requested):
+    def _post_by_key(self, request: Request, full_config_requested: bool) -> Response:
         public_keys = request.relay_request_data.get("publicKeys")
         public_keys = set(public_keys or ())
 
-        project_keys = {}  # type: dict[str, ProjectKey]
-        project_ids = set()  # type: set[int]
+        project_keys: MutableMapping[str, ProjectKey] = {}
+        project_ids: set[int] = set()
 
         with start_span(op="relay_fetch_keys"):
             with metrics.timer("relay_project_configs.fetching_keys.duration"):
@@ -75,8 +79,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
                     project_keys[key.public_key] = key
                     project_ids.add(key.project_id)
 
-        projects = {}  # type: dict[int, Project]
-        organization_ids = set()  # type: set[int]
+        projects: MutableMapping[int, Project] = {}
+        organization_ids: set[int] = set()
 
         with start_span(op="relay_fetch_projects"):
             with metrics.timer("relay_project_configs.fetching_projects.duration"):
@@ -87,7 +91,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         # Preload all organizations and their options to prevent repeated
         # database access when computing the project configuration.
 
-        orgs = {}  # type: dict[int, Organization]
+        orgs: MutableMapping[int, Organization] = {}
 
         with start_span(op="relay_fetch_orgs"):
             with metrics.timer("relay_project_configs.fetching_orgs.duration"):
@@ -138,7 +142,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response({"configs": configs}, status=200)
 
-    def _post_by_project(self, request: Request, full_config_requested):
+    def _post_by_project(self, request: Request, full_config_requested: bool) -> Response:
         project_ids = set(request.relay_request_data.get("projects") or ())
 
         with start_span(op="relay_fetch_projects"):
@@ -164,7 +168,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                     OrganizationOption.objects.get_all_values(org_id)
 
         with start_span(op="relay_fetch_keys"):
-            project_keys = {}
+            project_keys: MutableMapping[int, list[ProjectKey]] = {}
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
 
