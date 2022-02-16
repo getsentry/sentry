@@ -189,16 +189,16 @@ export class Rect {
     return this.toMatrix().every(n => !isNaN(n));
   }
 
+  isEmpty(): boolean {
+    return this.width === 0 && this.height === 0;
+  }
+
   static Empty(): Rect {
     return new Rect(0, 0, 0, 0);
   }
 
   static From(rect: Rect): Rect {
     return new Rect(rect.x, rect.y, rect.width, rect.height);
-  }
-
-  get isEmpty(): boolean {
-    return this.width === 0 && this.height === 0;
   }
 
   get x(): number {
