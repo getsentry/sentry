@@ -56,6 +56,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Discover Area Chart Widget', function () {
+    let container;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()', 'failure_count()'],
@@ -90,7 +91,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      mountModal({initialData, widget: mockWidget});
+      container = mountModal({initialData, widget: mockWidget}).container;
     });
 
     it('renders Edit and Open buttons', function () {
@@ -108,9 +109,14 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders area chart', async function () {
       expect(await screen.findByText('echarts mock')).toBeInTheDocument();
     });
+
+    it('renders Discover area chart widget viewer', function () {
+      expect(container).toSnapshot();
+    });
   });
 
   describe('Issue Table Widget', function () {
+    let container;
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
@@ -144,7 +150,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         ],
       });
-      mountModal({initialData, widget: mockWidget});
+      container = mountModal({initialData, widget: mockWidget}).container;
     });
     it('renders widget title', function () {
       expect(screen.getByText('Issue Widget')).toBeInTheDocument();
@@ -160,6 +166,9 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('6')).toBeInTheDocument();
       expect(screen.getByText('status')).toBeInTheDocument();
       expect(screen.getByText('unresolved')).toBeInTheDocument();
+    });
+    it('renders Issue table widget viewer', function () {
+      expect(container).toSnapshot();
     });
   });
 });
