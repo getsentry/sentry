@@ -5,6 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
 import Button from 'sentry/components/button';
+import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import SearchBar from 'sentry/components/events/searchBar';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
@@ -19,9 +20,16 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
+import {
+  DateString,
+  Organization,
+  PageFilters,
+  SelectValue,
+  TagCollection,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import withTags from 'sentry/utils/withTags';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import {
@@ -37,6 +45,7 @@ import WidgetCard from '../widgetCard';
 import {normalizeQueries} from './eventWidget/utils';
 import BuildStep from './buildStep';
 import BuildSteps from './buildSteps';
+import BuildStepYAxisOrColumns from './buildStepYAxisOrColumns';
 import Header from './header';
 import {DataSet, DisplayType, displayTypes} from './utils';
 
@@ -89,6 +98,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   onSave: (Widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
+  tags: TagCollection;
   defaultTitle?: string;
   defaultWidgetQuery?: WidgetQuery;
   displayType?: DisplayType;
@@ -107,7 +117,7 @@ type State = {
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
-  errors?: Record<string, any>;
+  errors?: Record<'orderby' | 'conditions' | 'queries', any>;
   selectedDashboard?: SelectValue<string>;
 };
 
@@ -124,6 +134,7 @@ function WidgetBuilder({
   defaultWidgetQuery,
   displayType,
   defaultTitle,
+  tags,
 }: Props) {
   const {widgetId, orgId, dashboardId} = params;
   const {source} = location.query;
@@ -154,9 +165,7 @@ function WidgetBuilder({
   const [state, setState] = useState<State>(() => {
     if (!widget) {
       return {
-        title:
-          defaultTitle ??
-          t('Custom %s Widget', displayTypes[displayType ?? DisplayType.TABLE]),
+        title: defaultTitle ?? t('Custom Widget'),
         displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...QUERIES.events}],
@@ -182,6 +191,7 @@ function WidgetBuilder({
         : DataSet.EVENTS,
     };
   });
+  const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
 
   function handleDataSetChange(newDataSet: string) {
     setState(prevState => {
@@ -223,10 +233,10 @@ function WidgetBuilder({
     });
   }
 
-  function handleQueryChange(newQuery: WidgetQuery, index: number) {
+  function handleQueryChange(queryIndex: number, newQuery: WidgetQuery) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      set(newState, `queries.${index}`, newQuery);
+      set(newState, `queries.${queryIndex}`, newQuery);
       set(newState, 'userHasModified', true);
       return {...newState, errors: undefined};
     });
@@ -259,6 +269,13 @@ function WidgetBuilder({
     DisplayType.WORLD_MAP,
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
+
+  const widgetType =
+    state.dataSet === DataSet.EVENTS
+      ? WidgetType.DISCOVER
+      : state.dataSet === DataSet.ISSUES
+      ? WidgetType.ISSUE
+      : WidgetType.METRICS;
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -313,12 +330,7 @@ function WidgetBuilder({
                   displayType: state.displayType,
                   interval: state.interval,
                   queries: state.queries,
-                  widgetType:
-                    state.dataSet === DataSet.EVENTS
-                      ? WidgetType.DISCOVER
-                      : state.dataSet === DataSet.ISSUES
-                      ? WidgetType.ISSUE
-                      : WidgetType.METRICS,
+                  widgetType,
                 }}
                 isEditing={false}
                 widgetLimitReached={false}
@@ -332,12 +344,16 @@ function WidgetBuilder({
                 noLazyLoad
               />
             </BuildStep>
-            <BuildStep
-              title={t('Choose your y-axis')}
-              description="Description of what this means"
-            >
-              WIP
-            </BuildStep>
+            <BuildStepYAxisOrColumns
+              dataSet={state.dataSet}
+              displayType={state.displayType}
+              organization={organization}
+              queries={state.queries}
+              widgetType={widgetType}
+              tags={tags}
+              onChange={handleQueryChange}
+              errors={state.errors?.queries}
+            />
             <BuildStep
               title={t('Filter your results')}
               description="Description of what this means"
@@ -350,38 +366,43 @@ function WidgetBuilder({
                       inline={false}
                       flexibleControlStateSize
                       stacked
+                      error={state.errors?.[queryIndex].conditions}
                     >
                       <SearchConditionsWrapper>
-                        <StyledSearchBar
+                        <Search
                           searchSource="widget_builder"
                           organization={organization}
                           projectIds={selection.projects}
                           query={query.conditions}
                           fields={[]}
                           onSearch={field => {
+                            // SearchBar will call handlers for both onSearch and onBlur
+                            // when selecting a value from the autocomplete dropdown. This can
+                            // cause state issues for the search bar in our use case. To prevent
+                            // this, we set a timer in our onSearch handler to block our onBlur
+                            // handler from firing if it is within 200ms, ie from clicking an
+                            // autocomplete value.
+                            setBlurTimeout(
+                              window.setTimeout(() => {
+                                setBlurTimeout(null);
+                              }, 200)
+                            );
+
                             const newQuery: WidgetQuery = {
                               ...state.queries[queryIndex],
                               conditions: field,
                             };
-                            handleQueryChange(newQuery, queryIndex);
+                            handleQueryChange(queryIndex, newQuery);
                           }}
-                          // onSearch={field => {
-                          //   // SearchBar will call handlers for both onSearch and onBlur
-                          //   // when selecting a value from the autocomplete dropdown. This can
-                          //   // cause state issues for the search bar in our use case. To prevent
-                          //   // this, we set a timer in our onSearch handler to block our onBlur
-                          //   // handler from firing if it is within 200ms, ie from clicking an
-                          //   // autocomplete value.
-                          //   this.blurTimeout = window.setTimeout(() => {
-                          //     this.blurTimeout = null;
-                          //   }, 200);
-                          //   return this.handleFieldChange(queryIndex, 'conditions')(field);
-                          // }}
-                          // onBlur={field => {
-                          //   if (!this.blurTimeout) {
-                          //     this.handleFieldChange(queryIndex, 'conditions')(field);
-                          //   }
-                          // }}
+                          onBlur={field => {
+                            if (!blurTimeout) {
+                              const newQuery: WidgetQuery = {
+                                ...state.queries[queryIndex],
+                                conditions: field,
+                              };
+                              handleQueryChange(queryIndex, newQuery);
+                            }
+                          }}
                           useFormWrapper={false}
                           maxQueryLength={MAX_QUERY_LENGTH}
                         />
@@ -397,7 +418,7 @@ function WidgetBuilder({
                                 ...state.queries[queryIndex],
                                 name: event.target.value,
                               };
-                              handleQueryChange(newQuery, queryIndex);
+                              handleQueryChange(queryIndex, newQuery);
                             }}
                           />
                         )}
@@ -426,12 +447,32 @@ function WidgetBuilder({
                 )}
               </div>
             </BuildStep>
-            <BuildStep
-              title={t('Group your results')}
-              description="Description of what this means"
-            >
-              WIP
-            </BuildStep>
+            {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
+              <BuildStep
+                title={t('Sort your results')}
+                description="Description of what this means"
+              >
+                <Field
+                  inline={false}
+                  flexibleControlStateSize
+                  stacked
+                  error={state.errors?.orderby}
+                >
+                  <SelectControl
+                    value={state.queries[0].orderby}
+                    name="orderby"
+                    options={generateOrderOptions(state.queries[0].fields)}
+                    onChange={(option: SelectValue<string>) => {
+                      const newQuery: WidgetQuery = {
+                        ...state.queries[0],
+                        orderby: option.value,
+                      };
+                      handleQueryChange(0, newQuery);
+                    }}
+                  />
+                </Field>
+              </BuildStep>
+            )}
           </BuildSteps>
         </Layout.Body>
       </PageContentWithoutPadding>
@@ -439,7 +480,7 @@ function WidgetBuilder({
   );
 }
 
-export default withPageFilters(WidgetBuilder);
+export default withPageFilters(withTags(WidgetBuilder));
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
@@ -464,7 +505,7 @@ const SearchConditionsWrapper = styled('div')`
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const Search = styled(SearchBar)`
   flex-grow: 1;
 `;
 
