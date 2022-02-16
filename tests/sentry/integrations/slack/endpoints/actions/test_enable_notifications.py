@@ -1,4 +1,7 @@
-from sentry.integrations.slack.endpoints.action import ENABLE_SLACK_SUCCESS_MESSAGE
+from sentry.integrations.slack.endpoints.action import (
+    ENABLE_SLACK_SUCCESS_MESSAGE,
+    NO_IDENTITY_MESSAGE,
+)
 from sentry.models import Identity, NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.types.integrations import ExternalProviders
@@ -18,7 +21,8 @@ class EnableNotificationsActionTest(BaseEventTest):
             action_data=[{"name": "enable_notifications", "value": "all_slack"}]
         )
 
-        assert response.status_code == 403, response.content
+        assert response.status_code == 200, response.content
+        assert response.data["text"] == NO_IDENTITY_MESSAGE
 
     def test_enable_all_slack_already_enabled(self):
         NotificationSetting.objects.update_settings(
