@@ -25,7 +25,6 @@ type TestStubFixtures = {
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
   Config: OverridableStub;
-  Dashboard: OverridableStub;
   DataScrubbingRelayPiiConfig: SimpleStub;
   DebugFile: OverridableStub;
   DebugSymbols: OverridableStub;
@@ -105,6 +104,7 @@ type TestStubFixtures = {
   SessionTotalCountByProjectIn24h: SimpleStub;
   SessionUserCountByStatus: SimpleStub;
   SessionUserCountByStatus2: SimpleStub;
+  SessionUserCountByStatusByRelease: SimpleStub;
   SessionUserStatusCountByProjectInPeriod: SimpleStub;
   SessionUserStatusCountByReleaseInPeriod: SimpleStub;
   SesssionTotalCountByReleaseIn24h: SimpleStub;

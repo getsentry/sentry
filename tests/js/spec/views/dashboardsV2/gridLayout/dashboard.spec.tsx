@@ -14,6 +14,14 @@ describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({
     features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
   });
+  const organizationWithFlag = TestStubs.Organization({
+    features: [
+      'dashboards-basic',
+      'dashboards-edit',
+      'dashboard-grid-layout',
+      'issues-in-dashboards',
+    ],
+  });
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
     id: '1',
@@ -102,6 +110,11 @@ describe('Dashboards > Dashboard', () => {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      method: 'GET',
+      body: TestStubs.Tags(),
+    });
   });
 
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
@@ -187,14 +200,6 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('dashboard displays issue widgets if the user has issue widgets feature flag', async () => {
-      const organizationWithFlag = TestStubs.Organization({
-        features: [
-          'dashboards-basic',
-          'dashboards-edit',
-          'dashboard-grid-layout',
-          'issues-in-dashboards',
-        ],
-      });
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [newWidget, issueWidget],
@@ -205,14 +210,6 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('renders suggested assignees', async () => {
-      const organizationWithFlag = TestStubs.Organization({
-        features: [
-          'dashboards-basic',
-          'dashboards-edit',
-          'dashboard-grid-layout',
-          'issues-in-dashboards',
-        ],
-      });
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [{...issueWidget}],
@@ -223,6 +220,49 @@ describe('Dashboards > Dashboard', () => {
       expect(await screen.findByText('Suggestion:')).toBeInTheDocument();
       expect(screen.getByText('test@sentry.io')).toBeInTheDocument();
       expect(screen.getByText('Matching Issue Owners Rule')).toBeInTheDocument();
+    });
+  });
+
+  describe('Edit mode', () => {
+    let widgets: Widget[];
+    const mount = dashboard => {
+      const getDashboardComponent = () => (
+        <Dashboard
+          paramDashboardId="1"
+          dashboard={dashboard}
+          organization={initialData.organization}
+          isEditing
+          onUpdate={newWidgets => {
+            widgets.splice(0, widgets.length, ...newWidgets);
+          }}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          onSetWidgetToBeUpdated={() => undefined}
+          router={initialData.router}
+          location={initialData.location}
+          widgetLimitReached={false}
+        />
+      );
+      const {rerender} = rtlMountWithTheme(getDashboardComponent());
+      return {rerender: () => rerender(getDashboardComponent())};
+    };
+
+    beforeEach(() => {
+      widgets = [newWidget];
+    });
+
+    it('displays the copy widget button in edit mode', () => {
+      const dashboardWithOneWidget = {...mockDashboard, widgets};
+      mount(dashboardWithOneWidget);
+      expect(screen.getByLabelText('Duplicate Widget')).toBeInTheDocument();
+    });
+
+    it('duplicates the widget', async () => {
+      const dashboardWithOneWidget = {...mockDashboard, widgets};
+      const {rerender} = mount(dashboardWithOneWidget);
+      userEvent.click(screen.getByLabelText('Duplicate Widget'));
+      rerender();
+      expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
     });
   });
 });

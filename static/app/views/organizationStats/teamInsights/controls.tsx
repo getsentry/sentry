@@ -5,7 +5,7 @@ import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
+import TeamSelector from 'sentry/components/forms/teamSelector';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {t} from 'sentry/locale';

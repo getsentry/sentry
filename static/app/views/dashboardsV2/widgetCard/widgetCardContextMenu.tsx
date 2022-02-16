@@ -2,39 +2,33 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
-import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
-import {
-  IconCopy,
-  IconDelete,
-  IconEdit,
-  IconEllipsis,
-  IconIssues,
-  IconTelescope,
-} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
+import {
+  eventViewFromWidget,
+  getFieldsFromEquations,
+} from 'sentry/views/dashboardsV2/utils';
 import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 import {Widget, WidgetType} from '../types';
 
 type Props = {
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onEdit: () => void;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
   isPreview?: boolean;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onEdit?: () => void;
   showContextMenu?: boolean;
 };
 
@@ -118,22 +112,14 @@ function WidgetCardContextMenu({
           break;
       }
 
-      // Gather all fields and functions used in equations and prepend them to discover columns
-      const termsSet: Set<string> = new Set();
-      widget.queries[0].fields.forEach(field => {
-        if (isEquation(field)) {
-          const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
-          parsed.fields.forEach(({term}) => termsSet.add(term as string));
-          parsed.functions.forEach(({term}) => termsSet.add(term as string));
-        }
-      });
-      termsSet.forEach(term => {
-        const fields = discoverLocation.query.field;
+      const fields = discoverLocation.query.field;
+      const equationFields = getFieldsFromEquations(widget.queries[0].fields);
+      // Updates fields by adding any individual terms from equation fields as a column
+      equationFields.forEach(term => {
         if (Array.isArray(fields) && !fields.includes(term)) {
           fields.unshift(term);
         }
       });
-
       const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
         ...discoverLocation.query,
       })}`;
@@ -141,7 +127,6 @@ function WidgetCardContextMenu({
       menuOptions.push({
         key: 'open-in-discover',
         label: t('Open in Discover'),
-        leadingItems: <IconTelescope />,
         to: widget.queries.length === 1 ? discoverPath : undefined,
         onAction: () => {
           if (widget.queries.length === 1) {
@@ -177,7 +162,6 @@ function WidgetCardContextMenu({
     menuOptions.push({
       key: 'open-in-issues',
       label: t('Open in Issues'),
-      leadingItems: <IconIssues />,
       to: issuesLocation,
     });
   }
@@ -186,28 +170,25 @@ function WidgetCardContextMenu({
     menuOptions.push({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
-      leadingItems: <IconCopy />,
-      onAction: () => onDuplicate(),
+      onAction: () => onDuplicate?.(),
     });
     widgetLimitReached && disabledKeys.push('duplicate-widget');
 
     menuOptions.push({
       key: 'edit-widget',
       label: t('Edit Widget'),
-      leadingItems: <IconEdit />,
-      onAction: () => onEdit(),
+      onAction: () => onEdit?.(),
     });
 
     menuOptions.push({
       key: 'delete-widget',
       label: t('Delete Widget'),
-      leadingItems: <IconDelete />,
       priority: 'danger',
       onAction: () => {
         openConfirmModal({
           message: t('Are you sure you want to delete this widget?'),
           priority: 'danger',
-          onConfirm: () => onDelete(),
+          onConfirm: () => onDelete?.(),
         });
       },
     });
