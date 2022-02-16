@@ -427,7 +427,7 @@
     <td class="project-breakdown-graph-cell transactions">
       <h4 class="total-count-title">Total Project Transactions</h4>
       <h1 style="margin: 0;" class="total-count">{{ series.legend.total.data.accepted_transactions|small_count:1 }}</h1>
-      <a href="{% absolute_uri '/organizations/{}/performance/' organization.slug %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>
+      <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_view_all' organization.slug %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>
       <table class="graph">
         <tr>
           {% for timestamp, values in series.transaction_points %}
@@ -461,7 +461,7 @@
           <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px" alt="Sentry">
           <h1 style="font-weight: bold; font-size: 17px;">Missing transactions?</h1>
           <p style="font-size: 11px;">With a simple snipped of code, you can see which parts of your app have the most improvements. the worst repgressions. Set it up now.</p>
-          <a href="https://docs.sentry.io/product/performance/getting-started/" class="btn" style="margin-top: 8px;">Setup Performance</a>
+          <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_upsell' organization.slug %}" class="btn" style="margin-top: 8px;">Setup Performance</a>
         </div>
       </td>
     {% endif %}
