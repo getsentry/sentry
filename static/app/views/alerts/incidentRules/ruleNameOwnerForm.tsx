@@ -1,7 +1,7 @@
 import {PureComponent} from 'react';
 
-import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
 import FormField from 'sentry/components/forms/formField';
+import TeamSelector from 'sentry/components/forms/teamSelector';
 import TextField from 'sentry/components/forms/textField';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
