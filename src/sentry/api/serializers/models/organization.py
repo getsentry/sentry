@@ -444,7 +444,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return team_list
 
     def serialize(  # type: ignore
-        self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Any
+        self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
