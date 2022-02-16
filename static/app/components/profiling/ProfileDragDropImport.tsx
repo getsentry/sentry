@@ -1,6 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {
   importDroppedProfile,
   ProfileGroup,
@@ -66,7 +67,8 @@ function ProfileDragDropImport({
     <div onDragEnter={onDragEnter}>
       {dropState === 'idle' ? null : (
         <Overlay onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}>
-          Drop here<p>{errorMessage}</p>
+          {t('Drop here')}
+          <p>{errorMessage}</p>
         </Overlay>
       )}
       {children}

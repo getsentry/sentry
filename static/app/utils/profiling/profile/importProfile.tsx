@@ -66,33 +66,31 @@ function readFileAsString(file: File): Promise<string> {
   });
 }
 
-export function importDroppedProfile(file: File): Promise<ProfileGroup> {
-  return new Promise((resolve, reject) => {
-    readFileAsString(file)
+export async function importDroppedProfile(file: File): Promise<ProfileGroup> {
+  try {
+    return await readFileAsString(file)
       .then(fileContents => JSON.parse(fileContents))
       .then(json => {
         if (typeof json !== 'object' || json === null) {
-          reject('Input JSON is not an object');
-          return;
+          throw new TypeError('Input JSON is not an object');
         }
 
         if (isSchema(json)) {
-          resolve(importProfile(json, ''));
-          return;
+          return importProfile(json, '');
         }
 
         if (isJSProfile(json)) {
-          resolve({
+          return {
             name: 'JS Self Profiling',
             activeProfileIndex: 0,
             traceID: '',
             profiles: [JSSelfProfile.FromProfile(json, createFrameIndex(json.frames))],
-          });
-          return;
+          };
         }
 
         throw new Error('Unsupported JSON format');
-      })
-      .catch(e => reject(e));
-  });
+      });
+  } catch (e) {
+    throw e;
+  }
 }

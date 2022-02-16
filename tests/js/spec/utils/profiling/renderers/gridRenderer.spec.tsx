@@ -31,7 +31,7 @@ describe('getIntervalTimeAtX', () => {
       physicalSpace
     );
 
-    expect(getIntervalTimeAtX(configToPhysical, 500)).toBe(15);
+    expect(getIntervalTimeAtX(configToPhysical, 500)).toBe(10);
   });
 
   it('high dpr - when origin is at 0', () => {
