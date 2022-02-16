@@ -175,7 +175,7 @@ describe('ProjectAlertsCreate', function () {
       expect(screen.getByDisplayValue('30')).toBeInTheDocument();
     });
 
-    it('can remove filters', async function () {
+    it('can remove filters, conditions and actions', async function () {
       createWrapper({
         organization: {
           features: ['alert-filters'],
@@ -186,13 +186,100 @@ describe('ProjectAlertsCreate', function () {
         method: 'POST',
         body: TestStubs.ProjectAlertRule(),
       });
+      await waitFor(
+        () => {
+          expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+        },
+        {timeout: 1}
+      );
+      // Change name of alert rule
+      const input = screen.getByPlaceholderText('My Rule Name');
 
+      userEvent.paste(input, 'My Rule Name');
+      // Add a condition and remove it
+      await selectEvent.select(
+        await screen.findByText('Add optional condition...', {timeout: 1}),
+        ['A new issue is created']
+      );
+      // Add a condition and remove it
+      await selectEvent.select(screen.getByText('Add optional condition...'), [
+        'A new issue is created',
+      ]);
+      userEvent.click(screen.getByLabelText('Delete Node'));
+      expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+        eventKey: 'edit_alert_rule.add_row',
+        eventName: 'Edit Alert Rule: Add Row',
+        name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+        organization_id: '3',
+        project_id: '2',
+        type: 'conditions',
+      });
+
+      // Add a filter and remove it
+      await selectEvent.select(
+        await screen.findByText('Add optional filter...', {timeout: 1}),
+        ['The issue is {comparison_type} than {value} {time}']
+      );
+
+      userEvent.click(screen.getByLabelText('Delete Node'));
+
+      // Add an action and remove it
+      await selectEvent.select(await screen.findByText('Add action...', {timeout: 1}), [
+        'Send a notification (for all legacy integrations)',
+      ]);
+      userEvent.click(screen.getByLabelText('Delete Node'));
+      userEvent.click(screen.getByText('Save Rule'));
+      await waitFor(
+        () => {
+          expect(mock).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+              data: {
+                actionMatch: 'all',
+                actions: [],
+                conditions: [],
+                filterMatch: 'all',
+                filters: [],
+                frequency: 30,
+                name: 'My Rule Name',
+                owner: null,
+              },
+            })
+          );
+        },
+        {timeout: 1}
+      );
+    });
+
+    it('can remove filters, conditions and actions - original', async function () {
+      createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
       await waitFor(() => {
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
       });
-
       // Change name of alert rule
       userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      // Add a condition and remove it
+      await selectEvent.select(screen.getByText('Add optional condition...'), [
+        'A new issue is created',
+      ]);
+      userEvent.click(screen.getByLabelText('Delete Node'));
+      expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+        eventKey: 'edit_alert_rule.add_row',
+        eventName: 'Edit Alert Rule: Add Row',
+        name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+        organization_id: '3',
+        project_id: '2',
+        type: 'conditions',
+      });
 
       // Add a filter and remove it
       await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -201,112 +288,12 @@ describe('ProjectAlertsCreate', function () {
 
       userEvent.click(screen.getByLabelText('Delete Node'));
 
-      userEvent.click(screen.getByText('Save Rule'));
-
-      await waitFor(() => {
-        expect(mock).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.objectContaining({
-            data: {
-              actionMatch: 'all',
-              actions: [],
-              conditions: [],
-              filterMatch: 'all',
-              filters: [],
-              frequency: 30,
-              name: 'My Rule Name',
-              owner: null,
-            },
-          })
-        );
-      });
-    });
-
-    it('can remove conditions', async function () {
-      const {organization} = createWrapper({
-        organization: {
-          features: ['alert-filters'],
-        },
-      });
-      const mock = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/rules/',
-        method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
-      });
-
-      await waitFor(() => {
-        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-      });
-
-      // Change name of alert rule
-      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
-
-      // Add a condition and remove it
-      await selectEvent.select(screen.getByText('Add optional condition...'), [
-        'A new issue is created',
-      ]);
-
-      userEvent.click(screen.getByLabelText('Delete Node'));
-
-      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-        'edit_alert_rule.add_row',
-        {
-          name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-          organization,
-          project_id: '2',
-          type: 'conditions',
-        }
-      );
-
-      userEvent.click(screen.getByText('Save Rule'));
-
-      await waitFor(() => {
-        expect(mock).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.objectContaining({
-            data: {
-              actionMatch: 'all',
-              actions: [],
-              conditions: [],
-              filterMatch: 'all',
-              filters: [],
-              frequency: 30,
-              name: 'My Rule Name',
-              owner: null,
-            },
-          })
-        );
-      });
-    });
-
-    it('can remove actions', async function () {
-      createWrapper({
-        organization: {
-          features: ['alert-filters'],
-        },
-      });
-      const mock = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/rules/',
-        method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
-      });
-
-      await waitFor(() => {
-        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-      });
-
-      // Change name of alert rule
-      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
-
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
         'Send a notification (for all legacy integrations)',
       ]);
-
       userEvent.click(screen.getByLabelText('Delete Node'));
-
       userEvent.click(screen.getByText('Save Rule'));
-
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(
           expect.any(String),
