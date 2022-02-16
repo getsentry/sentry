@@ -1,6 +1,11 @@
 import moment from 'moment';
 
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {InnerGlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -130,11 +135,11 @@ describe('GlobalSDKUpdateAlert', () => {
       </OrganizationContext.Provider>
     );
 
-    await tick();
-
-    expect(
-      screen.queryByText(/You have outdated SDKs in your projects/)
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/You have outdated SDKs in your projects/)
+      ).not.toBeInTheDocument()
+    );
   });
 
   it('shows prompt if snoozed_ts days is longer than threshold', async () => {
@@ -186,12 +191,11 @@ describe('GlobalSDKUpdateAlert', () => {
       </OrganizationContext.Provider>
     );
 
-    // Flush out our promise and make sure everything renderer
-    await tick();
-
-    expect(
-      screen.queryByText(/You have outdated SDKs in your projects/)
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/You have outdated SDKs in your projects/)
+      ).not.toBeInTheDocument()
+    );
   });
 
   it('shows prompt for all projects when project matches ALL_ACCESS_PROJECTS', async () => {
@@ -227,12 +231,10 @@ describe('GlobalSDKUpdateAlert', () => {
       snoozed_ts: undefined,
     };
 
-    MockApiClient.addMockResponse({
+    const promptsActivityMock = MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {data: promptResponse},
     });
-
-    const spy = jest.spyOn(MockApiClient, 'requestPromise');
 
     mountWithTheme(
       <OrganizationContext.Provider value={TestStubs.Organization()}>
@@ -242,18 +244,15 @@ describe('GlobalSDKUpdateAlert', () => {
 
     userEvent.click(await screen.findByText(/Remind me later/));
 
-    expect(spy.mock.calls[1]).toEqual([
+    expect(promptsActivityMock).toHaveBeenCalledWith(
       '/prompts-activity/',
-      {
-        data: {
+      expect.objectContaining({
+        query: expect.objectContaining({
           feature: 'sdk_updates',
           organization_id: '3',
-          project_id: undefined,
-          status: 'snoozed',
-        },
-        method: 'PUT',
-      },
-    ]);
+        }),
+      })
+    );
 
     expect(
       screen.queryByText(/You have outdated SDKs in your projects/)

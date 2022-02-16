@@ -29,12 +29,6 @@ describe('ProjectDetail', function () {
     });
   });
 
-  afterEach(() => {
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
-  });
-
   describe('project low priority queue alert', function () {
     it('does not render alert', async function () {
       const projects = [
