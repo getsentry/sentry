@@ -42,6 +42,8 @@ def get_default_rate_limits_for_group(group_name: str, category: RateLimitCatego
     group_config = group_defaults.get(group_name, None)
     if group_config and category in group_config:
         return group_config[category]
+    else:
+        _LOGGER.warning("Invalid group config for %s, %s", group_name, category)
     # if the config doesn't have the rate limit category always fall back to default
     # if the category is undefined, fall back to the default rate limit per organization
 
