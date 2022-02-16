@@ -21,7 +21,7 @@
   },
 
   "files.associations": {
-    "*.yaml": "home-assistant"
+    "*.jsx": "javascriptreact"
   },
 
   "[javascript]": {
