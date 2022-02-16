@@ -32,7 +32,7 @@ interface Props {
   errors?: Record<string, string>[];
 }
 
-function BuildStepYAxisOrColumns({
+export function BuildStepYAxisOrColumns({
   dataSet,
   displayType,
   organization,
@@ -125,8 +125,6 @@ function BuildStepYAxisOrColumns({
     </BuildStep>
   );
 }
-
-export default BuildStepYAxisOrColumns;
 
 const ColumnCollectionEdit = styled(ColumnEditCollection)`
   margin-top: ${space(1)};

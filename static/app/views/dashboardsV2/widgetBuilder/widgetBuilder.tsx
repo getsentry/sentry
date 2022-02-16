@@ -45,7 +45,7 @@ import WidgetCard from '../widgetCard';
 import {normalizeQueries} from './eventWidget/utils';
 import BuildStep from './buildStep';
 import BuildSteps from './buildSteps';
-import BuildStepYAxisOrColumns from './buildStepYAxisOrColumns';
+import {BuildStepYAxisOrColumns} from './buildStepYAxisOrColumns';
 import Header from './header';
 import {DataSet, DisplayType, displayTypes} from './utils';
 
