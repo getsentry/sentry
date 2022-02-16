@@ -392,7 +392,8 @@
 
     <td class="project-breakdown-graph-cell errors">
     <h4 class="total-count-title">Total Project Errors</h4>
-    <h1 class="total-count">{{ series.legend.total.data.accepted_errors|small_count:1 }}</h1>
+    <h1 style="margin: 0;" class="total-count">{{ series.legend.total.data.accepted_errors|small_count:1 }}</h1>
+    <a href="{% url 'sentry-organization-issue-list' organization.slug %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
 
     <table class="graph">
       <tr>
@@ -425,8 +426,8 @@
     {% if series.legend.total.data.accepted_transactions > 0 %}
     <td class="project-breakdown-graph-cell transactions">
       <h4 class="total-count-title">Total Project Transactions</h4>
-      <h1 class="total-count">{{ series.legend.total.data.accepted_transactions|small_count:1 }}</h1>
-
+      <h1 style="margin: 0;" class="total-count">{{ series.legend.total.data.accepted_transactions|small_count:1 }}</h1>
+      <a href="{% absolute_uri '/organizations/{}/performance/' organization.slug %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>
       <table class="graph">
         <tr>
           {% for timestamp, values in series.transaction_points %}
