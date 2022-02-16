@@ -142,7 +142,7 @@ describe('StackTracePreview', () => {
                     registers: {},
                     framesOmitted: 0,
                     frames: [
-                      {colNo: 0, fileName: 'file.js', function: 'throwError', lineNo: 0},
+                      {colNo: 0, filename: 'file.js', function: 'throwError', lineNo: 0},
                     ],
                   },
                 },
