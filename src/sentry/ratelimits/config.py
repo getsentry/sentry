@@ -29,17 +29,27 @@ _SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory
 }
 
 
+def _get_group_defaults() -> Mapping[GroupName, Mapping[RateLimitCategory, RateLimit]]:
+    return _SENTRY_RATELIMITER_GROUP_DEFAULTS
+
+
 def get_default_rate_limits_for_group(group_name: str, category: RateLimitCategory) -> RateLimit:
     # group rate limits are calculated as follows:
 
     # If the group is not configured in _SENTRY_RATELIMITER_GROUP_DEFAULTS, use the "default" group
     # config
-    group_config = _SENTRY_RATELIMITER_GROUP_DEFAULTS.get(
-        group_name, _SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]
-    )
-    if category in group_config:
+    group_defaults = _get_group_defaults()
+    group_config = group_defaults.get(group_name, None)
+    if group_config and category in group_config:
         return group_config[category]
-    return _SENTRY_RATELIMITER_GROUP_DEFAULTS["default"][category]
+    # if the config doesn't have the rate limit category always fall back to default
+    # if the category is undefined, fall back to the default rate limit per organization
+
+    # this level of checking is done to make sure the rate limit configuration being bad
+    # doesn't mean the API endpoint crashes
+    return group_defaults["default"].get(
+        category, group_defaults["default"][RateLimitCategory.ORGANIZATION]
+    )
 
 
 @dataclass(frozen=True)
