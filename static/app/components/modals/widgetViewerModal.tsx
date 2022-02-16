@@ -7,12 +7,17 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {getFieldsFromEquations} from 'sentry/views/dashboardsV2/utils';
+import {
+  getFieldsFromEquations,
+  getWidgetDiscoverUrl,
+  getWidgetIssueUrl,
+} from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 
 export type WidgetViewerModalOptions = {
@@ -95,7 +100,7 @@ class WidgetViewerModal extends React.Component<Props, State> {
   }
 
   render() {
-    const {Footer, Body, Header, widget} = this.props;
+    const {Footer, Body, Header, widget, selection, organization} = this.props;
 
     const StyledHeader = styled(Header)`
       ${headerCss}
@@ -103,10 +108,20 @@ class WidgetViewerModal extends React.Component<Props, State> {
     const StyledFooter = styled(Footer)`
       ${footerCss}
     `;
-    const openLabel =
-      widget.widgetType === WidgetType.ISSUE
-        ? t('Open in Issues')
-        : t('Open in Discover');
+
+    let openLabel: string;
+    let path: string;
+    switch (widget.widgetType) {
+      case WidgetType.ISSUE:
+        openLabel = t('Open in Issues');
+        path = getWidgetIssueUrl(widget, selection, organization);
+        break;
+      case WidgetType.DISCOVER:
+      default:
+        openLabel = t('Open in Discover');
+        path = getWidgetDiscoverUrl(widget, selection, organization);
+        break;
+    }
     return (
       <React.Fragment>
         <StyledHeader closeButton>
@@ -118,9 +133,11 @@ class WidgetViewerModal extends React.Component<Props, State> {
             <Button type="button" onClick={() => undefined}>
               {t('Edit Widget')}
             </Button>
-            <Button priority="primary" type="button" onClick={() => undefined}>
-              {openLabel}
-            </Button>
+            <Link to={path}>
+              <Button priority="primary" type="button" onClick={() => undefined}>
+                {openLabel}
+              </Button>
+            </Link>
           </ButtonBar>
         </StyledFooter>
       </React.Fragment>

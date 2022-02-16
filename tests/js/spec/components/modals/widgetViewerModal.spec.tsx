@@ -113,6 +113,12 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders Discover area chart widget viewer', function () {
       expect(container).toSnapshot();
     });
+
+    it('redirects user to Discover when clicking Open in Discover', async function () {
+      const openInDiscoverButton = await screen.findByText('Open in Discover');
+      expect(openInDiscoverButton).toBeInTheDocument();
+      expect(openInDiscoverButton).toHaveAttribute('href', 'test');
+    });
   });
 
   describe('Issue Table Widget', function () {
@@ -152,13 +158,16 @@ describe('Modals -> WidgetViewerModal', function () {
       });
       container = mountModal({initialData, widget: mockWidget}).container;
     });
+
     it('renders widget title', function () {
       expect(screen.getByText('Issue Widget')).toBeInTheDocument();
     });
+
     it('renders Edit and Open buttons', function () {
       expect(screen.getByText('Edit Widget')).toBeInTheDocument();
       expect(screen.getByText('Open in Issues')).toBeInTheDocument();
     });
+
     it('renders events, status, and title table columns', async function () {
       expect(await screen.findByText('title')).toBeInTheDocument();
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
@@ -167,8 +176,15 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('status')).toBeInTheDocument();
       expect(screen.getByText('unresolved')).toBeInTheDocument();
     });
+
     it('renders Issue table widget viewer', function () {
       expect(container).toSnapshot();
+    });
+
+    it('redirects user to Issues when clicking Open in Issues', async function () {
+      const openInIssuesButton = await screen.findByText('Open in Issues');
+      expect(openInIssuesButton).toBeInTheDocument();
+      expect(openInIssuesButton).toHaveAttribute('href', 'test');
     });
   });
 });
