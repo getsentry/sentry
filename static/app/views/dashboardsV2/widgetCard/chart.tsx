@@ -65,7 +65,7 @@ type State = {
 };
 
 class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
-state = { containerHeight: 0}
+  state = {containerHeight: 0};
 
   shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
     if (
