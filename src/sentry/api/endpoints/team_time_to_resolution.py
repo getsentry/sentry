@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import timedelta
 
-from django.db.models import Avg, F
+from django.db.models import Avg, F, Q
 from django.db.models.functions import Coalesce, TruncDay
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import GroupHistory, GroupHistoryStatus
 
@@ -24,9 +25,15 @@ class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
         start, end = get_date_range_from_params(request.GET)
         end = end.date() + timedelta(days=1)
         start = start.date() + timedelta(days=1)
+        environments = [e.id for e in get_environments(request, team.organization)]
+        grouphistory_environment_filter = (
+            Q(group__groupenvironment__environment_id=environments[0]) if environments else Q()
+        )
+
         history_list = (
             GroupHistory.objects.filter_to_team(team)
             .filter(
+                grouphistory_environment_filter,
                 status=GroupHistoryStatus.RESOLVED,
                 date_added__gte=start,
                 date_added__lte=end,

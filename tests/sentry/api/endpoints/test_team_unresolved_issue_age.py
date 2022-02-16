@@ -1,6 +1,6 @@
 from freezegun import freeze_time
 
-from sentry.models import GroupAssignee, GroupStatus
+from sentry.models import GroupAssignee, GroupEnvironment, GroupStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -55,6 +55,45 @@ class TeamUnresolvedIssueAgeEndpointTest(APITestCase):
             "< 24 week": 0,
             "< 1 year": 0,
             "> 1 year": 2,
+        }
+
+    def test_environment_filter(self):
+        project1 = self.create_project(teams=[self.team], slug="foo")
+        env1 = self.create_environment(project=project1, name="prod")
+        self.create_environment(project=project1, name="dev")
+        group1 = self.create_group(project=project1)
+        GroupEnvironment.objects.create(group_id=group1.id, environment_id=env1.id)
+        GroupAssignee.objects.assign(group1, self.user)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, environment="prod"
+        )
+        assert response.data == {
+            "< 1 hour": 1,
+            "< 4 hour": 0,
+            "< 12 hour": 0,
+            "< 1 day": 0,
+            "< 1 week": 0,
+            "< 4 week": 0,
+            "< 24 week": 0,
+            "< 1 year": 0,
+            "> 1 year": 0,
+        }
+
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, environment="dev"
+        )
+        assert response.data == {
+            "< 1 hour": 0,
+            "< 4 hour": 0,
+            "< 12 hour": 0,
+            "< 1 day": 0,
+            "< 1 week": 0,
+            "< 4 week": 0,
+            "< 24 week": 0,
+            "< 1 year": 0,
+            "> 1 year": 0,
         }
 
     def test_empty(self):

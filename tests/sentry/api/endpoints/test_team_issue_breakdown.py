@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.utils.timezone import now
 from freezegun import freeze_time
 
-from sentry.models import GroupAssignee, GroupHistoryStatus
+from sentry.models import GroupAssignee, GroupEnvironment, GroupHistoryStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -99,6 +99,58 @@ class TeamIssueBreakdownTest(APITestCase):
         compare_response(statuses, response.data[project2.id][today], new=1, resolved=2, total=3)
         compare_response(statuses, response.data[project2.id][yesterday])
         compare_response(statuses, response.data[project2.id][two_days_ago])
+
+    def test_filter_by_environment(self):
+        project1 = self.create_project(teams=[self.team], slug="foo")
+        group1 = self.create_group(checksum="a" * 32, project=project1)
+        env1 = self.create_environment(name="prod", project=project1)
+        self.create_environment(name="dev", project=project1)
+        GroupAssignee.objects.assign(group1, self.user)
+        GroupEnvironment.objects.create(group_id=group1.id, environment_id=env1.id)
+
+        self.create_group_history(
+            group=group1, date_added=now(), status=GroupHistoryStatus.UNRESOLVED
+        )
+        self.create_group_history(
+            group=group1, date_added=now(), status=GroupHistoryStatus.RESOLVED
+        )
+        self.create_group_history(
+            group=group1, date_added=now(), status=GroupHistoryStatus.REGRESSED
+        )
+
+        today = str(
+            now()
+            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+            .isoformat()
+        )
+        self.login_as(user=self.user)
+        statuses = ["regressed", "resolved"]
+        response = self.get_success_response(
+            self.team.organization.slug,
+            self.team.slug,
+            statsPeriod="7d",
+            statuses=statuses,
+            environment="prod",
+        )
+
+        def compare_response(statuses, data_for_day, **expected_status_counts):
+            result = {status: 0 for status in statuses}
+            result["total"] = 0
+            result.update(expected_status_counts)
+            assert result == data_for_day
+
+        compare_response(
+            statuses, response.data[project1.id][today], regressed=1, resolved=1, total=2
+        )
+
+        response = self.get_success_response(
+            self.team.organization.slug,
+            self.team.slug,
+            statsPeriod="7d",
+            statuses=statuses,
+            environment="dev",
+        )
+        compare_response(statuses, response.data[project1.id][today])
 
     def test_old_format(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
