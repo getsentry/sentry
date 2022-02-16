@@ -29,6 +29,11 @@ export type MenuItemProps = {
    * have appropriate aria-labels.
    */
   details?: React.ReactNode;
+  /**
+   * Hide item from the dropdown menu. Note: this will also remove the item
+   * from the selection manager.
+   */
+  hidden?: boolean;
   /*
    * Whether this menu item is a trigger for a nested sub-menu. Only works
    * when `children` is also defined.
@@ -54,11 +59,6 @@ export type MenuItemProps = {
    * item's key is passed as an argument.
    */
   onAction?: (key: MenuItemProps['key']) => void;
-  /**
-   * Hide item from the dropdown menu. Note: this will also remove the item
-   * from the selection manager.
-   */
-  hidden?: boolean;
   /**
    * Accented text and background (on hover) colors. Primary = purple, and
    * danger = red.
