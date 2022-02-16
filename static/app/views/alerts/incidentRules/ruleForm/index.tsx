@@ -497,7 +497,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
           thresholdPeriod,
-          comparisonDelta,
+          comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
         },
