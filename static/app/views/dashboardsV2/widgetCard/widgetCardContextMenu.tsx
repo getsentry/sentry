@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
-import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
@@ -12,9 +11,11 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
+import {
+  eventViewFromWidget,
+  getFieldsFromEquations,
+} from 'sentry/views/dashboardsV2/utils';
 import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 import {Widget, WidgetType} from '../types';
@@ -111,22 +112,14 @@ function WidgetCardContextMenu({
           break;
       }
 
-      // Gather all fields and functions used in equations and prepend them to discover columns
-      const termsSet: Set<string> = new Set();
-      widget.queries[0].fields.forEach(field => {
-        if (isEquation(field)) {
-          const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
-          parsed.fields.forEach(({term}) => termsSet.add(term as string));
-          parsed.functions.forEach(({term}) => termsSet.add(term as string));
-        }
-      });
-      termsSet.forEach(term => {
-        const fields = discoverLocation.query.field;
+      const fields = discoverLocation.query.field;
+      const equationFields = getFieldsFromEquations(widget.queries[0].fields);
+      // Updates fields by adding any individual terms from equation fields as a column
+      equationFields.forEach(term => {
         if (Array.isArray(fields) && !fields.includes(term)) {
           fields.unshift(term);
         }
       });
-
       const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
         ...discoverLocation.query,
       })}`;
