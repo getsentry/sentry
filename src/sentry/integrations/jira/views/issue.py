@@ -13,7 +13,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
 from ..utils import set_badge
-from . import JiraBaseHook
+from . import UNABLE_TO_VERIFY_INSTALLATION, JiraBaseHook
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class JiraIssueHookView(JiraBaseHook):
                 integration = get_integration_from_request(request, "jira")
             except AtlassianConnectValidationError:
                 scope.set_tag("failure", "AtlassianConnectValidationError")
-                return self.get_response({"error_message": "Unable to verify installation."})
+                return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
             except ExpiredSignatureError:
                 scope.set_tag("failure", "ExpiredSignatureError")
                 return self.get_response({"refresh_required": True})

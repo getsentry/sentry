@@ -1,3 +1,5 @@
+UNABLE_TO_VERIFY_INSTALLATION = "Unable to verify installation"
+
 from .base import JiraBaseHook
 from .extension_configuration import JiraExtensionConfigurationView
 from .issue import JiraIssueHookView
@@ -8,4 +10,5 @@ __all__ = (
     "JiraExtensionConfigurationView",
     "JiraIssueHookView",
     "JiraUiHookView",
+    "UNABLE_TO_VERIFY_INSTALLATION",
 )
