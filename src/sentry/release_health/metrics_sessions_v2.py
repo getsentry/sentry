@@ -428,6 +428,7 @@ def _get_snuba_query(
             query_args["orderby"] = [OrderBy(columns[0], Direction.DESC)]
         else:
             query_args["where"] += limit_state.limiting_conditions
+            query_args["limit"] = Limit(SNUBA_LIMIT)
 
     return Query(**query_args)
 
@@ -459,9 +460,6 @@ def _get_snuba_query_data(
         query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
 
         limit_state.update(snuba_query.groupby, query_data)
-
-        if len(query_data) == SNUBA_LIMIT:
-            logger.error("metrics_sessions_v2.snuba_limit_exceeded")
 
         yield (metric_key, query_data)
 
