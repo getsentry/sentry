@@ -687,8 +687,10 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
     @freeze_time("2021-01-14T12:37:28.303Z")
     def test_snuba_limit_exceeded(self):
-        # TODO: When I call `patch` as a decorator, the metrics backend is selected.
-        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6):  # 2 * 3 => only show two groups
+        # 2 * 3 => only show two groups
+        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
+            "sentry.release_health.metrics_sessions_v2.SNUBA_LIMIT", 6
+        ):
 
             response = self.do_request(
                 {
