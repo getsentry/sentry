@@ -395,7 +395,6 @@ class ReleaseHealthBackend(Service):  # type: ignore
         scope: str,
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[EnvironmentName]] = None,
-        now: Optional[datetime] = None,
     ) -> int:
         """
         Fetches the total count of releases/project combinations
