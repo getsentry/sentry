@@ -121,6 +121,16 @@ function MenuControl({
     ref
   );
 
+  // Recursively remove hidden items, including those nested in submenus
+  function removeHiddenItems(source) {
+    return source
+      .filter(item => !item.hidden)
+      .map(item => ({
+        ...item,
+        ...(item.children ? {children: removeHiddenItems(item.children)} : {}),
+      }));
+  }
+
   function renderTrigger() {
     if (trigger) {
       return trigger({
@@ -154,7 +164,7 @@ function MenuControl({
         shouldCloseOnBlur={!isSubmenu && props.shouldCloseOnBlur}
         closeRootMenu={closeRootMenu ?? state.close}
         closeCurrentSubmenu={closeCurrentSubmenu}
-        items={items}
+        items={removeHiddenItems(items)}
       >
         {(item: MenuItemProps) => {
           if (item.children && item.children.length > 0 && !item.isSubmenu) {
