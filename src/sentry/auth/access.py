@@ -21,7 +21,6 @@ from sentry.models import (
     ProjectStatus,
     SentryApp,
     Team,
-    TeamStatus,
     UserPermission,
     UserRole,
 )
@@ -372,9 +371,7 @@ def from_member(
     requires_sso, sso_is_valid = _sso_params(member)
 
     team_memberships = frozenset(
-        TeamMembership.from_team_member(omt)
-        for omt in OrganizationMemberTeam.objects.filter(organizationmember=member, is_active=True)
-        if omt.team.status == TeamStatus.VISIBLE
+        TeamMembership.from_team_member(omt) for omt in member.get_team_memberships()
     )
     team_list = [m.team for m in team_memberships]
 

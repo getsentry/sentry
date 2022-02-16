@@ -359,13 +359,13 @@ class OrganizationMember(Model):
         }
 
     def get_teams(self):
-        from sentry.models import OrganizationMemberTeam, Team
+        return self.get_team_memberships().values("team")
 
-        return Team.objects.filter(
-            status=TeamStatus.VISIBLE,
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=self, is_active=True
-            ).values("team"),
+    def get_team_memberships(self):
+        from sentry.models import OrganizationMemberTeam
+
+        return OrganizationMemberTeam.objects.filter(
+            organizationmember=self, is_active=True, team__status=TeamStatus.VISIBLE
         )
 
     def get_scopes(self) -> FrozenSet[str]:
