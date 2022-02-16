@@ -17,7 +17,12 @@ import type {Color} from 'sentry/utils/theme';
 
 import CollapsePanel, {COLLAPSE_COUNT} from './collapsePanel';
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
-import {barAxisLabel, convertDayValueObjectToSeries, groupByTrend} from './utils';
+import {
+  barAxisLabel,
+  convertDayValueObjectToSeries,
+  groupByTrend,
+  sortSeriesByDay,
+} from './utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -140,9 +145,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
       return acc;
     }, {});
 
-    const seriesData = convertDayValueObjectToSeries(totalByDay).sort(
-      (a, b) => new Date(a.name).getTime() - new Date(b.name).getTime()
-    );
+    const seriesData = sortSeriesByDay(convertDayValueObjectToSeries(totalByDay));
 
     return (
       <div>
@@ -155,7 +158,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
               useShortDate
               legend={{right: 3, top: 0}}
               yAxis={{minInterval: 1}}
-              xAxis={barAxisLabel(Math.round(seriesData.length / 7))}
+              xAxis={barAxisLabel(seriesData.length)}
               series={[
                 {
                   seriesName: t('Unresolved Issues'),
