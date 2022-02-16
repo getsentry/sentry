@@ -589,9 +589,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
 
         # record poll time durations every 5 seconds
         if (self.__poll_start_time + 5) < time.time():
-            self.__metrics.timing(
-                "simple_produce_step.join_duration", int(self.__poll_duration_sum)
-            )
+            self.__metrics.timing("simple_produce_step.join_duration", self.__poll_duration_sum)
             self.__poll_duration_sum = 0
             self.__poll_start_time = time.time()
 
