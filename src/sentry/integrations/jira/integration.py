@@ -669,6 +669,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # Sort based on priority, then field name
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
 
+        ignore_sprint = True
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
@@ -677,6 +678,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
             mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
             if mb_field:
+                if mb_field["label"] == "Sprint" and ignore_sprint:
+                    continue
                 mb_field["name"] = field
                 fields.append(mb_field)
 
