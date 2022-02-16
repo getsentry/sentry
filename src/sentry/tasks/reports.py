@@ -4,7 +4,7 @@ import math
 import operator
 import zlib
 from calendar import Calendar
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, defaultdict, namedtuple
 from datetime import date, datetime, timedelta
 from functools import partial, reduce
 from itertools import zip_longest
@@ -32,6 +32,7 @@ from sentry.models import (
     Activity,
     Group,
     GroupHistory,
+    GroupHistoryStatus,
     GroupStatus,
     Organization,
     OrganizationMember,
@@ -1140,23 +1141,47 @@ def build_key_errors_ctx(key_events, organization):
         id__in=map(lambda i: i[0], key_events),
     ).all()
 
-    group_id_to_group_history = {}
-    group_history = GroupHistory.objects.filter(
-        group__id__in=map(lambda i: i[0], key_events), organization=organization
-    ).all()
+    group_id_to_group_history = defaultdict(lambda: (GroupHistoryStatus.NEW, "New Issue"))
+    group_history = (
+        GroupHistory.objects.filter(
+            group__id__in=map(lambda i: i[0], key_events), organization=organization
+        )
+        .order_by("date_added")
+        .all()
+    )
+    # The order_by ensures that the group_id_to_group_history contains the latest GroupHistory entry
     for g in group_history:
-        group_id_to_group_history[g.group.id] = g.get_status_display()
+        group_id_to_group_history[g.group.id] = (g.status, g.get_status_display())
 
     group_id_to_group = {}
     for group in groups:
         group_id_to_group[group.id] = group
+
+    status_to_color = {
+        GroupHistoryStatus.UNRESOLVED: "rgba(245, 176, 0, 0.55)",
+        GroupHistoryStatus.RESOLVED: "rgba(43, 161, 133, 0.55)",
+        GroupHistoryStatus.SET_RESOLVED_IN_RELEASE: "rgba(43, 161, 133, 0.55)",
+        GroupHistoryStatus.SET_RESOLVED_IN_COMMIT: "rgba(43, 161, 133, 0.55)",
+        GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST: "rgba(43, 161, 133, 0.55)",
+        GroupHistoryStatus.AUTO_RESOLVED: "rgba(43, 161, 133, 0.55)",
+        GroupHistoryStatus.IGNORED: "#DBD6E1",
+        GroupHistoryStatus.UNIGNORED: "rgba(245, 176, 0, 0.55)",
+        GroupHistoryStatus.ASSIGNED: "rgba(245, 84, 89, 0.5)",
+        GroupHistoryStatus.UNASSIGNED: "rgba(245, 176, 0, 0.55)",
+        GroupHistoryStatus.REGRESSED: "rgba(245, 84, 89, 0.5)",
+        GroupHistoryStatus.DELETED: "#DBD6E1",
+        GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
+        GroupHistoryStatus.REVIEWED: "rgba(245, 176, 0, 0.55)",
+        GroupHistoryStatus.NEW: "rgba(245, 176, 0, 0.55)",
+    }
 
     return [
         {
             "group": group_id_to_group[e[0]],
             "count": e[1],
             # For new issues, group history would be None and we default to Unresolved
-            "status": group_id_to_group_history.get(e[0], "Unresolved"),
+            "status": group_id_to_group_history[e[0]][1],
+            "status_color": status_to_color.get(group_id_to_group_history[e[0]][0], "#DBD6E1"),
         }
         for e in filter(lambda e: e[0] in group_id_to_group, key_events)
     ]
