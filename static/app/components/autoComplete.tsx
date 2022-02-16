@@ -81,7 +81,7 @@ type Props<T> = typeof defaultProps & {
   /**
    * Must be a function that returns a component
    */
-  children: (props: ChildrenProps<T>) => React.ReactElement;
+  children: (props: ChildrenProps<T>) => React.ReactElement | null;
   disabled: boolean;
   defaultHighlightedIndex?: number;
   defaultInputValue?: string;

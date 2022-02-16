@@ -155,9 +155,7 @@ function ThreadMenuSelector(props: ThreadSelectorProps): React.ReactElement | nu
                 )}
               </DropdownBox>
             </ThreadSelectorContainer>
-          ) : (
-            <div />
-          );
+          ) : null;
         }}
       </AutoComplete>
     </div>
