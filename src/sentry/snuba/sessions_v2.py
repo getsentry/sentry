@@ -475,6 +475,7 @@ def _run_sessions_query(query):
         start=query.start,
         end=query.end,
         rollup=query.rollup,
+        limit=SNUBA_LIMIT,
         referrer="sessions.timeseries",
     )
 
