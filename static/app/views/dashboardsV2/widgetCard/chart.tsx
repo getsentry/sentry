@@ -22,7 +22,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -39,9 +38,6 @@ import {Theme} from 'sentry/utils/theme';
 import {DisplayType, Widget} from '../types';
 
 import WidgetQueries from './widgetQueries';
-
-const BIG_NUMBER_WIDGET_DEFAULT_HEIGHT = 200;
-const BIG_NUMBER_WIDGET_DEFAULT_WIDTH = 400;
 
 type TableResultProps = Pick<
   WidgetQueries['state'],
@@ -62,12 +58,21 @@ type WidgetCardChartProps = Pick<
   windowWidth?: number;
 };
 
-class WidgetCardChart extends React.Component<WidgetCardChartProps> {
-  shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
+type State = {
+  // For tracking height of the container wrapping BigNumber widgets
+  // so we can dynamically scale font-size
+  containerHeight: number;
+};
+
+class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
+  state = {containerHeight: 0};
+
+  shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
     if (
       this.props.widget.displayType === DisplayType.BIG_NUMBER &&
       nextProps.widget.displayType === DisplayType.BIG_NUMBER &&
-      this.props.windowWidth !== nextProps.windowWidth
+      (this.props.windowWidth !== nextProps.windowWidth ||
+        !isEqual(this.props.widget?.layout, nextProps.widget?.layout))
     ) {
       return true;
     }
@@ -89,7 +94,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       },
     };
 
-    return !isEqual(currentProps, nextProps);
+    return !isEqual(currentProps, nextProps) || !isEqual(this.state, nextState);
   }
 
   tableResultComponent({
@@ -146,7 +151,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {organization, widget, isMobile, windowWidth} = this.props;
+    const {containerHeight} = this.state;
+    const {organization, widget, isMobile} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
@@ -167,54 +173,19 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       if (
         !!!organization.features.includes('dashboard-grid-layout') ||
         isModalWidget ||
-        isMobile ||
-        !!!defined(windowWidth)
+        isMobile
       ) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      // making it a bit more sensitive to height changes with
-      // the exponent so it doesn't go purely off of the w:h ratio
-      const transformedWidthToHeightRatio =
-        widget.layout?.w && widget.layout?.h
-          ? widget.layout.w / widget.layout.h ** 1.5
-          : 1;
-
-      const widthToHeightRatio =
-        widget.layout?.w && widget.layout?.h ? widget.layout.w / widget.layout.h : 1;
-
-      const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
-
-      // heuristics to maintain an aspect ratio that works
-      // most of the time, taking into account the height
-      // & width of the container and the width of the
-      // window
-      const w =
-        widget.layout?.w && widget.layout?.h
-          ? transformedWidthToHeightRatio * (300 + windowWidth / 4)
-          : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
-
-      // adjusting font size for very tall widgets to prevent
-      // text clipping
-      const fontSize =
-        transformedWidthToHeightRatio < 0.5
-          ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
-          : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+      // The font size is the container height, minus the top and bottom padding
+      const fontSize = containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10);
 
       return (
-        <BigNumber fontSize={fontSize} key={`big_number:${result.title}`}>
-          <svg
-            width="100%"
-            height="100%"
-            viewBox={`0 0 ${w} ${h}`}
-            preserveAspectRatio="xMinYMin meet"
-          >
-            <foreignObject x="0" y="0" width="100%" height="100%">
-              <Tooltip title={rendered} showOnlyOnOverflow>
-                {rendered}
-              </Tooltip>
-            </foreignObject>
-          </svg>
+        <BigNumber key={`big_number:${result.title}`} style={{fontSize}}>
+          <Tooltip title={rendered} showOnlyOnOverflow>
+            {rendered}
+          </Tooltip>
         </BigNumber>
       );
     });
@@ -261,7 +232,16 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          {this.bigNumberComponent({tableResults, loading, errorMessage})}
+          <BigNumberResizeWrapper
+            ref={el => {
+              if (el !== null) {
+                const {height} = el.getBoundingClientRect();
+                this.setState({containerHeight: height});
+              }
+            }}
+          >
+            {this.bigNumberComponent({tableResults, loading, errorMessage})}
+          </BigNumberResizeWrapper>
         </TransitionChart>
       );
     }
@@ -436,16 +416,22 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;
 
-const BigNumber = styled('div')<{fontSize?: number}>`
-  resize: both;
+const BigNumberResizeWrapper = styled('div')`
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+`;
+
+const BigNumber = styled('div')`
   line-height: 1;
   display: inline-flex;
   flex: 1;
   width: 100%;
   min-height: 0;
-  font-size: ${p => (p.fontSize ? `${p.fontSize}px` : '32px')};
+  font-size: 32px;
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
+
   * {
     text-align: left !important;
   }

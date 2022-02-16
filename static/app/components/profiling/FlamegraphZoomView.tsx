@@ -5,7 +5,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -14,13 +14,13 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
+import {BoundTooltip} from './BoundTooltip';
+
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
   colorCoding: 'by symbol name' | 'by system / application' | 'by library';
   flamegraph: Flamegraph | DifferentialFlamegraph;
-  flamegraphTheme: FlamegraphTheme;
   highlightRecursion: boolean;
-  searchResults: Record<string, FlamegraphFrame>;
   showSelectedNodeStack?: boolean;
 }
 
@@ -28,8 +28,6 @@ function FlamegraphZoomView({
   flamegraph,
   canvasPoolManager,
   colorCoding,
-  searchResults,
-  flamegraphTheme,
   highlightRecursion,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const [scheduler, setScheduler] = React.useState<CanvasScheduler | null>(null);
@@ -41,41 +39,45 @@ function FlamegraphZoomView({
   const [gridRenderer, setGridRenderer] = React.useState<GridRenderer | null>(null);
   const [textRenderer, setTextRenderer] = React.useState<TextRenderer | null>(null);
 
+  const [canvasBounds, setCanvasBounds] = React.useState<Rect>(Rect.Empty());
+
+  const flamegraphTheme = useFlamegraphTheme();
+
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
-      if (flamegraphCanvasRef === null) {
-        return null;
-      }
+      if (flamegraphCanvasRef) {
+        const renderer = new FlamegraphRenderer(
+          flamegraphCanvasRef,
+          flamegraph,
+          flamegraphTheme,
+          flamegraph.inverted
+            ? vec2.fromValues(0, 0)
+            : vec2.fromValues(
+                0,
+                flamegraphTheme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio
+              ),
+          {draw_border: true}
+        );
 
-      const renderer = new FlamegraphRenderer(
-        flamegraphCanvasRef,
-        flamegraph,
-        flamegraphTheme,
-        flamegraph.inverted
-          ? vec2.fromValues(0, 0)
-          : vec2.fromValues(
-              0,
-              flamegraphTheme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio
+        if (flamegraph.inverted) {
+          canvasPoolManager.dispatch('setConfigView', [
+            renderer.configView.translateY(
+              renderer.configSpace.height - renderer.configView.height + 1
             ),
-        {draw_border: true}
-      );
+          ]);
+        }
 
-      if (flamegraph.inverted) {
-        canvasPoolManager.dispatch('setConfigView', [
-          renderer.configView.translateY(
-            renderer.configSpace.height - renderer.configView.height + 1
-          ),
-        ]);
+        // If the flamegraph name is the same as before, then the user probably changed the way they want
+        // to visualize the flamegraph. In those cases we want preserve the previous config view so
+        // that users dont lose their state. E.g. clicking on invert flamegraph still shows you the same
+        // flamegraph you were looking at before, just inverted instead of zooming out completely
+        if (previousRenderer?.flamegraph.name === renderer.flamegraph.name) {
+          renderer.setConfigView(previousRenderer.configView);
+        }
+        return renderer;
       }
-
-      // If the flamegraph name is the same as before, then the user probably changed the way they want
-      // to visualize the flamegraph. In those cases we want preserve the previous config view so
-      // that users dont lose their state. E.g. clicking on invert flamegraph still shows you the same
-      // flamegraph you were looking at before, just inverted instead of zooming out completely
-      if (previousRenderer?.flamegraph.name === renderer.flamegraph.name) {
-        renderer.setConfigView(previousRenderer.configView);
-      }
-      return renderer;
+      // If we have no renderer, then the canvas is not initialize yet and we cannot initialize the renderer
+      return null;
     },
     [
       flamegraphCanvasRef,
@@ -117,72 +119,54 @@ function FlamegraphZoomView({
     setGridRenderer(newGridRenderer);
 
     function clearOverlayCanvas() {
-      // We are doing this because of typescript, in reality we are creating a scope
-      // where flamegraphRenderer is not null (see check on L86)
-      if (flamegraphRenderer === null) {
-        return;
+      if (flamegraphRenderer) {
+        newTextRenderer.context.clearRect(
+          0,
+          0,
+          flamegraphRenderer!.physicalSpace.width,
+          flamegraphRenderer!.physicalSpace.height
+        );
       }
-      newTextRenderer.context.clearRect(
-        0,
-        0,
-        flamegraphRenderer!.physicalSpace.width,
-        flamegraphRenderer!.physicalSpace.height
-      );
     }
 
     function drawText() {
-      // We are doing this because of typescript, in reality we are creating a scope
-      // where flamegraphRenderer is not null (see check on L86)
-      if (flamegraphRenderer === null) {
-        return;
+      if (flamegraphRenderer) {
+        newTextRenderer.draw(
+          flamegraphRenderer.configView,
+          flamegraphRenderer.configSpace,
+          flamegraphRenderer.configToPhysicalSpace
+        );
       }
-      newTextRenderer.draw(
-        flamegraphRenderer.configView,
-        flamegraphRenderer.configSpace,
-        flamegraphRenderer.configToPhysicalSpace
-      );
     }
 
     function drawRectangles() {
-      // We are doing this because of typescript, in reality we are creating a scope
-      // where flamegraphRenderer is not null (see check on L86)
-      if (flamegraphRenderer === null) {
-        return;
+      if (flamegraphRenderer) {
+        flamegraphRenderer.draw(null);
       }
-      flamegraphRenderer.draw(searchResults);
     }
 
     function drawGrid() {
-      // We are doing this because of typescript, in reality we are creating a scope
-      // where flamegraphRenderer is not null (see check on L86)
-      if (flamegraphRenderer === null) {
-        return;
+      if (flamegraphRenderer) {
+        newGridRenderer.draw(
+          flamegraphRenderer.configView,
+          flamegraphRenderer.physicalSpace,
+          flamegraphRenderer.configToPhysicalSpace
+        );
       }
-      newGridRenderer.draw(
-        flamegraphRenderer.configView,
-        flamegraphRenderer.physicalSpace,
-        flamegraphRenderer.configToPhysicalSpace
-      );
     }
 
     function onConfigViewChange(rect: Rect) {
-      // We are doing this because of typescript, in reality we are creating a scope
-      // where flamegraphRenderer is not null (see check on L86)
-      if (flamegraphRenderer === null) {
-        return;
+      if (flamegraphRenderer) {
+        flamegraphRenderer.setConfigView(rect);
+        newScheduler.draw();
       }
-      flamegraphRenderer.setConfigView(rect);
-      newScheduler.draw();
     }
 
     function onTransformConfigView(mat: mat3) {
-      // We are doing this because of typescript, in reality we are creating a scope
-      // where flamegraphRenderer is not null (see check on L86)
-      if (flamegraphRenderer === null) {
-        return;
+      if (flamegraphRenderer) {
+        flamegraphRenderer.transformConfigView(mat);
+        newScheduler.draw();
       }
-      flamegraphRenderer.transformConfigView(mat);
-      newScheduler.draw();
     }
 
     newScheduler.on('setConfigView', onConfigViewChange);
@@ -202,6 +186,7 @@ function FlamegraphZoomView({
               .translate(0, 0)
               .withWidth(flamegraph.configSpace.width)
       );
+
       setConfigSpaceCursor(null);
       newScheduler.draw();
     });
@@ -220,8 +205,26 @@ function FlamegraphZoomView({
           flamegraphRenderer.configView.height
         )
       );
-      setSelectedNode(frame);
+
       setConfigSpaceCursor(null);
+      setSelectedNode(frame);
+
+      newScheduler.draw();
+    });
+
+    newScheduler.on('searchResults', (results: Record<string, FlamegraphFrame>) => {
+      newScheduler.unregisterBeforeFrameCallback(drawRectangles);
+
+      function newDrawRectangles() {
+        if (flamegraphRenderer) {
+          flamegraphRenderer.draw(results);
+        }
+      }
+      newScheduler.registerBeforeFrameCallback(newDrawRectangles);
+
+      newScheduler.onDispose(() =>
+        newScheduler.unregisterBeforeFrameCallback(newDrawRectangles)
+      );
       newScheduler.draw();
     });
 
@@ -233,6 +236,9 @@ function FlamegraphZoomView({
     const observer = watchForResize(
       [flamegraphCanvasRef, flamegraphOverlayCanvasRef],
       () => {
+        const bounds = flamegraphOverlayCanvasRef.getBoundingClientRect();
+        setCanvasBounds(new Rect(bounds.x, bounds.y, bounds.width, bounds.height));
+
         flamegraphRenderer.onResizeUpdateSpace();
         canvasPoolManager.dispatch('setConfigView', [flamegraphRenderer.configView]);
         newScheduler.drawSync();
@@ -241,10 +247,13 @@ function FlamegraphZoomView({
 
     canvasPoolManager.registerScheduler(newScheduler);
 
-    return function () {
+    return () => {
       setScheduler(null);
-      // @TODO we can probably keep the grid renderer
-      setGridRenderer(null);
+      newScheduler.unregisterBeforeFrameCallback(clearOverlayCanvas);
+      newScheduler.unregisterBeforeFrameCallback(drawRectangles);
+      newScheduler.unregisterAfterFrameCallback(drawText);
+      newScheduler.unregisterAfterFrameCallback(drawGrid);
+
       canvasPoolManager.unregisterScheduler(newScheduler);
       observer.disconnect();
     };
@@ -255,27 +264,28 @@ function FlamegraphZoomView({
     flamegraphCanvasRef,
     flamegraphOverlayCanvasRef,
     flamegraphRenderer,
-    searchResults,
   ]);
 
-  const selectedFrameRenderer = React.useMemo(() => {
-    if (!flamegraphOverlayCanvasRef) {
-      return null;
-    }
-    return new SelectedFrameRenderer(flamegraphOverlayCanvasRef);
-  }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]);
+  const selectedFrameRenderer = React.useMemo(
+    () =>
+      flamegraphOverlayCanvasRef
+        ? new SelectedFrameRenderer(flamegraphOverlayCanvasRef)
+        : null,
+    [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]
+  );
 
   const [selectedNode, setSelectedNode] = React.useState<FlamegraphFrame | null>(null);
-
   const [configSpaceCursor, setConfigSpaceCursor] = React.useState<
     [number, number] | null
   >(null);
-  const hoveredNode = React.useMemo(() => {
-    if (!configSpaceCursor || !flamegraphRenderer) {
-      return null;
-    }
-    return flamegraphRenderer.getHoveredNode(configSpaceCursor);
-  }, [configSpaceCursor, flamegraphRenderer]);
+
+  const hoveredNode = React.useMemo(
+    () =>
+      configSpaceCursor && flamegraphRenderer
+        ? flamegraphRenderer.getHoveredNode(configSpaceCursor)
+        : null,
+    [configSpaceCursor, flamegraphRenderer]
+  );
 
   React.useEffect(() => {
     if (
@@ -292,8 +302,9 @@ function FlamegraphZoomView({
       // We are doing this because of typescript, in reality we are creating a scope
       // where flamegraphRenderer is not null (see check on L86)
       if (
-        flamegraphRenderer === null ||
         textRenderer === null ||
+        flamegraphRenderer === null ||
+        gridRenderer === null ||
         selectedFrameRenderer === null
       ) {
         return;
@@ -350,7 +361,12 @@ function FlamegraphZoomView({
 
       textRenderer.draw(
         flamegraphRenderer.configView,
-        flamegraphRenderer.configSpace,
+        flamegraphRenderer.physicalSpace,
+        flamegraphRenderer.configToPhysicalSpace
+      );
+      gridRenderer.draw(
+        flamegraphRenderer.configView,
+        flamegraphRenderer.physicalSpace,
         flamegraphRenderer.configToPhysicalSpace
       );
     }
@@ -363,6 +379,7 @@ function FlamegraphZoomView({
     };
   }, [
     textRenderer,
+    gridRenderer,
     selectedFrameRenderer,
     selectedNode,
     hoveredNode,
@@ -380,7 +397,7 @@ function FlamegraphZoomView({
         return;
       }
 
-      // Only dispatch the zoom action if the new clicked node is not the same as the old selected node
+      // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
       // This essentialy tracks double click action on a rectangle
       if (hoveredNode && selectedNode && hoveredNode === selectedNode) {
         canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
@@ -394,10 +411,7 @@ function FlamegraphZoomView({
 
   const onCanvasMouseMove = React.useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!flamegraphRenderer) {
-        return;
-      }
-      if (!flamegraphRenderer.frames.length) {
+      if (!flamegraphRenderer?.frames.length) {
         return;
       }
 
@@ -416,7 +430,7 @@ function FlamegraphZoomView({
 
   const zoom = React.useCallback(
     (evt: WheelEvent) => {
-      if (!flamegraphRenderer || !flamegraphRenderer.frames.length) {
+      if (!flamegraphRenderer?.frames.length) {
         return;
       }
 
@@ -449,7 +463,7 @@ function FlamegraphZoomView({
 
   const scroll = React.useCallback(
     (evt: WheelEvent) => {
-      if (!flamegraphRenderer || !flamegraphRenderer.frames.length) {
+      if (!flamegraphRenderer?.frames.length) {
         return;
       }
 
@@ -478,7 +492,6 @@ function FlamegraphZoomView({
     [flamegraphRenderer, canvasPoolManager]
   );
 
-  // Register our callback
   React.useEffect(() => {
     if (!flamegraphCanvasRef) {
       return undefined;
@@ -501,7 +514,7 @@ function FlamegraphZoomView({
 
     flamegraphCanvasRef.addEventListener('wheel', onCanvasWheel);
 
-    return function () {
+    return () => {
       flamegraphCanvasRef.removeEventListener('wheel', onCanvasWheel);
     };
   }, [flamegraphCanvasRef, zoom, scroll]);
@@ -520,6 +533,15 @@ function FlamegraphZoomView({
           pointerEvents: 'none',
         }}
       />
+      {flamegraphRenderer ? (
+        <BoundTooltip
+          bounds={canvasBounds}
+          cursor={configSpaceCursor}
+          configToPhysicalSpace={flamegraphRenderer?.configToPhysicalSpace}
+        >
+          {hoveredNode?.frame?.name}
+        </BoundTooltip>
+      ) : null}
     </React.Fragment>
   );
 }

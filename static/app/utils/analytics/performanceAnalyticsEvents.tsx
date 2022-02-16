@@ -36,6 +36,10 @@ export type PerformanceEventParameters = {
   };
   'performance_views.overview.cellaction': {action?: string};
   'performance_views.overview.navigate.summary': {};
+  'performance_views.overview.search': {};
+  'performance_views.overview.view': {
+    show_onboarding: boolean;
+  };
   'performance_views.spans.change_op': {
     operation_name?: string;
   };
@@ -68,4 +72,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.landingv3.display_change': 'Performance Views: Switch Landing Tabs',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',
   'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
+  'performance_views.overview.view': 'Performance Views: Transaction overview view',
+  'performance_views.overview.search': 'Performance Views: Transaction overview search',
 };
