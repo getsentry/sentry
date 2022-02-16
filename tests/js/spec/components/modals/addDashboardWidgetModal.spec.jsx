@@ -180,6 +180,12 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           operations: ['count_unique'],
           unit: null,
         },
+        {
+          name: 'not.on.allow.list',
+          type: 'set',
+          operations: ['count_unique'],
+          unit: null,
+        },
       ],
     });
   });
@@ -1340,12 +1346,18 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('sum(…)'));
       expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+
       expect(screen.getByText('release')).toBeInTheDocument();
       expect(screen.getByText('environment')).toBeInTheDocument();
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('sentry.sessions.user'));
+      expect(screen.getByText('sentry.sessions.session.error')).toBeInTheDocument();
+      // Ensure METRICS_FIELDS_ALLOW_LIST is honoured
+      expect(screen.queryByText('not.on.allow.list')).not.toBeInTheDocument();
 
       wrapper.unmount();
     });
