@@ -327,24 +327,26 @@ class _LimitState:
     """
 
     def __init__(self) -> None:
-        self._initialized = False
+        self.initialized = False
         self.skip_columns: Set[Column] = set()  # Will not be added to limiting conditions
 
     def update(self, groupby: Collection[Column], snuba_rows: _SnubaData) -> None:
-        if self._initialized:
+        if self.initialized:
             return
 
         # Only "totals" queries may set the limiting conditions:
         assert Column(TS_COL_GROUP) not in groupby
 
-        self._groupby = groupby = list(groupby)  # Make sure groupby has a fixed order
-        self._groups = [{column.name: row[column.name] for column in groupby} for row in snuba_rows]
+        self._groupby = list(groupby)  # Make sure groupby has a fixed order
+        self._groups = [
+            {column.name: row[column.name] for column in self._groupby} for row in snuba_rows
+        ]
 
-        self._initialized = True
+        self.initialized = True
 
     @property
     def limiting_conditions(self) -> Optional[List[Condition]]:
-        if not self._initialized:
+        if not self.initialized:
             # First query may run without limiting conditions:
             return None
 
@@ -376,7 +378,7 @@ def _get_snuba_query(
     metric_id: int,
     columns: List[SelectableExpression],
     series: bool,
-    limiting_conditions: Optional[List[Condition]],
+    limit_state: _LimitState,
     extra_conditions: List[Condition],
 ) -> Query:
     """Build the snuba query"""
@@ -419,13 +421,13 @@ def _get_snuba_query(
     # In case of group by, either set a limit or use the groups from the
     # first query to limit the results:
     if query.raw_groupby:
-        if limiting_conditions is None:
+        if not limit_state.initialized:
             # Set limit and order by to be consistent with sessions_v2
             max_groups = SNUBA_LIMIT // len(get_timestamps(query))
             query_args["limit"] = Limit(max_groups)
             query_args["orderby"] = [OrderBy(columns[0], Direction.DESC)]
         else:
-            query_args["where"] += limiting_conditions
+            query_args["where"] += limit_state.limiting_conditions
 
     return Query(**query_args)
 
@@ -450,7 +452,7 @@ def _get_snuba_query_data(
             metric_id,
             columns,
             series=query_type == "series",
-            limiting_conditions=limit_state.limiting_conditions,
+            limit_state=limit_state,
             extra_conditions=extra_conditions or [],
         )
         referrer = REFERRERS[metric_key][query_type]
