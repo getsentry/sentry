@@ -35,6 +35,7 @@ from typing_extensions import _TypedDictMeta
 #   figure out solution for field descriptions
 #   support deprecated fields via extension
 #   map TypedDicts in schema registry
+#   add a case for datetime types
 
 
 def _get_type_hint_origin(hint):
