@@ -46,13 +46,12 @@ class OrganizationProfilingStacktracesEndpoint(OrganizationEndpoint):
             )
             return response.json().get("stacktraces", [])
 
-        with self.handle_exception():
-            return self.paginate(
-                request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
-                default_per_page=50,
-                max_per_page=500,
-            )
+        return self.paginate(
+            request,
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
+            default_per_page=50,
+            max_per_page=500,
+        )
 
 
 class OrganizationProfilingFiltersEndpoint(OrganizationEndpoint):
@@ -66,10 +65,9 @@ class OrganizationProfilingFiltersEndpoint(OrganizationEndpoint):
         if len(projects) > 0:
             params["project_id"] = [p.id for p in projects]
 
-        with self.handle_exception():
-            response = safe_urlopen(
-                f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/stacktrace_filters",
-                method="GET",
-                params=params,
-            )
-            return Response(response.json(), status=200)
+        response = safe_urlopen(
+            f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/stacktrace_filters",
+            method="GET",
+            params=params,
+        )
+        return Response(response.json(), status=200)

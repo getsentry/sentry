@@ -12,9 +12,8 @@ class ProjectProfilingStacktraceEndpoint(ProjectEndpoint):
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
 
-        with self.handle_exception():
-            response = safe_urlopen(
-                f"{settings.SENTRY_PROFILING_SERVICE_URL}/projects/{project.id}/stacktraces/{transaction_id}",
-                method="GET",
-            )
-            return Response(response.json(), status=response.status_code)
+        response = safe_urlopen(
+            f"{settings.SENTRY_PROFILING_SERVICE_URL}/projects/{project.id}/stacktraces/{transaction_id}",
+            method="GET",
+        )
+        return Response(response.json(), status=response.status_code)
