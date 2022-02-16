@@ -124,7 +124,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           this.blurTimeout = window.setTimeout(() => {
             this.blurTimeout = null;
           }, 200);
-          return this.handleFieldChange(queryIndex, 'conditions')(field);
+          this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
         onBlur={field => {
           if (!this.blurTimeout) {
