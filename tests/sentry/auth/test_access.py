@@ -273,8 +273,6 @@ class FromRequestTest(TestCase):
 
         assert result.role == "admin"
         assert result.is_active
-        assert result.has_global_access
-        assert result.organization_id == org.id
 
         assert result.requires_sso
         assert not result.sso_is_valid
@@ -368,15 +366,15 @@ class FromSentryAppTest(TestCase):
 
     def test_no_deleted_projects(self):
         self.create_member(organization=self.org, user=self.user, role="owner", teams=[self.team])
-        project = self.create_project(
+        deleted_project = self.create_project(
             organization=self.org, status=ObjectStatus.PENDING_DELETION, teams=[self.team]
         )
         request = self.make_request(user=self.proxy_user)
         result = access.from_request(request, self.org)
-        assert result.has_project_access(project) is False
-        assert result.has_project_membership(project) is False
-        assert len(result.projects) == 1
-        assert list(result.projects)[0].id == self.project.id
+        assert result.has_project_access(deleted_project) is False
+        assert result.has_project_membership(deleted_project) is False
+        assert self.project in result.projects
+        assert deleted_project not in result.projects
 
 
 class DefaultAccessTest(TestCase):
