@@ -255,6 +255,44 @@ class FromRequestTest(TestCase):
         result = access.from_request(request)
         assert result.has_permission("test.permission")
 
+    def test_superuser_in_organization(self):
+        org = self.create_organization()
+        AuthProvider.objects.create(organization=org)
+
+        user = self.create_user(is_superuser=True)
+        self.create_member(user=user, organization=org, role="admin")
+        UserPermission.objects.create(user=user, permission="test.permission")
+
+        request = self.make_request(user=user, is_superuser=False)
+        result = access.from_request(request, org)
+        assert not result.has_permission("test.permission")
+
+        request = self.make_request(user=user, is_superuser=True)
+        result = access.from_request(request, org)
+        assert result.has_permission("test.permission")
+
+        assert result.role == "admin"
+        assert result.is_active
+        assert result.has_global_access
+        assert result.organization_id == org.id
+
+        assert result.requires_sso
+        assert not result.sso_is_valid
+
+    def test_superuser_with_organization_without_membership(self):
+        org = self.create_organization()
+        AuthProvider.objects.create(organization=org)
+
+        user = self.create_user(is_superuser=True)
+        UserPermission.objects.create(user=user, permission="test.permission")
+
+        request = self.make_request(user=user, is_superuser=True)
+        result = access.from_request(request, org)
+        assert result.has_permission("test.permission")
+
+        assert not result.requires_sso
+        assert result.sso_is_valid
+
 
 class FromSentryAppTest(TestCase):
     def setUp(self):
