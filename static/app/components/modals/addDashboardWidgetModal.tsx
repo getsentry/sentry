@@ -9,6 +9,7 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
@@ -29,7 +30,6 @@ import {
   TagCollection,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
@@ -532,51 +532,26 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   async fetchMetricsTags() {
     const {api, organization, selection} = this.props;
-    const promise: Promise<MetricTag[]> = api.requestPromise(
-      `/organizations/${organization.slug}/metrics/tags/`,
-      {
-        query: {
-          project: !selection.projects.length ? undefined : selection.projects,
-        },
-      }
-    );
-
-    try {
-      const metricTags = await promise;
-      this.setState({
-        metricTags,
-      });
-    } catch (error) {
-      const errorResponse = error?.responseJSON ?? t('Unable to fetch metric tags');
-      addErrorMessage(errorResponse);
-      handleXhrErrorResponse(errorResponse)(error);
-    }
+    const projects = !selection.projects.length ? undefined : selection.projects;
+    const promise = fetchMetricsTags(api, organization.slug, projects);
+    const metricTags = await promise;
+    this.setState({
+      metricTags,
+    });
   }
 
   async fetchMetricsFields() {
     const {api, organization, selection} = this.props;
-    const promise: Promise<MetricMeta[]> = api.requestPromise(
-      `/organizations/${organization.slug}/metrics/meta/`,
-      {
-        query: {
-          project: !selection.projects.length ? undefined : selection.projects,
-        },
-      }
-    );
+    const projects = !selection.projects.length ? undefined : selection.projects;
+    const promise = fetchMetricsFields(api, organization.slug, projects);
 
-    try {
-      const metricFields = await promise;
-      const filteredFields = metricFields.filter(field =>
-        METRICS_FIELDS_ALLOW_LIST.includes(field.name)
-      );
-      this.setState({
-        metricFields: filteredFields,
-      });
-    } catch (error) {
-      const errorResponse = error?.responseJSON ?? t('Unable to fetch metric fields');
-      addErrorMessage(errorResponse);
-      handleXhrErrorResponse(errorResponse)(error);
-    }
+    const metricFields = await promise;
+    const filteredFields = metricFields.filter(field =>
+      METRICS_FIELDS_ALLOW_LIST.includes(field.name)
+    );
+    this.setState({
+      metricFields: filteredFields,
+    });
   }
 
   handleDashboardChange(option: SelectValue<string>) {

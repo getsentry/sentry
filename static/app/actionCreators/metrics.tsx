@@ -1,8 +1,17 @@
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
+import {t} from 'sentry/locale';
+import {
+  DateString,
+  MetricMeta,
+  MetricsApiResponse,
+  MetricTag,
+  Organization,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 export type DoMetricsRequestOptions = {
   field: string[];
@@ -69,3 +78,46 @@ export const doMetricsRequest = (
 
   return api.requestPromise(pathname, {includeAllArgs, query: urlQuery});
 };
+
+export function fetchMetricsTags(
+  api: Client,
+  orgSlug: Organization['slug'],
+  projects?: number[]
+): Promise<MetricTag[]> {
+  const promise = api.requestPromise(`/organizations/${orgSlug}/metrics/tags/`, {
+    query: {
+      project: projects,
+    },
+  });
+
+  promise.catch(response => {
+    const errorResponse = response?.responseJSON ?? t('Unable to fetch metric tags');
+    addErrorMessage(errorResponse);
+    handleXhrErrorResponse(errorResponse)(response);
+  });
+
+  return promise;
+}
+
+export function fetchMetricsFields(
+  api: Client,
+  orgSlug: Organization['slug'],
+  projects?: number[]
+): Promise<MetricMeta[]> {
+  const promise: Promise<MetricMeta[]> = api.requestPromise(
+    `/organizations/${orgSlug}/metrics/meta/`,
+    {
+      query: {
+        project: projects,
+      },
+    }
+  );
+
+  promise.catch(response => {
+    const errorResponse = response?.responseJSON ?? t('Unable to fetch metric fields');
+    addErrorMessage(errorResponse);
+    handleXhrErrorResponse(errorResponse)(response);
+  });
+
+  return promise;
+}
