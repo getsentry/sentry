@@ -21,7 +21,7 @@ import {Organization, Project} from 'sentry/types';
 import {Color, Theme} from 'sentry/utils/theme';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
-import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
+import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -186,7 +186,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         name: new Date(bucket).getTime(),
       })
     );
-    const seriesData = convertDaySeriesToWeeks(data);
+    const seriesData = sortSeriesByDay(data);
 
     const averageValues = Object.values(periodReleases?.project_avgs ?? {});
     const projectAvgSum = averageValues.reduce(

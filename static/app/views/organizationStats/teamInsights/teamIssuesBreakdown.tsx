@@ -16,11 +16,7 @@ import {Organization, Project} from 'sentry/types';
 
 import CollapsePanel, {COLLAPSE_COUNT} from './collapsePanel';
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
-import {
-  barAxisLabel,
-  convertDaySeriesToWeeks,
-  convertDayValueObjectToSeries,
-} from './utils';
+import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
 type StatusCounts = {
   total: number;
@@ -144,9 +140,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
     const allSeries = Object.keys(allReviewedByDay).map(
       (projectId, idx): BarChartSeries => ({
         seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
-        data: convertDaySeriesToWeeks(
-          convertDayValueObjectToSeries(allReviewedByDay[projectId])
-        ),
+        data: sortSeriesByDay(convertDayValueObjectToSeries(allReviewedByDay[projectId])),
         animationDuration: 500,
         animationDelay: idx * 500,
         silent: true,
