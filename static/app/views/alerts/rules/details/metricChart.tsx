@@ -41,7 +41,6 @@ import {
 } from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
-import {alertDetailsLink} from 'sentry/views/alerts/details';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/incidentRules/incidentRulePresets';
 import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
@@ -52,6 +51,7 @@ import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
+  alertDetailsLink,
   alertTooltipValueFormatter,
   isSessionAggregate,
   SESSION_AGGREGATE_TO_FIELD,
