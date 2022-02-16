@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models import IntegrationFeature
-from sentry.models.integrationfeature import Feature, IntegrationTypes
+from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.testutils import APITestCase
 
 

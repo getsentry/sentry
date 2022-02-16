@@ -5,6 +5,8 @@ import Alert from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import Field from 'sentry/components/forms/field';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -16,8 +18,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withPlugins from 'sentry/utils/withPlugins';
 import AsyncView from 'sentry/views/asyncView';
-import Field from 'sentry/views/settings/components/forms/field';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';

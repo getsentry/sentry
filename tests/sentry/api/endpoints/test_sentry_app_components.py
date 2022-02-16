@@ -3,7 +3,7 @@ from unittest.mock import call, patch
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
-from sentry.models.sentryapp import SentryApp
+from sentry.models import SentryApp
 from sentry.testutils import APITestCase
 
 

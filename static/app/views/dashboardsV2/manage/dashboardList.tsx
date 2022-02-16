@@ -17,7 +17,7 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCopy, IconDelete, IconEllipsis} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -88,13 +88,11 @@ function DashboardList({
       {
         key: 'dashboard-duplicate',
         label: t('Duplicate'),
-        leadingItems: <IconCopy />,
         onAction: () => handleDuplicate(dashboard),
       },
       {
         key: 'dashboard-delete',
         label: t('Delete'),
-        leadingItems: <IconDelete />,
         priority: 'danger',
         onAction: () => {
           openConfirmModal({

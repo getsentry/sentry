@@ -5,6 +5,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import Field from 'sentry/components/forms/field';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import FormModel from 'sentry/components/forms/model';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
@@ -12,10 +16,6 @@ import {t, tct} from 'sentry/locale';
 import {Organization, Scope, Team} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import Field from 'sentry/views/settings/components/forms/field';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import FormModel from 'sentry/views/settings/components/forms/model';
 
 import TeamModel from './model';
 

@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, cast
 
 from django.db.models import Count
 from django.utils.safestring import mark_safe
 
 from sentry import integrations
-from sentry.db.models.query import in_iexact
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
     Activity,
@@ -21,13 +19,11 @@ from sentry.models import (
     Integration,
     Organization,
     Project,
-    ProjectTeam,
     Release,
     ReleaseCommit,
     Repository,
     Rule,
     User,
-    UserEmail,
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
@@ -41,25 +37,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-def get_projects(projects: Iterable[Project], team_ids: Iterable[int]) -> set[Project]:
-    team_projects = set(
-        ProjectTeam.objects.filter(team_id__in=team_ids)
-        .values_list("project_id", flat=True)
-        .distinct()
-    )
-    return {p for p in projects if p.id in team_projects}
-
-
-def get_users_by_teams(organization: Organization) -> Mapping[int, list[int]]:
-    user_teams: MutableMapping[int, list[int]] = defaultdict(list)
-    queryset = User.objects.filter(
-        sentry_orgmember_set__organization_id=organization.id
-    ).values_list("id", "sentry_orgmember_set__teams")
-    for user_id, team_id in queryset:
-        user_teams[user_id].append(team_id)
-    return user_teams
 
 
 def get_deploy(activity: Activity) -> Deploy | None:
@@ -85,6 +62,7 @@ def get_group_counts_by_project(
         Group.objects.filter(
             project__in=projects,
             id__in=GroupLink.objects.filter(
+                project__in=projects,
                 linked_type=GroupLink.LinkedType.commit,
                 linked_id__in=ReleaseCommit.objects.filter(release=release).values_list(
                     "commit_id", flat=True
@@ -94,20 +72,6 @@ def get_group_counts_by_project(
         .values_list("project")
         .annotate(num_groups=Count("id"))
     )
-
-
-def get_users_by_emails(emails: Iterable[str], organization: Organization) -> Mapping[str, User]:
-    if not emails:
-        return {}
-
-    return {
-        ue.email: ue.user
-        for ue in UserEmail.objects.filter(
-            in_iexact("email", emails),
-            is_verified=True,
-            user__sentry_orgmember_set__organization=organization,
-        ).select_related("user")
-    }
 
 
 def get_repos(

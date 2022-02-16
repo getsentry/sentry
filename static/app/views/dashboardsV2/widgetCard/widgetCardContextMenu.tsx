@@ -6,14 +6,7 @@ import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
-import {
-  IconCopy,
-  IconDelete,
-  IconEdit,
-  IconEllipsis,
-  IconIssues,
-  IconTelescope,
-} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -27,14 +20,14 @@ import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import {Widget, WidgetType} from '../types';
 
 type Props = {
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onEdit: () => void;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
   isPreview?: boolean;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onEdit?: () => void;
   showContextMenu?: boolean;
 };
 
@@ -141,7 +134,6 @@ function WidgetCardContextMenu({
       menuOptions.push({
         key: 'open-in-discover',
         label: t('Open in Discover'),
-        leadingItems: <IconTelescope />,
         to: widget.queries.length === 1 ? discoverPath : undefined,
         onAction: () => {
           if (widget.queries.length === 1) {
@@ -177,7 +169,6 @@ function WidgetCardContextMenu({
     menuOptions.push({
       key: 'open-in-issues',
       label: t('Open in Issues'),
-      leadingItems: <IconIssues />,
       to: issuesLocation,
     });
   }
@@ -186,28 +177,25 @@ function WidgetCardContextMenu({
     menuOptions.push({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
-      leadingItems: <IconCopy />,
-      onAction: () => onDuplicate(),
+      onAction: () => onDuplicate?.(),
     });
     widgetLimitReached && disabledKeys.push('duplicate-widget');
 
     menuOptions.push({
       key: 'edit-widget',
       label: t('Edit Widget'),
-      leadingItems: <IconEdit />,
-      onAction: () => onEdit(),
+      onAction: () => onEdit?.(),
     });
 
     menuOptions.push({
       key: 'delete-widget',
       label: t('Delete Widget'),
-      leadingItems: <IconDelete />,
       priority: 'danger',
       onAction: () => {
         openConfirmModal({
           message: t('Are you sure you want to delete this widget?'),
           priority: 'danger',
-          onConfirm: () => onDelete(),
+          onConfirm: () => onDelete?.(),
         });
       },
     });
