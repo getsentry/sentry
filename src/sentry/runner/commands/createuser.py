@@ -40,7 +40,10 @@ def _get_superuser():
 def _set_user_permissions(user):
     from sentry.models import UserRole, UserRoleUser
 
-    if click.confirm("Should this user have Super Admin permissions?", default=False):
+    if click.confirm(
+        "Should this user have Super Admin role? (This grants them all permissions available)",
+        default=False,
+    ):
         role = UserRole.objects.get(name="Super Admin")
         UserRoleUser.objects.create(user=user, role=role)
 
