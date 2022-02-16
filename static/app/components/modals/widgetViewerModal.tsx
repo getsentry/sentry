@@ -9,10 +9,10 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
-import {getFieldsFromEquations} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {getFieldsFromEquations} from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 
 export type WidgetViewerModalOptions = {
