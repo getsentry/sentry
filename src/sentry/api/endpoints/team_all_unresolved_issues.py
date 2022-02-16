@@ -19,10 +19,10 @@ OPEN_STATUSES = UNRESOLVED_STATUSES + (GroupHistoryStatus.UNIGNORED,)
 CLOSED_STATUSES = RESOLVED_STATUSES + (GroupHistoryStatus.IGNORED,)
 
 
-def calculate_unresolved_counts(team, project_list, start, end, environment):
+def calculate_unresolved_counts(team, project_list, start, end, environment_id):
     # Get the current number of unresolved issues. We can use this value for the the most recent bucket.
     group_environment_filter = (
-        Q(groupenvironment__environment_id=environment.id) if environment else Q()
+        Q(groupenvironment__environment_id=environment_id) if environment_id else Q()
     )
     project_current_unresolved = {
         r["project"]: r["total"]
@@ -35,7 +35,7 @@ def calculate_unresolved_counts(team, project_list, start, end, environment):
     }
 
     group_history_environment_filter = (
-        Q(group__groupenvironment__environment_id=environment.id) if environment else Q()
+        Q(group__groupenvironment__environment_id=environment_id) if environment_id else Q()
     )
     prev_status_sub_qs = Coalesce(
         Subquery(
@@ -130,6 +130,6 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         environments = [e.id for e in get_environments(request, team.organization)]
-        environment = environments[0] if environments else None
+        environment_id = environments[0] if environments else None
 
-        return Response(calculate_unresolved_counts(team, project_list, start, end, environment))
+        return Response(calculate_unresolved_counts(team, project_list, start, end, environment_id))
