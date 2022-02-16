@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 
+import {Field} from 'sentry/components/forms/type';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {
   AWS_REGIONS,
@@ -8,7 +9,6 @@ import {
 } from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
 import {CustomRepoType} from 'sentry/types/debugFiles';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
 function objectToChoices(obj: Record<string, string>): [key: string, value: string][] {
   return Object.entries(obj).map(([key, value]) => [key, t(value)]);

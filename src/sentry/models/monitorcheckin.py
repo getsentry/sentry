@@ -37,7 +37,9 @@ class MonitorCheckIn(Model):
     project_id = BoundedPositiveIntegerField(db_index=True)
     monitor = FlexibleForeignKey("sentry.Monitor")
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
-    status = BoundedPositiveIntegerField(default=0, choices=CheckInStatus.as_choices())
+    status = BoundedPositiveIntegerField(
+        default=0, choices=CheckInStatus.as_choices(), db_index=True
+    )
     config = EncryptedJsonField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -47,6 +49,9 @@ class MonitorCheckIn(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorcheckin"
+        indexes = [
+            models.Index(fields=["monitor", "date_added", "status"]),
+        ]
 
     __repr__ = sane_repr("guid", "project_id", "status")
 

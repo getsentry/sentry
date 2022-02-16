@@ -16,6 +16,10 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
+import Input from 'sentry/components/forms/controls/input';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import Field from 'sentry/components/forms/field';
+import FieldLabel from 'sentry/components/forms/field/fieldLabel';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
@@ -61,10 +65,6 @@ import {
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
-import Field from 'sentry/views/settings/components/forms/field';
-import FieldLabel from 'sentry/views/settings/components/forms/field/fieldLabel';
 
 import Option from '../forms/selectOption';
 import Tooltip from '../tooltip';
@@ -693,7 +693,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       default:
         return (
           <React.Fragment>
-            <Measurements organization={organization}>
+            <Measurements>
               {({measurements}) => {
                 const measurementKeys = Object.values(measurements).map(({key}) => key);
                 const amendedFieldOptions = fieldOptions(measurementKeys);

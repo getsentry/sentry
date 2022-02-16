@@ -2,6 +2,7 @@ import {createRef, Fragment, HTMLProps, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import Input from 'sentry/components/forms/controls/input';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -10,7 +11,6 @@ import {
   generateFieldAsString,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 const NONE_SELECTED = -1;
 
