@@ -312,15 +312,19 @@ class QueryDefinition:
         self.filter_keys = filter_keys
 
 
-MAX_POINTS = 1000
+MAX_POINTS = 1000  # max. points in time
 ONE_DAY = timedelta(days=1).total_seconds()
 ONE_HOUR = timedelta(hours=1).total_seconds()
 ONE_MINUTE = timedelta(minutes=1).total_seconds()
 
-#: Snuba has a maximum limit of 10000, so the number of groups times the number
-#: of time intervals should never exceed that limit.
-#: https://github.com/getsentry/snuba/blob/69862db3ad224b48810ac1bb3001e4c446bf0aff/snuba/query/snql/parser.py#L908-L909
-SNUBA_LIMIT = 10000
+#: We know that a limit of 1000 is too low for some UI use cases, e.g.
+#: https://sentry.io/organizations/sentry/projects/sentry/?project=1&statsPeriod=14d
+#: (2 * 14d * 24h * 4 statuses = 2688 groups).
+#: At the same time, there is no justification from UI perspective to increase
+#: the limit to the absolute maximum of 10000 (see https://github.com/getsentry/snuba/blob/69862db3ad224b48810ac1bb3001e4c446bf0aff/snuba/query/snql/parser.py#L908-L909).
+#: -> Let's go with 5000, so we can still serve the 50 releases over 90d that are used here:
+#: https://github.com/getsentry/sentry/blob/d6ed7c12844b70edb6a93b4f33d3e60e8516105a/static/app/views/releases/list/releasesAdoptionChart.tsx#L91-L96
+SNUBA_LIMIT = 5000
 
 
 class InvalidParams(Exception):
