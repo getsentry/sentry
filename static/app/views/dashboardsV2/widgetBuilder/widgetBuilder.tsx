@@ -354,10 +354,7 @@ function WidgetBuilder({
               onChange={handleQueryChange}
               errors={state.errors?.queries}
             />
-            <BuildStep
-              title={t('Filter your results')}
-              description="Description of what this means"
-            >
+            <BuildStep title={t('Query')} description="Description of what this means">
               <div>
                 {state.queries.map((query, queryIndex) => {
                   return (
@@ -449,7 +446,7 @@ function WidgetBuilder({
             </BuildStep>
             {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
               <BuildStep
-                title={t('Sort your results')}
+                title={t('Sort by')}
                 description="Description of what this means"
               >
                 <Field
