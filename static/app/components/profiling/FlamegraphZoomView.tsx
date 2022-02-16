@@ -302,8 +302,9 @@ function FlamegraphZoomView({
       // We are doing this because of typescript, in reality we are creating a scope
       // where flamegraphRenderer is not null (see check on L86)
       if (
-        flamegraphRenderer === null ||
         textRenderer === null ||
+        flamegraphRenderer === null ||
+        gridRenderer === null ||
         selectedFrameRenderer === null
       ) {
         return;
@@ -360,7 +361,12 @@ function FlamegraphZoomView({
 
       textRenderer.draw(
         flamegraphRenderer.configView,
-        flamegraphRenderer.configSpace,
+        flamegraphRenderer.physicalSpace,
+        flamegraphRenderer.configToPhysicalSpace
+      );
+      gridRenderer.draw(
+        flamegraphRenderer.configView,
+        flamegraphRenderer.physicalSpace,
         flamegraphRenderer.configToPhysicalSpace
       );
     }
@@ -373,6 +379,7 @@ function FlamegraphZoomView({
     };
   }, [
     textRenderer,
+    gridRenderer,
     selectedFrameRenderer,
     selectedNode,
     hoveredNode,
