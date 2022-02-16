@@ -1,6 +1,7 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
@@ -69,6 +70,12 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
   const {selection, pinnedFilters, isReady} = useLegacyStore(PageFiltersStore);
+
+  useEffect(() => {
+    if (!isEqual(selection.projects, currentSelectedProjects)) {
+      setCurrentSelectedProjects(selection.projects);
+    }
+  }, [selection.projects]);
 
   const handleChangeProjects = (newProjects: number[]) => {
     setCurrentSelectedProjects(newProjects);
