@@ -34,7 +34,7 @@ export default function Onboarding() {
     );
   };
   return (
-    <OnboardingWrapper>
+    <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={t('Welcome')} />
       <Header>
         <LogoSvg />

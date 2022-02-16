@@ -6,7 +6,6 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import DemoSandboxButton from 'sentry/components/demoSandboxButton';
 import Link from 'sentry/components/links/link';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -25,18 +24,19 @@ const fadeAway: MotionProps = {
 };
 
 type TextWrapperProps = {
+  cta: React.ReactNode;
   subText: React.ReactNode;
   title: React.ReactNode;
 };
 
-function InnerAction({title, subText}: TextWrapperProps) {
+function InnerAction({title, subText, cta}: TextWrapperProps) {
   return (
     <React.Fragment>
       <TextWrapper>
         <ActionTitle>{title}</ActionTitle>
         <SubText>{subText}</SubText>
       </TextWrapper>
-      <IconChevron direction="right" />
+      <ButtonWrapper>{cta}</ButtonWrapper>
     </React.Fragment>
   );
 }
@@ -62,44 +62,63 @@ function TargetedOnboardingWelcome({organization}: Props) {
         <br />
         {t('Maybe not. Find out in two steps.')}
       </SubHeaderText>
-      <ActionItem
-        onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
-            organization,
-            source,
-          });
-          window.location.replace(`/onboarding/${organization.slug}/select-platform/`);
-        }}
-      >
+      <ActionItem>
         <InnerAction
           title={t('Install Sentry')}
           subText={t(
             'Select your lanaguages or frameworks and install the SDKs to start tracking issues'
           )}
+          cta={
+            <Button
+              onClick={() => {
+                trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
+                  organization,
+                  source,
+                });
+                window.location.replace(
+                  `/onboarding/${organization.slug}/select-platform/`
+                );
+              }}
+              priority="primary"
+            >
+              {t('Start')}
+            </Button>
+          }
         />
       </ActionItem>
-      <ActionItem
-        onClick={() => {
-          openInviteMembersModal({source});
-        }}
-      >
+      <ActionItem>
         <InnerAction
           title={t('Setup my team')}
           subText={tct(
             'Invite [friends] coworkers. You shouldn’t have to fix what you didn’t break',
             {friends: <Strike>{t('friends')}</Strike>}
           )}
+          cta={
+            <Button
+              onClick={() => {
+                openInviteMembersModal({source});
+              }}
+              priority="primary"
+            >
+              {t('Invite Team')}
+            </Button>
+          }
         />
       </ActionItem>
       {!organization.features.includes('sandbox-kill-switch') && (
-        <SandboxAction scenario="oneIssue" {...{source}}>
+        <ActionItem>
           <InnerAction
             title={t('Preview before you (git) commit')}
             subText={t(
               'Check out sample issue reports, transactions, and tour all of Sentry '
             )}
+            cta={
+              <DemoSandboxButton scenario="oneIssue" priority="primary" {...{source}}>
+                {t('Explore')}
+              </DemoSandboxButton>
+            }
           />
-        </SandboxAction>
+        </ActionItem>
       )}
       <motion.p>
         {t("Gee, I've used Sentry before.")}
@@ -135,25 +154,26 @@ const Wrapper = styled(motion.div)`
   }
 `;
 
-const actionStyles = `
-  width: 680px;
-  height: 90px;
+const ActionItem = styled('div')`
+  min-height: 120px;
   border-radius: ${space(0.5)};
-  margin: ${space(2)};
-  justify-content: flex-end;
+  padding: ${space(2)};
+  margin-bottom: ${space(2)};
+  justify-content: space-around;
   display: flex;
-`;
-
-const ActionItem = styled(Button)`
-  ${actionStyles};
-`;
-
-const SandboxAction = styled(DemoSandboxButton)`
-  ${actionStyles};
+  border: 1px solid ${p => p.theme.gray200};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    width: 680px;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column;
+  }
 `;
 
 const TextWrapper = styled('div')`
   text-align: left;
+  margin: auto ${space(3)};
+  min-height: 70px;
 `;
 
 const Strike = styled('span')`
@@ -162,7 +182,7 @@ const Strike = styled('span')`
 
 const ActionTitle = styled('h5')`
   font-weight: 500;
-  margin: 0 0 ${space(2)};
+  margin: 0 0 ${space(0.5)};
   color: ${p => p.theme.gray400};
 `;
 
@@ -173,4 +193,12 @@ const SubText = styled('span')`
 
 const SubHeaderText = styled(motion.h6)`
   color: ${p => p.theme.gray300};
+`;
+
+const ButtonWrapper = styled('div')`
+  margin: ${space(3)} ${space(3)} 0;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    justify-content: flex-end;
+  }
 `;
