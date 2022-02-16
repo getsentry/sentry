@@ -1,5 +1,5 @@
 import {GridColumnOrder} from 'sentry/components/gridEditable';
-import {Trace} from 'sentry/types/profiling/trace';
+import {Trace} from 'sentry/types/profiling/core';
 
 export type TableColumnKey = keyof Trace;
 
