@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from django.utils import timezone
 
-from sentry.models import GroupAssignee, GroupStatus
+from sentry.models import GroupAssignee, GroupEnvironment, GroupStatus
 from sentry.testutils import APITestCase
 
 
@@ -51,3 +51,26 @@ class TeamGroupsOldTest(APITestCase):
         self.login_as(user=self.user)
         response = self.get_success_response(self.organization.slug, self.team.slug)
         assert [group["id"] for group in response.data] == [str(group2.id), str(group1.id)]
+
+    def test_filter_by_environment(self):
+        project1 = self.create_project(teams=[self.team], slug="foo")
+        environment = self.create_environment(name="prod", project=project1)
+        self.create_environment(name="dev", project=project1)
+        group1 = self.create_group(
+            checksum="a" * 32,
+            project=project1,
+            first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
+        )
+        GroupAssignee.objects.assign(group1, self.user)
+        GroupEnvironment.objects.create(group_id=group1.id, environment_id=environment.id)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            self.organization.slug, self.team.slug, environment="prod"
+        )
+        assert [group["id"] for group in response.data] == [str(group1.id)]
+
+        response = self.get_success_response(
+            self.organization.slug, self.team.slug, environment="dev"
+        )
+        assert [group["id"] for group in response.data] == []

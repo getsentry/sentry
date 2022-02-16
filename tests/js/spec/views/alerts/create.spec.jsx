@@ -13,7 +13,8 @@ import {
 import * as memberActionCreators from 'sentry/actionCreators/members';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {metric} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import AlertsContainer from 'sentry/views/alerts';
 import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
@@ -30,8 +31,9 @@ jest.mock('sentry/utils/analytics', () => ({
     mark: jest.fn(),
     measure: jest.fn(),
   },
-  trackAnalyticsEvent: jest.fn(),
+  trackAdvancedAnalyticsEvent: jest.fn(),
 }));
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('ProjectAlertsCreate', function () {
   TeamStore.loadInitialData([], false, null);
@@ -120,7 +122,7 @@ describe('ProjectAlertsCreate', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    trackAnalyticsEvent.mockClear();
+    trackAdvancedAnalyticsEvent.mockClear();
   });
 
   const createWrapper = (props = {}, location = {}) => {
@@ -221,7 +223,7 @@ describe('ProjectAlertsCreate', function () {
     });
 
     it('can remove conditions', async function () {
-      createWrapper({
+      const {organization} = createWrapper({
         organization: {
           features: ['alert-filters'],
         },
@@ -246,14 +248,15 @@ describe('ProjectAlertsCreate', function () {
 
       userEvent.click(screen.getByLabelText('Delete Node'));
 
-      expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-        eventKey: 'edit_alert_rule.add_row',
-        eventName: 'Edit Alert Rule: Add Row',
-        name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-        organization_id: '3',
-        project_id: '2',
-        type: 'conditions',
-      });
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+        'edit_alert_rule.add_row',
+        {
+          name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+          organization,
+          project_id: '2',
+          type: 'conditions',
+        }
+      );
 
       userEvent.click(screen.getByText('Save Rule'));
 
