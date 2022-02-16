@@ -20,43 +20,39 @@ import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
-type TriggerProps = {
-  props: Omit<React.HTMLAttributes<Element>, 'children'> & {
-    onClick?: (e: MouseEvent) => void;
-  };
+interface TriggerRenderingProps {
+  props: Omit<DropdownButtonProps, 'children'>;
   ref: React.RefObject<HTMLButtonElement>;
-};
+}
 
-type Props = ControlProps &
-  Partial<OverlayProps> &
-  Partial<AriaPositionProps> & {
-    /**
-     * Pass class name to the outer wrap
-     */
-    className?: string;
-    /**
-     * Tag name for the outer wrap, defaults to `div`
-     */
-    renderWrapAs?: React.ElementType;
-    /**
-     * Optionally replace the trigger button with a different component. Note
-     * that the replacement must have the `props` and `ref` (supplied in
-     * TriggerProps) forwarded its outer wrap, otherwise the accessibility
-     * features won't work correctly.
-     */
-    trigger?: (props: TriggerProps) => React.ReactNode;
-    /**
-     * By default, the menu trigger will be rendered as a button, with
-     * triggerLabel as the button label.
-     */
-    triggerLabel?: React.ReactNode;
-    /**
-     * If using the default button trigger (i.e. the custom `trigger` prop has
-     * not been provided), then `triggerProps` will be passed on to the button
-     * component.
-     */
-    triggerProps?: DropdownButtonProps;
-  };
+interface Props extends ControlProps, Partial<OverlayProps>, Partial<AriaPositionProps> {
+  /**
+   * Pass class name to the outer wrap
+   */
+  className?: string;
+  /**
+   * Tag name for the outer wrap, defaults to `div`
+   */
+  renderWrapAs?: React.ElementType;
+  /**
+   * Optionally replace the trigger button with a different component. Note
+   * that the replacement must have the `props` and `ref` (supplied in
+   * TriggerProps) forwarded its outer wrap, otherwise the accessibility
+   * features won't work correctly.
+   */
+  trigger?: (props: TriggerRenderingProps) => React.ReactNode;
+  /**
+   * By default, the menu trigger will be rendered as a button, with
+   * triggerLabel as the button label.
+   */
+  triggerLabel?: React.ReactNode;
+  /**
+   * If using the default button trigger (i.e. the custom `trigger` prop has
+   * not been provided), then `triggerProps` will be passed on to the button
+   * component.
+   */
+  triggerProps?: DropdownButtonProps;
+}
 
 // Exported so we can further customize this component with react-select's
 // components prop elsewhere
