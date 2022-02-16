@@ -104,6 +104,9 @@ jobs:
 
       - name: tsc
         if: steps.dependencies.outcome == 'success' && steps.changes.outputs.frontend == 'true'
+        # bash shells run with --noprofile --norc -eo pipefail {0} so we can be sure that we are not swallowing the yarn tsc exit status code
+        # https://docs.github.com/en/enterprise-cloud@latest/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsshell
+        shell: bash
         run: |
           set -o pipefail
           yarn tsc -p config/tsconfig.build.json --diagnostics | tee /tmp/typescript-monitor.log && yarn run ts-node .github/workflows/scripts/monitor-typescript.ts

@@ -70,6 +70,7 @@ function BaseButton({
   disabled = false,
   tooltipProps,
   onClick,
+  test: true,
   ...buttonProps
 }: Props) {
   // Intercept onClick and propagate
