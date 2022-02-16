@@ -206,14 +206,6 @@ describe('ProjectAlertsCreate', function () {
         'A new issue is created',
       ]);
       userEvent.click(screen.getByLabelText('Delete Node'));
-      expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-        eventKey: 'edit_alert_rule.add_row',
-        eventName: 'Edit Alert Rule: Add Row',
-        name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-        organization_id: '3',
-        project_id: '2',
-        type: 'conditions',
-      });
 
       // Add a filter and remove it
       await selectEvent.select(
@@ -272,14 +264,6 @@ describe('ProjectAlertsCreate', function () {
         'A new issue is created',
       ]);
       userEvent.click(screen.getByLabelText('Delete Node'));
-      expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-        eventKey: 'edit_alert_rule.add_row',
-        eventName: 'Edit Alert Rule: Add Row',
-        name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-        organization_id: '3',
-        project_id: '2',
-        type: 'conditions',
-      });
 
       // Add a filter and remove it
       await selectEvent.select(screen.getByText('Add optional filter...'), [
