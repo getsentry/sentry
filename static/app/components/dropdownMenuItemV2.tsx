@@ -55,6 +55,11 @@ export type MenuItemProps = {
    */
   onAction?: (key: MenuItemProps['key']) => void;
   /**
+   * Hide item from the dropdown menu. Note: this will also remove the item
+   * from the selection manager.
+   */
+  hidden?: boolean;
+  /**
    * Accented text and background (on hover) colors. Primary = purple, and
    * danger = red.
    */

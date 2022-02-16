@@ -67,31 +67,25 @@ function ActionSet({
   const nestMarkReviewedButton = useMedia(`(max-width: ${theme.breakpoints[1]})`);
 
   const menuItems: MenuItemProps[] = [
-    ...(nestMergeButton
-      ? [
-          {
-            key: 'merge',
-            label: t('Merge'),
-            onAction: () => {
-              openConfirmModal({
-                bypass: !onShouldConfirm(ConfirmAction.MERGE),
-           onConfirm: onMerge
-                message: confirm(ConfirmAction.MERGE, false),
-                confirmText: label('merge'),
-              });
-            },
-          },
-        ]
-      : []),
-    ...(nestMarkReviewedButton
-      ? [
-          {
-            key: 'mark-reviewed',
-            label: t('Mark Reviewed'),
-            onAction: () => onUpdate({inbox: false}),
-          },
-        ]
-      : []),
+    {
+      key: 'merge',
+      label: t('Merge'),
+      hidden: !nestMergeButton,
+      onAction: () => {
+        openConfirmModal({
+          bypass: !onShouldConfirm(ConfirmAction.MERGE),
+          onConfirm: onMerge,
+          message: confirm(ConfirmAction.MERGE, false),
+          confirmText: label('merge'),
+        });
+      },
+    },
+    {
+      key: 'mark-reviewed',
+      label: t('Mark Reviewed'),
+      hidden: !nestMarkReviewedButton,
+      onAction: () => onUpdate({inbox: false}),
+    },
     {
       key: 'bookmark',
       label: t('Add to Bookmarks'),
