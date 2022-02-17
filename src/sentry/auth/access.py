@@ -89,6 +89,12 @@ class Access(abc.ABC):
     sso_is_valid: bool = False
     requires_sso: bool = False
 
+    # if has_global_access is True, then any project
+    # matching organization_id is valid. This is used for
+    # both `organization.allow_joinleave` and to indicate
+    # that the role is global / a user is an active superuser
+    has_global_access: bool = False
+
     scopes: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
     role: Optional[str] = None
@@ -185,15 +191,11 @@ class Access(abc.ABC):
 
 class OrganizationMemberAccess(Access):
     def __init__(self, member: OrganizationMember, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._member = member
-
-    @cached_property
-    def _has_global_access(self) -> bool:
-        return (
-            bool(self._member.organization.flags.allow_joinleave)
-            or roles.get(self._member.role).is_global
+        has_global_access = (
+            bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global
         )
+        super().__init__(has_global_access=has_global_access, *args, **kwargs)
+        self._member = member
 
     @cached_property
     def teams(self) -> FrozenSet[Team]:
@@ -202,7 +204,7 @@ class OrganizationMemberAccess(Access):
     def has_team_access(self, team: Team) -> bool:
         if not self.is_active:
             return False
-        if self._has_global_access and self._member.organization_id == team.organization_id:
+        if self.has_global_access and self._member.organization_id == team.organization_id:
             return True
         return team in self.teams
 
@@ -221,14 +223,14 @@ class OrganizationMemberAccess(Access):
     def has_project_access(self, project: Project) -> bool:
         if not self.is_active:
             return False
-        if self._has_global_access and self._member.organization_id == project.organization_id:
+        if self.has_global_access and self._member.organization_id == project.organization_id:
             return True
         return project in self.projects
 
 
 class OrganizationGlobalAccess(Access):
     def __init__(self, organization: Organization, *args, **kwargs):
-        super().__init__(is_active=True, *args, **kwargs)
+        super().__init__(is_active=True, has_global_access=True, *args, **kwargs)
         self._organization = organization
 
     @cached_property

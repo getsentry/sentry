@@ -273,6 +273,7 @@ class FromRequestTest(TestCase):
 
         assert result.role == "admin"
         assert result.is_active
+        assert result.has_global_access
 
         assert result.requires_sso
         assert not result.sso_is_valid
