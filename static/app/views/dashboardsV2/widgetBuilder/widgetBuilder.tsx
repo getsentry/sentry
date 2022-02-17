@@ -5,7 +5,9 @@ import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
 import Button from 'sentry/components/button';
+import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import SearchBar from 'sentry/components/events/searchBar';
+import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
@@ -13,16 +15,34 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelAlert} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Tooltip from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
+import {
+  DateString,
+  Organization,
+  PageFilters,
+  SelectValue,
+  TagCollection,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {
+  explodeField,
+  generateFieldAsString,
+  getAggregateAlias,
+} from 'sentry/utils/discover/fields';
+import Measurements from 'sentry/utils/measurements/measurements';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import Input from 'sentry/views/settings/components/forms/controls/input';
+import withTags from 'sentry/utils/withTags';
+import {
+  generateIssueWidgetFieldOptions,
+  generateIssueWidgetOrderOptions,
+} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {
   DashboardDetails,
@@ -37,6 +57,7 @@ import WidgetCard from '../widgetCard';
 import {normalizeQueries} from './eventWidget/utils';
 import BuildStep from './buildStep';
 import BuildSteps from './buildSteps';
+import {ColumnFields} from './columnFields';
 import Header from './header';
 import {DataSet, DisplayType, displayTypes} from './utils';
 
@@ -89,6 +110,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   onSave: (Widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
+  tags: TagCollection;
   defaultTitle?: string;
   defaultWidgetQuery?: WidgetQuery;
   displayType?: DisplayType;
@@ -107,7 +129,7 @@ type State = {
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
-  errors?: Record<string, any>;
+  errors?: Record<'orderby' | 'conditions' | 'queries', any>;
   selectedDashboard?: SelectValue<string>;
 };
 
@@ -124,6 +146,7 @@ function WidgetBuilder({
   defaultWidgetQuery,
   displayType,
   defaultTitle,
+  tags,
 }: Props) {
   const {widgetId, orgId, dashboardId} = params;
   const {source} = location.query;
@@ -154,9 +177,7 @@ function WidgetBuilder({
   const [state, setState] = useState<State>(() => {
     if (!widget) {
       return {
-        title:
-          defaultTitle ??
-          t('Custom %s Widget', displayTypes[displayType ?? DisplayType.TABLE]),
+        title: defaultTitle ?? t('Custom Widget'),
         displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...QUERIES.events}],
@@ -182,6 +203,7 @@ function WidgetBuilder({
         : DataSet.EVENTS,
     };
   });
+  const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
 
   function handleDataSetChange(newDataSet: string) {
     setState(prevState => {
@@ -223,10 +245,10 @@ function WidgetBuilder({
     });
   }
 
-  function handleQueryChange(newQuery: WidgetQuery, index: number) {
+  function handleQueryChange(queryIndex: number, newQuery: WidgetQuery) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      set(newState, `queries.${index}`, newQuery);
+      set(newState, `queries.${queryIndex}`, newQuery);
       set(newState, 'userHasModified', true);
       return {...newState, errors: undefined};
     });
@@ -260,6 +282,13 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
+  const widgetType =
+    state.dataSet === DataSet.EVENTS
+      ? WidgetType.DISCOVER
+      : state.dataSet === DataSet.ISSUES
+      ? WidgetType.ISSUE
+      : WidgetType.METRICS;
+
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
       <PageContentWithoutPadding>
@@ -273,38 +302,19 @@ function WidgetBuilder({
         <Layout.Body>
           <BuildSteps>
             <BuildStep
-              title={t('Choose your data set')}
-              description={t(
-                'Monitor specific events such as errors and transactions or metrics based on Release Health.'
-              )}
-            >
-              <DataSetChoices
-                label="dataSet"
-                value={state.dataSet}
-                choices={DATASET_CHOICES}
-                onChange={handleDataSetChange}
-              />
-            </BuildStep>
-            <BuildStep
               title={t('Choose your visualization')}
               description={t(
                 'This is a preview of how your widget will appear in the dashboard.'
               )}
             >
-              <Tooltip
-                title={t('Visualization is restricted to table for the data set issues')}
-                disabled={state.dataSet !== DataSet.ISSUES}
-              >
-                <DisplayTypeOptions
-                  name="displayType"
-                  options={DISPLAY_TYPES_OPTIONS}
-                  value={state.displayType}
-                  onChange={(option: {label: string; value: DisplayType}) => {
-                    setState({...state, displayType: option.value});
-                  }}
-                  disabled={state.dataSet === DataSet.ISSUES}
-                />
-              </Tooltip>
+              <DisplayTypeOptions
+                name="displayType"
+                options={DISPLAY_TYPES_OPTIONS}
+                value={state.displayType}
+                onChange={(option: {label: string; value: DisplayType}) => {
+                  setState({...state, displayType: option.value});
+                }}
+              />
               <WidgetCard
                 organization={organization}
                 selection={pageFilters}
@@ -313,12 +323,7 @@ function WidgetBuilder({
                   displayType: state.displayType,
                   interval: state.interval,
                   queries: state.queries,
-                  widgetType:
-                    state.dataSet === DataSet.EVENTS
-                      ? WidgetType.DISCOVER
-                      : state.dataSet === DataSet.ISSUES
-                      ? WidgetType.ISSUE
-                      : WidgetType.METRICS,
+                  widgetType,
                 }}
                 isEditing={false}
                 widgetLimitReached={false}
@@ -333,15 +338,127 @@ function WidgetBuilder({
               />
             </BuildStep>
             <BuildStep
-              title={t('Choose your y-axis')}
-              description="Description of what this means"
+              title={t('Choose your data set')}
+              description={t(
+                'Monitor specific events such as errors and transactions or metrics based on Release Health.'
+              )}
             >
-              WIP
+              <DataSetChoices
+                label="dataSet"
+                value={state.dataSet}
+                choices={
+                  state.displayType === DisplayType.TABLE
+                    ? DATASET_CHOICES
+                    : [DATASET_CHOICES[0]]
+                }
+                onChange={handleDataSetChange}
+              />
             </BuildStep>
-            <BuildStep
-              title={t('Filter your results')}
-              description="Description of what this means"
-            >
+            {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) ? (
+              <BuildStep
+                title={t('Columns')}
+                description="Description of what this means"
+              >
+                {state.dataSet === DataSet.EVENTS ? (
+                  <Measurements>
+                    {({measurements}) => {
+                      const explodedFields = state.queries[0].fields.map(field =>
+                        explodeField({field})
+                      );
+
+                      const amendedFieldOptions = generateFieldOptions({
+                        organization,
+                        tagKeys: Object.values(tags).map(({key}) => key),
+                        measurementKeys: Object.values(measurements).map(({key}) => key),
+                        spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+                      });
+
+                      return (
+                        <ColumnFields
+                          displayType={state.displayType}
+                          organization={organization}
+                          widgetType={widgetType}
+                          columns={explodedFields}
+                          errors={state.errors?.queries}
+                          fieldOptions={amendedFieldOptions}
+                          onChange={newFields => {
+                            const fieldStrings = newFields.map(generateFieldAsString);
+                            const aggregateAliasFieldStrings =
+                              fieldStrings.map(getAggregateAlias);
+
+                            for (const index in state.queries) {
+                              const queryIndex = Number(index);
+                              const query = state.queries[queryIndex];
+                              const descending = query.orderby.startsWith('-');
+                              const orderbyAggregateAliasField = query.orderby.replace(
+                                '-',
+                                ''
+                              );
+                              const prevAggregateAliasFieldStrings =
+                                query.fields.map(getAggregateAlias);
+                              const newQuery = cloneDeep(query);
+
+                              newQuery.fields = fieldStrings;
+
+                              if (
+                                !aggregateAliasFieldStrings.includes(
+                                  orderbyAggregateAliasField
+                                )
+                              ) {
+                                newQuery.orderby = '';
+
+                                if (
+                                  prevAggregateAliasFieldStrings.length ===
+                                  newFields.length
+                                ) {
+                                  // The Field that was used in orderby has changed. Get the new field.
+                                  newQuery.orderby = `${descending && '-'}${
+                                    aggregateAliasFieldStrings[
+                                      prevAggregateAliasFieldStrings.indexOf(
+                                        orderbyAggregateAliasField
+                                      )
+                                    ]
+                                  }`;
+                                }
+                              }
+
+                              handleQueryChange(queryIndex, newQuery);
+                            }
+                          }}
+                        />
+                      );
+                    }}
+                  </Measurements>
+                ) : (
+                  <ColumnFields
+                    displayType={state.displayType}
+                    organization={organization}
+                    widgetType={widgetType}
+                    columns={state.queries[0].fields.map(field => explodeField({field}))}
+                    errors={
+                      state.errors?.queries?.[0]
+                        ? [state.errors?.queries?.[0]]
+                        : undefined
+                    }
+                    fieldOptions={generateIssueWidgetFieldOptions()}
+                    onChange={newFields => {
+                      const fieldStrings = newFields.map(generateFieldAsString);
+                      const newQuery = cloneDeep(state.queries[0]);
+                      newQuery.fields = fieldStrings;
+                      handleQueryChange(0, newQuery);
+                    }}
+                  />
+                )}
+              </BuildStep>
+            ) : (
+              <BuildStep
+                title={t('Choose your y-axis')}
+                description="Description of what this means"
+              >
+                WIP
+              </BuildStep>
+            )}
+            <BuildStep title={t('Query')} description="Description of what this means">
               <div>
                 {state.queries.map((query, queryIndex) => {
                   return (
@@ -350,38 +467,43 @@ function WidgetBuilder({
                       inline={false}
                       flexibleControlStateSize
                       stacked
+                      error={state.errors?.[queryIndex].conditions}
                     >
                       <SearchConditionsWrapper>
-                        <StyledSearchBar
+                        <Search
                           searchSource="widget_builder"
                           organization={organization}
                           projectIds={selection.projects}
                           query={query.conditions}
                           fields={[]}
                           onSearch={field => {
+                            // SearchBar will call handlers for both onSearch and onBlur
+                            // when selecting a value from the autocomplete dropdown. This can
+                            // cause state issues for the search bar in our use case. To prevent
+                            // this, we set a timer in our onSearch handler to block our onBlur
+                            // handler from firing if it is within 200ms, ie from clicking an
+                            // autocomplete value.
+                            setBlurTimeout(
+                              window.setTimeout(() => {
+                                setBlurTimeout(null);
+                              }, 200)
+                            );
+
                             const newQuery: WidgetQuery = {
                               ...state.queries[queryIndex],
                               conditions: field,
                             };
-                            handleQueryChange(newQuery, queryIndex);
+                            handleQueryChange(queryIndex, newQuery);
                           }}
-                          // onSearch={field => {
-                          //   // SearchBar will call handlers for both onSearch and onBlur
-                          //   // when selecting a value from the autocomplete dropdown. This can
-                          //   // cause state issues for the search bar in our use case. To prevent
-                          //   // this, we set a timer in our onSearch handler to block our onBlur
-                          //   // handler from firing if it is within 200ms, ie from clicking an
-                          //   // autocomplete value.
-                          //   this.blurTimeout = window.setTimeout(() => {
-                          //     this.blurTimeout = null;
-                          //   }, 200);
-                          //   return this.handleFieldChange(queryIndex, 'conditions')(field);
-                          // }}
-                          // onBlur={field => {
-                          //   if (!this.blurTimeout) {
-                          //     this.handleFieldChange(queryIndex, 'conditions')(field);
-                          //   }
-                          // }}
+                          onBlur={field => {
+                            if (!blurTimeout) {
+                              const newQuery: WidgetQuery = {
+                                ...state.queries[queryIndex],
+                                conditions: field,
+                              };
+                              handleQueryChange(queryIndex, newQuery);
+                            }
+                          }}
                           useFormWrapper={false}
                           maxQueryLength={MAX_QUERY_LENGTH}
                         />
@@ -397,7 +519,7 @@ function WidgetBuilder({
                                 ...state.queries[queryIndex],
                                 name: event.target.value,
                               };
-                              handleQueryChange(newQuery, queryIndex);
+                              handleQueryChange(queryIndex, newQuery);
                             }}
                           />
                         )}
@@ -426,12 +548,51 @@ function WidgetBuilder({
                 )}
               </div>
             </BuildStep>
-            <BuildStep
-              title={t('Group your results')}
-              description="Description of what this means"
-            >
-              WIP
-            </BuildStep>
+            {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
+              <BuildStep
+                title={t('Sort by')}
+                description="Description of what this means"
+              >
+                <Field
+                  inline={false}
+                  flexibleControlStateSize
+                  stacked
+                  error={state.errors?.orderby}
+                >
+                  {state.dataSet === DataSet.EVENTS ? (
+                    <SelectControl
+                      menuPlacement="auto"
+                      value={state.queries[0].orderby}
+                      name="orderby"
+                      options={generateOrderOptions(state.queries[0].fields)}
+                      onChange={(option: SelectValue<string>) => {
+                        const newQuery: WidgetQuery = {
+                          ...state.queries[0],
+                          orderby: option.value,
+                        };
+                        handleQueryChange(0, newQuery);
+                      }}
+                    />
+                  ) : (
+                    <SelectControl
+                      menuPlacement="auto"
+                      value={state.queries[0].orderby || IssueSortOptions.DATE}
+                      name="orderby"
+                      options={generateIssueWidgetOrderOptions(
+                        organization?.features?.includes('issue-list-trend-sort')
+                      )}
+                      onChange={(option: SelectValue<string>) => {
+                        const newQuery: WidgetQuery = {
+                          ...state.queries[0],
+                          orderby: option.value,
+                        };
+                        handleQueryChange(0, newQuery);
+                      }}
+                    />
+                  )}
+                </Field>
+              </BuildStep>
+            )}
           </BuildSteps>
         </Layout.Body>
       </PageContentWithoutPadding>
@@ -439,7 +600,7 @@ function WidgetBuilder({
   );
 }
 
-export default withPageFilters(WidgetBuilder);
+export default withPageFilters(withTags(WidgetBuilder));
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
@@ -464,7 +625,7 @@ const SearchConditionsWrapper = styled('div')`
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const Search = styled(SearchBar)`
   flex-grow: 1;
 `;
 

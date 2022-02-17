@@ -17,14 +17,13 @@ import space from 'sentry/styles/space';
 import {Actor, Organization, Project} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {alertDetailsLink} from 'sentry/views/alerts/details';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
   API_INTERVAL_POINTS_MIN,
 } from '../rules/details/constants';
 import {Incident, IncidentStatus} from '../types';
-import {getIncidentMetricPreset} from '../utils';
+import {alertDetailsLink, getIncidentMetricPreset} from '../utils';
 
 /**
  * Retrieve the start/end for showing the graph of the metric

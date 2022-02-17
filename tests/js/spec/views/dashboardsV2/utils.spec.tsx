@@ -2,6 +2,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   constructWidgetFromQuery,
   eventViewFromWidget,
+  getFieldsFromEquations,
 } from 'sentry/views/dashboardsV2/utils';
 
 describe('Dashboards util', () => {
@@ -122,6 +123,22 @@ describe('Dashboards util', () => {
       expect(eventView.fields[0].field).toEqual('geo.country_code');
       expect(eventView.fields[1].field).toEqual('count()');
       expect(eventView.query).toEqual('has:geo.country_code');
+    });
+  });
+
+  describe('getFieldsFromEquations', function () {
+    it('returns a list of fields that includes individual terms of provided equations', () => {
+      const fields = [
+        'equation|(count_if(transaction.duration,greater,300) / count()) * 100',
+        'equation|(count_if(transaction.duration,lessOrEquals,300) / count()) * 100',
+      ];
+      expect(getFieldsFromEquations(fields)).toEqual(
+        expect.arrayContaining([
+          'count_if(transaction.duration,lessOrEquals,300)',
+          'count()',
+          'count_if(transaction.duration,greater,300)',
+        ])
+      );
     });
   });
 });

@@ -1008,8 +1008,11 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
     "organizations:metrics-performance-ui": False,
-    # True if the metrics backend should be checked against the sessions backend
+    # True if release-health related queries should be run against both
+    # backends (sessions and metrics dataset)
     "organizations:release-health-check-metrics": False,
+    # True if differences between the metrics and sessions backend should be reported
+    "organizations:release-health-check-metrics-report": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable threshold period in metric alert rule builder
@@ -1076,6 +1079,8 @@ SENTRY_FEATURES = {
     "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
+    # Enable histogram view in span details
+    "organizations:performance-span-histogram-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See

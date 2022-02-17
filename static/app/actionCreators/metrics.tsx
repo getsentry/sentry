@@ -71,7 +71,7 @@ export const doMetricsRequest = (
       statsPeriod,
       statsPeriodStart,
       statsPeriodEnd,
-    }).filter(([, value]) => defined(value))
+    }).filter(([, value]) => defined(value) && value !== '')
   );
 
   const pathname = `/organizations/${orgSlug}/metrics/data/`;

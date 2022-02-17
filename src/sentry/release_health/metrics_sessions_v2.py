@@ -346,8 +346,9 @@ class _LimitState:
 
     @property
     def limiting_conditions(self) -> Optional[List[Condition]]:
-        if not self.initialized:
-            # First query may run without limiting conditions:
+        if not self.initialized or not self._groups:
+            # First query may run without limiting conditions
+            # When there are no groups there is nothing to limit
             return None
 
         group_columns = [col for col in self._groupby if col not in self.skip_columns]
@@ -360,6 +361,7 @@ class _LimitState:
             Function("tuple", [row[column.name] for column in group_columns])
             for row in self._groups
         ]
+
         return [
             # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
             Condition(Function("tuple", group_columns), Op.IN, group_values)
@@ -380,8 +382,11 @@ def _get_snuba_query(
     series: bool,
     limit_state: _LimitState,
     extra_conditions: List[Condition],
-) -> Query:
-    """Build the snuba query"""
+) -> Optional[Query]:
+    """Build the snuba query
+
+    Return None if the results from the initial totals query was empty.
+    """
     conditions = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
@@ -427,7 +432,12 @@ def _get_snuba_query(
             query_args["limit"] = Limit(max_groups)
             query_args["orderby"] = [OrderBy(columns[0], Direction.DESC)]
         else:
+            if limit_state.limiting_conditions is None:
+                # Initial query returned no results, no need to run any more queries
+                return None
+
             query_args["where"] += limit_state.limiting_conditions
+            query_args["limit"] = Limit(SNUBA_LIMIT)
 
     return Query(**query_args)
 
@@ -456,12 +466,11 @@ def _get_snuba_query_data(
             extra_conditions=extra_conditions or [],
         )
         referrer = REFERRERS[metric_key][query_type]
-        query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
-
-        limit_state.update(snuba_query.groupby, query_data)
-
-        if len(query_data) == SNUBA_LIMIT:
-            logger.error("metrics_sessions_v2.snuba_limit_exceeded")
+        if snuba_query is None:
+            query_data = []
+        else:
+            query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
+            limit_state.update(snuba_query.groupby, query_data)
 
         yield (metric_key, query_data)
 

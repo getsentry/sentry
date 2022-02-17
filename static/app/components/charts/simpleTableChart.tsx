@@ -40,12 +40,14 @@ class SimpleTableChart extends Component<Props> {
   ) {
     const {location, organization, getCustomFieldRenderer} = this.props;
 
-    return columns.map(column => {
+    return columns.map((column, columnIndex) => {
       const fieldRenderer =
         getCustomFieldRenderer?.(column.key, tableMeta) ??
         getFieldRenderer(column.key, tableMeta);
       const rendered = fieldRenderer(row, {organization, location});
-      return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
+      return (
+        <TableCell key={`${index}-${columnIndex}:${column.name}`}>{rendered}</TableCell>
+      );
     });
   }
 
