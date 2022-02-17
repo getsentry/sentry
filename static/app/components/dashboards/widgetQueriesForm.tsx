@@ -25,7 +25,7 @@ import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
 
 import WidgetQueryFields from './widgetQueryFields';
 
-const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
+export const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   const options: SelectValue<string>[] = [];
   let equations = 0;
   fields.forEach(field => {
@@ -124,7 +124,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           this.blurTimeout = window.setTimeout(() => {
             this.blurTimeout = null;
           }, 200);
-          return this.handleFieldChange(queryIndex, 'conditions')(field);
+          this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
         onBlur={field => {
           if (!this.blurTimeout) {

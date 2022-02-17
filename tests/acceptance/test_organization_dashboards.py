@@ -169,6 +169,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         self.page.wait_until_loaded()
         self.browser.snapshot(f"{screenshot_name} (refresh)")
 
+    def test_default_overview_dashboard_layout(self):
+        with self.feature(FEATURE_NAMES + GRID_LAYOUT_FEATURE):
+            self.page.visit_default_overview()
+            self.browser.snapshot("dashboards - default overview layout")
+
     def test_add_and_move_new_widget_on_existing_dashboard(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()

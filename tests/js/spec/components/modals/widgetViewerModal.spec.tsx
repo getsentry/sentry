@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -21,21 +21,18 @@ jest.mock('echarts-for-react/lib/core', () => {
   };
 });
 
-const stubEl: any = (props: any) => <div>{props.children}</div>;
-
-const api: Client = new Client();
+const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 function mountModal({initialData, widget}) {
   return mountWithTheme(
     <WidgetViewerModal
       Header={stubEl}
-      Footer={stubEl}
-      Body={stubEl}
+      Footer={stubEl as ModalRenderProps['Footer']}
+      Body={stubEl as ModalRenderProps['Body']}
       CloseButton={stubEl}
       closeModal={() => undefined}
       organization={initialData.organization}
       widget={widget}
-      api={api}
     />
   );
 }

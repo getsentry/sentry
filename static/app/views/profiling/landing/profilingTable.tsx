@@ -2,7 +2,7 @@ import {Location} from 'history';
 
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
-import {Trace} from 'sentry/types/profiling/trace';
+import {Trace} from 'sentry/types/profiling/core';
 
 import {ProfilingTableCell} from './profilingTableCell';
 import {TableColumnKey, TableColumnOrders} from './types';
