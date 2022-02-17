@@ -1,4 +1,4 @@
-from sentry.integrations.jira.search import JiraSearchEndpoint
+from sentry.integrations.jira.webhooks import JiraSearchEndpoint
 
 
 class JiraServerSearchEndpoint(JiraSearchEndpoint):

@@ -26,10 +26,10 @@ class JiraWebhooksTest(APITestCase):
         self.integration.add_organization(self.organization, self.user)
         self.path = reverse("sentry-extensions-jira-issue-updated")
 
-    @patch("sentry.integrations.jira.webhooks.sync_group_assignee_inbound")
+    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     def test_simple_assign(self, mock_sync_group_assignee_inbound):
         with patch(
-            "sentry.integrations.jira.webhooks.get_integration_from_jwt",
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
@@ -40,7 +40,7 @@ class JiraWebhooksTest(APITestCase):
             )
 
     @override_settings(JIRA_USE_EMAIL_SCOPE=True)
-    @patch("sentry.integrations.jira.webhooks.sync_group_assignee_inbound")
+    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     @responses.activate
     def test_assign_use_email_api(self, mock_sync_group_assignee_inbound):
         responses.add(
@@ -51,7 +51,7 @@ class JiraWebhooksTest(APITestCase):
         )
 
         with patch(
-            "sentry.integrations.jira.webhooks.get_integration_from_jwt",
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
@@ -61,10 +61,10 @@ class JiraWebhooksTest(APITestCase):
             assert mock_sync_group_assignee_inbound.called
             assert len(responses.calls) == 1
 
-    @patch("sentry.integrations.jira.webhooks.sync_group_assignee_inbound")
+    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     def test_assign_missing_email(self, mock_sync_group_assignee_inbound):
         with patch(
-            "sentry.integrations.jira.webhooks.get_integration_from_jwt",
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
@@ -73,10 +73,10 @@ class JiraWebhooksTest(APITestCase):
             assert resp.status_code == 200
             assert not mock_sync_group_assignee_inbound.called
 
-    @patch("sentry.integrations.jira.webhooks.sync_group_assignee_inbound")
+    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     def test_simple_deassign(self, mock_sync_group_assignee_inbound):
         with patch(
-            "sentry.integrations.jira.webhooks.get_integration_from_jwt",
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "edit_issue_no_assignee_payload.json")
@@ -86,10 +86,10 @@ class JiraWebhooksTest(APITestCase):
                 self.integration, None, "APP-123", assign=False
             )
 
-    @patch("sentry.integrations.jira.webhooks.sync_group_assignee_inbound")
+    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     def test_simple_deassign_assignee_missing(self, mock_sync_group_assignee_inbound):
         with patch(
-            "sentry.integrations.jira.webhooks.get_integration_from_jwt",
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_missing_payload.json")
@@ -102,7 +102,7 @@ class JiraWebhooksTest(APITestCase):
     @patch.object(IssueSyncMixin, "sync_status_inbound")
     def test_simple_status_sync_inbound(self, mock_sync_status_inbound):
         with patch(
-            "sentry.integrations.jira.webhooks.get_integration_from_jwt",
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
         ) as mock_get_integration_from_jwt:
             data = StubService.get_stub_data("jira", "edit_issue_status_payload.json")
@@ -132,7 +132,7 @@ class JiraWebhooksTest(APITestCase):
 
     def test_missing_changelog(self):
         with patch(
-            "sentry.integrations.jira.webhooks.get_integration_from_jwt",
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "changelog_missing.json")
@@ -142,7 +142,7 @@ class JiraWebhooksTest(APITestCase):
     def test_missing_body(self):
         path = reverse("sentry-extensions-jira-installed")
         with patch(
-            "sentry.integrations.jira.webhooks.get_integration_from_jwt",
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
         ):
             resp = self.client.post(path, data={}, HTTP_AUTHORIZATION="JWT anexampletoken")

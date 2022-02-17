@@ -2,9 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {ColorCoding} from 'sentry/types/profiling/core';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -13,9 +14,8 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 interface FlamegraphZoomViewMinimapProps {
   canvasPoolManager: CanvasPoolManager;
-  colorCoding: 'by symbol name' | 'by system / application' | 'by library';
+  colorCoding: ColorCoding;
   flamegraph: Flamegraph;
-  flamegraphTheme: FlamegraphTheme;
   highlightRecursion: boolean;
   searchResults: Record<string, FlamegraphFrame>;
   height?: number;
@@ -24,7 +24,6 @@ interface FlamegraphZoomViewMinimapProps {
 function FlamegraphZoomViewMinimap({
   canvasPoolManager,
   flamegraph,
-  flamegraphTheme,
   colorCoding,
   searchResults,
   highlightRecursion,
@@ -37,6 +36,8 @@ function FlamegraphZoomViewMinimap({
   const [configSpaceCursor, setConfigSpaceCursor] = React.useState<
     [number, number] | null
   >(null);
+
+  const flamegraphTheme = useFlamegraphTheme();
 
   const flamegraphMiniMapRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
