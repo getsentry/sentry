@@ -557,9 +557,26 @@ def metrics_consumer(**options):
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 def metrics_streaming_consumer(**options):
+    from arroyo.backends.kafka import KafkaProducer
+    from confluent_kafka import Producer
+    from django.conf import settings
+
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
     from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
+    from sentry.utils import kafka_config
     from sentry.utils.metrics import backend
+
+    snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
+    if options.get("factory_name") == "multiprocess":
+        snuba_metrics_producer = KafkaProducer(
+            kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
+        )
+    else:
+        snuba_metrics_producer = Producer(
+            kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
+        )
+    producer = snuba_metrics_producer
+    options["producer"] = producer
 
     metrics = MetricsWrapper(backend, "sentry_metrics.indexer")
     configure_metrics(metrics)
@@ -568,6 +585,8 @@ def metrics_streaming_consumer(**options):
 
     def handler(signum, frame):
         streamer.signal_shutdown()
+        if options.get("factory_name") == "multiprocess":
+            producer.close()
 
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)

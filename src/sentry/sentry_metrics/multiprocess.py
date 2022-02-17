@@ -21,7 +21,7 @@ from typing import (
 )
 
 from arroyo.backends.abstract import Producer as AbstractProducer
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
@@ -229,14 +229,8 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     def __init__(
         self,
         commit_function: Callable[[Mapping[Partition, Position]], None],
-        producer: Optional[AbstractProducer] = None,
+        producer: AbstractProducer,
     ) -> None:
-        if not producer:
-            snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
-            snuba_metrics_producer = KafkaProducer(
-                kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
-            )
-            producer = snuba_metrics_producer
         self.__producer = producer
         self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
             "topic", "snuba-metrics"
@@ -310,8 +304,6 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     def terminate(self) -> None:
         self.__closed = True
 
-        self.__producer.close()
-
     def join(self, timeout: Optional[float] = None) -> None:
         start = time.time()
         while self.__futures:
@@ -325,7 +317,6 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
             future.result(remaining)
 
             self.__commit_function({message.partition: Position(message.offset, message.timestamp)})
-        self.__producer.close()
 
 
 def process_messages(
@@ -418,12 +409,14 @@ def process_messages(
 class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
     def __init__(
         self,
+        producer: AbstractProducer,
         max_batch_size: int,
         max_batch_time: float,
         processes: int,
         input_block_size: int,
         output_block_size: int,
     ):
+        self.__producer = producer
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
 
@@ -438,7 +431,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
 
         parallel_strategy = ParallelTransformStep(
             process_messages,
-            ProduceStep(commit),
+            ProduceStep(commit, producer=self.__producer),
             self.__processes,
             max_batch_size=self.__max_batch_size,
             max_batch_time=self.__max_batch_time,
@@ -463,11 +456,13 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         max_batch_time: float,
         commit_max_batch_size: int,
         commit_max_batch_time: int,
+        producer: Producer,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
         self.__commit_max_batch_time = commit_max_batch_time
         self.__commit_max_batch_size = commit_max_batch_size
+        self.__producer = producer
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
@@ -476,6 +471,7 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         transform_step = TransformStep(
             next_step=SimpleProduceStep(
                 commit,
+                producer=self.__producer,
                 commit_max_batch_size=self.__commit_max_batch_size,
                 # convert to seconds
                 commit_max_batch_time=self.__commit_max_batch_time / 1000,
@@ -543,14 +539,10 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
     def __init__(
         self,
         commit_function: Callable[[Mapping[Partition, Position]], None],
+        producer: Producer,
         commit_max_batch_size: int,
         commit_max_batch_time: float,
     ) -> None:
-        snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
-        snuba_metrics_producer = Producer(
-            kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
-        )
-        producer = snuba_metrics_producer
         self.__producer = producer
         self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
             "topic", "snuba-metrics"
@@ -670,11 +662,14 @@ def get_streaming_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     factory_name: str,
+    producer: Union[Producer, AbstractProducer],
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
 
     if factory_name == "multiprocess":
+        assert isinstance(producer, AbstractProducer)
         processing_factory = MetricsConsumerStrategyFactory(
+            producer=producer,
             max_batch_size=max_batch_size,
             max_batch_time=max_batch_time,
             processes=processes,
@@ -683,7 +678,9 @@ def get_streaming_metrics_consumer(
         )
     else:
         assert factory_name == "default"
+        assert isinstance(producer, Producer)
         processing_factory = BatchConsumerStrategyFactory(
+            producer=producer,
             max_batch_size=max_batch_size,
             max_batch_time=max_batch_time,
             commit_max_batch_size=commit_max_batch_size,
