@@ -61,6 +61,12 @@ import {ColumnFields} from './columnFields';
 import Header from './header';
 import {DataSet, DisplayType, displayTypes} from './utils';
 
+const DATASET_CHOICES: [DataSet, string][] = [
+  [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
+  [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
+  // [DataSet.METRICS, t('Metrics (Release Health)')],
+];
+
 const DISPLAY_TYPES_OPTIONS = Object.keys(displayTypes).map(value => ({
   label: displayTypes[value],
   value,
@@ -340,18 +346,11 @@ function WidgetBuilder({
               <DataSetChoices
                 label="dataSet"
                 value={state.dataSet}
-                choices={[
-                  [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
-                  [
-                    DataSet.ISSUES,
-                    t('Issues (States, Assignment, Time, etc.)'),
-                    undefined,
-                    state.displayType !== DisplayType.TABLE
-                      ? t('Data set restricted to the table visualization')
-                      : undefined,
-                  ],
-                  // [DataSet.METRICS, t('Metrics (Release Health)')],
-                ]}
+                choices={
+                  state.displayType === DisplayType.TABLE
+                    ? DATASET_CHOICES
+                    : [DATASET_CHOICES[0]]
+                }
                 onChange={handleDataSetChange}
               />
             </BuildStep>
