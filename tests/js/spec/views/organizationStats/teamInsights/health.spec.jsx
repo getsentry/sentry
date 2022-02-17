@@ -155,6 +155,7 @@ describe('TeamStatsHealth', () => {
   function createWrapper() {
     const teams = [team1, team2, team3];
     const projects = [project1, project2];
+    ProjectsStore.loadInitialData(projects);
     const organization = TestStubs.Organization({
       teams,
       projects,
