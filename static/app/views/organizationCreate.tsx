@@ -1,8 +1,8 @@
+import {ApiForm, CheckboxField, TextField} from 'sentry/components/forms';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {ApiForm, CheckboxField, TextField} from 'sentry/views/settings/components/forms';
 
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');

@@ -9,10 +9,12 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
+import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
 import {PageFilters} from 'sentry/types';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DashboardDetails,
   DisplayType,
@@ -148,4 +150,15 @@ export function getWidgetInterval(
     }
   }
   return interval;
+}
+
+export function getFieldsFromEquations(fields: string[]): string[] {
+  // Gather all fields and functions used in equations and prepend them to the provided fields
+  const termsSet: Set<string> = new Set();
+  fields.filter(isEquation).forEach(field => {
+    const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
+    parsed.fields.forEach(({term}) => termsSet.add(term as string));
+    parsed.functions.forEach(({term}) => termsSet.add(term as string));
+  });
+  return Array.from(termsSet);
 }

@@ -4,9 +4,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
+import TextareaField from 'sentry/components/forms/textareaField';
 import {t} from 'sentry/locale';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import TextareaField from 'sentry/views/settings/components/forms/textareaField';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import RequestIntegrationButton from './RequestIntegrationButton';

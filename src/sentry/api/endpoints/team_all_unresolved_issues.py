@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Group, GroupHistory, GroupHistoryStatus, GroupStatus, Project, Team
 from sentry.models.grouphistory import RESOLVED_STATUSES, UNRESOLVED_STATUSES
@@ -18,18 +19,24 @@ OPEN_STATUSES = UNRESOLVED_STATUSES + (GroupHistoryStatus.UNIGNORED,)
 CLOSED_STATUSES = RESOLVED_STATUSES + (GroupHistoryStatus.IGNORED,)
 
 
-def calculate_unresolved_counts(team, project_list, start, end):
+def calculate_unresolved_counts(team, project_list, start, end, environment_id):
     # Get the current number of unresolved issues. We can use this value for the the most recent bucket.
+    group_environment_filter = (
+        Q(groupenvironment__environment_id=environment_id) if environment_id else Q()
+    )
     project_current_unresolved = {
         r["project"]: r["total"]
         for r in (
             Group.objects.filter_to_team(team)
-            .filter(status=GroupStatus.UNRESOLVED)
+            .filter(group_environment_filter, status=GroupStatus.UNRESOLVED)
             .values("project")
             .annotate(total=Count("id"))
         )
     }
 
+    group_history_environment_filter = (
+        Q(group__groupenvironment__environment_id=environment_id) if environment_id else Q()
+    )
     prev_status_sub_qs = Coalesce(
         Subquery(
             GroupHistory.objects.filter(
@@ -50,7 +57,7 @@ def calculate_unresolved_counts(team, project_list, start, end):
     # Grab the historical data bucketed by day
     new_issues = (
         Group.objects.filter_to_team(team)
-        .filter(first_seen__gte=start, first_seen__lt=end)
+        .filter(group_environment_filter, first_seen__gte=start, first_seen__lt=end)
         .annotate(bucket=TruncDay("first_seen"))
         .order_by("bucket")
         .values("project", "bucket")
@@ -59,7 +66,7 @@ def calculate_unresolved_counts(team, project_list, start, end):
 
     bucketed_issues = (
         GroupHistory.objects.filter_to_team(team)
-        .filter(date_added__gte=start, date_added__lte=end)
+        .filter(group_history_environment_filter, date_added__gte=start, date_added__lte=end)
         .annotate(bucket=TruncDay("date_added"), prev_status=prev_status_sub_qs)
         .filter(dedupe_status_filter)
         .order_by("bucket")
@@ -122,5 +129,7 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        environments = [e.id for e in get_environments(request, team.organization)]
+        environment_id = environments[0] if environments else None
 
-        return Response(calculate_unresolved_counts(team, project_list, start, end))
+        return Response(calculate_unresolved_counts(team, project_list, start, end, environment_id))

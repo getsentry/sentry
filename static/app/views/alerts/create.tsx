@@ -8,7 +8,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import Teams from 'sentry/utils/teams';
@@ -69,10 +69,8 @@ class Create extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, project} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'new_alert_rule.viewed',
-      eventName: 'New Alert Rule: Viewed',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('new_alert_rule.viewed', {
+      organization,
       project_id: project.id,
       session_id: this.sessionId,
       alert_type: this.state.alertType,
