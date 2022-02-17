@@ -104,10 +104,9 @@ class SentryAppInstallation(ParanoidModel):
         from sentry.coreapi import APIError
         from sentry.mediators import sentry_app_components
 
+        if values is None:
+            values = []
         try:
-            if values is None:
-                values = []
-
             sentry_app_components.Preparer.run(
                 component=component, install=self, project=project, values=values
             )
