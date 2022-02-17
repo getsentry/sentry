@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import {FlamegraphOptionsMenu} from 'sentry/components/profiling/FlamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/FlamegraphSearch';
 import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/FlamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/FlamegraphZoomView';
@@ -21,6 +22,8 @@ const profiles = importProfile(trace);
 export const EventedTrace = () => {
   const canvasPoolManager = new CanvasPoolManager();
 
+  const [colorCoding, setColorCoding] = React.useState('by symbol name');
+  const [highlightRecursion, setHighlightRecursion] = React.useState(false);
   const [view, setView] = React.useState({inverted: false, leftHeavy: false});
   const [flamegraph, setFlamegraph] = React.useState(
     new Flamegraph(profiles.profiles[0], 0, view.inverted, view.leftHeavy)
@@ -50,7 +53,14 @@ export const EventedTrace = () => {
           overscrollBehavior: 'contain',
         }}
       >
-        <div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginBottom: 8,
+          }}
+        >
           <FlamegraphViewSelectMenu
             view={view.inverted ? 'bottom up' : 'top down'}
             sorting={view.leftHeavy ? 'left heavy' : 'call order'}
@@ -61,12 +71,19 @@ export const EventedTrace = () => {
               setView({...view, inverted: v === 'bottom up'});
             }}
           />
+          <FlamegraphOptionsMenu
+            colorCoding={colorCoding}
+            onColorCodingChange={setColorCoding}
+            highlightRecursion={highlightRecursion}
+            onHighlightRecursionChange={setHighlightRecursion}
+            canvasPoolManager={canvasPoolManager}
+          />
         </div>
         <div style={{height: 100, position: 'relative'}}>
           <FlamegraphZoomViewMinimap
             flamegraph={flamegraph}
-            highlightRecursion={false}
-            colorCoding="by symbol name"
+            highlightRecursion={highlightRecursion}
+            colorCoding={colorCoding}
             canvasPoolManager={canvasPoolManager}
           />
         </div>
@@ -74,8 +91,8 @@ export const EventedTrace = () => {
           <ProfileDragDropImport onImport={onImport}>
             <FlamegraphZoomView
               flamegraph={flamegraph}
-              highlightRecursion={false}
-              colorCoding="by symbol name"
+              highlightRecursion={highlightRecursion}
+              colorCoding={colorCoding}
               canvasPoolManager={canvasPoolManager}
             />
             <FlamegraphSearch
