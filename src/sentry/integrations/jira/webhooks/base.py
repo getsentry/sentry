@@ -25,14 +25,9 @@ class JiraEndpointBase(Endpoint, abc.ABC):
         return super().dispatch(request, *args, **kwargs)
 
     def handle_exception(self, request: Request, exc: Exception) -> Response:
-        try:
-            response = super().handle_exception(request, exc)
-        except (
-            AtlassianConnectValidationError,
-            JiraTokenError,
-        ):
+        if isinstance(exc, (AtlassianConnectValidationError, JiraTokenError)):
             return self.respond(status=status.HTTP_400_BAD_REQUEST)
-        return response
+        return super().handle_exception(request, exc)
 
     def get_token(self, request: Request) -> str:
         try:
