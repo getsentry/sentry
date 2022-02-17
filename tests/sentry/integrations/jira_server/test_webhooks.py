@@ -61,7 +61,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
         token = jwt.encode({"id": integration.external_id}, "bad-secret")
         self.get_error_response(token, status_code=400)
 
-    @patch("sentry.integrations.jira.webhooks.sync_group_assignee_inbound")
+    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     def test_post_update_assignee(self, mock_sync):
         project = self.create_project()
         self.create_group(project=project)

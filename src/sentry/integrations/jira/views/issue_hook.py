@@ -9,12 +9,11 @@ from rest_framework.response import Response
 from sentry.api.serializers import StreamGroupSerializer, serialize
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models import ExternalIssue, Group, GroupLink
-from sentry.shared_integrations.exceptions import ApiHostError, IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
-from .base_hook import JiraBaseHook
-from .client import JiraApiClient, JiraCloud
+from ..utils import set_badge
+from . import UNABLE_TO_VERIFY_INSTALLATION, JiraBaseHook
 
 logger = logging.getLogger(__name__)
 
@@ -26,24 +25,13 @@ def accum(tot, item):
 class JiraIssueHookView(JiraBaseHook):
     html_file = "sentry/integrations/jira-issue.html"
 
-    def set_badge(self, integration, issue_key, group_link_num):
-        client = JiraApiClient(
-            integration.metadata["base_url"],
-            JiraCloud(integration.metadata["shared_secret"]),
-            verify_ssl=True,
-        )
-        try:
-            return client.set_issue_property(issue_key, group_link_num)
-        except ApiHostError:
-            raise IntegrationError("Cannot reach host to set badge.")
-
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
         with configure_scope() as scope:
             try:
                 integration = get_integration_from_request(request, "jira")
             except AtlassianConnectValidationError:
                 scope.set_tag("failure", "AtlassianConnectValidationError")
-                return self.get_response({"error_message": "Unable to verify installation."})
+                return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
             except ExpiredSignatureError:
                 scope.set_tag("failure", "ExpiredSignatureError")
                 return self.get_response({"refresh_required": True})
@@ -63,7 +51,7 @@ class JiraIssueHookView(JiraBaseHook):
                 group = Group.objects.get(id=group_link.group_id)
             except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist) as e:
                 scope.set_tag("failure", e.__class__.__name__)
-                self.set_badge(integration, issue_key, 0)
+                set_badge(integration, issue_key, 0)
                 return self.get_response({"issue_not_linked": True})
             scope.set_tag("organization.slug", group.organization.slug)
 
@@ -125,6 +113,9 @@ class JiraIssueHookView(JiraBaseHook):
             )
             result = self.get_response(context)
             scope.set_tag("status_code", result.status_code)
-            # XXX(CEO): group_link_num is hardcoded as 1 now, but when we handle displaying multiple linked issues this should be updated to the actual count
-            self.set_badge(integration, issue_key, 1)
+
+            # XXX(CEO): group_link_num is hardcoded as 1 now, but when we handle
+            #  displaying multiple linked issues this should be updated to the
+            #  actual count.
+            set_badge(integration, issue_key, 1)
             return result

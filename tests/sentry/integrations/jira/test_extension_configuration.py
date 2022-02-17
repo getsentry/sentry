@@ -1,4 +1,4 @@
-from sentry.integrations.jira.extension_configuration import JiraExtensionConfigurationView
+from sentry.integrations.jira.views import JiraExtensionConfigurationView
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.signing import sign

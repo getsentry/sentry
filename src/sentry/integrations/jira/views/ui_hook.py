@@ -8,7 +8,7 @@ from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
-from .base_hook import JiraBaseHook
+from . import UNABLE_TO_VERIFY_INSTALLATION, JiraBaseHook
 
 
 class JiraUiHookView(JiraBaseHook):
@@ -18,7 +18,7 @@ class JiraUiHookView(JiraBaseHook):
         try:
             integration = get_integration_from_request(request, "jira")
         except AtlassianConnectValidationError:
-            return self.get_response({"error_message": "Unable to verify installation."})
+            return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
         except ExpiredSignatureError:
             return self.get_response({"refresh_required": True})
 

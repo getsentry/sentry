@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.integrations.jira.webhooks import handle_assignee_change, handle_status_change
+from sentry.integrations.jira.utils import handle_assignee_change, handle_status_change
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt

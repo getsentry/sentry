@@ -13,7 +13,7 @@ from sentry.integrations.utils import (
 from sentry.tasks.integrations import sync_metadata
 from sentry.utils import jwt
 
-from .integration import JiraIntegrationProvider
+from ..integration import JiraIntegrationProvider
 
 
 class JiraInstalledEndpoint(Endpoint):
