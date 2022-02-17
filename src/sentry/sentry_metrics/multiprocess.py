@@ -387,8 +387,8 @@ def process_messages(
 
             try:
                 new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
-            except KeyError as e:
-                logger.info("process_messages.key_error", extra={"tags": tags, "error": str(e)})
+            except KeyError:
+                logger.info("process_messages.key_error", extra={"tags": tags})
                 continue
 
             new_payload_value["tags"] = new_tags
