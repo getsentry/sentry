@@ -173,9 +173,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
     // Header - Widget Title
-    expect(
-      screen.getByRole('heading', {name: 'Custom Table Widget'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
 
     // Header - Actions
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
@@ -193,14 +191,12 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
 
     // Content - Step 3
-    expect(screen.getByRole('heading', {name: 'Choose your y-axis'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Columns'})).toBeInTheDocument();
 
     // Content - Step 4
-    expect(
-      screen.getByRole('heading', {name: 'Filter your results'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Query'})).toBeInTheDocument();
 
     // Content - Step 5
-    expect(screen.getByRole('heading', {name: 'Group your results'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sort by'})).toBeInTheDocument();
   });
 });
