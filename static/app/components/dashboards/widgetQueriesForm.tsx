@@ -25,7 +25,7 @@ import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
 
 import WidgetQueryFields from './widgetQueryFields';
 
-const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
+export const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   const options: SelectValue<string>[] = [];
   let equations = 0;
   fields.forEach(field => {
