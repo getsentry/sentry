@@ -1004,9 +1004,13 @@ def get_culprit(data):
 def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwargs):
     project = event.project
 
-    flat_grouphashes = [
-        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
-    ]
+    flat_grouphashes = []
+    new_grouphashes = []
+    for hash in hashes.hashes:
+        group_hash, created = GroupHash.objects.get_or_create(project=project, hash=hash)
+        flat_grouphashes.append(group_hash)
+        if created:
+            new_grouphashes.append(group_hash)
 
     # The root_hierarchical_hash is the least specific hash within the tree, so
     # typically hierarchical_hashes[0], unless a hash `n` has been split in
@@ -1019,9 +1023,11 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
     )
 
     if root_hierarchical_hash is not None:
-        root_hierarchical_grouphash = GroupHash.objects.get_or_create(
+        root_hierarchical_grouphash, created = GroupHash.objects.get_or_create(
             project=project, hash=root_hierarchical_hash
-        )[0]
+        )
+        if created:
+            new_grouphashes.append(root_hierarchical_grouphash)
 
         metadata.update(
             hashes.group_metadata_from_hash(
@@ -1078,9 +1084,11 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
             )
 
             if root_hierarchical_hash is not None:
-                root_hierarchical_grouphash = GroupHash.objects.get_or_create(
+                root_hierarchical_grouphash, created = GroupHash.objects.get_or_create(
                     project=project, hash=root_hierarchical_hash
-                )[0]
+                )
+                if created:
+                    new_grouphashes.append(root_hierarchical_grouphash)
             else:
                 root_hierarchical_grouphash = None
 
@@ -1112,12 +1120,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
                     **kwargs,
                 )
 
-                if root_hierarchical_grouphash is not None:
-                    new_hashes = [root_hierarchical_grouphash]
-                else:
-                    new_hashes = list(flat_grouphashes)
-
-                GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
+                GroupHash.objects.filter(id__in=[h.id for h in new_grouphashes]).exclude(
                     state=GroupHash.State.LOCKED_IN_MIGRATION
                 ).update(group=group)
 
@@ -1139,12 +1142,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
 
     is_new = False
 
-    if root_hierarchical_hash is not None:
-        new_hashes = []
-    else:
-        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-
-    if new_hashes:
+    if new_grouphashes:
         # There may still be secondary hashes that we did not use to find an
         # existing group. A classic example is when grouping makes changes to
         # the app-hash (changes to in_app logic), but the system hash stays
@@ -1169,7 +1167,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
         # _save_aggregate had races around group creation which made this race
         # more user visible. For more context, see 84c6f75a and d0e22787, as
         # well as GH-5085.
-        GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
+        GroupHash.objects.filter(id__in=[h.id for h in new_grouphashes]).exclude(
             state=GroupHash.State.LOCKED_IN_MIGRATION
         ).update(group=group)
 
