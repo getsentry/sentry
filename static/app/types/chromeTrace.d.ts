@@ -74,5 +74,25 @@ namespace ChromeTrace {
     args: Record<string, any | Record<string, any>>;
   }
 
+  // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1399
+  interface ProfileNode {
+    id: number;
+    callFrame: CPUProfileCallFrame;
+    hitCount: number;
+    children?: number[];
+    parent?: CPUProfileNode;
+    deoptReason?: string;
+    positionTicks?: PositionTickInfo[];
+  }
+
+  // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1453
+  interface Profile {
+    nodes: ProfileNode[];
+    startTime: number;
+    endTime: number;
+    samples?: number[];
+    timeDeltas?: number[];
+  }
+
   type ProfileType = ArrayFormat | ObjectFormat;
 }

@@ -36,3 +36,8 @@ export function parseChromeTrace(
 
   throw new Error('Failed to parse trace input format');
 }
+
+function importChromeTrace(profile: ChromeTrace.ProfileType) {
+  if (Array.isArray(profile)) {
+  }
+}
