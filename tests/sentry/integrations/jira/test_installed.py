@@ -75,6 +75,21 @@ class JiraInstalledTest(APITestCase):
         resp = self.client.post(self.path, data=self.body(), HTTP_AUTHORIZATION="invalid")
         assert resp.status_code == 400
 
+    @patch(
+        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
+        side_effect=AtlassianConnectValidationError(),
+    )
+    @responses.activate
+    def test_no_claims(self, mock_authenticate_asymmetric_jwt):
+        self.add_response()
+
+        resp = self.client.post(
+            self.path,
+            data=self.body(),
+            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+        )
+        assert resp.status_code == 400
+
     def test_with_shared_secret(self):
         resp = self.client.post(
             self.path,
