@@ -7,6 +7,7 @@ import set from 'lodash/set';
 import Button from 'sentry/components/button';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import SearchBar from 'sentry/components/events/searchBar';
+import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
@@ -29,8 +30,6 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import withTags from 'sentry/utils/withTags';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import {
   DashboardDetails,

@@ -3,25 +3,28 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Mapping
 
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-from sentry.api.base import Endpoint
-from sentry.integrations.utils import (
-    AtlassianConnectValidationError,
-    get_integration_from_jwt,
-    sync_group_assignee_inbound,
-)
+from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.shared_integrations.exceptions import ApiHostError, IntegrationError
 
-from .client import JiraApiClient, JiraCloud
+from ..client import JiraApiClient, JiraCloud
 
 if TYPE_CHECKING:
     from sentry.models import Integration
 
-logger = logging.getLogger("sentry.integrations.jira.webhooks")
+
+logger = logging.getLogger(__name__)
+
+
+def set_badge(integration, issue_key, group_link_num):
+    client = JiraApiClient(
+        integration.metadata["base_url"],
+        JiraCloud(integration.metadata["shared_secret"]),
+        verify_ssl=True,
+    )
+    try:
+        return client.set_issue_property(issue_key, group_link_num)
+    except ApiHostError:
+        raise IntegrationError("Cannot reach host to set badge.")
 
 
 def get_assignee_email(
@@ -100,36 +103,3 @@ def handle_status_change(integration, data):
         installation.sync_status_inbound(
             issue_key, {"changelog": changelog, "issue": data["issue"]}
         )
-
-
-class JiraIssueUpdatedWebhook(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
-
-    @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request: Request, *args, **kwargs) -> Response:
-        try:
-            token = request.META["HTTP_AUTHORIZATION"].split(" ", 1)[1]
-        except (KeyError, IndexError):
-            return self.respond(status=400)
-
-        try:
-            integration = get_integration_from_jwt(
-                token, request.path, "jira", request.GET, method="POST"
-            )
-        except AtlassianConnectValidationError:
-            return self.respond(status=400)
-
-        data = request.data
-
-        if not data.get("changelog"):
-            logger.info("missing-changelog", extra={"integration_id": integration.id})
-            return self.respond()
-
-        handle_assignee_change(integration, data, use_email_scope=settings.JIRA_USE_EMAIL_SCOPE)
-        handle_status_change(integration, data)
-
-        return self.respond()
