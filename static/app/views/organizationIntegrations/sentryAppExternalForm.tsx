@@ -286,28 +286,35 @@ export class SentryAppExternalForm extends Component<Props, State> {
       if (isAsync) {
         fieldToPass.noOptionsMessage = () => 'Type to search';
       }
-    } else if (['text', 'textarea'].includes(fieldToPass.type || '')) {
+
+      if (field.depends_on) {
+        // check if this is dependent on other fields which haven't been set yet
+        const shouldDisable = field.depends_on.some(
+          dependentField => !hasValue(this.model.getValue(dependentField))
+        );
+        if (shouldDisable) {
+          fieldToPass = {...fieldToPass, disabled: true};
+        }
+      }
+    }
+    if (['text', 'textarea'].includes(fieldToPass.type || '')) {
       // Interpret the default if a getFieldDefault function is provided
-      let defaultValue = '';
+      let defaultValue = defaultResetValues.reduce((acc, curr) => {
+        if (curr.name === field.name) {
+          acc = curr.value;
+        }
+        return acc;
+      }, '');
+
       if (field.default && this.props.getFieldDefault) {
         defaultValue = this.props.getFieldDefault(field);
       }
       // Override this default if a reset value is provided
-      defaultValue = defaultResetValues[field.name] || defaultValue;
+
       fieldToPass = {
         ...fieldToPass,
         defaultValue,
       };
-    }
-
-    if (field.depends_on) {
-      // check if this is dependent on other fields which haven't been set yet
-      const shouldDisable = field.depends_on.some(
-        dependentField => !hasValue(this.model.getValue(dependentField))
-      );
-      if (shouldDisable) {
-        fieldToPass = {...fieldToPass, disabled: true};
-      }
     }
 
     // if we have a uri, we need to set extra parameters
