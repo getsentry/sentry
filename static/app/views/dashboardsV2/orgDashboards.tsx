@@ -89,15 +89,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   onRequestSuccess({stateKey, data}) {
     const {params, organization, location} = this.props;
 
-    if (stateKey === 'selectedDashboard') {
-      if (organization.features.includes('dashboard-grid-layout')) {
-        // Ensure unique IDs even on viewing default dashboard
-        this.setState({[stateKey]: {...data, widgets: data.widgets.map(assignTempId)}});
-      }
-      return;
-    }
-
-    if (params.dashboardId) {
+    if (params.dashboardId || stateKey === 'selectedDashboard') {
       return;
     }
 
