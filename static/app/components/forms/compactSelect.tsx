@@ -158,7 +158,7 @@ function CompactSelect({
   function getLabel(newValue): React.ReactNode {
     const valueSet = Array.isArray(newValue) ? newValue : [newValue];
     const optionSet = valueSet.map(val => options.find(opt => opt.value === val));
-    const firstOptionLabel = optionSet[0] ? optionSet[0]?.label : '';
+    const firstOptionLabel = optionSet[0]?.label ?? '';
 
     return (
       <Fragment>
