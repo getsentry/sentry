@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import jwt
 import responses
+from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils import AtlassianConnectValidationError, get_query_hash
@@ -15,6 +16,8 @@ from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
 class JiraInstalledTest(APITestCase):
+    endpoint = "sentry-extensions-jira-installed"
+    method = "post"
     external_id = "it2may+cody"
     kid = "cudi"
     shared_secret = "garden"
@@ -64,16 +67,20 @@ class JiraInstalledTest(APITestCase):
         )
 
     def test_missing_body(self):
-        resp = self.client.post(self.path, data={}, HTTP_AUTHORIZATION="JWT anexampletoken")
-        assert resp.status_code == 400
+        self.get_error_response(
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT anexampletoken"),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     def test_missing_token(self):
-        resp = self.client.post(self.path, data=self.body())
-        assert resp.status_code == 400
+        self.get_error_response(**self.body(), status_code=status.HTTP_400_BAD_REQUEST)
 
     def test_invalid_token(self):
-        resp = self.client.post(self.path, data=self.body(), HTTP_AUTHORIZATION="invalid")
-        assert resp.status_code == 400
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="invalid"),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     @patch(
         "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
@@ -83,32 +90,27 @@ class JiraInstalledTest(APITestCase):
     def test_no_claims(self, mock_authenticate_asymmetric_jwt):
         self.add_response()
 
-        resp = self.client.post(
-            self.path,
-            data=self.body(),
-            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
-        assert resp.status_code == 400
 
     def test_with_shared_secret(self):
-        resp = self.client.post(
-            self.path,
-            data=self.body(),
-            HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret(),
+        self.get_success_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret()),
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
         assert integration.status == ObjectStatus.VISIBLE
-        assert resp.status_code == 200
 
     @responses.activate
     def test_with_key_id(self):
         self.add_response()
 
-        resp = self.client.post(
-            self.path,
-            data=self.body(),
-            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+        self.get_success_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
         assert integration.status == ObjectStatus.VISIBLE
-        assert resp.status_code == 200
