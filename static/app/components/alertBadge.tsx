@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
 import {
-  IconAlertCritical,
-  IconAlertIssues,
-  IconAlertResolved,
-  IconAlertWarning,
+  IconCheckmark,
+  IconDiamond,
+  IconExclamation,
+  IconFire,
+  IconIssues,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -20,26 +21,27 @@ type Props = {
 
 function AlertBadge({status, hideText = false, isIssue}: Props) {
   let statusText = t('Resolved');
-  let Icon = IconAlertResolved;
+  let Icon = IconCheckmark;
   let color: Color = 'green300';
   if (isIssue) {
     statusText = t('Issue');
-    Icon = IconAlertIssues;
+    Icon = IconIssues;
     color = 'gray300';
   } else if (status === IncidentStatus.CRITICAL) {
     statusText = t('Critical');
-    Icon = IconAlertCritical;
+    Icon = IconFire;
     color = 'red300';
   } else if (status === IncidentStatus.WARNING) {
     statusText = t('Warning');
-    Icon = IconAlertWarning;
+    Icon = IconExclamation;
     color = 'yellow300';
   }
 
   return (
     <Wrapper data-test-id="alert-badge">
       <AlertIconWrapper color={color} icon={Icon}>
-        <Icon color="white" size="xl" />
+        <AlertIconBackground color={color} />
+        <Icon color="white" />
       </AlertIconWrapper>
 
       {!hideText && <IncidentStatusValue color={color}>{statusText}</IncidentStatusValue>}
@@ -55,14 +57,27 @@ const Wrapper = styled('div')`
 `;
 
 const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  left: 3px;
-  min-width: 30px;
+  width: 36px;
+  height: 36px;
+  position: relative;
+
+  svg:last-child {
+    width: ${p => (p.icon === IconIssues ? '13px' : '16px')};
+    z-index: 2;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+  }
+`;
+
+const AlertIconBackground = styled(IconDiamond)<{color: Color}>`
+  width: 36px;
+  height: 36px;
 `;
 
 const IncidentStatusValue = styled('div')`
-  margin-left: ${space(1.5)};
+  margin-left: ${space(1)};
 `;
