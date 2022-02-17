@@ -43,7 +43,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
     def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
         return default_repo, default_repo.split("/")[1]
 
-    def fget_create_issue_config(
+    def get_create_issue_config(
         self, group: Group, user: User, **kwargs: Any
     ) -> Sequence[Mapping[str, Any]]:
         kwargs["link_referrer"] = "github_integration"
