@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
-from snuba_sdk.function import Function
+from snuba_sdk.function import Function, Identifier, Lambda
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -1052,6 +1052,41 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         assert response.status_code == 200, response.content
         assert mock_raw_snql_query.call_count == 1
+
+        query = mock_raw_snql_query.call_args_list[0][0][0].where
+
+        assert (
+            Condition(
+                Function(
+                    "arrayReduce",
+                    [
+                        "countIf",
+                        Column("spans.exclusive_time"),
+                        Function(
+                            "arrayMap",
+                            [
+                                Lambda(
+                                    ["x", "y"],
+                                    Function(
+                                        "and",
+                                        [
+                                            Function("equals", [Identifier("x"), "http:server"]),
+                                            Function("equals", [Identifier("y"), "ab" * 8]),
+                                        ],
+                                    ),
+                                ),
+                                Column("spans.op"),
+                                Column("spans.group"),
+                            ],
+                        ),
+                    ],
+                    "count_span_time",
+                ),
+                Op.GT,
+                0,
+            )
+            in query
+        )
 
         self.assert_span_examples(response.data, [self.span_example_results("http.server", event)])
 
