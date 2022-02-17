@@ -130,6 +130,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/organization_events_trace.py          @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trends.py         @getsentry/performance
 /src/sentry/api/endpoints/organization_events_vitals.py         @getsentry/performance
+/src/sentry/api/endpoints/organization_transaction_anomaly_detection.py         @getsentry/data
 
 /static/app/views/performance/                                  @getsentry/performance
 /tests/js/spec/views/performance/                               @getsentry/performance

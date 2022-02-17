@@ -35,7 +35,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
-    def test_has_feature(self):
+    def test_without_feature(self):
         self.url = reverse(
             "sentry-api-0-organization-transaction-anomaly-detection",
             kwargs={"organization_slug": self.project.organization.slug},
