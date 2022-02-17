@@ -122,12 +122,26 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {children} = this.props;
+    const {children, organization} = this.props;
     const {selectedDashboard, error} = this.state;
+    let dashboard = selectedDashboard;
+
+    if (organization.features.includes('dashboard-grid-layout')) {
+      // Ensure there are always tempIds for grid layout
+      // This is needed because there are cases where the dashboard
+      // renders before the onRequestSuccess setState is processed
+      // and will caused stacked widgets because of missing tempIds
+      dashboard = selectedDashboard
+        ? {
+            ...selectedDashboard,
+            widgets: selectedDashboard.widgets.map(assignTempId),
+          }
+        : null;
+    }
 
     return children({
       error,
-      dashboard: selectedDashboard,
+      dashboard,
       dashboards: this.getDashboards(),
       onDashboardUpdate: (updatedDashboard: DashboardDetails) =>
         this.onDashboardUpdate(updatedDashboard),
