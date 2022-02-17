@@ -138,12 +138,3 @@ class JiraWebhooksTest(APITestCase):
             data = StubService.get_stub_data("jira", "changelog_missing.json")
             resp = self.client.post(self.path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
-
-    def test_missing_body(self):
-        path = reverse("sentry-extensions-jira-installed")
-        with patch(
-            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
-            return_value=self.integration,
-        ):
-            resp = self.client.post(path, data={}, HTTP_AUTHORIZATION="JWT anexampletoken")
-            assert resp.status_code == 400
