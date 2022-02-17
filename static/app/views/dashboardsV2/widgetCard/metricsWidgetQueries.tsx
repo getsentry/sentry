@@ -1,6 +1,7 @@
 import * as React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {Client} from 'sentry/api';
@@ -51,13 +52,29 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    // TODO(dam): Put more sophisticated refetch logic in place
-    const {selection, widget} = this.props;
+    const {selection, widget, organization, limit} = this.props;
+    const ignroredWidgetProps = [
+      'queries',
+      'title',
+      'id',
+      'layout',
+      'tempId',
+      'widgetType',
+    ];
+    const ignoredQueryProps = ['name'];
+
     if (
-      !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isEqual(widget.interval, prevProps.widget.interval) ||
-      !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isSelectionEqual(selection, prevProps.selection)
+      limit !== prevProps.limit ||
+      organization.slug !== prevProps.organization.slug ||
+      !isSelectionEqual(selection, prevProps.selection) ||
+      !isEqual(
+        omit(widget, ignroredWidgetProps),
+        omit(prevProps.widget, ignroredWidgetProps)
+      ) ||
+      !isEqual(
+        widget.queries.map(q => omit(q, ignoredQueryProps)),
+        prevProps.widget.queries.map(q => omit(q, ignoredQueryProps))
+      )
     ) {
       this.fetchData();
     }
