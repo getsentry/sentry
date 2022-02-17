@@ -86,10 +86,10 @@ class JiraWebhooksTest(APITestCase):
                 self.integration, None, "APP-123", assign=False
             )
 
-    @patch("sentry.integrations.utils.sync_group_assignee_inbound")
+    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     def test_simple_deassign_assignee_missing(self, mock_sync_group_assignee_inbound):
         with patch(
-            "sentry.integrations.utils.get_integration_from_jwt",
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_missing_payload.json")
