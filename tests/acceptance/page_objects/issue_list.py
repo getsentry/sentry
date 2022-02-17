@@ -43,8 +43,9 @@ class IssueListPage(BasePage):
         self.browser.click('[aria-label="Ignore"]')
 
     def delete_issues(self):
-        self.browser.click('[aria-label="Open more issue actions"]')
-        self.browser.click('[aria-label="Delete Issues"]')
+        self.browser.click('[aria-label="More issue actions"]')
+        self.browser.wait_until('[data-test-id="delete"]')
+        self.browser.click('[data-test-id="delete"]')
         self.browser.click('[data-test-id="confirm-button"]')
 
     def merge_issues(self):
