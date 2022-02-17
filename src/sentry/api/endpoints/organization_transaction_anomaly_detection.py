@@ -2,7 +2,6 @@ from collections import namedtuple
 from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
-from django.core.validators import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3 import Retry
@@ -11,7 +10,6 @@ from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
 from sentry.snuba.discover import timeseries_query
 from sentry.utils import json
@@ -22,7 +20,7 @@ ads_connection_pool = connection_from_url(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],
     ),
-    timeout=settings.SNUBA_TIMEOUT_FOR_ANOMALY_DETECTION,
+    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
 )
 
 MappedParams = namedtuple("MappedParams", ["query_start", "query_end", "granularity"])
@@ -127,7 +125,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         query_params["start"] = time_params.query_start
         query_params["end"] = time_params.query_end
 
-        try:
+        with self.handle_query_errors():
             snuba_response = timeseries_query(
                 selected_columns=["count()"],
                 query=query,
@@ -136,9 +134,6 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
                 referrer="transaction-anomaly-detection",
                 zerofill_results=False,
             )
-        except (ValidationError, InvalidSearchQuery) as e:
-            return Response({"detail": str(e)}, status=400)
+            ads_request["data"] = snuba_response.data["data"]
 
-        ads_request["data"] = snuba_response.data["data"]
-
-        return get_anomalies(ads_request)
+            return get_anomalies(ads_request)
