@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {getFieldsFromEquations} from 'sentry/views/dashboardsV2/utils';
@@ -22,29 +22,18 @@ export type WidgetViewerModalOptions = {
 
 type Props = ModalRenderProps &
   WidgetViewerModalOptions & {
-    api: Client;
     organization: Organization;
     selection: PageFilters;
   };
-
-type State = {
-  loading: boolean;
-};
 
 const TABLE_ITEM_LIMIT = 30;
 const FULL_TABLE_HEIGHT = 600;
 const HALF_TABLE_HEIGHT = 300;
 
-class WidgetViewerModal extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      loading: true,
-    };
-  }
-
-  renderWidgetViewer() {
-    const {api, organization, selection, widget} = this.props;
+function WidgetViewerModal(props: Props) {
+  const renderWidgetViewer = () => {
+    const {organization, selection, widget} = props;
+    const api = useApi();
     switch (widget.displayType) {
       case DisplayType.TABLE:
         return (
@@ -92,40 +81,36 @@ class WidgetViewerModal extends React.Component<Props, State> {
         </TableContainer>
       </React.Fragment>
     );
-  }
+  };
 
-  render() {
-    const {Footer, Body, Header, widget} = this.props;
+  const {Footer, Body, Header, widget} = props;
 
-    const StyledHeader = styled(Header)`
-      ${headerCss}
-    `;
-    const StyledFooter = styled(Footer)`
-      ${footerCss}
-    `;
-    const openLabel =
-      widget.widgetType === WidgetType.ISSUE
-        ? t('Open in Issues')
-        : t('Open in Discover');
-    return (
-      <React.Fragment>
-        <StyledHeader closeButton>
-          <h4>{widget.title}</h4>
-        </StyledHeader>
-        <Body>{this.renderWidgetViewer()}</Body>
-        <StyledFooter>
-          <ButtonBar gap={1}>
-            <Button type="button" onClick={() => undefined}>
-              {t('Edit Widget')}
-            </Button>
-            <Button priority="primary" type="button" onClick={() => undefined}>
-              {openLabel}
-            </Button>
-          </ButtonBar>
-        </StyledFooter>
-      </React.Fragment>
-    );
-  }
+  const StyledHeader = styled(Header)`
+    ${headerCss}
+  `;
+  const StyledFooter = styled(Footer)`
+    ${footerCss}
+  `;
+  const openLabel =
+    widget.widgetType === WidgetType.ISSUE ? t('Open in Issues') : t('Open in Discover');
+  return (
+    <React.Fragment>
+      <StyledHeader closeButton>
+        <h4>{widget.title}</h4>
+      </StyledHeader>
+      <Body>{renderWidgetViewer()}</Body>
+      <StyledFooter>
+        <ButtonBar gap={1}>
+          <Button type="button" onClick={() => undefined}>
+            {t('Edit Widget')}
+          </Button>
+          <Button priority="primary" type="button" onClick={() => undefined}>
+            {openLabel}
+          </Button>
+        </ButtonBar>
+      </StyledFooter>
+    </React.Fragment>
+  );
 }
 
 export const modalCss = css`
@@ -135,10 +120,10 @@ export const modalCss = css`
 `;
 
 const headerCss = css`
-  margin: -30px -30px 0px -30px;
+  margin: -${space(4)} -${space(4)} 0px -${space(4)};
 `;
 const footerCss = css`
-  margin: 0px -30px -30px;
+  margin: 0px -${space(4)} -${space(4)};
 `;
 
 const Container = styled('div')`
@@ -157,7 +142,7 @@ const TableContainer = styled('div')<{height: number}>`
   width: calc(100% + 60px);
   max-width: 1400px;
   position: relative;
-  left: -30px;
+  left: -${space(4)};
 
   & > div {
     max-height: ${p => p.height}px;
@@ -165,4 +150,4 @@ const TableContainer = styled('div')<{height: number}>`
   }
 `;
 
-export default withApi(withPageFilters(WidgetViewerModal));
+export default withPageFilters(WidgetViewerModal);
