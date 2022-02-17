@@ -31,7 +31,9 @@ function IssueListContainer({organization, children}: Props) {
     <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
       <Fragment>
         {showSampleEventBanner && <SampleEventAlert />}
-        <PageFiltersContainer>
+        <PageFiltersContainer
+          hideGlobalHeader={organization.features.includes('selection-filters-v2')}
+        >
           <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
         </PageFiltersContainer>
       </Fragment>
