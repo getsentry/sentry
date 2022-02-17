@@ -37,8 +37,12 @@ import Measurements from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
-import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
+import {
+  generateIssueWidgetFieldOptions,
+  generateIssueWidgetOrderOptions,
+} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {
   DashboardDetails,
@@ -556,18 +560,35 @@ function WidgetBuilder({
                   stacked
                   error={state.errors?.orderby}
                 >
-                  <SelectControl
-                    value={state.queries[0].orderby}
-                    name="orderby"
-                    options={generateOrderOptions(state.queries[0].fields)}
-                    onChange={(option: SelectValue<string>) => {
-                      const newQuery: WidgetQuery = {
-                        ...state.queries[0],
-                        orderby: option.value,
-                      };
-                      handleQueryChange(0, newQuery);
-                    }}
-                  />
+                  {state.dataSet === DataSet.EVENTS ? (
+                    <SelectControl
+                      value={state.queries[0].orderby}
+                      name="orderby"
+                      options={generateOrderOptions(state.queries[0].fields)}
+                      onChange={(option: SelectValue<string>) => {
+                        const newQuery: WidgetQuery = {
+                          ...state.queries[0],
+                          orderby: option.value,
+                        };
+                        handleQueryChange(0, newQuery);
+                      }}
+                    />
+                  ) : (
+                    <SelectControl
+                      value={state.queries[0].orderby || IssueSortOptions.DATE}
+                      name="orderby"
+                      options={generateIssueWidgetOrderOptions(
+                        organization?.features?.includes('issue-list-trend-sort')
+                      )}
+                      onChange={(option: SelectValue<string>) => {
+                        const newQuery: WidgetQuery = {
+                          ...state.queries[0],
+                          orderby: option.value,
+                        };
+                        handleQueryChange(0, newQuery);
+                      }}
+                    />
+                  )}
                 </Field>
               </BuildStep>
             )}
