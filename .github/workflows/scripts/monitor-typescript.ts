@@ -122,7 +122,8 @@ const transaction = Sentry.startTransaction({
 
 transaction.setName('typescript.compile');
 
-// @ts-ignore setMeasurements does not exist?
+// @TODO: Remove ts ignore once the types are added to the SDK
+// @ts-ignore-expect setMeasurements does not exist?
 transaction.setMeasurements({
   'typescript.time.check': {value: checkTime.value},
   'typescript.time.bind': {value: bindTime.value},
