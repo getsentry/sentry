@@ -15,7 +15,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelAlert} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Tooltip from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,7 +28,17 @@ import {
   TagCollection,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {
+  explodeField,
+  generateFieldAsString,
+  getAggregateAlias,
+} from 'sentry/utils/discover/fields';
+import Measurements from 'sentry/utils/measurements/measurements';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import withTags from 'sentry/utils/withTags';
+import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {
   DashboardDetails,
@@ -44,15 +53,9 @@ import WidgetCard from '../widgetCard';
 import {normalizeQueries} from './eventWidget/utils';
 import BuildStep from './buildStep';
 import BuildSteps from './buildSteps';
-import {BuildStepYAxisOrColumns} from './buildStepYAxisOrColumns';
+import {ColumnFields} from './columnFields';
 import Header from './header';
 import {DataSet, DisplayType, displayTypes} from './utils';
-
-const DATASET_CHOICES: [DataSet, string][] = [
-  [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
-  [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
-  // [DataSet.METRICS, t('Metrics (Release Health)')],
-];
 
 const DISPLAY_TYPES_OPTIONS = Object.keys(displayTypes).map(value => ({
   label: displayTypes[value],
@@ -289,38 +292,19 @@ function WidgetBuilder({
         <Layout.Body>
           <BuildSteps>
             <BuildStep
-              title={t('Choose your data set')}
-              description={t(
-                'Monitor specific events such as errors and transactions or metrics based on Release Health.'
-              )}
-            >
-              <DataSetChoices
-                label="dataSet"
-                value={state.dataSet}
-                choices={DATASET_CHOICES}
-                onChange={handleDataSetChange}
-              />
-            </BuildStep>
-            <BuildStep
               title={t('Choose your visualization')}
               description={t(
                 'This is a preview of how your widget will appear in the dashboard.'
               )}
             >
-              <Tooltip
-                title={t('Visualization is restricted to table for the data set issues')}
-                disabled={state.dataSet !== DataSet.ISSUES}
-              >
-                <DisplayTypeOptions
-                  name="displayType"
-                  options={DISPLAY_TYPES_OPTIONS}
-                  value={state.displayType}
-                  onChange={(option: {label: string; value: DisplayType}) => {
-                    setState({...state, displayType: option.value});
-                  }}
-                  disabled={state.dataSet === DataSet.ISSUES}
-                />
-              </Tooltip>
+              <DisplayTypeOptions
+                name="displayType"
+                options={DISPLAY_TYPES_OPTIONS}
+                value={state.displayType}
+                onChange={(option: {label: string; value: DisplayType}) => {
+                  setState({...state, displayType: option.value});
+                }}
+              />
               <WidgetCard
                 organization={organization}
                 selection={pageFilters}
@@ -343,16 +327,134 @@ function WidgetBuilder({
                 noLazyLoad
               />
             </BuildStep>
-            <BuildStepYAxisOrColumns
-              dataSet={state.dataSet}
-              displayType={state.displayType}
-              organization={organization}
-              queries={state.queries}
-              widgetType={widgetType}
-              tags={tags}
-              onChange={handleQueryChange}
-              errors={state.errors?.queries}
-            />
+            <BuildStep
+              title={t('Choose your data set')}
+              description={t(
+                'Monitor specific events such as errors and transactions or metrics based on Release Health.'
+              )}
+            >
+              <DataSetChoices
+                label="dataSet"
+                value={state.dataSet}
+                choices={[
+                  [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
+                  [
+                    DataSet.ISSUES,
+                    t('Issues (States, Assignment, Time, etc.)'),
+                    undefined,
+                    state.displayType !== DisplayType.TABLE
+                      ? t('Data set restricted to the table visualization')
+                      : undefined,
+                  ],
+                  // [DataSet.METRICS, t('Metrics (Release Health)')],
+                ]}
+                onChange={handleDataSetChange}
+              />
+            </BuildStep>
+            {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) ? (
+              <BuildStep
+                title={t('Columns')}
+                description="Description of what this means"
+              >
+                {state.dataSet === DataSet.EVENTS ? (
+                  <Measurements>
+                    {({measurements}) => {
+                      const explodedFields = state.queries[0].fields.map(field =>
+                        explodeField({field})
+                      );
+
+                      const amendedFieldOptions = generateFieldOptions({
+                        organization,
+                        tagKeys: Object.values(tags).map(({key}) => key),
+                        measurementKeys: Object.values(measurements).map(({key}) => key),
+                        spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+                      });
+
+                      return (
+                        <ColumnFields
+                          displayType={state.displayType}
+                          organization={organization}
+                          widgetType={widgetType}
+                          columns={explodedFields}
+                          errors={state.errors?.queries}
+                          fieldOptions={amendedFieldOptions}
+                          onChange={newFields => {
+                            const fieldStrings = newFields.map(generateFieldAsString);
+                            const aggregateAliasFieldStrings =
+                              fieldStrings.map(getAggregateAlias);
+
+                            for (const index in state.queries) {
+                              const queryIndex = Number(index);
+                              const query = state.queries[queryIndex];
+                              const descending = query.orderby.startsWith('-');
+                              const orderbyAggregateAliasField = query.orderby.replace(
+                                '-',
+                                ''
+                              );
+                              const prevAggregateAliasFieldStrings =
+                                query.fields.map(getAggregateAlias);
+                              const newQuery = cloneDeep(query);
+
+                              newQuery.fields = fieldStrings;
+
+                              if (
+                                !aggregateAliasFieldStrings.includes(
+                                  orderbyAggregateAliasField
+                                )
+                              ) {
+                                newQuery.orderby = '';
+
+                                if (
+                                  prevAggregateAliasFieldStrings.length ===
+                                  newFields.length
+                                ) {
+                                  // The Field that was used in orderby has changed. Get the new field.
+                                  newQuery.orderby = `${descending && '-'}${
+                                    aggregateAliasFieldStrings[
+                                      prevAggregateAliasFieldStrings.indexOf(
+                                        orderbyAggregateAliasField
+                                      )
+                                    ]
+                                  }`;
+                                }
+                              }
+
+                              handleQueryChange(queryIndex, newQuery);
+                            }
+                          }}
+                        />
+                      );
+                    }}
+                  </Measurements>
+                ) : (
+                  <ColumnFields
+                    displayType={state.displayType}
+                    organization={organization}
+                    widgetType={widgetType}
+                    columns={state.queries[0].fields.map(field => explodeField({field}))}
+                    errors={
+                      state.errors?.queries?.[0]
+                        ? [state.errors?.queries?.[0]]
+                        : undefined
+                    }
+                    fieldOptions={generateIssueWidgetFieldOptions()}
+                    onChange={newFields => {
+                      const fieldStrings = newFields.map(generateFieldAsString);
+                      const newQuery = cloneDeep(state.queries[0]);
+                      newQuery.fields = fieldStrings;
+                      handleQueryChange(0, newQuery);
+                    }}
+                  />
+                )}
+              </BuildStep>
+            ) : (
+              <BuildStep
+                title={t('Choose your y-axis')}
+                description="Description of what this means"
+              >
+                WIP
+              </BuildStep>
+            )}
             <BuildStep title={t('Query')} description="Description of what this means">
               <div>
                 {state.queries.map((query, queryIndex) => {

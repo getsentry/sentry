@@ -3,6 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import Radio from 'sentry/components/radio';
+import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 
 const Container = styled('div')<{orientInline?: boolean}>`
@@ -15,9 +16,9 @@ const Container = styled('div')<{orientInline?: boolean}>`
 
 type RadioGroupProps<C extends string> = {
   /**
-   * An array of [id, name, description]
+   * An array of [id, name, description, disabledReason]
    */
-  choices: [C, React.ReactNode, React.ReactNode?][];
+  choices: [C, React.ReactNode, React.ReactNode?, React.ReactNode?][];
   label: string;
   onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
   value: string | number | null;
@@ -33,7 +34,7 @@ type Props<C extends string> = RadioGroupProps<C> &
 
 const RadioGroup = <C extends string>({
   value,
-  disabled,
+  disabled: groupDisabled,
   choices,
   label,
   onChange,
@@ -46,32 +47,36 @@ const RadioGroup = <C extends string>({
     role="radiogroup"
     aria-labelledby={label}
   >
-    {(choices || []).map(([id, name, description], index) => (
-      <RadioLineItem
-        key={index}
-        role="radio"
-        index={index}
-        aria-checked={value === id}
-        disabled={disabled}
-      >
-        <Radio
-          aria-label={id}
-          disabled={disabled}
-          checked={value === id}
-          onChange={(e: React.FormEvent<HTMLInputElement>) =>
-            !disabled && onChange(id, e)
-          }
-        />
-        <RadioLineText disabled={disabled}>{name}</RadioLineText>
-        {description && (
-          <React.Fragment>
-            {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
-            <div />
-            <Description>{description}</Description>
-          </React.Fragment>
-        )}
-      </RadioLineItem>
-    ))}
+    {(choices || []).map(([id, name, description, disabledReason], index) => {
+      const disabled = !!disabledReason || groupDisabled;
+      return (
+        <Tooltip key={index} disabled={!disabledReason} title={disabledReason}>
+          <RadioLineItem
+            role="radio"
+            index={index}
+            aria-checked={value === id}
+            disabled={disabled}
+          >
+            <Radio
+              aria-label={id}
+              disabled={disabled}
+              checked={value === id}
+              onChange={(e: React.FormEvent<HTMLInputElement>) =>
+                !disabled && onChange(id, e)
+              }
+            />
+            <RadioLineText disabled={disabled}>{name}</RadioLineText>
+            {description && (
+              <React.Fragment>
+                {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
+                <div />
+                <Description>{description}</Description>
+              </React.Fragment>
+            )}
+          </RadioLineItem>
+        </Tooltip>
+      );
+    })}
   </Container>
 );
 
