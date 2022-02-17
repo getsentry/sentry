@@ -537,7 +537,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 sample_rate=1.0,
             )
             if errors and features.has(
-                "organizations-release-health-check-metrics-report", organization
+                "organizations:release-health-check-metrics-report", organization
             ):
                 # We heavily rely on Sentry's message sanitization to properly deduplicate this
                 capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")
