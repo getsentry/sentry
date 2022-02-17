@@ -385,7 +385,11 @@ def process_messages(
             metric_name = parsed_payload_value["name"]
             tags = parsed_payload_value.get("tags", {})
 
-            new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
+            try:
+                new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
+            except KeyError:
+                logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
+                continue
 
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = mapping[metric_name]
