@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import SentryAppInstallation
+from sentry.models import SentryAppComponent, SentryAppInstallation
 
 
 @register(AlertRuleTriggerAction)
@@ -43,23 +43,40 @@ class AlertRuleTriggerActionSerializer(Serializer):
         return action.target_identifier if action.type == action.Type.SLACK.value else None
 
     def get_attrs(self, item_list, user, **kwargs):
-        actions = {item.id: item for item in item_list}
+        sentry_app_ids = {action.sentry_app_id for action in item_list}
+        sentry_app_installations = SentryAppInstallation.objects.get_installed_for_organization(
+            kwargs["organization_id"]
+        ).filter(sentry_app_id__in=sentry_app_ids)
+        sentry_app_installations_by_sentry_app_id = {
+            installation.sentry_app_id: installation for installation in sentry_app_installations
+        }
+
+        components = SentryAppComponent.objects.filter(
+            sentry_app_id__in=sentry_app_ids, type="alert-rule-action"
+        )
+        component_by_sentry_app_id = {
+            component.sentry_app_id: component for component in components
+        }
         result = defaultdict(dict)
 
-        for id, action in actions.items():
-            if action.sentry_app_id and action.sentry_app_config:
-                sentry_app_installation = (
-                    SentryAppInstallation.objects.get_installed_for_organization(
-                        kwargs["organization_id"]
-                    )
-                    .filter(sentry_app_id=action.sentry_app_id)
-                    .get()
-                )
+        for action in item_list:
+            sentry_app_installation = sentry_app_installations_by_sentry_app_id.get(
+                action.sentry_app_id
+            )
 
-                component = sentry_app_installation.prepare_sentry_app_components(
-                    "alert-rule-action", None, action.sentry_app_config
-                )
-                result[actions[id]] = {"formFields": component.schema.get("settings", {})}
+            if not (sentry_app_installation and action.sentry_app_config):
+                continue
+
+            sentry_app_component = component_by_sentry_app_id.get(action.sentry_app_id)
+
+            if not sentry_app_component:
+                continue
+
+            component = sentry_app_installation.sentry_app_preparer(
+                sentry_app_component, None, action.sentry_app_config
+            )
+
+            result[action] = {"formFields": component.schema.get("settings", {})}
 
         return result
 

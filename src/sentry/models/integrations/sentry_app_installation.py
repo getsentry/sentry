@@ -89,8 +89,6 @@ class SentryAppInstallation(ParanoidModel):
         return super().save(*args, **kwargs)
 
     def prepare_sentry_app_components(self, component_type, project=None, values=None):
-        from sentry.coreapi import APIError
-        from sentry.mediators import sentry_app_components
         from sentry.models import SentryAppComponent
 
         try:
@@ -99,6 +97,12 @@ class SentryAppInstallation(ParanoidModel):
             )
         except SentryAppComponent.DoesNotExist:
             return None
+
+        return self.sentry_app_preparer(component, project, values)
+
+    def sentry_app_preparer(self, component, project=None, values=None):
+        from sentry.coreapi import APIError
+        from sentry.mediators import sentry_app_components
 
         try:
             if values is None:
