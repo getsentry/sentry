@@ -44,7 +44,7 @@ function BuilderBreadCrumbs({
     label,
   };
 
-  function getChangeableCrumb(): CrumbDropdown {
+  function getProjectDropdownCrumb(): CrumbDropdown {
     return {
       onSelect: ({value}) => {
         browserHistory.push(
@@ -76,7 +76,7 @@ function BuilderBreadCrumbs({
     };
   }
 
-  const projectCrumb = canChangeProject ? getChangeableCrumb() : projectCrumbLink;
+  const projectCrumb = canChangeProject ? getProjectDropdownCrumb() : projectCrumbLink;
 
   const crumbs: (Crumb | CrumbDropdown)[] = [
     {
