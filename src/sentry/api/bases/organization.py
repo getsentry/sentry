@@ -1,3 +1,5 @@
+import logging
+
 import sentry_sdk
 from django.core.cache import cache
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -27,6 +29,8 @@ from sentry.utils.compat import map
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context
+
+logger = logging.getLogger("sentry.superuser")
 
 
 class NoProjects(Exception):
@@ -158,6 +162,25 @@ class OrganizationAlertRulePermission(OrganizationPermission):
 
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
+
+    def initialize_request(self, request: Request, organization_slug, *args, **kwargs):
+        if request.user.is_superuser and is_active_superuser(request):
+            if not request.session.get("orgs_accessed"):
+                request.session["orgs_accessed"] = [organization_slug]
+            elif organization_slug not in request.session["orgs_accessed"]:
+                request.session["orgs_accessed"].append(organization_slug)
+                logger.info(
+                    "su_access.organization_change",
+                    extra={
+                        "user_id": request.user.id,
+                        "user_email": request.user.email,
+                        "su_access_category": request.session["su_access"]["su_access_category"],
+                        "reason_for_su": request.session["su_access"]["reason_for_su"],
+                        "orgs_accessed": request.session["orgs_accessed"],
+                    },
+                )
+
+        return super().initialize_request(request, *args, **kwargs)
 
     def get_projects(
         self,

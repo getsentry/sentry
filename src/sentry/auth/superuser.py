@@ -18,10 +18,9 @@ from django.conf import settings
 from django.core.signing import BadSignature
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
-from simplejson.errors import JSONDecodeError
+from rest_framework import serializers
 
 from sentry.auth.system import is_system_auth
-from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
 
 logger = logging.getLogger("sentry.superuser")
@@ -58,6 +57,11 @@ def is_active_superuser(request):
         return True
     su = getattr(request, "superuser", None) or Superuser(request)
     return su.is_active
+
+
+class SuperuserAccessSerializer(serializers.Serializer):
+    su_access_category = serializers.CharField()
+    reason_for_su = serializers.CharField(min_length=1, max_length=128)
 
 
 class Superuser:
@@ -291,24 +295,27 @@ class Superuser:
         # is there anything else that calls this besides suodalModal?
         if request.method == "PUT":
             try:
-                SU_access_info = json.loads(request.body)
+                # SU_access_info = json.loads(request.body)  # use drf serializer for this
+                SU_access_info = SuperuserAccessSerializer(data=request.body)
+                if SU_access_info.is_valid():
+                    logger.info(
+                        "su_access.give_su_access",
+                        extra={
+                            "user_id": request.user.id,
+                            "user_email": request.user.email,
+                            "su_access_category": SU_access_info.validated_data[
+                                "categoryOfSUAccess"
+                            ],
+                            "reason_for_su": SU_access_info.validated_data["reasonForSU"],
+                            "orgs_accessed": request.session["orgs_accessed"],
+                        },
+                    )
 
-                logger.info(
-                    "SU_access.give_SU_access",
-                    extra={
-                        "user_id": request.user.id,
-                        "user_email": request.user.email,
-                        "SU_access_catergory": SU_access_info["categoryOfSUAccess"],
-                        "reason_for_SU": SU_access_info["reasonForSU"],
-                        "orgs_accessed": request.session["orgs_accessed"],
-                    },
-                )
-
-                request.session["SU_access"] = {
-                    "SU_access_catergory": SU_access_info["categoryOfSUAccess"],
-                    "reason_for_SU": SU_access_info["reasonForSU"],
-                }
-            except JSONDecodeError:
+                    request.session["su_access"] = {
+                        "su_access_category": SU_access_info["categoryOfSUAccess"],
+                        "reason_for_su": SU_access_info["reasonForSU"],
+                    }
+            except serializers.ValidationError:
                 pass
 
     def set_logged_out(self):

@@ -161,12 +161,12 @@ class SuperuserTestCase(TestCase):
         assert superuser.is_active is True
         assert logger.info.call_count == 2
         logger.info.assert_called_with(
-            "SU_access.give_SU_access",
+            "su_access.give_su_access",
             extra={
                 "user_id": 10,
                 "user_email": "test@sentry.io",
-                "SU_access_catergory": "Edit organization settings",
-                "reason_for_SU": "Edit organization settings",
+                "su_access_category": "Edit organization settings",
+                "reason_for_su": "Edit organization settings",
                 "orgs_accessed": ["sentry"],
             },
         )
