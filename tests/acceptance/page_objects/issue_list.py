@@ -26,30 +26,16 @@ class IssueListPage(BasePage):
 
     def resolve_issues(self):
         self.browser.click('[aria-label="Resolve"]')
+        self.browser.click('[data-test-id="confirm-button"]')
 
     def wait_for_resolved_issue(self):
         self.browser.wait_until('[data-test-id="resolved-issue"]')
-
-    def wait_for_issue_removal(self):
-        self.browser.wait_until_not('[data-test-id="toast-loading"]')
 
     def wait_for_issue(self):
         self.browser.wait_until('[data-test-id="group"]')
 
     def find_resolved_issues(self):
         return self.browser.elements('[data-test-id="resolved-issue"]')
-
-    def ignore_issues(self):
-        self.browser.click('[aria-label="Ignore"]')
-
-    def delete_issues(self):
-        self.browser.click('[aria-label="Open more issue actions"]')
-        self.browser.click('[aria-label="Delete Issues"]')
-        self.browser.click('[data-test-id="confirm-button"]')
-
-    def merge_issues(self):
-        self.browser.click('[aria-label="Merge Selected Issues"]')
-        self.browser.click('[data-test-id="confirm-button"]')
 
     def mark_reviewed_issues(self):
         self.browser.click('[aria-label="Mark Reviewed"]')

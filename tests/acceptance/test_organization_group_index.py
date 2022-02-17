@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytz
 from django.utils import timezone
 
-from sentry.models import AssistantActivity, GroupInboxReason, GroupStatus
+from sentry.models import AssistantActivity, GroupInboxReason
 from sentry.models.groupinbox import add_group_to_inbox
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -30,7 +30,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     def create_issues(self):
-        self.event_a = self.store_event(
+        event_a = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
@@ -39,8 +39,8 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        add_group_to_inbox(self.event_a.group, GroupInboxReason.NEW)
-        self.event_b = self.store_event(
+        add_group_to_inbox(event_a.group, GroupInboxReason.NEW)
+        event_b = self.store_event(
             data={
                 "event_id": "b" * 32,
                 "message": "oh snap",
@@ -49,7 +49,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        add_group_to_inbox(self.event_b.group, GroupInboxReason.NEW)
+        add_group_to_inbox(event_b.group, GroupInboxReason.NEW)
 
     def test_with_onboarding(self):
         self.project.update(first_event=None)
@@ -80,155 +80,21 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def test_resolve_issues(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.create_issues()
-
-        group1 = self.event_a.group
-
-        self.page.visit_issue_list(self.org.slug)
-        self.page.wait_for_stream()
-
-        self.page.select_issue(1)
-        self.page.resolve_issues()
-
-        group1.update(status=GroupStatus.RESOLVED)
-
-        self.page.wait_for_issue_removal()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
-
-        assert len(groups) == 1
-
-    @patch("django.utils.timezone.now")
-    def test_resolve_issues_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
-
-        group1 = self.event_a.group
-
-        with self.feature("organizations:global-views"):
-            self.page.visit_issue_list(self.org.slug)
-            self.page.wait_for_stream()
-
-            self.page.select_issue(1)
-            self.page.resolve_issues()
-
-            group1.update(status=GroupStatus.RESOLVED)
-
-            self.page.wait_for_issue_removal()
-            groups = self.browser.elements('[data-test-id="event-issue-header"]')
-
-            assert len(groups) == 1
-
-    @patch("django.utils.timezone.now")
-    def test_ignore_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
-
-        group1 = self.event_a.group
-
-        self.page.visit_issue_list(self.org.slug)
-        self.page.wait_for_stream()
-
-        self.page.select_issue(1)
-        self.page.ignore_issues()
-
-        group1.update(status=GroupStatus.IGNORED)
-
-        self.page.wait_for_issue_removal()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
-
-        assert len(groups) == 1
-
-    @patch("django.utils.timezone.now")
-    def test_ignore_issues_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
-
-        group1 = self.event_a.group
-
-        with self.feature("organizations:global-views"):
-            self.page.visit_issue_list(self.org.slug)
-            self.page.wait_for_stream()
-
-            self.page.select_issue(1)
-            self.page.ignore_issues()
-
-            group1.update(status=GroupStatus.IGNORED)
-
-            self.page.wait_for_issue_removal()
-            groups = self.browser.elements('[data-test-id="event-issue-header"]')
-
-            assert len(groups) == 1
-
-    @patch("django.utils.timezone.now")
-    def test_delete_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
-
-        group1 = self.event_a.group
-
-        self.page.visit_issue_list(self.org.slug)
-        self.page.wait_for_stream()
-
-        self.page.select_issue(1)
-        self.page.delete_issues()
-
-        group1.update(status=GroupStatus.PENDING_DELETION)
-
-        self.page.wait_for_issue_removal()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
-
-        assert len(groups) == 1
-
-    @patch("django.utils.timezone.now")
-    def test_delete_issues_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
-
-        group1 = self.event_a.group
-
-        with self.feature("organizations:global-views"):
-            self.page.visit_issue_list(self.org.slug)
-            self.page.wait_for_stream()
-
-            self.page.select_issue(1)
-            self.page.delete_issues()
-
-            group1.update(status=GroupStatus.PENDING_DELETION)
-
-            self.page.wait_for_issue_removal()
-            groups = self.browser.elements('[data-test-id="event-issue-header"]')
-
-            assert len(groups) == 1
-
-    @patch("django.utils.timezone.now")
-    def test_merge_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
-
-        group1 = self.event_a.group
-        group2 = self.event_b.group
-
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
 
         self.page.select_issue(1)
         self.page.select_issue(2)
-        self.page.merge_issues()
+        self.page.resolve_issues()
+        self.page.wait_for_resolved_issue()
+        resolved_groups = self.page.find_resolved_issues()
 
-        group1.update(status=GroupStatus.PENDING_MERGE)
-        group2.update(status=GroupStatus.PENDING_MERGE)
-
-        self.page.wait_for_issue_removal()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
-
-        assert len(groups) == 1
+        assert len(resolved_groups) == 2
 
     @patch("django.utils.timezone.now")
-    def test_merge_issues_multi_projects(self, mock_now):
+    def test_resolve_issues_multi_projects(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.create_issues()
-
-        group1 = self.event_a.group
-        group2 = self.event_b.group
 
         with self.feature("organizations:global-views"):
             self.page.visit_issue_list(self.org.slug)
@@ -236,15 +102,11 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
             self.page.select_issue(1)
             self.page.select_issue(2)
-            self.page.merge_issues()
+            self.page.resolve_issues()
+            self.page.wait_for_resolved_issue()
+            resolved_groups = self.page.find_resolved_issues()
 
-            group1.update(status=GroupStatus.PENDING_MERGE)
-            group2.update(status=GroupStatus.PENDING_MERGE)
-
-            self.page.wait_for_issue_removal()
-            groups = self.browser.elements('[data-test-id="event-issue-header"]')
-
-            assert len(groups) == 1
+            assert len(resolved_groups) == 2
 
     @patch("django.utils.timezone.now")
     def test_inbox_results(self, mock_now):
