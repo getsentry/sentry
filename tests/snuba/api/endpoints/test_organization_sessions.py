@@ -397,6 +397,21 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_filter_unknown_release(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1h",
+                "field": ["sum(session)"],
+                "query": "release:foo@6.6.6",
+                "groupBy": "session.status",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+    @freeze_time("2021-01-14T12:27:28.303Z")
     def test_groupby_project(self):
         response = self.do_request(
             {

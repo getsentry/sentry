@@ -451,9 +451,13 @@ def _run_sessions_query(query):
         referrer="sessions.totals",
     )
 
-    # We only get the time series for groups which also have a total:
     totals = result_totals["data"]
-    if totals and query.query_groupby:
+    if not totals:
+        # No need to query time series if totals is already empty
+        return [], []
+
+    # We only get the time series for groups which also have a total:
+    if query.query_groupby:
         # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
         groups = {tuple(row[column] for column in query.query_groupby) for row in totals}
         extra_conditions = [[["tuple", query.query_groupby], "IN", groups]] + [
