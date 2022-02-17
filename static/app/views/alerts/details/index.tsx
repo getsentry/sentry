@@ -1,66 +1,20 @@
-import {useEffect, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import * as React from 'react';
+import type {RouteComponentProps} from 'react-router';
 
-import {Client} from 'sentry/api';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
-
-import {AlertRuleStatus, Incident} from '../types';
-import {fetchIncident} from '../utils';
+import Feature from 'sentry/components/acl/feature';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  api: Client;
-  organization: Organization;
-} & RouteComponentProps<{alertId: string; orgId: string}, {}>;
+  children?: React.ReactNode;
+} & RouteComponentProps<{organizationId: string; projectId: string}, {}>;
 
-export const alertDetailsLink = (organization: Organization, incident: Incident) =>
-  `/organizations/${organization.slug}/alerts/rules/details/${
-    incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-    incident.alertRule.originalAlertRuleId
-      ? incident.alertRule.originalAlertRuleId
-      : incident.alertRule.id
-  }/`;
-
-function IncidentDetails({organization, params}: Props) {
-  const api = useApi();
-  const [hasError, setHasError] = useState(false);
-
-  const track = () => {
-    trackAnalyticsEvent({
-      eventKey: 'alert_details.viewed',
-      eventName: 'Alert Details: Viewed',
-      organization_id: parseInt(organization.id, 10),
-      alert_id: parseInt(params.alertId, 10),
-    });
-  };
-
-  const fetchData = async () => {
-    setHasError(false);
-
-    try {
-      const incident = await fetchIncident(api, params.orgId, params.alertId);
-      browserHistory.replace({
-        pathname: alertDetailsLink(organization, incident),
-        query: {alert: incident.identifier},
-      });
-    } catch (err) {
-      setHasError(true);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    track();
-  }, []);
-
-  if (hasError) {
-    return <LoadingError onRetry={fetchData} />;
-  }
-
-  return <LoadingIndicator />;
+function RuleDetailsContainer({children}: Props) {
+  const organization = useOrganization();
+  return (
+    <Feature organization={organization} features={['alert-rule-status-page']}>
+      {children && React.isValidElement(children) ? children : null}
+    </Feature>
+  );
 }
 
-export default IncidentDetails;
+export default RuleDetailsContainer;

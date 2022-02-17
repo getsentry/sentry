@@ -15,8 +15,14 @@ import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import type {Color} from 'sentry/utils/theme';
 
+import CollapsePanel, {COLLAPSE_COUNT} from './collapsePanel';
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
-import {barAxisLabel, convertDayValueObjectToSeries, groupByTrend} from './utils';
+import {
+  barAxisLabel,
+  convertDayValueObjectToSeries,
+  groupByTrend,
+  sortSeriesByDay,
+} from './utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -28,6 +34,7 @@ type UnresolvedCount = {unresolved: number};
 type ProjectReleaseCount = Record<string, Record<string, UnresolvedCount>>;
 
 type State = AsyncComponent['state'] & {
+  expandTable: boolean;
   /** weekly selected date range */
   periodIssues: ProjectReleaseCount | null;
 };
@@ -39,6 +46,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       periodIssues: null,
+      expandTable: false,
     };
   }
 
@@ -84,6 +92,10 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
 
     return Math.round(total / entries.length);
   }
+
+  handleExpandTable = () => {
+    this.setState({expandTable: true});
+  };
 
   renderLoading() {
     return this.renderBody();
@@ -133,9 +145,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
       return acc;
     }, {});
 
-    const seriesData = convertDayValueObjectToSeries(totalByDay).sort(
-      (a, b) => new Date(a.name).getTime() - new Date(b.name).getTime()
-    );
+    const seriesData = sortSeriesByDay(convertDayValueObjectToSeries(totalByDay));
 
     return (
       <div>
@@ -148,7 +158,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
               useShortDate
               legend={{right: 3, top: 0}}
               yAxis={{minInterval: 1}}
-              xAxis={barAxisLabel(Math.round(seriesData.length / 7))}
+              xAxis={barAxisLabel(seriesData.length)}
               series={[
                 {
                   seriesName: t('Unresolved Issues'),
@@ -160,53 +170,64 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
             />
           )}
         </ChartWrapper>
-        <StyledPanelTable
-          isEmpty={projects.length === 0}
-          isLoading={loading}
-          headers={[
-            t('Project'),
-            <RightAligned key="last">
-              {tct('Last [period] Average', {period})}
-            </RightAligned>,
-            <RightAligned key="curr">{t('Today')}</RightAligned>,
-            <RightAligned key="diff">{t('Change')}</RightAligned>,
-          ]}
-        >
-          {groupedProjects.map(({project}) => {
-            const totals = projectTotals[project.id] ?? {};
+        <CollapsePanel items={groupedProjects.length}>
+          {({isExpanded, showMoreButton}) => (
+            <Fragment>
+              <StyledPanelTable
+                isEmpty={projects.length === 0}
+                isLoading={loading}
+                headers={[
+                  t('Project'),
+                  <RightAligned key="last">
+                    {tct('Last [period] Average', {period})}
+                  </RightAligned>,
+                  <RightAligned key="curr">{t('Today')}</RightAligned>,
+                  <RightAligned key="diff">{t('Change')}</RightAligned>,
+                ]}
+              >
+                {groupedProjects.map(({project}, idx) => {
+                  const totals = projectTotals[project.id] ?? {};
 
-            return (
-              <Fragment key={project.id}>
-                <ProjectBadgeContainer>
-                  <ProjectBadge avatarSize={18} project={project} />
-                </ProjectBadgeContainer>
+                  if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                    return null;
+                  }
 
-                <ScoreWrapper>{totals.periodAvg}</ScoreWrapper>
-                <ScoreWrapper>{totals.today}</ScoreWrapper>
-                <ScoreWrapper>
-                  <SubText
-                    color={
-                      totals.percentChange === 0
-                        ? 'gray300'
-                        : totals.percentChange > 0
-                        ? 'red300'
-                        : 'green300'
-                    }
-                  >
-                    {formatPercentage(
-                      Number.isNaN(totals.percentChange) ? 0 : totals.percentChange,
-                      0
-                    )}
-                    <PaddedIconArrow
-                      direction={totals.percentChange > 0 ? 'up' : 'down'}
-                      size="xs"
-                    />
-                  </SubText>
-                </ScoreWrapper>
-              </Fragment>
-            );
-          })}
-        </StyledPanelTable>
+                  return (
+                    <Fragment key={project.id}>
+                      <ProjectBadgeContainer>
+                        <ProjectBadge avatarSize={18} project={project} />
+                      </ProjectBadgeContainer>
+
+                      <ScoreWrapper>{totals.periodAvg}</ScoreWrapper>
+                      <ScoreWrapper>{totals.today}</ScoreWrapper>
+                      <ScoreWrapper>
+                        <SubText
+                          color={
+                            totals.percentChange === 0
+                              ? 'gray300'
+                              : totals.percentChange > 0
+                              ? 'red300'
+                              : 'green300'
+                          }
+                        >
+                          {formatPercentage(
+                            Number.isNaN(totals.percentChange) ? 0 : totals.percentChange,
+                            0
+                          )}
+                          <PaddedIconArrow
+                            direction={totals.percentChange > 0 ? 'up' : 'down'}
+                            size="xs"
+                          />
+                        </SubText>
+                      </ScoreWrapper>
+                    </Fragment>
+                  );
+                })}
+              </StyledPanelTable>
+              {!loading && showMoreButton}
+            </Fragment>
+          )}
+        </CollapsePanel>
       </div>
     );
   }

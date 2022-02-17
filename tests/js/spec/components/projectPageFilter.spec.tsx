@@ -137,4 +137,26 @@ describe('ProjectPageFilter', function () {
       })
     );
   });
+
+  it('will change projects when page filter selection changes, e.g. from back button nav', async function () {
+    mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <ProjectPageFilter />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
+
+    // Confirm initial selection
+    expect(screen.getByText('My Projects')).toBeInTheDocument();
+
+    // Edit page filter project selection
+    act(() => {
+      PageFiltersStore.updateProjects([2], []);
+    });
+
+    // Page filter selection change should affect project page filter
+    expect(await screen.findByText('project-2')).toBeInTheDocument();
+  });
 });

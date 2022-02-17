@@ -6,6 +6,9 @@ import set from 'lodash/set';
 
 import Button from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
+import Input from 'sentry/components/forms/controls/input';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -20,9 +23,6 @@ import space from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {
   DashboardDetails,

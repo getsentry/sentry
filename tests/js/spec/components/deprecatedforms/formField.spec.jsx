@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Form from 'sentry/views/settings/components/forms/form';
-import FormModel from 'sentry/views/settings/components/forms/model';
-import TextField from 'sentry/views/settings/components/forms/textField';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
+import TextField from 'sentry/components/forms/textField';
 
 describe('FormField + model', function () {
   let model;
