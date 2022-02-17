@@ -162,9 +162,7 @@ function DashboardList({
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
-          title={
-            dashboard.id === 'default-overview' ? 'Default Dashboard' : dashboard.title
-          }
+          title={dashboard.title}
           to={{
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
