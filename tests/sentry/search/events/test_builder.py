@@ -683,7 +683,6 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
     def test_default_conditions(self):
         query = MetricsQueryBuilder(self.params, "", selected_columns=[])
         self.assertCountEqual(query.where, self.default_conditions)
-        assert False
 
     def test_simple_aggregates(self):
         query = MetricsQueryBuilder(

@@ -1672,10 +1672,12 @@ class MetricsQueryBuilder(QueryBuilder):
                     ]
                     # Because we've added a condition for each groupby value we don't want an offset here
                     offset = Offset(0)
+                    referrer_suffix = "secondary"
                 else:
                     # We don't have our groupby values yet, this means this is the query where we're getting them
                     where = self.where
                     offset = self.offset
+                    referrer_suffix = "primary"
 
                 query = Query(
                     dataset=self.dataset.value,
@@ -1693,7 +1695,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
                 current_result = raw_snql_query(
                     query,
-                    referrer,
+                    f"{referrer}.{referrer_suffix}",
                     use_cache,
                 )
                 for row in current_result["data"]:
