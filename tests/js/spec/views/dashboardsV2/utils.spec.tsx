@@ -185,7 +185,7 @@ describe('Dashboards util', () => {
       };
       const url = getWidgetDiscoverUrl(widget, selection, TestStubs.Organization());
       expect(url).toEqual(
-        '/organizations/org-slug/discover/results/?display=top5&field=error.type&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
+        '/organizations/org-slug/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
     });
   });
