@@ -562,6 +562,7 @@ function WidgetBuilder({
                 >
                   {state.dataSet === DataSet.EVENTS ? (
                     <SelectControl
+                      menuPlacement="auto"
                       value={state.queries[0].orderby}
                       name="orderby"
                       options={generateOrderOptions(state.queries[0].fields)}
@@ -575,6 +576,7 @@ function WidgetBuilder({
                     />
                   ) : (
                     <SelectControl
+                      menuPlacement="auto"
                       value={state.queries[0].orderby || IssueSortOptions.DATE}
                       name="orderby"
                       options={generateIssueWidgetOrderOptions(
