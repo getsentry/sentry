@@ -82,11 +82,13 @@ export const doMetricsRequest = (
 export function fetchMetricsTags(
   api: Client,
   orgSlug: Organization['slug'],
-  projects?: number[]
+  projects?: number[],
+  fields?: string[]
 ): Promise<MetricTag[]> {
   const promise = api.requestPromise(`/organizations/${orgSlug}/metrics/tags/`, {
     query: {
       project: projects,
+      metric: fields,
     },
   });
 

@@ -5,7 +5,7 @@ import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 export const METRICS_FIELDS_ALLOW_LIST: string[] = [
   SessionMetric.SENTRY_SESSIONS_SESSION,
-  SessionMetric.SENTRY_SESSIONS_SESSION_ERROR,
+  SessionMetric.SENTRY_SESSIONS_SESSION_DURATION,
   SessionMetric.SENTRY_SESSIONS_USER,
 ];
 

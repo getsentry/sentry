@@ -136,7 +136,7 @@ function WidgetQueryFields({
     return option.value.kind === FieldValueKind.FUNCTION;
   };
 
-  const filterMetricsTags = option => {
+  const filterMetricsOptions = option => {
     return option.value.kind === FieldValueKind.FUNCTION;
   };
 
@@ -246,7 +246,7 @@ function WidgetQueryFields({
               }
               onChange={value => handleTopNChangeField(value)}
               filterPrimaryOptions={
-                isMetricWidget ? filterMetricsTags : filterPrimaryOptions
+                isMetricWidget ? filterMetricsOptions : filterPrimaryOptions
               }
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
             />

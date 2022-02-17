@@ -533,8 +533,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   async fetchMetricsTags() {
     const {api, organization, selection} = this.props;
     const projects = !selection.projects.length ? undefined : selection.projects;
-    const promise = fetchMetricsTags(api, organization.slug, projects);
-    const metricTags = await promise;
+    const metricTags = await fetchMetricsTags(api, organization.slug, projects);
     this.setState({
       metricTags,
     });
@@ -543,9 +542,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   async fetchMetricsFields() {
     const {api, organization, selection} = this.props;
     const projects = !selection.projects.length ? undefined : selection.projects;
-    const promise = fetchMetricsFields(api, organization.slug, projects);
 
-    const metricFields = await promise;
+    const metricFields = await fetchMetricsFields(api, organization.slug, projects);
     const filteredFields = metricFields.filter(field =>
       METRICS_FIELDS_ALLOW_LIST.includes(field.name)
     );
