@@ -191,10 +191,7 @@ class Access(abc.ABC):
 
 class OrganizationMemberAccess(Access):
     def __init__(self, member: OrganizationMember, *args, **kwargs) -> None:
-        has_global_access = (
-            bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global
-        )
-        super().__init__(has_global_access=has_global_access, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._member = member
 
     @cached_property
@@ -410,6 +407,9 @@ def from_member(
         requires_sso=requires_sso,
         sso_is_valid=sso_is_valid,
         scopes=scopes,
+        has_global_access=(
+            bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global
+        ),
         permissions=get_permissions_for_user(member.user_id) if is_superuser else frozenset(),
         role=member.role,
     )
