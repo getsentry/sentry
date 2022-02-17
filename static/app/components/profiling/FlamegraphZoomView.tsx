@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {ColorCoding} from 'sentry/types/profiling/core';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -18,7 +19,7 @@ import {BoundTooltip} from './BoundTooltip';
 
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
-  colorCoding: 'by symbol name' | 'by system / application' | 'by library';
+  colorCoding: ColorCoding;
   flamegraph: Flamegraph | DifferentialFlamegraph;
   highlightRecursion: boolean;
   showSelectedNodeStack?: boolean;
