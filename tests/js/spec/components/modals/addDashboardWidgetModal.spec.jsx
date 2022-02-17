@@ -1355,7 +1355,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sentry.sessions.user'));
-      expect(screen.getByText('sentry.sessions.session.error')).toBeInTheDocument();
       // Ensure METRICS_FIELDS_ALLOW_LIST is honoured
       expect(screen.queryByText('not.on.allow.list')).not.toBeInTheDocument();
 
