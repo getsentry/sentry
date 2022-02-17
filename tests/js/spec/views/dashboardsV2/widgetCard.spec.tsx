@@ -234,7 +234,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
     expect(router.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
