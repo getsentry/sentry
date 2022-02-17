@@ -14,8 +14,9 @@ logger = logging.getLogger("sentry.integrations.jira.webhooks")
 
 class JiraIssueUpdatedWebhook(JiraEndpointBase):
     def post(self, request: Request, *args, **kwargs) -> Response:
+        token = self.get_token(request)
         integration = get_integration_from_jwt(
-            token=self.get_token(request),
+            token=token,
             path=request.path,
             provider=self.provider,
             query_params=request.GET,
