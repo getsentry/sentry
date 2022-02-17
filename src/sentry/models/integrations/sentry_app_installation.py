@@ -88,7 +88,7 @@ class SentryAppInstallation(ParanoidModel):
         self.date_updated = timezone.now()
         return super().save(*args, **kwargs)
 
-    def prepare_sentry_app_components(self, component_type, project=None):
+    def prepare_sentry_app_components(self, component_type, project=None, values=None):
         from sentry.coreapi import APIError
         from sentry.mediators import sentry_app_components
         from sentry.models import SentryAppComponent
@@ -101,7 +101,12 @@ class SentryAppInstallation(ParanoidModel):
             return None
 
         try:
-            sentry_app_components.Preparer.run(component=component, install=self, project=project)
+            if values is None:
+                values = []
+
+            sentry_app_components.Preparer.run(
+                component=component, install=self, project=project, values=values
+            )
             return component
         except APIError:
             # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail

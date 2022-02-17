@@ -29,7 +29,11 @@ class AlertRuleSerializer(Serializer):
 
         result = defaultdict(dict)
         triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")
-        serialized_triggers = serialize(list(triggers))
+        serialized_triggers = serialize(
+            list(triggers),
+            organization_id=item_list[0].organization_id,
+        )
+
         for trigger, serialized in zip(triggers, serialized_triggers):
             alert_rule_triggers = result[alert_rules[trigger.alert_rule_id]].setdefault(
                 "triggers", []
@@ -89,7 +93,7 @@ class AlertRuleSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
@@ -143,7 +147,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))

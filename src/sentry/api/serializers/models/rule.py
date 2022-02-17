@@ -7,6 +7,7 @@ from sentry.models import (
     Rule,
     RuleActivity,
     RuleActivityType,
+    SentryAppInstallation,
     actor_type_to_class,
     actor_type_to_string,
 )
@@ -70,6 +71,19 @@ class RuleSerializer(Serializer):
                 type = actor_type_to_string(rule.owner.type)
                 if rule.owner_id in resolved_actors[type]:
                     result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
+            for action in rule.data.get("actions", []):
+                if action.get(
+                    "id"
+                ) == "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction" and action.get(
+                    "settings"
+                ):
+                    sentry_app_installation = SentryAppInstallation.objects.get(
+                        uuid=action.get("sentryAppInstallationUuid")
+                    )
+                    component = sentry_app_installation.prepare_sentry_app_components(
+                        "alert-rule-action", rule.project, action.get("settings")
+                    )
+                    action["formFields"] = component.schema.get("settings", {})
 
         return result
 

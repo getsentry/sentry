@@ -1,5 +1,8 @@
+from collections import defaultdict
+
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.models import SentryAppInstallation
 
 
 @register(AlertRuleTriggerAction)
@@ -39,7 +42,28 @@ class AlertRuleTriggerActionSerializer(Serializer):
         """
         return action.target_identifier if action.type == action.Type.SLACK.value else None
 
-    def serialize(self, obj, attrs, user):
+    def get_attrs(self, item_list, user, **kwargs):
+        actions = {item.id: item for item in item_list}
+        result = defaultdict(dict)
+
+        for id, action in actions.items():
+            if action.sentry_app_id and action.sentry_app_config:
+                sentry_app_installation = (
+                    SentryAppInstallation.objects.get_installed_for_organization(
+                        kwargs["organization_id"]
+                    )
+                    .filter(sentry_app_id=action.sentry_app_id)
+                    .get()
+                )
+
+                component = sentry_app_installation.prepare_sentry_app_components(
+                    "alert-rule-action", None, action.sentry_app_config
+                )
+                result[actions[id]] = {"formFields": component.schema.get("settings", {})}
+
+        return result
+
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
         result = {
@@ -62,5 +86,6 @@ class AlertRuleTriggerActionSerializer(Serializer):
         # Check if action is a Sentry App that has Alert Rule UI Component settings
         if obj.sentry_app_id and obj.sentry_app_config:
             result["settings"] = obj.sentry_app_config
+            result["formFields"] = attrs.get("formFields", {})
 
         return result
