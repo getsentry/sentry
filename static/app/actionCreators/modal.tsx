@@ -7,6 +7,7 @@ import {DashboardWidgetLibraryModalOptions} from 'sentry/components/modals/dashb
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
+import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {
   Group,
   IssueOwnership,
@@ -271,6 +272,13 @@ export async function openDashboardWidgetLibraryModal(
   options: DashboardWidgetLibraryModalOptions
 ) {
   const mod = await import('sentry/components/modals/dashboardWidgetLibraryModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
+export async function openWidgetViewerModal(options: WidgetViewerModalOptions) {
+  const mod = await import('sentry/components/modals/widgetViewerModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
