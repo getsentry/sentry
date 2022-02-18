@@ -1014,7 +1014,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
     # this for select_for_update mostly provides sufficient synchronization
     # when groups are created and also relieves contention by locking a more
     # specific hash than `hierarchical_hashes[0]`.
-    existing_grouphash, root_hierarchical_hash = _find_existing_grouphash(
+    existing_grouphash, root_hierarchical_hash, found_split = _find_existing_grouphash(
         project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
@@ -1073,7 +1073,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
 
             flat_grouphashes = [gh for gh in all_hashes if gh.hash in hashes.hashes]
 
-            existing_grouphash, root_hierarchical_hash = _find_existing_grouphash(
+            existing_grouphash, root_hierarchical_hash, found_split = _find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
 
@@ -1144,7 +1144,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
     elif root_hierarchical_grouphash.group_id is None:
         # The root hash is not assigned to a group. This can have two reasons:
-        if existing_grouphash.hash in hashes.hierarchical_hashes:
+        if found_split:
             # The group was previously split and is now associated with a deeper
             # hierarchical hash
             new_hashes = []
@@ -1239,7 +1239,7 @@ def _find_existing_grouphash(
 
     for group_hash in all_grouphashes:
         if group_hash.group_id is not None:
-            return group_hash, root_hierarchical_hash
+            return group_hash, root_hierarchical_hash, found_split
 
         # When refactoring for hierarchical grouping, we noticed that a
         # tombstone may get ignored entirely if there is another hash *before*
@@ -1252,7 +1252,7 @@ def _find_existing_grouphash(
         if group_hash.group_tombstone_id is not None:
             raise HashDiscarded("Matches group tombstone %s" % group_hash.group_tombstone_id)
 
-    return None, root_hierarchical_hash
+    return None, root_hierarchical_hash, found_split
 
 
 def _handle_regression(group, event, release):

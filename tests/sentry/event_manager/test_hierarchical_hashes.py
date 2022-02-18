@@ -72,7 +72,9 @@ def test_move_all_events(default_project, fast_save):
 
     # simulate split operation where all events of group are moved into a more specific hash
     GroupHash.objects.filter(group=group).delete()
-    GroupHash.objects.create(project=default_project, hash="f" * 32, group_id=group.id)
+    GroupHash.objects.create(
+        project=default_project, hash="f" * 32, group_id=group.id, state=GroupHash.State.SPLIT
+    )
 
     new_group, is_new, is_regression = fast_save("f")
     assert not is_new
