@@ -10,7 +10,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.http import safe_urlopen
 from sentry.models import Organization
 
-STACKTRACE_FILTERS = [
+PROFILE_FILTERS = [
     "android_api_level",
     "device_classification",
     "device_locale",
@@ -20,17 +20,18 @@ STACKTRACE_FILTERS = [
     "device_os_name",
     "device_os_version",
     "error_code",
+    "received",
     "transaction_name",
     "version",
 ]
 
 
-class OrganizationProfilingStacktracesEndpoint(OrganizationEndpoint):
+class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = {p: request.params[p] for p in STACKTRACE_FILTERS if p in request.params}
+        params = {p: request.params[p] for p in PROFILE_FILTERS if p in request.params}
         projects = self.get_projects(request, organization)
 
         if len(projects) > 0:
@@ -40,11 +41,11 @@ class OrganizationProfilingStacktracesEndpoint(OrganizationEndpoint):
             params["offset"] = offset
             params["limit"] = limit
             response = safe_urlopen(
-                f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/stacktraces",
+                f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/profiles",
                 method="GET",
                 params=params,
             )
-            return response.json().get("stacktraces", [])
+            return response.json().get("profiles", [])
 
         return self.paginate(
             request,
@@ -66,7 +67,7 @@ class OrganizationProfilingFiltersEndpoint(OrganizationEndpoint):
             params["project_id"] = [p.id for p in projects]
 
         response = safe_urlopen(
-            f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/stacktrace_filters",
+            f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/filters",
             method="GET",
             params=params,
         )

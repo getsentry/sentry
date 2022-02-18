@@ -3,10 +3,10 @@ from django.urls import reverse
 from sentry.testutils import APITestCase
 
 
-class OrganizationProfilingStacktracesTest(APITestCase):
+class OrganizationProfilingProfilesTest(APITestCase):
 
     endpoints = (
-        "sentry-api-0-organization-profiling-stacktraces",
+        "sentry-api-0-organization-profiling-profiles",
         "sentry-api-0-organization-profiling-filters",
     )
 
