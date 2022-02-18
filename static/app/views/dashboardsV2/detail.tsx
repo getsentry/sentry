@@ -558,7 +558,6 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   getBreadcrumbLabel() {
-    const {organization, dashboard} = this.props;
     const {dashboardState} = this.state;
 
     let label = this.dashboardTitle;
@@ -566,11 +565,6 @@ class DashboardDetail extends Component<Props, State> {
       label = t('Create Dashboard');
     } else if (this.isPreview) {
       label = t('Preview Dashboard');
-    } else if (
-      organization.features.includes('dashboards-edit') &&
-      dashboard.id === 'default-overview'
-    ) {
-      label = t('Default Dashboard');
     }
     return label;
   }
