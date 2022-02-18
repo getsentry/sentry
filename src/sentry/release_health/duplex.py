@@ -536,7 +536,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 tags={"has_errors": str(bool(errors)), **tags},
                 sample_rate=1.0,
             )
-            if errors:
+            if errors and features.has(
+                "organizations:release-health-check-metrics-report", organization
+            ):
                 # We heavily rely on Sentry's message sanitization to properly deduplicate this
                 capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")
         except Exception:
@@ -615,9 +617,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "project_users_24h": ComparatorType.Counter,
             "project_sessions_24h": ComparatorType.Counter,
         }
-        should_compare = lambda _: datetime.now(timezone.utc) - timedelta(hours=24) > _coerce_utc(
-            self.metrics_start
-        )
+
+        if now is None:
+            now = datetime.now(pytz.utc)
+
+        should_compare = lambda _: now - timedelta(hours=24) > self.metrics_start
 
         if org_id is not None:
             organization = self._org_from_id(org_id)
@@ -729,16 +733,25 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         )
 
     def check_has_health_data(
-        self, projects_list: Sequence[ProjectOrRelease]
+        self,
+        projects_list: Sequence[ProjectOrRelease],
+        now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
+        if now is None:
+            now = datetime.now(pytz.utc)
+
         rollup = self.DEFAULT_ROLLUP  # not used
         schema = {ComparatorType.Exact}
-        should_compare = (
-            lambda _: datetime.now(timezone.utc) - timedelta(days=90) > self.metrics_start
-        )
+        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(projects_list)
         return self._dispatch_call(  # type: ignore
-            "check_has_health_data", should_compare, rollup, organization, schema, projects_list
+            "check_has_health_data",
+            should_compare,
+            rollup,
+            organization,
+            schema,
+            projects_list,
+            now,
         )
 
     def check_releases_have_health_data(
@@ -775,6 +788,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
         stat: Optional[Literal["users", "sessions"]] = None,
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         rollup = self.DEFAULT_ROLLUP  # not used
         # ignore all fields except the 24h ones (the others go to the beginning of time)
@@ -785,9 +799,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "total_project_sessions_24h": ComparatorType.Counter
             # TODO still need to look into stats field and find out what compare conditions it has
         }
-        should_compare = (
-            lambda _: datetime.now(timezone.utc) - timedelta(days=1) > self.metrics_start
-        )
+
+        if now is None:
+            now = datetime.now(pytz.utc)
+
+        should_compare = lambda _: now - timedelta(days=1) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_release_health_data_overview",
@@ -800,6 +816,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             summary_stats_period,
             health_stats_period,
             stat,
+            now,
         )
 
     def get_crash_free_breakdown(
@@ -808,7 +825,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         release: ReleaseName,
         start: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[CrashFreeBreakdown]:
+        if now is None:
+            now = datetime.now(pytz.utc)
+
         rollup = self.DEFAULT_ROLLUP  # TODO Check if this is the rollup we want
         schema = [
             {
@@ -831,11 +852,13 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             release,
             start,
             environments,
+            now,
         )
 
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
         rollup = self.DEFAULT_ROLLUP  # not used
         schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
@@ -843,6 +866,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         should_compare = (
             lambda _: datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
         )
+
+        if now is None:
+            now = datetime.now(pytz.utc)
 
         organization = self._org_from_projects(project_ids)
         return self._dispatch_call(  # type: ignore
@@ -852,16 +878,20 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             organization,
             schema,
             project_ids,
+            now,
         )
 
     def get_oldest_health_data_for_releases(
-        self, project_releases: Sequence[ProjectRelease]
+        self,
+        project_releases: Sequence[ProjectRelease],
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, str]:
+        if now is None:
+            now = datetime.now(pytz.utc)
+
         rollup = self.DEFAULT_ROLLUP  # TODO check if this is correct ?
         schema = {"*": ComparatorType.DateTime}
-        should_compare = (
-            lambda _: datetime.now(timezone.utc) - timedelta(days=90) > self.metrics_start
-        )
+        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_oldest_health_data_for_releases",
@@ -870,6 +900,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             organization,
             schema,
             project_releases,
+            now,
         )
 
     def get_project_releases_count(
@@ -1004,6 +1035,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         scope: str,
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[str]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
         schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
 
@@ -1017,8 +1049,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         if scope.endswith("_24h"):
             stats_period = "24h"
 
-        rollup, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
-        should_compare = lambda _: _coerce_utc(stats_start) > self.metrics_start
+        if now is None:
+            now = datetime.now(pytz.utc)
+
+        rollup, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
+        should_compare = lambda _: now > self.metrics_start
         organization = self._org_from_projects(project_ids)
 
         return self._dispatch_call(  # type: ignore

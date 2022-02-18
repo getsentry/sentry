@@ -77,5 +77,6 @@ class GroupLink(Model):
         app_label = "sentry"
         db_table = "sentry_grouplink"
         unique_together = (("group", "linked_type", "linked_id"),)
+        indexes = [models.Index(fields=["project", "linked_id", "linked_type", "group"])]
 
     __repr__ = sane_repr("group_id", "linked_type", "linked_id", "relationship", "datetime")
