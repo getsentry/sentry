@@ -4,7 +4,8 @@ import re
 import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.template.defaultfilters import slugify
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -55,7 +56,7 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
-@public(methods={"GET"})
+@public(methods={"GET", "POST"})
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
@@ -133,7 +134,44 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             cursor_cls=SCIMCursor,
         )
 
+    @extend_schema(
+        operation_id="Provision a New Team",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG],
+        request=inline_serializer(
+            "SCIMTeamRequestBody",
+            fields={
+                "schemas": serializers.ListField(serializers.CharField()),
+                "displayName": serializers.CharField(),
+                "members": serializers.ListField(serializers.IntegerField()),
+            },
+        ),
+        responses={
+            201: TeamSCIMSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "provisionTeam",
+                response_only=True,
+                value={
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                    "displayName": "Test SCIMv2",
+                    "members": [],
+                    "meta": {"resourceType": "Group"},
+                    "id": "123",
+                },
+                status_codes=["201"],
+            ),
+        ],
+    )
     def post(self, request: Request, organization) -> Response:
+        """
+        Create a new team bound to an organization via a SCIM Groups POST Request.
+        Note that teams are always created with an empty member set.
+        The endpoint will also do a normalization of uppercase / spaces to lowercase and dashes.
+        """
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
         request.data.update(
