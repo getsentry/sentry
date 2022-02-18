@@ -105,6 +105,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
+    default_per_page = 50
+
     def get(self, request: Request, organization) -> Response:
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
@@ -124,7 +126,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         return self.paginate(
             request,
             paginator=MetricsDataSeriesPaginator(data_fn=data_fn),
-            default_per_page=50,
+            default_per_page=self.default_per_page,
             max_per_page=100,
         )
 

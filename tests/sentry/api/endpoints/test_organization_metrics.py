@@ -1,5 +1,6 @@
 import time
 from typing import Optional
+from unittest import mock
 
 from django.urls import reverse
 
@@ -829,6 +830,29 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
             groupBy=["session.status", "bar"],
         )
         assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    @mock.patch(
+        "sentry.api.endpoints.organization_metrics.OrganizationMetricsDataEndpoint.default_per_page",
+        1,
+    )
+    def test_no_limit_with_series(self):
+        """Pagination args do not apply to series"""
+        for minute in range(4):
+            self.store_session(
+                self.build_session(
+                    project_id=self.project.id, started=(time.time() // 60 - minute) * 60
+                )
+            )
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="4m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["sum(sentry.sessions.session)"] == 4
+        assert group["series"]["sum(sentry.sessions.session)"] == [1, 1, 1, 1]
 
     @with_feature(FEATURE_FLAG)
     def test_unknown_filter(self):
