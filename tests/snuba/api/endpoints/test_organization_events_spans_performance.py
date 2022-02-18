@@ -1055,35 +1055,43 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         query = mock_raw_snql_query.call_args_list[0][0][0].where
 
+        matching_span_ops_groups = Function(
+            "arrayMap",
+            [
+                Lambda(
+                    ["x", "y"],
+                    Function(
+                        "and",
+                        [
+                            Function("equals", [Identifier("x"), "http.server"]),
+                            Function("equals", [Identifier("y"), "ab" * 8]),
+                        ],
+                    ),
+                ),
+                Column("spans.op"),
+                Column("spans.group"),
+            ],
+        )
+
+        assert (
+            Condition(lhs=Function("has", [Column("spans.op"), "http.server"]), op=Op.EQ, rhs=1)
+            in query
+        )
+
+        assert (
+            Condition(lhs=Function("has", [Column("spans.group"), "ab" * 8]), op=Op.EQ, rhs=1)
+            in query
+        )
+
         assert (
             Condition(
-                Function(
+                lhs=Function(
                     "arrayReduce",
-                    [
-                        "countIf",
-                        Column("spans.exclusive_time"),
-                        Function(
-                            "arrayMap",
-                            [
-                                Lambda(
-                                    ["x", "y"],
-                                    Function(
-                                        "and",
-                                        [
-                                            Function("equals", [Identifier("x"), "http:server"]),
-                                            Function("equals", [Identifier("y"), "ab" * 8]),
-                                        ],
-                                    ),
-                                ),
-                                Column("spans.op"),
-                                Column("spans.group"),
-                            ],
-                        ),
-                    ],
+                    ["countIf", Column("spans.exclusive_time"), matching_span_ops_groups],
                     "count_span_time",
                 ),
-                Op.GT,
-                0,
+                op=Op.GT,
+                rhs=0,
             )
             in query
         )
