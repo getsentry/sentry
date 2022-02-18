@@ -40,7 +40,7 @@ export const METRIC_TO_COLUMN_TYPE: Readonly<
   [SessionMetric.SENTRY_SESSIONS_USER]: 'integer',
   [SessionMetric.SENTRY_SESSIONS_SESSION_ERROR]: 'integer',
   [SessionMetric.SENTRY_SESSIONS_SESSION_DURATION]: 'duration',
-  [SessionMetric.SENTRY_SESSIONS_SESSION]: 'duration',
+  [SessionMetric.SENTRY_SESSIONS_SESSION]: 'integer',
 
   // Transaction metrics
   [TransactionMetric.SENTRY_TRANSACTIONS_USER]: 'integer',
