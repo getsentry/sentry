@@ -1,11 +1,17 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GlobalModal from 'sentry/components/globalModal';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const mountedModals = [];
 
-export async function mountGlobalModal(context) {
-  const modal = mountWithTheme(<GlobalModal />, context);
+export async function mountGlobalModal(context, organization) {
+  const modal = mountWithTheme(
+    <OrganizationContext.Provider value={organization}>
+      <GlobalModal />
+    </OrganizationContext.Provider>,
+    context
+  );
   mountedModals.push(modal);
   await tick();
   modal.update();

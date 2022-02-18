@@ -74,7 +74,7 @@ describe('Dashboards > Create', function () {
         body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
       });
 
-      mountGlobalModal(initialData.routerContext);
+      mountGlobalModal(initialData.routerContext, initialData.organization);
 
       const widgetTitle = 'Widget Title';
 
@@ -86,7 +86,7 @@ describe('Dashboards > Create', function () {
           location={initialData.router.location}
           {...initialData.router}
         />,
-        {context: initialData.routerContext}
+        {context: initialData.routerContext, organization: initialData.organization}
       );
 
       await act(async () => {

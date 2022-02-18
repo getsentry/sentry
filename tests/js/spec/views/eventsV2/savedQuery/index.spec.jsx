@@ -7,6 +7,7 @@ import DiscoverBanner from 'sentry/views/eventsV2/banner';
 import {ALL_VIEWS} from 'sentry/views/eventsV2/data';
 import SavedQueryButtonGroup from 'sentry/views/eventsV2/savedQuery';
 import * as utils from 'sentry/views/eventsV2/savedQuery/utils';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const SELECTOR_BUTTON_SAVE_AS = 'button[aria-label="Save as"]';
 const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';
@@ -23,15 +24,17 @@ function generateWrappedComponent(
   disabled = false
 ) {
   return mountWithTheme(
-    <SavedQueryButtonGroup
-      location={location}
-      organization={organization}
-      eventView={eventView}
-      savedQuery={savedQuery}
-      disabled={disabled}
-      updateCallback={() => {}}
-      yAxis={yAxis}
-    />,
+    <OrganizationContext.Provider value={organization}>
+      <SavedQueryButtonGroup
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        savedQuery={savedQuery}
+        disabled={disabled}
+        updateCallback={() => {}}
+        yAxis={yAxis}
+      />
+    </OrganizationContext.Provider>,
     TestStubs.routerContext()
   );
 }
@@ -447,7 +450,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         .simulate('click');
       await tick();
       await tick();
-      const modal = await mountGlobalModal();
+      const modal = await mountGlobalModal(undefined, organization);
       expect(
         modal.find('AddDashboardWidgetModal').find('h4').children().at(0).html()
       ).toEqual('Add Widget to Dashboard');
@@ -467,7 +470,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         .simulate('click');
       await tick();
       await tick();
-      const modal = await mountGlobalModal();
+      const modal = await mountGlobalModal(undefined, organization);
       expect(modal.find('SmartSearchBar').props().query).toEqual('event.type:error');
       expect(modal.find('QueryField').at(0).props().fieldValue.function[0]).toEqual(
         'count'
@@ -491,7 +494,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         .simulate('click');
       await tick();
       await tick();
-      const modal = await mountGlobalModal();
+      const modal = await mountGlobalModal(undefined, organization);
       expect(modal.find('QueryField').at(2).props().fieldValue.field).toEqual(
         'count() + failure_count()'
       );

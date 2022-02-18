@@ -9,6 +9,7 @@ import {
 import MemberListStore from 'sentry/stores/memberListStore';
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({
@@ -119,20 +120,22 @@ describe('Dashboards > Dashboard', () => {
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
-      <Dashboard
-        paramDashboardId="1"
-        dashboard={mockDashboard}
-        organization={initialData.organization}
-        isEditing={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
-        router={initialData.router}
-        location={initialData.location}
-        newWidget={newWidget}
-        widgetLimitReached={false}
-      />,
+      <OrganizationContext.Provider value={initialData.organization}>
+        <Dashboard
+          paramDashboardId="1"
+          dashboard={mockDashboard}
+          organization={initialData.organization}
+          isEditing={false}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={mockHandleAddCustomWidget}
+          onSetWidgetToBeUpdated={() => undefined}
+          router={initialData.router}
+          location={initialData.location}
+          newWidget={newWidget}
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>,
       initialData.routerContext
     );
     await tick();
@@ -143,19 +146,21 @@ describe('Dashboards > Dashboard', () => {
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
-      <Dashboard
-        paramDashboardId="1"
-        dashboard={mockDashboard}
-        organization={initialData.organization}
-        isEditing={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
-        handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
-        router={initialData.router}
-        location={initialData.location}
-        widgetLimitReached={false}
-      />,
+      <OrganizationContext.Provider value={initialData.organization}>
+        <Dashboard
+          paramDashboardId="1"
+          dashboard={mockDashboard}
+          organization={initialData.organization}
+          isEditing={false}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={mockHandleAddCustomWidget}
+          onSetWidgetToBeUpdated={() => undefined}
+          router={initialData.router}
+          location={initialData.location}
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>,
       initialData.routerContext
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
@@ -172,19 +177,21 @@ describe('Dashboards > Dashboard', () => {
     });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
       rtlMountWithTheme(
-        <Dashboard
-          paramDashboardId="1"
-          dashboard={dashboard}
-          organization={mockedOrg}
-          isEditing={false}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
-          onSetWidgetToBeUpdated={() => undefined}
-          router={initialData.router}
-          location={initialData.location}
-          widgetLimitReached={false}
-        />
+        <OrganizationContext.Provider value={initialData.organization}>
+          <Dashboard
+            paramDashboardId="1"
+            dashboard={dashboard}
+            organization={mockedOrg}
+            isEditing={false}
+            onUpdate={() => undefined}
+            handleUpdateWidgetList={() => undefined}
+            handleAddCustomWidget={() => undefined}
+            onSetWidgetToBeUpdated={() => undefined}
+            router={initialData.router}
+            location={initialData.location}
+            widgetLimitReached={false}
+          />
+        </OrganizationContext.Provider>
       );
     };
 
@@ -227,21 +234,23 @@ describe('Dashboards > Dashboard', () => {
     let widgets: Widget[];
     const mount = dashboard => {
       const getDashboardComponent = () => (
-        <Dashboard
-          paramDashboardId="1"
-          dashboard={dashboard}
-          organization={initialData.organization}
-          isEditing
-          onUpdate={newWidgets => {
-            widgets.splice(0, widgets.length, ...newWidgets);
-          }}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
-          onSetWidgetToBeUpdated={() => undefined}
-          router={initialData.router}
-          location={initialData.location}
-          widgetLimitReached={false}
-        />
+        <OrganizationContext.Provider value={initialData.organization}>
+          <Dashboard
+            paramDashboardId="1"
+            dashboard={dashboard}
+            organization={initialData.organization}
+            isEditing
+            onUpdate={newWidgets => {
+              widgets.splice(0, widgets.length, ...newWidgets);
+            }}
+            handleUpdateWidgetList={() => undefined}
+            handleAddCustomWidget={() => undefined}
+            onSetWidgetToBeUpdated={() => undefined}
+            router={initialData.router}
+            location={initialData.location}
+            widgetLimitReached={false}
+          />
+        </OrganizationContext.Provider>
       );
       const {rerender} = rtlMountWithTheme(getDashboardComponent());
       return {rerender: () => rerender(getDashboardComponent())};
