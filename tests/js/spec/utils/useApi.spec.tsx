@@ -1,4 +1,4 @@
-import {renderHook} from '@testing-library/react-hooks';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import useApi from 'sentry/utils/useApi';

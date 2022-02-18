@@ -6,6 +6,7 @@ import {
   render,
   RenderOptions,
 } from '@testing-library/react';
+import {renderHook} from '@testing-library/react-hooks';
 import userEvent from '@testing-library/user-event';
 
 import GlobalModal from 'sentry/components/globalModal';
@@ -71,6 +72,7 @@ const mountWithTheme = (
   return render(ui, {wrapper: AllTheProviders, ...otherOptions});
 };
 
+// eslint-disable-next-line no-restricted-imports
 export * from '@testing-library/react';
 
 /**
@@ -84,4 +86,4 @@ export function mountGlobalModal(context) {
   return mountWithTheme(<GlobalModal />, {context});
 }
 
-export {mountWithTheme, userEvent, fireEvent};
+export {mountWithTheme, userEvent, renderHook, fireEvent};
