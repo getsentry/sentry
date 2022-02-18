@@ -4,7 +4,7 @@ from sentry.ingest.inbound_filters import (
     _localhost_filter,
     _web_crawlers_filter,
 )
-from sentry.models.projectoption import ProjectOption
+from sentry.models import ProjectOption
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.utils.safe import set_path
 

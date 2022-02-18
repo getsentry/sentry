@@ -264,7 +264,7 @@ def from_request(
         return Access(
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             is_active=True,
-            organization_id=organization.id if organization else None,
+            organization_id=organization.id,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
             has_global_access=True,
