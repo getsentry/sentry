@@ -648,7 +648,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               onChange={widgetQuery => this.handleQueryChange(widgetQuery, 0)}
             />
             <WidgetCard
-              organization={organization}
               selection={querySelection}
               widget={{...this.state, displayType: DisplayType.TABLE}}
               isEditing={false}
@@ -687,7 +686,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               handleDeleteQuery={this.handleQueryRemove}
             />
             <WidgetCard
-              organization={organization}
               selection={querySelection}
               widget={this.state}
               isEditing={false}
@@ -735,7 +733,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               }}
             </Measurements>
             <WidgetCard
-              organization={organization}
               selection={querySelection}
               widget={this.state}
               isEditing={false}

@@ -316,7 +316,6 @@ function WidgetBuilder({
                 }}
               />
               <WidgetCard
-                organization={organization}
                 selection={pageFilters}
                 widget={{
                   title: state.title,
