@@ -56,8 +56,8 @@ const RadioGroup = <C extends string>({
     {choices.map(([id, name, description], index) => {
       const disabledChoice = disabledChoices.find(([choiceId]) => choiceId === id);
       const disabled = !!disabledChoice || groupDisabled;
-      return (
-        <Tooltip key={index} disabled={!disabledChoice?.[1]} title={disabledChoice?.[1]}>
+      const content = (
+        <React.Fragment>
           <RadioLineItem
             role="radio"
             index={index}
@@ -81,8 +81,22 @@ const RadioGroup = <C extends string>({
               </React.Fragment>
             )}
           </RadioLineItem>
-        </Tooltip>
+        </React.Fragment>
       );
+
+      if (!!disabledChoice?.[1]) {
+        return (
+          <Tooltip
+            key={index}
+            disabled={!disabledChoice?.[1]}
+            title={disabledChoice?.[1]}
+          >
+            {content}
+          </Tooltip>
+        );
+      }
+
+      return <React.Fragment key={index}>{content}</React.Fragment>;
     })}
   </Container>
 );
