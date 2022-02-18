@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -206,6 +206,12 @@ function WidgetBuilder({
     };
   });
   const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
+
+  useEffect(() => {
+    if (state.displayType !== DisplayType.TABLE && state.dataSet === DataSet.ISSUES) {
+      setState({...state, dataSet: DataSet.EVENTS});
+    }
+  }, [state.displayType]);
 
   function handleDataSetChange(newDataSet: string) {
     setState(prevState => {
