@@ -1099,6 +1099,10 @@ class UnresolvedQuery(QueryBuilder):
         self,
         dataset: Dataset,
         params: ParamsType,
+        granularity: Optional[int] = None,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
         functions_acl: Optional[List[str]] = None,
@@ -1113,6 +1117,10 @@ class UnresolvedQuery(QueryBuilder):
         super().__init__(
             dataset=dataset,
             params=params,
+            granularity=granularity,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
             functions_acl=functions_acl,
@@ -1154,16 +1162,13 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         super().__init__(
             dataset,
             params,
-            auto_fields=False,
-            functions_acl=functions_acl,
-            equation_config={"auto_add": True, "aggregates_only": True},
-        )
-
-        self.resolve_query(
+            granularity=granularity,
             query=query,
             selected_columns=selected_columns,
             equations=equations,
-            granularity=granularity,
+            auto_fields=False,
+            functions_acl=functions_acl,
+            equation_config={"auto_add": True, "aggregates_only": True},
         )
 
         self.limit = None if limit is None else Limit(limit)
