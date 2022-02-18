@@ -19,8 +19,10 @@ PROFILE_FILTERS = [
     "device_os_build_number",
     "device_os_name",
     "device_os_version",
+    "environment",
     "error_code",
-    "received",
+    "project",
+    "statsPeriod",
     "transaction_name",
     "version",
 ]
@@ -31,13 +33,12 @@ class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = {p: request.params[p] for p in PROFILE_FILTERS if p in request.params}
-        projects = self.get_projects(request, organization)
-
-        if len(projects) > 0:
-            params["project_id"] = [p.id for p in projects]
-
         def data_fn(offset: int, limit: int) -> Any:
+            params = {
+                p: request.query_params.getlist(p)
+                for p in PROFILE_FILTERS
+                if p in request.query_params
+            }
             params["offset"] = offset
             params["limit"] = limit
             response = safe_urlopen(
