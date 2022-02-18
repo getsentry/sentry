@@ -2,7 +2,6 @@ from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import SentryAppComponent, SentryAppInstallation
 
 
 @register(AlertRuleTriggerAction)
@@ -43,38 +42,16 @@ class AlertRuleTriggerActionSerializer(Serializer):
         return action.target_identifier if action.type == action.Type.SLACK.value else None
 
     def get_attrs(self, item_list, user, **kwargs):
-        sentry_app_ids = {action.sentry_app_id for action in item_list}
-        sentry_app_installations = SentryAppInstallation.objects.get_installed_for_organization(
-            kwargs["organization_id"]
-        ).filter(sentry_app_id__in=sentry_app_ids)
-        sentry_app_installations_by_sentry_app_id = {
-            installation.sentry_app_id: installation for installation in sentry_app_installations
-        }
-
-        components = SentryAppComponent.objects.filter(
-            sentry_app_id__in=sentry_app_ids, type="alert-rule-action"
-        )
-        component_by_sentry_app_id = {
-            component.sentry_app_id: component for component in components
-        }
         result = defaultdict(dict)
 
+        if not kwargs.get("sentry_app_components_by_action_id"):
+            return result
+
         for action in item_list:
-            sentry_app_installation = sentry_app_installations_by_sentry_app_id.get(
-                action.sentry_app_id
-            )
+            component = kwargs["sentry_app_components_by_action_id"].get(action.id)
 
-            if not (sentry_app_installation and action.sentry_app_config):
+            if not component:
                 continue
-
-            sentry_app_component = component_by_sentry_app_id.get(action.sentry_app_id)
-
-            if not sentry_app_component:
-                continue
-
-            component = sentry_app_installation.sentry_app_preparer(
-                sentry_app_component, None, action.sentry_app_config
-            )
 
             result[action] = {"formFields": component.schema.get("settings", {})}
 

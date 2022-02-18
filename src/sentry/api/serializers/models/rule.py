@@ -7,7 +7,6 @@ from sentry.models import (
     Rule,
     RuleActivity,
     RuleActivityType,
-    SentryAppInstallation,
     actor_type_to_class,
     actor_type_to_string,
 )
@@ -71,23 +70,25 @@ class RuleSerializer(Serializer):
                 type = actor_type_to_string(rule.owner.type)
                 if rule.owner_id in resolved_actors[type]:
                     result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
+
+            if not kwargs.get("sentry_app_components_by_rule_id_by_sentry_app_uuid"):
+                continue
+
             for action in rule.data.get("actions", []):
-                if action.get(
-                    "id"
-                ) == "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction" and action.get(
-                    "settings"
-                ):
-                    sentry_app_installation = SentryAppInstallation.objects.get(
-                        uuid=action.get("sentryAppInstallationUuid")
-                    )
-                    component = sentry_app_installation.prepare_sentry_app_components(
-                        "alert-rule-action", rule.project, action.get("settings")
-                    )
-                    action["formFields"] = component.schema.get("settings", {})
+                component = (
+                    kwargs["sentry_app_components_by_rule_id_by_sentry_app_uuid"]
+                    .get(rule.id, {})
+                    .get(action.get("sentryAppInstallationUuid"))
+                )
+
+                if not component:
+                    continue
+
+                action["formFields"] = component.schema.get("settings", {})
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         environment = attrs["environment"]
         all_conditions = [
             dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])

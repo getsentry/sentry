@@ -1,7 +1,8 @@
 import uuid
+from typing import List
 
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
@@ -18,15 +19,55 @@ def default_uuid():
 
 
 class SentryAppInstallationForProviderManager(ParanoidManager):
+    def get_organization_filter_kwargs(self, organization_id: int):
+        return {
+            "organization_id": organization_id,
+            "status": SentryAppInstallationStatus.INSTALLED,
+            "date_deleted": None,
+        }
+
     def get_installed_for_organization(self, organization_id: int) -> QuerySet:
-        return self.filter(
-            organization_id=organization_id,
-            status=SentryAppInstallationStatus.INSTALLED,
-            date_deleted=None,
-        )
+        return self.filter(**self.get_organization_filter_kwargs(organization_id))
 
     def get_by_api_token(self, token_id: str) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
+
+    def get_related_sentry_app_components(
+        self, organization_id: int, sentry_app_ids: List[int], type: str, group_by="sentry_app_id"
+    ):
+        from sentry.models import SentryAppComponent
+
+        component_query = SentryAppComponent.objects.filter(
+            sentry_app_id=OuterRef("sentry_app_id"), type=type
+        )
+
+        sentry_app_installations = (
+            self.filter(**self.get_organization_filter_kwargs(organization_id))
+            .filter(sentry_app_id__in=sentry_app_ids)
+            .annotate(
+                # Cannot annotate model object only individual fields. We can convert it into SentryAppComponent instance later.
+                sentry_app_component_id=Subquery(component_query.values("id")[:1]),
+                sentry_app_component_schema=Subquery(component_query.values("schema")[:1]),
+                sentry_app_component_uuid=Subquery(component_query.values("uuid")[:1]),
+            )
+        )
+
+        # There should only be 1 install of a SentryApp per organization
+        sentry_app_installations_by_sentry_app_id = {
+            getattr(install, group_by): {
+                "sentry_app_installation": install,
+                "sentry_app_component": SentryAppComponent(
+                    id=install.sentry_app_component_id,
+                    type="alert-rule-action",
+                    schema=install.sentry_app_component_schema,
+                    uuid=install.sentry_app_component_uuid,
+                    sentry_app=install.sentry_app,
+                ),
+            }
+            for install in sentry_app_installations
+        }
+
+        return sentry_app_installations_by_sentry_app_id
 
 
 class SentryAppInstallation(ParanoidModel):
@@ -98,9 +139,9 @@ class SentryAppInstallation(ParanoidModel):
         except SentryAppComponent.DoesNotExist:
             return None
 
-        return self.sentry_app_preparer(component, project, values)
+        return self.prepare_ui_component(component, project, values)
 
-    def sentry_app_preparer(self, component, project=None, values=None):
+    def prepare_ui_component(self, component, project=None, values=None):
         from sentry.coreapi import APIError
         from sentry.mediators import sentry_app_components
 

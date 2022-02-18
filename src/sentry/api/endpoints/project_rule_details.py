@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,6 +8,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.endpoints.project_rules import trigger_alert_rule_action_creators
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.rule import RuleSerializer as RSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
@@ -15,6 +18,7 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     RuleStatus,
+    SentryAppInstallation,
     Team,
     User,
 )
@@ -50,7 +54,47 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        data = serialize(rule, request.user)
+        # Prepare Rule Actions that are SentryApp components
+        sentry_app_uuids = {
+            action.get("sentryAppInstallationUuid") for action in rule.data.get("actions", [])
+        }
+        sentry_app_ids = SentryAppInstallation.objects.filter(
+            uuid__in=sentry_app_uuids
+        ).values_list("sentry_app_id", flat=True)
+
+        sentry_app_installations_by_uuid = (
+            SentryAppInstallation.objects.get_related_sentry_app_components(
+                organization_id=project.organization_id,
+                sentry_app_ids=sentry_app_ids,
+                type="alert-rule-action",
+                group_by="uuid",
+            )
+        )
+        sentry_app_components_by_rule_id_by_sentry_app_uuid = defaultdict(dict)
+
+        for action in rule.data.get("actions", []):
+            if action.get(
+                "id"
+            ) == "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction" and action.get(
+                "settings"
+            ):
+                install = sentry_app_installations_by_uuid.get(
+                    action.get("sentryAppInstallationUuid")
+                )
+                component = install["sentry_app_component"]
+                component = install["sentry_app_installation"].prepare_ui_component(
+                    component, project, action.get("settings")
+                )
+                sentry_app_components_by_rule_id_by_sentry_app_uuid[rule.id][
+                    action.get("sentryAppInstallationUuid")
+                ] = component
+
+        data = serialize(
+            rule,
+            request.user,
+            RSerializer(),
+            sentry_app_components_by_rule_id_by_sentry_app_uuid=sentry_app_components_by_rule_id_by_sentry_app_uuid,
+        )
 
         return Response(data)
 

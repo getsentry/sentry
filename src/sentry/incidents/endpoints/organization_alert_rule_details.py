@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,8 +9,9 @@ from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
+from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
-from sentry.models import OrganizationMemberTeam
+from sentry.models import OrganizationMemberTeam, SentryAppInstallation
 from sentry.models.actor import ACTOR_TYPES
 
 
@@ -19,7 +22,35 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         ``````````````````
         :auth: required
         """
-        data = serialize(alert_rule, request.user, DetailedAlertRuleSerializer())
+        # Prepare AlertRuleTriggerActions that are SentryApp components
+        trigger_actions = AlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger__alert_rule_id=alert_rule.id
+        ).exclude(sentry_app_config__isnull=True, sentry_app_id__isnull=True)
+
+        sentry_app_installations_by_sentry_app_id = (
+            SentryAppInstallation.objects.get_related_sentry_app_components(
+                organization_id=alert_rule.organization_id,
+                sentry_app_ids=trigger_actions.values_list("sentry_app_id", flat=True),
+                type="alert-rule-action",
+            )
+        )
+
+        sentry_app_components_by_action_id = defaultdict(dict)
+
+        for action in trigger_actions:
+            install = sentry_app_installations_by_sentry_app_id.get(action.sentry_app_id)
+            component = install["sentry_app_component"]
+            component = install["sentry_app_installation"].prepare_ui_component(
+                component, None, action.sentry_app_config
+            )
+            sentry_app_components_by_action_id[action.id] = component
+
+        data = serialize(
+            alert_rule,
+            request.user,
+            DetailedAlertRuleSerializer(),
+            sentry_app_components_by_action_id=sentry_app_components_by_action_id,
+        )
         return Response(data)
 
     def put(self, request: Request, organization, alert_rule) -> Response:
