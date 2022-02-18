@@ -4,8 +4,9 @@ import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary
 import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {WidgetCard} from 'sentry/views/dashboardsV2/widgetCard';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
@@ -39,8 +40,6 @@ describe('Dashboards > IssueWidgetCard', function () {
       utc: false,
     },
   };
-
-  const api = new Client();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -77,21 +76,21 @@ describe('Dashboards > IssueWidgetCard', function () {
   it('renders with title and issues chart', async function () {
     MemberListStore.loadInitialData([]);
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={widget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>
     );
 
     expect(await screen.findByText('Issues')).toBeInTheDocument();
@@ -110,21 +109,21 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('opens in issues page', async function () {
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={widget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>,
       {context: routerContext}
     );
 
@@ -141,21 +140,21 @@ describe('Dashboards > IssueWidgetCard', function () {
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={mock}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={widget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={mock}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -167,21 +166,21 @@ describe('Dashboards > IssueWidgetCard', function () {
   it('disables the duplicate widget button if max widgets is reached', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={mock}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={widget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={mock}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached
+        />
+      </OrganizationContext.Provider>
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -193,29 +192,29 @@ describe('Dashboards > IssueWidgetCard', function () {
   it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async function () {
     MemberListStore.loadInitialData([]);
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...widget,
-          queries: [
-            {
-              ...widget.queries[0],
-              fields: ['issue', 'assignee', 'title', 'lifetimeEvents', 'lifetimeUsers'],
-            },
-          ],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...widget,
+            queries: [
+              {
+                ...widget.queries[0],
+                fields: ['issue', 'assignee', 'title', 'lifetimeEvents', 'lifetimeUsers'],
+              },
+            ],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>
     );
 
     expect(await screen.findByText('Lifetime Events')).toBeInTheDocument();

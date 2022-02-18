@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import TagStore from 'sentry/stores/tagStore';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import * as types from 'sentry/views/dashboardsV2/types';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openDashboardWidgetLibraryModal: jest.fn(),
@@ -37,41 +38,45 @@ function mountModal({
   onAddLibraryWidget,
 }) {
   return mountWithTheme(
-    <AddDashboardWidgetModal
-      Header={stubEl}
-      Footer={stubEl}
-      Body={stubEl}
-      organization={initialData.organization}
-      onAddWidget={onAddWidget}
-      onUpdateWidget={onUpdateWidget}
-      widget={widget}
-      dashboard={dashboard}
-      closeModal={() => void 0}
-      source={source || types.DashboardWidgetSource.DASHBOARDS}
-      defaultWidgetQuery={defaultWidgetQuery}
-      displayType={displayType}
-      defaultTableColumns={defaultTableColumns}
-      selectedWidgets={selectedWidgets}
-      onAddLibraryWidget={onAddLibraryWidget}
-    />,
+    <OrganizationContext.Provider value={initialData.organization}>
+      <AddDashboardWidgetModal
+        Header={stubEl}
+        Footer={stubEl}
+        Body={stubEl}
+        organization={initialData.organization}
+        onAddWidget={onAddWidget}
+        onUpdateWidget={onUpdateWidget}
+        widget={widget}
+        dashboard={dashboard}
+        closeModal={() => void 0}
+        source={source || types.DashboardWidgetSource.DASHBOARDS}
+        defaultWidgetQuery={defaultWidgetQuery}
+        displayType={displayType}
+        defaultTableColumns={defaultTableColumns}
+        selectedWidgets={selectedWidgets}
+        onAddLibraryWidget={onAddLibraryWidget}
+      />
+    </OrganizationContext.Provider>,
     initialData.routerContext
   );
 }
 
 function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, source}) {
   return reactMountWithTheme(
-    <AddDashboardWidgetModal
-      Header={stubEl}
-      Body={stubEl}
-      Footer={stubEl}
-      CloseButton={stubEl}
-      organization={initialData.organization}
-      onAddWidget={onAddWidget}
-      onUpdateWidget={onUpdateWidget}
-      widget={widget}
-      closeModal={() => void 0}
-      source={source || types.DashboardWidgetSource.DASHBOARDS}
-    />
+    <OrganizationContext.Provider value={initialData.organization}>
+      <AddDashboardWidgetModal
+        Header={stubEl}
+        Body={stubEl}
+        Footer={stubEl}
+        CloseButton={stubEl}
+        organization={initialData.organization}
+        onAddWidget={onAddWidget}
+        onUpdateWidget={onUpdateWidget}
+        widget={widget}
+        closeModal={() => void 0}
+        source={source || types.DashboardWidgetSource.DASHBOARDS}
+      />
+    </OrganizationContext.Provider>
   );
 }
 
@@ -1127,18 +1132,20 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   it('limits TopN display to one query when switching from another visualization', async () => {
     reactMountWithTheme(
-      <AddDashboardWidgetModal
-        Header={stubEl}
-        Body={stubEl}
-        Footer={stubEl}
-        CloseButton={stubEl}
-        organization={initialData.organization}
-        onAddWidget={() => undefined}
-        onUpdateWidget={() => undefined}
-        widget={initialData.widget}
-        closeModal={() => void 0}
-        source={types.DashboardWidgetSource.DASHBOARDS}
-      />
+      <OrganizationContext.Provider value={initialData.organization}>
+        <AddDashboardWidgetModal
+          Header={stubEl}
+          Body={stubEl}
+          Footer={stubEl}
+          CloseButton={stubEl}
+          organization={initialData.organization}
+          onAddWidget={() => undefined}
+          onUpdateWidget={() => undefined}
+          widget={initialData.widget}
+          closeModal={() => void 0}
+          source={types.DashboardWidgetSource.DASHBOARDS}
+        />
+      </OrganizationContext.Provider>
     );
     userEvent.click(screen.getByText('Table'));
     userEvent.click(await screen.findByText('Bar Chart'));

@@ -3,11 +3,11 @@ import {mountGlobalModal} from 'sentry-test/modal';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {WidgetCard} from 'sentry/views/dashboardsV2/widgetCard';
 import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/components/charts/simpleTableChart');
 jest.mock('sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries');
@@ -52,7 +52,6 @@ describe('Dashboards > WidgetCard', function () {
     },
   };
 
-  const api = new Client();
   let eventsMock;
 
   beforeEach(function () {
@@ -80,21 +79,21 @@ describe('Dashboards > WidgetCard', function () {
   it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async function () {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={multipleQueryWidget}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={multipleQueryWidget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -108,21 +107,21 @@ describe('Dashboards > WidgetCard', function () {
 
   it('renders with Open in Discover button and opens in Discover when clicked', async function () {
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>,
       {context: routerContext}
     );
 
@@ -136,25 +135,25 @@ describe('Dashboards > WidgetCard', function () {
 
   it('Opens in Discover with World Map', async function () {
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.WORLD_MAP,
+            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>,
       {context: routerContext}
     );
 
@@ -168,31 +167,31 @@ describe('Dashboards > WidgetCard', function () {
 
   it('Opens in Discover with prepended fields pulled from equations', async function () {
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          queries: [
-            {
-              ...multipleQueryWidget.queries[0],
-              fields: [
-                'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
-              ],
-            },
-          ],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...multipleQueryWidget,
+            queries: [
+              {
+                ...multipleQueryWidget.queries[0],
+                fields: [
+                  'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
+                ],
+              },
+            ],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>,
       {context: routerContext}
     );
 
@@ -206,27 +205,27 @@ describe('Dashboards > WidgetCard', function () {
 
   it('Opens in Discover with Top N', async function () {
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.TOP_N,
-          queries: [
-            {...multipleQueryWidget.queries[0], fields: ['transaction', 'count()']},
-          ],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.TOP_N,
+            queries: [
+              {...multipleQueryWidget.queries[0], fields: ['transaction', 'count()']},
+            ],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>,
       {context: routerContext}
     );
 
@@ -241,25 +240,25 @@ describe('Dashboards > WidgetCard', function () {
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={mock}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.WORLD_MAP,
+            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={mock}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -271,25 +270,25 @@ describe('Dashboards > WidgetCard', function () {
   it('does not add duplicate widgets if max widget is reached', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={mock}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.WORLD_MAP,
+            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={mock}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached
+        />
+      </OrganizationContext.Provider>
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -301,25 +300,25 @@ describe('Dashboards > WidgetCard', function () {
   it('calls onEdit when Edit Widget is clicked', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={mock}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.WORLD_MAP,
+            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={mock}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -331,25 +330,25 @@ describe('Dashboards > WidgetCard', function () {
   it('renders delete widget option', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={mock}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.WORLD_MAP,
+            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={mock}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -367,26 +366,26 @@ describe('Dashboards > WidgetCard', function () {
   it('calls eventsV2 with a limit of 20 items', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={mock}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-        tableItemLimit={20}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.TABLE,
+            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={mock}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+          tableItemLimit={20}
+        />
+      </OrganizationContext.Provider>
     );
     await tick();
     expect(eventsMock).toHaveBeenCalledWith(
@@ -402,25 +401,25 @@ describe('Dashboards > WidgetCard', function () {
   it('calls eventsV2 with a default limit of 5 items', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={mock}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={{
+            ...multipleQueryWidget,
+            displayType: DisplayType.TABLE,
+            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          }}
+          selection={selection}
+          isEditing={false}
+          onDelete={mock}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+        />
+      </OrganizationContext.Provider>
     );
     await tick();
     expect(eventsMock).toHaveBeenCalledWith(
@@ -449,22 +448,22 @@ describe('Dashboards > WidgetCard', function () {
       ],
     };
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={tableWidget}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-        tableItemLimit={20}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={tableWidget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+          tableItemLimit={20}
+        />
+      </OrganizationContext.Provider>
     );
     await tick();
     expect(SimpleTableChart).toHaveBeenCalledWith(
@@ -481,23 +480,24 @@ describe('Dashboards > WidgetCard', function () {
       widgetType: WidgetType.METRICS,
       queries: [],
     };
+
     mountWithTheme(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        isSorting={false}
-        currentWidgetDragging={false}
-        showContextMenu
-        widgetLimitReached={false}
-        tableItemLimit={20}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <WidgetCard
+          widget={widget}
+          selection={selection}
+          isEditing={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          isSorting={false}
+          currentWidgetDragging={false}
+          showContextMenu
+          widgetLimitReached={false}
+          tableItemLimit={20}
+        />
+      </OrganizationContext.Provider>
     );
 
     expect(MetricsWidgetQueries).toHaveBeenCalledTimes(1);

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Organization} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
-import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {WidgetCard} from 'sentry/views/dashboardsV2/widgetCard';
 
 import {Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';

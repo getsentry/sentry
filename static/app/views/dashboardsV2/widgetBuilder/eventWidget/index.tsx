@@ -22,7 +22,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import AsyncView from 'sentry/views/asyncView';
-import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {WidgetCard} from 'sentry/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {
@@ -266,8 +266,6 @@ class EventWidget extends AsyncView<Props, State> {
                   error={widgetErrors?.displayType}
                 />
                 <WidgetCard
-                  api={this.api}
-                  organization={organization}
                   selection={selection}
                   widget={{title, queries, displayType, interval, widgetType}}
                   isEditing={false}

@@ -52,7 +52,7 @@ import {
   WidgetQuery,
   WidgetType,
 } from '../types';
-import WidgetCard from '../widgetCard';
+import {WidgetCard} from '../widgetCard';
 
 import {normalizeQueries} from './eventWidget/utils';
 import BuildStep from './buildStep';

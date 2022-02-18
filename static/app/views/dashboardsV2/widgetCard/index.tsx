@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -17,9 +16,9 @@ import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconOpen} from 'sentry/ic
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {PageFilters} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
@@ -30,13 +29,11 @@ import WidgetCardContextMenu from './widgetCardContextMenu';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
-type Props = WithRouterProps & {
-  api: Client;
+interface Props extends WithRouterProps {
   currentWidgetDragging: boolean;
   isEditing: boolean;
   isSorting: boolean;
   location: Location;
-  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
@@ -52,20 +49,30 @@ type Props = WithRouterProps & {
   showContextMenu?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
-};
+}
 
-class WidgetCard extends React.Component<Props> {
-  renderToolbar() {
-    const {
-      onEdit,
-      onDelete,
-      onDuplicate,
-      draggableProps,
-      hideToolbar,
-      isEditing,
-      isMobile,
-    } = this.props;
+function WidgetCard({
+  draggableProps,
+  hideToolbar,
+  isMobile,
+  widget,
+  selection,
+  showContextMenu,
+  isPreview,
+  widgetLimitReached,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  isEditing,
+  noLazyLoad,
+  tableItemLimit,
+  renderErrorMessage,
+  windowWidth,
+}: Props) {
+  const api = useApi();
+  const organization = useOrganization();
 
+  function renderToolbar() {
     if (!isEditing) {
       return null;
     }
@@ -97,20 +104,7 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  renderContextMenu() {
-    const {
-      widget,
-      selection,
-      organization,
-      showContextMenu,
-      isPreview,
-      widgetLimitReached,
-      onEdit,
-      onDuplicate,
-      onDelete,
-      isEditing,
-    } = this.props;
-
+  function renderContextMenu() {
     if (isEditing) {
       return null;
     }
@@ -130,43 +124,43 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  render() {
-    const {
-      api,
-      organization,
-      selection,
-      widget,
-      isMobile,
-      renderErrorMessage,
-      tableItemLimit,
-      windowWidth,
-      noLazyLoad,
-    } = this.props;
-    return (
-      <ErrorBoundary
-        customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
-      >
-        <StyledPanel isDragging={false}>
-          <WidgetHeader>
-            <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
-              <WidgetTitle>{widget.title}</WidgetTitle>
-            </Tooltip>
-            <Feature
-              organization={organization}
-              features={['organizations:widget-viewer-modal']}
-            >
-              <OpenWidgetViewerButton
-                onClick={() => {
-                  openWidgetViewerModal({
-                    organization,
-                    widget,
-                  });
-                }}
-              />
-            </Feature>
-            {this.renderContextMenu()}
-          </WidgetHeader>
-          {noLazyLoad ? (
+  return (
+    <ErrorBoundary
+      customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+    >
+      <StyledPanel isDragging={false}>
+        <WidgetHeader>
+          <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
+            <WidgetTitle>{widget.title}</WidgetTitle>
+          </Tooltip>
+          <Feature
+            organization={organization}
+            features={['organizations:widget-viewer-modal']}
+          >
+            <OpenWidgetViewerButton
+              onClick={() => {
+                openWidgetViewerModal({
+                  organization,
+                  widget,
+                });
+              }}
+            />
+          </Feature>
+          {renderContextMenu()}
+        </WidgetHeader>
+        {noLazyLoad ? (
+          <WidgetCardChartContainer
+            api={api}
+            organization={organization}
+            selection={selection}
+            widget={widget}
+            isMobile={isMobile}
+            renderErrorMessage={renderErrorMessage}
+            tableItemLimit={tableItemLimit}
+            windowWidth={windowWidth}
+          />
+        ) : (
+          <LazyLoad once resize height={200}>
             <WidgetCardChartContainer
               api={api}
               organization={organization}
@@ -177,28 +171,17 @@ class WidgetCard extends React.Component<Props> {
               tableItemLimit={tableItemLimit}
               windowWidth={windowWidth}
             />
-          ) : (
-            <LazyLoad once resize height={200}>
-              <WidgetCardChartContainer
-                api={api}
-                organization={organization}
-                selection={selection}
-                widget={widget}
-                isMobile={isMobile}
-                renderErrorMessage={renderErrorMessage}
-                tableItemLimit={tableItemLimit}
-                windowWidth={windowWidth}
-              />
-            </LazyLoad>
-          )}
-          {this.renderToolbar()}
-        </StyledPanel>
-      </ErrorBoundary>
-    );
-  }
+          </LazyLoad>
+        )}
+        {renderToolbar()}
+      </StyledPanel>
+    </ErrorBoundary>
+  );
 }
 
-export default withApi(withOrganization(withPageFilters(withRouter(WidgetCard))));
+const WrappedWidgetCard = withRouter(withPageFilters(withRouter(WidgetCard)));
+
+export {WrappedWidgetCard as WidgetCard};
 
 const ErrorCard = styled(Placeholder)`
   display: flex;
