@@ -107,6 +107,20 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="duration",
                 ),
+                fields.MetricsFunction(
+                    "count_unique",
+                    required_args=[fields.FunctionArg("column")],
+                    calculated_args=[resolve_metric_id],
+                    snql_set=lambda args, alias: Function(
+                        "uniqCombinedIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
             ]
         }
 

@@ -132,3 +132,5 @@ METRICS_MAP = {
     "transaction.duration": "sentry.transactions.transaction.duration",
     "user": "sentry.transactions.user",
 }
+# 50 to match the size of tables in the UI + 1 for pagination reasons
+METRICS_MAX_LIMIT = 51
