@@ -71,12 +71,12 @@ class RuleSerializer(Serializer):
                 if rule.owner_id in resolved_actors[type]:
                     result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
 
-            if not kwargs.get("sentry_app_components_by_rule_id_by_sentry_app_uuid"):
+            if not kwargs.get("sentry_app_components_by_rule_id_by_installation_uuid"):
                 continue
 
             for action in rule.data.get("actions", []):
                 component = (
-                    kwargs["sentry_app_components_by_rule_id_by_sentry_app_uuid"]
+                    kwargs["sentry_app_components_by_rule_id_by_installation_uuid"]
                     .get(rule.id, {})
                     .get(action.get("sentryAppInstallationUuid"))
                 )
