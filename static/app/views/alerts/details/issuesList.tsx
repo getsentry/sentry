@@ -3,19 +3,22 @@ import styled from '@emotion/styled';
 import random from 'lodash/random';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
+import {getMessage, getTitle} from 'sentry/utils/events';
 
-type Props = AsyncComponent['props'] & {
-  organization: Organization;
-  project: Project;
-};
+type Props = AsyncComponent['props'] &
+  DateTimeObject & {
+    organization: Organization;
+    project: Project;
+  };
 
 type State = AsyncComponent['state'] & {
   issues: Group[] | null;
@@ -24,8 +27,19 @@ type State = AsyncComponent['state'] & {
 class AlertRuleIssuesList extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
-  componentDidUpdate() {
-    // TODO
+  componentDidUpdate(prevProps: Props) {
+    const {project, organization, start, end, period, utc} = this.props;
+
+    if (
+      prevProps.start !== start ||
+      prevProps.end !== end ||
+      prevProps.period !== period ||
+      prevProps.utc !== utc ||
+      prevProps.organization.id !== organization.id ||
+      prevProps.project.id !== project.id
+    ) {
+      this.remountComponent();
+    }
   }
 
   getDefaultState(): State {
@@ -36,17 +50,21 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {project, organization} = this.props;
+    const {project, organization, period, start, end, utc} = this.props;
     return [
       [
         'issues',
         `/organizations/${organization.slug}/issues/`,
         {
           query: {
-            query: 'is:unassigned',
+            query: 'is:unresolved',
             collapse: 'stats',
             limit: '10',
             project: project.id,
+            statsPeriod: period,
+            start,
+            end,
+            utc,
           },
         },
       ],
@@ -60,6 +78,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
   renderBody() {
     const {organization} = this.props;
     const {loading, issues} = this.state;
+
     return (
       <StyledPanelTable
         isLoading={loading}
@@ -70,24 +89,30 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
           t('Last Triggered'),
         ]}
       >
-        {issues?.map(issue => (
-          <Fragment key={issue.id}>
-            <div>
-              <Link to={`/organizations/${organization.slug}/issues/${issue.id}/`}>
-                <EventOrGroupTitle data={issue} organization={organization} />
-              </Link>
-            </div>
-            <AlignRight>
-              <Count value={random(1, 200)} />
-            </AlignRight>
-            <AlignRight>
-              <Count value={random(1, 2000)} />
-            </AlignRight>
-            <div>
-              <StyledDateTime date={issue.lastSeen} />
-            </div>
-          </Fragment>
-        ))}
+        {issues?.map(issue => {
+          const message = getMessage(issue);
+          const {title} = getTitle(issue);
+
+          return (
+            <Fragment key={issue.id}>
+              <TitleWrapper>
+                <Link to={`/organizations/${organization.slug}/issues/${issue.id}/`}>
+                  {title}:
+                </Link>
+                <MessageWrapper>{message}</MessageWrapper>
+              </TitleWrapper>
+              <AlignRight>
+                <Count value={random(1, 200)} />
+              </AlignRight>
+              <AlignRight>
+                <Count value={random(1, 2000)} />
+              </AlignRight>
+              <div>
+                <StyledDateTime date={issue.lastSeen} />
+              </div>
+            </Fragment>
+          );
+        })}
       </StyledPanelTable>
     );
   }
@@ -112,4 +137,15 @@ const AlignRight = styled('div')`
 const StyledDateTime = styled(DateTime)`
   white-space: nowrap;
   color: ${p => p.theme.subText};
+`;
+
+const TitleWrapper = styled('div')`
+  ${overflowEllipsis};
+  display: flex;
+  gap: ${space(0.5)};
+`;
+
+const MessageWrapper = styled('span')`
+  ${overflowEllipsis};
+  color: ${p => p.theme.textColor};
 `;

@@ -206,7 +206,14 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               utc={utc ?? null}
               onUpdate={this.handleUpdateDatetime}
             />
-            <AlertRuleIssuesList organization={organization} project={project} />
+            <AlertRuleIssuesList
+              organization={organization}
+              project={project}
+              period={period ?? ''}
+              start={start ?? null}
+              end={end ?? null}
+              utc={utc ?? null}
+            />
           </Layout.Main>
           <Layout.Side>
             <h3>Sidebar content</h3>
