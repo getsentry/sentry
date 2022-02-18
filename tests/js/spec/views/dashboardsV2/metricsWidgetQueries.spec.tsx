@@ -168,7 +168,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_SESSION}),
     });
-    const children = jest.fn(() => <div data-test-id="child" />);
+    const children = jest.fn(() => <div />);
 
     const {rerender} = mountWithTheme(
       <MetricsWidgetQueries
