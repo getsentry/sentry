@@ -354,7 +354,7 @@ function WidgetBuilder({
                 onChange={handleDataSetChange}
               />
             </BuildStep>
-            {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) ? (
+            {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
               <BuildStep
                 title={t('Columns')}
                 description="Description of what this means"
@@ -450,7 +450,8 @@ function WidgetBuilder({
                   />
                 )}
               </BuildStep>
-            ) : (
+            )}
+            {![DisplayType.TABLE].includes(state.displayType) && (
               <BuildStep
                 title={t('Choose your y-axis')}
                 description="Description of what this means"
