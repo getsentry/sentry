@@ -677,6 +677,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
             mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
             if mb_field:
+                if mb_field["label"] in params.get("ignored", []):
+                    continue
                 mb_field["name"] = field
                 fields.append(mb_field)
 
