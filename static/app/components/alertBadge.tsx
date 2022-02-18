@@ -1,11 +1,16 @@
 import styled from '@emotion/styled';
 
-import {IconCheckmark, IconExclamation, IconFire, IconIssues} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconDiamond,
+  IconExclamation,
+  IconFire,
+  IconIssues,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Color} from 'sentry/utils/theme';
-
-import {IncidentStatus} from './types';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 
 type Props = {
   hideText?: boolean;
@@ -32,8 +37,9 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
   }
 
   return (
-    <Wrapper data-test-id="alert-badge" displayFlex={!hideText}>
+    <Wrapper data-test-id="alert-badge">
       <AlertIconWrapper color={color} icon={Icon}>
+        <AlertIconBackground color={color} />
         <Icon color="white" />
       </AlertIconWrapper>
 
@@ -44,35 +50,33 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
 
 export default AlertBadge;
 
-const Wrapper = styled('div')<{displayFlex: boolean}>`
-  display: ${p => (p.displayFlex ? `flex` : `block`)};
+const Wrapper = styled('div')`
+  display: flex;
   align-items: center;
 `;
 
 const AlertIconWrapper = styled('div')<{color: Color; icon: React.ReactNode}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  left: 3px;
-  min-width: 30px;
+  width: 36px;
+  height: 36px;
+  position: relative;
 
-  &:before {
-    content: '';
-    position: absolute;
-    width: 28px;
-    height: 28px;
-    border-radius: ${p => p.theme.borderRadius};
-    background-color: ${p => p.theme[p.color]};
-    transform: rotate(45deg);
-  }
-
-  svg {
+  svg:last-child {
     width: ${p => (p.icon === IconIssues ? '13px' : '16px')};
-    z-index: 1;
+    z-index: 2;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
   }
 `;
 
+const AlertIconBackground = styled(IconDiamond)<{color: Color}>`
+  width: 36px;
+  height: 36px;
+`;
+
 const IncidentStatusValue = styled('div')`
-  margin-left: ${space(1.5)};
+  margin-left: ${space(1)};
 `;
