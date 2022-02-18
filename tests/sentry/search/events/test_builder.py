@@ -870,6 +870,13 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "transaction": indexer.resolve("foo_transaction"),
             "p95_transaction_duration": 100,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+            ],
+        )
 
     def test_run_query_multiple_tables(self):
         self.store_metric(100, tags={"transaction": "foo_transaction"})
@@ -895,6 +902,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     def test_run_query_with_multiple_groupby_orderby_distribution(self):
         self.setup_orderby_data()
@@ -923,6 +938,15 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     def test_run_query_with_multiple_groupby_orderby_set(self):
         self.setup_orderby_data()
@@ -951,6 +975,15 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     # TODO: multiple groupby with counter
 
@@ -989,6 +1022,15 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "project": self.project.slug,
             "p95_transaction_duration": 200,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     @pytest.mark.skip(
         reason="Currently cannot handle the case where null values are in the first entity"
@@ -1124,9 +1166,14 @@ class TimeseresMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["p50(transaction.duration)", "count_unique(user)"],
         )
         result = query.run_query("test_query")
-        assert {"name": "time", "type": "DateTime"} in result["meta"]
-        assert {"name": "p50_transaction_duration", "type": "Float64"} in result["meta"]
-        assert {"name": "count_unique_user", "type": "UInt64"} in result["meta"]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime"},
+                {"name": "p50_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     def test_with_aggregate_filter(self):
         query = TimeseriesMetricQueryBuilder(
@@ -1181,6 +1228,14 @@ class TimeseresMetricQueryBuilderTest(MetricBuilderBaseTest):
                 "count_unique_user": 1,
             },
         ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime"},
+                {"name": "p50_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     def test_run_query_with_filter(self):
         for i in range(5):
@@ -1198,7 +1253,7 @@ class TimeseresMetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             granularity=900,
             query="transaction:foo_transaction",
-            selected_columns=["p50(transaction.duration)", "count_unique(user)"],
+            selected_columns=["p50(transaction.duration)"],
         )
         result = query.run_query("test_query")
         assert result["data"] == [
@@ -1208,3 +1263,10 @@ class TimeseresMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"time": "2015-01-01T11:00:00+00:00", "p50_transaction_duration": 100.0},
             {"time": "2015-01-01T11:15:00+00:00", "p50_transaction_duration": 100.0},
         ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime"},
+                {"name": "p50_transaction_duration", "type": "Float64"},
+            ],
+        )

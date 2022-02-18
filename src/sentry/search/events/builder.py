@@ -1655,6 +1655,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # The typing for these are weak (all using Any) since the results from snuba can contain an assortment of types
         value_map: Dict[str, Any] = defaultdict(dict)
         groupby_values: List[Any] = []
+        meta_dict = {}
         result: Any = {
             "data": None,
             "meta": [],
@@ -1727,8 +1728,11 @@ class MetricsQueryBuilder(QueryBuilder):
                     if value_map_key not in value_map:
                         groupby_values.append(groupby_key)
                     value_map[value_map_key].update(row)
-                result["meta"] += current_result["meta"]
+                for meta in current_result["meta"]:
+                    meta_dict[meta["name"]] = meta["type"]
+
         result["data"] = list(value_map.values())
+        result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]
 
         return result
 
@@ -1797,11 +1801,15 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             results = []
 
         time_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
-        meta = []
+        meta_dict = {}
         for current_result in results:
             # there's only 1 thing in the groupby which is time
             for row in current_result["data"]:
                 time_map[row[self.time_alias]].update(row)
-            meta += current_result["meta"]
+            for meta in current_result["meta"]:
+                meta_dict[meta["name"]] = meta["type"]
 
-        return {"data": list(time_map.values()), "meta": meta}
+        return {
+            "data": list(time_map.values()),
+            "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
+        }
