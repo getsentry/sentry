@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {ColorCoding} from 'sentry/types/profiling/core';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
@@ -13,7 +14,7 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 interface FlamegraphZoomViewMinimapProps {
   canvasPoolManager: CanvasPoolManager;
-  colorCoding: 'by symbol name' | 'by system / application' | 'by library';
+  colorCoding: ColorCoding;
   flamegraph: Flamegraph;
   highlightRecursion: boolean;
   searchResults: Record<string, FlamegraphFrame>;

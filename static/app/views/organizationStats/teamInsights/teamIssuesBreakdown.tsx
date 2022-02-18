@@ -37,6 +37,7 @@ type Props = AsyncComponent['props'] & {
   projects: Project[];
   statuses: Statuses[];
   teamSlug: string;
+  environment?: string;
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
@@ -56,7 +57,8 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, start, end, period, utc, teamSlug, statuses} = this.props;
+    const {organization, start, end, period, utc, teamSlug, statuses, environment} =
+      this.props;
     const datetime = {start, end, period, utc};
 
     return [
@@ -67,6 +69,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
           query: {
             ...normalizeDateTimeParams(datetime),
             statuses,
+            environment,
           },
         },
       ],
@@ -74,7 +77,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {start, end, period, utc, teamSlug, projects} = this.props;
+    const {start, end, period, utc, teamSlug, projects, environment} = this.props;
 
     if (
       prevProps.start !== start ||
@@ -82,6 +85,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
       prevProps.period !== period ||
       prevProps.utc !== utc ||
       prevProps.teamSlug !== teamSlug ||
+      prevProps.environment !== environment ||
       !isEqual(prevProps.projects, projects)
     ) {
       this.remountComponent();

@@ -14,6 +14,7 @@ import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
 import TagStore from 'sentry/stores/tagStore';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import * as types from 'sentry/views/dashboardsV2/types';
 
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -121,7 +122,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     widgetDisplay: ['area'],
   });
 
-  let eventsStatsMock, metricsTagsMock;
+  let eventsStatsMock, metricsTagsMock, metricsDataMock;
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
@@ -158,6 +159,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     metricsTagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/tags/',
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
+    });
+    metricsDataMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_USER}),
     });
   });
 
@@ -1188,6 +1194,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       expect(metricsTagsMock).not.toHaveBeenCalled();
+      expect(metricsDataMock).not.toHaveBeenCalled();
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
       expect(
@@ -1352,6 +1359,42 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+    });
+    it('makes the appropriate metrics call', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+      const wrapper = mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      await act(async () =>
+        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
+      );
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(metricsDataMock).toHaveBeenCalledTimes(1);
+      expect(metricsDataMock).toHaveBeenCalledWith(
+        `/organizations/org-slug/metrics/data/`,
+        expect.objectContaining({
+          query: {
+            environment: [],
+            field: ['sum(sentry.sessions.session)'],
+            interval: '30m',
+            project: [],
+            statsPeriod: '14d',
+          },
+        })
+      );
+
+      wrapper.unmount();
     });
   });
 });
