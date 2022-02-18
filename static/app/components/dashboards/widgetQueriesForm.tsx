@@ -25,7 +25,7 @@ import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
 
 import WidgetQueryFields from './widgetQueryFields';
 
-const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
+export const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   const options: SelectValue<string>[] = [];
   let equations = 0;
   fields.forEach(field => {
@@ -230,7 +230,10 @@ class WidgetQueriesForm extends React.Component<Props> {
               );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
-              if (!aggregateAliasFieldStrings.includes(orderbyAggregateAliasField)) {
+              if (
+                !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
+                widgetQuery.orderby !== ''
+              ) {
                 if (prevAggregateAliasFieldStrings.length === fields.length) {
                   // The Field that was used in orderby has changed. Get the new field.
                   newQuery.orderby = `${descending && '-'}${

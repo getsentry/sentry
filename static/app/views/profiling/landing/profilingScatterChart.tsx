@@ -17,7 +17,7 @@ import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import {Trace} from 'sentry/types/profiling/trace';
+import {Trace} from 'sentry/types/profiling/core';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {Theme} from 'sentry/utils/theme';
 
