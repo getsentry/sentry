@@ -100,8 +100,8 @@ type Props = {
 } & RouteComponentProps<{searchId?: string}, {}>;
 
 type State = {
-  actionTaken: boolean;
   error: string | null;
+  forReview: boolean;
   groupIds: string[];
   isSidebarVisible: boolean;
   issuesLoading: boolean;
@@ -118,6 +118,7 @@ type State = {
   queryCounts: QueryCounts;
   queryMaxCount: number;
   realtimeActive: boolean;
+  reviewedIds: string[];
   selectAllActive: boolean;
   tagsLoading: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
@@ -157,7 +158,8 @@ class IssueListOverview extends React.Component<Props, State> {
 
     return {
       groupIds: [],
-      actionTaken: false,
+      reviewedIds: [],
+      forReview: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -208,6 +210,10 @@ class IssueListOverview extends React.Component<Props, State> {
       if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
         this.transitionTo({display: undefined});
       }
+    }
+
+    if (prevState.forReview !== this.state.forReview) {
+      this.fetchData();
     }
 
     // Wait for saved searches to load before we attempt to fetch stream data
@@ -512,7 +518,9 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   fetchData = (fetchAllCounts = false) => {
-    if (!this.state.actionTaken) {
+    const query = this.getQuery();
+
+    if (!this.state.reviewedIds.length || !isForReviewQuery(query)) {
       GroupStore.loadInitialData([]);
       this._streamManager.reset();
 
@@ -520,6 +528,7 @@ class IssueListOverview extends React.Component<Props, State> {
         issuesLoading: true,
         queryCount: 0,
         itemsRemoved: 0,
+        reviewedIds: [],
         error: null,
       });
     }
@@ -590,6 +599,10 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this._streamManager.push(data);
 
+        if (isForReviewQuery(query)) {
+          GroupStore.remove(this.state.reviewedIds);
+        }
+
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
@@ -600,7 +613,9 @@ class IssueListOverview extends React.Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = resp.getResponseHeader('Link');
 
-        this.fetchCounts(queryCount, fetchAllCounts);
+        if (!this.state.forReview) {
+          this.fetchCounts(queryCount, fetchAllCounts);
+        }
 
         this.setState({
           error: null,
@@ -628,7 +643,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this.resumePolling();
 
-        this.setState({actionTaken: false});
+        this.setState({forReview: false});
       },
     });
   };
@@ -691,35 +706,6 @@ class IssueListOverview extends React.Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
 
   onGroupChange() {
-    const query = this.getQuery();
-
-    const resolvedIds = this._streamManager
-      .getAllItems()
-      .filter(id => id.status === 'resolved')
-      .map(item => item.id);
-    const ignoredIds = this._streamManager
-      .getAllItems()
-      .filter(id => id.status === 'ignored')
-      .map(item => item.id);
-    const reviewedIds = this._streamManager
-      .getAllItems()
-      .filter(id => !id.inbox)
-      .map(item => item.id);
-    // Remove Ignored and Resolved group ids from the issue stream, but if you have a query
-    // that includes these statuses or there's no query/you want to see ALL issues,
-    // don't trigger these group ids to be removed from the issue stream.
-    if (resolvedIds.length > 0 && !query.includes('is:resolved') && !!query) {
-      this.onIssueAction(resolvedIds);
-    }
-    if (ignoredIds.length > 0 && !query.includes('is:ignored') && !!query) {
-      this.onIssueAction(ignoredIds);
-    }
-    // Remove issues that are marked as Reviewed from the For Review tab, but still include the
-    // issues if not on the For Review tab, or no query for ALL issues.
-    if (reviewedIds.length > 0 && isForReviewQuery(query) && !!query) {
-      this.onIssueAction(reviewedIds);
-    }
-
     const groupIds = this._streamManager.getAllItems().map(item => item.id) ?? [];
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
@@ -962,7 +948,6 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onDelete = () => {
-    this.setState({actionTaken: true});
     this.fetchData(true);
   };
 
@@ -984,16 +969,10 @@ class IssueListOverview extends React.Component<Props, State> {
           [query as Query]: currentQueryCount,
         },
         itemsRemoved: itemsRemoved + inInboxCount,
+        reviewedIds: itemIds,
+        forReview: true,
       });
     }
-  };
-
-  onIssueAction = (itemIds: string[]) => {
-    GroupStore.remove(itemIds);
-    this.setState({
-      actionTaken: true,
-    });
-    this.fetchData(true);
   };
 
   tagValueLoader = (key: string, search: string) => {

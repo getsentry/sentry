@@ -416,7 +416,6 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             for key, snuba_query in queries.items():
                 if snuba_query is None:
                     continue
-
                 results[entity][key] = raw_snql_query(
                     snuba_query, use_cache=False, referrer=f"api.metrics.{key}"
                 )

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import Access from 'sentry/components/acl/access';
+import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
@@ -22,7 +23,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Color} from 'sentry/utils/theme';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/incidentRules/types';
 
-import AlertBadge from '../alertBadge';
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 

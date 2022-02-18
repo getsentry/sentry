@@ -311,4 +311,17 @@ describe('transformMetricsResponseToSeries', function () {
       },
     ]);
   });
+
+  it('supports legend aliases', () => {
+    expect(
+      transformMetricsResponseToSeries(
+        TestStubs.SessionUserCountByStatusByRelease(),
+        'Lorem'
+      )[0]
+    ).toEqual(
+      expect.objectContaining({
+        seriesName: 'Lorem: sum(session)|session.status:crashed|release:1',
+      })
+    );
+  });
 });
