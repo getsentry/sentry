@@ -1,12 +1,10 @@
 import styled from '@emotion/styled';
 
-function FlamegraphToolbar(props): React.ReactElement {
-  return <FlamegraphToolbarContainer>{props.children}</FlamegraphToolbarContainer>;
+interface FlamegraphToolbarProps {
+  children: React.ReactNode;
 }
 
-export {FlamegraphToolbar};
-
-const FlamegraphToolbarContainer = styled('div')`
+export const FlamegraphToolbar = styled('div')<FlamegraphToolbarProps>`
   display: flex;
   justify-content: space-between;
   align-items: center;
