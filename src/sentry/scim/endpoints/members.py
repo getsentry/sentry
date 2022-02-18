@@ -3,7 +3,12 @@ from typing import Any, Dict, Union
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_field
+from drf_spectacular.utils import (
+    OpenApiExample,
+    extend_schema,
+    extend_schema_field,
+    inline_serializer,
+)
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.fields import Field
@@ -246,7 +251,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(status=204)
 
 
-@public(methods={"GET"})
+@public(methods={"GET", "POST"})
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
@@ -331,6 +336,35 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             cursor_cls=SCIMCursor,
         )
 
+    @extend_schema(
+        operation_id="Provision a New Organization Member",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG],
+        request=inline_serializer(
+            "SCIMMemberProvision", fields={"userName": serializers.EmailField()}
+        ),
+        responses={
+            201: OrganizationMemberSCIMSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "Provision new member",
+                response_only=True,
+                value={
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": "242",
+                    "userName": "test.user@okta.local",
+                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+                    "active": True,
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "meta": {"resourceType": "User"},
+                },
+                status_codes=["201"],
+            ),
+        ],
+    )
     def post(self, request: Request, organization) -> Response:
         serializer = OrganizationMemberSerializer(
             data={

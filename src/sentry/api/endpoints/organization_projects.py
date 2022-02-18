@@ -79,10 +79,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
                 elif key == "team":
-                    team_list = list(Team.objects.filter(slug__in=value))
+                    team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.filter(teams__in=team_list)
                 elif key == "!team":
-                    team_list = list(Team.objects.filter(slug__in=value))
+                    team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
                 elif key == "is_member":
                     queryset = queryset.filter(teams__organizationmember__user=request.user)

@@ -1,13 +1,13 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Field from 'sentry/components/forms/field';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import Field from 'sentry/views/settings/components/forms/field';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 const DEFAULT_PROPS = {

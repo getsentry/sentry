@@ -1,12 +1,21 @@
-import {
-  BooleanField,
-  DateTimeField,
-  Form,
-  NumberField,
-  SelectField,
-} from '../deprecatedforms';
-
-/**
- * @deprecated Use imports from sentry/components/deprecatedforms. This shim is to support getsentry temporarily
- */
-export {BooleanField, DateTimeField, Form, NumberField, SelectField};
+export {default as ApiForm} from './apiForm';
+export {default as BooleanField} from './booleanField';
+export {default as CheckboxField} from './checkboxField';
+export {default as ChoiceMapperField} from './choiceMapperField';
+export {default as DatePickerField} from './datePickerField';
+export {default as DateTimeField} from './dateTimeField';
+export {default as EmailField} from './emailField';
+export {default as FieldFromConfig} from './fieldFromConfig';
+export {default as FieldSeparator} from './fieldSeparator';
+export {default as Form} from './form';
+export {default as FormPanel} from './formPanel';
+export {default as HiddenField} from './hiddenField';
+export {default as InputField} from './inputField';
+export {default as JSONForm} from './jsonForm';
+export {default as NumberField} from './numberField';
+export {default as RadioBooleanField} from './radioBooleanField';
+export {default as RangeField} from './rangeField';
+export {default as SelectField} from './selectField';
+export {default as TextareaField} from './textareaField';
+export {default as TestCopyInput} from './textCopyInput';
+export {default as TextField} from './textField';

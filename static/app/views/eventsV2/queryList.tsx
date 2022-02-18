@@ -14,7 +14,7 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCopy, IconDelete, IconEllipsis, IconGraph} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery} from 'sentry/types';
@@ -211,7 +211,6 @@ class QueryList extends React.Component<Props> {
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
-          leadingItems: <IconGraph />,
           onAction: () => this.handleAddQueryToDashboard(eventView),
         },
       ];
@@ -279,7 +278,6 @@ class QueryList extends React.Component<Props> {
               {
                 key: 'add-to-dashboard',
                 label: t('Add to Dashboard'),
-                leadingItems: <IconGraph />,
                 onAction: () => this.handleAddQueryToDashboard(eventView, savedQuery),
               },
             ]
@@ -287,14 +285,12 @@ class QueryList extends React.Component<Props> {
         {
           key: 'duplicate',
           label: t('Duplicate Query'),
-          leadingItems: <IconCopy />,
           onAction: () =>
             this.handleDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
         },
         {
           key: 'delete',
           label: t('Delete Query'),
-          leadingItems: <IconDelete />,
           priority: 'danger',
           onAction: () => this.handleDeleteQuery(eventView),
         },
