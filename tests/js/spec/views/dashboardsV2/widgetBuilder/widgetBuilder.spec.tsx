@@ -121,11 +121,11 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Widget not found.')).toBeInTheDocument();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {organization, router, routerContext} = initializeOrg({
       ...initializeOrg(),
       organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit'],
+        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
       },
       router: {
         location: {
@@ -162,7 +162,7 @@ describe('WidgetBuilder', function () {
     );
 
     // Header - Breadcrumbs
-    expect(screen.getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboards/'
     );
