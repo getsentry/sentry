@@ -220,27 +220,21 @@ class QueryDefinition:
         return (op, metric_name), direction
 
     def _parse_limit(self, query_params, paginator_kwargs):
-        limit = paginator_kwargs.get("limit")
-        if not self.orderby:
+        if self.orderby:
+            return paginator_kwargs.get("limit")
+        else:
             per_page = query_params.get("per_page")
             if per_page is not None:
                 # If order by is not None, it means we will have a `series` query which cannot be
                 # paginated, and passing a `per_page` url param to paginate the results is not
                 # possible
                 raise InvalidParams("'per_page' is only supported in combination with 'orderBy'")
-
-        if limit is not None:
-            try:
-                limit = int(limit)
-                if limit < 1:
-                    raise ValueError
-            except (ValueError, TypeError):
-                raise InvalidParams("'limit' must be integer >= 1")
-
-        return limit
+            return None
 
     def _parse_offset(self, query_params, paginator_kwargs):
-        if not self.orderby:
+        if self.orderby:
+            return paginator_kwargs.get("offset")
+        else:
             cursor = query_params.get("cursor")
             if cursor is not None:
                 # If order by is not None, it means we will have a `series` query which cannot be
@@ -248,7 +242,6 @@ class QueryDefinition:
                 # possible
                 raise InvalidParams("'cursor' is only supported in combination with 'orderBy'")
             return None
-        return paginator_kwargs.get("offset")
 
 
 class TimeRange(Protocol):
