@@ -16,7 +16,7 @@ import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
-import {DisplayType, Widget, WidgetType} from '../types';
+import {DisplayType, Widget} from '../types';
 
 type Props = {
   displayType: DisplayType;
@@ -26,6 +26,8 @@ type Props = {
    * Fired when fields are added/removed/modified/reordered.
    */
   onChange: (fields: QueryFieldValue[]) => void;
+
+  // TODO: For checking against METRICS widget type
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
   style?: React.CSSProperties;
@@ -58,11 +60,10 @@ function YAxisSelector({
   style,
   fieldOptions,
   onChange,
-  widgetType,
   errors,
 }: Props) {
   const organization = useOrganization();
-  const isMetricWidget = widgetType === WidgetType.METRICS;
+  // const isMetricWidget = widgetType === WidgetType.METRICS;
 
   function handleAdd(event: React.MouseEvent) {
     event.preventDefault();
@@ -124,15 +125,15 @@ function YAxisSelector({
       }
     }
 
-    if (
-      widgetType === WidgetType.METRICS &&
-      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
-    ) {
-      return (
-        option.value.kind === FieldValueKind.FUNCTION ||
-        option.value.kind === FieldValueKind.TAG
-      );
-    }
+    // if (
+    //   widgetType === WidgetType.METRICS &&
+    //   (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
+    // ) {
+    //   return (
+    //     option.value.kind === FieldValueKind.FUNCTION ||
+    //     option.value.kind === FieldValueKind.TAG
+    //   );
+    // }
 
     return option.value.kind === FieldValueKind.FUNCTION;
   }
@@ -148,9 +149,9 @@ function YAxisSelector({
       return true;
     }
 
-    if (isMetricWidget) {
-      return true;
-    }
+    // if (isMetricWidget) {
+    //   return true;
+    // }
 
     const functionName = fieldValue.function[0];
     const primaryOutput = aggregateFunctionOutputType(
@@ -171,7 +172,7 @@ function YAxisSelector({
 
   const canDelete = fields.length > 1;
 
-  const hideAddYAxisButton =
+  const hideAddYAxisButtons =
     ([DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(displayType) &&
       fields.length === 1) ||
     ([
@@ -182,7 +183,7 @@ function YAxisSelector({
     ].includes(displayType) &&
       fields.length === 3);
 
-  let fieldContents;
+  let fieldContents: React.ReactElement;
   if (displayType === DisplayType.TOP_N) {
     const fieldValue = fields[fields.length - 1];
     fieldContents = (
@@ -199,24 +200,22 @@ function YAxisSelector({
   } else {
     fieldContents = (
       <React.Fragment>
-        {fields.map((fieldValue, i) => {
-          return (
-            <QueryFieldWrapper key={`${fieldValue}:${i}`}>
-              <QueryField
-                fieldValue={fieldValue}
-                fieldOptions={fieldOptions}
-                onChange={value => handleChangeField(value, i)}
-                filterPrimaryOptions={filterPrimaryOptions}
-                filterAggregateParameters={filterAggregateParameters(fieldValue)}
-                otherColumns={fields}
-              />
-              {(canDelete || fieldValue.kind === 'equation') && (
-                <DeleteButton onDelete={event => handleRemove(event, i)} />
-              )}
-            </QueryFieldWrapper>
-          );
-        })}
-        {!hideAddYAxisButton && (
+        {fields.map((fieldValue, i) => (
+          <QueryFieldWrapper key={`${fieldValue}:${i}`}>
+            <QueryField
+              fieldValue={fieldValue}
+              fieldOptions={fieldOptions}
+              onChange={value => handleChangeField(value, i)}
+              filterPrimaryOptions={filterPrimaryOptions}
+              filterAggregateParameters={filterAggregateParameters(fieldValue)}
+              otherColumns={fields}
+            />
+            {(canDelete || fieldValue.kind === 'equation') && (
+              <DeleteButton onDelete={event => handleRemove(event, i)} />
+            )}
+          </QueryFieldWrapper>
+        ))}
+        {!hideAddYAxisButtons && (
           <Actions>
             <AddButton title={t('Add Overlay')} onAdd={handleAdd} />
             <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
