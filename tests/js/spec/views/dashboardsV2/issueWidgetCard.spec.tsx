@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {WidgetCard} from 'sentry/views/dashboardsV2/widgetCard';
