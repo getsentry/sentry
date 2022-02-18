@@ -2,15 +2,19 @@ from unittest.mock import patch
 
 import responses
 from django.test.utils import override_settings
-from django.urls import reverse
 
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 from tests.fixtures.integrations.mock_service import StubService
 
+TOKEN = "JWT anexampletoken"
+
 
 class JiraWebhooksTest(APITestCase):
+    endpoint = "sentry-extensions-jira-issue-updated"
+    method = "post"
+
     def setUp(self):
         super().setUp()
         self.integration = Integration.objects.create(
@@ -24,7 +28,6 @@ class JiraWebhooksTest(APITestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user)
-        self.path = reverse("sentry-extensions-jira-issue-updated")
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     def test_simple_assign(self, mock_sync_group_assignee_inbound):
@@ -33,8 +36,7 @@ class JiraWebhooksTest(APITestCase):
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
-            resp = self.client.post(self.path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
-            assert resp.status_code == 200
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
             mock_sync_group_assignee_inbound.assert_called_with(
                 self.integration, "jess@sentry.io", "APP-123", assign=True
             )
@@ -56,8 +58,7 @@ class JiraWebhooksTest(APITestCase):
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
             data["issue"]["fields"]["assignee"]["emailAddress"] = ""
-            resp = self.client.post(self.path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
-            assert resp.status_code == 200
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
             assert mock_sync_group_assignee_inbound.called
             assert len(responses.calls) == 1
 
@@ -69,8 +70,7 @@ class JiraWebhooksTest(APITestCase):
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
             data["issue"]["fields"]["assignee"]["emailAddress"] = ""
-            resp = self.client.post(self.path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
-            assert resp.status_code == 200
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
             assert not mock_sync_group_assignee_inbound.called
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
@@ -80,8 +80,7 @@ class JiraWebhooksTest(APITestCase):
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "edit_issue_no_assignee_payload.json")
-            resp = self.client.post(self.path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
-            assert resp.status_code == 200
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
             mock_sync_group_assignee_inbound.assert_called_with(
                 self.integration, None, "APP-123", assign=False
             )
@@ -93,8 +92,7 @@ class JiraWebhooksTest(APITestCase):
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_missing_payload.json")
-            resp = self.client.post(self.path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
-            assert resp.status_code == 200
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
             mock_sync_group_assignee_inbound.assert_called_with(
                 self.integration, None, "APP-123", assign=False
             )
@@ -106,10 +104,13 @@ class JiraWebhooksTest(APITestCase):
             return_value=self.integration,
         ) as mock_get_integration_from_jwt:
             data = StubService.get_stub_data("jira", "edit_issue_status_payload.json")
-            resp = self.client.post(self.path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
-            assert resp.status_code == 200
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
             mock_get_integration_from_jwt.assert_called_with(
-                "anexampletoken", "/extensions/jira/issue-updated/", "jira", {}, method="POST"
+                token="anexampletoken",
+                path="/extensions/jira/issue-updated/",
+                provider="jira",
+                query_params={},
+                method="POST",
             )
             mock_sync_status_inbound.assert_called_with(
                 "APP-123",
@@ -136,14 +137,4 @@ class JiraWebhooksTest(APITestCase):
             return_value=self.integration,
         ):
             data = StubService.get_stub_data("jira", "changelog_missing.json")
-            resp = self.client.post(self.path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
-            assert resp.status_code == 200
-
-    def test_missing_body(self):
-        path = reverse("sentry-extensions-jira-installed")
-        with patch(
-            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
-            return_value=self.integration,
-        ):
-            resp = self.client.post(path, data={}, HTTP_AUTHORIZATION="JWT anexampletoken")
-            assert resp.status_code == 400
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
