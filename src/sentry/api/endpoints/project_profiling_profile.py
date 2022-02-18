@@ -11,7 +11,6 @@ class ProjectProfilingProfileEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, transaction_id: str) -> Response:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
-
         response = safe_urlopen(
             f"{settings.SENTRY_PROFILING_SERVICE_URL}/projects/{project.id}/profiles/{transaction_id}",
             method="GET",

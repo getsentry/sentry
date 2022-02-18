@@ -21,7 +21,6 @@ PROFILE_FILTERS = [
     "device_os_version",
     "environment",
     "error_code",
-    "project",
     "statsPeriod",
     "transaction_name",
     "version",
@@ -33,12 +32,15 @@ class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
+        params = {
+            p: request.query_params.getlist(p) for p in PROFILE_FILTERS if p in request.query_params
+        }
+        projects = self.get_projects(request, organization)
+
+        if len(projects) > 0:
+            params["project"] = [p.id for p in projects]
+
         def data_fn(offset: int, limit: int) -> Any:
-            params = {
-                p: request.query_params.getlist(p)
-                for p in PROFILE_FILTERS
-                if p in request.query_params
-            }
             params["offset"] = offset
             params["limit"] = limit
             response = safe_urlopen(
@@ -65,11 +67,12 @@ class OrganizationProfilingFiltersEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
 
         if len(projects) > 0:
-            params["project_id"] = [p.id for p in projects]
+            params["project"] = [p.id for p in projects]
 
         response = safe_urlopen(
             f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/filters",
             method="GET",
             params=params,
         )
+
         return Response(response.json(), status=200)
