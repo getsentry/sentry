@@ -4,11 +4,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import IncidentDetails from 'sentry/views/alerts/details';
+import IncidentRedirect from 'sentry/views/alerts/incidentRedirect';
 
 jest.mock('sentry/utils/analytics');
 
-describe('IncidentDetails', () => {
+describe('IncidentRedirect', () => {
   const params = {orgId: 'org-slug', alertId: '123'};
   const {organization, project, routerContext} = initializeOrg({
     router: {
@@ -30,7 +30,7 @@ describe('IncidentDetails', () => {
   });
 
   it('redirects to alert details page', async () => {
-    mountWithTheme(<IncidentDetails params={params} organization={organization} />, {
+    mountWithTheme(<IncidentRedirect params={params} organization={organization} />, {
       context: routerContext,
     });
 

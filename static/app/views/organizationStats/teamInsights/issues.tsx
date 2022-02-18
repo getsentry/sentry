@@ -42,6 +42,7 @@ function TeamStatsIssues({location, router}: Props) {
     | TeamWithProjects
     | undefined;
   const projects = currentTeam?.projects ?? [];
+  const environment = query.environment;
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('team_insights.viewed', {
@@ -64,9 +65,11 @@ function TeamStatsIssues({location, router}: Props) {
 
       <Body>
         <TeamStatsControls
+          showEnvironment
           location={location}
           router={router}
           currentTeam={currentTeam}
+          currentEnvironment={environment}
         />
 
         {!initiallyLoaded && <LoadingIndicator />}
@@ -82,6 +85,7 @@ function TeamStatsIssues({location, router}: Props) {
                 projects={projects}
                 organization={organization}
                 teamSlug={currentTeam!.slug}
+                environment={environment}
                 period={period}
                 start={start}
                 end={end}
@@ -99,6 +103,7 @@ function TeamStatsIssues({location, router}: Props) {
                 organization={organization}
                 projects={projects}
                 teamSlug={currentTeam!.slug}
+                environment={environment}
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
@@ -117,6 +122,7 @@ function TeamStatsIssues({location, router}: Props) {
                 organization={organization}
                 projects={projects}
                 teamSlug={currentTeam!.slug}
+                environment={environment}
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
@@ -140,6 +146,7 @@ function TeamStatsIssues({location, router}: Props) {
             >
               <TeamResolutionTime
                 organization={organization}
+                environment={environment}
                 teamSlug={currentTeam!.slug}
                 period={period}
                 start={start?.toString()}
