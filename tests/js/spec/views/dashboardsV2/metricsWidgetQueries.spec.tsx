@@ -163,7 +163,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     );
   });
 
-  it('does not re-fetch when renaming legend alias', () => {
+  it('does not re-fetch when renaming legend alias / adding falsy fields', () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_SESSION}),
@@ -189,7 +189,13 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         api={api}
         widget={{
           ...singleQueryWidget,
-          queries: [{...singleQueryWidget.queries[0], name: 'New Legend Alias'}],
+          queries: [
+            {
+              ...singleQueryWidget.queries[0],
+              name: 'New Legend Alias',
+              fields: [...singleQueryWidget.queries[0].fields, ''],
+            },
+          ],
         }}
         organization={organization}
         selection={selection}

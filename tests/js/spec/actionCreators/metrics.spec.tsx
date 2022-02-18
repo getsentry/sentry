@@ -79,4 +79,20 @@ describe('Metrics ActionCreator', function () {
       })
     );
   });
+
+  it('ignores falsy fields', function () {
+    doMetricsRequest(api, {
+      ...options,
+      field: [SessionMetric.SENTRY_SESSIONS_SESSION, ''],
+    });
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenLastCalledWith(
+      `/organizations/${orgSlug}/metrics/data/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['sentry.sessions.session'],
+        }),
+      })
+    );
+  });
 });
