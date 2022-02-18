@@ -6,6 +6,7 @@ from typing import Container, Optional
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
+from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
 from rest_framework.request import Request
@@ -236,7 +237,10 @@ def find_users(username, with_valid_password=True, is_active=None):
     return []
 
 
-def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None):
+#
+def login(
+    request: HttpRequest, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None
+):
     """
     This logs a user in for the session and current request.
 

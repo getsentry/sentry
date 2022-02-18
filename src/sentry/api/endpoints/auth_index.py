@@ -140,7 +140,7 @@ class AuthIndexEndpoint(Endpoint):
             return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
 
         try:
-            # Must use the real request object that Django knows about
+            # Must use the httprequest object instead of request
             auth.login(request._request, request.user)
         except auth.AuthUserPasswordExpired:
             return Response(

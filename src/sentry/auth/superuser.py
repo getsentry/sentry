@@ -21,6 +21,7 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers
 
 from sentry.auth.system import is_system_auth
+from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
 
 logger = logging.getLogger("sentry.superuser")
@@ -40,10 +41,10 @@ COOKIE_PATH = getattr(settings, "SUPERUSER_COOKIE_PATH", settings.SESSION_COOKIE
 COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
+MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(minutes=15))
 
 # the maximum time the session can stay alive without making another request
-IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=30))
+IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
 
 ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
@@ -60,14 +61,20 @@ def is_active_superuser(request):
 
 
 class SuperuserAccessSerializer(serializers.Serializer):
-    su_access_category = serializers.CharField()
-    reason_for_su = serializers.CharField(min_length=1, max_length=128)
+    categoryOfSUAccess = serializers.CharField()
+    reasonForSU = serializers.CharField(min_length=1, max_length=128)
 
 
 class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
     org_id = ORG_ID
+
+    def _remove_su_access_from_session(self, request):
+        if request.session["su_access"]:
+            del request.session["su_access"]
+        if request.session["orgs_accessed"]:
+            del request.session["orgs_accessed"]
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
@@ -185,6 +192,7 @@ class Superuser:
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
+            self._remove_su_access_from_session(request)
             return
 
         try:
@@ -202,6 +210,7 @@ class Superuser:
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
+            self._remove_su_access_from_session(request)
             return
 
         return data
@@ -295,8 +304,9 @@ class Superuser:
         # is there anything else that calls this besides suodalModal?
         if request.method == "PUT":
             try:
-                # SU_access_info = json.loads(request.body)  # use drf serializer for this
-                SU_access_info = SuperuserAccessSerializer(data=request.body)
+                # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
+                SU_access_json = json.loads(request.body)
+                SU_access_info = SuperuserAccessSerializer(data=SU_access_json)
                 if SU_access_info.is_valid():
                     logger.info(
                         "su_access.give_su_access",
@@ -315,6 +325,8 @@ class Superuser:
                         "su_access_category": SU_access_info["categoryOfSUAccess"],
                         "reason_for_su": SU_access_info["reasonForSU"],
                     }
+            except json.JSONDecodeError:
+                pass
             except serializers.ValidationError:
                 pass
 
