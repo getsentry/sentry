@@ -34,7 +34,14 @@ function changeObjectValuesToTypes(obj: Record<string, number | string | null>) 
   }, {});
 }
 
-export function transformMetricsResponseToTable({response}: Arguments): TableData {
+/**
+ * This function was used for performance table on metrics PoC.
+ * The transform that renames the fields will be handled on the API layer.
+ * @deprecated
+ */
+export function deprecatedTransformMetricsResponseToTable({
+  response,
+}: Arguments): TableData {
   const data =
     response?.groups.map((group, index) => ({
       id: String(index),

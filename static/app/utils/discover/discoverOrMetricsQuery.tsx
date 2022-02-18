@@ -45,7 +45,7 @@ function DiscoverOrMetricsQuery(props: DiscoverQueryPropsWithThresholds) {
         orderBy={orderBy}
         limit={50}
         cursor={decodeScalar(location.query.cursor)}
-        includeTabularData
+        includeDeprecatedTabularData
       >
         {(props as any).children}
       </MetricsRequest>
