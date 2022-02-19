@@ -1067,6 +1067,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         ]
         self.create_event(spans=different_hash_spans)
 
+        # different op same hash
         different_op_spans = [
             {
                 "same_process_as_parent": True,
