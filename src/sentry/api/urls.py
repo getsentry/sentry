@@ -1105,6 +1105,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-histogram",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-histogram/$",
+                    OrganizationEventsHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-histogram",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
                     OrganizationEventsTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends",
