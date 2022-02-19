@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
-from snuba_sdk.function import Function, Identifier, Lambda
+from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -1033,6 +1033,69 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             ]
         }
 
+    def test_span_filters(self):
+        spans = [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": x * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "cd" * 8,
+                "exclusive_time": 3.0,
+            }
+            for x in ["b", "c"]
+        ]
+        event = self.create_event(spans=spans)
+
+        # same op different hash
+        different_hash_spans = [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": x * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.middleware",
+                "description": "middleware span",
+                "hash": "ef" * 8,
+                "exclusive_time": 1.0,
+            }
+            for x in ["d", "e", "f"]
+        ]
+        self.create_event(spans=different_hash_spans)
+
+        different_op_spans = [
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": x * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.view",
+                "description": "view span",
+                "hash": "cd" * 8,
+                "exclusive_time": 1.0,
+            }
+            for x in ["d", "e", "f"]
+        ]
+        self.create_event(spans=different_op_spans)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id, "span": f"django.middleware:{'cd' * 8}"},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        self.assert_span_examples(
+            response.data, [self.span_example_results("django.middleware", event)]
+        )
+
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_one_span(self, mock_raw_snql_query):
         event = self.create_event()
@@ -1052,49 +1115,6 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         assert response.status_code == 200, response.content
         assert mock_raw_snql_query.call_count == 1
-
-        query = mock_raw_snql_query.call_args_list[0][0][0].where
-
-        matching_span_ops_groups = Function(
-            "arrayMap",
-            [
-                Lambda(
-                    ["x", "y"],
-                    Function(
-                        "and",
-                        [
-                            Function("equals", [Identifier("x"), "http.server"]),
-                            Function("equals", [Identifier("y"), "ab" * 8]),
-                        ],
-                    ),
-                ),
-                Column("spans.op"),
-                Column("spans.group"),
-            ],
-        )
-
-        assert (
-            Condition(lhs=Function("has", [Column("spans.op"), "http.server"]), op=Op.EQ, rhs=1)
-            in query
-        )
-
-        assert (
-            Condition(lhs=Function("has", [Column("spans.group"), "ab" * 8]), op=Op.EQ, rhs=1)
-            in query
-        )
-
-        assert (
-            Condition(
-                lhs=Function(
-                    "arrayReduce",
-                    ["countIf", Column("spans.exclusive_time"), matching_span_ops_groups],
-                    "count_span_time",
-                ),
-                op=Op.GT,
-                rhs=0,
-            )
-            in query
-        )
 
         self.assert_span_examples(response.data, [self.span_example_results("http.server", event)])
 
