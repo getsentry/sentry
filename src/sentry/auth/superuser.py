@@ -41,10 +41,10 @@ COOKIE_PATH = getattr(settings, "SUPERUSER_COOKIE_PATH", settings.SESSION_COOKIE
 COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(minutes=15))
+MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
 
 # the maximum time the session can stay alive without making another request
-IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
+IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=30))
 
 ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
@@ -187,12 +187,13 @@ class Superuser:
             )
             return
 
+        # shouldn't this be greater for it to be expired?
         if data["idl"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            self._remove_su_access_from_session(request)
+            # self._remove_su_access_from_session(request)
             return
 
         try:
@@ -205,12 +206,13 @@ class Superuser:
             )
             return
 
+        # shouldn't this be greater for it to be expired?
         if data["exp"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            self._remove_su_access_from_session(request)
+            # self._remove_su_access_from_session(request)
             return
 
         return data

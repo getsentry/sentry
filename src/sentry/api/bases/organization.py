@@ -168,17 +168,29 @@ class OrganizationEndpoint(Endpoint):
             if not request.session.get("orgs_accessed"):
                 request.session["orgs_accessed"] = [organization_slug]
             elif organization_slug not in request.session["orgs_accessed"]:
-                request.session["orgs_accessed"].append(organization_slug)
-                logger.info(
-                    "su_access.organization_change",
-                    extra={
-                        "user_id": request.user.id,
-                        "user_email": request.user.email,
-                        "su_access_category": request.session["su_access"]["su_access_category"],
-                        "reason_for_su": request.session["su_access"]["reason_for_su"],
-                        "orgs_accessed": request.session["orgs_accessed"],
-                    },
-                )
+                if request.session["su_access"]:
+                    request.session["orgs_accessed"].append(organization_slug)
+                    logger.info(
+                        "su_access.organization_change",
+                        extra={
+                            "user_id": request.user.id,
+                            "user_email": request.user.email,
+                            "su_access_category": request.session["su_access"][
+                                "su_access_category"
+                            ],
+                            "reason_for_su": request.session["su_access"]["reason_for_su"],
+                            "orgs_accessed": request.session["orgs_accessed"],
+                        },
+                    )
+                else:
+                    logger.warning(
+                        "su_access.organization_change_without_reason",
+                        extra={
+                            "user_id": request.user.id,
+                            "user_email": request.user.email,
+                            "orgs_accessed": request.session["orgs_accessed"],
+                        },
+                    )
 
         return super().initialize_request(request, *args, **kwargs)
 
