@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from sentry.notifications.notifications.base import ProjectNotification
@@ -6,14 +8,11 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Project, Team, User
+    from sentry.models import Team, User
 
 
 class AutoSyncNotification(ProjectNotification):
     notification_setting_type = NotificationSettingTypes.DEPLOY
-
-    def __init__(self, project: Project) -> None:
-        super().__init__(project)
 
     def determine_recipients(self) -> Iterable[Team | User]:
         raise self.organization.get_owners()

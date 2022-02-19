@@ -1,15 +1,17 @@
 from django.http import Http404
 from rest_framework import status
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
+from sentry.shared_integrations.exceptions import ApiError
 
 
 def get_codeowner_contents(config):
     if not config.organization_integration:
-        raise Exception("No associated integration")
+        raise NotFound(detail="No associated integration")
 
     integration = config.organization_integration.integration
     install = integration.get_installation(config.organization_integration.organization_id)
@@ -37,7 +39,7 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     def get(self, request: Request, config_id, organization, config) -> Response:
         try:
             codeowner_contents = get_codeowner_contents(config)
-        except Exception as e:
+        except ApiError as e:
             return self.respond({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         if not codeowner_contents:

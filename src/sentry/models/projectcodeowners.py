@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.db import models
@@ -157,8 +159,12 @@ class ProjectCodeOwners(DefaultFieldsModel):
         2. convert the codeowner file to the ownership syntax
         3. convert the ownership syntax to the schema
         """
-        if raw:
+
+        if raw and self.raw != raw:
             self.raw = raw
+
+        if not self.raw:
+            return
 
         associations, _ = self.validate_codeowners_associations(self.raw, self.project)
 

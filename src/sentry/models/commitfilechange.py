@@ -44,10 +44,15 @@ class CommitFileChange(Model):
 
 
 def process_resource_change(instance, **kwargs):
+    from sentry.integrations.github.integration import GitHubIntegration
+    from sentry.integrations.gitlab.integration import GitlabIntegration
     from sentry.tasks.codeowners import code_owners_auto_sync
 
+    filepaths = list(
+        set(GitHubIntegration.codeowners_locations) | set(GitlabIntegration.codeowners_locations)
+    )
     # CODEOWNERS file added or modified, trigger auto-sync
-    if "codeowners" in instance.filename.lower() and instance.type in ["A", "M"]:
+    if instance.filename in filepaths and instance.type in ["A", "M"]:
         code_owners_auto_sync.delay(instance.commit)
 
 
