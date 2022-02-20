@@ -137,13 +137,10 @@ describe('Performance > Transaction Tags', function () {
   it('renders basic UI elements', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(
-      <TransactionTags organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
+    mountWithTheme(<TransactionTags location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     // It shows the sidebar
     expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
@@ -170,13 +167,10 @@ describe('Performance > Transaction Tags', function () {
   it('Default tagKey is set when loading the page without one', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(
-      <TransactionTags organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
+    mountWithTheme(<TransactionTags location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     await waitFor(() => {
       // Table is loaded.
@@ -210,13 +204,10 @@ describe('Performance > Transaction Tags', function () {
       query: {tagKey: 'effectiveConnectionType'},
     });
 
-    mountWithTheme(
-      <TransactionTags organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
+    mountWithTheme(<TransactionTags location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     await waitFor(() => {
       // Table is loaded.

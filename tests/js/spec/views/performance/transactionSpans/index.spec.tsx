@@ -80,13 +80,10 @@ describe('Performance > Transaction Spans', function () {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
-      mountWithTheme(
-        <TransactionSpans
-          organization={initialData.organization}
-          location={initialData.router.location}
-        />,
-        {context: initialData.routerContext, organization: initialData.organization}
-      );
+      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      });
 
       expect(
         await screen.findByText('No results found for your query')
@@ -106,16 +103,10 @@ describe('Performance > Transaction Spans', function () {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
-      mountWithTheme(
-        <TransactionSpans
-          organization={initialData.organization}
-          location={initialData.router.location}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
-      );
+      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      });
 
       // default visible columns
       const grid = await screen.findByTestId('grid-editable');
@@ -143,16 +134,10 @@ describe('Performance > Transaction Spans', function () {
     ].forEach(({sort, label}) => {
       it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
-        mountWithTheme(
-          <TransactionSpans
-            organization={initialData.organization}
-            location={initialData.router.location}
-          />,
-          {
-            context: initialData.routerContext,
-            organization: initialData.organization,
-          }
-        );
+        mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        });
 
         const grid = await screen.findByTestId('grid-editable');
         expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
@@ -166,16 +151,10 @@ describe('Performance > Transaction Spans', function () {
 
     it('renders the right count header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.COUNT}});
-      mountWithTheme(
-        <TransactionSpans
-          organization={initialData.organization}
-          location={initialData.router.location}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
-      );
+      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      });
 
       const grid = await screen.findByTestId('grid-editable');
       expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
@@ -188,16 +167,10 @@ describe('Performance > Transaction Spans', function () {
 
     it('renders the right avg occurrence header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
-      mountWithTheme(
-        <TransactionSpans
-          organization={initialData.organization}
-          location={initialData.router.location}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
-      );
+      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      });
 
       const grid = await screen.findByTestId('grid-editable');
       expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
