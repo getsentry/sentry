@@ -5,7 +5,6 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('EnvironmentPageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({

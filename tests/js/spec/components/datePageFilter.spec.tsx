@@ -4,7 +4,6 @@ import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary
 import DatePageFilter from 'sentry/components/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('DatePageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({

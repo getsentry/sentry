@@ -4,7 +4,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';
 
 jest.mock('sentry/utils/localStorage');
