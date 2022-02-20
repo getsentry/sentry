@@ -21,16 +21,10 @@ describe('AnomaliesTab', function () {
       query: {project: '1', transaction: 'transaction'},
     });
 
-    mountWithTheme(
-      <TransactionAnomalies
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      {
-        context: initialData.routerContext,
-        organization: initialData.organization,
-      }
-    );
+    mountWithTheme(<TransactionAnomalies location={initialData.router.location} />, {
+      context: initialData.routerContext,
+      organization: initialData.organization,
+    });
 
     expect(await screen.findByText('Transaction Count')).toBeInTheDocument();
   });

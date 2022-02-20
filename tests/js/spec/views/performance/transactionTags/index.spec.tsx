@@ -239,16 +239,10 @@ describe('Performance > Transaction Tags', function () {
   it('creates links to releases if the release tag is selected', async () => {
     const initialData = initializeData({query: {tagKey: 'release'}});
 
-    mountWithTheme(
-      <TransactionTags
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      {
-        context: initialData.routerContext,
-        organization: initialData.organization,
-      }
-    );
+    mountWithTheme(<TransactionTags location={initialData.router.location} />, {
+      context: initialData.routerContext,
+      organization: initialData.organization,
+    });
 
     await waitFor(() => {
       // Table is loaded.
