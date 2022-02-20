@@ -1,9 +1,4 @@
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IssueList} from 'sentry/components/issueList';
 
