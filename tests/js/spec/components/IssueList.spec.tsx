@@ -77,9 +77,7 @@ describe('IssueList', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId('loading-error-message')).toBeInTheDocument();
-    });
+    expect(await screen.findByTestId('loading-error-message')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Retry'));
 
