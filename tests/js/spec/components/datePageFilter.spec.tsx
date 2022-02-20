@@ -32,14 +32,10 @@ describe('DatePageFilter', function () {
   );
 
   it('can change period', function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <DatePageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<DatePageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     expect(screen.getByText('7D')).toBeInTheDocument();
     userEvent.click(screen.getByText('7D'));
@@ -64,14 +60,10 @@ describe('DatePageFilter', function () {
   });
 
   it('can pin datetime', async function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <DatePageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<DatePageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Confirm no filters are pinned
     expect(PageFiltersStore.getState()).toEqual(

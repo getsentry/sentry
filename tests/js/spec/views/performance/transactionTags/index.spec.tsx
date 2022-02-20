@@ -4,8 +4,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
 const TEST_RELEASE_NAME = 'test-project@1.0.0';
@@ -36,19 +34,6 @@ function initializeData({query} = {query: {}}) {
 
   return initialData;
 }
-
-const WrappedComponent = ({
-  organization,
-  ...props
-}: Omit<React.ComponentProps<typeof TransactionTags>, 'organization'> & {
-  organization: Organization;
-}) => {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <TransactionTags organization={organization} {...props} />
-    </OrganizationContext.Provider>
-  );
-};
 
 describe('Performance > Transaction Tags', function () {
   let histogramMock: Record<string, any>;
@@ -153,9 +138,10 @@ describe('Performance > Transaction Tags', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TransactionTags organization={organization} location={router.location} />,
       {
         context: routerContext,
+        organization,
       }
     );
 
@@ -185,9 +171,10 @@ describe('Performance > Transaction Tags', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TransactionTags organization={organization} location={router.location} />,
       {
         context: routerContext,
+        organization,
       }
     );
 
@@ -224,9 +211,10 @@ describe('Performance > Transaction Tags', function () {
     });
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TransactionTags organization={organization} location={router.location} />,
       {
         context: routerContext,
+        organization,
       }
     );
 
@@ -261,11 +249,14 @@ describe('Performance > Transaction Tags', function () {
     const initialData = initializeData({query: {tagKey: 'release'}});
 
     mountWithTheme(
-      <WrappedComponent
+      <TransactionTags
         organization={initialData.organization}
         location={initialData.router.location}
       />,
-      {context: initialData.routerContext}
+      {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      }
     );
 
     await waitFor(() => {

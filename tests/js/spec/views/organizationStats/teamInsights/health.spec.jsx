@@ -163,14 +163,10 @@ describe('TeamStatsHealth', () => {
     const context = TestStubs.routerContext([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
-    return mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <TeamStatsHealth router={mockRouter} location={{}} />
-      </OrganizationContext.Provider>,
-      {
-        context,
-      }
-    );
+    return mountWithTheme(<TeamStatsHealth router={mockRouter} location={{}} />, {
+      context,
+      organization,
+    });
   }
 
   it('defaults to first team', () => {
