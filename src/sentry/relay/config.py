@@ -18,6 +18,7 @@ from sentry.ingest.inbound_filters import (
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project
 from sentry.relay.utils import to_camel_case_name
+from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
 
@@ -33,15 +34,21 @@ def get_exposed_features(project: Project) -> List[str]:
     active_features = []
     for feature in EXPOSABLE_FEATURES:
         if feature.startswith("organizations:"):
-            if features.has(feature, project.organization):
-                active_features.append(feature)
-
+            has_feature = features.has(feature, project.organization)
         elif feature.startswith("projects:"):
-            if features.has(feature, project):
-                active_features.append(feature)
-
+            has_feature = features.has(feature, project)
         else:
             raise RuntimeError("EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'")
+
+        if has_feature:
+            metrics.incr(
+                "sentry.relay.config.features", tags={"outcome": "enabled", "feature": feature}
+            )
+            active_features.append(feature)
+        else:
+            metrics.incr(
+                "sentry.relay.config.features", tags={"outcome": "disabled", "feature": feature}
+            )
 
     return active_features
 
