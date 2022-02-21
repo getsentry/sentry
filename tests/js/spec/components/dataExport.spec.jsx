@@ -1,6 +1,10 @@
-import {act, fireEvent, screen, waitFor} from '@testing-library/react';
-
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  mountWithTheme,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport from 'sentry/components/dataExport';

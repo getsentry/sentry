@@ -1,4 +1,4 @@
-import {act, renderHook} from '@testing-library/react-hooks';
+import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -9,11 +9,11 @@ describe('useLegacyStore', () => {
   beforeEach(() => void TeamStore.reset());
 
   it('should update on change to store', () => {
-    const {result} = renderHook(() => useLegacyStore(TeamStore));
+    const {result} = reactHooks.renderHook(() => useLegacyStore(TeamStore));
 
     expect(result.current.teams).toEqual([]);
 
-    act(() => TeamStore.loadInitialData([team]));
+    reactHooks.act(() => TeamStore.loadInitialData([team]));
 
     expect(result.current.teams).toEqual([team]);
   });

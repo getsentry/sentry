@@ -1,4 +1,4 @@
-import {renderHook} from '@testing-library/react-hooks';
+import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
@@ -8,7 +8,7 @@ describe('useMemoWithPrevious', () => {
 
     const factory = jest.fn().mockImplementation(() => 'foo');
 
-    const {result} = renderHook(() => useMemoWithPrevious(factory, [dep]));
+    const {result} = reactHooks.renderHook(() => useMemoWithPrevious(factory, [dep]));
     expect(factory).toHaveBeenCalledWith(null);
     expect(result.current).toEqual('foo');
   });
@@ -20,7 +20,7 @@ describe('useMemoWithPrevious', () => {
     const firstDependency = [];
     const secondDependency = [];
 
-    const {rerender, result} = renderHook(
+    const {rerender, result} = reactHooks.renderHook(
       ({fact, dep}) => useMemoWithPrevious(fact, [dep]),
       {
         initialProps: {
