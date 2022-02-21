@@ -30,8 +30,7 @@ export class Flamegraph {
   constructor(
     profile: Profile,
     profileIndex: number,
-    inverted = false,
-    leftHeavy = false
+    {inverted = false, leftHeavy = false}: {inverted?: boolean; leftHeavy?: boolean} = {}
   ) {
     this.inverted = inverted;
     this.leftHeavy = leftHeavy;
@@ -70,16 +69,14 @@ export class Flamegraph {
   }
 
   static Empty(): Flamegraph {
-    return new Flamegraph(
-      new Profile(0, 0, 1_000_000, 'Profile', 'microseconds'),
-      0,
-      false,
-      false
-    );
+    return new Flamegraph(new Profile(0, 0, 1_000_000, 'Profile', 'microseconds'), 0, {
+      inverted: false,
+      leftHeavy: false,
+    });
   }
 
-  static From(from: Flamegraph, inverted = false, leftHeavy = false): Flamegraph {
-    return new Flamegraph(from.profile, from.profileIndex, inverted, leftHeavy);
+  static From(from: Flamegraph, {inverted = false, leftHeavy = false}): Flamegraph {
+    return new Flamegraph(from.profile, from.profileIndex, {inverted, leftHeavy});
   }
 
   buildCallOrderGraph(profile: Profile): FlamegraphFrame[] {

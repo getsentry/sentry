@@ -37,12 +37,10 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
   const onImport = useCallback(
     profile => {
       setFlamegraph(
-        new FlamegraphModel(
-          profile.profiles[0],
-          0,
-          view === 'bottom up',
-          sorting === 'left heavy'
-        )
+        new FlamegraphModel(profile.profiles[0], 0, {
+          inverted: view === 'bottom up',
+          leftHeavy: sorting === 'left heavy',
+        })
       );
     },
     [props.profiles, view, sorting]
@@ -51,12 +49,10 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
   const onProfileIndexChange = useCallback(
     index => {
       setFlamegraph(
-        new FlamegraphModel(
-          props.profiles.profiles[index],
-          index,
-          view === 'bottom up',
-          sorting === 'left heavy'
-        )
+        new FlamegraphModel(props.profiles.profiles[index], index, {
+          inverted: view === 'bottom up',
+          leftHeavy: sorting === 'left heavy',
+        })
       );
     },
     [props.profiles, view, sorting]
@@ -64,12 +60,10 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
 
   useEffect(() => {
     setFlamegraph(
-      new FlamegraphModel(
-        props.profiles.profiles[0],
-        0,
-        view === 'bottom up',
-        sorting === 'left heavy'
-      )
+      new FlamegraphModel(props.profiles.profiles[0], 0, {
+        inverted: view === 'bottom up',
+        leftHeavy: sorting === 'left heavy',
+      })
     );
   }, [props.profiles, view, sorting]);
 
