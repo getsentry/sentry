@@ -1,6 +1,4 @@
-import {act, screen, waitFor} from '@testing-library/react';
-
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
