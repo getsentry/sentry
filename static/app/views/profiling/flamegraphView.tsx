@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/FlamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/FlamegraphSearch';
@@ -11,69 +11,55 @@ import {ThreadMenuSelector} from 'sentry/components/profiling/ThreadSelector';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/FlamegraphThemeProvider';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
-import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
-export default {
-  title: 'Components/Profiling/FlamegraphZoomView',
-};
+interface FlamegraphViewProps {
+  profiles: ProfileGroup;
+}
 
-const trace = require('./EventedTrace.json');
-
-const profiles = importProfile(trace);
-
-export const EventedTrace = () => {
+function FlamegraphView(props: FlamegraphViewProps): React.ReactNode {
   const canvasPoolManager = new CanvasPoolManager();
 
-  const [{sorting, view, colorCoding}, dispatch] = useFlamegraphPreferences();
-
-  const [flamegraph, setFlamegraph] = React.useState(
+  const [colorCoding, setColorCoding] = useState('by symbol name');
+  const [highlightRecursion, setHighlightRecursion] = useState(false);
+  const [view, setView] = useState({inverted: false, leftHeavy: false});
+  const [flamegraph, setFlamegraph] = useState(
     new Flamegraph(
-      profiles.profiles[0],
+      props.profiles.profiles[props.profiles.activeProfileIndex],
       0,
-      view === 'bottom up',
-      sorting === 'left heavy'
+      view.inverted,
+      view.leftHeavy
     )
   );
 
-  const onImport = React.useCallback(
+  const onImport = useCallback(
     profile => {
       setFlamegraph(
-        new Flamegraph(
-          profile.profiles[0],
-          0,
-          view === 'bottom up',
-          sorting === 'left heavy'
-        )
+        new Flamegraph(profile.profiles[0], 0, view.inverted, view.leftHeavy)
       );
     },
-    [view === 'bottom up', sorting === 'left heavy']
+    [view.inverted, view.leftHeavy]
   );
 
-  const onProfileIndexChange = React.useCallback(
+  const onProfileIndexChange = useCallback(
     index => {
       setFlamegraph(
         new Flamegraph(
-          profiles.profiles[index],
+          props.profiles.profiles[index],
           index,
-          view === 'bottom up',
-          sorting === 'left heavy'
+          view.inverted,
+          view.leftHeavy
         )
       );
     },
-    [view === 'bottom up', sorting === 'left heavy']
+    [view.inverted, view.leftHeavy]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     setFlamegraph(
-      new Flamegraph(
-        profiles.profiles[0],
-        0,
-        view === 'bottom up',
-        sorting === 'left heavy'
-      )
+      new Flamegraph(props.profiles.profiles[0], 0, view.inverted, view.leftHeavy)
     );
-  }, [view === 'bottom up', sorting === 'left heavy']);
+  }, [view.inverted, view.leftHeavy]);
 
   return (
     <FlamegraphThemeProvider>
@@ -88,13 +74,13 @@ export const EventedTrace = () => {
       >
         <FlamegraphToolbar>
           <FlamegraphViewSelectMenu
-            view={view === 'bottom up' ? 'bottom up' : 'top down'}
-            sorting={sorting === 'left heavy' ? 'left heavy' : 'call order'}
+            view={view.inverted ? 'bottom up' : 'top down'}
+            sorting={view.leftHeavy ? 'left heavy' : 'call order'}
             onSortingChange={s => {
-              dispatch({type: 'set sorting', value: s});
+              setView({...view, leftHeavy: s === 'left heavy'});
             }}
             onViewChange={v => {
-              dispatch({type: 'set view', value: v});
+              setView({...view, inverted: v === 'bottom up'});
             }}
           />
           <ThreadMenuSelector
@@ -104,14 +90,16 @@ export const EventedTrace = () => {
           />
           <FlamegraphOptionsMenu
             colorCoding={colorCoding}
-            onColorCodingChange={c => dispatch({type: 'set color coding', value: c})}
+            onColorCodingChange={setColorCoding}
+            highlightRecursion={highlightRecursion}
+            onHighlightRecursionChange={setHighlightRecursion}
             canvasPoolManager={canvasPoolManager}
           />
         </FlamegraphToolbar>
         <div style={{height: 100, position: 'relative'}}>
           <FlamegraphZoomViewMinimap
             flamegraph={flamegraph}
-            highlightRecursion={colorCoding === 'by recursion'}
+            highlightRecursion={highlightRecursion}
             colorCoding={colorCoding}
             canvasPoolManager={canvasPoolManager}
           />
@@ -120,7 +108,7 @@ export const EventedTrace = () => {
           <ProfileDragDropImport onImport={onImport}>
             <FlamegraphZoomView
               flamegraph={flamegraph}
-              highlightRecursion={colorCoding === 'by recursion'}
+              highlightRecursion={highlightRecursion}
               colorCoding={colorCoding}
               canvasPoolManager={canvasPoolManager}
             />
@@ -133,4 +121,6 @@ export const EventedTrace = () => {
       </div>
     </FlamegraphThemeProvider>
   );
-};
+}
+
+export {FlamegraphView};

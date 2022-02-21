@@ -1,5 +1,3 @@
-export type ColorCoding = 'by symbol name' | 'by system / application' | 'by library';
-
 type Annotation = {
   key: string;
   values: string[];
