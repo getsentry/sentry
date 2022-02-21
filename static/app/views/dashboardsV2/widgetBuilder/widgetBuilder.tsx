@@ -354,10 +354,16 @@ function WidgetBuilder({
                 <DataSetChoices
                   label="dataSet"
                   value={state.dataSet}
-                  choices={
-                    state.displayType === DisplayType.TABLE
-                      ? DATASET_CHOICES
-                      : [DATASET_CHOICES[0]]
+                  choices={DATASET_CHOICES}
+                  disabledChoices={
+                    state.displayType !== DisplayType.TABLE
+                      ? [
+                          [
+                            DATASET_CHOICES[1][0],
+                            t('This data set is restricted to the table visualization.'),
+                          ],
+                        ]
+                      : undefined
                   }
                   onChange={handleDataSetChange}
                 />
