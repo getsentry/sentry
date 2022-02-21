@@ -18,8 +18,6 @@ export class Flamegraph {
   inverted?: boolean = false;
   leftHeavy?: boolean = false;
 
-  colors: Map<string | number, number[]> | null = null;
-
   depth = 0;
   duration = 0;
   configSpace: Rect = new Rect(0, 0, 0, 0);
@@ -192,10 +190,6 @@ export class Flamegraph {
     }
     visit(profile.appendOrderTree, 0);
     return frames;
-  }
-
-  setColors(colors: Map<string | number, number[]> | null): void {
-    this.colors = colors;
   }
 
   withOffset(offset: number): Flamegraph {

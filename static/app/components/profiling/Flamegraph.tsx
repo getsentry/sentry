@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
@@ -23,15 +24,13 @@ interface FlamegraphProps {
 function Flamegraph(props: FlamegraphProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
-  const [{sorting, view, colorCoding}, dispatch] = useFlamegraphPreferences();
+  const [{sorting, view}, dispatch] = useFlamegraphPreferences();
 
   const [flamegraph, setFlamegraph] = useState(
-    new FlamegraphModel(
-      props.profiles.profiles[props.profiles.activeProfileIndex],
-      0,
-      view === 'bottom up',
-      sorting === 'left heavy'
-    )
+    new FlamegraphModel(props.profiles.profiles[0], 0, {
+      inverted: view === 'bottom up',
+      leftHeavy: sorting === 'left heavy',
+    })
   );
 
   const onImport = useCallback(
@@ -85,17 +84,12 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
           activeProfileIndex={flamegraph.profileIndex}
           onProfileIndexChange={onProfileIndexChange}
         />
-        <FlamegraphOptionsMenu
-          colorCoding={colorCoding}
-          onColorCodingChange={c => dispatch({type: 'set color coding', value: c})}
-          canvasPoolManager={canvasPoolManager}
-        />
+        <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
       </FlamegraphToolbar>
 
       <FlamegraphZoomViewMinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
         <FlamegraphZoomViewMinimap
           flamegraph={flamegraph}
-          colorCoding={colorCoding}
           canvasPoolManager={canvasPoolManager}
         />
       </FlamegraphZoomViewMinimapContainer>
@@ -103,7 +97,6 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
         <ProfileDragDropImport onImport={onImport}>
           <FlamegraphZoomView
             flamegraph={flamegraph}
-            colorCoding={colorCoding}
             canvasPoolManager={canvasPoolManager}
           />
           <FlamegraphSearch

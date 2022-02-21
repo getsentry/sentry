@@ -54,7 +54,6 @@ export const makeStackToColor = (
     colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
   ) => {
     const colors = colorMap(frames, colorBucket);
-
     const length = frames.length;
 
     // Length * number of frames * color components
@@ -206,6 +205,26 @@ export const makeColorMapByImage = (
         colorBucket(Math.floor((255 * i) / sortedFrames.length) / 256, frame)
       );
     }
+  }
+
+  return colors;
+};
+
+export const makeColorMapBySystemVsApplication = (
+  frames: ReadonlyArray<Frame>,
+  colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
+) => {
+  const colors = new Map<Frame['key'], ColorChannels>();
+
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i];
+
+    if (frame.is_application) {
+      colors.set(frame.name + (frame.file ? frame.file : ''), colorBucket(0.7, frame));
+      continue;
+    }
+
+    colors.set(frame.name + (frame.file ? frame.file : ''), colorBucket(0.09, frame));
   }
 
   return colors;

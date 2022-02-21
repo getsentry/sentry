@@ -1,19 +1,10 @@
-import {useReducer} from 'react';
+import {useContext, useReducer} from 'react';
 
-export interface FlamegraphPreferences {
-  colorCoding:
-    | 'by symbol name'
-    | 'by system / application'
-    | 'by library'
-    | 'by recursion';
-  sorting: 'left heavy' | 'call order';
-  view: 'top down' | 'bottom up';
-}
-
-type FlamegraphPreferencesAction =
-  | {type: 'set color coding'; value: FlamegraphPreferences['colorCoding']}
-  | {type: 'set sorting'; value: FlamegraphPreferences['sorting']}
-  | {type: 'set view'; value: FlamegraphPreferences['view']};
+import {
+  FlamegraphPreferences,
+  FlamegraphPreferencesAction,
+  FlamegraphPreferencesContext,
+} from './FlamegraphPreferencesProvider';
 
 function flamegraphPreferencesReducer(
   state: FlamegraphPreferences,
@@ -45,7 +36,7 @@ function flamegraphPreferencesReducer(
   }
 }
 
-function useFlamegraphPreferences(
+export function useFlamegraphPreferences(
   initialState: Partial<FlamegraphPreferences> = {}
 ): [FlamegraphPreferences, React.Dispatch<FlamegraphPreferencesAction>] {
   return useReducer(flamegraphPreferencesReducer, {
@@ -56,4 +47,14 @@ function useFlamegraphPreferences(
   });
 }
 
-export {useFlamegraphPreferences};
+export function useFlamegraphPreferencesValue(): FlamegraphPreferences {
+  const context = useContext(FlamegraphPreferencesContext);
+
+  if (context === null) {
+    throw new Error(
+      'useFlamegraphPreferences called outside of FlamegraphPreferencesProvider'
+    );
+  }
+
+  return context[0];
+}

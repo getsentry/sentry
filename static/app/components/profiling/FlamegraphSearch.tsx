@@ -89,7 +89,7 @@ const numericSort = (
 
 interface FlamegraphSearchProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraphs: Flamegraph[];
+  flamegraphs: Flamegraph | Flamegraph[];
   placement: 'top' | 'bottom';
 }
 
@@ -106,10 +106,14 @@ function FlamegraphSearch({
   >({});
 
   const allFrames = React.useMemo(() => {
-    return flamegraphs.reduce(
-      (acc: FlamegraphFrame[], graph) => acc.concat(graph.frames),
-      []
-    );
+    if (Array.isArray(flamegraphs)) {
+      return flamegraphs.reduce(
+        (acc: FlamegraphFrame[], graph) => acc.concat(graph.frames),
+        []
+      );
+    }
+
+    return flamegraphs.frames;
   }, [flamegraphs]);
 
   const searchIndex = React.useMemo(() => {

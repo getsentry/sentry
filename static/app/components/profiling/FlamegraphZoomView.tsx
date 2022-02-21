@@ -5,7 +5,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
@@ -19,7 +19,6 @@ import {BoundTooltip} from './BoundTooltip';
 
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
-  colorCoding: FlamegraphPreferences['colorCoding'];
   flamegraph: Flamegraph | DifferentialFlamegraph;
   showSelectedNodeStack?: boolean;
 }
@@ -27,8 +26,9 @@ interface FlamegraphZoomViewProps {
 function FlamegraphZoomView({
   flamegraph,
   canvasPoolManager,
-  colorCoding,
 }: FlamegraphZoomViewProps): React.ReactElement {
+  const flamegraphPreferences = useFlamegraphPreferencesValue();
+
   const [scheduler, setScheduler] = React.useState<CanvasScheduler | null>(null);
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     React.useState<HTMLCanvasElement | null>(null);
@@ -77,7 +77,13 @@ function FlamegraphZoomView({
       // If we have no renderer, then the canvas is not initialize yet and we cannot initialize the renderer
       return null;
     },
-    [flamegraphCanvasRef, flamegraphTheme, flamegraph, canvasPoolManager, colorCoding]
+    [
+      flamegraphCanvasRef,
+      flamegraphTheme,
+      flamegraph,
+      canvasPoolManager,
+      flamegraphPreferences.colorCoding,
+    ]
   );
 
   React.useEffect(() => {
