@@ -1,11 +1,12 @@
 import {Component, Fragment} from 'react';
 import {cache} from '@emotion/css';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
+// eslint-disable-next-line no-restricted-imports
 import {
   fireEvent as reactRtlFireEvent,
   render,
   RenderOptions,
-} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+} from '@testing-library/react';
 import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
