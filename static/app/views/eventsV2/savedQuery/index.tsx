@@ -14,7 +14,8 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DropdownControl from 'sentry/components/dropdownControl';
-import Hovercard from 'sentry/components/hovercard';
+import InputControl from 'sentry/components/forms/controls/input';
+import {Hovercard} from 'sentry/components/hovercard';
 import {IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -26,8 +27,11 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import {DashboardWidgetSource, WidgetQuery} from 'sentry/views/dashboardsV2/types';
-import InputControl from 'sentry/views/settings/components/forms/controls/input';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
 
 import {
   displayModeToDisplayType,
@@ -43,6 +47,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   api: Client;
 
+  eventView: EventView;
   /**
    * DO NOT USE `Location` TO GENERATE `EventView` IN THIS COMPONENT.
    *
@@ -51,21 +56,20 @@ type Props = DefaultProps & {
    * passed down only because it is needed for navigation.
    */
   location: Location;
-  organization: Organization;
-  eventView: EventView;
-  savedQuery: SavedQuery | undefined;
-  savedQueryLoading: boolean;
-  projects: Project[];
-  updateCallback: () => void;
   onIncompatibleAlertQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  organization: Organization;
+  projects: Project[];
+  savedQuery: SavedQuery | undefined;
+  savedQueryLoading: boolean;
+  updateCallback: () => void;
   yAxis: string[];
 };
 
 type State = {
-  isNewQuery: boolean;
   isEditingQuery: boolean;
+  isNewQuery: boolean;
 
   queryName: string;
 };
@@ -231,10 +235,16 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   handleAddDashboardWidget = () => {
     const {organization, eventView, savedQuery, yAxis} = this.props;
+
+    const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+    const defaultTableColumns = eventView.fields.map(({field}) => field);
     const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
-      fields: yAxis && yAxis.length > 0 ? yAxis : ['count()'],
+      fields: [
+        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+      ],
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
@@ -248,11 +258,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       organization,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns: eventView.fields.map(({field}) => field),
+      defaultTableColumns,
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),
-      displayType: displayModeToDisplayType(eventView.display as DisplayModes),
+      displayType,
     });
   };
 
@@ -348,6 +358,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         onClick={this.handleDeleteQuery}
         disabled={disabled}
         icon={<IconDelete />}
+        aria-label={t('Delete')}
       />
     );
   }
@@ -372,12 +383,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   renderButtonAddToDashboard() {
     return (
-      <AddToDashboardButton
+      <Button
         key="add-dashboard-widget-from-discover"
+        data-test-id="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
         {t('Add to Dashboard')}
-      </AddToDashboardButton>
+      </Button>
     );
   }
 
@@ -418,10 +430,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
-        <Feature
-          organization={organization}
-          features={['connect-discover-and-dashboards', 'dashboards-edit']}
-        >
+        <Feature organization={organization} features={['dashboards-edit']}>
           {({hasFeature}) => hasFeature && this.renderButtonAddToDashboard()}
         </Feature>
         {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
@@ -455,12 +464,6 @@ const IconUpdate = styled('div')`
   margin-right: ${space(0.75)};
   border-radius: 5px;
   background-color: ${p => p.theme.yellow300};
-`;
-
-const AddToDashboardButton = styled(Button)`
-  span {
-    height: 38px;
-  }
 `;
 
 export default withProjects(withApi(SavedQueryButtonGroup));

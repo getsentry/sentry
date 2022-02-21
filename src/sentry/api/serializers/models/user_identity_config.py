@@ -3,8 +3,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
 
+import sentry.integrations
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.provider import Provider
+from sentry.exceptions import NotRegistered
 from sentry.identity import is_login_provider
 from sentry.models import AuthIdentity, Identity, Organization
 from social_auth.models import UserSocialAuth
@@ -48,35 +50,57 @@ class UserIdentityConfig:
     category: str
     id: int
     provider: UserIdentityProvider
+    name: str
     status: Status
     is_login: bool
-    organization: Optional[Organization]
-    date_added: Optional[datetime]
+    organization: Optional[Organization] = None
+    date_added: Optional[datetime] = None
+    date_verified: Optional[datetime] = None
+    date_synced: Optional[datetime] = None
 
-    @staticmethod
-    def wrap(identity: IdentityType, status: Status) -> "UserIdentityConfig":
-        if isinstance(identity, UserSocialAuth):
-            provider = UserIdentityProvider(
-                identity.provider, user_social_auth.get_provider_label(identity)
+    @classmethod
+    def wrap(cls, identity: IdentityType, status: Status) -> "UserIdentityConfig":
+        def base(**kwargs):
+            return cls(
+                category=_IDENTITY_CATEGORY_KEYS[type(identity)],
+                id=identity.id,
+                status=status,
+                **kwargs,
             )
-            is_login = False
-            organization = None
+
+        if isinstance(identity, UserSocialAuth):
+            return base(
+                provider=UserIdentityProvider(
+                    identity.provider, user_social_auth.get_provider_label(identity)
+                ),
+                name=identity.uid,
+                is_login=False,
+            )
         elif isinstance(identity, Identity):
-            provider = UserIdentityProvider.adapt(identity.get_provider())
-            is_login = supports_login(identity)
-            organization = None
+            try:
+                provider = identity.get_provider()
+            except NotRegistered:
+                provider = sentry.integrations.get(identity.idp.type)
+
+            return base(
+                provider=UserIdentityProvider.adapt(provider),
+                name=identity.external_id,
+                is_login=supports_login(identity),
+                date_added=identity.date_added,
+                date_verified=identity.date_verified,
+            )
         elif isinstance(identity, AuthIdentity):
-            provider = UserIdentityProvider.adapt(identity.auth_provider.get_provider())
-            is_login = True
-            organization = identity.auth_provider.organization
+            return base(
+                provider=UserIdentityProvider.adapt(identity.auth_provider.get_provider()),
+                name=identity.ident,
+                is_login=True,
+                organization=identity.auth_provider.organization,
+                date_added=identity.date_added,
+                date_verified=identity.last_verified,
+                date_synced=identity.last_synced,
+            )
         else:
             raise TypeError
-
-        category_key = _IDENTITY_CATEGORY_KEYS[type(identity)]
-        date_added = identity.date_added if hasattr(identity, "date_added") else None
-        return UserIdentityConfig(
-            category_key, identity.id, provider, status, is_login, organization, date_added
-        )
 
     def get_model_type_for_category(self) -> type:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
@@ -89,8 +113,11 @@ class UserIdentityConfigSerializer(Serializer):
             "category": obj.category,
             "id": str(obj.id),
             "provider": {"key": obj.provider.key, "name": obj.provider.name},
+            "name": obj.name,
             "status": obj.status.value,
             "isLogin": obj.is_login,
             "organization": serialize(obj.organization),
             "dateAdded": serialize(obj.date_added),
+            "dateVerified": serialize(obj.date_verified),
+            "dateSynced": serialize(obj.date_synced),
         }

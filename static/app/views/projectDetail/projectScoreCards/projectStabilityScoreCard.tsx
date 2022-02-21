@@ -24,10 +24,10 @@ import {
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
 type Props = AsyncComponent['props'] & {
+  hasSessions: boolean | null;
+  isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
-  isProjectStabilized: boolean;
-  hasSessions: boolean | null;
   query?: string;
 };
 

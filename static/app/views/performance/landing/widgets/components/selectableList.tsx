@@ -1,18 +1,18 @@
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import Link from 'sentry/components/links/link';
 import Radio from 'sentry/components/radio';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {RadioLineItem} from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 type Props = {
+  items: (() => React.ReactNode)[];
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
-  items: (() => React.ReactNode)[];
   radioColor?: string;
 };
 
@@ -39,7 +39,7 @@ function SelectableItem({
   children,
   setSelectedIndex,
   radioColor,
-}: {isSelected: boolean; currentIndex: number; children: React.ReactNode} & Props) {
+}: {children: React.ReactNode; currentIndex: number; isSelected: boolean} & Props) {
   return (
     <ListItemContainer>
       <ItemRadioContainer color={radioColor ?? ''}>

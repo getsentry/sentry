@@ -5,14 +5,14 @@
  * or used in multiple views.
  */
 import {getInterval} from 'sentry/components/charts/utils';
-import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {API_ACCESS_SCOPES} from 'sentry/constants';
 
 /**
  * Visual representation of a project/team/organization/user
  */
 export type Avatar = {
-  avatarUuid: string | null;
   avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
+  avatarUuid: string | null;
   color?: boolean;
 };
 
@@ -23,9 +23,9 @@ export type ObjectStatus =
   | 'deletion_in_progress';
 
 export type Actor = {
-  type: 'user' | 'team';
   id: string;
   name: string;
+  type: 'user' | 'team';
   email?: string;
 };
 
@@ -71,13 +71,6 @@ export enum DataCategory {
 
 export type EventType = 'error' | 'transaction' | 'attachment';
 
-export const DataCategoryName = {
-  [DataCategory.ERRORS]: 'Errors',
-  [DataCategory.TRANSACTIONS]: 'Transactions',
-  [DataCategory.ATTACHMENTS]: 'Attachments',
-};
-
-export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
 /**
@@ -87,20 +80,20 @@ export type PinnedPageFilter = 'projects' | 'environments' | 'datetime';
 
 export type PageFilters = {
   /**
-   * Currently selected Project IDs
+   * Currently selected time filter
    */
-  projects: number[];
+  datetime: {
+    end: DateString;
+    period: string | null;
+    start: DateString;
+    utc: boolean | null;
+  };
   /**
    * Currently selected environment names
    */
   environments: string[];
   /**
-   * Currently selected time filter
+   * Currently selected Project IDs
    */
-  datetime: {
-    start: DateString;
-    end: DateString;
-    period: RelativePeriod | string;
-    utc: boolean | null;
-  };
+  projects: number[];
 };

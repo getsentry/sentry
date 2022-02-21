@@ -6,6 +6,8 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import Form from 'sentry/components/forms/form';
+import SelectField from 'sentry/components/forms/selectField';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody} from 'sentry/components/panels';
@@ -22,24 +24,22 @@ import {
 } from 'sentry/types';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
-import Form from 'sentry/views/settings/components/forms/form';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  project: Project;
   codeMappings: RepositoryProjectPathConfig[];
   integrations: Integration[];
   onSave: (data: CodeOwner) => void;
+  organization: Organization;
+  project: Project;
 } & ModalRenderProps;
 
 type State = {
-  codeownersFile: CodeownersFile | null;
   codeMappingId: string | null;
-  isLoading: boolean;
+  codeownersFile: CodeownersFile | null;
   error: boolean;
   errorJSON: {raw?: string} | null;
+  isLoading: boolean;
 };
 
 class AddCodeOwnerModal extends Component<Props, State> {

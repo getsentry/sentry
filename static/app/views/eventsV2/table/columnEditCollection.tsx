@@ -21,10 +21,11 @@ import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboardsV2/types';
+import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 
 import {generateFieldOptions} from '../utils';
 
-import {QueryField} from './queryField';
+import {FieldValueOption, QueryField} from './queryField';
 import {FieldValueKind} from './types';
 
 type Sources = WidgetType;
@@ -37,15 +38,16 @@ type Props = {
   onChange: (columns: Column[]) => void;
   organization: Organization;
   className?: string;
+  filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   source?: Sources;
 };
 
 type State = {
-  isDragging: boolean;
+  draggingGrabbedOffset: undefined | {x: number; y: number};
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
-  draggingGrabbedOffset: undefined | {x: number; y: number};
   error: Map<number, string | undefined>;
+  isDragging: boolean;
   left: undefined | number;
   top: undefined | number;
 };
@@ -297,9 +299,24 @@ class ColumnEditCollection extends React.Component<Props, State> {
       return top >= thresholdStart && top <= thresholdEnd;
     });
 
+    // Issue column in Issue widgets are fixed (cannot be moved or deleted)
     if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       this.setState({draggingTargetIndex: targetIndex});
     }
+  };
+
+  isFixedIssueColumn = (columnIndex: number) => {
+    const {source, columns} = this.props;
+    const column = columns[columnIndex];
+    const issueFieldColumnCount = columns.filter(
+      col => col.kind === 'field' && col.field === FieldKey.ISSUE
+    ).length;
+    return (
+      issueFieldColumnCount <= 1 &&
+      source === WidgetType.ISSUE &&
+      column.kind === 'field' &&
+      column.field === FieldKey.ISSUE
+    );
   };
 
   onDragEnd = (event: MouseEvent | TouchEvent) => {
@@ -374,9 +391,16 @@ class ColumnEditCollection extends React.Component<Props, State> {
       canDrag = true,
       isGhost = false,
       gridColumns = 2,
-    }: {canDelete?: boolean; canDrag?: boolean; isGhost?: boolean; gridColumns: number}
+      disabled = false,
+    }: {
+      gridColumns: number;
+      canDelete?: boolean;
+      canDrag?: boolean;
+      disabled?: boolean;
+      isGhost?: boolean;
+    }
   ) {
-    const {columns, fieldOptions} = this.props;
+    const {columns, fieldOptions, filterPrimaryOptions} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -426,6 +450,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
             shouldRenderTag
+            disabled={disabled}
+            filterPrimaryOptions={filterPrimaryOptions}
           />
           {canDelete || col.kind === 'equation' ? (
             <Button
@@ -478,9 +504,18 @@ class ColumnEditCollection extends React.Component<Props, State> {
             </Heading>
           </RowContainer>
         )}
-        {columns.map((col: Column, i: number) =>
-          this.renderItem(col, i, {canDelete, canDrag, gridColumns})
-        )}
+        {columns.map((col: Column, i: number) => {
+          // Issue column in Issue widgets are fixed (cannot be changed or deleted)
+          if (this.isFixedIssueColumn(i)) {
+            return this.renderItem(col, i, {
+              canDelete: false,
+              canDrag,
+              gridColumns,
+              disabled: true,
+            });
+          }
+          return this.renderItem(col, i, {canDelete, canDrag, gridColumns});
+        })}
         <RowContainer>
           <Actions>
             <Button
@@ -493,7 +528,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {source !== WidgetType.ISSUE && (
+            {source !== WidgetType.ISSUE && source !== WidgetType.METRICS && (
               <Button
                 size="small"
                 aria-label={t('Add an Equation')}

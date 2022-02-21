@@ -1,25 +1,17 @@
 import u2f from 'u2f-api';
 
-import {Field} from 'sentry/views/settings/components/forms/type';
+import {Field} from 'sentry/components/forms/type';
 
 import {Organization} from './organization';
 
 export type AuthenticatorDevice = {
-  key_handle: string;
   authId: string;
+  key_handle: string;
   name: string;
   timestamp?: string;
 };
 
 export type Authenticator = {
-  /**
-   * String used to display on button for user as CTA to enroll
-   */
-  enrollButton: string;
-  /**
-   * Display name for the authenticator
-   */
-  name: string;
   /**
    * Allows multiple enrollments to authenticator
    */
@@ -28,39 +20,47 @@ export type Authenticator = {
    * Allows authenticator's secret to be rotated without disabling
    */
   allowRotationInPlace: boolean;
-  /**
-   * String to display on button for user to remove authenticator
-   */
-  removeButton: string | null;
   canValidateOtp: boolean;
-  /**
-   * Is user enrolled to this authenticator
-   */
-  isEnrolled: boolean;
+  codes: string[];
   /**
    * String to display on button for additional information about authenticator
    */
   configureButton: string;
+  createdAt: string | null;
+  /**
+   * Description of the authenticator
+   */
+  description: string;
+  devices: AuthenticatorDevice[];
+  /**
+   * String used to display on button for user as CTA to enroll
+   */
+  enrollButton: string;
   /**
    * Is this used as a backup interface?
    */
   isBackupInterface: boolean;
   /**
-   * Description of the authenticator
+   * Is user enrolled to this authenticator
    */
-  description: string;
+  isEnrolled: boolean;
+  lastUsedAt: string | null;
+  /**
+   * Display name for the authenticator
+   */
+  name: string;
+  /**
+   * String to display on button for user to remove authenticator
+   */
+  removeButton: string | null;
   rotationWarning: string | null;
   status: string;
-  createdAt: string | null;
-  lastUsedAt: string | null;
-  codes: string[];
-  devices: AuthenticatorDevice[];
-  phone?: string;
-  secret?: string;
   /**
    * The form configuration for the authenticator is present during enrollment
    */
   form?: Field[];
+  phone?: string;
+  secret?: string;
 } & Partial<EnrolledAuthenticator> &
   (
     | {
@@ -71,8 +71,8 @@ export type Authenticator = {
         qrcode: string;
       }
     | {
-        id: 'u2f';
         challenge: ChallengeData;
+        id: 'u2f';
       }
   );
 
@@ -81,15 +81,15 @@ export type ChallengeData = {
   authenticateRequests: u2f.SignRequest;
   registerRequests: u2f.RegisterRequest;
   registeredKeys: u2f.RegisteredKey[];
+  webAuthnAuthenticationData: string;
   // for WebAuthn register
   webAuthnRegisterData: string;
-  webAuthnAuthenticationData: string;
 };
 
 export type EnrolledAuthenticator = {
-  lastUsedAt: string | null;
-  createdAt: string;
   authId: string;
+  createdAt: string;
+  lastUsedAt: string | null;
   name: string;
 };
 
@@ -97,11 +97,11 @@ export type EnrolledAuthenticator = {
  * This is an authenticator that a user is enrolled in
  */
 export type UserEnrolledAuthenticator = {
-  dateUsed: EnrolledAuthenticator['lastUsedAt'];
   dateCreated: EnrolledAuthenticator['createdAt'];
-  type: Authenticator['id'];
+  dateUsed: EnrolledAuthenticator['lastUsedAt'];
   id: EnrolledAuthenticator['authId'];
   name: EnrolledAuthenticator['name'];
+  type: Authenticator['id'];
 };
 
 /**
@@ -110,18 +110,18 @@ export type UserEnrolledAuthenticator = {
  */
 export type AuthConfig = {
   canRegister: boolean;
-  serverHostname: string;
-  hasNewsletter: boolean;
   githubLoginLink: string;
-  vstsLoginLink: string;
   googleLoginLink: string;
+  hasNewsletter: boolean;
+  serverHostname: string;
+  vstsLoginLink: string;
 };
 
 export type AuthProvider = {
+  disables2FA: boolean;
   key: string;
   name: string;
   requiredFeature: string;
-  disables2FA: boolean;
 };
 
 export enum UserIdentityCategory {
@@ -146,10 +146,13 @@ export type UserIdentityProvider = {
  */
 export type UserIdentityConfig = {
   category: UserIdentityCategory;
+  dateAdded: string | null;
+  dateSynced: string | null;
+  dateVerified: string | null;
   id: string;
+  isLogin: boolean;
+  name: string;
+  organization: Organization | null;
   provider: UserIdentityProvider;
   status: UserIdentityStatus;
-  isLogin: boolean;
-  organization: Organization | null;
-  dateAdded: string;
 };

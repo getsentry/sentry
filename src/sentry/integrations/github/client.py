@@ -4,10 +4,9 @@ from datetime import datetime
 from typing import Any, Mapping, Sequence
 
 import sentry_sdk
-from rest_framework.response import Response
 
 from sentry.integrations.client import ApiClient
-from sentry.integrations.github.utils import get_jwt
+from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.models import Integration, Repository
 from sentry.utils import jwt
 from sentry.utils.json import JSONData
@@ -108,24 +107,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             output.extend(resp)
             page_number = 1
 
-            # TODO(mgaeta): Move this to utils.
-            def get_next_link(resp: Response) -> str | None:
-                link_option: str | None = resp.headers.get("link")
-                if link_option is None:
-                    return None
-
-                # Should be a comma separated string of links
-                links = link_option.split(",")
-
-                for link in links:
-                    # If there is a 'next' link return the URL between the angle brackets, or None
-                    if 'rel="next"' in link:
-                        start = link.find("<") + 1
-                        end = link.find(">")
-                        return link[start:end]
-
-                return None
-
             while get_next_link(resp) and page_number < self.page_number_limit:
                 resp = self.get(get_next_link(resp))
                 output.extend(resp)
@@ -221,11 +202,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         results: Mapping[str, Any] = self.get(path="/search/code", params={"q": query})
         return results
 
-    def get_file(self, repo: str, path: str) -> bytes:
+    def get_file(self, repo: Repository, path: str, ref: str) -> bytes:
         from base64 import b64decode
 
-        # default ref will be the default_branch
-        contents = self.get(path=f"/repos/{repo}/contents/{path}")
+        contents = self.get(path=f"/repos/{repo.name}/contents/{path}", params={"ref": ref})
         encoded_content = contents["content"]
         return b64decode(encoded_content)
 

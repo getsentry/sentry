@@ -23,10 +23,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import NoGroupsHandler from '../issueList/noGroupsHandler';
 
 type Props = {
-  organization: Organization;
-  location: Location;
-  projectId: number;
   api: Client;
+  location: Location;
+  organization: Organization;
+  projectId: number;
   query?: string;
 };
 
@@ -120,7 +120,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         <ButtonBar gap={1}>
           <Button
             data-test-id="issues-open"
-            size="small"
+            size="xsmall"
             to={issueSearch}
             onClick={handleOpenInIssuesClick}
           >
@@ -129,11 +129,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
           <DiscoverButton
             onClick={handleOpenInDiscoverClick}
             to={getDiscoverUrl()}
-            size="small"
+            size="xsmall"
           >
             {t('Open in Discover')}
           </DiscoverButton>
-          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
+          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xsmall" />
         </ButtonBar>
       </ControlsWrapper>
 

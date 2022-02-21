@@ -7,7 +7,7 @@ import moment from 'moment';
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
-import {getTooltipArrow, setTooltipPosition, truncationFormatter} from '../utils';
+import {truncationFormatter} from '../utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
@@ -92,13 +92,13 @@ type TooltipFormatters =
 type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
   Pick<ChartProps, NeededChartProps> & {
     /**
-     * Array containing seriesNames that need to be indented
-     */
-    indentLabels?: string[];
-    /**
      * If true seconds will be added to the Axis label time format
      */
     addSecondsToTimeFormat?: boolean;
+    /**
+     * Array containing seriesNames that need to be indented
+     */
+    indentLabels?: string[];
   };
 
 function getFormatter({
@@ -223,7 +223,7 @@ function getFormatter({
         .join(''),
       '</div>',
       `<div class="tooltip-date">${date}</div>`,
-      getTooltipArrow(),
+      '<div class="tooltip-arrow"></div>',
     ].join('');
   };
 
@@ -312,14 +312,14 @@ export default function Tooltip({
       if (rightEdge >= window.innerWidth - 20) {
         // If the tooltip would leave viewport on the right, pin it.
         leftPos -= rightEdge - window.innerWidth + 20;
-        arrowPosition = setTooltipPosition(`${Number(pos[0]) - leftPos}px`);
+        arrowPosition = `${Number(pos[0]) - leftPos}px`;
       } else if (leftPos + chartLeft - 20 <= 0) {
         // If the tooltip would leave viewport on the left, pin it.
         leftPos = chartLeft * -1 + 20;
-        arrowPosition = setTooltipPosition(`${Number(pos[0]) - leftPos}px`);
+        arrowPosition = `${Number(pos[0]) - leftPos}px`;
       } else {
         // Tooltip not near the window edge, reset position
-        arrowPosition = setTooltipPosition('50%');
+        arrowPosition = '50%';
       }
 
       const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');

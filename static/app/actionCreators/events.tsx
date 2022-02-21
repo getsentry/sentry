@@ -16,27 +16,27 @@ import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatch
 
 type Options = {
   organization: OrganizationSummary;
-  project?: Readonly<number[]>;
-  environment?: Readonly<string[]>;
-  team?: Readonly<string | string[]>;
-  period?: string;
-  start?: DateString;
-  end?: DateString;
-  interval?: string;
-  comparisonDelta?: number;
-  includePrevious?: boolean;
-  limit?: number;
-  query?: string;
-  yAxis?: string | string[];
-  field?: string[];
-  topEvents?: number;
-  orderby?: string;
   partial: boolean;
-  withoutZerofill?: boolean;
-  referrer?: string;
+  comparisonDelta?: number;
+  end?: DateString;
+  environment?: Readonly<string[]>;
+  field?: string[];
+  generatePathname?: (org: OrganizationSummary) => string;
+  includePrevious?: boolean;
+  interval?: string;
+  limit?: number;
+  orderby?: string;
+  period?: string | null;
+  project?: Readonly<number[]>;
+  query?: string;
   queryBatching?: QueryBatching;
   queryExtras?: Record<string, string>;
-  generatePathname?: (org: OrganizationSummary) => string;
+  referrer?: string;
+  start?: DateString;
+  team?: Readonly<string | string[]>;
+  topEvents?: number;
+  withoutZerofill?: boolean;
+  yAxis?: string | string[];
 };
 
 /**
@@ -129,22 +129,22 @@ export const doEventsRequest = (
 
 export type EventQuery = {
   field: string[];
-  equation?: string[];
-  team?: string | string[];
-  project?: string | string[];
-  sort?: string | string[];
   query: string;
-  per_page?: number;
-  referrer?: string;
   environment?: string[];
+  equation?: string[];
   noPagination?: boolean;
+  per_page?: number;
+  project?: string | string[];
+  referrer?: string;
+  sort?: string | string[];
+  team?: string | string[];
 };
 
 export type TagSegment = {
   count: number;
   name: string;
-  value: string;
   url: LocationDescriptor;
+  value: string;
   isOther?: boolean;
   key?: string;
 };

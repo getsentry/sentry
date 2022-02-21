@@ -5,72 +5,66 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import Feature from 'sentry/components/acl/feature';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {Widget, WidgetType} from '../types';
-import {ISSUE_FIELDS} from '../widget/issueWidget/fields';
+import {Widget} from '../types';
 
-import WidgetCardChart from './chart';
-import IssueWidgetQueries from './issueWidgetQueries';
+import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
-import WidgetQueries from './widgetQueries';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
-type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'> & {
-  transformedResults: TableDataRow[];
-};
-
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  location: Location;
-  isEditing: boolean;
-  widget: Widget;
-  selection: PageFilters;
-  onDelete: () => void;
-  onEdit: () => void;
-  onDuplicate: () => void;
-  isSorting: boolean;
   currentWidgetDragging: boolean;
-  showContextMenu?: boolean;
-  isPreview?: boolean;
-  hideToolbar?: boolean;
-  draggableProps?: DraggableProps;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-  noLazyLoad?: boolean;
-  hideDragHandle?: boolean;
+  isEditing: boolean;
+  isSorting: boolean;
+  location: Location;
+  organization: Organization;
+  selection: PageFilters;
+  widget: Widget;
   widgetLimitReached: boolean;
+  draggableProps?: DraggableProps;
+  hideToolbar?: boolean;
+  isMobile?: boolean;
+  isPreview?: boolean;
+  noLazyLoad?: boolean;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onEdit?: () => void;
+  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  showContextMenu?: boolean;
+  tableItemLimit?: number;
+  windowWidth?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
-  isAllowWidgetsToDiscover() {
-    const {organization} = this.props;
-    return organization.features.includes('connect-discover-and-dashboards');
-  }
-
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, hideDragHandle} =
-      this.props;
+    const {
+      onEdit,
+      onDelete,
+      onDuplicate,
+      draggableProps,
+      hideToolbar,
+      isEditing,
+      isMobile,
+    } = this.props;
 
     if (!isEditing) {
       return null;
@@ -79,7 +73,7 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          {!hideDragHandle && (
+          {!isMobile && (
             <IconClick>
               <StyledIconGrabbable
                 color="textColor"
@@ -91,6 +85,9 @@ class WidgetCard extends React.Component<Props> {
           )}
           <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
+          </IconClick>
+          <IconClick aria-label={t('Duplicate Widget')} onClick={onDuplicate}>
+            <IconCopy color="textColor" />
           </IconClick>
           <IconClick data-test-id="widget-delete" onClick={onDelete}>
             <IconDelete color="textColor" />
@@ -111,7 +108,12 @@ class WidgetCard extends React.Component<Props> {
       onEdit,
       onDuplicate,
       onDelete,
+      isEditing,
     } = this.props;
+
+    if (isEditing) {
+      return null;
+    }
 
     return (
       <WidgetCardContextMenu
@@ -128,129 +130,68 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  issueTableResultComponent({
-    loading,
-    errorMessage,
-    transformedResults,
-  }: TableResultProps): React.ReactNode {
-    const {location, organization, widget} = this.props;
-    if (errorMessage) {
-      return (
-        <ErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
-      );
-    }
-
-    if (loading) {
-      // Align height to other charts.
-      return <LoadingPlaceholder height="200px" />;
-    }
-    return (
-      <StyledSimpleTableChart
-        location={location}
-        title=""
-        fields={widget.queries[0].fields}
-        loading={loading}
-        metadata={ISSUE_FIELDS}
-        data={transformedResults}
-        organization={organization}
-        getCustomFieldRenderer={getIssueFieldRenderer}
-      />
-    );
-  }
-
-  renderIssueChart() {
-    const {widget, api, organization, selection, renderErrorMessage} = this.props;
-    return (
-      <IssueWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-      >
-        {({transformedResults, errorMessage, loading}) => {
-          return (
-            <React.Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <LoadingScreen loading={loading} />
-              {this.issueTableResultComponent({
-                transformedResults,
-                loading,
-                errorMessage,
-              })}
-              {this.renderToolbar()}
-            </React.Fragment>
-          );
-        }}
-      </IssueWidgetQueries>
-    );
-  }
-
-  renderDiscoverChart() {
-    const {widget, api, organization, selection, renderErrorMessage, location, router} =
-      this.props;
-    return (
-      <WidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-      >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => {
-          return (
-            <React.Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <WidgetCardChart
-                timeseriesResults={timeseriesResults}
-                tableResults={tableResults}
-                errorMessage={errorMessage}
-                loading={loading}
-                location={location}
-                widget={widget}
-                selection={selection}
-                router={router}
-                organization={organization}
-              />
-              {this.renderToolbar()}
-            </React.Fragment>
-          );
-        }}
-      </WidgetQueries>
-    );
-  }
-
-  renderChart() {
-    const {widget} = this.props;
-
-    if (widget.widgetType === WidgetType.ISSUE) {
-      return this.renderIssueChart();
-    }
-    return this.renderDiscoverChart();
-  }
-
   render() {
-    const {widget, noLazyLoad} = this.props;
+    const {
+      api,
+      organization,
+      selection,
+      widget,
+      isMobile,
+      renderErrorMessage,
+      tableItemLimit,
+      windowWidth,
+      noLazyLoad,
+    } = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         <StyledPanel isDragging={false}>
           <WidgetHeader>
-            <WidgetTitle>{widget.title}</WidgetTitle>
+            <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
+              <WidgetTitle>{widget.title}</WidgetTitle>
+            </Tooltip>
+            <Feature
+              organization={organization}
+              features={['organizations:widget-viewer-modal']}
+            >
+              <OpenWidgetViewerButton
+                onClick={() => {
+                  openWidgetViewerModal({
+                    organization,
+                    widget,
+                  });
+                }}
+              />
+            </Feature>
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
-            this.renderChart()
+            <WidgetCardChartContainer
+              api={api}
+              organization={organization}
+              selection={selection}
+              widget={widget}
+              isMobile={isMobile}
+              renderErrorMessage={renderErrorMessage}
+              tableItemLimit={tableItemLimit}
+              windowWidth={windowWidth}
+            />
           ) : (
             <LazyLoad once resize height={200}>
-              {this.renderChart()}
+              <WidgetCardChartContainer
+                api={api}
+                organization={organization}
+                selection={selection}
+                widget={widget}
+                isMobile={isMobile}
+                renderErrorMessage={renderErrorMessage}
+                tableItemLimit={tableItemLimit}
+                windowWidth={windowWidth}
+              />
             </LazyLoad>
           )}
+          {this.renderToolbar()}
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -288,7 +229,7 @@ const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
-  z-index: auto;
+  z-index: 2;
 
   width: 100%;
   height: 100%;
@@ -323,6 +264,7 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 
 const WidgetTitle = styled(HeaderTitle)`
   ${overflowEllipsis};
+  font-weight: normal;
 `;
 
 const WidgetHeader = styled('div')`
@@ -332,33 +274,11 @@ const WidgetHeader = styled('div')`
   justify-content: space-between;
 `;
 
-const StyledTransparentLoadingMask = styled(props => (
-  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
-))`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const LoadingScreen = ({loading}: {loading: boolean}) => {
-  if (!loading) {
-    return null;
+const OpenWidgetViewerButton = styled(IconOpen)`
+  &:hover {
+    cursor: pointer;
   }
-  return (
-    <StyledTransparentLoadingMask visible={loading}>
-      <LoadingIndicator mini />
-    </StyledTransparentLoadingMask>
-  );
-};
-
-const LoadingPlaceholder = styled(Placeholder)`
-  background-color: ${p => p.theme.surface200};
-`;
-
-const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  box-shadow: none;
+  margin: auto;
+  margin-left: ${space(0.5)};
+  height: ${p => p.theme.fontSizeMedium};
 `;

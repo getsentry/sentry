@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import Button from 'sentry/components/button';
@@ -26,12 +26,12 @@ const noPermissionToDeleteDebugFilesInfo = t(
 const debugFileDeleteConfirmationInfo = t('Are you sure you wish to delete this file?');
 
 type Props = {
-  candidate: ImageCandidate;
-  organization: Organization;
-  isInternalSource: boolean;
   baseUrl: string;
-  projSlug: Project['slug'];
+  candidate: ImageCandidate;
+  isInternalSource: boolean;
   onDelete: (debugFileId: string) => void;
+  organization: Organization;
+  projSlug: Project['slug'];
 };
 
 function Actions({
@@ -120,6 +120,7 @@ function Actions({
                       icon={<IconDelete size="xs" />}
                       size="xsmall"
                       disabled={!hasAccess}
+                      aria-label={t('Delete')}
                     />
                   </Confirm>
                 </Tooltip>

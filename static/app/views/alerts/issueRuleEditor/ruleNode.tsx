@@ -5,6 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
+import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -25,25 +26,24 @@ import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRul
 import TicketRuleModal from 'sentry/views/alerts/issueRuleEditor/ticketRuleModal';
 import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 export type FormField = {
-  // Type of form fields
-  type: string;
   // The rest is configuration for the form field
   [key: string]: any;
+  // Type of form fields
+  type: string;
 };
 
 type Props = {
-  index: number;
-  node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   data: IssueAlertRuleAction | IssueAlertRuleCondition;
-  project: Project;
-  organization: Organization;
   disabled: boolean;
+  index: number;
   onDelete: (rowIndex: number) => void;
-  onReset: (rowIndex: number, name: string, value: string) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
+  onReset: (rowIndex: number, name: string, value: string) => void;
+  organization: Organization;
+  project: Project;
+  node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
 };
 class RuleNode extends React.Component<Props> {
   handleDelete = () => {

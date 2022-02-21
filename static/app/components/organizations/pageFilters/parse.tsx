@@ -2,10 +2,12 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IntervalPeriod} from 'sentry/types';
+import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
+import {IntervalPeriod, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+
+import {PageFiltersState} from './types';
 
 export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
@@ -152,40 +154,29 @@ function getEnvironment(maybe: ParamValue) {
 }
 
 type InputParams = {
-  pageStatsPeriod?: ParamValue;
-  pageStart?: ParamValue | Date;
-  pageEnd?: ParamValue | Date;
-  pageUtc?: ParamValue | boolean;
-
-  start?: ParamValue | Date;
-  end?: ParamValue | Date;
-  period?: ParamValue;
-  statsPeriod?: ParamValue;
-  utc?: ParamValue | boolean;
-
   [others: string]: any;
+  end?: ParamValue | Date;
+  pageEnd?: ParamValue | Date;
+  pageStart?: ParamValue | Date;
+
+  pageStatsPeriod?: ParamValue;
+  pageUtc?: ParamValue | boolean;
+  period?: ParamValue;
+  start?: ParamValue | Date;
+  statsPeriod?: ParamValue;
+
+  utc?: ParamValue | boolean;
 };
 
 type ParsedParams = {
-  start?: string;
-  end?: string;
-  statsPeriod?: string;
-  utc?: string;
   [others: string]: Location['query'][string];
+  end?: string;
+  start?: string;
+  statsPeriod?: string | null;
+  utc?: string;
 };
 
 type DateTimeNormalizeOptions = {
-  /**
-   * When set to true allows the statsPeriod to result as `null`.
-   *
-   * @default false
-   */
-  allowEmptyPeriod?: boolean;
-  /**
-   * Include this default statsPeriod in the resulting parsed parameters when
-   * no stats period is provided (or if it is an invalid stats period)
-   */
-  defaultStatsPeriod?: string;
   /**
    * Parse absolute date time (`start` / `end`) from the input parameters. When
    * set to false the start and end will always be `null`.
@@ -199,6 +190,17 @@ type DateTimeNormalizeOptions = {
    * @default false
    */
   allowAbsolutePageDatetime?: boolean;
+  /**
+   * When set to true allows the statsPeriod to result as `null`.
+   *
+   * @default false
+   */
+  allowEmptyPeriod?: boolean;
+  /**
+   * Include this default statsPeriod in the resulting parsed parameters when
+   * no stats period is provided (or if it is an invalid stats period)
+   */
+  defaultStatsPeriod?: string | null;
 };
 
 /**
@@ -239,7 +241,8 @@ export function normalizeDateTimeParams(
   let coercedPeriod =
     getStatsPeriodValue(pageStatsPeriod) ||
     getStatsPeriodValue(statsPeriod) ||
-    getStatsPeriodValue(period);
+    getStatsPeriodValue(period) ||
+    null;
 
   const dateTimeStart = allowAbsoluteDatetime
     ? allowAbsolutePageDatetime
@@ -258,8 +261,8 @@ export function normalizeDateTimeParams(
 
   const object = {
     statsPeriod: coercedPeriod,
-    start: coercedPeriod ? null : dateTimeStart,
-    end: coercedPeriod ? null : dateTimeEnd,
+    start: coercedPeriod ? null : dateTimeStart ?? null,
+    end: coercedPeriod ? null : dateTimeEnd ?? null,
     // coerce utc into a string (it can be both: a string representation from
     // router, or a boolean from time range picker)
     utc: getUtcValue(pageUtc ?? utc),
@@ -288,8 +291,8 @@ export function getStateFromQuery(
 ) {
   const {allowAbsoluteDatetime} = normalizeOptions;
 
-  const project = getProject(query[URL_PARAM.PROJECT]);
-  const environment = getEnvironment(query[URL_PARAM.ENVIRONMENT]);
+  const project = getProject(query[URL_PARAM.PROJECT]) ?? null;
+  const environment = getEnvironment(query[URL_PARAM.ENVIRONMENT]) ?? null;
 
   const dateTimeParams = normalizeDateTimeParams(query, normalizeOptions);
 
@@ -301,7 +304,7 @@ export function getStateFromQuery(
   const period = dateTimeParams.statsPeriod;
   const utc = dateTimeParams.utc;
 
-  return {
+  const state: PageFiltersState = {
     project,
     environment,
     period: period || null,
@@ -309,4 +312,15 @@ export function getStateFromQuery(
     end: end || null,
     utc: typeof utc !== 'undefined' ? utc === 'true' : null,
   };
+
+  return state;
+}
+
+/**
+ * Extract the datetime component from the page filter state object
+ */
+export function getDatetimeFromState(state: PageFiltersState) {
+  return Object.fromEntries(
+    Object.entries(state).filter(([key]) => DATE_TIME_KEYS.includes(key))
+  ) as PageFilters['datetime'];
 }

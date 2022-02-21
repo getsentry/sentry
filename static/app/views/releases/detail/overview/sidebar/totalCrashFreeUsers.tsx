@@ -19,8 +19,8 @@ import {displayCrashFreePercent} from '../../../utils';
 type Props = AsyncComponent['props'] & {
   location: Location;
   organization: Organization;
-  version: string;
   projectSlug: string;
+  version: string;
 };
 
 type State = AsyncComponent['state'] & {

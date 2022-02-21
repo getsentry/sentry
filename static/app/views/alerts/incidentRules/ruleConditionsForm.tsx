@@ -6,7 +6,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import SearchBar from 'sentry/components/events/searchBar';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import FormField from 'sentry/components/forms/formField';
 import SelectControl from 'sentry/components/forms/selectControl';
+import SelectField from 'sentry/components/forms/selectField';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -22,9 +25,6 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import {AlertType, getFunctionHelpText} from 'sentry/views/alerts/wizard/options';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
-import FormField from 'sentry/views/settings/components/forms/formField';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {
   COMPARISON_DELTA_OPTIONS,
@@ -47,21 +47,21 @@ const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
 };
 
 type Props = {
+  alertType: AlertType;
   api: Client;
+  comparisonType: AlertRuleComparisonType;
+  dataset: Dataset;
+  disabled: boolean;
+  onComparisonDeltaChange: (value: number) => void;
+  onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
+  onFilterSearch: (query: string) => void;
+  onTimeWindowChange: (value: number) => void;
   organization: Organization;
   projectSlug: string;
-  disabled: boolean;
   thresholdChart: React.ReactNode;
-  onFilterSearch: (query: string) => void;
-  alertType: AlertType;
-  dataset: Dataset;
   timeWindow: number;
-  comparisonType: AlertRuleComparisonType;
-  onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
-  onComparisonDeltaChange: (value: number) => void;
-  onTimeWindowChange: (value: number) => void;
-  comparisonDelta?: number;
   allowChangeEventTypes?: boolean;
+  comparisonDelta?: number;
 };
 
 type State = {
@@ -319,7 +319,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     'release.stage',
                     'release.package',
                     'release.build',
+                    'project',
                   ]}
+                  includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}
                   useFormWrapper={false}
                   organization={organization}

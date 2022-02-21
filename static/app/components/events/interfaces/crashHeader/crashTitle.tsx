@@ -6,11 +6,11 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 
 type Props = {
-  title: string;
   newestFirst: boolean;
-  onChange?: ({newestFirst}: {newestFirst: boolean}) => void;
+  title: string;
   beforeTitle?: React.ReactNode;
   hideGuide?: boolean;
+  onChange?: ({newestFirst}: {newestFirst: boolean}) => void;
 };
 
 const CrashTitle = ({

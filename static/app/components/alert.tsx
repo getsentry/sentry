@@ -8,13 +8,13 @@ import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
 type Props = {
-  type?: keyof Theme['alert'];
-  icon?: React.ReactNode;
-  system?: boolean;
   expand?: React.ReactNode[];
   expandIcon?: React.ReactNode;
-  opaque?: boolean;
+  icon?: React.ReactNode;
   onExpandIconClick?: () => void;
+  opaque?: boolean;
+  system?: boolean;
+  type?: keyof Theme['alert'];
 };
 
 type AlertProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
@@ -42,7 +42,7 @@ const alertStyles = ({
   return css`
     display: flex;
     flex-direction: column;
-    margin: 0 0 ${space(3)};
+    margin: 0 0 ${space(2)};
     padding: ${space(1.5)} ${space(2)};
     font-size: ${theme.fontSizeLarge};
     box-shadow: ${theme.dropShadowLight};

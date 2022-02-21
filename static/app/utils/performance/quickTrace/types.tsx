@@ -12,24 +12,24 @@ import {Theme} from 'sentry/utils/theme';
 export type EventLite = {
   event_id: string;
   generation: number | null;
+  parent_event_id: string | null;
+  parent_span_id: string | null;
+  project_id: number;
+  project_slug: string;
   span_id: string;
   transaction: string;
   'transaction.duration': number;
-  project_id: number;
-  project_slug: string;
-  parent_event_id: string | null;
-  parent_span_id: string | null;
 };
 
 export type TraceError = {
+  event_id: string;
   issue: string;
   issue_id: number;
-  event_id: string;
-  span: string;
+  level: keyof Theme['level'];
   project_id: number;
   project_slug: string;
+  span: string;
   title: string;
-  level: keyof Theme['level'];
 };
 
 export type TraceLite = EventLite[];
@@ -59,36 +59,36 @@ export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
  */
 export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   children: TraceFullDetailed[];
-  measurements?: Record<string, Measurement>;
-  tags?: EventTag[];
   start_timestamp: number;
   timestamp: number;
   'transaction.op': string;
   'transaction.status': string;
+  measurements?: Record<string, Measurement>;
+  tags?: EventTag[];
 };
 
 export type TraceProps = {
   traceId: string;
-  start?: string;
   end?: string;
-  statsPeriod?: string;
+  start?: string;
+  statsPeriod?: string | null;
 };
 
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;
 
 export type EmptyQuickTrace = {
-  type: 'empty' | 'missing';
   trace: QuickTraceEvent[];
+  type: 'empty' | 'missing';
 };
 
 export type PartialQuickTrace = {
-  type: 'partial';
   trace: QuickTraceEvent[] | null;
+  type: 'partial';
 };
 
 export type FullQuickTrace = {
-  type: 'full';
   trace: QuickTraceEvent[] | null;
+  type: 'full';
 };
 
 export type BaseTraceChildrenProps = Omit<
@@ -104,7 +104,7 @@ export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps &
   };
 
 export type TraceMeta = {
+  errors: number;
   projects: number;
   transactions: number;
-  errors: number;
 };

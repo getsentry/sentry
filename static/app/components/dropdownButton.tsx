@@ -7,29 +7,29 @@ import space from 'sentry/styles/space';
 
 type Props = Omit<React.ComponentProps<typeof Button>, 'type' | 'priority'> & {
   /**
-   * The fixed prefix text to show in the button eg: 'Sort By'
+   * Forward a ref to the button's root
    */
-  prefix?: React.ReactNode;
-  /**
-   * Whether or not the button should render as open
-   */
-  isOpen?: boolean;
-  /**
-   * Should a chevron icon be shown?
-   */
-  showChevron?: boolean;
+  forwardedRef?: React.Ref<typeof Button>;
   /**
    * Should the bottom border become transparent when open?
    */
   hideBottomBorder?: boolean;
   /**
+   * Whether or not the button should render as open
+   */
+  isOpen?: boolean;
+  /**
+   * The fixed prefix text to show in the button eg: 'Sort By'
+   */
+  prefix?: React.ReactNode;
+  /**
    * Button color
    */
   priority?: 'default' | 'primary' | 'form';
   /**
-   * Forward a ref to the button's root
+   * Should a chevron icon be shown?
    */
-  forwardedRef?: React.Ref<typeof Button>;
+  showChevron?: boolean;
 };
 
 const DropdownButton = ({
@@ -55,7 +55,7 @@ const DropdownButton = ({
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
-      {showChevron && <StyledChevron size="10px" direction={isOpen ? 'up' : 'down'} />}
+      {showChevron && <StyledChevron size="xs" direction={isOpen ? 'up' : 'down'} />}
     </StyledButton>
   );
 };
@@ -88,12 +88,11 @@ const StyledButton = styled(Button)<
 `;
 
 const LabelText = styled('span')`
+  font-weight: 400;
+  padding-right: ${space(0.75)};
   &:after {
     content: ':';
   }
-
-  font-weight: 400;
-  padding-right: ${space(0.75)};
 `;
 
 export default React.forwardRef<typeof Button, Props>((props, ref) => (

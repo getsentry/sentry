@@ -5,12 +5,10 @@ import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ActionButton from 'sentry/components/actions/button';
-import MenuHeader from 'sentry/components/actions/menuHeader';
-import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
-import DropdownLink from 'sentry/components/dropdownLink';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {IconChevron, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -18,11 +16,11 @@ import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 
 type Props = {
-  organization: Organization;
-  project: Project;
+  disabled: boolean;
   onDelete: () => void;
   onDiscard: () => void;
-  disabled: boolean;
+  organization: Organization;
+  project: Project;
 };
 
 function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Props) {
@@ -95,22 +93,27 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
           icon={<IconDelete size="xs" />}
         />
       </Confirm>
-      <DropdownLink
-        caret={false}
-        disabled={disabled}
-        customTitle={
-          <ActionButton
-            disabled={disabled}
+      <DropdownMenuControlV2
+        isDisabled={disabled}
+        trigger={({props: triggerProps, ref: triggerRef}) => (
+          <DropdownTrigger
+            ref={triggerRef}
+            {...triggerProps}
             aria-label={t('More delete options')}
+            size="xsmall"
             icon={<IconChevron direction="down" size="xs" />}
+            disabled={disabled}
           />
-        }
-      >
-        <MenuHeader>{t('Delete & Discard')}</MenuHeader>
-        <MenuItemActionLink title="" onAction={openDiscardModal}>
-          {t('Delete and discard future events')}
-        </MenuItemActionLink>
-      </DropdownLink>
+        )}
+        menuTitle={t('Delete & Discard')}
+        items={[
+          {
+            key: 'delete',
+            label: t('Delete and discard future events'),
+            onAction: () => openDiscardModal(),
+          },
+        ]}
+      />
     </ButtonBar>
   );
 }
@@ -119,12 +122,18 @@ const DeleteButton = styled(ActionButton)`
   ${p =>
     !p.disabled &&
     `
-  &:hover {
-    background-color: ${p.theme.button.danger.background};
-    color: ${p.theme.button.danger.color};
-    border-color: ${p.theme.button.danger.border};
-  }
+    &:hover {
+      background-color: ${p.theme.button.danger.background};
+      color: ${p.theme.button.danger.color};
+      border-color: ${p.theme.button.danger.border};
+    }
   `}
+`;
+
+const DropdownTrigger = styled(Button)`
+  box-shadow: none;
+  border-radius: ${p => p.theme.borderRadiusRight};
+  border-left: none;
 `;
 
 export default DeleteAction;

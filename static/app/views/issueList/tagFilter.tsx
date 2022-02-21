@@ -1,14 +1,13 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
+import SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Tag, TagValue} from 'sentry/types';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import {TagValueLoader} from './types';
 
@@ -19,16 +18,16 @@ const defaultProps = {
 type SelectOption = Record<'value' | 'label', string>;
 
 type Props = {
-  tag: Tag;
   onSelect: (tag: Tag, value: string | null) => void;
+  tag: Tag;
   tagValueLoader: TagValueLoader;
 } & typeof defaultProps;
 
 type State = {
-  query: string;
   isLoading: boolean;
-  value: string | null;
+  query: string;
   textValue: string;
+  value: string | null;
   options?: SelectOption[];
 };
 
@@ -157,9 +156,7 @@ class IssueListTagFilter extends React.Component<Props, State> {
     const {options, isLoading} = this.state;
 
     return (
-      <StreamTagFilter>
-        <StyledHeader>{tag.key}</StyledHeader>
-
+      <SidebarSection title={tag.key}>
         {!!tag.isInput && (
           <Input value={this.state.textValue} onChange={this.handleChangeInput} />
         )}
@@ -187,18 +184,9 @@ class IssueListTagFilter extends React.Component<Props, State> {
             }
           />
         )}
-      </StreamTagFilter>
+      </SidebarSection>
     );
   }
 }
 
 export default IssueListTagFilter;
-
-const StreamTagFilter = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
-const StyledHeader = styled('h6')`
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(1)};
-`;

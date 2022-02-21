@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {
   canIncludePreviousPeriod,
+  getPreviousSeriesName,
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
@@ -23,25 +24,25 @@ import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 export type TimeSeriesData = {
-  // timeseries data
-  timeseriesData?: Series[];
-  comparisonTimeseriesData?: Series[];
   allTimeseriesData?: EventsStatsData;
-  originalTimeseriesData?: EventsStatsData;
-  timeseriesTotals?: {count: number};
+  comparisonTimeseriesData?: Series[];
   originalPreviousTimeseriesData?: EventsStatsData | null;
+  originalTimeseriesData?: EventsStatsData;
   previousTimeseriesData?: Series[] | null;
   timeAggregatedData?: Series | {};
-  timeframe?: {start: number; end: number};
+  timeframe?: {end: number; start: number};
+  // timeseries data
+  timeseriesData?: Series[];
+  timeseriesTotals?: {count: number};
 };
 
 type LoadingStatus = {
-  loading: boolean;
-  reloading: boolean;
   /**
    * Whether there was an error retrieving data
    */
   errored: boolean;
+  loading: boolean;
+  reloading: boolean;
   errorMessage?: string;
 };
 
@@ -52,31 +53,19 @@ export type RenderProps = LoadingStatus &
 
 type DefaultProps = {
   /**
-   * Relative time period for query.
-   *
-   * Use `start` and `end` for absolute dates.
-   *
-   * e.g. 24h, 7d, 30d
+   * Include data for previous period
    */
-  period?: string;
+  includePrevious: boolean;
   /**
-   * Absolute start date for query
+   * Transform the response data to be something ingestible by charts
    */
-  start?: DateString;
-  /**
-   * Absolute end date for query
-   */
-  end?: DateString;
+  includeTransformedData: boolean;
   /**
    * Interval to group results in
    *
    * e.g. 1d, 1h, 1m, 1s
    */
   interval: string;
-  /**
-   * Time delta for comparing intervals of alert metrics, in seconds
-   */
-  comparisonDelta?: number;
   /**
    * number of rows to return
    */
@@ -86,13 +75,25 @@ type DefaultProps = {
    */
   query: string;
   /**
-   * Include data for previous period
+   * Time delta for comparing intervals of alert metrics, in seconds
    */
-  includePrevious: boolean;
+  comparisonDelta?: number;
   /**
-   * Transform the response data to be something ingestible by charts
+   * Absolute end date for query
    */
-  includeTransformedData: boolean;
+  end?: DateString;
+  /**
+   * Relative time period for query.
+   *
+   * Use `start` and `end` for absolute dates.
+   *
+   * e.g. 24h, 7d, 30d
+   */
+  period?: string | null;
+  /**
+   * Absolute start date for query
+   */
+  start?: DateString;
 };
 
 type EventsRequestPartialProps = {
@@ -100,64 +101,8 @@ type EventsRequestPartialProps = {
    * API client instance
    */
   api: Client;
-  organization: OrganizationSummary;
-  /**
-   * List of project ids to query
-   */
-  project?: Readonly<number[]>;
-  /**
-   * List of environments to query
-   */
-  environment?: Readonly<string[]>;
-  /**
-   * List of team ids to query
-   */
-  team?: Readonly<string | string[]>;
-  /**
-   * List of fields to group with when doing a topEvents request.
-   */
-  field?: string[];
-  /**
-   * Initial loading state
-   */
-  loading?: boolean;
-  /**
-   * Should loading be shown.
-   */
-  showLoading?: boolean;
-  /**
-   * The yAxis being plotted. If multiple yAxis are requested,
-   * the child render function will be called with `results`
-   */
-  yAxis?: string | string[];
-  /**
-   * Name used for display current series data set tooltip
-   */
-  currentSeriesNames?: string[];
-  previousSeriesNames?: string[];
   children: (renderProps: RenderProps) => React.ReactNode;
-  /**
-   * The number of top results to get. When set a multi-series result will be returned
-   * in the `results` child render function.
-   */
-  topEvents?: number;
-  /**
-   * How to order results when getting top events.
-   */
-  orderby?: string;
-  /**
-   * Discover needs confirmation to run >30 day >10 project queries,
-   * optional and when not passed confirmation is not required.
-   */
-  confirmedQuery?: boolean;
-  /**
-   * Is query out of retention
-   */
-  expired?: boolean;
-  /**
-   * Query name used for displaying error toast if it is out of retention
-   */
-  name?: string;
+  organization: OrganizationSummary;
   /**
    * Whether or not to include the last partial bucket. This happens for example when the
    * current time is 11:26 and the last bucket ranges from 11:25-11:30. This means that
@@ -167,17 +112,51 @@ type EventsRequestPartialProps = {
    */
   partial: boolean;
   /**
+   * Discover needs confirmation to run >30 day >10 project queries,
+   * optional and when not passed confirmation is not required.
+   */
+  confirmedQuery?: boolean;
+  /**
+   * Name used for display current series data set tooltip
+   */
+  currentSeriesNames?: string[];
+  /**
+   * List of environments to query
+   */
+  environment?: Readonly<string[]>;
+  /**
+   * Is query out of retention
+   */
+  expired?: boolean;
+  /**
+   * List of fields to group with when doing a topEvents request.
+   */
+  field?: string[];
+  /**
+   * Allows overridding the pathname.
+   */
+  generatePathname?: (org: OrganizationSummary) => string;
+  /**
    * Hide error toast (used for pages which also query eventsV2)
    */
   hideError?: boolean;
   /**
-   * Whether or not to zerofill results
+   * Initial loading state
    */
-  withoutZerofill?: boolean;
+  loading?: boolean;
   /**
-   * A unique name for what's triggering this request, see organization_events_stats for an allowlist
+   * Query name used for displaying error toast if it is out of retention
    */
-  referrer?: string;
+  name?: string;
+  /**
+   * How to order results when getting top events.
+   */
+  orderby?: string;
+  previousSeriesNames?: string[];
+  /**
+   * List of project ids to query
+   */
+  project?: Readonly<number[]>;
   /**
    * A container for query batching data and functions.
    */
@@ -187,9 +166,31 @@ type EventsRequestPartialProps = {
    */
   queryExtras?: Record<string, string>;
   /**
-   * Allows overridding the pathname.
+   * A unique name for what's triggering this request, see organization_events_stats for an allowlist
    */
-  generatePathname?: (org: OrganizationSummary) => string;
+  referrer?: string;
+  /**
+   * Should loading be shown.
+   */
+  showLoading?: boolean;
+  /**
+   * List of team ids to query
+   */
+  team?: Readonly<string | string[]>;
+  /**
+   * The number of top results to get. When set a multi-series result will be returned
+   * in the `results` child render function.
+   */
+  topEvents?: number;
+  /**
+   * Whether or not to zerofill results
+   */
+  withoutZerofill?: boolean;
+  /**
+   * The yAxis being plotted. If multiple yAxis are requested,
+   * the child render function will be called with `results`
+   */
+  yAxis?: string | string[];
 };
 
 type TimeAggregationProps =
@@ -201,11 +202,11 @@ export type EventsRequestProps = DefaultProps &
   EventsRequestPartialProps;
 
 type EventsRequestState = {
-  reloading: boolean;
   errored: boolean;
-  errorMessage?: string;
-  timeseriesData: null | EventsStats | MultiSeriesEventsStats;
   fetchedWithPrevious: boolean;
+  reloading: boolean;
+  timeseriesData: null | EventsStats | MultiSeriesEventsStats;
+  errorMessage?: string;
 };
 
 const propNamesToIgnore = [
@@ -322,7 +323,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
    */
   getData = (
     data: EventsStatsData
-  ): {previous: EventsStatsData | null; current: EventsStatsData} => {
+  ): {current: EventsStatsData; previous: EventsStatsData | null} => {
     const {fetchedWithPrevious} = this.state;
     const {period, includePrevious} = this.props;
 
@@ -444,7 +445,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       ? this.transformPreviousPeriodData(
           current,
           previous,
-          (seriesName ? `previous ${seriesName}` : undefined) ??
+          (seriesName ? getPreviousSeriesName(seriesName) : undefined) ??
             previousSeriesNames?.[seriesIndex]
         )
       : null;
@@ -492,7 +493,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       // Convert the timeseries data into a multi-series result set.
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
-      let timeframe: {start: number; end: number} | undefined = undefined;
+      let timeframe: {end: number; start: number} | undefined = undefined;
       const sortedTimeseriesData = Object.keys(timeseriesData)
         .map((seriesName: string, index: number): [number, Series, Series | null] => {
           const seriesData: EventsStats = timeseriesData[seriesName];

@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import Field from 'sentry/components/forms/field';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -11,19 +12,17 @@ import {
   isLegalYAxisType,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = {
   /**
    * The widget display type. Used to render different fieldsets.
    */
   displayType: Widget['displayType'];
-  widgetType: Widget['widgetType'];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   /**
    * The field list for the widget.
@@ -37,6 +36,7 @@ type Props = {
    * Any errors that need to be rendered.
    */
   organization: Organization;
+  widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
   style?: React.CSSProperties;
 };
@@ -51,6 +51,8 @@ function WidgetQueryFields({
   onChange,
   style,
 }: Props) {
+  const isMetricWidget = widgetType === WidgetType.METRICS;
+
   // Handle new fields being added.
   function handleAdd(event: React.MouseEvent) {
     event.preventDefault();
@@ -121,6 +123,20 @@ function WidgetQueryFields({
       }
     }
 
+    if (
+      widgetType === WidgetType.METRICS &&
+      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
+    ) {
+      return (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.TAG
+      );
+    }
+
+    return option.value.kind === FieldValueKind.FUNCTION;
+  };
+
+  const filterMetricsOptions = option => {
     return option.value.kind === FieldValueKind.FUNCTION;
   };
 
@@ -132,6 +148,10 @@ function WidgetQueryFields({
     }
 
     if (fieldValue.kind !== 'function') {
+      return true;
+    }
+
+    if (isMetricWidget) {
       return true;
     }
 
@@ -176,6 +196,7 @@ function WidgetQueryFields({
           onChange={handleColumnChange}
           fieldOptions={fieldOptions}
           organization={organization}
+          filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
           source={widgetType}
         />
       </Field>
@@ -203,6 +224,8 @@ function WidgetQueryFields({
             onChange={handleTopNColumnChange}
             fieldOptions={fieldOptions}
             organization={organization}
+            filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
+            source={widgetType}
           />
         </Field>
         <Field
@@ -218,9 +241,13 @@ function WidgetQueryFields({
           <QueryFieldWrapper key={`${fieldValue}:0`}>
             <QueryField
               fieldValue={fieldValue}
-              fieldOptions={generateFieldOptions({organization})}
+              fieldOptions={
+                isMetricWidget ? fieldOptions : generateFieldOptions({organization})
+              }
               onChange={value => handleTopNChangeField(value)}
-              filterPrimaryOptions={filterPrimaryOptions}
+              filterPrimaryOptions={
+                isMetricWidget ? filterMetricsOptions : filterPrimaryOptions
+              }
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
             />
           </QueryFieldWrapper>

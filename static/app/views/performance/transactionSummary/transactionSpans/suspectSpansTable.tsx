@@ -19,13 +19,13 @@ import {spanDetailsRouteWithQuery} from './spanDetails/utils';
 import {SpanSort, SpanSortOthers, SpanSortPercentiles, SpansTotalValues} from './types';
 
 type Props = {
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  transactionName: string;
-  isLoading: boolean;
+  sort: SpanSort;
   suspectSpans: SuspectSpans;
   totals: SpansTotalValues | null;
-  sort: SpanSort;
+  transactionName: string;
   project?: Project;
 };
 
@@ -47,8 +47,10 @@ export default function SuspectSpansTable(props: Props) {
     description: suspectSpan.description,
     totalCount: suspectSpan.count,
     frequency:
+      // Frequency is computed using the `uniq` function in ClickHouse.
+      // Because it is an approximation, it can occasionally exceed the number of events.
       defined(suspectSpan.frequency) && defined(totals?.count)
-        ? suspectSpan.frequency / totals!.count
+        ? Math.min(1, suspectSpan.frequency / totals!.count)
         : null,
     avgOccurrences: suspectSpan.avgOccurrences,
     p50ExclusiveTime: suspectSpan.p50ExclusiveTime,

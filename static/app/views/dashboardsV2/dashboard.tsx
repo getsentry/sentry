@@ -2,16 +2,16 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import {Layout, Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
-import sortBy from 'lodash/sortBy';
-import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -19,96 +19,116 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import {IconResize} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {uniqueId} from 'sentry/utils/guid';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
-import SortableWidget from './sortableWidget';
 import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  DisplayType,
-  Widget,
-  WidgetType,
-} from './types';
+  assignDefaultLayout,
+  assignTempId,
+  calculateColumnDepths,
+  constructGridItemKey,
+  DEFAULT_WIDGET_WIDTH,
+  enforceWidgetHeightValues,
+  generateWidgetId,
+  generateWidgetsAfterCompaction,
+  getDashboardLayout,
+  getDefaultWidgetHeight,
+  getMobileLayout,
+  getNextAvailablePosition,
+  pickDefinedStoreKeys,
+  Position,
+} from './layoutUtils';
+import SortableWidget from './sortableWidget';
+import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
-const WIDGET_PREFIX = 'grid-item';
 const DESKTOP = 'desktop';
 const MOBILE = 'mobile';
-const NUM_DESKTOP_COLS = 6;
+export const NUM_DESKTOP_COLS = 6;
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
-const ADD_BUTTON_POSITION = {
+const BOTTOM_MOBILE_VIEW_POSITION = {
   x: 0,
-  y: Number.MAX_VALUE,
-  w: 2,
-  h: 1,
-  isResizable: false,
+  y: Number.MAX_SAFE_INTEGER,
 };
-const DEFAULT_WIDGET_WIDTH = 2;
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
 type Props = {
   api: Client;
-  organization: Organization;
   dashboard: DashboardDetails;
-  selection: PageFilters;
+  handleAddCustomWidget: (widget: Widget) => void;
+  handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditing: boolean;
-  router: InjectedRouter;
   location: Location;
-  widgetLimitReached: boolean;
-  isPreview?: boolean;
+  onSetWidgetToBeUpdated: (widget: Widget) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
-  onSetWidgetToBeUpdated: (widget: Widget) => void;
-  handleUpdateWidgetList: (widgets: Widget[]) => void;
-  handleAddCustomWidget: (widget: Widget) => void;
-  layout: Layout[];
-  onLayoutChange: (layout: Layout[]) => void;
+  organization: Organization;
+  router: InjectedRouter;
+  selection: PageFilters;
+  widgetLimitReached: boolean;
+  isPreview?: boolean;
+  newWidget?: Widget;
   paramDashboardId?: string;
   paramTemplateId?: string;
-  newWidget?: Widget;
 };
 
 type State = {
   isMobile: boolean;
   layouts: Layouts;
+  windowWidth: number;
 };
 
 class Dashboard extends Component<Props, State> {
   constructor(props) {
     super(props);
-    const {layout, dashboard, organization} = props;
+    const {dashboard, organization} = props;
     const isUsingGrid = organization.features.includes('dashboard-grid-layout');
+    const desktopLayout = getDashboardLayout(dashboard.widgets);
     this.state = {
       isMobile: false,
       layouts: {
-        [DESKTOP]: isUsingGrid ? layout : [],
-        [MOBILE]: isUsingGrid ? getMobileLayout(layout, dashboard.widgets) : [],
+        [DESKTOP]: isUsingGrid ? desktopLayout : [],
+        [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
       },
+      windowWidth: window.innerWidth,
     };
   }
 
   static getDerivedStateFromProps(props, state) {
     if (props.organization.features.includes('dashboard-grid-layout')) {
-      if (!isEqual(props.layout, state.layouts[DESKTOP])) {
+      if (state.isMobile) {
+        // Don't need to recalculate any layout state from props in the mobile view
+        // because we want to force different positions (i.e. new widgets added
+        // at the bottom)
+        return null;
+      }
+
+      // If the user clicks "Cancel" and the dashboard resets,
+      // recalculate the layout to revert to the unmodified state
+      const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
+      if (
+        !isEqual(
+          dashboardLayout.map(pickDefinedStoreKeys),
+          state.layouts[DESKTOP].map(pickDefinedStoreKeys)
+        )
+      ) {
         return {
           ...state,
           layouts: {
-            [DESKTOP]: props.layout,
-            [MOBILE]: getMobileLayout(props.layout, props.dashboard.widgets),
+            [DESKTOP]: dashboardLayout,
+            [MOBILE]: getMobileLayout(dashboardLayout, props.dashboard.widgets),
           },
         };
       }
@@ -117,7 +137,10 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing} = this.props;
+    const {isEditing, organization} = this.props;
+    if (organization.features.includes('dashboard-grid-layout')) {
+      window.addEventListener('resize', this.debouncedHandleResize);
+    }
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
@@ -143,6 +166,19 @@ class Dashboard extends Component<Props, State> {
       this.fetchMemberList();
     }
   }
+
+  componentWillUnmount() {
+    const {organization} = this.props;
+    if (organization.features.includes('dashboard-grid-layout')) {
+      window.removeEventListener('resize', this.debouncedHandleResize);
+    }
+  }
+
+  debouncedHandleResize = debounce(() => {
+    this.setState({
+      windowWidth: window.innerWidth,
+    });
+  }, 250);
 
   fetchMemberList() {
     const {api, selection} = this.props;
@@ -208,78 +244,85 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleOpenWidgetBuilder = () => {
-    const {router, paramDashboardId, organization, location} = this.props;
+    const {router, location, paramDashboardId, organization} = this.props;
+
     if (paramDashboardId) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
         query: {
           ...location.query,
-          dataSet: DataSet.EVENTS,
+          source: DashboardWidgetSource.DASHBOARDS,
         },
       });
       return;
     }
+
     router.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       query: {
         ...location.query,
-        dataSet: DataSet.EVENTS,
+        source: DashboardWidgetSource.DASHBOARDS,
       },
     });
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing, handleUpdateWidgetList} = this.props;
-    const nextList = [...this.props.dashboard.widgets];
+    const {isEditing, onUpdate, handleUpdateWidgetList} = this.props;
+
+    let nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
-    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
-    this.props.onUpdate(nextList);
+    const nextWidgetData = {
+      ...nextWidget,
+      tempId: prevWidget.tempId,
+    };
+
+    // Only modify and re-compact if the default height has changed
+    if (
+      getDefaultWidgetHeight(prevWidget.displayType) !==
+      getDefaultWidgetHeight(nextWidget.displayType)
+    ) {
+      nextList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+      nextList = generateWidgetsAfterCompaction(nextList);
+    } else {
+      nextList[updateIndex] = nextWidgetData;
+    }
+
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {layouts} = this.state;
-    const {
-      dashboard,
-      onUpdate,
-      onLayoutChange,
-      organization,
-      isEditing,
-      handleUpdateWidgetList,
-    } = this.props;
+    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    nextList = generateWidgetsAfterCompaction(nextList);
+
     onUpdate(nextList);
-
-    if (organization.features.includes('dashboard-grid-layout')) {
-      const newLayout = layouts[DESKTOP].filter(
-        ({i}) => i !== constructGridItemKey(widgetToDelete)
-      );
-      onLayoutChange(newLayout);
-    }
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const widgetCopy = cloneDeep(widget);
-    widgetCopy.id = undefined;
-    widgetCopy.tempId = undefined;
+    const widgetCopy = cloneDeep(
+      assignTempId({...widget, id: undefined, tempId: undefined})
+    );
 
-    const nextList = [...dashboard.widgets];
+    let nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
+    nextList = generateWidgetsAfterCompaction(nextList);
 
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
 
-  handleEditWidget = (widget: Widget, index: number) => () => {
+  handleEditWidget = (widget: Widget) => () => {
     const {
       organization,
       dashboard,
@@ -291,27 +334,25 @@ class Dashboard extends Component<Props, State> {
       handleAddCustomWidget,
     } = this.props;
 
-    if (
-      organization.features.includes('metrics') &&
-      organization.features.includes('metrics-dashboards-ui')
-    ) {
+    if (organization.features.includes('new-widget-builder-experience')) {
       onSetWidgetToBeUpdated(widget);
 
       if (paramDashboardId) {
         router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${widget.id}/edit/`,
           query: {
             ...location.query,
-            dataSet: DataSet.EVENTS,
+            source: DashboardWidgetSource.DASHBOARDS,
           },
         });
         return;
       }
+
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${widget.id}/edit/`,
         query: {
           ...location.query,
-          dataSet: DataSet.EVENTS,
+          source: DashboardWidgetSource.DASHBOARDS,
         },
       });
     }
@@ -343,7 +384,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderWidget(widget: Widget, index: number) {
-    const {isMobile} = this.state;
+    const {isMobile, windowWidth} = this.state;
     const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
@@ -351,7 +392,7 @@ class Dashboard extends Component<Props, State> {
       isEditing,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
-      onEdit: this.handleEditWidget(widget, index),
+      onEdit: this.handleEditWidget(widget),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
     };
@@ -360,8 +401,13 @@ class Dashboard extends Component<Props, State> {
       const key = constructGridItemKey(widget);
       const dragId = key;
       return (
-        <GridItem key={key} data-grid={getDefaultPosition(index, widget.displayType)}>
-          <SortableWidget {...widgetProps} dragId={dragId} hideDragHandle={isMobile} />
+        <GridItem key={key} data-grid={widget.layout}>
+          <SortableWidget
+            {...widgetProps}
+            dragId={dragId}
+            isMobile={isMobile}
+            windowWidth={windowWidth}
+          />
         </GridItem>
       );
     }
@@ -372,18 +418,66 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
-    const {onLayoutChange} = this.props;
+    const {isMobile} = this.state;
+    const {dashboard, onUpdate} = this.props;
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE].filter(isNotAddButton),
     };
+
+    // Generate a new list of widgets where the layouts are associated
+    let columnDepths = calculateColumnDepths(newLayouts[DESKTOP]);
+    const newWidgets = dashboard.widgets.map(widget => {
+      const gridKey = constructGridItemKey(widget);
+      let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
+      if (!matchingLayout) {
+        const height = getDefaultWidgetHeight(widget.displayType);
+        const defaultWidgetParams = {
+          w: DEFAULT_WIDGET_WIDTH,
+          h: height,
+          minH: height,
+          i: gridKey,
+        };
+
+        // Calculate the available position
+        const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
+          columnDepths,
+          height
+        );
+        columnDepths = nextColumnDepths;
+
+        // Set the position for the desktop layout
+        matchingLayout = {
+          ...defaultWidgetParams,
+          ...nextPosition,
+        };
+
+        if (isMobile) {
+          // This is a new widget and it's on the mobile page so we keep it at the bottom
+          const mobileLayout = newLayouts[MOBILE].filter(({i}) => i !== gridKey);
+          mobileLayout.push({
+            ...defaultWidgetParams,
+            ...BOTTOM_MOBILE_VIEW_POSITION,
+          });
+          newLayouts[MOBILE] = mobileLayout;
+        }
+      }
+      return {
+        ...widget,
+        layout: pickDefinedStoreKeys(matchingLayout),
+      };
+    });
+
     this.setState({
       layouts: newLayouts,
     });
+    onUpdate(newWidgets);
 
-    // The desktop layout is the source of truth
-    onLayoutChange(newLayouts[DESKTOP]);
+    // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
+    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
+    // RGL doesn't provide a handler for post animation layout change
+    setTimeout(forceCheck, 400);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {
@@ -405,6 +499,23 @@ class Dashboard extends Component<Props, State> {
     this.setState({isMobile: false});
   };
 
+  get addWidgetLayout() {
+    const {isMobile, layouts} = this.state;
+    let position: Position = BOTTOM_MOBILE_VIEW_POSITION;
+    if (!isMobile) {
+      const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+      const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
+      position = nextPosition;
+    }
+
+    return {
+      ...position,
+      w: DEFAULT_WIDGET_WIDTH,
+      h: 1,
+      isResizable: false,
+    };
+  }
+
   renderGridDashboard() {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
@@ -413,6 +524,9 @@ class Dashboard extends Component<Props, State> {
     if (!organization.features.includes('issues-in-dashboards')) {
       widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
     }
+
+    const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+    const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
     const canModifyLayout = !isMobile && isEditing;
 
@@ -428,17 +542,29 @@ class Dashboard extends Component<Props, State> {
         onBreakpointChange={this.handleBreakpointChange}
         isDraggable={canModifyLayout}
         isResizable={canModifyLayout}
+        resizeHandle={
+          <ResizeHandle
+            className="react-resizable-handle"
+            data-test-id="custom-resize-handle"
+          >
+            <IconResize />
+          </ResizeHandle>
+        }
+        useCSSTransforms={false}
         isBounded
       >
-        {widgets.map((widget, index) => this.renderWidget(widget, index))}
+        {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && !!!widgetLimitReached && (
-          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={ADD_BUTTON_POSITION}>
+          <AddWidgetWrapper
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={this.addWidgetLayout}
+          >
             <AddWidget
               orgFeatures={organization.features}
               onAddWidget={this.handleStartAdd}
               onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
             />
-          </div>
+          </AddWidgetWrapper>
         )}
       </GridLayout>
     );
@@ -518,75 +644,38 @@ const WidgetContainer = styled('div')`
   }
 `;
 
+// A widget being dragged has a z-index of 3
+// Allow the Add Widget tile to show above widgets when moved
+const AddWidgetWrapper = styled('div')`
+  z-index: 5;
+  background-color: ${p => p.theme.background};
+`;
+
 const GridItem = styled('div')`
   .react-resizable-handle {
-    z-index: 1;
+    z-index: 2;
   }
 `;
 
-// HACK: to stack chart tooltips above other grid items
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
 
-  .react-grid-item:hover {
-    z-index: 10;
+  .react-resizable-handle {
+    background-image: none;
+  }
+
+  .react-grid-item > .react-resizable-handle::after {
+    border: none;
+  }
+
+  .react-grid-item.react-grid-placeholder {
+    background: ${p => p.theme.purple200};
   }
 `;
 
-function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
-}
-
-export function constructGridItemKey(widget: Widget) {
-  return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
-}
-
-export function assignTempId(widget: Widget) {
-  if (widget.id ?? widget.tempId) {
-    return widget;
-  }
-
-  return {...widget, tempId: uniqueId()};
-}
-
-/**
- * Naive positioning for widgets assuming no resizes.
- */
-function getDefaultPosition(index: number, displayType: DisplayType) {
-  return {
-    x: (DEFAULT_WIDGET_WIDTH * index) % NUM_DESKTOP_COLS,
-    y: Number.MAX_VALUE,
-    w: DEFAULT_WIDGET_WIDTH,
-    h: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
-    minH: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
-  };
-}
-
-function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
-  if (desktopLayout.length === 0) {
-    // Initial case where the user has no layout saved, but
-    // dashboard has widgets
-    return [];
-  }
-
-  // If there's a layout but no matching widget, then the widget was deleted
-  // in a separate session and should be ignored
-  // TODO(nar): Can remove once layouts are stored in the DB
-  const widgetGridKeys = new Set(widgets.map(constructGridItemKey));
-  const filteredLayouts = desktopLayout.filter(({i}) => widgetGridKeys.has(i));
-
-  const layoutWidgetPairs = zip(filteredLayouts, widgets) as [Layout, Widget][];
-
-  // Sort by y and then subsort by x
-  const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);
-
-  const mobileLayout = sorted.map(([layout, widget], index) => ({
-    ...layout,
-    x: 0,
-    y: index * 2,
-    w: 2,
-    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
-  }));
-
-  return mobileLayout;
-}
+const ResizeHandle = styled('div')`
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  cursor: nwse-resize;
+`;

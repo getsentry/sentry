@@ -16,32 +16,33 @@ import {t, tct} from 'sentry/locale';
 import {growIn} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 import {MinimalProject, Organization, Project} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import ProjectSelector from './projectSelector';
 
 type Props = WithRouterProps & {
-  organization: Organization;
-  value: number[];
-  projects: Project[];
   nonMemberProjects: Project[];
-  onChange: (selected: number[]) => unknown;
-  onUpdate: () => unknown;
-  isGlobalSelectionReady?: boolean;
-  disableMultipleProjectSelection?: boolean;
-  shouldForceProject?: boolean;
-  forceProject?: MinimalProject | null;
-  showIssueStreamLink?: boolean;
-  showProjectSettingsLink?: boolean;
-  lockedMessageSubject?: React.ReactNode;
-  footerMessage?: React.ReactNode;
+  onChange: (selected: number[]) => void;
+  onUpdate: (newProjects?: number[]) => void;
+  organization: Organization;
+  projects: Project[];
+  value: number[];
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
-    selectedProjects: Project[];
     isOpen: boolean;
+    selectedProjects: Project[];
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  disableMultipleProjectSelection?: boolean;
+  footerMessage?: React.ReactNode;
+  forceProject?: MinimalProject | null;
+  isGlobalSelectionReady?: boolean;
+  lockedMessageSubject?: React.ReactNode;
+  pinned?: boolean;
+  shouldForceProject?: boolean;
+  showIssueStreamLink?: boolean;
+  showProjectSettingsLink?: boolean;
 };
 
 type State = {
@@ -64,9 +65,12 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     );
   }
 
-  // Reset "hasChanges" state and call `onUpdate` callback
-  doUpdate = () => {
-    this.setState({hasChanges: false}, this.props.onUpdate);
+  /**
+   * Reset "hasChanges" state and call `onUpdate` callback
+   * @param value optional parameter that will be passed to onUpdate callback
+   */
+  doUpdate = (value?: number[]) => {
+    this.setState({hasChanges: false}, () => this.props.onUpdate(value));
   };
 
   /**
@@ -86,14 +90,13 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
    * Should perform an "update" callback
    */
   handleQuickSelect = (selected: Pick<Project, 'id'>) => {
-    analytics('projectselector.direct_selection', {
+    trackAdvancedAnalyticsEvent('projectselector.direct_selection', {
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
-
     const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
     this.props.onChange(value);
-    this.doUpdate();
+    this.doUpdate(value);
   };
 
   /**
@@ -108,10 +111,11 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     }
 
     const {value} = this.props;
-    analytics('projectselector.update', {
+
+    trackAdvancedAnalyticsEvent('projectselector.update', {
       count: value.length,
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
       multi: this.multi,
     });
 
@@ -124,9 +128,9 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
    * Should perform an "update" callback
    */
   handleClear = () => {
-    analytics('projectselector.clear', {
+    trackAdvancedAnalyticsEvent('projectselector.clear', {
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
 
     this.props.onChange([]);
@@ -141,10 +145,10 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   handleMultiSelect = (selected: Project[]) => {
     const {onChange, value} = this.props;
 
-    analytics('projectselector.toggle', {
+    trackAdvancedAnalyticsEvent('projectselector.toggle', {
       action: selected.length > value.length ? 'added' : 'removed',
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
 
     const selectedList = selected.map(({id}) => parseInt(id, 10)).filter(i => i);
@@ -204,6 +208,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       footerMessage,
       customDropdownButton,
       customLoadingIndicator,
+      pinned,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -272,14 +277,25 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 onShowAllProjects={() => {
                   this.handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
                   actions.close();
+                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                    button_type: 'all',
+                    path: getRouteStringFromRoutes(this.props.router.routes),
+                    organization,
+                  });
                 }}
                 onShowMyProjects={() => {
                   this.handleClear();
                   actions.close();
+                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                    button_type: 'my',
+                    path: getRouteStringFromRoutes(this.props.router.routes),
+                    organization,
+                  });
                 }}
                 message={footerMessage}
               />
             )}
+            pinned={pinned}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
               if (customDropdownButton) {
@@ -336,14 +352,14 @@ type FeatureRenderProps = {
 };
 
 type ControlProps = {
-  organization: Organization;
   onApply: () => void;
   onShowAllProjects: () => void;
   onShowMyProjects: () => void;
-  selected?: Set<number>;
+  organization: Organization;
   disableMultipleProjectSelection?: boolean;
   hasChanges?: boolean;
   message?: React.ReactNode;
+  selected?: Set<number>;
 };
 
 const SelectorFooterControls = ({

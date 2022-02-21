@@ -20,12 +20,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {removeTracingKeysFromSearch} from '../../utils';
 
 type Props = {
-  organization: OrganizationSummary;
   location: Location;
+  organization: OrganizationSummary;
   transaction: string;
-  statsPeriod?: string;
-  start?: string;
   end?: string;
+  start?: string;
+  statsPeriod?: string | null;
 };
 
 class RelatedIssues extends Component<Props> {
@@ -101,7 +101,7 @@ class RelatedIssues extends Component<Props> {
           <SectionHeading>{t('Related Issues')}</SectionHeading>
           <Button
             data-test-id="issues-open"
-            size="small"
+            size="xsmall"
             to={issueSearch}
             onClick={this.handleOpenClick}
           >

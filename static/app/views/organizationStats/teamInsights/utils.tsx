@@ -1,22 +1,15 @@
-import chunk from 'lodash/chunk';
 import moment from 'moment';
 
 import BaseChart from 'sentry/components/charts/baseChart';
-import {SeriesDataUnit} from 'sentry/types/echarts';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 
 /**
  * Buckets a week of sequential days into one data unit
  */
-export function convertDaySeriesToWeeks(data: SeriesDataUnit[]): SeriesDataUnit[] {
-  const sortedData = data.sort(
-    (a, b) => new Date(a.name).getTime() - new Date(b.name).getTime()
-  );
-  return chunk(sortedData, 7).map(week => {
-    return {
-      name: week[0].name,
-      value: week.reduce((total, currentData) => total + currentData.value, 0),
-    };
-  });
+export function sortSeriesByDay(data: SeriesDataUnit[]): SeriesDataUnit[] {
+  return data.sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
 }
 
 /**
@@ -45,15 +38,58 @@ export const barAxisLabel = (
   dataEntries: number
 ): React.ComponentProps<typeof BaseChart>['xAxis'] => {
   return {
-    splitNumber: dataEntries,
+    splitNumber: Math.max(Math.round(dataEntries / 7), 4),
     type: 'category',
-    min: 0,
+    axisTick: {
+      alignWithLabel: true,
+    },
     axisLabel: {
-      showMaxLabel: true,
-      showMinLabel: true,
       formatter: (date: string) => {
         return moment(new Date(Number(date))).format('MMM D');
       },
     },
   };
 };
+
+const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
+
+export function dataDatetime(
+  query: Parameters<typeof normalizeDateTimeParams>[0]
+): DateTimeObject {
+  const {
+    start,
+    end,
+    statsPeriod,
+    utc: utcString,
+  } = normalizeDateTimeParams(query, {
+    allowEmptyPeriod: true,
+    allowAbsoluteDatetime: true,
+    allowAbsolutePageDatetime: true,
+  });
+
+  if (!statsPeriod && !start && !end) {
+    return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
+  }
+
+  // Following getParams, statsPeriod will take priority over start/end
+  if (statsPeriod) {
+    return {period: statsPeriod};
+  }
+
+  const utc = utcString === 'true';
+  if (start && end) {
+    return utc
+      ? {
+          start: moment.utc(start).format(),
+          end: moment.utc(end).format(),
+          utc,
+        }
+      : {
+          start: moment(start).utc().format(),
+          end: moment(end).utc().format(),
+          utc,
+        };
+  }
+
+  return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
+}

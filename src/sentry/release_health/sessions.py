@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 from typing import Mapping, Optional, Sequence, Set, Tuple, Union
 
@@ -81,11 +82,16 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         query: QueryDefinition,
         span_op: str,
     ) -> SessionsQueryResult:
+        # This is necessary because if we are running against the `DuplexReleaseHealthBackend`, the
+        # `query` object gets mutated, and that in turn affects the query results in subsequent
+        # backend calls
+        query_clone = deepcopy(query)
+
         with sentry_sdk.start_span(op=span_op, description="run_sessions_query"):
-            totals, series = _run_sessions_query(query)
+            totals, series = _run_sessions_query(query_clone)
 
         with sentry_sdk.start_span(op=span_op, description="massage_sessions_results"):
-            return massage_sessions_result(query, totals, series)  # type: ignore
+            return massage_sessions_result(query_clone, totals, series)  # type: ignore
 
     def get_release_sessions_time_bounds(
         self,
@@ -99,9 +105,11 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
     def check_has_health_data(
-        self, projects_list: Sequence[ProjectOrRelease]
+        self,
+        projects_list: Sequence[ProjectOrRelease],
+        now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
-        return _check_has_health_data(projects_list)  # type: ignore
+        return _check_has_health_data(projects_list, now=now)  # type: ignore
 
     def check_releases_have_health_data(
         self,
@@ -126,6 +134,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
         stat: Optional[OverviewStat] = None,
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         return _get_release_health_data_overview(  # type: ignore
             project_releases=project_releases,
@@ -133,6 +142,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             summary_stats_period=summary_stats_period,
             health_stats_period=health_stats_period,
             stat=stat,
+            now=now,
         )
 
     def get_crash_free_breakdown(
@@ -141,22 +151,25 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         release: ReleaseName,
         start: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[CrashFreeBreakdown]:
         return _get_crash_free_breakdown(  # type: ignore
-            project_id=project_id, release=release, start=start, environments=environments
+            project_id=project_id, release=release, start=start, environments=environments, now=now
         )
 
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
-        return _get_changed_project_release_model_adoptions(project_ids)  # type: ignore
+        return _get_changed_project_release_model_adoptions(project_ids, now=now)  # type: ignore
 
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, str]:
-        return _get_oldest_health_data_for_releases(project_releases)  # type: ignore
+        return _get_oldest_health_data_for_releases(project_releases, now=now)  # type: ignore
 
     def get_project_releases_count(
         self,
@@ -234,7 +247,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         scope: str,
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[str]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
         return _get_project_releases_by_stability(  # type: ignore
-            project_ids, offset, limit, scope, stats_period, environments
+            project_ids, offset, limit, scope, stats_period, environments, now
         )

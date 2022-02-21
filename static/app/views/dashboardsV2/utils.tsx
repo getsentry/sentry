@@ -9,9 +9,12 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
+import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
 import {PageFilters} from 'sentry/types';
-import {getUtcDateString} from 'sentry/utils/dates';
+import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DashboardDetails,
   DisplayType,
@@ -35,12 +38,14 @@ export function eventViewFromWidget(
 
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
   const fields =
-    widgetDisplayType === DisplayType.WORLD_MAP
+    widgetDisplayType === DisplayType.WORLD_MAP &&
+    !query.fields.includes('geo.country_code')
       ? ['geo.country_code', ...query.fields]
       : query.fields;
   const conditions =
-    widgetDisplayType === DisplayType.WORLD_MAP
-      ? `${query.conditions} has:geo.country_code`
+    widgetDisplayType === DisplayType.WORLD_MAP &&
+    !query.conditions.includes('has:geo.country_code')
+      ? `${query.conditions} has:geo.country_code`.trim()
       : query.conditions;
 
   return EventView.fromSavedQuery({
@@ -51,7 +56,7 @@ export function eventViewFromWidget(
     query: conditions,
     orderby: query.orderby,
     projects,
-    range: statsPeriod,
+    range: statsPeriod ?? undefined,
     start: start ? getUtcDateString(start) : undefined,
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,
@@ -86,9 +91,9 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     if (query.title && query.displayType && query.interval && queries.length > 0) {
       const newWidget: Widget = {
         ...(pick(query, ['title', 'displayType', 'interval']) as {
-          title: string;
           displayType: DisplayType;
           interval: string;
+          title: string;
         }),
         widgetType: WidgetType.DISCOVER,
         queries,
@@ -116,4 +121,44 @@ export function miniWidget(displayType: DisplayType): string {
     default:
       return WidgetLine;
   }
+}
+
+export function getWidgetInterval(
+  widget: Widget,
+  datetimeObj: Partial<PageFilters['datetime']>
+): string {
+  // Don't fetch more than 66 bins as we're plotting on a small area.
+  const MAX_BIN_COUNT = 66;
+
+  // Bars charts are daily totals to aligned with discover. It also makes them
+  // usefully different from line/area charts until we expose the interval control, or remove it.
+  let interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  if (!interval) {
+    // Default to 5 minutes
+    interval = '5m';
+  }
+  const desiredPeriod = parsePeriodToHours(interval);
+  const selectedRange = getDiffInMinutes(datetimeObj);
+
+  // selectedRange is in minutes, desiredPeriod is in hours
+  // convert desiredPeriod to minutes
+  if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
+    const highInterval = getInterval(datetimeObj, 'high');
+    // Only return high fidelity interval if desired interval is higher fidelity
+    if (desiredPeriod < parsePeriodToHours(highInterval)) {
+      return highInterval;
+    }
+  }
+  return interval;
+}
+
+export function getFieldsFromEquations(fields: string[]): string[] {
+  // Gather all fields and functions used in equations and prepend them to the provided fields
+  const termsSet: Set<string> = new Set();
+  fields.filter(isEquation).forEach(field => {
+    const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
+    parsed.fields.forEach(({term}) => termsSet.add(term as string));
+    parsed.functions.forEach(({term}) => termsSet.add(term as string));
+  });
+  return Array.from(termsSet);
 }

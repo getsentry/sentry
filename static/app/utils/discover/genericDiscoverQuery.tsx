@@ -13,10 +13,10 @@ import {usePerformanceEventView} from 'sentry/utils/performance/contexts/perform
 import useOrganization from 'sentry/utils/useOrganization';
 
 export type GenericChildrenProps<T> = {
-  isLoading: boolean;
   error: null | string;
-  tableData: T | null;
+  isLoading: boolean;
   pageLinks: null | string;
+  tableData: T | null;
 };
 
 type OptionalContextProps = {
@@ -31,34 +31,34 @@ type BaseDiscoverQueryProps = {
    */
   location: Location;
   /**
-   * Record limit to get.
-   */
-  limit?: number;
-  /**
    * Explicit cursor value if you aren't using `location.query.cursor` because there are
    * multiple paginated results on the page.
    */
   cursor?: string;
+  /**
+   * Record limit to get.
+   */
+  limit?: number;
   /**
    * Include this whenever pagination won't be used. Limit can still be used when this is
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
   /**
-   * A callback to set an error so that the error can be rendered in parent components
-   */
-  setError?: (msg: string | undefined) => void;
-  /**
    * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
    * on the OrganizationEventsV2Endpoint view.
    */
   referrer?: string;
+  /**
+   * A callback to set an error so that the error can be rendered in parent components
+   */
+  setError?: (msg: string | undefined) => void;
 };
 
 export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
 export type DiscoverQueryProps = BaseDiscoverQueryProps & {
-  orgSlug: string;
   eventView: EventView | ImmutableEventView;
+  orgSlug: string;
 };
 
 type InnerRequestProps<P> = DiscoverQueryProps & P;
@@ -74,6 +74,18 @@ type ComponentProps<T, P> = {
    */
   route: string;
   /**
+   * A hook to modify data into the correct output after data has been received
+   */
+  afterFetch?: (data: any, props?: Props<T, P>) => T;
+  /**
+   * A hook before fetch that can be used to do things like clearing the api
+   */
+  beforeFetch?: (api: Client) => void;
+  /**
+   * A hook for parent orchestrators to pass down data based on query results, unlike afterFetch it is not meant for specializations as it will not modify data.
+   */
+  didFetch?: (data: T) => void;
+  /**
    * Allows components to modify the payload before it is set.
    */
   getRequestPayload?: (props: Props<T, P>) => any;
@@ -81,18 +93,6 @@ type ComponentProps<T, P> = {
    * An external hook in addition to the event view check to check if data should be refetched
    */
   shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
-  /**
-   * A hook before fetch that can be used to do things like clearing the api
-   */
-  beforeFetch?: (api: Client) => void;
-  /**
-   * A hook to modify data into the correct output after data has been received
-   */
-  afterFetch?: (data: any, props?: Props<T, P>) => T;
-  /**
-   * A hook for parent orchestrators to pass down data based on query results, unlike afterFetch it is not meant for specializations as it will not modify data.
-   */
-  didFetch?: (data: T) => void;
 };
 
 type Props<T, P> = InnerRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;

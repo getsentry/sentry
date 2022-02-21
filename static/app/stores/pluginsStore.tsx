@@ -4,13 +4,13 @@ import PluginActions from 'sentry/actions/pluginActions';
 import {Plugin} from 'sentry/types';
 
 type PluginStoreInterface = {
-  state: {
-    loading: boolean;
-    plugins: Plugin[];
-    error: Error | null;
-    pageLinks: string | null;
-  };
   plugins: Map<string, Plugin> | null;
+  state: {
+    error: Error | null;
+    loading: boolean;
+    pageLinks: string | null;
+    plugins: Plugin[];
+  };
   updating: Map<string, Plugin>;
 };
 

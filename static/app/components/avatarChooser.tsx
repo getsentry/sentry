@@ -6,6 +6,7 @@ import {Client} from 'sentry/api';
 import Avatar from 'sentry/components/avatar';
 import AvatarCropper from 'sentry/components/avatarCropper';
 import Button from 'sentry/components/button';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,7 +16,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 export type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];
@@ -27,9 +27,9 @@ type AvatarChooserType =
   | 'sentryAppSimple'
   | 'docIntegration';
 type DefaultChoice = {
-  preview?: React.ReactNode;
   allowDefault?: boolean;
   choiceText?: string;
+  preview?: React.ReactNode;
 };
 
 type DefaultProps = {
@@ -37,8 +37,8 @@ type DefaultProps = {
   allowGravatar?: boolean;
   allowLetter?: boolean;
   allowUpload?: boolean;
-  type?: AvatarChooserType;
   defaultChoice?: DefaultChoice;
+  type?: AvatarChooserType;
 };
 
 type Props = {
@@ -46,17 +46,17 @@ type Props = {
   endpoint: string;
   model: Model;
   disabled?: boolean;
-  savedDataUrl?: string;
-  isUser?: boolean;
-  title?: string;
   help?: React.ReactNode;
+  isUser?: boolean;
+  savedDataUrl?: string;
+  title?: string;
 } & DefaultProps;
 
 type State = {
-  model: Model;
   hasError: boolean;
-  savedDataUrl?: string | null;
+  model: Model;
   dataUrl?: string | null;
+  savedDataUrl?: string | null;
 };
 
 class AvatarChooser extends React.Component<Props, State> {

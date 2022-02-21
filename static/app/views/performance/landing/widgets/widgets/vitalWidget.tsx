@@ -35,8 +35,8 @@ import {eventsRequestQueryProps} from '../utils';
 import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
-  list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
+  list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
 export function transformFieldsWithStops(props: {
@@ -224,7 +224,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               <Button
                 onClick={handleViewAllClick}
                 to={target}
-                size="small"
+                size="xsmall"
                 data-test-id="view-all-button"
               >
                 {t('View All')}

@@ -3,8 +3,11 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -13,6 +16,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -116,8 +120,10 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const unresolvedQuery = omit(query, 'status');
     const allIssuesQuery = {...query, status: ''};
 
+    const hasNewPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
-      <PageFiltersContainer>
+      <PageFiltersContainer hideGlobalHeader={hasNewPageFilters}>
         <PageContent>
           <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">
@@ -136,6 +142,16 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                   </Button>
                 </ButtonBar>
               </Header>
+              <Feature
+                organization={organization}
+                features={['organizations:selection-filters-v2']}
+              >
+                <PageFilters>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter />
+                </PageFilters>
+              </Feature>
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
             </div>
@@ -153,6 +169,17 @@ const Header = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(2)};
+`;
+
+const PageFilters = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content;
+  margin-bottom: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const StyledEventUserFeedback = styled(EventUserFeedback)`

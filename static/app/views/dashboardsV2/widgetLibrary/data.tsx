@@ -17,7 +17,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     queries: [
       {
         name: '',
-        conditions: '!event.type:error',
+        conditions: 'event.type:transaction',
         fields: [
           'p50(transaction.duration)',
           'p75(transaction.duration)',
@@ -37,7 +37,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     queries: [
       {
         name: '',
-        conditions: '!event.type:error',
+        conditions: 'event.type:transaction',
         fields: ['transaction', 'count()'],
         orderby: '-count',
       },
@@ -77,7 +77,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
   {
     id: undefined,
-    title: t('Slow vs Fast Transactions'),
+    title: t('Slow vs. Fast Transactions'),
     description: t('Percentage breakdown of transaction durations over and under 300ms.'),
     displayType: DisplayType.BAR,
     widgetType: WidgetType.DISCOVER,
@@ -85,7 +85,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     queries: [
       {
         name: '',
-        conditions: '!event.type:error',
+        conditions: 'event.type:transaction',
         fields: [
           'equation|(count_if(transaction.duration,greater,300) / count()) * 100',
           'equation|(count_if(transaction.duration,lessOrEquals,300) / count()) * 100',
@@ -96,16 +96,16 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
   {
     id: undefined,
-    title: t('Latest Unresolved Issues'),
-    description: t('Most recently seen unresolved issues.'),
+    title: t('Issues For Review'),
+    description: t('Most recently seen unresolved issues for review.'),
     displayType: DisplayType.TABLE,
     widgetType: WidgetType.ISSUE,
     interval: '5m',
     queries: [
       {
         name: '',
-        conditions: 'is:unresolved',
-        fields: ['issue', 'assignee', 'title'],
+        conditions: 'is:unresolved is:for_review',
+        fields: ['issue', 'assignee', 'events', 'title'],
         orderby: 'date',
       },
     ],

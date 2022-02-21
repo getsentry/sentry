@@ -11,11 +11,11 @@ import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   title: React.ReactNode;
-  score?: React.ReactNode;
+  className?: string;
   help?: React.ReactNode;
+  score?: React.ReactNode;
   trend?: React.ReactNode;
   trendStatus?: 'good' | 'bad';
-  className?: string;
 };
 
 function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {

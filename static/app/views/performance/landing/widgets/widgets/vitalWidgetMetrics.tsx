@@ -40,8 +40,8 @@ const settingToVital: Record<string, WebVital> = {
 };
 
 type DataType = {
-  list: WidgetDataResult & ReturnType<typeof transformMetricsToList>;
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToVitalSeries>;
+  list: WidgetDataResult & ReturnType<typeof transformMetricsToList>;
 };
 
 export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
@@ -176,7 +176,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
               <Button
                 onClick={handleViewAllClick}
                 to={target}
-                size="small"
+                size="xsmall"
                 data-test-id="view-all-button"
               >
                 {t('View All')}

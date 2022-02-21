@@ -2,16 +2,19 @@ import {
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
-  updateParams,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
+import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
 describe('PageFilters ActionCreators', function () {
   const organization = TestStubs.Organization();
+  const pageFiltersOrganization = TestStubs.Organization({
+    features: ['selection-filters-v2'],
+  });
   beforeEach(function () {
     localStorage.getItem.mockClear();
     jest.spyOn(PageFiltersActions, 'updateProjects');
@@ -30,6 +33,7 @@ describe('PageFilters ActionCreators', function () {
       initializeUrlState({
         organization,
         queryParams: {},
+        pathname: '/mock-pathname/',
         router,
       });
 
@@ -40,7 +44,8 @@ describe('PageFilters ActionCreators', function () {
         expect.objectContaining({
           environments: [],
           projects: [1],
-        })
+        }),
+        new Set()
       );
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -56,6 +61,7 @@ describe('PageFilters ActionCreators', function () {
       initializeUrlState({
         organization,
         queryParams: {},
+        pathname: '/mock-pathname/',
         skipLoadLastUsed: true,
         router,
       });
@@ -69,6 +75,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
+        pathname: '/mock-pathname/',
         router,
       });
       expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
@@ -79,7 +86,8 @@ describe('PageFilters ActionCreators', function () {
             period: '14d',
             utc: null,
           },
-        })
+        }),
+        new Set()
       );
     });
 
@@ -89,6 +97,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
+        pathname: '/mock-pathname/',
         defaultSelection: {
           datetime: {
             period: '3h',
@@ -104,7 +113,8 @@ describe('PageFilters ActionCreators', function () {
             period: '3h',
             utc: null,
           },
-        })
+        }),
+        new Set()
       );
     });
 
@@ -115,6 +125,7 @@ describe('PageFilters ActionCreators', function () {
           statsPeriod: '1h',
           project: '1',
         },
+        pathname: '/mock-pathname/',
         defaultSelection: {
           datetime: {
             period: '24h',
@@ -142,6 +153,7 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
           project: '1',
         },
+        pathname: '/mock-pathname/',
         defaultSelection: {
           datetime: {
             period: '24h',
@@ -168,20 +180,23 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
+        pathname: 'mock-pathname',
         router,
       });
 
-      expect(localStorage.getItem).not.toHaveBeenCalled();
-      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith({
-        datetime: {
-          start: null,
-          end: null,
-          period: '14d',
-          utc: null,
+      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
+        {
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          projects: [1],
+          environments: [],
         },
-        projects: [1],
-        environments: [],
-      });
+        new Set()
+      );
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {
@@ -190,6 +205,73 @@ describe('PageFilters ActionCreators', function () {
           },
         })
       );
+    });
+
+    it('does not add non-pinned filters to query for pages with new page filters', function () {
+      // Mock storage to have a saved value
+      const pageFilterStorageMock = jest
+        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
+        .mockReturnValueOnce({
+          state: {
+            project: ['1'],
+            environment: [],
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          pinnedFilters: new Set(),
+        });
+
+      // Initialize state with a page that shouldn't restore from local storage
+      initializeUrlState({
+        organization: pageFiltersOrganization,
+        queryParams: {},
+        pathname: '/organizations/org-slug/issues/',
+        router,
+      });
+
+      // Confirm that query params are not restored from local storage
+      expect(router.replace).not.toHaveBeenCalled();
+
+      pageFilterStorageMock.mockRestore();
+    });
+
+    it('uses pinned filters for pages with new page filters', function () {
+      // Mock storage to have a saved/pinned value
+      const pageFilterStorageMock = jest
+        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
+        .mockReturnValueOnce({
+          state: {
+            project: ['1'],
+            environment: ['prod'],
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          pinnedFilters: new Set(['environments']),
+        });
+
+      // Initialize state with a page that uses pinned filters
+      initializeUrlState({
+        organization: pageFiltersOrganization,
+        queryParams: {},
+        pathname: '/organizations/org-slug/issues/',
+        router,
+      });
+
+      // Confirm that only environment is restored from local storage
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            environment: ['prod'],
+            project: [],
+          },
+        })
+      );
+
+      pageFilterStorageMock.mockRestore();
     });
   });
 
@@ -202,6 +284,79 @@ describe('PageFilters ActionCreators', function () {
     it('does not update invalid projects', function () {
       updateProjects(['1']);
       expect(PageFiltersActions.updateProjects).not.toHaveBeenCalled();
+    });
+
+    it('updates history when queries are different', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '2'},
+        },
+      });
+      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
+      // however react-router will treat it as a string if there is only one param
+      updateProjects([1], router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {project: ['1']},
+      });
+    });
+    it('does not update history when queries are the same', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '1'},
+        },
+      });
+      // this can be passed w/ `project` as an array (e.g. multiple projects
+      // being selected) however react-router will treat it as a string if
+      // there is only one param
+      updateProjects([1], router);
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it('updates history when queries are different with replace', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '2'},
+        },
+      });
+      updateProjects([1], router, {replace: true});
+
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {project: ['1']},
+      });
+    });
+
+    it('does not update history when queries are the same with replace', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '1'},
+        },
+      });
+      updateProjects([1], router, {replace: true});
+
+      expect(router.replace).not.toHaveBeenCalled();
+    });
+
+    it('does not override an absolute date selection', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '1', start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
+        },
+      });
+      updateProjects([2], router, {replace: true});
+
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {project: ['2'], start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
+      });
     });
   });
 
@@ -249,6 +404,29 @@ describe('PageFilters ActionCreators', function () {
         query: {},
       });
     });
+
+    it('does not override an absolute date selection', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {
+            environment: 'test',
+            start: '2020-03-22T00:53:38',
+            end: '2020-04-21T00:53:38',
+          },
+        },
+      });
+      updateEnvironments(['new-env'], router, {replace: true});
+
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          environment: ['new-env'],
+          start: '2020-03-22T00:53:38',
+          end: '2020-04-21T00:53:38',
+        },
+      });
+    });
   });
 
   describe('updateDateTime()', function () {
@@ -259,7 +437,7 @@ describe('PageFilters ActionCreators', function () {
           query: {},
         },
       });
-      updateDateTime({statsPeriod: '24h'}, router);
+      updateDateTime({period: '24h'}, router);
 
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/test/',
@@ -274,23 +452,6 @@ describe('PageFilters ActionCreators', function () {
         location: {
           pathname: '/test/',
           query: {statsPeriod: '14d'},
-        },
-      });
-      updateDateTime({statsPeriod: '24h'}, router);
-
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {
-          statsPeriod: '24h',
-        },
-      });
-    });
-
-    it('updates `statsPeriod` when given a new  `period`', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {},
         },
       });
       updateDateTime({period: '24h'}, router);
@@ -319,70 +480,6 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
         },
       });
-    });
-  });
-
-  describe('updateParams()', function () {
-    it('updates history when queries are different', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {project: '2'},
-        },
-      });
-      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
-      // however react-router will treat it as a string if there is only one param
-      updateParams({project: [1]}, router);
-
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {project: ['1']},
-      });
-    });
-    it('does not update history when queries are the same', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {project: '1'},
-        },
-      });
-      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
-      // however react-router will treat it as a string if there is only one param
-      updateParams({project: [1]}, router);
-
-      expect(router.push).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('updateParams(..., {replace: true})', function () {
-    it('updates history when queries are different', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {project: '2'},
-        },
-      });
-      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
-      // however react-router will treat it as a string if there is only one param
-      updateParams({project: [1]}, router, {replace: true});
-
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {project: ['1']},
-      });
-    });
-    it('does not update history when queries are the same', function () {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {project: '1'},
-        },
-      });
-      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
-      // however react-router will treat it as a string if there is only one param
-      updateParams({project: [1]}, router, {replace: true});
-
-      expect(router.replace).not.toHaveBeenCalled();
     });
   });
 });

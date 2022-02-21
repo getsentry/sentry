@@ -25,7 +25,16 @@ const ModalHeader = styled('header')`
   }
 `;
 
-const CloseButton = styled(Button)`
+const CloseButton = styled(
+  (p: Omit<React.ComponentProps<typeof Button>, 'aria-label'>) => (
+    <Button
+      size="zero"
+      icon={<IconClose size="10px" />}
+      aria-label={t('Close Modal')}
+      {...p}
+    />
+  )
+)`
   position: absolute;
   top: 0;
   right: 0;
@@ -38,14 +47,8 @@ const CloseButton = styled(Button)`
   width: 24px;
 `;
 
-CloseButton.defaultProps = {
-  ['aria-label']: t('Close Modal'),
-  icon: <IconClose size="10px" />,
-  size: 'zero',
-};
-
 const ModalBody = styled('section')`
-  font-size: 15px;
+  font-size: ${p => p.theme.fontSizeMedium};
 
   p:last-child {
     margin-bottom: 0;

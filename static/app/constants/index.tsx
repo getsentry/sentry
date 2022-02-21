@@ -4,7 +4,7 @@
  */
 
 import {t} from 'sentry/locale';
-import {Scope} from 'sentry/types';
+import {DataCategory, Scope} from 'sentry/types';
 
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
@@ -83,15 +83,15 @@ export type PermissionChoice = {
   scopes: Scope[];
 };
 type PermissionObj = {
-  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
-  help: string;
-  label?: string;
   choices: {
+    admin: PermissionChoice;
     'no-access': PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
-    admin: PermissionChoice;
   };
+  help: string;
+  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+  label?: string;
 };
 
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
@@ -207,6 +207,20 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
   '90d': t('Last 90 days'),
+};
+
+export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
+  '1h': t('1H'),
+  '24h': t('24H'),
+  '7d': t('7D'),
+  '14d': t('14D'),
+  '30d': t('30D'),
+};
+
+export const DATA_CATEGORY_NAMES = {
+  [DataCategory.ERRORS]: t('Errors'),
+  [DataCategory.TRANSACTIONS]: t('Transactions'),
+  [DataCategory.ATTACHMENTS]: t('Attachments'),
 };
 
 // Special Search characters

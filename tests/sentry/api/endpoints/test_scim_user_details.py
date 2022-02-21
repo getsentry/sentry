@@ -155,14 +155,14 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             url,
             {
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-                "Operations": [{}] * 101,
+                "Operations": [{"op": "replace", "path": "active", "value": False}] * 101,
             },
         )
 
         assert response.status_code == 400, response.data
         assert response.data == {
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "detail": "Too many patch ops sent, limit is 100.",
+            "schemas": "urn:ietf:params:scim:api:messages:2.0:Error",
+            "detail": '{"Operations":["Ensure this field has no more than 100 elements."]}',
         }
 
     # Disabling below test for now.

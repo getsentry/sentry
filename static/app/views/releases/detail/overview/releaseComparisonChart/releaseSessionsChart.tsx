@@ -41,20 +41,20 @@ import {
 } from '../../utils';
 
 type Props = {
-  theme: Theme;
-  release: ReleaseWithHealth;
-  project: ReleaseProject;
-  releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
   chartType: ReleaseComparisonChartType;
-  platform: PlatformKey;
-  value: React.ReactNode;
   diff: React.ReactNode;
   loading: boolean;
+  platform: PlatformKey;
+  project: ReleaseProject;
+  release: ReleaseWithHealth;
+  releaseSessions: SessionApiResponse | null;
   reloading: boolean;
-  period?: string;
-  start?: string;
+  theme: Theme;
+  value: React.ReactNode;
   end?: string;
+  period?: string | null;
+  start?: string;
   utc?: boolean;
 } & WithRouterProps;
 

@@ -58,11 +58,11 @@ export type MetaType = Record<string, ColumnType>;
 export type EventData = Record<string, any>;
 
 export type LocationQuery = {
-  start?: string | string[];
-  end?: string | string[];
-  utc?: string | string[];
-  statsPeriod?: string | string[];
-  cursor?: string | string[];
+  cursor?: string | string[] | null;
+  end?: string | string[] | null;
+  start?: string | string[] | null;
+  statsPeriod?: string | string[] | null;
+  utc?: string | string[] | null;
 };
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
@@ -181,7 +181,7 @@ const decodeSorts = (location: Location): Array<Sort> => {
   return fromSorts(sorts);
 };
 
-const encodeSort = (sort: Sort): string => {
+export const encodeSort = (sort: Sort): string => {
   switch (sort.kind) {
     case 'desc': {
       return `-${sort.field}`;
@@ -278,24 +278,24 @@ class EventView {
   additionalConditions: MutableSearch; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
+    additionalConditions: MutableSearch;
+    createdBy: User | undefined;
+    display: string | undefined;
+    end: string | undefined;
+    environment: Readonly<string[]>;
+    fields: Readonly<Field[]>;
     id: string | undefined;
     name: string | undefined;
-    fields: Readonly<Field[]>;
-    sorts: Readonly<Sort[]>;
-    query: string;
-    team: Readonly<('myteams' | number)[]>;
     project: Readonly<number[]>;
+    query: string;
+    sorts: Readonly<Sort[]>;
     start: string | undefined;
-    end: string | undefined;
     statsPeriod: string | undefined;
-    environment: Readonly<string[]>;
-    yAxis: string | undefined;
-    display: string | undefined;
+    team: Readonly<('myteams' | number)[]>;
     topEvents: string | undefined;
-    interval?: string;
+    yAxis: string | undefined;
     expired?: boolean;
-    createdBy: User | undefined;
-    additionalConditions: MutableSearch;
+    interval?: string;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -580,10 +580,10 @@ class EventView {
       datetime: {
         start: this.start ?? null,
         end: this.end ?? null,
-        period: this.statsPeriod ?? '',
-        // TODO(tony) Add support for the Use UTC option from
-        // the global headers, currently, that option is not
-        // supported and all times are assumed to be UTC
+        period: this.statsPeriod ?? null,
+        // TODO(tony) Add support for the Use UTC option from the global
+        // headers, currently, that option is not supported and all times are
+        // assumed to be UTC
         utc: true,
       },
     };
@@ -1157,8 +1157,8 @@ class EventView {
   getPerformanceTransactionEventsViewUrlTarget(
     slug: string,
     options: {
-      showTransactions?: EventsDisplayFilterName;
       breakdown?: SpanOperationBreakdownFilter;
+      showTransactions?: EventsDisplayFilterName;
       webVital?: WebVital;
     }
   ): {pathname: string; query: Query} {

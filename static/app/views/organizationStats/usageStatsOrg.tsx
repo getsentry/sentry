@@ -12,7 +12,7 @@ import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'sentry/types';
+import {DataCategory, IntervalPeriod, Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {
@@ -30,16 +30,16 @@ import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
 type Props = {
-  organization: Organization;
   dataCategory: DataCategory;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
-  chartTransform?: string;
   handleChangeState: (state: {
     dataCategory?: DataCategory;
-    pagePeriod?: RelativePeriod;
+    pagePeriod?: string | null;
     transform?: ChartDataTransform;
   }) => void;
+  organization: Organization;
+  chartTransform?: string;
 } & AsyncComponent['props'];
 
 type State = {
@@ -93,22 +93,22 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   get chartData(): {
-    chartStats: ChartStats;
     cardStats: {
-      total?: string;
       accepted?: string;
       dropped?: string;
       filtered?: string;
+      total?: string;
     };
-    dataError?: Error;
+    chartDateEnd: string;
+    chartDateEndDisplay: string;
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
-    chartDateEnd: string;
-    chartDateUtc: boolean;
     chartDateStartDisplay: string;
-    chartDateEndDisplay: string;
     chartDateTimezoneDisplay: string;
+    chartDateUtc: boolean;
+    chartStats: ChartStats;
     chartTransform: ChartDataTransform;
+    dataError?: Error;
   } {
     const {orgStats} = this.state;
 
@@ -132,13 +132,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   get chartDateRange(): {
+    chartDateEnd: string;
+    chartDateEndDisplay: string;
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
-    chartDateEnd: string;
-    chartDateUtc: boolean;
     chartDateStartDisplay: string;
-    chartDateEndDisplay: string;
     chartDateTimezoneDisplay: string;
+    chartDateUtc: boolean;
   } {
     const {orgStats} = this.state;
     const {dataDatetime} = this.props;
@@ -195,13 +195,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   mapSeriesToChart(orgStats?: UsageSeries): {
-    chartStats: ChartStats;
     cardStats: {
-      total?: string;
       accepted?: string;
       dropped?: string;
       filtered?: string;
+      total?: string;
     };
+    chartStats: ChartStats;
     dataError?: Error;
   } {
     const cardStats = {

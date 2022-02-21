@@ -9,12 +9,14 @@ import {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
-export function initializeData(settings?: {
-  query?: {};
+export interface initializeDataSettings {
   features?: string[];
-  projects?: Project[];
   project?: Project;
-}) {
+  projects?: Project[];
+  query?: {};
+}
+
+export function initializeData(settings?: initializeDataSettings) {
   const _defaultProject = TestStubs.Project();
   const _settings = {
     query: {},
@@ -99,16 +101,16 @@ type SpanOpt = {
 };
 
 type ExampleOpt = {
-  id: string;
   description: string;
+  id: string;
   spans: SpanOpt[];
 };
 
 type SuspectOpt = {
-  op: string;
-  group: string;
   description: string;
   examples: ExampleOpt[];
+  group: string;
+  op: string;
 };
 
 function makeSpan(opt: SpanOpt): ExampleSpan {
@@ -133,7 +135,7 @@ function makeExample(opt: ExampleOpt): ExampleTransaction {
   };
 }
 
-function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
+export function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
   const {op, group, description, examples} = opt;
   return {
     op,

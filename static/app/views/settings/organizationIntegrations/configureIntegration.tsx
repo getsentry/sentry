@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import NavTabs from 'sentry/components/navTabs';
@@ -23,14 +25,13 @@ import IntegrationItem from 'sentry/views/organizationIntegrations/integrationIt
 import IntegrationMainSettings from 'sentry/views/organizationIntegrations/integrationMainSettings';
 import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationRepos';
 import IntegrationServerlessFunctions from 'sentry/views/organizationIntegrations/integrationServerlessFunctions';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RouteParams = {
-  orgId: string;
   integrationId: string;
+  orgId: string;
+  providerKey: string;
 };
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -54,7 +55,18 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
-    const {location} = this.props;
+    const {
+      location,
+      router,
+      organization,
+      params: {orgId, providerKey},
+    } = this.props;
+    // This page should not be accessible by members
+    if (!organization.access.includes('org:integrations')) {
+      router.push({
+        pathname: `/settings/${orgId}/integrations/${providerKey}/`,
+      });
+    }
     const value =
       (['codeMappings', 'userMappings', 'teamMappings'] as const).find(
         tab => tab === location.query.tab

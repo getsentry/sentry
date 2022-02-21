@@ -18,8 +18,8 @@ const defaultProps = {
 type InputProps = React.ComponentProps<typeof NoteInput>;
 
 type Props = {
-  storageKey: string;
   itemKey: string;
+  storageKey: string;
   text?: string;
 } & InputProps &
   typeof defaultProps;

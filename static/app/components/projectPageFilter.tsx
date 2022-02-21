@@ -1,6 +1,7 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
@@ -27,10 +28,23 @@ type Props = {
   footerMessage?: React.ReactNode;
 
   /**
+   * If a forced project is passed, selection is disabled
+   */
+  forceProject?: MinimalProject | null;
+
+  /**
    * Subject that will be used in a tooltip that is shown on a lock icon hover
    * E.g. This 'issue' is unique to a project
    */
   lockedMessageSubject?: string;
+
+  /**
+   * A project will be forced from parent component (selection is disabled, and if user
+   * does not have multi-project support enabled, it will not try to auto select a project).
+   *
+   * Project will be specified in the prop `forceProject` (since its data is async)
+   */
+  shouldForceProject?: boolean;
 
   /**
    * If true, there will be a back to issues stream icon link
@@ -47,19 +61,6 @@ type Props = {
    * Slugs of projects to restrict the project selector to
    */
   specificProjectSlugs?: string[];
-
-  /**
-   * A project will be forced from parent component (selection is disabled, and if user
-   * does not have multi-project support enabled, it will not try to auto select a project).
-   *
-   * Project will be specified in the prop `forceProject` (since its data is async)
-   */
-  shouldForceProject?: boolean;
-
-  /**
-   * If a forced project is passed, selection is disabled
-   */
-  forceProject?: MinimalProject | null;
 };
 
 export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}: Props) {
@@ -68,20 +69,25 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   );
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady} = useLegacyStore(PageFiltersStore);
+  const {selection, pinnedFilters, isReady} = useLegacyStore(PageFiltersStore);
 
-  const handleChangeProjects = (newProjects: number[] | null) => {
+  useEffect(() => {
+    if (!isEqual(selection.projects, currentSelectedProjects)) {
+      setCurrentSelectedProjects(selection.projects);
+    }
+  }, [selection.projects]);
+
+  const handleChangeProjects = (newProjects: number[]) => {
     setCurrentSelectedProjects(newProjects);
   };
 
-  const handleUpdateProjects = () => {
-    // Clear environments when switching projects
-    updateProjects(currentSelectedProjects || [], router, {
+  const handleUpdateProjects = (newProjects?: number[]) => {
+    // Use newProjects if provided otherwise fallback to current selection
+    updateProjects(newProjects ?? (currentSelectedProjects || []), router, {
       save: true,
       resetParams: [],
-      environments: [],
+      environments: [], // Clear environments when switching projects
     });
-    setCurrentSelectedProjects(null);
   };
 
   const specifiedProjects = specificProjectSlugs
@@ -114,7 +120,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       <StyledDropdownButton isOpen={isOpen} {...getActorProps()}>
         <DropdownTitle>
           {icon}
-          {title}
+          <TitleContainer>{title}</TitleContainer>
         </DropdownTitle>
       </StyledDropdownButton>
     );
@@ -140,6 +146,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       onUpdate={handleUpdateProjects}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
+      pinned={pinnedFilters.has('projects')}
       {...otherProps}
     />
   );
@@ -148,14 +155,22 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
 const StyledDropdownButton = styled(DropdownButton)`
   width: 100%;
   height: 40px;
+  text-overflow: ellipsis;
+`;
+
+const TitleContainer = styled('div')`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1 1 0%;
+  margin-left: ${space(1)};
 `;
 
 const DropdownTitle = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
+  display: flex;
+  overflow: hidden;
   align-items: center;
-  white-space: nowrap;
+  flex: 1;
 `;
 
 export default withRouter(ProjectPageFilter);

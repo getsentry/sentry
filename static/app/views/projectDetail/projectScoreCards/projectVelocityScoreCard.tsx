@@ -16,19 +16,19 @@ import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButt
 
 const API_LIMIT = 1000;
 
-type Release = {version: string; date: string};
+type Release = {date: string; version: string};
 
 type Props = AsyncComponent['props'] & {
+  isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
-  isProjectStabilized: boolean;
   query?: string;
 };
 
 type State = AsyncComponent['state'] & {
   currentReleases: Release[] | null;
-  previousReleases: Release[] | null;
   noReleaseEver: boolean;
+  previousReleases: Release[] | null;
 };
 
 class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
@@ -163,11 +163,12 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized} = this.props;
+    const {selection, isProjectStabilized, query} = this.props;
 
     if (
       prevProps.selection !== selection ||
-      prevProps.isProjectStabilized !== isProjectStabilized
+      prevProps.isProjectStabilized !== isProjectStabilized ||
+      prevProps.query !== query
     ) {
       this.remountComponent();
     }

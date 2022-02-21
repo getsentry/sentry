@@ -43,26 +43,12 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
 import {
+  DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
   IssueDisplayOptions,
   Query,
 } from 'sentry/views/issueList/utils';
-
-const DiscoveryExclusionFields: string[] = [
-  'query',
-  'status',
-  'bookmarked_by',
-  'assigned',
-  'assigned_to',
-  'unassigned',
-  'subscribed_by',
-  'active_at',
-  'first_release',
-  'first_seen',
-  'is',
-  '__text',
-];
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
@@ -79,24 +65,24 @@ const defaultProps = {
 
 type Props = {
   id: string;
-  selection: PageFilters;
   organization: Organization;
-  displayReprocessingLayout?: boolean;
-  query?: string;
-  hasGuideAnchor?: boolean;
-  memberList?: User[];
-  showInboxTime?: boolean;
-  index?: number;
+  selection: PageFilters;
   customStatsPeriod?: TimePeriodType;
   display?: IssueDisplayOptions;
+  displayReprocessingLayout?: boolean;
+  hasGuideAnchor?: boolean;
+  index?: number;
+  memberList?: User[];
+  query?: string;
   // TODO(ts): higher order functions break defaultprops export types
   queryFilterDescription?: string;
+  showInboxTime?: boolean;
 } & Partial<typeof defaultProps>;
 
 type State = {
+  actionTaken: boolean;
   data: Group;
   reviewed: boolean;
-  actionTaken: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -249,7 +235,7 @@ class StreamGroup extends React.Component<Props, State> {
     if (isFiltered && typeof query === 'string') {
       const queryObj = queryToObj(query);
       for (const queryTag in queryObj) {
-        if (!DiscoveryExclusionFields.includes(queryTag)) {
+        if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
           const queryVal = queryObj[queryTag].includes(' ')
             ? `"${queryObj[queryTag]}"`
             : queryObj[queryTag];
@@ -434,6 +420,7 @@ class StreamGroup extends React.Component<Props, State> {
                 statsPeriod={statsPeriod!}
                 data={data}
                 showSecondaryPoints={showSecondaryPoints}
+                showMarkLine
               />
             )}
           </ChartWrapper>
@@ -606,9 +593,9 @@ export default withPageFilters(withOrganization(StreamGroup));
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
+  actionTaken: boolean;
   reviewed: boolean;
   unresolved: boolean;
-  actionTaken: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
@@ -764,7 +751,7 @@ const MenuItemText = styled('div')`
 `;
 
 const ChartWrapper = styled('div')`
-  width: 160px;
+  width: 200px;
   margin: 0 ${space(2)};
   align-self: center;
 `;

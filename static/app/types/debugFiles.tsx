@@ -32,7 +32,7 @@ export type DebugFile = {
   size: number;
   symbolType: string;
   uuid: string;
-  data?: {type: DebugFileType; features: DebugFileFeature[]};
+  data?: {features: DebugFileFeature[]; type: DebugFileType};
 };
 
 // Custom Repository
@@ -56,11 +56,7 @@ export type AppStoreConnectCredentialsStatus =
 
 export type AppStoreConnectStatusData = {
   credentials: AppStoreConnectCredentialsStatus;
-  /**
-   * Indicates the number of downloads waiting to be processed and completed,
-   * or the number of downloads waiting for valid credentials to be completed if applicable.
-   */
-  pendingDownloads: number;
+  lastCheckedBuilds: string | null;
   /**
    * The build number of the latest build recognized by sentry. This does not
    * imply the dSYMs for this build have been fetched. The contents of this
@@ -73,53 +69,57 @@ export type AppStoreConnectStatusData = {
    * fetched. This will be null if no builds can be found.
    */
   latestBuildVersion: string | null;
-  lastCheckedBuilds: string | null;
+  /**
+   * Indicates the number of downloads waiting to be processed and completed,
+   * or the number of downloads waiting for valid credentials to be completed if applicable.
+   */
+  pendingDownloads: number;
   updateAlertMessage?: string;
 };
 
 export type CustomRepoAppStoreConnect = {
-  type: CustomRepoType.APP_STORE_CONNECT;
   appId: string;
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
+  appconnectPrivateKey: Secret;
   bundleId: string;
   id: string;
   name: string;
-  appconnectPrivateKey: Secret;
+  type: CustomRepoType.APP_STORE_CONNECT;
   details?: AppStoreConnectStatusData;
 };
 
 export type CustomRepoHttp = {
-  type: CustomRepoType.HTTP;
   id: string;
   layout: {casing: string; type: string};
   name: string;
+  password: Secret;
+  type: CustomRepoType.HTTP;
   url: string;
   username: string;
-  password: Secret;
 };
 
 type CustomRepoS3 = {
-  type: CustomRepoType.S3;
+  access_key: string;
   bucket: string;
   id: string;
-  layout: {type: string; casing: string};
+  layout: {casing: string; type: string};
   name: string;
   region: string;
-  access_key: string;
   secret_key: Secret;
+  type: CustomRepoType.S3;
 };
 
 type CustomRepoGCS = {
-  type: CustomRepoType.GCS;
   bucket: string;
   client_email: string;
   id: string;
-  layout: {type: string; casing: string};
+  layout: {casing: string; type: string};
   name: string;
   prefix: string;
   private_key: Secret;
+  type: CustomRepoType.GCS;
 };
 
 export type CustomRepo =

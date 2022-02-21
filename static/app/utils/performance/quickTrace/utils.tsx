@@ -105,29 +105,29 @@ function simplifyEvent(event: TraceFull): QuickTraceEvent {
 
 type ParsedQuickTrace = {
   /**
-   * `null` represents the lack of a root. It may still have a parent
-   */
-  root: QuickTraceEvent | null;
-  /**
    * `[]` represents the lack of ancestors in a full trace navigator
    * `null` represents the uncertainty of ancestors in a lite trace navigator
    */
   ancestors: QuickTraceEvent[] | null;
   /**
-   * `null` represents either the lack of a direct parent or the uncertainty
-   * of what the parent is
-   */
-  parent: QuickTraceEvent | null;
-  current: QuickTraceEvent;
-  /**
    * `[]` represents the lack of children in a full/lite trace navigator
    */
   children: QuickTraceEvent[];
+  current: QuickTraceEvent;
   /**
    * `[]` represents the lack of descendants in a full trace navigator
    * `null` represents the uncertainty of descendants in a lite trace navigator
    */
   descendants: QuickTraceEvent[] | null;
+  /**
+   * `null` represents either the lack of a direct parent or the uncertainty
+   * of what the parent is
+   */
+  parent: QuickTraceEvent | null;
+  /**
+   * `null` represents the lack of a root. It may still have a parent
+   */
+  root: QuickTraceEvent | null;
 };
 
 export function parseQuickTrace(
@@ -238,9 +238,9 @@ export function makeEventView({
   end,
   statsPeriod,
 }: {
-  start?: string;
   end?: string;
-  statsPeriod?: string;
+  start?: string;
+  statsPeriod?: string | null;
 }) {
   return EventView.fromSavedQuery({
     id: undefined,
@@ -254,11 +254,11 @@ export function makeEventView({
     environment: [],
     start,
     end,
-    range: statsPeriod,
+    range: statsPeriod ?? undefined,
   });
 }
 
-export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: string} {
+export function getTraceTimeRangeFromEvent(event: Event): {end: string; start: string} {
   const start = isTransaction(event)
     ? event.startTimestamp
     : moment(event.dateReceived ? event.dateReceived : event.dateCreated).valueOf() /

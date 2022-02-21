@@ -14,15 +14,15 @@ import space from 'sentry/styles/space';
 import ExternalLink from '../links/externalLink';
 
 type Error = {
-  type: string;
   message: React.ReactNode;
+  type: string;
   data?: {
-    name?: string;
-    message?: string;
-    image_path?: string;
     image_name?: string;
-    server_time?: string;
+    image_path?: string;
+    message?: string;
+    name?: string;
     sdk_time?: string;
+    server_time?: string;
     url?: string;
   } & Record<string, any>;
 };
@@ -148,7 +148,7 @@ class ErrorItem extends React.Component<Props, State> {
             {this.renderTroubleshootingLink(error)}
           </div>
           {!!cleanedData.length && (
-            <ToggleButton onClick={this.handleToggle} priority="link">
+            <ToggleButton onClick={this.handleToggle} priority="link" size="zero">
               {isOpen ? t('Collapse') : t('Expand')}
             </ToggleButton>
           )}

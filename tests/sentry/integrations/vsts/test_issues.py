@@ -5,7 +5,7 @@ import responses
 from django.test import RequestFactory
 from exam import fixture
 
-from sentry.integrations.issues import ResolveSyncAction
+from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import (
     ExternalIssue,

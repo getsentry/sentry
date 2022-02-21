@@ -14,10 +14,10 @@ import EventsPageContent from 'sentry/views/performance/transactionSummary/trans
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 type Data = {
-  features: string[];
+  features?: string[];
 };
 
-function initializeData({features: additionalFeatures = []}: Data) {
+function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = TestStubs.Organization({
     features,
@@ -134,7 +134,7 @@ describe('Performance Transaction Events Content', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
-    initialData = initializeData({features: ['performance-events-page']});
+    initialData = initializeData();
     eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,

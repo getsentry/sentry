@@ -4,61 +4,62 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
+import {Field, FieldValue} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
-import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormModel from 'sentry/views/settings/components/forms/model';
-import {Field, FieldValue} from 'sentry/views/settings/components/forms/type';
 
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
 
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   type: 'select' | 'textarea' | 'text';
-  default?: 'issue.title' | 'issue.description';
-  uri?: string;
-  depends_on?: string[];
-  choices?: Array<[any, string]>;
   async?: boolean;
+  choices?: Array<[any, string]>;
+  default?: 'issue.title' | 'issue.description';
+  depends_on?: string[];
+  uri?: string;
 };
 
 export type SchemaFormConfig = {
+  description: string | null;
   uri: string;
-  required_fields?: FieldFromSchema[];
   optional_fields?: FieldFromSchema[];
+  required_fields?: FieldFromSchema[];
 };
 
 // only need required_fields and optional_fields
-type State = Omit<SchemaFormConfig, 'uri'> & {
+type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
 };
 
 type Props = {
+  action: 'create' | 'link';
   api: Client;
-  sentryAppInstallationUuid: string;
   appName: string;
   config: SchemaFormConfig;
-  action: 'create' | 'link';
   element: 'issue-link' | 'alert-rule-action';
+  onSubmitSuccess: Function;
+  sentryAppInstallationUuid: string;
   /**
-   * Addtional form data to submit with the request
+   * Additional form data to submit with the request
    */
   extraFields?: {[key: string]: any};
   /**
-   * Addtional body parameters to submit with the request
+   * Additional body parameters to submit with the request
    */
   extraRequestBody?: {[key: string]: any};
-  /**
-   * Object containing reset values for fields if previously entered, in case this form is unmounted
-   */
-  resetValues?: {[key: string]: any};
   /**
    * Function to provide fields with pre-written data if a default is specified
    */
   getFieldDefault?: (field: FieldFromSchema) => string;
-  onSubmitSuccess: Function;
+  /**
+   * Object containing reset values for fields if previously entered, in case this form is unmounted
+   */
+  resetValues?: {[key: string]: any; settings?: {name: string; value: any}[]};
 };
 
 /**
@@ -94,7 +95,14 @@ export class SentryAppExternalForm extends Component<Props, State> {
     });
     // For alert-rule-actions, the forms are entirely custom, extra fields are
     // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
-    if (element !== 'alert-rule-action') {
+    if (element === 'alert-rule-action') {
+      const defaultResetValues = (this.props.resetValues || {}).settings || [];
+      const initialData = defaultResetValues.reduce((acc, curr) => {
+        acc[curr.name] = curr.value;
+        return acc;
+      }, {});
+      this.model.setInitialData({...initialData});
+    } else {
       this.model.setInitialData({
         ...extraFields,
         // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
@@ -248,7 +256,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     // async only used for select components
     const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
-    const defaultResetValues = (this.props.resetValues || {}).settings || {};
+    const defaultResetValues = (this.props.resetValues || {}).settings || [];
 
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
@@ -258,12 +266,18 @@ export class SentryAppExternalForm extends Component<Props, State> {
       }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
       const allowClear = !required;
+      const defaultValue = defaultResetValues.reduce((acc, curr) => {
+        if (curr.name === field.name) {
+          acc = curr.value;
+        }
+        return acc;
+      }, undefined);
       // filter by what the user is typing
       const filterOption = createFilter({});
       fieldToPass = {
         ...fieldToPass,
         options,
-        defaultValue: defaultResetValues[field.name],
+        defaultValue,
         defaultOptions,
         filterOption,
         allowClear,
@@ -324,7 +338,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     if (this.model.validateForm()) {
       onSubmitSuccess({
         // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
-        settings: formData,
+        settings: Object.entries(formData).map(([name, value]) => ({name, value})),
         sentryAppInstallationUuid,
         // Used on the backend to explicitly associate with a different rule than those without a custom form.
         hasSchemaFormConfig: true,

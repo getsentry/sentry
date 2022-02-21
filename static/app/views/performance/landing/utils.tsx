@@ -24,8 +24,8 @@ export const LEFT_AXIS_QUERY_KEY = 'left';
 export const RIGHT_AXIS_QUERY_KEY = 'right';
 
 type LandingDisplay = {
-  label: string;
   field: LandingDisplayField;
+  label: string;
 };
 
 export enum LandingDisplayField {
@@ -37,31 +37,6 @@ export enum LandingDisplayField {
 }
 
 export const LANDING_DISPLAYS = [
-  {
-    label: 'All Transactions',
-    field: LandingDisplayField.ALL,
-  },
-  {
-    label: 'Frontend (Pageload)',
-    field: LandingDisplayField.FRONTEND_PAGELOAD,
-  },
-  {
-    label: 'Frontend (Other)',
-    field: LandingDisplayField.FRONTEND_OTHER,
-  },
-  {
-    label: 'Backend',
-    field: LandingDisplayField.BACKEND,
-  },
-  {
-    label: 'Mobile',
-    field: LandingDisplayField.MOBILE,
-    isShown: (organization: Organization) =>
-      organization.features.includes('performance-mobile-vitals'),
-  },
-];
-
-export const LANDING_V3_DISPLAYS = [
   {
     label: 'All Transactions',
     field: LandingDisplayField.ALL,
@@ -81,8 +56,6 @@ export const LANDING_V3_DISPLAYS = [
   {
     label: 'Mobile',
     field: LandingDisplayField.MOBILE,
-    isShown: (organization: Organization) =>
-      organization.features.includes('performance-mobile-vitals'),
   },
 ];
 
@@ -207,9 +180,9 @@ export function getDefaultDisplayFieldForPlatform(
 }
 
 type VitalCardDetail = {
+  formatter: (value: number) => string | number;
   title: string;
   tooltip: string;
-  formatter: (value: number) => string | number;
 };
 
 export const vitalCardDetails = (

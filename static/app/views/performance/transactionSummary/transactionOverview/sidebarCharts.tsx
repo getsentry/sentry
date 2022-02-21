@@ -33,14 +33,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {transformMetricsToArea} from 'sentry/views/performance/landing/widgets/transforms/transformMetricsToArea';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 type ContainerProps = WithRouterProps & {
-  organization: Organization;
-  location: Location;
+  error: string | null;
   eventView: EventView;
   isLoading: boolean;
-  error: string | null;
+  location: Location;
+  organization: Organization;
   totals: Record<string, number> | null;
   isMetricsData?: boolean;
 };
@@ -49,18 +48,18 @@ type Props = Pick<
   ContainerProps,
   'organization' | 'isLoading' | 'error' | 'totals' | 'isMetricsData'
 > & {
-  utc: boolean;
-  router: InjectedRouter;
   chartData: {
+    chartOptions: Record<string, any>;
     errored: boolean;
     loading: boolean;
     reloading: boolean;
-    chartOptions: Record<string, any>;
     series: React.ComponentProps<typeof LineChart>['series'];
   };
-  statsPeriod?: string;
-  start?: Date;
+  router: InjectedRouter;
+  utc: boolean;
   end?: Date;
+  start?: Date;
+  statsPeriod?: string | null;
 };
 
 function SidebarCharts({
@@ -327,9 +326,9 @@ function SidebarChartsContainer({
             {
               location,
               fields,
-              chartSetting: PerformanceWidgetSetting.FAILURE_RATE_AREA,
             },
-            failureRateRequestProps
+            failureRateRequestProps,
+            true
           );
 
           const failureRateSerie = failureRateData.data.map(values => ({
@@ -357,7 +356,6 @@ function SidebarChartsContainer({
                   {
                     location,
                     fields,
-                    chartSetting: PerformanceWidgetSetting.TPM_AREA,
                   },
                   tpmRequestProps
                 );
@@ -438,10 +436,10 @@ function SidebarChartsContainer({
 }
 
 type ChartValueProps = {
-  isLoading: boolean;
-  error: string | null;
-  value: React.ReactNode;
   'data-test-id': string;
+  error: string | null;
+  isLoading: boolean;
+  value: React.ReactNode;
 };
 
 function ChartSummaryValue({error, isLoading, value, ...props}: ChartValueProps) {

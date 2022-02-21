@@ -12,10 +12,11 @@ import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
+import {DATA_CATEGORY_NAMES} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'sentry/types';
+import {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -40,17 +41,17 @@ const COLOR_FILTERED = commonTheme.pink100;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
   {
-    label: DataCategoryName[DataCategory.ERRORS],
+    label: DATA_CATEGORY_NAMES[DataCategory.ERRORS],
     value: DataCategory.ERRORS,
     disabled: false,
   },
   {
-    label: DataCategoryName[DataCategory.TRANSACTIONS],
+    label: DATA_CATEGORY_NAMES[DataCategory.TRANSACTIONS],
     value: DataCategory.TRANSACTIONS,
     disabled: false,
   },
   {
-    label: DataCategoryName[DataCategory.ATTACHMENTS],
+    label: DATA_CATEGORY_NAMES[DataCategory.ATTACHMENTS],
     value: DataCategory.ATTACHMENTS,
     disabled: false,
   },
@@ -83,16 +84,6 @@ export enum SeriesTypes {
 
 type DefaultProps = {
   /**
-   * Display datetime in UTC
-   */
-  usageDateShowUtc: boolean;
-
-  /**
-   * Intervals between the x-axis values
-   */
-  usageDateInterval: IntervalPeriod;
-
-  /**
    * Modify the usageStats using the transformation method selected.
    * 1. This must be a pure function!
    * 2. If the parent component will handle the data transformation, you should
@@ -102,24 +93,26 @@ type DefaultProps = {
     stats: ChartStats,
     transform: ChartDataTransform
   ) => ChartStats;
+
+  /**
+   * Intervals between the x-axis values
+   */
+  usageDateInterval: IntervalPeriod;
+
+  /**
+   * Display datetime in UTC
+   */
+  usageDateShowUtc: boolean;
 };
 
 type Props = DefaultProps & {
-  theme: Theme;
-
-  isLoading?: boolean;
-  isError?: boolean;
-  errors?: Record<string, Error>;
-
-  title?: React.ReactNode;
-  footer?: React.ReactNode;
-
   dataCategory: DataCategory;
-  dataTransform: ChartDataTransform;
 
-  usageDateStart: string;
+  dataTransform: ChartDataTransform;
+  theme: Theme;
   usageDateEnd: string;
 
+  usageDateStart: string;
   /**
    * Usage data to draw on chart
    */
@@ -129,11 +122,19 @@ type Props = DefaultProps & {
    * Additional data to draw on the chart alongside usage
    */
   chartSeries?: SeriesOption[];
-
   /**
    * Replace default tooltip
    */
   chartTooltip?: TooltipComponentOption;
+
+  errors?: Record<string, Error>;
+  footer?: React.ReactNode;
+
+  isError?: boolean;
+
+  isLoading?: boolean;
+
+  title?: React.ReactNode;
 };
 
 type State = {
@@ -219,14 +220,14 @@ export class UsageChart extends React.Component<Props, State> {
   }
 
   get chartMetadata(): {
-    chartLabel: React.ReactNode;
     chartData: ChartStats;
-    xAxisData: string[];
-    xAxisTickInterval: number;
-    xAxisLabelInterval: number;
-    yAxisMinInterval: number;
-    yAxisFormatter: (val: number) => string;
+    chartLabel: React.ReactNode;
     tooltipValueFormatter: (val?: number) => string;
+    xAxisData: string[];
+    xAxisLabelInterval: number;
+    xAxisTickInterval: number;
+    yAxisFormatter: (val: number) => string;
+    yAxisMinInterval: number;
   } {
     const {usageDateStart, usageDateEnd} = this.props;
     const {

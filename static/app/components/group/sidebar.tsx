@@ -32,21 +32,21 @@ import SidebarSection from './sidebarSection';
 
 type Props = {
   api: Client;
+  environments: Environment[];
+  group: Group;
   organization: Organization;
   project: Project;
-  group: Group;
-  event?: Event;
-  environments: Environment[];
   className?: string;
+  event?: Event;
 };
 
 type State = {
   environments: Environment[];
-  currentRelease?: CurrentRelease;
   participants: Group['participants'];
   allEnvironmentsGroupData?: Group;
-  tagsWithTopValues?: Record<string, TagWithTopValues>;
+  currentRelease?: CurrentRelease;
   error?: boolean;
+  tagsWithTopValues?: Record<string, TagWithTopValues>;
 };
 
 class BaseGroupSidebar extends React.Component<Props, State> {

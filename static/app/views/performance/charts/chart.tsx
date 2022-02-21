@@ -13,26 +13,20 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 type Props = {
   data: Series[];
-  previousData?: Series[];
-  router: InjectedRouter;
-  statsPeriod: string | undefined;
-  start: DateString;
   end: DateString;
+  loading: boolean;
+  router: InjectedRouter;
+  start: DateString;
+  statsPeriod: string | null | undefined;
   utc: boolean;
-  height?: number;
-  grid?: AreaChart['props']['grid'];
+  chartColors?: string[];
+  definedAxisTicks?: number;
   disableMultiAxis?: boolean;
   disableXAxis?: boolean;
-  definedAxisTicks?: number;
-  chartColors?: string[];
-  loading: boolean;
+  grid?: AreaChart['props']['grid'];
+  height?: number;
   isLineChart?: boolean;
-  /**
-   * Temp solution used by the metrics Failure Rate Widget,
-   * making it possible to use the discovery failure_rate() aggregation even if
-   * the seriesName is different
-   */
-  aggregation?: string;
+  previousData?: Series[];
 };
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
@@ -79,7 +73,6 @@ function Chart({
   definedAxisTicks,
   chartColors,
   isLineChart,
-  aggregation,
 }: Props) {
   const theme = useTheme();
 
@@ -90,7 +83,7 @@ function Chart({
   const colors = chartColors ?? theme.charts.getColorPalette(4);
 
   const durationOnly = data.every(
-    value => aggregateOutputType(aggregation ?? value.seriesName) === 'duration'
+    value => aggregateOutputType(value.seriesName) === 'duration'
   );
 
   const dataMax = durationOnly ? computeAxisMax(data) : undefined;
@@ -115,7 +108,7 @@ function Chart({
           axisLabel: {
             color: theme.chartLabel,
             formatter(value: number) {
-              return axisLabelFormatter(value, aggregation ?? data[0].seriesName);
+              return axisLabelFormatter(value, data[0].seriesName);
             },
           },
         },
@@ -183,7 +176,7 @@ function Chart({
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
-          aggregation ?? (data && data.length ? data[0].seriesName : seriesName)
+          data && data.length ? data[0].seriesName : seriesName
         );
       },
       nameFormatter(value: string) {

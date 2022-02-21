@@ -6,14 +6,14 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import Form from 'sentry/components/forms/form';
+import InputField from 'sentry/components/forms/inputField';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
-import Form from 'sentry/views/settings/components/forms/form';
-import InputField from 'sentry/views/settings/components/forms/inputField';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
@@ -23,18 +23,18 @@ type Props = WithRouterProps &
     api: Client;
     closeModal: () => void;
     /**
-     * User is a superuser without an active su session
-     */
-    superuser?: boolean;
-    /**
      * expects a function that returns a Promise
      */
     retryRequest?: () => Promise<any>;
+    /**
+     * User is a superuser without an active su session
+     */
+    superuser?: boolean;
   };
 
 type State = {
-  error: boolean;
   busy: boolean;
+  error: boolean;
 };
 
 class SudoModal extends React.Component<Props, State> {

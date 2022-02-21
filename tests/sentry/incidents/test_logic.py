@@ -22,7 +22,6 @@ from sentry.incidents.logic import (
     DEFAULT_CMP_ALERT_RULE_RESOLUTION,
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
-    AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
     InvalidTriggerActionError,
     ProjectsNotAssociatedWithAlertRuleError,
@@ -68,8 +67,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.models import ActorTuple, PagerDutyService
-from sentry.models.integration import Integration
+from sentry.models import ActorTuple, Integration, PagerDutyService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
@@ -475,59 +473,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 1,
             )
 
-    def test_existing_name(self):
-        name = "uh oh"
-        create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-        with self.assertRaises(AlertRuleNameAlreadyUsedError):
-            create_alert_rule(
-                self.organization,
-                [self.project],
-                name,
-                "level:error",
-                "count()",
-                1,
-                AlertRuleThresholdType.ABOVE,
-                1,
-            )
-
-    def test_existing_name_allowed_when_archived(self):
-        name = "allowed"
-        alert_rule_1 = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
-
-        alert_rule_2 = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-
-        assert alert_rule_1.name == alert_rule_2.name
-        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
-        assert alert_rule_2.status == AlertRuleStatus.PENDING.value
-
     # This test will fail unless real migrations are run. Refer to migration 0061.
     @pytest.mark.skipif(
         not settings.MIGRATIONS_TEST_MIGRATE, reason="requires custom migration 0061"
@@ -661,12 +606,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
         assert alert_rule.snuba_query.query == ""
-
-    def test_name_used(self):
-        used_name = "uh oh"
-        self.create_alert_rule(name=used_name)
-        with self.assertRaises(AlertRuleNameAlreadyUsedError):
-            update_alert_rule(self.alert_rule, name=used_name)
 
     def test_invalid_query(self):
         with self.assertRaises(InvalidSearchQuery):

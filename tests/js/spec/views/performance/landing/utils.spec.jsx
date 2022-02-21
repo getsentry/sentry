@@ -38,7 +38,7 @@ describe('Utils', function () {
       const projects = [TestStubs.Project()];
       const data = initializeData(projects, {landingDisplay: 'frontend_pageload'});
       expect(getCurrentLandingDisplay(data.router.location, projects).label).toEqual(
-        'Frontend (Pageload)'
+        'Web Vitals'
       );
     });
     it('returns frontend display if project matches', function () {
@@ -46,7 +46,7 @@ describe('Utils', function () {
       const data = initializeData(projects, {project: 22});
       expect(
         getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
-      ).toEqual('Frontend (Pageload)');
+      ).toEqual('Web Vitals');
     });
     it('returns backend display if project matches', function () {
       const projects = [TestStubs.Project({id: '22', platform: 'php'})];
@@ -54,6 +54,13 @@ describe('Utils', function () {
       expect(
         getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
       ).toEqual('Backend');
+    });
+    it('returns all display for native platform', function () {
+      const projects = [TestStubs.Project({id: '22', platform: 'native'})];
+      const data = initializeData(projects, {project: [22]});
+      expect(
+        getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
+      ).toEqual('All Transactions');
     });
     it('returns all display if multiple projects', function () {
       const projects = [TestStubs.Project()];

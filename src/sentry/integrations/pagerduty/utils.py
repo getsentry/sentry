@@ -15,6 +15,7 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 def build_incident_attachment(action, incident, integration_key, metric_value=None, method=None):
     data = incident_attachment_info(incident, metric_value, action=action, method=method)
     incident_status = incident_status_info(incident, metric_value, action=action, method=method)
+    severity = "info"
     if incident_status == IncidentStatus.CRITICAL:
         severity = "critical"
     elif incident_status == IncidentStatus.WARNING:
@@ -58,7 +59,6 @@ def send_incident_alert_notification(action, incident, metric_value, method):
     integration_key = service.integration_key
     client = PagerDutyClient(integration_key=integration_key)
     attachment = build_incident_attachment(action, incident, integration_key, metric_value, method)
-
     try:
         client.send_trigger(attachment)
     except ApiError as e:

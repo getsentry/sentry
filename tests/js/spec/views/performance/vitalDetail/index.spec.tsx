@@ -1,15 +1,16 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
 import VitalDetail from 'sentry/views/performance/vitalDetail';
+import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 const api = new MockApiClient();
 const organization = TestStubs.Organization({
@@ -34,33 +35,40 @@ const {
   },
 });
 
-function TestComponent(
-  props: {router?: InjectedRouter; orgFeatures?: string[]; isMetricsData?: boolean} = {}
-) {
+function TestComponent(props: {isMetricsData?: boolean; router?: InjectedRouter} = {}) {
   return (
-    <OrganizationContext.Provider
-      value={{...org, features: [...org.features, ...(props.orgFeatures ?? [])]}}
+    <MetricsSwitchContext.Provider
+      value={{isMetricsData: props.isMetricsData ?? false, setIsMetricsData: jest.fn()}}
     >
-      <MetricsSwitchContext.Provider
-        value={{isMetricsData: props.isMetricsData ?? false, setIsMetricsData: jest.fn()}}
-      >
-        <VitalDetail
-          api={api}
-          location={props.router?.location ?? router.location}
-          router={props.router ?? router}
-          params={{}}
-          route={{}}
-          routes={[]}
-          routeParams={{}}
-        />
-      </MetricsSwitchContext.Provider>
-    </OrganizationContext.Provider>
+      <VitalDetail
+        api={api}
+        location={props.router?.location ?? router.location}
+        router={props.router ?? router}
+        params={{}}
+        route={{}}
+        routes={[]}
+        routeParams={{}}
+      />
+    </MetricsSwitchContext.Provider>
   );
 }
 
-describe('Performance > VitalDetail', function () {
-  enforceActOnUseLegacyStoreHook();
+const testSupportedBrowserRendering = (webVital: WebVital) => {
+  Object.values(Browser).forEach(browser => {
+    const browserElement = screen.getByText(browser);
+    expect(browserElement).toBeInTheDocument();
 
+    const isSupported = vitalSupportedBrowsers[webVital]?.includes(browser);
+
+    if (isSupported) {
+      expect(within(browserElement).getByTestId('icon-check-mark')).toBeInTheDocument();
+    } else {
+      expect(within(browserElement).getByTestId('icon-close')).toBeInTheDocument();
+    }
+  });
+};
+
+describe('Performance > VitalDetail', function () {
   beforeEach(function () {
     TeamStore.loadInitialData([], false, null);
     ProjectsStore.loadInitialData(org.projects);
@@ -253,12 +261,10 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('MetricsSwitch is visible if feature flag enabled', async () => {
-    mountWithTheme(
-      <TestComponent orgFeatures={['metrics-performance-ui']} isMetricsData />,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<TestComponent isMetricsData />, {
+      context: routerContext,
+      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
+    });
 
     expect(await screen.findByText('Metrics Data')).toBeInTheDocument();
   });
@@ -266,6 +272,7 @@ describe('Performance > VitalDetail', function () {
   it('renders basic UI elements', async function () {
     mountWithTheme(<TestComponent />, {
       context: routerContext,
+      organization: org,
     });
 
     // It shows a search bar
@@ -288,12 +295,10 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('renders basic UI elements - metrics based', async function () {
-    mountWithTheme(
-      <TestComponent orgFeatures={['metrics-performance-ui']} isMetricsData />,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<TestComponent isMetricsData />, {
+      context: routerContext,
+      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
+    });
 
     // It shows a search bar
     expect(await screen.findByLabelText('Search events')).toBeInTheDocument();
@@ -317,6 +322,7 @@ describe('Performance > VitalDetail', function () {
   it('triggers a navigation on search', async function () {
     mountWithTheme(<TestComponent />, {
       context: routerContext,
+      organization: org,
     });
 
     // Fill out the search box, and submit it.
@@ -338,12 +344,10 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('triggers a navigation on search - metrics based', async function () {
-    mountWithTheme(
-      <TestComponent orgFeatures={['metrics-performance-ui']} isMetricsData />,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<TestComponent isMetricsData />, {
+      context: routerContext,
+      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
+    });
 
     // Fill out the search box, and submit it.
     userEvent.type(
@@ -385,6 +389,7 @@ describe('Performance > VitalDetail', function () {
 
     mountWithTheme(<TestComponent router={newRouter} />, {
       context,
+      organization: org,
     });
 
     expect(
@@ -437,6 +442,7 @@ describe('Performance > VitalDetail', function () {
 
     mountWithTheme(<TestComponent router={newRouter} />, {
       context,
+      organization: org,
     });
 
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
@@ -489,16 +495,10 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(
-      <TestComponent
-        router={newRouter}
-        orgFeatures={['metrics-performance-ui']}
-        isMetricsData
-      />,
-      {
-        context,
-      }
-    );
+    mountWithTheme(<TestComponent router={newRouter} isMetricsData />, {
+      context,
+      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
+    });
 
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
 
@@ -533,6 +533,7 @@ describe('Performance > VitalDetail', function () {
 
     mountWithTheme(<TestComponent router={newRouter} />, {
       context,
+      organization: org,
     });
 
     expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
@@ -553,6 +554,7 @@ describe('Performance > VitalDetail', function () {
   it('Check LCP vital renders correctly', async function () {
     mountWithTheme(<TestComponent />, {
       context: routerContext,
+      organization: org,
     });
 
     expect(await screen.findByText('Largest Contentful Paint')).toBeInTheDocument();
@@ -585,16 +587,10 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(
-      <TestComponent
-        router={newRouter}
-        orgFeatures={['metrics-performance-ui']}
-        isMetricsData
-      />,
-      {
-        context,
-      }
-    );
+    mountWithTheme(<TestComponent router={newRouter} isMetricsData />, {
+      context,
+      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
+    });
 
     expect(await screen.findByText('Largest Contentful Paint')).toBeInTheDocument();
 
@@ -604,5 +600,71 @@ describe('Performance > VitalDetail', function () {
 
     // The table is still a TODO
     expect(screen.getByText('TODO')).toBeInTheDocument();
+  });
+
+  it('correctly renders which browsers support LCP', async function () {
+    mountWithTheme(<TestComponent />, {
+      context: routerContext,
+      organization: org,
+    });
+
+    testSupportedBrowserRendering(WebVital.LCP);
+  });
+
+  it('correctly renders which browsers support CLS', async function () {
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          vitalName: 'measurements.cls',
+        },
+      },
+    };
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: routerContext,
+      organization: org,
+    });
+
+    testSupportedBrowserRendering(WebVital.CLS);
+  });
+
+  it('correctly renders which browsers support FCP', async function () {
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          vitalName: 'measurements.fcp',
+        },
+      },
+    };
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: routerContext,
+      organization: org,
+    });
+
+    testSupportedBrowserRendering(WebVital.FCP);
+  });
+
+  it('correctly renders which browsers support FID', async function () {
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          vitalName: 'measurements.fid',
+        },
+      },
+    };
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: routerContext,
+      organization: org,
+    });
+
+    testSupportedBrowserRendering(WebVital.FID);
   });
 });

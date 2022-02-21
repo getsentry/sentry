@@ -5,8 +5,10 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 import {
@@ -98,8 +100,8 @@ export function getAxisOptions(organization: Organization): TooltipOption[] {
 
 export type AxisOption = TooltipOption & {
   field: string;
-  backupOption?: AxisOption;
   label: string;
+  backupOption?: AxisOption;
   isDistribution?: boolean;
   isLeftDefault?: boolean;
   isRightDefault?: boolean;
@@ -456,6 +458,15 @@ function generateGenericPerformanceEventView(
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
   }
 
+  if (query.trendParameter) {
+    // projects and projectIds are not necessary here since trendParameter will always
+    // be present in location and will not be determined based on the project type
+    const trendParameter = getCurrentTrendParameter(location, [], []);
+    if (Boolean(WEB_VITAL_DETAILS[trendParameter.column])) {
+      eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
+    }
+  }
+
   return eventView;
 }
 
@@ -697,7 +708,6 @@ function generateFrontendPageloadPerformanceEventView(
 
 function generateFrontendOtherPerformanceEventView(
   location: Location,
-  organization: Organization,
   isMetricsData: boolean
 ): EventView {
   const {query} = location;
@@ -762,11 +772,6 @@ function generateFrontendOtherPerformanceEventView(
   // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-
-    if (!organization.features.includes('organizations:performance-landing-widgets')) {
-      // Original landing page still should use Frontend (other) with pageload excluded.
-      eventView.additionalConditions.addFilterValues('!transaction.op', ['pageload']);
-    }
   }
 
   return eventView;
@@ -774,7 +779,6 @@ function generateFrontendOtherPerformanceEventView(
 
 export function generatePerformanceEventView(
   location: Location,
-  organization: Organization,
   projects: Project[],
   {isTrends = false, isMetricsData = false} = {}
 ) {
@@ -789,11 +793,7 @@ export function generatePerformanceEventView(
     case LandingDisplayField.FRONTEND_PAGELOAD:
       return generateFrontendPageloadPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(
-        location,
-        organization, // TODO(k-fish): Remove with tag change
-        isMetricsData
-      );
+      return generateFrontendOtherPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.BACKEND:
       return generateBackendPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.MOBILE:

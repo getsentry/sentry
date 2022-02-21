@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import space from 'sentry/styles/space';
 
 type Props = {
-  title: string;
-  description: React.ReactNode;
   children: React.ReactNode;
+  description: React.ReactNode;
+  title: string;
 };
 
 function DescriptionCard({title, description, children}: Props) {

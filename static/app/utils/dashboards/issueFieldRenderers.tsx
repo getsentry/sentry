@@ -2,27 +2,27 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import partial from 'lodash/partial';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
+import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import Tooltip from 'sentry/components/tooltip';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import EventView, {EventData} from 'sentry/utils/discover/eventView';
 
-import {FIELD_FORMATTERS} from '../discover/fieldRenderers';
 import {Container, FieldShortId, OverflowLink} from '../discover/styles';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
 type RenderFunctionBaggage = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
   eventView?: EventView;
 };
 
@@ -37,19 +37,21 @@ type SpecialFieldRenderFunc = (
 ) => React.ReactNode;
 
 type SpecialField = {
-  sortField: string | null;
   renderFunc: SpecialFieldRenderFunc;
+  sortField: string | null;
 };
 
 type SpecialFields = {
-  issue: SpecialField;
   assignee: SpecialField;
-  lifetimeCount: SpecialField;
-  lifetimeUserCount: SpecialField;
   count: SpecialField;
+  events: SpecialField;
+  issue: SpecialField;
+  lifetimeCount: SpecialField;
+  lifetimeEvents: SpecialField;
+  lifetimeUserCount: SpecialField;
+  lifetimeUsers: SpecialField;
   userCount: SpecialField;
-  firstSeen: SpecialField;
-  lastSeen: SpecialField;
+  users: SpecialField;
 };
 
 /**
@@ -94,42 +96,65 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
+  lifetimeEvents: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeEvents'),
+  },
+  lifetimeUsers: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeUsers'),
+  },
+  events: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'events'),
+  },
+  users: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'users'),
+  },
   lifetimeCount: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'lifetimeCount'),
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeEvents'),
   },
   lifetimeUserCount: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'lifetimeUserCount'),
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeUsers'),
   },
   count: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'count'),
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'events'),
   },
   userCount: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'userCount'),
-  },
-  firstSeen: {
-    sortField: null,
-    renderFunc: ({firstSeen}) => <StyledDateTime date={firstSeen} />,
-  },
-  lastSeen: {
-    sortField: null,
-    renderFunc: ({lastSeen}) => <StyledDateTime date={lastSeen} />,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'users'),
   },
 };
 
 const issuesCountRenderer = (
   data: EventData,
-  field: 'count' | 'userCount' | 'lifetimeCount' | 'lifetimeUserCount'
+  organization: Organization,
+  field: 'events' | 'users' | 'lifetimeEvents' | 'lifetimeUsers'
 ) => {
-  const {selectionDateString} = data;
+  const {start, end, period} = data;
   const isUserField = !!/user/i.exec(field.toLowerCase());
   const primaryCount = data[field];
-  const count = data[isUserField ? 'userCount' : 'count'];
-  const lifetimeCount = data[isUserField ? 'lifetimeUserCount' : 'lifetimeCount'];
-  const filteredCount = data[isUserField ? 'filteredUserCount' : 'filteredCount'];
+  const count = data[isUserField ? 'users' : 'events'];
+  const lifetimeCount = data[isUserField ? 'lifetimeUsers' : 'lifetimeEvents'];
+  const filteredCount = data[isUserField ? 'filteredUsers' : 'filteredEvents'];
+  const discoverLink = getDiscoverUrl(data, organization);
+  const filteredDiscoverLink = getDiscoverUrl(data, organization, true);
+  const selectionDateString =
+    !!start && !!end
+      ? 'time range'
+      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
   return (
     <Container>
       <Tooltip
@@ -140,17 +165,17 @@ const issuesCountRenderer = (
           <div>
             {filteredCount ? (
               <React.Fragment>
-                <StyledContent>
+                <StyledLink to={filteredDiscoverLink}>
                   {t('Matching search filters')}
                   <WrappedCount value={filteredCount} />
-                </StyledContent>
+                </StyledLink>
                 <Divider />
               </React.Fragment>
             ) : null}
-            <StyledContent>
+            <StyledLink to={discoverLink}>
               {t(`Total in ${selectionDateString}`)}
               <WrappedCount value={count} />
-            </StyledContent>
+            </StyledLink>
             <Divider />
             <StyledContent>
               {t('Since issue began')}
@@ -160,7 +185,7 @@ const issuesCountRenderer = (
         }
       >
         <span>
-          {['count', 'userCount'].includes(field) && filteredCount ? (
+          {['events', 'users'].includes(field) && filteredCount ? (
             <React.Fragment>
               <Count value={filteredCount} />
               <SecondaryCount value={primaryCount} />
@@ -174,6 +199,27 @@ const issuesCountRenderer = (
   );
 };
 
+const getDiscoverUrl = (
+  data: EventData,
+  organization: Organization,
+  filtered?: boolean
+) => {
+  const commonQuery = {projects: [Number(data.projectId)]};
+  const discoverView = EventView.fromSavedQuery({
+    ...commonQuery,
+    id: undefined,
+    start: data.start,
+    end: data.end,
+    range: data.period,
+    name: data.title,
+    fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+    orderby: '-timestamp',
+    query: `issue.id:${data.id}${filtered ? data.discoverSearchQuery : ''}`,
+    version: 2,
+  });
+  return discoverView.getResultsViewUrlTarget(organization.slug);
+};
+
 const contentStyle = css`
   width: 100%;
   justify-content: space-between;
@@ -183,6 +229,15 @@ const contentStyle = css`
 
 const StyledContent = styled('div')`
   ${contentStyle};
+`;
+
+const StyledLink = styled(Link)`
+  ${contentStyle};
+  color: ${p => p.theme.gray400};
+  &:hover {
+    color: ${p => p.theme.gray400};
+    background: ${p => p.theme.hover};
+  }
 `;
 
 const SecondaryCount = styled(Count)`
@@ -211,10 +266,6 @@ const Divider = styled('div')`
   background-color: ${p => p.theme.innerBorder};
 `;
 
-const StyledDateTime = styled(DateTime)`
-  white-space: nowrap;
-`;
-
 const ActorContainer = styled('div')`
   display: flex;
   justify-content: left;
@@ -232,18 +283,13 @@ const ActorContainer = styled('div')`
  * @returns {Function}
  */
 export function getIssueFieldRenderer(
-  field: string,
-  meta: MetaType
-): FieldFormatterRenderFunctionPartial {
+  field: string
+): FieldFormatterRenderFunctionPartial | null {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
-  const fieldType = meta[field];
-
-  // Defaults to fieldRenderer formatters if the field is not a special issue field
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    return partial(FIELD_FORMATTERS[fieldType].renderFunc, field);
-  }
-  return partial(FIELD_FORMATTERS.string.renderFunc, field);
+  // Return null if there is no field renderer for this field
+  // Should check the discover field renderer for this field
+  return null;
 }

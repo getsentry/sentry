@@ -49,7 +49,6 @@ from sentry.utils.snuba import (
     is_span_op_breakdown,
     naiveify_datetime,
     raw_query,
-    raw_snql_query,
     resolve_column,
     resolve_snuba_aliases,
     to_naive_timestamp,
@@ -267,9 +266,7 @@ def query(
         )
         if extra_snql_condition is not None:
             builder.add_conditions(extra_snql_condition)
-        snql_query = builder.get_snql_query()
-
-        result = raw_snql_query(snql_query, referrer)
+        result = builder.run_query(referrer)
         with sentry_sdk.start_span(
             op="discover.discover", description="query.transform_results"
         ) as span:
@@ -759,7 +756,7 @@ def top_events_timeseries(
                 referrer=referrer,
             )
         else:
-            result = raw_snql_query(top_events_builder.get_snql_query(), referrer=referrer)
+            result = top_events_builder.run_query(referrer)
             other_result = {"data": []}
         if (
             not allow_empty
@@ -784,7 +781,7 @@ def top_events_timeseries(
 
             issues = {}
             if "issue" in selected_columns:
-                issues = Group.issues_mapping(
+                issues = Group.objects.get_issues_mapping(
                     {event["issue.id"] for event in top_events["data"]},
                     params["project_id"],
                     organization,
@@ -989,7 +986,7 @@ def top_events_timeseries(
 
         issues = {}
         if "issue" in selected_columns:
-            issues = Group.issues_mapping(
+            issues = Group.objects.get_issues_mapping(
                 {event["issue.id"] for event in top_events["data"]},
                 params["project_id"],
                 organization,
@@ -1075,7 +1072,7 @@ def get_facets(
                 limit=limit,
                 turbo=sample,
             )
-            key_names = raw_snql_query(key_name_builder.get_snql_query(), referrer=referrer)
+            key_names = key_name_builder.run_query(referrer)
             # Sampling keys for multi-project results as we don't need accuracy
             # with that much data.
             top_tags = [r["tags_key"] for r in key_names["data"]]
@@ -1109,9 +1106,7 @@ def get_facets(
                     turbo=sample_rate is not None,
                     sample_rate=sample_rate,
                 )
-                project_values = raw_snql_query(
-                    project_value_builder.get_snql_query(), referrer=referrer
-                )
+                project_values = project_value_builder.run_query(referrer=referrer)
                 results.extend(
                     [
                         FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
@@ -1150,7 +1145,7 @@ def get_facets(
                     turbo=sample_rate is not None,
                     sample_rate=sample_rate,
                 )
-                tag_values = raw_snql_query(tag_value_builder.get_snql_query(), referrer=referrer)
+                tag_values = tag_value_builder.run_query(referrer)
                 results.extend(
                     [
                         FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
@@ -1172,9 +1167,7 @@ def get_facets(
                     turbo=sample_rate is not None,
                     sample_rate=sample_rate,
                 )
-                aggregate_values = raw_snql_query(
-                    aggregate_value_builder.get_snql_query(), referrer=referrer
-                )
+                aggregate_values = aggregate_value_builder.run_query(referrer)
                 results.extend(
                     [
                         FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
@@ -1432,7 +1425,7 @@ def histogram_query(
         )
         if extra_snql_condition is not None:
             builder.add_conditions(extra_snql_condition)
-        results = raw_snql_query(builder.get_snql_query(), referrer=referrer)
+        results = builder.run_query(referrer)
     else:
         conditions = []
         if key_column is not None:

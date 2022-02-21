@@ -9,10 +9,10 @@ import {Organization, Project} from 'sentry/types';
 
 type Props = {
   organization: Organization;
-  project?: Project;
   Wrapper?: React.ComponentType;
-  isCompact?: boolean;
   className?: string;
+  isCompact?: boolean;
+  project?: Project;
 };
 
 function UpdateAlert({Wrapper, project, className}: Props) {

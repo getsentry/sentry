@@ -29,17 +29,17 @@ const EventsGeoRequest = ({
   children,
 }: {
   api: Client;
-  organization: OrganizationSummary;
-  yAxis: string | string[];
-  query: string;
-  orderby?: string;
-  projects: number[];
-  period?: string;
-  start: DateString;
+  children: (args: ChildrenArgs) => React.ReactElement;
   end: DateString;
   environments: string[];
+  organization: OrganizationSummary;
+  projects: number[];
+  query: string;
+  start: DateString;
+  yAxis: string | string[];
+  orderby?: string;
+  period?: string | null;
   referrer?: string;
-  children: (args: ChildrenArgs) => React.ReactElement;
 }) => {
   const eventView = EventView.fromSavedQuery({
     id: undefined,

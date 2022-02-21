@@ -15,7 +15,7 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {IconActivity, IconArrow, IconChevron, IconWarning} from 'sentry/icons';
+import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -54,38 +54,38 @@ import ReleaseEventsChart from './releaseEventsChart';
 import ReleaseSessionsChart from './releaseSessionsChart';
 
 export type ReleaseComparisonRow = {
-  type: ReleaseComparisonChartType;
-  thisRelease: React.ReactNode;
   allReleases: React.ReactNode;
   diff: React.ReactNode;
-  diffDirection: 'up' | 'down' | null;
   diffColor: Color | null;
-  role: 'parent' | 'children' | 'default';
+  diffDirection: 'up' | 'down' | null;
   drilldown: React.ReactNode;
+  role: 'parent' | 'children' | 'default';
+  thisRelease: React.ReactNode;
+  type: ReleaseComparisonChartType;
 };
 
 type Props = {
-  release: ReleaseWithHealth;
-  project: ReleaseProject;
-  releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
-  platform: PlatformKey;
-  location: Location;
-  loading: boolean;
-  reloading: boolean;
-  errored: boolean;
   api: Client;
-  organization: Organization;
+  errored: boolean;
   hasHealthData: boolean;
+  loading: boolean;
+  location: Location;
+  organization: Organization;
+  platform: PlatformKey;
+  project: ReleaseProject;
+  release: ReleaseWithHealth;
+  releaseSessions: SessionApiResponse | null;
+  reloading: boolean;
 };
 
 type EventsTotals = {
   allErrorCount: number;
-  releaseErrorCount: number;
-  allTransactionCount: number;
-  releaseTransactionCount: number;
-  releaseFailureRate: number;
   allFailureRate: number;
+  allTransactionCount: number;
+  releaseErrorCount: number;
+  releaseFailureRate: number;
+  releaseTransactionCount: number;
 } | null;
 
 type IssuesTotals = {
@@ -862,7 +862,7 @@ function ReleaseComparisonChart({
         {diff}{' '}
         {defined(diffDirection) ? (
           <IconArrow direction={diffDirection} size="xs" />
-        ) : (
+        ) : diff === '0%' ? null : (
           <StyledNotAvailable />
         )}
       </Change>
@@ -985,13 +985,11 @@ function ReleaseComparisonChart({
         withExpanders={withExpanders}
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
+        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
         {additionalCharts.length > 0 && (
-          <ShowMoreWrapper
-            onClick={() => setIsOtherExpanded(!isOtherExpanded)}
-            isExpanded={isOtherExpanded}
-          >
+          <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
             <ShowMoreTitle>
-              <IconActivity size="xs" />
+              <IconList size="xs" />
               {isOtherExpanded
                 ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
                 : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
@@ -1006,7 +1004,6 @@ function ReleaseComparisonChart({
             </ShowMoreButton>
           </ShowMoreWrapper>
         )}
-        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
       </ChartTable>
     </Fragment>
   );
@@ -1054,14 +1051,13 @@ const StyledNotAvailable = styled(NotAvailable)`
   display: inline-block;
 `;
 
-const ShowMoreWrapper = styled('div')<{isExpanded: boolean}>`
+const ShowMoreWrapper = styled('div')`
   display: contents;
   &:hover {
     cursor: pointer;
   }
   > * {
     padding: ${space(1)} ${space(2)};
-    ${p => p.isExpanded && `border-bottom: 1px solid ${p.theme.border};`}
   }
 `;
 

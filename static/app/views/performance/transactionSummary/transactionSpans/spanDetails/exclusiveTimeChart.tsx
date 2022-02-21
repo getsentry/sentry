@@ -25,9 +25,9 @@ import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 
 type Props = WithRouterProps & {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
   spanSlug: SpanSlug;
   withoutZerofill: boolean;
 };
@@ -104,7 +104,6 @@ export default function ExclusiveTimeChart(props: Props) {
             yAxis={yAxis}
             partial
             withoutZerofill={withoutZerofill}
-            referrer="api.performance.transaction-summary.duration-chart"
             queryExtras={{span: `${spanSlug.op}:${spanSlug.group}`}}
             generatePathname={org => `/organizations/${org.slug}/events-spans-stats/`}
           >

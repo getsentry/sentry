@@ -11,14 +11,14 @@ type Props = {
    * [Oldest, Older, Newer, Newest]
    */
   links: [LocationDescriptor, LocationDescriptor, LocationDescriptor, LocationDescriptor];
+  className?: string;
   hasNext?: boolean;
   hasPrevious?: boolean;
-  className?: string;
-  size?: React.ComponentProps<typeof Button>['size'];
-  onOldestClick?: () => void;
-  onOlderClick?: () => void;
   onNewerClick?: () => void;
   onNewestClick?: () => void;
+  onOlderClick?: () => void;
+  onOldestClick?: () => void;
+  size?: React.ComponentProps<typeof Button>['size'];
 };
 
 const NavigationButtonGroup = ({
