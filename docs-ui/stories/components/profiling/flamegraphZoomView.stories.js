@@ -3,6 +3,7 @@ import * as React from 'react';
 import {Flamegraph} from 'sentry/components/profiling/Flamegraph';
 import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/FullScreenFlamegraphContainer';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/FlamegraphThemeProvider';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
 export default {
