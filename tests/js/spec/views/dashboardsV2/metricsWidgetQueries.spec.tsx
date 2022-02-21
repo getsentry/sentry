@@ -148,7 +148,6 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       {context: routerContext}
     );
 
-    // Child should be rendered and 2 requests should be sent.
     expect(screen.getByTestId('child')).toBeInTheDocument();
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
@@ -162,5 +161,50 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         }),
       })
     );
+  });
+
+  it('does not re-fetch when renaming legend alias / adding falsy fields', () => {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_SESSION}),
+    });
+    const children = jest.fn(() => <div />);
+
+    const {rerender} = mountWithTheme(
+      <MetricsWidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </MetricsWidgetQueries>,
+      {context: routerContext}
+    );
+
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <MetricsWidgetQueries
+        api={api}
+        widget={{
+          ...singleQueryWidget,
+          queries: [
+            {
+              ...singleQueryWidget.queries[0],
+              name: 'New Legend Alias',
+              fields: [...singleQueryWidget.queries[0].fields, ''],
+            },
+          ],
+        }}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </MetricsWidgetQueries>
+    );
+
+    // no additional request has been sent, the total count of requests is still 1
+    expect(mock).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,7 +1,6 @@
 import * as React from 'react';
-import userEvent from '@testing-library/user-event';
 
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Hovercard, HOVERCARD_PORTAL_ID} from 'sentry/components/hovercard';
 

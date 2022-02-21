@@ -66,7 +66,11 @@ function TeamStatsControls({
   }
 
   function handleEnvironmentChange({value}: {label: string; value: string}) {
-    setStateOnUrl({environment: value});
+    if (value === '') {
+      setStateOnUrl({environment: undefined});
+    } else {
+      setStateOnUrl({environment: value});
+    }
   }
 
   function handleUpdateDatetime(datetime: ChangeData): LocationDescriptorObject {
