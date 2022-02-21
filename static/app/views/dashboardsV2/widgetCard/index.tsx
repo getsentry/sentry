@@ -223,6 +223,7 @@ const StyledPanel = styled(Panel, {
   min-height: 96px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 `;
 
 const ToolbarPanel = styled('div')`

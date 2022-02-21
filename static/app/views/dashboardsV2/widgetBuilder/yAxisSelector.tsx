@@ -2,17 +2,19 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Field from 'sentry/components/forms/field';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   aggregateFunctionOutputType,
+  ColumnType,
   isLegalYAxisType,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
@@ -29,24 +31,16 @@ type Props = {
 
   // TODO: For checking against METRICS widget type
   widgetType: Widget['widgetType'];
-  errors?: Record<string, any>;
-  style?: React.CSSProperties;
+  errors?: Record<string, string>[];
 };
 
-function DeleteButton({onDelete}) {
-  return (
-    <Button
-      size="zero"
-      borderless
-      onClick={onDelete}
-      icon={<IconDelete />}
-      title={t('Remove this Y-Axis')}
-      aria-label={t('Remove this Y-Axis')}
-    />
-  );
-}
-
-function AddButton({title, onAdd}) {
+function AddButton({
+  title,
+  onAdd,
+}: {
+  onAdd: (event: React.MouseEvent) => void;
+  title: string;
+}) {
   return (
     <Button size="small" aria-label={title} onClick={onAdd} icon={<IconAdd isCircled />}>
       {title}
@@ -54,14 +48,7 @@ function AddButton({title, onAdd}) {
   );
 }
 
-function YAxisSelector({
-  displayType,
-  fields,
-  style,
-  fieldOptions,
-  onChange,
-  errors,
-}: Props) {
+function YAxisSelector({displayType, fields, fieldOptions, onChange, errors}: Props) {
   const organization = useOrganization();
   // const isMetricWidget = widgetType === WidgetType.METRICS;
 
@@ -109,9 +96,9 @@ function YAxisSelector({
   // data source is from an endpoint that is not timeseries-based.
   // The function/field choice for World Map widget will need to be numeric-like.
   // Column builder for Table widget is already handled above.
-  const doNotValidateYAxis = displayType === 'big_number';
+  const doNotValidateYAxis = displayType === DisplayType.BIG_NUMBER;
 
-  function filterPrimaryOptions(option) {
+  function filterPrimaryOptions(option: FieldValueOption) {
     // Only validate function names for timeseries widgets and
     // world map widgets.
     if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
@@ -138,37 +125,58 @@ function YAxisSelector({
     return option.value.kind === FieldValueKind.FUNCTION;
   }
 
-  const filterAggregateParameters = fieldValue => option => {
-    // Only validate function parameters for timeseries widgets and
-    // world map widgets.
-    if (doNotValidateYAxis) {
-      return true;
-    }
+  function filterAggregateParameters(fieldValue: QueryFieldValue) {
+    return (option: FieldValueOption) => {
+      // Only validate function parameters for timeseries widgets and
+      // world map widgets.
+      if (doNotValidateYAxis) {
+        return true;
+      }
 
-    if (fieldValue.kind !== 'function') {
-      return true;
-    }
+      if (fieldValue.kind !== 'function') {
+        return true;
+      }
 
-    // if (isMetricWidget) {
-    //   return true;
-    // }
+      // if (isMetricWidget) {
+      //   return true;
+      // }
 
-    const functionName = fieldValue.function[0];
-    const primaryOutput = aggregateFunctionOutputType(
-      functionName as string,
-      option.value.meta.name
+      const functionName = fieldValue.function[0];
+      const primaryOutput = aggregateFunctionOutputType(
+        functionName as string,
+        option.value.meta.name
+      );
+      if (primaryOutput) {
+        return isLegalYAxisType(primaryOutput);
+      }
+
+      if (option.value.kind === FieldValueKind.FUNCTION) {
+        // Functions are not legal options as an aggregate/function parameter.
+        return false;
+      }
+
+      return isLegalYAxisType(option.value.meta.dataType as ColumnType);
+    };
+  }
+
+  const fieldError = errors?.find(error => error?.fields)?.fields;
+
+  if (displayType === DisplayType.TOP_N) {
+    const fieldValue = fields[fields.length - 1];
+    return (
+      <Field inline={false} flexibleControlStateSize error={fieldError} required stacked>
+        <QueryFieldWrapper>
+          <QueryField
+            fieldValue={fieldValue}
+            fieldOptions={generateFieldOptions({organization})}
+            onChange={handleTopNChangeField}
+            filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters(fieldValue)}
+          />
+        </QueryFieldWrapper>
+      </Field>
     );
-    if (primaryOutput) {
-      return isLegalYAxisType(primaryOutput);
-    }
-
-    if (option.value.kind === FieldValueKind.FUNCTION) {
-      // Functions are not legal options as an aggregate/function parameter.
-      return false;
-    }
-
-    return isLegalYAxisType(option.value.meta.dataType);
-  };
+  }
 
   const canDelete = fields.length > 1;
 
@@ -183,79 +191,56 @@ function YAxisSelector({
     ].includes(displayType) &&
       fields.length === 3);
 
-  let fieldContents: React.ReactElement;
-  if (displayType === DisplayType.TOP_N) {
-    const fieldValue = fields[fields.length - 1];
-    fieldContents = (
-      <QueryFieldWrapper key={`${fieldValue}:0`}>
-        <QueryField
-          fieldValue={fieldValue}
-          fieldOptions={generateFieldOptions({organization})}
-          onChange={value => handleTopNChangeField(value)}
-          filterPrimaryOptions={filterPrimaryOptions}
-          filterAggregateParameters={filterAggregateParameters(fieldValue)}
-        />
-      </QueryFieldWrapper>
-    );
-  } else {
-    fieldContents = (
-      <React.Fragment>
-        {fields.map((fieldValue, i) => (
-          <QueryFieldWrapper key={`${fieldValue}:${i}`}>
-            <QueryField
-              fieldValue={fieldValue}
-              fieldOptions={fieldOptions}
-              onChange={value => handleChangeField(value, i)}
-              filterPrimaryOptions={filterPrimaryOptions}
-              filterAggregateParameters={filterAggregateParameters(fieldValue)}
-              otherColumns={fields}
-            />
-            {(canDelete || fieldValue.kind === 'equation') && (
-              <DeleteButton onDelete={event => handleRemove(event, i)} />
-            )}
-          </QueryFieldWrapper>
-        ))}
-        {!hideAddYAxisButtons && (
-          <Actions>
-            <AddButton title={t('Add Overlay')} onAdd={handleAdd} />
-            <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
-          </Actions>
-        )}
-      </React.Fragment>
-    );
-  }
-
   return (
-    <Field
-      data-test-id="y-axis"
-      label={t('Y-Axis')}
-      inline={false}
-      style={{padding: `${space(2)} 0 24px 0`, ...(style ?? {})}}
-      flexibleControlStateSize
-      error={errors?.fields}
-      required
-      stacked
-    >
-      {fieldContents}
+    <Field inline={false} flexibleControlStateSize error={fieldError} required stacked>
+      {fields.map((fieldValue, i) => (
+        <QueryFieldWrapper key={`${fieldValue}:${i}`}>
+          <QueryField
+            fieldValue={fieldValue}
+            fieldOptions={fieldOptions}
+            onChange={value => handleChangeField(value, i)}
+            filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters(fieldValue)}
+            otherColumns={fields}
+          />
+          {(canDelete || fieldValue.kind === 'equation') && (
+            <Button
+              size="zero"
+              borderless
+              onClick={event => handleRemove(event, i)}
+              icon={<IconDelete />}
+              title={t('Remove this Y-Axis')}
+              aria-label={t('Remove this Y-Axis')}
+            />
+          )}
+        </QueryFieldWrapper>
+      ))}
+      {!hideAddYAxisButtons && (
+        <Actions gap={1}>
+          <AddButton title={t('Add Overlay')} onAdd={handleAdd} />
+          <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
+        </Actions>
+      )}
     </Field>
   );
 }
 
 export default YAxisSelector;
 
-const Actions = styled('div')`
-  & button {
-    margin-right: ${space(1)};
-  }
-`;
-
 const QueryFieldWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+
+  :not(:last-child) {
+    margin-bottom: ${space(1)};
+  }
 
   > * + * {
     margin-left: ${space(1)};
   }
+`;
+
+const Actions = styled(ButtonBar)`
+  justify-content: flex-start;
 `;
