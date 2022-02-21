@@ -81,10 +81,13 @@ export class Flamegraph {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
+    let idx = 0;
+
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
 
       const frame: FlamegraphFrame = {
+        key: idx,
         frame: node.frame,
         node,
         parent,
@@ -99,6 +102,7 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+      idx++;
     };
 
     const closeFrame = (_: CallTreeNode, value: number) => {
@@ -135,9 +139,11 @@ export class Flamegraph {
 
     sortTree(profile.appendOrderTree);
 
+    let idx = 0;
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
       const frame: FlamegraphFrame = {
+        key: idx,
         frame: node.frame,
         node,
         parent,
@@ -152,6 +158,7 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+      idx++;
     };
 
     const closeFrame = (_node: CallTreeNode, value: number) => {

@@ -9,10 +9,6 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
-function uniqueFrameKey(frame: FlamegraphFrame): string {
-  return `${frame.frame.key + String(frame.start)}`;
-}
-
 function frameSearch(
   query: string,
   frames: ReadonlyArray<FlamegraphFrame>,
@@ -164,9 +160,7 @@ function FlamegraphSearch({
       return onZoomIntoFrame(frames[0] ?? null);
     }
 
-    const index = frames.findIndex(
-      f => uniqueFrameKey(f) === uniqueFrameKey(selectedNode)
-    );
+    const index = frames.findIndex(f => f.key === selectedNode.key);
 
     if (index + 1 > frames.length - 1) {
       return onZoomIntoFrame(frames[0]);
@@ -187,9 +181,7 @@ function FlamegraphSearch({
     if (!selectedNode) {
       return onZoomIntoFrame(frames[0] ?? null);
     }
-    const index = frames.findIndex(
-      f => uniqueFrameKey(f) === uniqueFrameKey(selectedNode)
-    );
+    const index = frames.findIndex(f => f.key === selectedNode.key);
 
     if (index - 1 < 0) {
       return onZoomIntoFrame(frames[frames.length - 1]);

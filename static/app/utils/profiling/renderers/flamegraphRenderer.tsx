@@ -16,10 +16,6 @@ import {
 
 import {fragment, vertex} from './shaders';
 
-export function uniqueFrameKey(frame: FlamegraphFrame): string {
-  return `${frame.frame.key + String(frame.start)}`;
-}
-
 class FlamegraphRenderer {
   canvas: HTMLCanvasElement | null;
   flamegraph: Flamegraph;
@@ -104,7 +100,7 @@ class FlamegraphRenderer {
 
     // Generate colors for the flamegraph
     const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
-      this.frames.map(f => f.frame),
+      this.frames,
       this.theme.COLORS.COLOR_MAP,
       this.theme.COLORS.COLOR_BUCKET
     );
@@ -503,10 +499,7 @@ class FlamegraphRenderer {
   }
 
   getColorForFrame(frame: Frame): number[] {
-    return (
-      this.colorMap.get(frame.name + (frame.file ? frame.file : '')) ??
-      this.theme.COLORS.FRAME_FALLBACK_COLOR
-    );
+    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
   }
 
   getConfigSpaceCursor(
