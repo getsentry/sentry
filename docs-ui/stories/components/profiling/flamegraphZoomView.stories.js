@@ -87,7 +87,6 @@ export const EventedTrace = () => {
             onHighlightRecursionChange={setHighlightRecursion}
             canvasPoolManager={canvasPoolManager}
           />
-          <div />
         </FlamegraphToolbar>
         <div style={{height: 100, position: 'relative'}}>
           <FlamegraphZoomViewMinimap
