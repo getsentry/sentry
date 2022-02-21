@@ -1,9 +1,4 @@
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IssueList} from 'sentry/components/issueList';
 
@@ -77,9 +72,7 @@ describe('IssueList', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId('loading-error-message')).toBeInTheDocument();
-    });
+    expect(await screen.findByTestId('loading-error-message')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Retry'));
 

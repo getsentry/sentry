@@ -3,8 +3,6 @@ import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePe
 import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
 import {
   SpanSortOthers,
@@ -33,19 +31,6 @@ function initializeData({query} = {query: {}}) {
   act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
-
-const TestComponent = ({
-  organization,
-  ...props
-}: Omit<React.ComponentProps<typeof TransactionSpans>, 'organization'> & {
-  organization: Organization;
-}) => {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <TransactionSpans organization={organization} {...props} />
-    </OrganizationContext.Provider>
-  );
-};
 
 describe('Performance > Transaction Spans', function () {
   let eventsV2Mock;
@@ -95,13 +80,10 @@ describe('Performance > Transaction Spans', function () {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
-      mountWithTheme(
-        <TestComponent
-          organization={initialData.organization}
-          location={initialData.router.location}
-        />,
-        {context: initialData.routerContext}
-      );
+      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      });
 
       expect(
         await screen.findByText('No results found for your query')
@@ -121,13 +103,10 @@ describe('Performance > Transaction Spans', function () {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
-      mountWithTheme(
-        <TestComponent
-          organization={initialData.organization}
-          location={initialData.router.location}
-        />,
-        {context: initialData.routerContext}
-      );
+      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      });
 
       // default visible columns
       const grid = await screen.findByTestId('grid-editable');
@@ -155,13 +134,10 @@ describe('Performance > Transaction Spans', function () {
     ].forEach(({sort, label}) => {
       it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
-        mountWithTheme(
-          <TestComponent
-            organization={initialData.organization}
-            location={initialData.router.location}
-          />,
-          {context: initialData.routerContext}
-        );
+        mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        });
 
         const grid = await screen.findByTestId('grid-editable');
         expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
@@ -175,13 +151,10 @@ describe('Performance > Transaction Spans', function () {
 
     it('renders the right count header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.COUNT}});
-      mountWithTheme(
-        <TestComponent
-          organization={initialData.organization}
-          location={initialData.router.location}
-        />,
-        {context: initialData.routerContext}
-      );
+      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      });
 
       const grid = await screen.findByTestId('grid-editable');
       expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
@@ -194,13 +167,10 @@ describe('Performance > Transaction Spans', function () {
 
     it('renders the right avg occurrence header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
-      mountWithTheme(
-        <TestComponent
-          organization={initialData.organization}
-          location={initialData.router.location}
-        />,
-        {context: initialData.routerContext}
-      );
+      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      });
 
       const grid = await screen.findByTestId('grid-editable');
       expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();

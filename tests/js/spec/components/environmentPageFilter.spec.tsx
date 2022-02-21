@@ -5,7 +5,6 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('EnvironmentPageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({
@@ -41,14 +40,10 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('can pick environment', function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EnvironmentPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<EnvironmentPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Open the environment dropdown
     expect(screen.getByText('All Environments')).toBeInTheDocument();
@@ -68,14 +63,10 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('can pin environment', async function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EnvironmentPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<EnvironmentPageFilter />, {
+      context: routerContext,
+      organization,
+    });
     // Confirm no filters are pinned
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
@@ -101,14 +92,10 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('can quick select', async function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EnvironmentPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<EnvironmentPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Open the environment dropdown
     expect(screen.getByText('All Environments')).toBeInTheDocument();

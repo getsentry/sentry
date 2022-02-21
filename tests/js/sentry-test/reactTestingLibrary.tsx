@@ -39,13 +39,9 @@ function makeAllTheProviders({context, organization}: ProviderOptions) {
       <ContextProvider>
         <CacheProvider value={cache}>
           <ThemeProvider theme={lightTheme}>
-            {organization ? (
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            ) : (
-              children
-            )}
+            <OrganizationContext.Provider value={organization ?? null}>
+              {children}
+            </OrganizationContext.Provider>
           </ThemeProvider>
         </CacheProvider>
       </ContextProvider>

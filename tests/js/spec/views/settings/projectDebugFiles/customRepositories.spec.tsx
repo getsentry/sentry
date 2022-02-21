@@ -4,7 +4,7 @@ import {
   mountWithTheme,
   screen,
   userEvent,
-  waitFor,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -135,11 +135,9 @@ describe('Custom Repositories', function () {
     // Close Modal
     userEvent.click(screen.getByLabelText('Close Modal'));
 
-    await waitFor(() => {
-      expect(
-        screen.queryByText('This feature is not enabled on your Sentry installation.')
-      ).not.toBeInTheDocument();
-    });
+    await waitForElementToBeRemoved(() =>
+      screen.queryByText('This feature is not enabled on your Sentry installation.')
+    );
 
     // Renders disabled repository list
     rerender(
