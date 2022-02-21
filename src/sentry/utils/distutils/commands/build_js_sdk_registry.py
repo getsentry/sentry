@@ -26,7 +26,7 @@ def dump_registry(path, data):
     except OSError:
         pass
     with open(fn, "wt", encoding="utf-8") as f:
-        f.write(json.dumps(data, indent=2))
+        json.dump(data, f, indent=2)
         f.write("\n")
 
 
