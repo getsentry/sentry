@@ -12,7 +12,6 @@ interface FlamegraphOptionsMenuProps {
   canvasPoolManager: CanvasPoolManager;
   colorCoding: FlamegraphPreferences['colorCoding'];
   onColorCodingChange: (value: FlamegraphPreferences['colorCoding']) => void;
-  onHighlightRecursionChange: (value: boolean) => void;
 }
 
 function FlamegraphOptionsMenu({

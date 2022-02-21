@@ -46,7 +46,7 @@ function FlamegraphPreferencesReducer(
 }
 
 function useFlamegraphPreferences(
-  initialState: Partial<FlamegraphPreferences>
+  initialState: Partial<FlamegraphPreferences> = {}
 ): [FlamegraphPreferences, React.Dispatch<FlamegraphPreferencesAction>] {
   return useReducer(FlamegraphPreferencesReducer, {
     colorCoding: 'by symbol name',

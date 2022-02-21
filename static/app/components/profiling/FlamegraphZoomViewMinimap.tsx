@@ -17,7 +17,6 @@ interface FlamegraphZoomViewMinimapProps {
   colorCoding: FlamegraphPreferences['colorCoding'];
   flamegraph: Flamegraph;
   highlightRecursion: boolean;
-  searchResults: Record<string, FlamegraphFrame>;
   height?: number;
 }
 
@@ -25,7 +24,6 @@ function FlamegraphZoomViewMinimap({
   canvasPoolManager,
   flamegraph,
   colorCoding,
-  searchResults,
   highlightRecursion,
   height = 100,
 }: FlamegraphZoomViewMinimapProps): React.ReactElement {
@@ -100,7 +98,7 @@ function FlamegraphZoomViewMinimap({
 
     const drawRectangles = () => {
       flamegraphMiniMapRenderer.draw(
-        searchResults,
+        null,
         flamegraphMiniMapRenderer.configSpaceToPhysicalSpace
       );
     };
@@ -196,7 +194,6 @@ function FlamegraphZoomViewMinimap({
     flamegraphMiniMapRenderer,
     flamegraphMiniMapCanvasRef,
     flamegraphMiniMapOverlayCanvasRef,
-    searchResults,
   ]);
 
   React.useEffect(() => {

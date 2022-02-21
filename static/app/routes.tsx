@@ -1839,7 +1839,7 @@ function buildRoutes() {
       <Route
         path="flamegraph/"
         component={SafeLazyLoad}
-        componentPromise={() => import('sentry/views/profiling/flamegraphView')}
+        componentPromise={() => import('sentry/views/profiling/flamegraph')}
       />
     </Route>
   );
