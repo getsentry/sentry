@@ -13,7 +13,7 @@ type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
 
-type FlatValidationError = {
+export type FlatValidationError = {
   [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 

@@ -35,7 +35,7 @@ import {
 import BuildStep from '../buildStep';
 import BuildSteps from '../buildSteps';
 import ChooseDataSetStep from '../choseDataStep';
-import Header from '../header';
+import {Header} from '../header';
 import {DataSet, displayTypes} from '../utils';
 
 import Queries from './queries';

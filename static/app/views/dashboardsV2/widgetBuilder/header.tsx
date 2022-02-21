@@ -23,7 +23,7 @@ type Props = {
   onSave?: (event: React.MouseEvent) => void;
 };
 
-function Header({
+export function Header({
   title,
   orgSlug,
   goBackLocation,
@@ -98,5 +98,3 @@ function Header({
     </Layout.Header>
   );
 }
-
-export default Header;

@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -39,8 +41,10 @@ import Measurements, {
   MeasurementCollection,
 } from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
+import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
+import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
 import {
   generateIssueWidgetFieldOptions,
   generateIssueWidgetOrderOptions,
@@ -59,12 +63,12 @@ import {
 } from '../types';
 import WidgetCard from '../widgetCard';
 
-import {normalizeQueries} from './eventWidget/utils';
+import {mapErrors, normalizeQueries} from './eventWidget/utils';
 import BuildStep from './buildStep';
 import BuildSteps from './buildSteps';
 import {ColumnFields} from './columnFields';
-import Header from './header';
-import {DataSet, DisplayType, displayTypes} from './utils';
+import {Header} from './header';
+import {DataSet, DisplayType, displayTypes, FlatValidationError} from './utils';
 import YAxisSelector from './yAxisSelector';
 
 const DATASET_CHOICES: [DataSet, string][] = [
@@ -113,7 +117,6 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
-  onSave: (Widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
   tags: TagCollection;
@@ -122,6 +125,8 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   defaultWidgetQuery?: WidgetQuery;
   displayType?: DisplayType;
   end?: DateString;
+  onAddWidget?: (data: Widget) => void;
+  onUpdateWidget?: (nextWidget: Widget) => void;
   start?: DateString;
   statsPeriod?: string | null;
   widget?: Widget;
@@ -142,7 +147,7 @@ type State = {
 
 function WidgetBuilder({
   dashboard,
-  widget,
+  widget: widgetToBeUpdated,
   params,
   location,
   organization,
@@ -155,11 +160,15 @@ function WidgetBuilder({
   defaultTitle,
   defaultTableColumns,
   tags,
+  onAddWidget,
+  onUpdateWidget,
+  selectedDashboard,
+  router,
 }: Props) {
   const {widgetId, orgId, dashboardId} = params;
   const {source} = location.query;
 
-  const isEditing = defined(widget);
+  const isEditing = defined(widgetToBeUpdated);
   const orgSlug = organization.slug;
   const goBackLocation = {
     pathname: dashboardId
@@ -182,8 +191,10 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
+  const api = useApi();
+
   const [state, setState] = useState<State>(() => {
-    if (!widget) {
+    if (!widgetToBeUpdated) {
       return {
         title: defaultTitle ?? t('Custom Widget'),
         displayType: displayType ?? DisplayType.TABLE,
@@ -198,16 +209,16 @@ function WidgetBuilder({
     }
 
     return {
-      title: widget.title,
-      displayType: widget.displayType,
-      interval: widget.interval,
-      queries: normalizeQueries(widget.displayType, widget.queries),
+      title: widgetToBeUpdated.title,
+      displayType: widgetToBeUpdated.displayType,
+      interval: widgetToBeUpdated.interval,
+      queries: normalizeQueries(widgetToBeUpdated.displayType, widgetToBeUpdated.queries),
       errors: undefined,
       loading: false,
       dashboards: [],
       userHasModified: false,
-      dataSet: widget.widgetType
-        ? WIDGET_TYPE_TO_DATA_SET[widget.widgetType]
+      dataSet: widgetToBeUpdated.widgetType
+        ? WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType]
         : DataSet.EVENTS,
     };
   });
@@ -217,6 +228,21 @@ function WidgetBuilder({
   useEffect(() => {
     defaultFields();
   }, [state.displayType]);
+
+  const widgetType =
+    state.dataSet === DataSet.EVENTS
+      ? WidgetType.DISCOVER
+      : state.dataSet === DataSet.ISSUES
+      ? WidgetType.ISSUE
+      : WidgetType.METRICS;
+
+  const currentWidget = {
+    title: state.title,
+    displayType: state.displayType,
+    interval: state.interval,
+    queries: state.queries,
+    widgetType,
+  };
 
   function defaultFields() {
     setState(prevState => {
@@ -279,9 +305,9 @@ function WidgetBuilder({
       }
 
       newState.queries.push(
-        ...(widget?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[widget.widgetType] === newDataSet
-          ? widget.queries
+        ...(widgetToBeUpdated?.widgetType &&
+        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
+          ? widgetToBeUpdated.queries
           : [QUERIES[newDataSet]])
       );
 
@@ -350,6 +376,114 @@ function WidgetBuilder({
     }
   }
 
+  async function handleSubmitFromSelectedDashboard(
+    errors: FlatValidationError,
+    widgetData: Widget
+  ) {
+    // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
+    if (
+      !selectedDashboard ||
+      !(
+        dashboards.find(({title, id}) => {
+          return title === selectedDashboard?.label && id === selectedDashboard?.value;
+        }) || selectedDashboard.value === 'new'
+      )
+    ) {
+      errors.dashboard = t('This field may not be blank');
+      setState({...state, errors});
+    }
+    if (!Object.keys(errors).length && selectedDashboard) {
+      // closeModal();
+
+      const queryData: {
+        queryConditions: string[];
+        queryFields: string[];
+        queryNames: string[];
+        queryOrderby: string;
+      } = {
+        queryNames: [],
+        queryConditions: [],
+        queryFields: widgetData.queries[0].fields,
+        queryOrderby: widgetData.queries[0].orderby,
+      };
+
+      widgetData.queries.forEach(query => {
+        queryData.queryNames.push(query.name);
+        queryData.queryConditions.push(query.conditions);
+      });
+
+      const pathQuery = {
+        displayType: widgetData.displayType,
+        interval: widgetData.interval,
+        title: widgetData.title,
+        ...queryData,
+        // Propagate page filters
+        ...selection.datetime,
+        project: selection.projects,
+        environment: selection.environments,
+      };
+
+      if (selectedDashboard.value === 'new') {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboards/new/`,
+          query: pathQuery,
+        });
+        return;
+      }
+
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboard/${selectedDashboard.value}/`,
+        query: pathQuery,
+      });
+    }
+  }
+
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+
+    setState({...state, loading: true});
+
+    const widgetData: Widget = assignTempId(currentWidget);
+
+    if (widgetToBeUpdated) {
+      widgetData.layout = widgetToBeUpdated?.layout;
+    }
+
+    // Only Table and Top N views need orderby
+    if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
+      widgetData.queries.forEach(query => {
+        query.orderby = '';
+      });
+    }
+
+    let errors: FlatValidationError = {};
+
+    try {
+      await validateWidget(api, organization.slug, widgetData);
+
+      if (!!onUpdateWidget && !!widgetToBeUpdated) {
+        onUpdateWidget({id: widgetToBeUpdated?.id, ...widgetData});
+        addSuccessMessage(t('Updated widget.'));
+        return;
+      }
+
+      if (!!onAddWidget) {
+        onAddWidget(widgetData);
+        addSuccessMessage(t('Added widget.'));
+      }
+      // if (source === DashboardWidgetSource.DASHBOARDS) {
+      //   closeModal();
+      // }
+    } catch (err) {
+      errors = mapErrors(err?.responseJSON ?? {}, {});
+    } finally {
+      setState({...state, errors, loading: false});
+      // if (omitDashboardProp) {
+      //   this.handleSubmitFromSelectedDashboard(errors, widgetData);
+      // }
+    }
+  }
+
   function getAmendedFieldOptions(measurements: MeasurementCollection) {
     return generateFieldOptions({
       organization,
@@ -372,13 +506,6 @@ function WidgetBuilder({
       </SentryDocumentTitle>
     );
   }
-
-  const widgetType =
-    state.dataSet === DataSet.EVENTS
-      ? WidgetType.DISCOVER
-      : state.dataSet === DataSet.ISSUES
-      ? WidgetType.ISSUE
-      : WidgetType.METRICS;
 
   const canAddSearchConditions =
     [
@@ -411,6 +538,7 @@ function WidgetBuilder({
             dashboardTitle={dashboard.title}
             goBackLocation={goBackLocation}
             onChangeTitle={newTitle => setState({...state, title: newTitle})}
+            onSave={handleSave}
           />
           <Layout.Body>
             <BuildSteps>
@@ -432,13 +560,7 @@ function WidgetBuilder({
                   <WidgetCard
                     organization={organization}
                     selection={pageFilters}
-                    widget={{
-                      title: state.title,
-                      displayType: state.displayType,
-                      interval: state.interval,
-                      queries: state.queries,
-                      widgetType,
-                    }}
+                    widget={currentWidget}
                     isEditing={false}
                     widgetLimitReached={false}
                     renderErrorMessage={errorMessage =>

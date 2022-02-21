@@ -30,7 +30,7 @@ import {DashboardDetails} from '../../types';
 import BuildStep from '../buildStep';
 import BuildSteps from '../buildSteps';
 import ChooseDataSetStep from '../choseDataStep';
-import Header from '../header';
+import {Header} from '../header';
 import {DataSet, DisplayType, displayTypes} from '../utils';
 
 import Card from './card';
