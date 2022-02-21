@@ -57,7 +57,7 @@ export const doMetricsRequest = (
 
   const urlQuery = Object.fromEntries(
     Object.entries({
-      field,
+      field: field.filter(f => !!f),
       cursor,
       end,
       environment,

@@ -62,7 +62,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       'tempId',
       'widgetType',
     ];
-    const ignoredQueryProps = ['name'];
+    const ignoredQueryProps = ['name', 'fields'];
     const widgetQueryNames = widget.queries.map(q => q.name);
     const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
 
@@ -70,13 +70,20 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       limit !== prevProps.limit ||
       organization.slug !== prevProps.organization.slug ||
       !isSelectionEqual(selection, prevProps.selection) ||
+      // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
       !isEqual(
         omit(widget, ignroredWidgetProps),
         omit(prevProps.widget, ignroredWidgetProps)
       ) ||
+      // If the queries changed (ignore unimportant name, + fields as they are handled lower)
       !isEqual(
         widget.queries.map(q => omit(q, ignoredQueryProps)),
         prevProps.widget.queries.map(q => omit(q, ignoredQueryProps))
+      ) ||
+      // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Overlay)
+      !isEqual(
+        widget.queries.flatMap(q => q.fields.filter(field => !!field)),
+        prevProps.widget.queries.flatMap(q => q.fields.filter(field => !!field))
       )
     ) {
       this.fetchData();
