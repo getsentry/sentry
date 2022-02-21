@@ -186,11 +186,11 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      expect(screen.getByLabelText('change')).toBeInTheDocument();
-      expect(screen.getByLabelText('change')).toBeChecked();
+      expect(screen.getByLabelText('Select Percent Change')).toBeInTheDocument();
+      expect(screen.getByLabelText('Select Percent Change')).toBeChecked();
 
-      userEvent.click(screen.getByLabelText('count'));
-      await waitFor(() => expect(screen.getByLabelText('count')).toBeChecked());
+      userEvent.click(screen.getByLabelText('Select Count'));
+      await waitFor(() => expect(screen.getByLabelText('Select Count')).toBeChecked());
 
       userEvent.click(screen.getByLabelText('Save Rule'));
 
