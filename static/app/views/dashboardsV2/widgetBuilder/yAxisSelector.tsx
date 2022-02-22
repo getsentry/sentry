@@ -30,7 +30,6 @@ type Props = {
   // TODO: For checking against METRICS widget type
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
-  style?: React.CSSProperties;
 };
 
 function DeleteButton({onDelete}) {
@@ -57,7 +56,6 @@ function AddButton({title, onAdd}) {
 export function YAxisSelector({
   displayType,
   fields,
-  style,
   fieldOptions,
   onChange,
   errors,
@@ -232,9 +230,9 @@ export function YAxisSelector({
       data-test-id="y-axis"
       label={t('Y-Axis')}
       inline={false}
-      style={{padding: `${space(2)} 0 24px 0`, ...(style ?? {})}}
-      flexibleControlStateSize
+      style={{padding: `${space(2)} 0 24px 0`}}
       error={errors?.fields}
+      flexibleControlStateSize
       required
       stacked
     >
