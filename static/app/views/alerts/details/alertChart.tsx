@@ -54,15 +54,6 @@ class AlertChart extends React.PureComponent<Props, State> {
     );
   }
 
-  renderChartFooter() {
-    return (
-      <ChartFooter>
-        <FooterHeader>{t('Alerts Triggered')}</FooterHeader>
-        <FooterValue>{'88'}</FooterValue>
-      </ChartFooter>
-    );
-  }
-
   renderEmpty() {
     return (
       <ChartPanel>
@@ -85,7 +76,10 @@ class AlertChart extends React.PureComponent<Props, State> {
             fixed: <Placeholder height="200px" testId="skeleton-ui" />,
           })}
         </StyledPanelBody>
-        {this.renderChartFooter()}
+        <ChartFooter>
+          <FooterHeader>{t('Alerts Triggered')}</FooterHeader>
+          <FooterValue>{'88'}</FooterValue>
+        </ChartFooter>
       </ChartPanel>
     );
   }
