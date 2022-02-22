@@ -6,7 +6,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -121,11 +120,9 @@ function WidgetViewerModal(props: Props) {
           <Button type="button" onClick={() => undefined}>
             {t('Edit Widget')}
           </Button>
-          <Link to={path}>
-            <Button priority="primary" type="button" onClick={() => undefined}>
-              {openLabel}
-            </Button>
-          </Link>
+          <Button to={path} priority="primary" type="button">
+            {openLabel}
+          </Button>
         </ButtonBar>
       </StyledFooter>
     </React.Fragment>
