@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import ApiToken
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils import APITestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -30,13 +31,16 @@ class DummyFailEndpoint(Endpoint):
 class RateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(0, 1),
-            RateLimitCategory.USER: RateLimit(0, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(0, 1),
+    rate_limits = RateLimitConfig(
+        group="foo",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(0, 1),
+                RateLimitCategory.USER: RateLimit(0, 1),
+                RateLimitCategory.ORGANIZATION: RateLimit(0, 1),
+            },
         },
-    }
+    )
 
     def get(self, request):
         return Response({"ok": True})
@@ -83,11 +87,15 @@ class LogCaptureAPITestCase(APITestCase):
     def inject_fixtures(self, caplog):
         self._caplog = caplog
 
+    @property
+    def captured_logs(self):
+        return [r for r in self._caplog.records if r.name == "sentry.access.api"]
+
     def assert_access_log_recorded(self):
         sentinel = object()
-        for record in self._caplog.records:
+        for record in self.captured_logs:
             for field in access_log_fields:
-                assert getattr(record, field, sentinel) != sentinel
+                assert getattr(record, field, sentinel) != sentinel, field
 
     @property
     def captured_logs(self):
@@ -102,6 +110,8 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
         self._caplog.set_level(logging.INFO, logger="api.access")
         self.get_error_response(status_code=429)
         self.assert_access_log_recorded()
+        # no token because the endpoint was not hit
+        assert self.captured_logs[0].token_type == "None"
 
 
 class TestAccessLogSuccess(LogCaptureAPITestCase):
@@ -113,7 +123,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         self.login_as(user=self.create_user())
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
         self.assert_access_log_recorded()
-        assert self._caplog.records[0].token_type == "ApiToken"
+        assert self.captured_logs[0].token_type == "ApiToken"
 
 
 class TestAccessLogFail(LogCaptureAPITestCase):
