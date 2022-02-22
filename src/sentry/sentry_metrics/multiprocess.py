@@ -67,6 +67,7 @@ def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapp
     consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
         cluster_name,
         override_params={
+            "auto.offset.reset": auto_offset_reset,
             "enable.auto.commit": False,
             "enable.auto.offset.store": False,
             "group.id": group_id,
