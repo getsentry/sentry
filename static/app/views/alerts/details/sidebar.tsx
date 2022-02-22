@@ -5,8 +5,10 @@ import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {PanelBody} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
-import {t} from 'sentry/locale';
+import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor} from 'sentry/types';
@@ -17,6 +19,75 @@ type Props = {
 };
 
 class Sidebar extends PureComponent<Props> {
+  renderConditions() {
+    return (
+      <div>
+        <PanelBody>
+          <Step>
+            <StepConnector />
+            <StepContainer>
+              <ChevronContainer>
+                <IconChevron color="gray200" isCircled direction="right" size="sm" />
+              </ChevronContainer>
+              <div>
+                <StepLead>
+                  {tct('[when:When] [selector] of the following happens', {
+                    when: <Badge />,
+                    selector: 'any',
+                  })}
+                </StepLead>
+                <ConditionsBadge>{'A new issue is created'}</ConditionsBadge>
+                <ConditionsBadge>
+                  {'Issue has more than 100 events in 1 min'}
+                </ConditionsBadge>
+                <ConditionsBadge>
+                  {'Issue changes state from resolved to unresolved'}
+                </ConditionsBadge>
+              </div>
+            </StepContainer>
+          </Step>
+          <Step>
+            <StepConnector />
+            <StepContainer>
+              <ChevronContainer>
+                <IconChevron color="gray200" isCircled direction="right" size="sm" />
+              </ChevronContainer>
+              <StepContent>
+                <StepLead>
+                  {tct('[if:If] [selector] of these filters match', {
+                    if: <Badge />,
+                    selector: 'all',
+                  })}
+                </StepLead>
+                <ConditionsBadge>{'Assigned to #workflow'}</ConditionsBadge>
+              </StepContent>
+            </StepContainer>
+          </Step>
+          <Step>
+            <StepContainer>
+              <ChevronContainer>
+                <IconChevron isCircled color="gray200" direction="right" size="sm" />
+              </ChevronContainer>
+              <StepContent>
+                <StepLead>
+                  {tct('[then:Then] perform these actions', {
+                    then: <Badge />,
+                  })}
+                </StepLead>
+                <ConditionsBadge>
+                  {'Send notification to Slack #workflow channel'}
+                </ConditionsBadge>
+                <ConditionsBadge>
+                  {'Only send one notification every 30 minutes'}
+                </ConditionsBadge>
+              </StepContent>
+            </StepContainer>
+          </Step>
+        </PanelBody>
+      </div>
+    );
+  }
+
   render() {
     const {rule} = this.props;
     const dateTriggered = new Date(0);
@@ -47,7 +118,7 @@ class Sidebar extends PureComponent<Props> {
         </StatusContainer>
         <SidebarGroup>
           <Heading>{t('Alert Conditions')}</Heading>
-          <p>When if then</p>
+          {this.renderConditions()}
         </SidebarGroup>
         <SidebarGroup>
           <Heading>{t('Alert Rule Details')}</Heading>
@@ -111,6 +182,67 @@ const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
   margin-bottom: ${space(1.5)};
+`;
+
+const Step = styled('div')`
+  position: relative;
+  margin-top: ${space(4)};
+
+  :first-child {
+    margin-top: ${space(3)};
+  }
+`;
+
+const StepContainer = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  flex-grow: 1;
+`;
+
+const StepContent = styled('div')``;
+
+const StepConnector = styled('div')`
+  position: absolute;
+  height: 100%;
+  top: 28px;
+  left: 19px;
+  border-right: 1px ${p => p.theme.gray200} dashed;
+`;
+
+const StepLead = styled('div')`
+  margin-bottom: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 600;
+`;
+
+const ChevronContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(1.5)};
+`;
+
+const Badge = styled('span')`
+  display: inline-block;
+  background-color: ${p => p.theme.purple300};
+  padding: 0 ${space(0.75)};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.white};
+  text-transform: uppercase;
+  text-align: center;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  line-height: 1.5;
+`;
+
+const ConditionsBadge = styled('span')`
+  display: block;
+  background-color: ${p => p.theme.surface100};
+  padding: 0 ${space(0.75)};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(1)};
+  width: fit-content;
 `;
 
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
