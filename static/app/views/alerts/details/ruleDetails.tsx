@@ -12,7 +12,8 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
-import Sidebar from 'sentry/views/alerts/details/sidebar';
+
+import Sidebar from './sidebar';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;

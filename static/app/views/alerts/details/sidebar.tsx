@@ -1,7 +1,7 @@
-import * as React from 'react';
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -11,7 +11,6 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
-import AlertBadge from 'sentry/views/alerts/alertBadge';
 
 type Props = {
   rule: IssueAlertRule;
