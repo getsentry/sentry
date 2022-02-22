@@ -1202,6 +1202,11 @@ def _find_existing_grouphash(
             for h in GroupHash.objects.filter(project=project, hash__in=hierarchical_hashes)
         }
 
+        # Look for splits:
+        # 1. If we find a hash with SPLIT state at `n`, we want to use
+        #    `n + 1` as the root hash.
+        # 2. If we find a hash associated to a group that is more specific
+        #    than the primary hash, we want to use that hash as root hash.
         for hash in reversed(hierarchical_hashes):
             group_hash = hierarchical_grouphashes.get(hash)
 
@@ -1215,6 +1220,10 @@ def _find_existing_grouphash(
                 all_grouphashes.append(group_hash)
 
                 if group_hash.group_id is not None:
+                    # Even if we did not find a hash with SPLIT state, we want to use
+                    # the most specific hierarchical hash as root hash if it was already
+                    # associated to a group.
+                    # See `move_all_events` test case
                     break
 
         if root_hierarchical_hash is None:
