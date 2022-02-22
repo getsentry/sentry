@@ -19,6 +19,7 @@ export function DashboardSelector({dashboards, disabled, onChange, error}: Props
   return (
     <Field inline={false} flexibleControlStateSize stacked error={error} required>
       <SelectControl
+        menuPlacement="auto"
         name="dashboard"
         options={[
           {label: t('+ Create New Dashboard'), value: 'new'},

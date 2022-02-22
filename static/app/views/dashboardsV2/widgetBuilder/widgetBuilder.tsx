@@ -439,10 +439,27 @@ function WidgetBuilder({
     }
   }
 
-  async function submitFromSelectedDashboard(
-    errors: FlatValidationError,
-    widgetData: Widget
-  ) {
+  async function fetchDashboards() {
+    const promise: Promise<DashboardListItem[]> = api.requestPromise(
+      `/organizations/${organization.slug}/dashboards/`,
+      {
+        method: 'GET',
+        query: {sort: 'myDashboardsAndRecentlyViewed'},
+      }
+    );
+
+    try {
+      const dashboards = await promise;
+      setState({...state, dashboards, loading: false});
+    } catch (error) {
+      const errorMessage = t('Unable to fetch dashboards');
+      addErrorMessage(errorMessage);
+      handleXhrErrorResponse(errorMessage)(error);
+      setState({...state, loading: false});
+    }
+  }
+
+  function submitFromSelectedDashboard(errors: FlatValidationError, widgetData: Widget) {
     // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
     if (
       !state.selectedDashboard ||
@@ -480,26 +497,6 @@ function WidgetBuilder({
       };
 
       goBack(query);
-    }
-  }
-
-  async function fetchDashboards() {
-    const promise: Promise<DashboardListItem[]> = api.requestPromise(
-      `/organizations/${organization.slug}/dashboards/`,
-      {
-        method: 'GET',
-        query: {sort: 'myDashboardsAndRecentlyViewed'},
-      }
-    );
-
-    try {
-      const dashboards = await promise;
-      setState({...state, dashboards, loading: false});
-    } catch (error) {
-      const errorMessage = t('Unable to fetch dashboards');
-      addErrorMessage(errorMessage);
-      handleXhrErrorResponse(errorMessage)(error);
-      setState({...state, loading: false});
     }
   }
 
