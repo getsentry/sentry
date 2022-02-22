@@ -71,6 +71,8 @@ def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapp
             "enable.auto.commit": False,
             "enable.auto.offset.store": False,
             "group.id": group_id,
+            # `default.topic.config` is now deprecated.
+            # More details: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration)
             "default.topic.config": {"auto.offset.reset": auto_offset_reset},
             # overridden to reduce memory usage when there's a large backlog
             "queued.max.messages.kbytes": DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
