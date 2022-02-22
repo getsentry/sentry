@@ -7,14 +7,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {Widget} from 'sentry/views/dashboardsV2/types';
 
-import {DisplayType} from '../utils';
+import {DisplayType, FlatValidationError} from '../utils';
 
 type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
-};
-
-export type FlatValidationError = {
-  [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
 export function mapErrors(

@@ -1,5 +1,9 @@
 import {t} from 'sentry/locale';
 
+export type FlatValidationError = {
+  [key: string]: string | FlatValidationError[] | FlatValidationError;
+};
+
 export enum DisplayType {
   AREA = 'area',
   BAR = 'bar',

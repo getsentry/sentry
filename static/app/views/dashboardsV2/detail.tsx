@@ -110,18 +110,6 @@ class DashboardDetail extends Component<Props, State> {
     }
   }
 
-  updateRouteAfterSavingWidget() {
-    if (this.isWidgetBuilderRouter) {
-      const {router, organization, params} = this.props;
-      const {dashboardId} = params;
-      if (dashboardId) {
-        router.replace(`/organizations/${organization.slug}/dashboard/${dashboardId}/`);
-        return;
-      }
-      router.replace(`/organizations/${organization.slug}/dashboards/new/`);
-    }
-  }
-
   updateModifiedDashboard(dashboardState: DashboardState) {
     const {dashboard} = this.props;
     switch (dashboardState) {
@@ -472,18 +460,15 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onUpdateWidget = (widgets: Widget[]) => {
-    this.setState(
-      (state: State) => ({
-        ...state,
-        widgetToBeUpdated: undefined,
-        widgetLimitReached: widgets.length >= MAX_WIDGETS,
-        modifiedDashboard: {
-          ...(state.modifiedDashboard || this.props.dashboard),
-          widgets,
-        },
-      }),
-      this.updateRouteAfterSavingWidget
-    );
+    this.setState((state: State) => ({
+      ...state,
+      widgetToBeUpdated: undefined,
+      widgetLimitReached: widgets.length >= MAX_WIDGETS,
+      modifiedDashboard: {
+        ...(state.modifiedDashboard || this.props.dashboard),
+        widgets,
+      },
+    }));
   };
 
   renderWidgetBuilder(dashboard: DashboardDetails) {
@@ -493,8 +478,7 @@ class DashboardDetail extends Component<Props, State> {
     return isValidElement(children)
       ? cloneElement(children, {
           dashboard: modifiedDashboard ?? dashboard,
-          onAddWidget: this.handleAddCustomWidget,
-          onUpdateWidget: this.onUpdateWidget,
+          onSave: this.onUpdateWidget,
           widget: widgetToBeUpdated,
         })
       : children;

@@ -37,6 +37,7 @@ import {
   getAggregateAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Measurements, {
   MeasurementCollection,
 } from 'sentry/utils/measurements/measurements';
@@ -44,7 +45,20 @@ import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBr
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
-import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
+import {
+  assignTempId,
+  enforceWidgetHeightValues,
+  generateWidgetsAfterCompaction,
+  getDefaultWidgetHeight,
+} from 'sentry/views/dashboardsV2/layoutUtils';
+import {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardWidgetSource,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 import {
   generateIssueWidgetFieldOptions,
   generateIssueWidgetOrderOptions,
@@ -53,20 +67,13 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
-import {
-  DashboardDetails,
-  DashboardListItem,
-  DashboardWidgetSource,
-  Widget,
-  WidgetQuery,
-  WidgetType,
-} from '../types';
 import WidgetCard from '../widgetCard';
 
 import {mapErrors, normalizeQueries} from './eventWidget/utils';
 import BuildStep from './buildStep';
 import BuildSteps from './buildSteps';
 import {ColumnFields} from './columnFields';
+import {DashboardSelector} from './dashboardSelector';
 import {Header} from './header';
 import {DataSet, DisplayType, displayTypes, FlatValidationError} from './utils';
 import YAxisSelector from './yAxisSelector';
@@ -115,8 +122,16 @@ type RouteParams = {
   widgetId?: number;
 };
 
+type QueryData = {
+  queryConditions: string[];
+  queryFields: string[];
+  queryNames: string[];
+  queryOrderby: string;
+};
+
 type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
+  onSave: (widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
   tags: TagCollection;
@@ -125,8 +140,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   defaultWidgetQuery?: WidgetQuery;
   displayType?: DisplayType;
   end?: DateString;
-  onAddWidget?: (data: Widget) => void;
-  onUpdateWidget?: (nextWidget: Widget) => void;
   start?: DateString;
   statsPeriod?: string | null;
   widget?: Widget;
@@ -141,7 +154,7 @@ type State = {
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
-  errors?: Record<'orderby' | 'conditions' | 'queries', any>;
+  errors?: Record<string, any>;
   selectedDashboard?: SelectValue<string>;
 };
 
@@ -160,22 +173,14 @@ function WidgetBuilder({
   defaultTitle,
   defaultTableColumns,
   tags,
-  onAddWidget,
-  onUpdateWidget,
-  selectedDashboard,
+  onSave,
   router,
 }: Props) {
   const {widgetId, orgId, dashboardId} = params;
   const {source} = location.query;
 
-  const isEditing = defined(widgetToBeUpdated);
+  const isEditing = defined(widgetId);
   const orgSlug = organization.slug;
-  const goBackLocation = {
-    pathname: dashboardId
-      ? `/organizations/${orgId}/dashboard/${dashboardId}/`
-      : `/organizations/${orgId}/dashboards/new/`,
-    query: {...location.query, dataSet: undefined},
-  };
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -186,7 +191,7 @@ function WidgetBuilder({
     : selection;
 
   // when opening from discover or issues page, the user selects the dashboard in the widget UI
-  const omitDashboardProp = [
+  const notDashboardsOrigin = [
     DashboardWidgetSource.DISCOVERV2,
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
@@ -201,7 +206,7 @@ function WidgetBuilder({
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...QUERIES.events}],
         errors: undefined,
-        loading: !!omitDashboardProp,
+        loading: !!notDashboardsOrigin,
         dashboards: [],
         userHasModified: false,
         dataSet: DataSet.EVENTS,
@@ -226,8 +231,16 @@ function WidgetBuilder({
   const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
 
   useEffect(() => {
-    defaultFields();
+    if (!notDashboardsOrigin) {
+      defaultFields();
+    }
   }, [state.displayType]);
+
+  useEffect(() => {
+    if (notDashboardsOrigin) {
+      fetchDashboards();
+    }
+  }, [source]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -244,6 +257,14 @@ function WidgetBuilder({
     widgetType,
   };
 
+  const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
+  const previousLocation = {
+    pathname: currentDashboardId
+      ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
+      : `/organizations/${orgId}/dashboards/new/`,
+    query: {...location.query},
+  };
+
   function defaultFields() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
@@ -258,10 +279,10 @@ function WidgetBuilder({
         // If the Widget is an issue widget,
         if (
           prevState.displayType === DisplayType.TABLE &&
-          widget?.widgetType &&
-          WIDGET_TYPE_TO_DATA_SET[widget.widgetType] === DataSet.ISSUES
+          widgetToBeUpdated?.widgetType &&
+          WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES
         ) {
-          set(newState, 'queries', widget.queries);
+          set(newState, 'queries', widgetToBeUpdated.queries);
           set(newState, 'dataSet', DataSet.ISSUES);
           return {...newState, errors: undefined};
         }
@@ -376,71 +397,7 @@ function WidgetBuilder({
     }
   }
 
-  async function handleSubmitFromSelectedDashboard(
-    errors: FlatValidationError,
-    widgetData: Widget
-  ) {
-    // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
-    if (
-      !selectedDashboard ||
-      !(
-        dashboards.find(({title, id}) => {
-          return title === selectedDashboard?.label && id === selectedDashboard?.value;
-        }) || selectedDashboard.value === 'new'
-      )
-    ) {
-      errors.dashboard = t('This field may not be blank');
-      setState({...state, errors});
-    }
-    if (!Object.keys(errors).length && selectedDashboard) {
-      // closeModal();
-
-      const queryData: {
-        queryConditions: string[];
-        queryFields: string[];
-        queryNames: string[];
-        queryOrderby: string;
-      } = {
-        queryNames: [],
-        queryConditions: [],
-        queryFields: widgetData.queries[0].fields,
-        queryOrderby: widgetData.queries[0].orderby,
-      };
-
-      widgetData.queries.forEach(query => {
-        queryData.queryNames.push(query.name);
-        queryData.queryConditions.push(query.conditions);
-      });
-
-      const pathQuery = {
-        displayType: widgetData.displayType,
-        interval: widgetData.interval,
-        title: widgetData.title,
-        ...queryData,
-        // Propagate page filters
-        ...selection.datetime,
-        project: selection.projects,
-        environment: selection.environments,
-      };
-
-      if (selectedDashboard.value === 'new') {
-        router.push({
-          pathname: `/organizations/${organization.slug}/dashboards/new/`,
-          query: pathQuery,
-        });
-        return;
-      }
-
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboard/${selectedDashboard.value}/`,
-        query: pathQuery,
-      });
-    }
-  }
-
-  async function handleSave(event: React.FormEvent) {
-    event.preventDefault();
-
+  async function handleSave() {
     setState({...state, loading: true});
 
     const widgetData: Widget = assignTempId(currentWidget);
@@ -461,27 +418,109 @@ function WidgetBuilder({
     try {
       await validateWidget(api, organization.slug, widgetData);
 
-      if (!!onUpdateWidget && !!widgetToBeUpdated) {
-        onUpdateWidget({id: widgetToBeUpdated?.id, ...widgetData});
-        addSuccessMessage(t('Updated widget.'));
+      if (!!widgetToBeUpdated) {
+        updateWidget(widgetToBeUpdated, widgetData);
         return;
       }
 
-      if (!!onAddWidget) {
-        onAddWidget(widgetData);
-        addSuccessMessage(t('Added widget.'));
-      }
-      // if (source === DashboardWidgetSource.DASHBOARDS) {
-      //   closeModal();
-      // }
+      onSave([...dashboard.widgets, widgetData]);
+      addSuccessMessage(t('Added widget.'));
     } catch (err) {
       errors = mapErrors(err?.responseJSON ?? {}, {});
     } finally {
       setState({...state, errors, loading: false});
-      // if (omitDashboardProp) {
-      //   this.handleSubmitFromSelectedDashboard(errors, widgetData);
-      // }
+
+      if (notDashboardsOrigin) {
+        submitFromSelectedDashboard(errors, widgetData);
+        return;
+      }
+
+      goBack();
     }
+  }
+
+  async function submitFromSelectedDashboard(
+    errors: FlatValidationError,
+    widgetData: Widget
+  ) {
+    // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
+    if (
+      !state.selectedDashboard ||
+      !(
+        state.dashboards.find(({title, id}) => {
+          return (
+            title === state.selectedDashboard?.label &&
+            id === state.selectedDashboard?.value
+          );
+        }) || state.selectedDashboard.value === 'new'
+      )
+    ) {
+      errors.dashboard = t('This field may not be blank');
+      setState({...state, errors});
+    }
+
+    if (!Object.keys(errors).length && state.selectedDashboard) {
+      const queryData: QueryData = {
+        queryNames: [],
+        queryConditions: [],
+        queryFields: widgetData.queries[0].fields,
+        queryOrderby: widgetData.queries[0].orderby,
+      };
+
+      widgetData.queries.forEach(query => {
+        queryData.queryNames.push(query.name);
+        queryData.queryConditions.push(query.conditions);
+      });
+
+      const query = {
+        displayType: widgetData.displayType,
+        interval: widgetData.interval,
+        title: widgetData.title,
+        ...(queryData ?? {}),
+      };
+
+      goBack(query);
+    }
+  }
+
+  async function fetchDashboards() {
+    const promise: Promise<DashboardListItem[]> = api.requestPromise(
+      `/organizations/${organization.slug}/dashboards/`,
+      {
+        method: 'GET',
+        query: {sort: 'myDashboardsAndRecentlyViewed'},
+      }
+    );
+
+    try {
+      const dashboards = await promise;
+      setState({...state, dashboards, loading: false});
+    } catch (error) {
+      const errorMessage = t('Unable to fetch dashboards');
+      addErrorMessage(errorMessage);
+      handleXhrErrorResponse(errorMessage)(error);
+      setState({...state, loading: false});
+    }
+  }
+
+  function updateWidget(prevWidget: Widget, nextWidget: Widget) {
+    let nextWidgetList = [...dashboard.widgets];
+    const updateIndex = nextWidgetList.indexOf(prevWidget);
+    const nextWidgetData = {...nextWidget, id: prevWidget.id};
+
+    // Only modify and re-compact if the default height has changed
+    if (
+      getDefaultWidgetHeight(prevWidget.displayType) !==
+      getDefaultWidgetHeight(nextWidget.displayType)
+    ) {
+      nextWidgetList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+      nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
+    } else {
+      nextWidgetList[updateIndex] = nextWidgetData;
+    }
+
+    onSave(nextWidgetList);
+    addSuccessMessage(t('Updated widget.'));
   }
 
   function getAmendedFieldOptions(measurements: MeasurementCollection) {
@@ -493,15 +532,19 @@ function WidgetBuilder({
     });
   }
 
-  if (
-    isEditing &&
-    (!defined(widgetId) ||
-      !dashboard.widgets.find(dashboardWidget => dashboardWidget.id === String(widgetId)))
-  ) {
+  function goBack(query?: Record<string, any>) {
+    if (query) {
+      previousLocation.query = {...previousLocation.query, ...query};
+    }
+
+    router.push(previousLocation);
+  }
+
+  if (isEditing && !dashboard.widgets.some(({id}) => id === String(widgetId))) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
-          <LoadingError message={t('Widget not found.')} />
+          <LoadingError message={t('The widget you want to edit was not found.')} />
         </PageContent>
       </SentryDocumentTitle>
     );
@@ -536,7 +579,8 @@ function WidgetBuilder({
             orgSlug={orgSlug}
             title={state.title}
             dashboardTitle={dashboard.title}
-            goBackLocation={goBackLocation}
+            goBackLocation={previousLocation}
+            isEditing={isEditing}
             onChangeTitle={newTitle => setState({...state, title: newTitle})}
             onSave={handleSave}
           />
@@ -662,7 +706,7 @@ function WidgetBuilder({
                         inline={false}
                         flexibleControlStateSize
                         stacked
-                        error={state.errors?.[queryIndex].conditions}
+                        error={state.errors?.[queryIndex]?.conditions}
                       >
                         <SearchConditionsWrapper>
                           <Search
@@ -786,6 +830,23 @@ function WidgetBuilder({
                       />
                     )}
                   </Field>
+                </BuildStep>
+              )}
+              {notDashboardsOrigin && (
+                <BuildStep
+                  title={t('Choose your dashboard')}
+                  description={t(
+                    "Choose which dashboard you'd like to add this query to. It will appear as a widget."
+                  )}
+                >
+                  <DashboardSelector
+                    error={state.errors?.dashboard}
+                    dashboards={state.dashboards}
+                    onChange={selectedDashboard =>
+                      setState({...state, selectedDashboard})
+                    }
+                    disabled={state.loading}
+                  />
                 </BuildStep>
               )}
             </BuildSteps>

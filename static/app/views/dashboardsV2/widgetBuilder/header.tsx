@@ -54,7 +54,6 @@ export function Header({
             value={title}
             onChange={onChangeTitle}
             errorMessage={t('Please set a title for this widget')}
-            successMessage={t('Widget title updated successfully')}
           />
         </Layout.Title>
       </Layout.HeaderContent>
