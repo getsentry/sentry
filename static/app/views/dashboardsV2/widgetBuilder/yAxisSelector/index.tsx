@@ -123,7 +123,7 @@ export function YAxisSelector({
         return true;
       }
 
-      if (fieldValue.kind !== 'function') {
+      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
         return true;
       }
 
@@ -207,7 +207,7 @@ export function YAxisSelector({
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
               otherColumns={fields}
             />
-            {(canDelete || fieldValue.kind === 'equation') && (
+            {(canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
               <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
             )}
           </QueryFieldWrapper>
