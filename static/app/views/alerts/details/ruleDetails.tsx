@@ -208,6 +208,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               utc={utc ?? null}
               onUpdate={this.handleUpdateDatetime}
             />
+            <AlertChart organization={organization} orgId={orgId} />
             <AlertRuleIssuesList
               organization={organization}
               project={project}
@@ -216,7 +217,6 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               end={end ?? null}
               utc={utc ?? null}
             />
-            <AlertChart organization={organization} orgId={orgId} />
           </Layout.Main>
           <Layout.Side>
             <Sidebar rule={rule} />
