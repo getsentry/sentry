@@ -18,6 +18,7 @@ import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widge
 export type WidgetViewerModalOptions = {
   organization: Organization;
   widget: Widget;
+  onEdit?: () => void;
 };
 
 type Props = ModalRenderProps &
@@ -83,7 +84,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const {Footer, Body, Header, widget} = props;
+  const {Footer, Body, Header, widget, onEdit} = props;
 
   const StyledHeader = styled(Header)`
     ${headerCss}
@@ -101,7 +102,7 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={() => undefined}>
+          <Button type="button" onClick={onEdit}>
             {t('Edit Widget')}
           </Button>
           <Button priority="primary" type="button" onClick={() => undefined}>
