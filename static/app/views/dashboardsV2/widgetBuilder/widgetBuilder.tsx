@@ -274,7 +274,7 @@ function WidgetBuilder({
     );
   }
 
-  function handleChangeField(newFields: QueryFieldValue[]) {
+  function handleChangeYAxisOrColumnField(newFields: QueryFieldValue[]) {
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
@@ -414,20 +414,17 @@ function WidgetBuilder({
                 >
                   {state.dataSet === DataSet.EVENTS ? (
                     <Measurements>
-                      {({measurements}) => {
-                        const amendedFieldOptions = getAmendedFieldOptions(measurements);
-                        return (
-                          <ColumnFields
-                            displayType={state.displayType}
-                            organization={organization}
-                            widgetType={widgetType}
-                            columns={explodedFields}
-                            errors={state.errors?.queries}
-                            fieldOptions={amendedFieldOptions}
-                            onChange={handleChangeField}
-                          />
-                        );
-                      }}
+                      {({measurements}) => (
+                        <ColumnFields
+                          displayType={state.displayType}
+                          organization={organization}
+                          widgetType={widgetType}
+                          columns={explodedFields}
+                          errors={state.errors?.queries}
+                          fieldOptions={getAmendedFieldOptions(measurements)}
+                          onChange={handleChangeYAxisOrColumnField}
+                        />
+                      )}
                     </Measurements>
                   ) : (
                     <ColumnFields
@@ -459,19 +456,16 @@ function WidgetBuilder({
                   description="Description of what this means"
                 >
                   <Measurements>
-                    {({measurements}) => {
-                      const amendedFieldOptions = getAmendedFieldOptions(measurements);
-                      return (
-                        <YAxisSelector
-                          widgetType={widgetType}
-                          displayType={state.displayType}
-                          fields={explodedFields}
-                          fieldOptions={amendedFieldOptions}
-                          onChange={handleChangeField}
-                          // TODO: errors={getFirstQueryError('fields')}
-                        />
-                      );
-                    }}
+                    {({measurements}) => (
+                      <YAxisSelector
+                        widgetType={widgetType}
+                        displayType={state.displayType}
+                        fields={explodedFields}
+                        fieldOptions={getAmendedFieldOptions(measurements)}
+                        onChange={handleChangeYAxisOrColumnField}
+                        // TODO: errors={getFirstQueryError('fields')}
+                      />
+                    )}
                   </Measurements>
                 </BuildStep>
               )}

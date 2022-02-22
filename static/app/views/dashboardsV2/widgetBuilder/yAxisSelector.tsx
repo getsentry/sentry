@@ -85,7 +85,7 @@ export function YAxisSelector({
     onChange(newFields);
   }
 
-  function handleRemove(event: React.MouseEvent, fieldIndex: number) {
+  function handleRemoveQueryField(event: React.MouseEvent, fieldIndex: number) {
     event.preventDefault();
 
     const newFields = [...fields];
@@ -93,7 +93,7 @@ export function YAxisSelector({
     onChange(newFields);
   }
 
-  function handleChangeField(value: QueryFieldValue, fieldIndex: number) {
+  function handleChangeQueryField(value: QueryFieldValue, fieldIndex: number) {
     const newFields = [...fields];
     newFields[fieldIndex] = value;
     onChange(newFields);
@@ -193,7 +193,7 @@ export function YAxisSelector({
         <QueryField
           fieldValue={fieldValue}
           fieldOptions={generateFieldOptions({organization})}
-          onChange={value => handleTopNChangeField(value)}
+          onChange={handleTopNChangeField}
           filterPrimaryOptions={filterPrimaryOptions}
           filterAggregateParameters={filterAggregateParameters(fieldValue)}
         />
@@ -207,13 +207,13 @@ export function YAxisSelector({
             <QueryField
               fieldValue={fieldValue}
               fieldOptions={fieldOptions}
-              onChange={value => handleChangeField(value, i)}
+              onChange={value => handleChangeQueryField(value, i)}
               filterPrimaryOptions={filterPrimaryOptions}
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
               otherColumns={fields}
             />
             {(canDelete || fieldValue.kind === 'equation') && (
-              <DeleteButton onDelete={event => handleRemove(event, i)} />
+              <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
             )}
           </QueryFieldWrapper>
         ))}
