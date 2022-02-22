@@ -3,7 +3,6 @@ import logging
 import pytest
 from django.conf.urls import url
 from django.test import override_settings
-from django.urls import reverse
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -126,30 +125,21 @@ class TestAccessLogFail(LogCaptureAPITestCase):
 
 
 class TestOrganizationIdPresent(LogCaptureAPITestCase):
+    endpoint = "sentry-api-0-organization-stats-v2"
+
     def setUp(self):
         self.login_as(user=self.user)
 
-        self.org = self.organization
-
-    def do_request(self, query, user=None, org=None):
-        self.login_as(user=user or self.user)
-        url = reverse(
-            "sentry-api-0-organization-stats-v2",
-            kwargs={"organization_slug": (org or self.organization).slug},
-        )
-        return self.client.get(url, query, format="json")
-
     def test_org_id_populated(self):
-
-        response = self.do_request(
-            {
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={
                 "project": [-1],
                 "category": ["error"],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(quantity)"],
-            }
+            },
         )
 
-        assert response.status_code == 200, response.content
         assert self.captured_logs[0].organization_id == str(self.organization.id)
