@@ -1,24 +1,23 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Field from 'sentry/components/forms/field';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   aggregateFunctionOutputType,
-  ColumnType,
   isLegalYAxisType,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
-import {DisplayType, Widget} from '../types';
+import {AddButton} from './addButton';
+import {DeleteButton} from './deleteButton';
 
 type Props = {
   displayType: DisplayType;
@@ -28,31 +27,22 @@ type Props = {
    * Fired when fields are added/removed/modified/reordered.
    */
   onChange: (fields: QueryFieldValue[]) => void;
-
-  // TODO: For checking against METRICS widget type
   widgetType: Widget['widgetType'];
-  errors?: Record<string, string>[];
+  errors?: Record<string, any>;
 };
 
-function AddButton({
-  title,
-  onAdd,
-}: {
-  onAdd: (event: React.MouseEvent) => void;
-  title: string;
-}) {
-  return (
-    <Button size="small" aria-label={title} onClick={onAdd} icon={<IconAdd isCircled />}>
-      {title}
-    </Button>
-  );
-}
-
-function YAxisSelector({displayType, fields, fieldOptions, onChange, errors}: Props) {
+export function YAxisSelector({
+  displayType,
+  widgetType,
+  fields,
+  fieldOptions,
+  onChange,
+  errors,
+}: Props) {
   const organization = useOrganization();
-  // const isMetricWidget = widgetType === WidgetType.METRICS;
+  const isMetricWidget = widgetType === WidgetType.METRICS;
 
-  function handleAdd(event: React.MouseEvent) {
+  function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();
 
     const newFields = [
@@ -72,7 +62,7 @@ function YAxisSelector({displayType, fields, fieldOptions, onChange, errors}: Pr
     onChange(newFields);
   }
 
-  function handleRemove(event: React.MouseEvent, fieldIndex: number) {
+  function handleRemoveQueryField(event: React.MouseEvent, fieldIndex: number) {
     event.preventDefault();
 
     const newFields = [...fields];
@@ -80,7 +70,7 @@ function YAxisSelector({displayType, fields, fieldOptions, onChange, errors}: Pr
     onChange(newFields);
   }
 
-  function handleChangeField(value: QueryFieldValue, fieldIndex: number) {
+  function handleChangeQueryField(value: QueryFieldValue, fieldIndex: number) {
     const newFields = [...fields];
     newFields[fieldIndex] = value;
     onChange(newFields);
@@ -112,15 +102,15 @@ function YAxisSelector({displayType, fields, fieldOptions, onChange, errors}: Pr
       }
     }
 
-    // if (
-    //   widgetType === WidgetType.METRICS &&
-    //   (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
-    // ) {
-    //   return (
-    //     option.value.kind === FieldValueKind.FUNCTION ||
-    //     option.value.kind === FieldValueKind.TAG
-    //   );
-    // }
+    if (
+      widgetType === WidgetType.METRICS &&
+      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
+    ) {
+      return (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.TAG
+      );
+    }
 
     return option.value.kind === FieldValueKind.FUNCTION;
   }
@@ -133,13 +123,13 @@ function YAxisSelector({displayType, fields, fieldOptions, onChange, errors}: Pr
         return true;
       }
 
-      if (fieldValue.kind !== 'function') {
+      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
         return true;
       }
 
-      // if (isMetricWidget) {
-      //   return true;
-      // }
+      if (isMetricWidget || option.value.kind === FieldValueKind.METRICS) {
+        return true;
+      }
 
       const functionName = fieldValue.function[0];
       const primaryOutput = aggregateFunctionOutputType(
@@ -155,7 +145,7 @@ function YAxisSelector({displayType, fields, fieldOptions, onChange, errors}: Pr
         return false;
       }
 
-      return isLegalYAxisType(option.value.meta.dataType as ColumnType);
+      return isLegalYAxisType(option.value.meta.dataType);
     };
   }
 
@@ -198,34 +188,25 @@ function YAxisSelector({displayType, fields, fieldOptions, onChange, errors}: Pr
           <QueryField
             fieldValue={fieldValue}
             fieldOptions={fieldOptions}
-            onChange={value => handleChangeField(value, i)}
+            onChange={value => handleChangeQueryField(value, i)}
             filterPrimaryOptions={filterPrimaryOptions}
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
             otherColumns={fields}
           />
-          {(canDelete || fieldValue.kind === 'equation') && (
-            <Button
-              size="zero"
-              borderless
-              onClick={event => handleRemove(event, i)}
-              icon={<IconDelete />}
-              title={t('Remove this Y-Axis')}
-              aria-label={t('Remove this Y-Axis')}
-            />
+          {(canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
+            <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
           )}
         </QueryFieldWrapper>
       ))}
       {!hideAddYAxisButtons && (
         <Actions gap={1}>
-          <AddButton title={t('Add Overlay')} onAdd={handleAdd} />
+          <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
           <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
         </Actions>
       )}
     </Field>
   );
 }
-
-export default YAxisSelector;
 
 const QueryFieldWrapper = styled('div')`
   display: flex;
@@ -243,4 +224,5 @@ const QueryFieldWrapper = styled('div')`
 
 const Actions = styled(ButtonBar)`
   justify-content: flex-start;
+  gap: ${space(1)};
 `;
