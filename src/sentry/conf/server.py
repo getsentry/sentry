@@ -2524,5 +2524,8 @@ ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
 # constraints instead of setting the column to not null.
 ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
+ANOMALY_DETECTION_URL = "127.0.0.1:9091"
+ANOMALY_DETECTION_TIMEOUT = 30
+
 # This is the URL to the profiling service
 SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
