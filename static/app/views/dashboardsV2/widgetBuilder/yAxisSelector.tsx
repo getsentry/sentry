@@ -109,7 +109,7 @@ export function YAxisSelector({
   // data source is from an endpoint that is not timeseries-based.
   // The function/field choice for World Map widget will need to be numeric-like.
   // Column builder for Table widget is already handled above.
-  const doNotValidateYAxis = displayType === 'big_number';
+  const doNotValidateYAxis = displayType === DisplayType.BIG_NUMBER;
 
   function filterPrimaryOptions(option: FieldValueOption) {
     // Only validate function names for timeseries widgets and
