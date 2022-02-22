@@ -7,7 +7,6 @@ from typing_extensions import TypedDict
 
 from sentry import experiments
 from sentry.api.serializers import Serializer, register
-from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -60,6 +59,11 @@ class _Identity(TypedDict):
     dateSynced: str
 
 
+class _UserSerializerAvatar(TypedDict):
+    avatarType: str
+    avatarUuid: Optional[str]
+
+
 class _UserOptions(TypedDict):
     theme: str  # TODO: enum/literal for theme options
     language: str
@@ -70,7 +74,7 @@ class _UserOptions(TypedDict):
 
 class UserSerializerResponseOptional(TypedDict, total=False):
     identities: List[_Identity]
-    avatar: SerializedAvatarFields
+    avatar: _UserSerializerAvatar
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
@@ -176,7 +180,7 @@ class UserSerializer(Serializer):  # type: ignore
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
 
         if attrs.get("avatar"):
-            avatar: SerializedAvatarFields = {
+            avatar: _UserSerializerAvatar = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
             }
