@@ -87,10 +87,6 @@ class LogCaptureAPITestCase(APITestCase):
     def inject_fixtures(self, caplog):
         self._caplog = caplog
 
-    @property
-    def captured_logs(self):
-        return [r for r in self._caplog.records if r.name == "sentry.access.api"]
-
     def assert_access_log_recorded(self):
         sentinel = object()
         for record in self.captured_logs:
