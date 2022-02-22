@@ -11,8 +11,6 @@ from typing_extensions import TypedDict
 from sentry import features, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
-from sentry.api.serializers.models.project import ProjectSerializerResponse
-from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.app import quotas
 from sentry.auth.access import Access
 from sentry.constants import (
@@ -405,8 +403,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
     DetailedOrganizationSerializerResponse
 ):
-    teams: list[TeamSerializerResponse]
-    projects: list[ProjectSerializerResponse]
+    teams: Any  # TODO replace with team type
+    projects: Any  # TODO replace with project type
 
 
 class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):

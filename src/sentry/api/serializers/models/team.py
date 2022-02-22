@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 from collections import defaultdict
 from typing import (
-    TYPE_CHECKING,
     AbstractSet,
     Any,
     Iterable,
@@ -20,7 +17,7 @@ from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.types import SCIMMeta, SerializedAvatarFields
+from sentry.api.serializers.models.organization_member import SCIMMeta
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -34,16 +31,9 @@ from sentry.models import (
     TeamAvatar,
     User,
 )
-
-if TYPE_CHECKING:
-    from sentry.api.serializers import (
-        ExternalActorResponse,
-        OrganizationSerializerResponse,
-        ProjectSerializerResponse,
-    )
-
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.compat import zip
+from sentry.utils.json import JSONData
 from sentry.utils.query import RangeQuerySetWrapper
 
 
@@ -96,24 +86,6 @@ def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Te
             ).values_list("team", flat=True)
         )
     return frozenset()
-
-
-class _TeamSerializerResponseOptional(TypedDict, total=False):
-    externalTeams: list[ExternalActorResponse]
-    organization: OrganizationSerializerResponse
-    projects: ProjectSerializerResponse
-
-
-class TeamSerializerResponse(_TeamSerializerResponseOptional):
-    id: str
-    slug: str
-    name: str
-    dateCreated: str
-    isMember: bool
-    hasAccess: bool
-    isPending: bool
-    memberCount: int
-    avatar: SerializedAvatarFields
 
 
 @register(Team)
@@ -204,16 +176,16 @@ class TeamSerializer(Serializer):  # type: ignore
 
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> TeamSerializerResponse:
+    ) -> MutableMapping[str, JSONData]:
         if attrs.get("avatar"):
-            avatar: SerializedAvatarFields = {
+            avatar = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
 
-        result: TeamSerializerResponse = {
+        result = {
             "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
