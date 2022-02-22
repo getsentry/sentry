@@ -8,15 +8,17 @@ import {ProfilingTableCell} from './profilingTableCell';
 import {TableColumnKey, TableColumnOrders} from './types';
 
 interface ProfilingTableProps {
+  error: string | null;
   loading: boolean;
   location: Location;
   traces: Trace[];
 }
 
-function ProfilingTable({loading, location, traces}: ProfilingTableProps) {
+function ProfilingTable({error, loading, location, traces}: ProfilingTableProps) {
   return (
     <GridEditable
       isLoading={loading}
+      error={error}
       data={traces}
       columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
       columnSortBy={[]}

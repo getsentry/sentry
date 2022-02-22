@@ -2,8 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client, ResponseMeta} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -11,6 +11,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization, PageFilters} from 'sentry/types';
@@ -33,27 +34,21 @@ function fetchProfiles(
   location: Location,
   organization: Organization,
   selection: PageFilters
-) {
-  const promise: Promise<[Trace[], string | undefined, ResponseMeta | undefined]> =
-    api.requestPromise(`/organizations/${organization.slug}/profiling/profiles/`, {
-      method: 'GET',
-      includeAllArgs: true,
-      query: {
-        cursor: location.query.cursor,
-        project: selection.projects,
-      },
-    });
-
-  promise.catch(() => {
-    addErrorMessage(t('Unable to load profiles'));
+): Promise<[Trace[], string | undefined, ResponseMeta | undefined]> {
+  return api.requestPromise(`/organizations/${organization.slug}/profiling/profiles/`, {
+    method: 'GET',
+    includeAllArgs: true,
+    query: {
+      cursor: location.query.cursor,
+      project: selection.projects,
+    },
   });
-
-  return promise;
 }
 
 function ProfilingContent({location, selection}: ProfilingContentProps) {
   const [traces, setTraces] = useState<Trace[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [pageLinks, setPageLinks] = useState<string | null>(null);
   const organization = useOrganization();
   const dateSelection = normalizeDateTimeParams(location.query);
@@ -67,14 +62,15 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
 
     api.clear();
     setLoading(true);
+    setError(null);
 
-    fetchProfiles(api, location, organization, selection).then(
-      ([_traces, , response]) => {
+    fetchProfiles(api, location, organization, selection)
+      .then(([_traces, , response]) => {
         setTraces(_traces);
         setPageLinks(response?.getResponseHeader('Link') ?? null);
-        setLoading(false);
-      }
-    );
+      })
+      .catch(() => setError(t('Unable to load profiles')))
+      .finally(() => setLoading(false));
   }, [api, location, organization, selection]);
 
   return (
@@ -89,13 +85,23 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
+                {error && (
+                  <Alert type="error" icon={<IconFlag size="md" />}>
+                    {error}
+                  </Alert>
+                )}
                 <ProfilingScatterChart
                   {...dateSelection}
                   traces={traces}
                   loading={loading}
                   reloading={loading}
                 />
-                <ProfilingTable loading={loading} location={location} traces={traces} />
+                <ProfilingTable
+                  loading={loading}
+                  error={error}
+                  location={location}
+                  traces={traces}
+                />
                 <Pagination pageLinks={pageLinks} />
               </Layout.Main>
             </Layout.Body>
