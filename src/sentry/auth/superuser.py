@@ -324,8 +324,8 @@ class Superuser:
                     )
 
                     request.session["su_access"] = {
-                        "su_access_category": SU_access_info["categoryOfSUAccess"],
-                        "reason_for_su": SU_access_info["reasonForSU"],
+                        "su_access_category": SU_access_info.validated_data["categoryOfSUAccess"],
+                        "reason_for_su": SU_access_info.validated_data["reasonForSU"],
                     }
             except json.JSONDecodeError:
                 pass
