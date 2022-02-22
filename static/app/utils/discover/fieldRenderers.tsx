@@ -21,7 +21,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {
   AGGREGATIONS,
-  getAggregateAlias,
+  // getAggregateAlias,
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
@@ -675,7 +675,8 @@ export function getFieldRenderer(
     return spanOperationRelativeBreakdownRenderer;
   }
 
-  const fieldName = getAggregateAlias(field);
+  // const fieldName = getAggregateAlias(field);
+  const fieldName = field;
   const fieldType = meta[fieldName];
 
   for (const alias in SPECIAL_FUNCTIONS) {
@@ -704,7 +705,8 @@ export function getFieldFormatter(
   field: string,
   meta: MetaType
 ): FieldTypeFormatterRenderFunctionPartial {
-  const fieldName = getAggregateAlias(field);
+  // const fieldName = getAggregateAlias(field);
+  const fieldName = field;
   const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {

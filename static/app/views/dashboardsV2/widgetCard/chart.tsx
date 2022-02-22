@@ -165,7 +165,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       }
 
       const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(field, tableMeta);
+      const fieldRenderer = getFieldFormatter(field, tableMeta); //
 
       const rendered = fieldRenderer(dataRow);
 

@@ -43,7 +43,7 @@ class SimpleTableChart extends Component<Props> {
     return columns.map((column, columnIndex) => {
       const fieldRenderer =
         getCustomFieldRenderer?.(column.key, tableMeta) ??
-        getFieldRenderer(column.key, tableMeta);
+        getFieldRenderer(column.key, tableMeta); //
       const rendered = fieldRenderer(row, {organization, location});
       return (
         <TableCell key={`${index}-${columnIndex}:${column.name}`}>{rendered}</TableCell>
