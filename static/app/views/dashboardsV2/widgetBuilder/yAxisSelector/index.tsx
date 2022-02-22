@@ -1,9 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
 import Field from 'sentry/components/forms/field';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -12,11 +10,13 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
-import {DisplayType, Widget} from '../types';
+import {AddButton} from './addButton';
+import {DeleteButton} from './deleteButton';
 
 type Props = {
   displayType: DisplayType;
@@ -31,27 +31,6 @@ type Props = {
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
 };
-
-function DeleteButton({onDelete}) {
-  return (
-    <Button
-      size="zero"
-      borderless
-      onClick={onDelete}
-      icon={<IconDelete />}
-      title={t('Remove this Y-Axis')}
-      aria-label={t('Remove this Y-Axis')}
-    />
-  );
-}
-
-function AddButton({title, onAdd}) {
-  return (
-    <Button size="small" onClick={onAdd} icon={<IconAdd isCircled />}>
-      {title}
-    </Button>
-  );
-}
 
 export function YAxisSelector({
   displayType,
