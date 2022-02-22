@@ -190,7 +190,6 @@ export function YAxisSelector({
   return (
     <Field
       data-test-id="y-axis"
-      label={t('Y-Axis')}
       inline={false}
       error={errors?.fields}
       flexibleControlStateSize
