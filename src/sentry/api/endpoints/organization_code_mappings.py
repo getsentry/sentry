@@ -133,15 +133,18 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
 
         integration_id = request.GET.get("integrationId")
         project_id = request.GET.get("projectId")
+        all_items = request.GET.get("allItems")
 
-        if not integration_id and not project_id:
+        if not (integration_id or project_id or all_items):
             return self.respond(
-                {"detail": 'Missing valid "projectId" or "integrationId"'},
+                {"detail": 'Missing valid "projectId" or "integrationId" or "allItems"'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         queryset = RepositoryProjectPathConfig.objects.all()
 
+        if all_items:
+            queryset = queryset.filter(project__in=self.get_projects(request, organization))
         if integration_id:
             # get_organization_integration will raise a 404 if no org_integration is found
             org_integration = self.get_organization_integration(organization, integration_id)
