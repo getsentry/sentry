@@ -1,6 +1,6 @@
-import {mapErrors} from 'sentry/views/dashboardsV2/widgetBuilder/eventWidget/utils';
+import {mapErrors} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
-describe('eventWidget utils', function () {
+describe('WidgetBuilder utils', function () {
   describe('mapErrors', function () {
     it('able to handle string and string[] validation errors', () => {
       const flatValidation = mapErrors(

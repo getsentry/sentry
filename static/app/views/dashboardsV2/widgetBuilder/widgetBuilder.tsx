@@ -12,6 +12,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
+import List from 'sentry/components/list';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PanelAlert} from 'sentry/components/panels';
@@ -56,12 +57,10 @@ import {
 } from '../types';
 import WidgetCard from '../widgetCard';
 
-import {normalizeQueries} from './eventWidget/utils';
 import BuildStep from './buildStep';
-import BuildSteps from './buildSteps';
 import {ColumnFields} from './columnFields';
 import Header from './header';
-import {DataSet, DisplayType, displayTypes} from './utils';
+import {DataSet, DisplayType, displayTypes, normalizeQueries} from './utils';
 
 const DATASET_CHOICES: [DataSet, string][] = [
   [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
@@ -308,7 +307,7 @@ function WidgetBuilder({
             onChangeTitle={newTitle => setState({...state, title: newTitle})}
           />
           <Layout.Body>
-            <BuildSteps>
+            <BuildSteps symbol="colored-numeric">
               <BuildStep
                 title={t('Choose your visualization')}
                 description={t(
@@ -654,4 +653,13 @@ const LegendAliasInput = styled(Input)`
 
 const QueryField = styled(Field)`
   padding-bottom: ${space(1)};
+`;
+
+const BuildSteps = styled(List)`
+  gap: ${space(4)};
+  max-width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+    max-width: 50%;
+  }
 `;
