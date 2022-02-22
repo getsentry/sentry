@@ -1422,7 +1422,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(metricsDataMock).toHaveBeenCalledTimes(1);
       expect(metricsDataMock).toHaveBeenCalledWith(
         `/organizations/org-slug/metrics/data/`,
         expect.objectContaining({
