@@ -1033,6 +1033,47 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             ]
         }
 
+    def test_span_filters(self):
+        test_op = "django.middleware"
+        test_hash = "cd" * 8
+        spans = [
+            # span with test_op but different hash
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": "b" * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": test_op,
+                "description": "middleware span",
+                "hash": "ab" * 8,
+                "exclusive_time": 3.0,
+            },
+            # span with test_hash but different op
+            {
+                "same_process_as_parent": True,
+                "parent_span_id": "a" * 16,
+                "span_id": "c" * 16,
+                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "op": "django.view",
+                "description": "middleware span",
+                "hash": test_hash,
+                "exclusive_time": 1.0,
+            },
+        ]
+        self.create_event(spans=spans)
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id, "span": f"{test_op}:{test_hash}"},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == [{"op": test_op, "group": test_hash, "examples": []}]
+
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_one_span(self, mock_raw_snql_query):
         event = self.create_event()
