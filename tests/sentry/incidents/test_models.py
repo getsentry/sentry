@@ -467,7 +467,7 @@ class AlertRuleTriggerActionActivateTest:
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        assert trigger.fire(Mock(), Mock(), Mock(), 123) is None
+        assert trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL) is None
 
     def test_handler(self):
         mock_handler = Mock()
@@ -477,7 +477,8 @@ class AlertRuleTriggerActionActivateTest:
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
         assert (
-            getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123) == mock_method.return_value
+            getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
+            == mock_method.return_value
         )
 
 

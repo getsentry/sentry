@@ -45,10 +45,7 @@ def unfurl_incidents(
         return {}
 
     return {
-        link.url: build_incident_attachment(
-            action=None,
-            incident=results[link.args["incident_id"]],
-        )
+        link.url: build_incident_attachment(results[link.args["incident_id"]])
         for link in links
         if link.args["incident_id"] in results
     }

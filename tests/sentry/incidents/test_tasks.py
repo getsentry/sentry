@@ -7,6 +7,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
+    CRITICAL_TRIGGER_LABEL,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     create_incident_activity,
@@ -146,7 +147,7 @@ class HandleTriggerActionTest(TestCase):
 
     @fixture
     def trigger(self):
-        return create_alert_rule_trigger(self.alert_rule, "", 100)
+        return create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
 
     @fixture
     def action(self):
@@ -189,7 +190,9 @@ class HandleTriggerActionTest(TestCase):
                     self.action.id, incident.id, self.project.id, "fire", metric_value=metric_value
                 )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
-            mock_handler.return_value.fire.assert_called_once_with(metric_value)
+            mock_handler.return_value.fire.assert_called_once_with(
+                metric_value, IncidentStatus.CRITICAL
+            )
 
 
 class TestHandleSubscriptionMetricsLogger(TestCase):

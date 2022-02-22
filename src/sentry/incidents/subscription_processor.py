@@ -162,22 +162,6 @@ class SubscriptionProcessor:
 
         return trigger.alert_threshold + resolve_add
 
-    def find_active_warning_trigger(self, alert_operator, aggregation_value):
-        """
-        Finds and returns an active warning trigger, if one exists on this alert
-        """
-        for it in self.incident_triggers.values():
-            current_trigger = it.alert_rule_trigger
-            # Check if there is a Warning incident trigger that is active, and then check if the
-            # aggregation value is above the threshold
-            if (
-                it.status == TriggerStatus.ACTIVE.value
-                and current_trigger.label == WARNING_TRIGGER_LABEL
-                and alert_operator(aggregation_value, current_trigger.alert_threshold)
-            ):
-                metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
-                return it
-
     def get_comparison_aggregation_value(self, subscription_update, aggregation_value):
         # For comparison alerts run a query over the comparison period and use it to calculate the
         # % change.
@@ -427,25 +411,7 @@ class SubscriptionProcessor:
                     incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
                     if incident_trigger is not None:
-                        # Check that ensures that we are resolving a Critical trigger and that after
-                        # resolving it, we still have active triggers i.e. self.incident_triggers
-                        # was not cleared out, which means that we are probably still above the
-                        # warning threshold, and so we will check if we are above the warning
-                        # threshold and if so fire a warning alert
-                        # This is mainly for handling transition from Critical -> Warning
-                        active_warning_it = None
-                        if (
-                            incident_trigger.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
-                            and self.incident_triggers
-                        ):
-                            active_warning_it = self.find_active_warning_trigger(
-                                alert_operator=alert_operator, aggregation_value=aggregation_value
-                            )
-                            if active_warning_it is not None:
-                                fired_incident_triggers.append(active_warning_it)
-
-                        if active_warning_it is None:
-                            fired_incident_triggers.append(incident_trigger)
+                        fired_incident_triggers.append(incident_trigger)
                 else:
                     self.trigger_resolve_counts[trigger.id] = 0
 

@@ -7,6 +7,7 @@ from django.test import RequestFactory
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -82,7 +83,7 @@ class UnfurlTest(TestCase):
         )
         incident.update(identifier=123)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        action = self.create_alert_rule_trigger_action(
+        self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
 
@@ -94,7 +95,10 @@ class UnfurlTest(TestCase):
         ]
         unfurls = link_handlers[LinkType.INCIDENTS].fn(self.request, self.integration, links)
 
-        assert unfurls[links[0].url] == SlackIncidentsMessageBuilder(incident, action).build()
+        assert (
+            unfurls[links[0].url]
+            == SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build()
+        )
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover(self, mock_generate_chart):
