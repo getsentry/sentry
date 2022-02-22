@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
@@ -35,6 +36,7 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
+    METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
@@ -56,7 +58,13 @@ from sentry.search.events.fields import (
     parse_combinator,
 )
 from sentry.search.events.filter import ParsedTerm, ParsedTerms
-from sentry.search.events.types import HistogramParams, ParamsType, SelectType, WhereType
+from sentry.search.events.types import (
+    HistogramParams,
+    ParamsType,
+    QueryFramework,
+    SelectType,
+    WhereType,
+)
 from sentry.sentry_metrics import indexer
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, raw_snql_query, resolve_column
@@ -104,7 +112,7 @@ class QueryBuilder:
         self.function_alias_map: Dict[str, FunctionDetails] = {}
 
         self.auto_aggregations = auto_aggregations
-        self.limit = None if limit is None else Limit(limit)
+        self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
         self.turbo = Turbo(turbo)
         self.sample_rate = sample_rate
@@ -171,6 +179,9 @@ class QueryBuilder:
         search_filter_converter = self.config.search_filter_converter
 
         return field_alias_converter, function_converter, search_filter_converter
+
+    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+        return None if limit is None else Limit(limit)
 
     def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
         if limitby is None:
@@ -1473,6 +1484,16 @@ class MetricsQueryBuilder(QueryBuilder):
         )
         return conditions
 
+    def resolve_limit(self, limit: Optional[int]) -> Limit:
+        """Impose a max limit, since we may need to create a large condition based on the group by values when the query
+        is run"""
+        if limit is not None and limit > METRICS_MAX_LIMIT:
+            raise IncompatibleMetricsQuery(f"Can't have a limit larger than {METRICS_MAX_LIMIT}")
+        elif limit is None:
+            return Limit(METRICS_MAX_LIMIT)
+        else:
+            return Limit(limit)
+
     def resolve_snql_function(
         self,
         snql_function: MetricsFunction,
@@ -1552,6 +1573,141 @@ class MetricsQueryBuilder(QueryBuilder):
         inmplemented see run_query"""
         raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
 
-    def run_query(self) -> None:  # type: ignore
-        # TODO(wmak): will implement this soon
-        pass
+    def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
+        query_framework: Dict[str, QueryFramework] = {
+            "distribution": QueryFramework(
+                orderby=[],
+                functions=self.distributions,
+                entity=Entity("metrics_distributions", sample=self.sample_rate),
+            ),
+            "counter": QueryFramework(
+                orderby=[],
+                functions=self.counters,
+                entity=Entity("metrics_counters", sample=self.sample_rate),
+            ),
+            "set": QueryFramework(
+                orderby=[],
+                functions=self.sets,
+                entity=Entity("metrics_sets", sample=self.sample_rate),
+            ),
+        }
+        primary = None
+        # if orderby spans more than one table, the query isn't possible with metrics
+        for orderby in self.orderby:
+            if orderby.exp in self.distributions:
+                query_framework["distribution"].orderby.append(orderby)
+                if primary not in [None, "distribution"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "distribution"
+            elif orderby.exp in self.sets:
+                query_framework["set"].orderby.append(orderby)
+                if primary not in [None, "set"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "set"
+            elif orderby.exp in self.counters:
+                query_framework["counter"].orderby.append(orderby)
+                if primary not in [None, "counter"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "counter"
+            else:
+                # An orderby that isn't on a function add it to all of them
+                for framework in query_framework.values():
+                    framework.orderby.append(orderby)
+
+        # Pick one arbitrarily, there's no orderby on functions
+        if primary is None:
+            primary = "distribution"
+
+        return primary, query_framework
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        # Need to split orderby between the 3 possible tables
+        # TODO: need to validate orderby, ordering by tag values is impossible unless the values have low cardinality
+        # and we can transform them (eg. project)
+        primary, query_framework = self._create_query_framework()
+
+        groupby_aliases = [
+            groupby.alias
+            if isinstance(groupby, (AliasedExpression, CurriedFunction))
+            else groupby.name
+            for groupby in self.groupby
+        ]
+        # The typing for these are weak (all using Any) since the results from snuba can contain an assortment of types
+        value_map: Dict[str, Any] = defaultdict(dict)
+        groupby_values: List[Any] = []
+        result: Any = {
+            "data": None,
+            "meta": [],
+        }
+        # We need to run the same logic on all 3 queries, since the `primary` query could come back with no results. The
+        # goal is to get n=limit results from one query, then use those n results to create a condition for the
+        # remaining queries. This is so that we can respect function orderbys from the first query, but also so we don't
+        # get 50 different results from each entity
+        for query_details in [query_framework.pop(primary), *query_framework.values()]:
+            # Only run the query if there's at least one function, can't query without metrics
+            if len(query_details.functions) > 0:
+                select = [
+                    column
+                    for column in self.columns
+                    if not isinstance(column, CurriedFunction) or column in query_details.functions
+                ]
+                if groupby_values:
+                    # We already got the groupby values we want, add them to the conditions to limit our results so we
+                    # can get the aggregates for the same values
+                    where = self.where + [
+                        Condition(
+                            # Tuples are allowed to have multiple types in clickhouse
+                            Function(
+                                "tuple",
+                                [
+                                    groupby.exp
+                                    if isinstance(groupby, AliasedExpression)
+                                    else groupby
+                                    for groupby in self.groupby
+                                ],
+                            ),
+                            Op.IN,
+                            Function("tuple", groupby_values),
+                        )
+                    ]
+                    # Because we've added a condition for each groupby value we don't want an offset here
+                    offset = Offset(0)
+                    referrer_suffix = "secondary"
+                else:
+                    # We don't have our groupby values yet, this means this is the query where we're getting them
+                    where = self.where
+                    offset = self.offset
+                    referrer_suffix = "primary"
+
+                query = Query(
+                    dataset=self.dataset.value,
+                    match=query_details.entity,
+                    select=select,
+                    array_join=self.array_join,
+                    where=where,
+                    having=self.having,
+                    groupby=self.groupby,
+                    orderby=query_details.orderby,
+                    limit=self.limit,
+                    offset=offset,
+                    limitby=self.limitby,
+                    turbo=self.turbo,
+                )
+                current_result = raw_snql_query(
+                    query,
+                    f"{referrer}.{referrer_suffix}",
+                    use_cache,
+                )
+                for row in current_result["data"]:
+                    # Arrays in clickhouse cannot contain multiple types, and since groupby values
+                    # can contain any type, we must use tuples instead
+                    groupby_key = tuple(row[key] for key in groupby_aliases)
+                    value_map_key = ",".join(str(value) for value in groupby_key)
+                    # First time we're seeing this value, add it to the values we're going to filter by
+                    if value_map_key not in value_map:
+                        groupby_values.append(groupby_key)
+                    value_map[value_map_key].update(row)
+                result["meta"] += current_result["meta"]
+        result["data"] = list(value_map.values())
+
+        return result

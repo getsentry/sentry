@@ -9,6 +9,7 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
@@ -25,6 +26,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DateString,
+  MetricMeta,
   MetricTag,
   Organization,
   PageFilters,
@@ -32,7 +34,6 @@ import {
   TagCollection,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
@@ -51,15 +52,13 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {
-  mapErrors,
-  normalizeQueries,
-} from 'sentry/views/dashboardsV2/widgetBuilder/eventWidget/utils';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {
+  DEFAULT_METRICS_FIELDS,
   generateMetricsWidgetFieldOptions,
-  METRICS_FIELDS,
+  METRICS_FIELDS_ALLOW_LIST,
 } from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {mapErrors, normalizeQueries} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -105,6 +104,7 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   loading: boolean;
+  metricFields: MetricMeta[];
   metricTags: MetricTag[];
   queries: Widget['queries'];
   title: string;
@@ -163,6 +163,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         loading: !!this.omitDashboardProp,
         dashboards: [],
         metricTags: [],
+        metricFields: [],
         userHasModified: false,
         widgetType: WidgetType.DISCOVER,
       };
@@ -178,6 +179,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       loading: false,
       dashboards: [],
       metricTags: [],
+      metricFields: [],
       userHasModified: false,
       widgetType: widget.widgetType ?? WidgetType.DISCOVER,
     };
@@ -189,6 +191,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
     if (this.props.organization.features.includes('dashboards-metrics')) {
       this.fetchMetricsTags();
+      this.fetchMetricsFields();
     }
   }
 
@@ -526,25 +529,24 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   async fetchMetricsTags() {
     const {api, organization, selection} = this.props;
-    const promise: Promise<MetricTag[]> = api.requestPromise(
-      `/organizations/${organization.slug}/metrics/tags/`,
-      {
-        query: {
-          project: !selection.projects.length ? undefined : selection.projects,
-        },
-      }
-    );
+    const projects = !selection.projects.length ? undefined : selection.projects;
+    const metricTags = await fetchMetricsTags(api, organization.slug, projects);
+    this.setState({
+      metricTags,
+    });
+  }
 
-    try {
-      const metricTags = await promise;
-      this.setState({
-        metricTags,
-      });
-    } catch (error) {
-      const errorResponse = error?.responseJSON ?? t('Unable to fetch metric tags');
-      addErrorMessage(errorResponse);
-      handleXhrErrorResponse(errorResponse)(error);
-    }
+  async fetchMetricsFields() {
+    const {api, organization, selection} = this.props;
+    const projects = !selection.projects.length ? undefined : selection.projects;
+
+    const metricFields = await fetchMetricsFields(api, organization.slug, projects);
+    const filteredFields = metricFields.filter(field =>
+      METRICS_FIELDS_ALLOW_LIST.includes(field.name)
+    );
+    this.setState({
+      metricFields: filteredFields,
+    });
   }
 
   handleDashboardChange(option: SelectValue<string>) {
@@ -619,7 +621,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      METRICS_FIELDS,
+      state.metricFields.length ? state.metricFields : DEFAULT_METRICS_FIELDS,
       Object.values(state.metricTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
@@ -665,21 +667,41 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
       case WidgetType.METRICS:
         return (
-          <WidgetQueriesForm
-            organization={organization}
-            selection={querySelection}
-            displayType={state.displayType}
-            widgetType={state.widgetType}
-            queries={state.queries}
-            errors={errors?.queries}
-            fieldOptions={metricsWidgetFieldOptions}
-            onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
-              this.handleQueryChange(widgetQuery, queryIndex)
-            }
-            canAddSearchConditions={this.canAddSearchConditions()}
-            handleAddSearchConditions={this.handleAddSearchConditions}
-            handleDeleteQuery={this.handleQueryRemove}
-          />
+          <React.Fragment>
+            <WidgetQueriesForm
+              organization={organization}
+              selection={querySelection}
+              displayType={state.displayType}
+              widgetType={state.widgetType}
+              queries={state.queries}
+              errors={errors?.queries}
+              fieldOptions={metricsWidgetFieldOptions}
+              onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
+                this.handleQueryChange(widgetQuery, queryIndex)
+              }
+              canAddSearchConditions={this.canAddSearchConditions()}
+              handleAddSearchConditions={this.handleAddSearchConditions}
+              handleDeleteQuery={this.handleQueryRemove}
+            />
+            <WidgetCard
+              organization={organization}
+              selection={querySelection}
+              widget={this.state}
+              isEditing={false}
+              onDelete={() => undefined}
+              onEdit={() => undefined}
+              onDuplicate={() => undefined}
+              widgetLimitReached={false}
+              renderErrorMessage={errorMessage =>
+                typeof errorMessage === 'string' && (
+                  <PanelAlert type="error">{errorMessage}</PanelAlert>
+                )
+              }
+              isSorting={false}
+              currentWidgetDragging={false}
+              noLazyLoad
+            />
+          </React.Fragment>
         );
 
       case WidgetType.DISCOVER:

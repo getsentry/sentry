@@ -52,6 +52,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
+    const {loading, rawResults} = this.state;
     const {selection, widget, organization, limit} = this.props;
     const ignroredWidgetProps = [
       'queries',
@@ -61,22 +62,49 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       'tempId',
       'widgetType',
     ];
-    const ignoredQueryProps = ['name'];
+    const ignoredQueryProps = ['name', 'fields'];
+    const widgetQueryNames = widget.queries.map(q => q.name);
+    const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
 
     if (
       limit !== prevProps.limit ||
       organization.slug !== prevProps.organization.slug ||
       !isSelectionEqual(selection, prevProps.selection) ||
+      // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
       !isEqual(
         omit(widget, ignroredWidgetProps),
         omit(prevProps.widget, ignroredWidgetProps)
       ) ||
+      // If the queries changed (ignore unimportant name, + fields as they are handled lower)
       !isEqual(
         widget.queries.map(q => omit(q, ignoredQueryProps)),
         prevProps.widget.queries.map(q => omit(q, ignoredQueryProps))
+      ) ||
+      // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Overlay)
+      !isEqual(
+        widget.queries.flatMap(q => q.fields.filter(field => !!field)),
+        prevProps.widget.queries.flatMap(q => q.fields.filter(field => !!field))
       )
     ) {
       this.fetchData();
+      return;
+    }
+
+    // If the query names have changed, then update timeseries labels
+    if (
+      !loading &&
+      !isEqual(widgetQueryNames, prevWidgetQueryNames) &&
+      rawResults?.length === widget.queries.length
+    ) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState(prevState => {
+        return {
+          ...prevState,
+          timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
+            transformMetricsResponseToSeries(rawResult, widget.queries[index].name)
+          ),
+        };
+      });
     }
   }
 
@@ -130,7 +158,10 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
           }
 
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          const transformedResult = transformMetricsResponseToSeries(rawResults);
+          const transformedResult = transformMetricsResponseToSeries(
+            rawResults,
+            widget.queries[requestIndex].name
+          );
 
           // When charting timeseriesData on echarts, color association to a timeseries result
           // is order sensitive, ie series at index i on the timeseries array will use color at
