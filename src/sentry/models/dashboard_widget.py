@@ -78,6 +78,9 @@ class DashboardWidgetQuery(Model):
     name = models.CharField(max_length=255)
     fields = ArrayField()
     conditions = models.TextField()
+    # aggregates and columns should replace fields.
+    aggregates = ArrayField(null=True)
+    columns = ArrayField(null=True)
     # Orderby condition for the query
     orderby = models.TextField(default="")
     # Order of the widget query in the widget.
