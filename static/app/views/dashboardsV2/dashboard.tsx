@@ -523,12 +523,12 @@ class Dashboard extends Component<Props, State> {
     // Filter out any issue/metrics widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
       if (widgetType === WidgetType.ISSUE) {
-        return !organization.features.includes('issues-in-dashboards');
+        return organization.features.includes('issues-in-dashboards');
       }
       if (widgetType === WidgetType.METRICS) {
-        return !organization.features.includes('dashboards-metrics');
+        return organization.features.includes('dashboards-metrics');
       }
-      return false;
+      return true;
     });
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
@@ -582,12 +582,12 @@ class Dashboard extends Component<Props, State> {
     // Filter out any issue/metrics widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
       if (widgetType === WidgetType.ISSUE) {
-        return !organization.features.includes('issues-in-dashboards');
+        return organization.features.includes('issues-in-dashboards');
       }
       if (widgetType === WidgetType.METRICS) {
-        return !organization.features.includes('dashboards-metrics');
+        return organization.features.includes('dashboards-metrics');
       }
-      return false;
+      return true;
     });
 
     const items = this.getWidgetIds();
