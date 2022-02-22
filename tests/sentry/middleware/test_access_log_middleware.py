@@ -65,8 +65,6 @@ class MyOrganizationEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         return Response({"ok": True})
 
-    pass
-
 
 urlpatterns = [
     url(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
