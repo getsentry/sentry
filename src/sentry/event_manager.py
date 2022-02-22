@@ -1143,15 +1143,10 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
         # No hierarchical grouping was run, only consider flat hashes
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
     elif root_hierarchical_grouphash.group_id is None:
-        # The root hash is not assigned to a group. This can have two reasons:
-        if existing_grouphash.hash in hashes.hierarchical_hashes:
-            # The group was previously split and is now associated with a deeper
-            # hierarchical hash
-            new_hashes = []
-        else:
-            # We ran multiple grouping algorithms
-            # (see secondary grouping), and the hierarchical hash is new
-            new_hashes = [root_hierarchical_grouphash]
+        # The root hash is not assigned to a group.
+        # We ran multiple grouping algorithms
+        # (see secondary grouping), and the hierarchical hash is new
+        new_hashes = [root_hierarchical_grouphash]
     else:
         new_hashes = []
 
@@ -1218,6 +1213,9 @@ def _find_existing_grouphash(
 
             if group_hash is not None:
                 all_grouphashes.append(group_hash)
+
+                if group_hash.group_id is not None:
+                    break
 
         if root_hierarchical_hash is None:
             # All hashes were split, so we group by most specific hash. This is
