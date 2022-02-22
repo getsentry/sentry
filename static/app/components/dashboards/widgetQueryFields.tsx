@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import Field from 'sentry/components/forms/field';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -12,12 +13,10 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = {
   /**
@@ -137,6 +136,10 @@ function WidgetQueryFields({
     return option.value.kind === FieldValueKind.FUNCTION;
   };
 
+  const filterMetricsOptions = option => {
+    return option.value.kind === FieldValueKind.FUNCTION;
+  };
+
   const filterAggregateParameters = fieldValue => option => {
     // Only validate function parameters for timeseries widgets and
     // world map widgets.
@@ -239,12 +242,12 @@ function WidgetQueryFields({
             <QueryField
               fieldValue={fieldValue}
               fieldOptions={
-                isMetricWidget
-                  ? generateMetricsWidgetFieldOptions()
-                  : generateFieldOptions({organization})
+                isMetricWidget ? fieldOptions : generateFieldOptions({organization})
               }
               onChange={value => handleTopNChangeField(value)}
-              filterPrimaryOptions={filterPrimaryOptions}
+              filterPrimaryOptions={
+                isMetricWidget ? filterMetricsOptions : filterPrimaryOptions
+              }
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
             />
           </QueryFieldWrapper>

@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from django.db.models.query import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.models import (
@@ -63,6 +65,7 @@ class DashboardWidgetQuerySerializer(Serializer):
 class DashboardListSerializer(Serializer):
     def get_attrs(self, item_list, user):
         item_dict = {i.id: i for i in item_list}
+        prefetch_related_objects(item_list, "created_by")
 
         widgets = (
             DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys())
@@ -70,7 +73,7 @@ class DashboardListSerializer(Serializer):
             .values("dashboard_id", "order", "display_type", "detail", "id")
         )
 
-        result = defaultdict(lambda: {"widget_display": [], "widget_preview": []})
+        result = defaultdict(lambda: {"widget_display": [], "widget_preview": [], "created_by": {}})
         for widget in widgets:
             dashboard = item_dict[widget["dashboard_id"]]
             display_type = DashboardWidgetDisplayTypes.get_type_name(widget["display_type"])
@@ -89,6 +92,19 @@ class DashboardListSerializer(Serializer):
 
             result[dashboard]["widget_preview"].append(widget_preview)
 
+        user_serializer = UserSerializer()
+        serialized_users = {
+            user["id"]: user
+            for user in serialize(
+                [dashboard.created_by for dashboard in item_list if dashboard.created_by],
+                user=user,
+                serializer=user_serializer,
+            )
+        }
+
+        for dashboard in item_dict.values():
+            result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
+
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
@@ -96,7 +112,7 @@ class DashboardListSerializer(Serializer):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": serialize(obj.created_by, serializer=UserSerializer()),
+            "createdBy": attrs.get("created_by"),
             "widgetDisplay": attrs.get("widget_display", []),
             "widgetPreview": attrs.get("widget_preview", []),
         }

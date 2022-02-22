@@ -5,6 +5,7 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
+import RangeSlider, {Slider} from 'sentry/components/forms/controls/rangeSlider';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -17,9 +18,6 @@ import {BaseGroup, Group, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withApi from 'sentry/utils/withApi';
-import RangeSlider, {
-  Slider,
-} from 'sentry/views/settings/components/forms/controls/rangeSlider';
 
 import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';

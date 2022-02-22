@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
+import Input from 'sentry/components/forms/controls/input';
+import Textarea from 'sentry/components/forms/controls/textarea';
+import Field from 'sentry/components/forms/field';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Textarea from 'sentry/views/settings/components/forms/controls/textarea';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {StepOneData} from './types';
 

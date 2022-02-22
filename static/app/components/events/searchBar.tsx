@@ -131,9 +131,8 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
   }
 
   render() {
-    const {organization} = this.props;
     return (
-      <Measurements organization={organization}>
+      <Measurements>
         {({measurements}) => {
           const tags = this.getTagList(measurements);
           return (

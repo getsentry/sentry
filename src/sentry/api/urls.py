@@ -4,6 +4,10 @@ from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoin
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
+from sentry.api.endpoints.organization_profiling_profiles import (
+    OrganizationProfilingFiltersEndpoint,
+    OrganizationProfilingProfilesEndpoint,
+)
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -331,6 +335,7 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesEndpoint,
     ProjectProcessingIssuesFixEndpoint,
 )
+from .endpoints.project_profiling_profile import ProjectProfilingProfileEndpoint
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -376,36 +381,28 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
-from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
-from .endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
-from .endpoints.sentry_app_components import (
+from .endpoints.sentry_app import (
     OrganizationSentryAppComponentsEndpoint,
+    SentryAppAuthorizationsEndpoint,
     SentryAppComponentsEndpoint,
-)
-from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
-from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
-from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
-from .endpoints.sentry_app_installation_external_issue_actions import (
+    SentryAppDetailsEndpoint,
+    SentryAppFeaturesEndpoint,
+    SentryAppInstallationDetailsEndpoint,
     SentryAppInstallationExternalIssueActionsEndpoint,
-)
-from .endpoints.sentry_app_installation_external_issue_details import (
     SentryAppInstallationExternalIssueDetailsEndpoint,
-)
-from .endpoints.sentry_app_installation_external_issues import (
     SentryAppInstallationExternalIssuesEndpoint,
-)
-from .endpoints.sentry_app_installation_external_requests import (
     SentryAppInstallationExternalRequestsEndpoint,
+    SentryAppInstallationsEndpoint,
+    SentryAppInteractionEndpoint,
+    SentryAppPublishRequestEndpoint,
+    SentryAppRequestsEndpoint,
+    SentryAppsEndpoint,
+    SentryAppsStatsEndpoint,
+    SentryAppStatsEndpoint,
+    SentryInternalAppTokenDetailsEndpoint,
+    SentryInternalAppTokensEndpoint,
 )
-from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
-from .endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
-from .endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
-from .endpoints.sentry_app_requests import SentryAppRequestsEndpoint
-from .endpoints.sentry_app_stats import SentryAppStatsEndpoint
-from .endpoints.sentry_apps import SentryAppsEndpoint
-from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
-from .endpoints.sentry_internal_app_token_details import SentryInternalAppTokenDetailsEndpoint
-from .endpoints.sentry_internal_app_tokens import SentryInternalAppTokensEndpoint
+from .endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
@@ -1540,6 +1537,23 @@ urlpatterns = [
                     OrganizationMetricsTagDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-metrics-tag-details",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/profiling/",
+                    include(
+                        [
+                            url(
+                                r"^profiles/$",
+                                OrganizationProfilingProfilesEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-profiles",
+                            ),
+                            url(
+                                r"^filters/$",
+                                OrganizationProfilingFiltersEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-filters",
+                            ),
+                        ],
+                    ),
+                ),
             ]
         ),
     ),
@@ -2097,6 +2111,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
                     AppStoreConnectUpdateCredentialsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingProfileEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-profile",
                 ),
             ]
         ),

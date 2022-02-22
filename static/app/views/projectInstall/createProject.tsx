@@ -8,7 +8,7 @@ import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import ProjectActions from 'sentry/actions/projectActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import TeamSelector from 'sentry/components/deprecatedforms/teamSelector';
+import TeamSelector from 'sentry/components/forms/teamSelector';
 import PageHeading from 'sentry/components/pageHeading';
 import PlatformPicker from 'sentry/components/platformPicker';
 import categoryList from 'sentry/data/platformCategories';

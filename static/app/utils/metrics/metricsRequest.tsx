@@ -9,11 +9,13 @@ import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {MetricsApiResponse} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
 import {TableData} from '../discover/discoverQuery';
 
-import {transformMetricsResponseToTable} from './transformMetricsResponseToTable';
+import {deprecatedTransformMetricsResponseToTable} from './deprecatedTransformMetricsResponseToTable';
+import {transformMetricsResponseToSeries} from './transformMetricsResponseToSeries';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
@@ -28,18 +30,25 @@ export type MetricsRequestRenderProps = {
   reloading: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
+  seriesData?: Series[];
+  seriesDataPrevious?: Series[];
   tableData?: TableData;
 };
 
 type DefaultProps = {
   /**
+   * @deprecated
+   * Transform the response data to be something ingestible by GridEditable tables and rename fields for performance
+   */
+  includeDeprecatedTabularData: boolean;
+  /**
    * Include data for previous period
    */
   includePrevious: boolean;
   /**
-   * Transform the response data to be something ingestible by GridEditable tables
+   * Transform the response data to be something ingestible by charts
    */
-  includeTabularData?: boolean;
+  includeSeriesData: boolean;
   /**
    * If true, no request will be made
    */
@@ -67,7 +76,8 @@ type State = {
 class MetricsRequest extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     includePrevious: false,
-    includeTabularData: false,
+    includeSeriesData: false,
+    includeDeprecatedTabularData: false,
     isDisabled: false,
   };
 
@@ -203,7 +213,13 @@ class MetricsRequest extends React.Component<Props, State> {
 
   render() {
     const {reloading, errored, error, response, responsePrevious, pageLinks} = this.state;
-    const {children, isDisabled, includeTabularData} = this.props;
+    const {
+      children,
+      isDisabled,
+      includeDeprecatedTabularData,
+      includeSeriesData,
+      includePrevious,
+    } = this.props;
 
     const loading = response === null && !isDisabled && !error;
 
@@ -216,9 +232,16 @@ class MetricsRequest extends React.Component<Props, State> {
       response,
       responsePrevious,
       pageLinks,
-      tableData: includeTabularData
-        ? transformMetricsResponseToTable({response})
+      tableData: includeDeprecatedTabularData
+        ? deprecatedTransformMetricsResponseToTable({response})
         : undefined,
+      seriesData: includeSeriesData
+        ? transformMetricsResponseToSeries(response)
+        : undefined,
+      seriesDataPrevious:
+        includeSeriesData && includePrevious
+          ? transformMetricsResponseToSeries(responsePrevious)
+          : undefined,
     });
   }
 }

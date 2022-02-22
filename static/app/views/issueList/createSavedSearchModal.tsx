@@ -5,11 +5,11 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {createSavedSearch} from 'sentry/actionCreators/savedSearches';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import {Form, SelectField, TextField} from 'sentry/components/forms';
+import {OnSubmitCallback} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
-import {Form, SelectField, TextField} from 'sentry/views/settings/components/forms';
-import {OnSubmitCallback} from 'sentry/views/settings/components/forms/type';
 
 import {getSortLabel, IssueSortOptions} from './utils';
 
