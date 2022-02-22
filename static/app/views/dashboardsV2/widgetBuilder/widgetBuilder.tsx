@@ -65,7 +65,7 @@ import BuildSteps from './buildSteps';
 import {ColumnFields} from './columnFields';
 import Header from './header';
 import {DataSet, DisplayType, displayTypes} from './utils';
-import YAxisSelector from './yAxisSelector';
+import {YAxisSelector} from './yAxisSelector';
 
 const DATASET_CHOICES: [DataSet, string][] = [
   [DataSet.EVENTS, t('All Events (Errors and Transactions)')],

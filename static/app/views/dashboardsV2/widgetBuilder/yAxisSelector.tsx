@@ -54,7 +54,7 @@ function AddButton({title, onAdd}) {
   );
 }
 
-function YAxisSelector({
+export function YAxisSelector({
   displayType,
   fields,
   style,
@@ -240,8 +240,6 @@ function YAxisSelector({
     </Field>
   );
 }
-
-export default YAxisSelector;
 
 const Actions = styled('div')`
   & button {
