@@ -15,17 +15,7 @@ type Props = {
   organization: Organization;
 };
 
-type State = {
-  height: number;
-  width: number;
-};
-
-class AlertChart extends React.PureComponent<Props, State> {
-  state = {
-    width: -1,
-    height: -1,
-  };
-
+class AlertChart extends React.PureComponent<Props> {
   renderChart() {
     const TOTAL = 6;
     const NOW = new Date().getTime();
