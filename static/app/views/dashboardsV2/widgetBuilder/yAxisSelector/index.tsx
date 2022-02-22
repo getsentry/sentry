@@ -162,22 +162,41 @@ export function YAxisSelector({
     ].includes(displayType) &&
       fields.length === 3);
 
-  let fieldContents: React.ReactElement;
   if (displayType === DisplayType.TOP_N) {
     const fieldValue = fields[fields.length - 1];
-    fieldContents = (
-      <QueryFieldWrapper key={`${fieldValue}:0`}>
-        <QueryField
-          fieldValue={fieldValue}
-          fieldOptions={generateFieldOptions({organization})}
-          onChange={handleTopNChangeField}
-          filterPrimaryOptions={filterPrimaryOptions}
-          filterAggregateParameters={filterAggregateParameters(fieldValue)}
-        />
-      </QueryFieldWrapper>
+    return (
+      <Field
+        data-test-id="y-axis"
+        label={t('Y-Axis')}
+        inline={false}
+        error={errors?.fields}
+        flexibleControlStateSize
+        required
+        stacked
+      >
+        <QueryFieldWrapper key={`${fieldValue}:0`}>
+          <QueryField
+            fieldValue={fieldValue}
+            fieldOptions={generateFieldOptions({organization})}
+            onChange={handleTopNChangeField}
+            filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters(fieldValue)}
+          />
+        </QueryFieldWrapper>
+      </Field>
     );
-  } else {
-    fieldContents = (
+  }
+
+  return (
+    <Field
+      data-test-id="y-axis"
+      label={t('Y-Axis')}
+      inline={false}
+      error={errors?.fields}
+      flexibleControlStateSize
+      required
+      stacked
+    >
       <React.Fragment>
         {fields.map((fieldValue, i) => (
           <QueryFieldWrapper key={`${fieldValue}:${i}`}>
@@ -201,20 +220,6 @@ export function YAxisSelector({
           </Actions>
         )}
       </React.Fragment>
-    );
-  }
-
-  return (
-    <Field
-      data-test-id="y-axis"
-      label={t('Y-Axis')}
-      inline={false}
-      error={errors?.fields}
-      flexibleControlStateSize
-      required
-      stacked
-    >
-      {fieldContents}
     </Field>
   );
 }
