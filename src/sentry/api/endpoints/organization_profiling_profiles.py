@@ -42,7 +42,9 @@ class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
         def data_fn(offset: int, limit: int) -> Any:
             params["offset"] = offset
             params["limit"] = limit
-            response = get_from_profiling_service(f"/organizations/{organization.id}/profiles")
+            response = get_from_profiling_service(
+                "GET", f"/organizations/{organization.id}/profiles", params=params
+            )
             return response.json().get("profiles", [])
 
         return self.paginate(
