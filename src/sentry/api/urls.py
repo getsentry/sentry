@@ -1534,13 +1534,13 @@ urlpatterns = [
                     include(
                         [
                             url(
-                                r"^stacktraces/$",
-                                OrganizationProfilingFiltersEndpoint.as_view(),
+                                r"^profiles/$",
+                                OrganizationProfilingProfilesEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-profiles",
                             ),
                             url(
                                 r"^filters/$",
-                                OrganizationProfilingProfilesEndpoint.as_view(),
+                                OrganizationProfilingFiltersEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-filters",
                             ),
                         ],
