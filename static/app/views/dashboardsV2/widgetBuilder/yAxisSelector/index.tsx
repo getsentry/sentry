@@ -149,19 +149,6 @@ export function YAxisSelector({
     };
   }
 
-  const canDelete = fields.length > 1;
-
-  const hideAddYAxisButtons =
-    ([DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(displayType) &&
-      fields.length === 1) ||
-    ([
-      DisplayType.LINE,
-      DisplayType.AREA,
-      DisplayType.STACKED_AREA,
-      DisplayType.BAR,
-    ].includes(displayType) &&
-      fields.length === 3);
-
   if (displayType === DisplayType.TOP_N) {
     const fieldValue = fields[fields.length - 1];
     return (
@@ -186,6 +173,19 @@ export function YAxisSelector({
       </Field>
     );
   }
+
+  const canDelete = fields.length > 1;
+
+  const hideAddYAxisButtons =
+    ([DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(displayType) &&
+      fields.length === 1) ||
+    ([
+      DisplayType.LINE,
+      DisplayType.AREA,
+      DisplayType.STACKED_AREA,
+      DisplayType.BAR,
+    ].includes(displayType) &&
+      fields.length === 3);
 
   return (
     <Field
