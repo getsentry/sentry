@@ -1325,6 +1325,84 @@ def get_facets(
     return results
 
 
+def find_spans_histogram_min_max(
+    min_value, max_value, user_query, params, data_filter=None, use_snql=False
+):
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
+    # min_columns = []
+    # max_columns = []
+    # quartiles = []
+
+    # TODO reviewe this
+    # for field in fields:
+    #     if min_value is None:
+    #         min_columns.append(f"min({field})")
+    #     if max_value is None:
+    #         max_columns.append(f"max({field})")
+    #     if data_filter == "exclude_outliers":
+    #         quartiles.append(f"percentile({field}, 0.25)")
+    #         quartiles.append(f"percentile({field}, 0.75)")
+
+    results = query(
+        selected_columns=[],
+        query=user_query,
+        params=params,
+        limit=1,
+        referrer="api.organizations-spans-events-histogram-min-max",
+        use_snql=use_snql,
+    )
+
+    data = results.get("data")
+
+    if data is None or len(data) != 1:
+        return None, None
+
+    # row = data[0]
+
+    # if min_value is None:
+    #     # do stuff
+    #     # min_values =
+
+    # if max_value is None:
+    #     # do stuff
+
+    # return min_value, max_value
+
+
+def spans_histogram_query(
+    fields,
+    user_query,
+    params,
+    num_buckets,
+    precision=0,
+    min_value=None,
+    max_value=None,
+    data_filter=None,
+    referrer=None,
+    group_by=None,
+    order_by=None,
+    limit_by=None,
+    histogram_rows=None,
+    extra_conditions=None,
+    extra_snql_condition=None,
+    normalize_results=True,
+    # TODO can use_snql option be omitted here?
+    use_snql=False,
+):
+    multiplier = int(10 ** precision)
+    if max_value is not None:
+        max_value -= 0.1 / multiplier
+    min_value, max_value = find_histogram_min_max()
+
+    # key_column = None
+    # array_column = None
+    # field_names = None
+
+    #  what is fields in this case?
+
+
 def histogram_query(
     fields,
     user_query,
