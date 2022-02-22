@@ -273,7 +273,7 @@ function WidgetBuilder({
     );
   }
 
-  function handleChangeYAxisOrColumnField(newFields: QueryFieldValue[]) {
+  function handleYAxisOrColumnFieldChange(newFields: QueryFieldValue[]) {
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
@@ -427,7 +427,7 @@ function WidgetBuilder({
                           columns={explodedFields}
                           errors={state.errors?.queries}
                           fieldOptions={getAmendedFieldOptions(measurements)}
-                          onChange={handleChangeYAxisOrColumnField}
+                          onChange={handleYAxisOrColumnFieldChange}
                         />
                       )}
                     </Measurements>
@@ -467,7 +467,7 @@ function WidgetBuilder({
                         displayType={state.displayType}
                         fields={explodedFields}
                         fieldOptions={getAmendedFieldOptions(measurements)}
-                        onChange={handleChangeYAxisOrColumnField}
+                        onChange={handleYAxisOrColumnFieldChange}
                         // TODO: errors={getFirstQueryError('fields')}
                       />
                     )}
