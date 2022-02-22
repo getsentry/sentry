@@ -287,7 +287,7 @@ export function updateProjects(
 
   PageFiltersActions.updateProjects(projects, options?.environments);
   updateParams({project: projects, environment: options?.environments}, router, options);
-  persistPageFilters(options);
+  persistPageFilters('projects', options);
 }
 
 /**
@@ -305,7 +305,7 @@ export function updateEnvironments(
 ) {
   PageFiltersActions.updateEnvironments(environment);
   updateParams({environment}, router, options);
-  persistPageFilters(options);
+  persistPageFilters('environments', options);
 }
 
 /**
@@ -323,7 +323,7 @@ export function updateDateTime(
 ) {
   PageFiltersActions.updateDateTime(datetime);
   updateParams(datetime, router, options);
-  persistPageFilters(options);
+  persistPageFilters('datetime', options);
 }
 
 /**
@@ -331,7 +331,7 @@ export function updateDateTime(
  */
 export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
   PageFiltersActions.pin(filter, pin);
-  persistPageFilters({save: true});
+  persistPageFilters(null, {save: true});
 }
 
 /**
@@ -360,9 +360,11 @@ function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options
 }
 
 /**
- * Save the current page filters to local storage
+ * Save a specific page filter to local storage.
+ *
+ * Pinned state is always persisted.
  */
-async function persistPageFilters(options?: Options) {
+async function persistPageFilters(filter: PinnedPageFilter | null, options?: Options) {
   if (!options?.save) {
     return;
   }
@@ -380,7 +382,8 @@ async function persistPageFilters(options?: Options) {
     return;
   }
 
-  setPageFiltersStorage(orgSlug);
+  const targetFilter = filter !== null ? [filter] : [];
+  setPageFiltersStorage(orgSlug, new Set<PinnedPageFilter>(targetFilter));
 }
 
 /**
