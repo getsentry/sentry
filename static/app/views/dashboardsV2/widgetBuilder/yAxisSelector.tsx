@@ -47,7 +47,7 @@ function DeleteButton({onDelete}) {
 
 function AddButton({title, onAdd}) {
   return (
-    <Button size="small" aria-label={title} onClick={onAdd} icon={<IconAdd isCircled />}>
+    <Button size="small" onClick={onAdd} icon={<IconAdd isCircled />}>
       {title}
     </Button>
   );
@@ -63,7 +63,7 @@ export function YAxisSelector({
   const organization = useOrganization();
   // const isMetricWidget = widgetType === WidgetType.METRICS;
 
-  function handleAdd(event: React.MouseEvent) {
+  function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();
 
     const newFields = [
@@ -217,7 +217,7 @@ export function YAxisSelector({
         ))}
         {!hideAddYAxisButtons && (
           <Actions>
-            <AddButton title={t('Add Overlay')} onAdd={handleAdd} />
+            <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
             <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
           </Actions>
         )}
@@ -230,7 +230,6 @@ export function YAxisSelector({
       data-test-id="y-axis"
       label={t('Y-Axis')}
       inline={false}
-      style={{padding: `${space(2)} 0 24px 0`}}
       error={errors?.fields}
       flexibleControlStateSize
       required
