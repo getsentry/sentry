@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AreaChart from 'sentry/components/charts/areaChart';
@@ -9,10 +8,9 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {ReactEchartsRef} from 'sentry/types/echarts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-type Props = WithRouterProps & {
+type Props = {
   orgId: string;
   organization: Organization;
 };
@@ -28,19 +26,6 @@ class AlertChart extends React.PureComponent<Props, State> {
     height: -1,
   };
 
-  ref: null | ReactEchartsRef = null;
-
-  renderChartActions() {
-    return (
-      <ChartActions>
-        <ChartFooter>
-          <FooterHeader>{t('Alerts Triggered')}</FooterHeader>
-          <FooterValue>{'88'}</FooterValue>
-        </ChartFooter>
-      </ChartActions>
-    );
-  }
-
   renderChart() {
     const TOTAL = 6;
     const NOW = new Date().getTime();
@@ -50,35 +35,31 @@ class AlertChart extends React.PureComponent<Props, State> {
       [...Array(num)].map((_v, i) => ({value: getValue(), name: getDate(i)}));
 
     return (
-      <ChartPanel>
-        <StyledPanelBody withPadding>
-          <ChartHeader>
-            <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
-          </ChartHeader>
-          {getDynamicText({
-            value: (
-              <AreaChart
-                isGroupedByDate
-                showTimeInTooltip
-                grid={{
-                  left: space(0.25),
-                  right: space(2),
-                  top: space(3),
-                  bottom: 0,
-                }}
-                series={[
-                  {
-                    seriesName: 'Alerts',
-                    data: getData(7),
-                  },
-                ]}
-              />
-            ),
-            fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-          })}
-        </StyledPanelBody>
-        {this.renderChartActions()}
-      </ChartPanel>
+      <AreaChart
+        isGroupedByDate
+        showTimeInTooltip
+        grid={{
+          left: space(0.25),
+          right: space(2),
+          top: space(3),
+          bottom: 0,
+        }}
+        series={[
+          {
+            seriesName: 'Alerts',
+            data: getData(7),
+          },
+        ]}
+      />
+    );
+  }
+
+  renderChartFooter() {
+    return (
+      <ChartFooter>
+        <FooterHeader>{t('Alerts Triggered')}</FooterHeader>
+        <FooterValue>{'88'}</FooterValue>
+      </ChartFooter>
     );
   }
 
@@ -93,11 +74,24 @@ class AlertChart extends React.PureComponent<Props, State> {
   }
 
   render() {
-    return this.renderChart();
+    return (
+      <ChartPanel>
+        <StyledPanelBody withPadding>
+          <ChartHeader>
+            <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
+          </ChartHeader>
+          {getDynamicText({
+            value: this.renderChart(),
+            fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+          })}
+        </StyledPanelBody>
+        {this.renderChartFooter()}
+      </ChartPanel>
+    );
   }
 }
 
-export default withRouter(AlertChart);
+export default AlertChart;
 
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
@@ -107,20 +101,13 @@ const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const ChartActions = styled(PanelFooter)`
+const ChartFooter = styled(PanelFooter)`
   display: flex;
-  justify-content: flex-end;
   align-items: center;
   padding: ${space(1)} 20px;
 `;
 
-const ChartFooter = styled('div')`
-  display: flex;
-  margin-right: auto;
-`;
-
 const FooterHeader = styled(SectionHeading)`
-  flex: 1;
   display: flex;
   align-items: center;
   margin: 0;
@@ -132,7 +119,7 @@ const FooterHeader = styled(SectionHeading)`
 const FooterValue = styled('div')`
   display: flex;
   align-items: center;
-  margin: 0 ${space(2)};
+  margin: 0 ${space(1)};
 `;
 
 /* Override padding to make chart appear centered */
