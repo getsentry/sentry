@@ -23,7 +23,9 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):  # type: ignore
             for s in permission.scope_map.get(auto_schema.method, []):
                 scopes.add(s)
 
-        return {self.name: list(scopes).sort()}
+        scope_list = list(scopes)
+        scope_list.sort()
+        return {self.name: scope_list}
 
     def get_security_definition(
         self, auto_schema: AutoSchema
