@@ -41,10 +41,10 @@ COOKIE_PATH = getattr(settings, "SUPERUSER_COOKIE_PATH", settings.SESSION_COOKIE
 COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
+MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(minutes=15))
 
 # the maximum time the session can stay alive without making another request
-IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=30))
+IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
 
 ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
@@ -71,10 +71,10 @@ class Superuser:
     org_id = ORG_ID
 
     def _remove_su_access_from_session(self, request):
-        if request.session["su_access"]:
+        if request.session.get("su_access"):
             del request.session["su_access"]
-        if request.session["orgs_accessed"]:
-            del request.session["orgs_accessed"]
+        if request.session.get("orgs_accessed"):
+            request.session["orgs_accessed"] = request.session["orgs_accessed"][:1]
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
@@ -90,12 +90,15 @@ class Superuser:
     def is_active(self):
         # if we've been logged out
         if not self.request.user.is_authenticated:
+            self._remove_su_access_from_session(self.request)
             return False
         # if superuser status was changed
         if not self.request.user.is_superuser:
+            self._remove_su_access_from_session(self.request)
             return False
         # if the user has changed
         if str(self.request.user.id) != self.uid:
+            self._remove_su_access_from_session(self.request)
             return False
         return self._is_active
 
@@ -187,13 +190,11 @@ class Superuser:
             )
             return
 
-        # shouldn't this be greater for it to be expired?
         if data["idl"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            # self._remove_su_access_from_session(request)
             return
 
         try:
@@ -206,13 +207,11 @@ class Superuser:
             )
             return
 
-        # shouldn't this be greater for it to be expired?
         if data["exp"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            # self._remove_su_access_from_session(request)
             return
 
         return data
