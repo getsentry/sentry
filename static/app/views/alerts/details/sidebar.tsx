@@ -20,71 +20,76 @@ type Props = {
 
 class Sidebar extends PureComponent<Props> {
   renderConditions() {
+    const {rule} = this.props;
+    const conditions = rule.conditions.length
+      ? rule.conditions.map(condition => (
+          <ConditionsBadge key={condition.id}>{condition.name}</ConditionsBadge>
+        ))
+      : '';
+    const filters = rule.filters.length
+      ? rule.filters.map(filter => (
+          <ConditionsBadge key={filter.id}>
+            {filter.time ? filter.name + '(s)' : filter.name}
+          </ConditionsBadge>
+        ))
+      : '';
+    const actions = rule.actions.length
+      ? rule.actions.map(action => (
+          <ConditionsBadge key={action.id}>{action.name}</ConditionsBadge>
+        ))
+      : '';
+
     return (
-      <div>
-        <PanelBody>
-          <Step>
-            <StepConnector />
-            <StepContainer>
-              <ChevronContainer>
-                <IconChevron color="gray200" isCircled direction="right" size="sm" />
-              </ChevronContainer>
-              <div>
-                <StepLead>
-                  {tct('[when:When] [selector] of the following happens', {
-                    when: <Badge />,
-                    selector: 'any',
-                  })}
-                </StepLead>
-                <ConditionsBadge>{'A new issue is created'}</ConditionsBadge>
-                <ConditionsBadge>
-                  {'Issue has more than 100 events in 1 min'}
-                </ConditionsBadge>
-                <ConditionsBadge>
-                  {'Issue changes state from resolved to unresolved'}
-                </ConditionsBadge>
-              </div>
-            </StepContainer>
-          </Step>
-          <Step>
-            <StepConnector />
-            <StepContainer>
-              <ChevronContainer>
-                <IconChevron color="gray200" isCircled direction="right" size="sm" />
-              </ChevronContainer>
-              <StepContent>
-                <StepLead>
-                  {tct('[if:If] [selector] of these filters match', {
-                    if: <Badge />,
-                    selector: 'all',
-                  })}
-                </StepLead>
-                <ConditionsBadge>{'Assigned to #workflow'}</ConditionsBadge>
-              </StepContent>
-            </StepContainer>
-          </Step>
-          <Step>
-            <StepContainer>
-              <ChevronContainer>
-                <IconChevron isCircled color="gray200" direction="right" size="sm" />
-              </ChevronContainer>
-              <StepContent>
-                <StepLead>
-                  {tct('[then:Then] perform these actions', {
-                    then: <Badge />,
-                  })}
-                </StepLead>
-                <ConditionsBadge>
-                  {'Send notification to Slack #workflow channel'}
-                </ConditionsBadge>
-                <ConditionsBadge>
-                  {'Only send one notification every 30 minutes'}
-                </ConditionsBadge>
-              </StepContent>
-            </StepContainer>
-          </Step>
-        </PanelBody>
-      </div>
+      <PanelBody>
+        <Step>
+          <StepContainer>
+            <ChevronContainer>
+              <IconChevron color="gray200" isCircled direction="right" size="sm" />
+            </ChevronContainer>
+            <StepContent>
+              <StepLead>
+                {tct('[when:When] [selector] of the following happens', {
+                  when: <Badge />,
+                  selector: rule.actionMatch,
+                })}
+              </StepLead>
+              <ConditionsBadge>{t('An event is captured')}</ConditionsBadge>
+              {conditions}
+            </StepContent>
+          </StepContainer>
+        </Step>
+        <Step>
+          <StepContainer>
+            <ChevronContainer>
+              <IconChevron color="gray200" isCircled direction="right" size="sm" />
+            </ChevronContainer>
+            <StepContent>
+              <StepLead>
+                {tct('[if:If] [selector] of these filters match', {
+                  if: <Badge />,
+                  selector: rule.filterMatch,
+                })}
+              </StepLead>
+              {filters}
+            </StepContent>
+          </StepContainer>
+        </Step>
+        <Step>
+          <StepContainer>
+            <ChevronContainer>
+              <IconChevron isCircled color="gray200" direction="right" size="sm" />
+            </ChevronContainer>
+            <StepContent>
+              <StepLead>
+                {tct('[then:Then] perform these actions', {
+                  then: <Badge />,
+                })}
+              </StepLead>
+              {actions}
+            </StepContent>
+          </StepContainer>
+        </Step>
+      </PanelBody>
     );
   }
 
@@ -116,10 +121,10 @@ class Sidebar extends PureComponent<Props> {
             </Status>
           </HeaderItem>
         </StatusContainer>
-        <SidebarGroup>
+        <ConditionsSidebarGroup>
           <Heading>{t('Alert Conditions')}</Heading>
           {this.renderConditions()}
-        </SidebarGroup>
+        </ConditionsSidebarGroup>
         <SidebarGroup>
           <Heading>{t('Alert Rule Details')}</Heading>
           <KeyValueTable>
@@ -156,6 +161,10 @@ export default Sidebar;
 
 const SidebarGroup = styled('div')`
   margin-bottom: ${space(3)};
+`;
+
+const ConditionsSidebarGroup = styled(SidebarGroup)`
+  display: inline-block;
 `;
 
 const HeaderItem = styled('div')`
@@ -199,14 +208,15 @@ const StepContainer = styled('div')`
   flex-grow: 1;
 `;
 
-const StepContent = styled('div')``;
-
-const StepConnector = styled('div')`
-  position: absolute;
-  height: 100%;
-  top: 28px;
-  left: 19px;
-  border-right: 1px ${p => p.theme.gray200} dashed;
+const StepContent = styled('div')`
+  &::before {
+    content: '';
+    position: absolute;
+    height: 100%;
+    top: 28px;
+    left: 19px;
+    border-right: 1px ${p => p.theme.gray200} dashed;
+  }
 `;
 
 const StepLead = styled('div')`
