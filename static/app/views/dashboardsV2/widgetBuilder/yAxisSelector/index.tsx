@@ -116,7 +116,7 @@ export function YAxisSelector({
   }
 
   function filterAggregateParameters(fieldValue: QueryFieldValue) {
-    return option => {
+    return (option: FieldValueOption) => {
       // Only validate function parameters for timeseries widgets and
       // world map widgets.
       if (doNotValidateYAxis) {
