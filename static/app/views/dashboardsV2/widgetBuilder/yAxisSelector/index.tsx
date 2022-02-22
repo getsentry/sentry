@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import ButtonBar from 'sentry/components/buttonBar';
 import Field from 'sentry/components/forms/field';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -223,10 +224,9 @@ export function YAxisSelector({
   );
 }
 
-const Actions = styled('div')`
-  & button {
-    margin-right: ${space(1)};
-  }
+const Actions = styled(ButtonBar)`
+  justify-content: flex-start;
+  gap: ${space(1)};
 `;
 
 const QueryFieldWrapper = styled('div')`
