@@ -12,7 +12,7 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
@@ -111,7 +111,7 @@ export function YAxisSelector({
   // Column builder for Table widget is already handled above.
   const doNotValidateYAxis = displayType === 'big_number';
 
-  function filterPrimaryOptions(option) {
+  function filterPrimaryOptions(option: FieldValueOption) {
     // Only validate function names for timeseries widgets and
     // world map widgets.
     if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
@@ -138,37 +138,39 @@ export function YAxisSelector({
     return option.value.kind === FieldValueKind.FUNCTION;
   }
 
-  const filterAggregateParameters = fieldValue => option => {
-    // Only validate function parameters for timeseries widgets and
-    // world map widgets.
-    if (doNotValidateYAxis) {
-      return true;
-    }
+  function filterAggregateParameters(fieldValue: QueryFieldValue) {
+    return option => {
+      // Only validate function parameters for timeseries widgets and
+      // world map widgets.
+      if (doNotValidateYAxis) {
+        return true;
+      }
 
-    if (fieldValue.kind !== 'function') {
-      return true;
-    }
+      if (fieldValue.kind !== 'function') {
+        return true;
+      }
 
-    // if (isMetricWidget) {
-    //   return true;
-    // }
+      // if (isMetricWidget) {
+      //   return true;
+      // }
 
-    const functionName = fieldValue.function[0];
-    const primaryOutput = aggregateFunctionOutputType(
-      functionName as string,
-      option.value.meta.name
-    );
-    if (primaryOutput) {
-      return isLegalYAxisType(primaryOutput);
-    }
+      const functionName = fieldValue.function[0];
+      const primaryOutput = aggregateFunctionOutputType(
+        functionName as string,
+        option.value.meta.name
+      );
+      if (primaryOutput) {
+        return isLegalYAxisType(primaryOutput);
+      }
 
-    if (option.value.kind === FieldValueKind.FUNCTION) {
-      // Functions are not legal options as an aggregate/function parameter.
-      return false;
-    }
+      if (option.value.kind === FieldValueKind.FUNCTION) {
+        // Functions are not legal options as an aggregate/function parameter.
+        return false;
+      }
 
-    return isLegalYAxisType(option.value.meta.dataType);
-  };
+      return isLegalYAxisType(option.value.meta.dataType);
+    };
+  }
 
   const canDelete = fields.length > 1;
 
