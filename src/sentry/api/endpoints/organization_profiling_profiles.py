@@ -9,6 +9,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.http import safe_urlopen
 from sentry.models import Organization
+from sentry.utils.cloudrun import fetch_id_token_for_service
 
 PROFILE_FILTERS = [
     "android_api_level",
@@ -43,9 +44,11 @@ class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
         def data_fn(offset: int, limit: int) -> Any:
             params["offset"] = offset
             params["limit"] = limit
+            id_token = fetch_id_token_for_service(settings.SENTRY_PROFILING_SERVICE_URL)
             response = safe_urlopen(
                 f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/profiles",
                 method="GET",
+                headers={"Authorization": f"Bearer {id_token}"},
                 params=params,
             )
             return response.json().get("profiles", [])
@@ -69,9 +72,11 @@ class OrganizationProfilingFiltersEndpoint(OrganizationEndpoint):
         if len(projects) > 0:
             params["project"] = [p.id for p in projects]
 
+        id_token = fetch_id_token_for_service(settings.SENTRY_PROFILING_SERVICE_URL)
         response = safe_urlopen(
             f"{settings.SENTRY_PROFILING_SERVICE_URL}/organizations/{organization.id}/filters",
             method="GET",
+            headers={"Authorization": f"Bearer {id_token}"},
             params=params,
         )
 
