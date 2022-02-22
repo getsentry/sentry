@@ -15,12 +15,11 @@ type Props = {
   dashboardTitle: DashboardDetails['title'];
   goBackLocation: React.ComponentProps<typeof Link>['to'];
   onChangeTitle: (title: string) => void;
+  onSave: (event: React.MouseEvent) => void;
   orgSlug: string;
   title: string;
-  disabled?: boolean;
   isEditing?: boolean;
   onDelete?: () => void;
-  onSave?: (event: React.MouseEvent) => void;
 };
 
 export function Header({
@@ -84,12 +83,7 @@ export function Header({
               <Button priority="danger">{t('Delete')}</Button>
             </Confirm>
           )}
-          <Button
-            priority="primary"
-            onClick={onSave}
-            disabled={!onSave}
-            title={!onSave ? t('This feature is not yet available') : undefined}
-          >
+          <Button priority="primary" onClick={onSave}>
             {isEditing ? t('Update Widget') : t('Add Widget')}
           </Button>
         </ButtonBar>
