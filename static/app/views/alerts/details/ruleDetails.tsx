@@ -13,6 +13,8 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 
+import Sidebar from './sidebar';
+
 type Props = AsyncComponent['props'] & {
   organization: Organization;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}>;
@@ -78,7 +80,7 @@ class TeamStability extends AsyncComponent<Props, State> {
         <StyledLayoutBody>
           <Layout.Main>Main Content</Layout.Main>
           <Layout.Side>
-            <h3>Sidebar content</h3>
+            <Sidebar rule={rule} />
           </Layout.Side>
         </StyledLayoutBody>
       </Fragment>
