@@ -25,6 +25,7 @@ export {IconDownload} from './iconDownload';
 export {IconEdit} from './iconEdit';
 export {IconEllipsis} from './iconEllipsis';
 export {IconExclamation} from './iconExclamation';
+export {IconExpand} from './iconExpand';
 export {IconFatal} from './iconFatal';
 export {IconFile} from './iconFile';
 export {IconFilter} from './iconFilter';

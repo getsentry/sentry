@@ -22,7 +22,9 @@ import space from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 
+import AlertChart from './alertChart';
 import AlertRuleIssuesList from './issuesList';
+import Sidebar from './sidebar';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -214,9 +216,10 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               end={end ?? null}
               utc={utc ?? null}
             />
+            <AlertChart organization={organization} orgId={orgId} />
           </Layout.Main>
           <Layout.Side>
-            <h3>Sidebar content</h3>
+            <Sidebar rule={rule} />
           </Layout.Side>
         </StyledLayoutBody>
       </Fragment>

@@ -1,4 +1,4 @@
-import {act, renderHook} from '@testing-library/react-hooks';
+import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -10,17 +10,17 @@ describe('useProjects', function () {
   const mockProjects = [TestStubs.Project()];
 
   it('provides projects from the team store', function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
 
-    const {result} = renderHook(() => useProjects());
+    const {result} = reactHooks.renderHook(() => useProjects());
     const {projects} = result.current;
 
     expect(projects).toEqual(mockProjects);
   });
 
   it('loads more projects when using onSearch', async function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
-    act(() => void OrganizationStore.onUpdate(org, {replace: true}));
+    reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
+    reactHooks.act(() => void OrganizationStore.onUpdate(org, {replace: true}));
 
     const newProject3 = TestStubs.Project({id: '3', slug: 'test-project3'});
     const newProject4 = TestStubs.Project({id: '4', slug: 'test-project4'});
@@ -31,11 +31,11 @@ describe('useProjects', function () {
       body: [newProject3, newProject4],
     });
 
-    const {result, waitFor} = renderHook(() => useProjects());
+    const {result, waitFor} = reactHooks.renderHook(() => useProjects());
     const {onSearch} = result.current;
 
     // Works with append
-    const onSearchPromise = act(() => onSearch('test'));
+    const onSearchPromise = reactHooks.act(() => onSearch('test'));
 
     expect(result.current.fetching).toBe(true);
     await onSearchPromise;
@@ -49,7 +49,7 @@ describe('useProjects', function () {
 
     // de-duplicates items in the query results
     mockRequest.mockClear();
-    await act(() => onSearch('test'));
+    await reactHooks.act(() => onSearch('test'));
 
     // No new items have been added
     expect(mockRequest).toHaveBeenCalled();
@@ -57,8 +57,8 @@ describe('useProjects', function () {
   });
 
   it('provides only the specified slugs', async function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
-    act(() => void OrganizationStore.onUpdate(org, {replace: true}));
+    reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
+    reactHooks.act(() => void OrganizationStore.onUpdate(org, {replace: true}));
 
     const projectFoo = TestStubs.Project({id: 3, slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
@@ -67,7 +67,7 @@ describe('useProjects', function () {
       body: [projectFoo],
     });
 
-    const {result, waitFor} = renderHook(props => useProjects(props), {
+    const {result, waitFor} = reactHooks.renderHook(props => useProjects(props), {
       initialProps: {slugs: ['foo']},
     });
 
@@ -81,9 +81,9 @@ describe('useProjects', function () {
   });
 
   it('only loads slugs when needed', async function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
 
-    const {result} = renderHook(props => useProjects(props), {
+    const {result} = reactHooks.renderHook(props => useProjects(props), {
       initialProps: {slugs: [mockProjects[0].slug]},
     });
 
