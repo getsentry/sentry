@@ -1072,7 +1072,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             )
 
         assert response.status_code == 200, response.content
-        assert response.data == {"op": test_op, "group": test_hash, "examples": []}
+        assert response.data == [{"op": test_op, "group": test_hash, "examples": []}]
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_one_span(self, mock_raw_snql_query):
