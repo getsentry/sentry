@@ -5,13 +5,15 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -149,6 +151,19 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
+            <Feature
+              organization={organization}
+              features={['organizations:widget-viewer-modal']}
+            >
+              <OpenWidgetViewerButton
+                onClick={() => {
+                  openWidgetViewerModal({
+                    organization,
+                    widget,
+                  });
+                }}
+              />
+            </Feature>
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
@@ -257,4 +272,13 @@ const WidgetHeader = styled('div')`
   width: 100%;
   display: flex;
   justify-content: space-between;
+`;
+
+const OpenWidgetViewerButton = styled(IconOpen)`
+  &:hover {
+    cursor: pointer;
+  }
+  margin: auto;
+  margin-left: ${space(0.5)};
+  height: ${p => p.theme.fontSizeMedium};
 `;

@@ -4,6 +4,10 @@ from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoin
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
+from sentry.api.endpoints.organization_profiling_profiles import (
+    OrganizationProfilingFiltersEndpoint,
+    OrganizationProfilingProfilesEndpoint,
+)
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -328,6 +332,7 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesEndpoint,
     ProjectProcessingIssuesFixEndpoint,
 )
+from .endpoints.project_profiling_profile import ProjectProfilingProfileEndpoint
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -1524,6 +1529,23 @@ urlpatterns = [
                     OrganizationMetricsTagDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-metrics-tag-details",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/profiling/",
+                    include(
+                        [
+                            url(
+                                r"^profiles/$",
+                                OrganizationProfilingProfilesEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-profiles",
+                            ),
+                            url(
+                                r"^filters/$",
+                                OrganizationProfilingFiltersEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-filters",
+                            ),
+                        ],
+                    ),
+                ),
             ]
         ),
     ),
@@ -2081,6 +2103,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
                     AppStoreConnectUpdateCredentialsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingProfileEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-profile",
                 ),
             ]
         ),
