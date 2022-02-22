@@ -1,11 +1,10 @@
 import * as React from 'react';
 import LazyLoad from 'react-lazyload';
-import {withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -141,6 +140,7 @@ class WidgetCard extends React.Component<Props> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
+      location,
     } = this.props;
     return (
       <ErrorBoundary
@@ -157,9 +157,9 @@ class WidgetCard extends React.Component<Props> {
             >
               <OpenWidgetViewerButton
                 onClick={() => {
-                  openWidgetViewerModal({
-                    organization,
-                    widget,
+                  browserHistory.push({
+                    pathname: `${location.pathname}${widget.id}/`,
+                    query: location.query,
                   });
                 }}
               />

@@ -10,7 +10,10 @@ import {
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {
+  openAddDashboardWidgetModal,
+  openWidgetViewerModal,
+} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -87,16 +90,41 @@ class DashboardDetail extends Component<Props, State> {
     this.checkStateRoute();
     router.setRouteLeaveHook(route, this.onRouteLeave);
     window.addEventListener('beforeunload', this.onUnload);
+    this.checkIfShouldMountWidgetViewerModal();
   }
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.location.pathname !== this.props.location.pathname) {
       this.checkStateRoute();
     }
+    this.checkIfShouldMountWidgetViewerModal();
   }
 
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onUnload);
+  }
+
+  checkIfShouldMountWidgetViewerModal() {
+    const {
+      params: {widgetId},
+      organization,
+      dashboard,
+      location,
+    } = this.props;
+    if (defined(widgetId)) {
+      const widget = dashboard.widgets.filter(({id}) => id === `${widgetId}`)[0];
+      if (widget) {
+        openWidgetViewerModal(
+          () => {
+            browserHistory.push({
+              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+              query: location.query,
+            });
+          },
+          {organization, widget}
+        );
+      }
+    }
   }
 
   checkStateRoute() {
