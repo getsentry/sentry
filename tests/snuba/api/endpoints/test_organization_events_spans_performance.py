@@ -1034,68 +1034,47 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         }
 
     def test_span_filters(self):
+        test_op = "django.middleware"
+        test_hash = "cd" * 8
         spans = [
+            # span with test_op but different hash
             {
                 "same_process_as_parent": True,
                 "parent_span_id": "a" * 16,
-                "span_id": x * 16,
+                "span_id": "b" * 16,
                 "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
                 "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
-                "op": "django.middleware",
+                "op": test_op,
                 "description": "middleware span",
-                "hash": "cd" * 8,
+                "hash": "ab" * 8,
                 "exclusive_time": 3.0,
-            }
-            for x in ["b", "c"]
-        ]
-        event = self.create_event(spans=spans)
-
-        # same op different hash
-        different_hash_spans = [
+            },
+            # span with test_hash but different op
             {
                 "same_process_as_parent": True,
                 "parent_span_id": "a" * 16,
-                "span_id": x * 16,
-                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
-                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
-                "op": "django.middleware",
-                "description": "middleware span",
-                "hash": "ef" * 8,
-                "exclusive_time": 1.0,
-            }
-            for x in ["d", "e", "f"]
-        ]
-        self.create_event(spans=different_hash_spans)
-
-        # different op same hash
-        different_op_spans = [
-            {
-                "same_process_as_parent": True,
-                "parent_span_id": "a" * 16,
-                "span_id": x * 16,
+                "span_id": "c" * 16,
                 "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
                 "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
                 "op": "django.view",
-                "description": "view span",
-                "hash": "cd" * 8,
+                "description": "middleware span",
+                "hash": test_hash,
                 "exclusive_time": 1.0,
-            }
-            for x in ["d", "e", "f"]
+            },
         ]
-        self.create_event(spans=different_op_spans)
+        self.create_event(spans=spans)
+
+        expected_events = []
 
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": self.project.id, "span": f"django.middleware:{'cd' * 8}"},
+                data={"project": self.project.id, "span": f"{test_op}:{test_hash}"},
                 format="json",
             )
 
         assert response.status_code == 200, response.content
-
-        self.assert_span_examples(
-            response.data, [self.span_example_results("django.middleware", event)]
-        )
+        assert response.data == expected_events
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_one_span(self, mock_raw_snql_query):
