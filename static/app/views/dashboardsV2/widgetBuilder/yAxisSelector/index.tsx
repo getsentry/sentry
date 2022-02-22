@@ -11,7 +11,7 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -27,21 +27,20 @@ type Props = {
    * Fired when fields are added/removed/modified/reordered.
    */
   onChange: (fields: QueryFieldValue[]) => void;
-
-  // TODO: For checking against METRICS widget type
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
 };
 
 export function YAxisSelector({
   displayType,
+  widgetType,
   fields,
   fieldOptions,
   onChange,
   errors,
 }: Props) {
   const organization = useOrganization();
-  // const isMetricWidget = widgetType === WidgetType.METRICS;
+  const isMetricWidget = widgetType === WidgetType.METRICS;
 
   function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();
@@ -103,15 +102,15 @@ export function YAxisSelector({
       }
     }
 
-    // if (
-    //   widgetType === WidgetType.METRICS &&
-    //   (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
-    // ) {
-    //   return (
-    //     option.value.kind === FieldValueKind.FUNCTION ||
-    //     option.value.kind === FieldValueKind.TAG
-    //   );
-    // }
+    if (
+      widgetType === WidgetType.METRICS &&
+      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
+    ) {
+      return (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.TAG
+      );
+    }
 
     return option.value.kind === FieldValueKind.FUNCTION;
   }
@@ -128,9 +127,9 @@ export function YAxisSelector({
         return true;
       }
 
-      // if (isMetricWidget) {
-      //   return true;
-      // }
+      if (isMetricWidget || option.value.kind === FieldValueKind.METRICS) {
+        return true;
+      }
 
       const functionName = fieldValue.function[0];
       const primaryOutput = aggregateFunctionOutputType(
