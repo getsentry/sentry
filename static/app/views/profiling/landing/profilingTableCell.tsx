@@ -22,16 +22,16 @@ function ProfilingTableCell(
       return (
         <Container>
           {status ? (
-            <IconCheckmark size="sm" color="green300" isCircled />
-          ) : (
             <IconClose size="sm" color="red300" isCircled />
+          ) : (
+            <IconCheckmark size="sm" color="green300" isCircled />
           )}
         </Container>
       );
     case 'start_time_unix':
       return (
         <Container>
-          <DateTime date={value} />
+          <DateTime date={value * 1000} />
         </Container>
       );
     case 'trace_duration_ms':

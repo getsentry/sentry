@@ -67,7 +67,7 @@ function ProfilingScatterChart({
     }
 
     return Object.entries(seriesMap).map(([seriesName, data]) => ({seriesName, data}));
-  }, [colorEncoding]);
+  }, [colorEncoding, traces]);
 
   const chartOptions = React.useMemo(
     () => makeScatterChartOptions({location, theme}),
