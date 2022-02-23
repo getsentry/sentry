@@ -24,7 +24,7 @@ export enum FieldKey {
   LIFETIME_EVENTS = 'lifetimeEvents',
   LIFETIME_USERS = 'lifetimeUsers',
   PROJECT = 'project',
-  ANNOTATIONS = 'annotations',
+  LINKS = 'links',
 }
 
 export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
@@ -44,7 +44,7 @@ export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.LIFETIME_EVENTS]: 'string',
   [FieldKey.LIFETIME_USERS]: 'string',
   [FieldKey.PROJECT]: 'string',
-  [FieldKey.ANNOTATIONS]: 'string',
+  [FieldKey.LINKS]: 'string',
 };
 
 export const ISSUE_FIELD_TO_HEADER_MAP = {
