@@ -101,6 +101,11 @@ type Props = WithRouterProps & {
   utc: boolean | null;
 
   /**
+   * Optional function to replace default date summary in dropdown header with
+   */
+  dateSummary?: (dateState: ChangeData) => React.ReactNode;
+
+  /**
    * Set an optional default value to prefill absolute date with
    */
   defaultAbsolute?: {end?: Date; start?: Date};
@@ -345,6 +350,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
 
   render() {
     const {
+      dateSummary,
       defaultPeriod,
       showAbsolute,
       showRelative,
@@ -397,7 +403,10 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
               hint={hint}
               {...getActorProps()}
             >
-              {getDynamicText({value: summary, fixed: 'start to end'})}
+              {getDynamicText({
+                value: dateSummary ? dateSummary({start, end, relative}) : summary,
+                fixed: 'start to end',
+              })}
             </StyledHeaderItem>
             {isOpen && (
               <Menu {...getMenuProps()} isAbsoluteSelected={isAbsoluteSelected}>
