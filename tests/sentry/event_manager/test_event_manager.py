@@ -149,7 +149,6 @@ class EventManagerTest(TestCase):
         project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
 
         # Switching to newstyle grouping changes hashes as 123 will be removed
-
         manager = EventManager(
             make_event(message="foo 123", event_id="b" * 32, timestamp=timestamp + 2.0)
         )
@@ -169,6 +168,77 @@ class EventManagerTest(TestCase):
         assert group.message == event2.message
         assert group.data.get("type") == "default"
         assert group.data.get("metadata") == {"title": "foo 123"}
+
+        # After expiry, new events are still assigned to the same group:
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+        manager = EventManager(
+            make_event(message="foo 123", event_id="c" * 32, timestamp=timestamp + 4.0)
+        )
+        manager.normalize()
+
+        with self.tasks():
+            event3 = manager.save(project.id)
+        assert event3.group_id == event2.group_id
+
+    def test_applies_secondary_grouping_hierarchical(self):
+        project = self.project
+        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+
+        timestamp = time() - 300
+
+        def save_event(ts_offset):
+            ts = timestamp + ts_offset
+            manager = EventManager(
+                make_event(
+                    message="foo 123",
+                    event_id=hex(2 ** 127 + int(ts))[-32:],
+                    timestamp=ts,
+                    exception={
+                        "values": [
+                            {
+                                "type": "Hello",
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "function": "not_in_app_function",
+                                        },
+                                        {
+                                            "function": "in_app_function",
+                                        },
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                )
+            )
+            manager.normalize()
+            with self.tasks():
+                return manager.save(project.id)
+
+        event = save_event(0)
+
+        project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
+
+        # Switching to newstyle grouping changes hashes as 123 will be removed
+        event2 = save_event(2)
+
+        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
+        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=event.group_id)
+
+        assert group.times_seen == 2
+        assert group.last_seen == event2.datetime
+
+        # After expiry, new events are still assigned to the same group:
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+        event3 = save_event(4)
+        assert event3.group_id == event2.group_id
 
     @mock.patch("sentry.event_manager._calculate_background_grouping")
     def test_applies_background_grouping(self, mock_calc_grouping):
