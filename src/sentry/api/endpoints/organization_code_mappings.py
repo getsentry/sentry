@@ -143,7 +143,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             org_integration = self.get_organization_integration(organization, integration_id)
             queryset = queryset.filter(organization_integration=org_integration)
 
-        # Check that the project is apart of the organization.
+        # Filter by project
         project_ids = {project_id} if project_id and type(project_id) == int else None
         projects = self.get_projects(request, organization, project_ids=project_ids)
         queryset = queryset.filter(project__in=projects)
