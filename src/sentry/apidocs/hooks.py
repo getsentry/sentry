@@ -45,7 +45,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 filtered.append((path, path_regex, method, callback))
 
         elif view in registered_endpoints:
-            # don't error if endpoint is added to registry
+            # don't error if endpoint is added to exclusion list
             pass
 
         elif callback.view_class.private:
@@ -54,7 +54,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         else:
             # any new endpoint that isn't accounted for should recieve this error when building api docs
             warn(
-                f"{view} {method} is unnacounted for. "
+                f"{view} {method} is unaccounted for. "
                 "Either document the endpoint and define the `public` attribute on the endpoint "
                 "with the public HTTP methods, "
                 "or set the `private` attribute on the endpoint to `True`. "
