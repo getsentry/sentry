@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import FormField from 'sentry/components/forms/formField';
 import TeamSelector from 'sentry/components/forms/teamSelector';
-import ListItem from 'sentry/components/list/listItem';
 import TextField from 'sentry/components/forms/textField';
+import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -17,7 +17,7 @@ type Props = {
   project: Project;
 };
 
-export function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}: Props) {
+export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}: Props) {
   const renderRuleName = () => (
     <TextField
       disabled={disabled}
