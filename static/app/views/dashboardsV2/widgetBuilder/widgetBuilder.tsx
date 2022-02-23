@@ -34,8 +34,11 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
+  QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import Measurements from 'sentry/utils/measurements/measurements';
+import Measurements, {
+  MeasurementCollection,
+} from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -61,6 +64,7 @@ import BuildStep from './buildStep';
 import {ColumnFields} from './columnFields';
 import Header from './header';
 import {DataSet, DisplayType, displayTypes, normalizeQueries} from './utils';
+import {YAxisSelector} from './yAxisSelector';
 
 const DATASET_CHOICES: [DataSet, string][] = [
   [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
@@ -269,6 +273,37 @@ function WidgetBuilder({
     );
   }
 
+  function handleYAxisOrColumnFieldChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+    const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
+
+    for (const index in state.queries) {
+      const queryIndex = Number(index);
+      const query = state.queries[queryIndex];
+      const descending = query.orderby.startsWith('-');
+      const orderbyAggregateAliasField = query.orderby.replace('-', '');
+      const prevAggregateAliasFieldStrings = query.fields.map(getAggregateAlias);
+      const newQuery = cloneDeep(query);
+
+      newQuery.fields = fieldStrings;
+
+      if (!aggregateAliasFieldStrings.includes(orderbyAggregateAliasField)) {
+        newQuery.orderby = '';
+
+        if (prevAggregateAliasFieldStrings.length === newFields.length) {
+          // The Field that was used in orderby has changed. Get the new field.
+          newQuery.orderby = `${descending && '-'}${
+            aggregateAliasFieldStrings[
+              prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
+            ]
+          }`;
+        }
+      }
+
+      handleQueryChange(queryIndex, newQuery);
+    }
+  }
+
   const canAddSearchConditions =
     [
       DisplayType.LINE,
@@ -289,6 +324,16 @@ function WidgetBuilder({
       : state.dataSet === DataSet.ISSUES
       ? WidgetType.ISSUE
       : WidgetType.METRICS;
+
+  const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
+  function getAmendedFieldOptions(measurements: MeasurementCollection) {
+    return generateFieldOptions({
+      organization,
+      tagKeys: Object.values(tags).map(({key}) => key),
+      measurementKeys: Object.values(measurements).map(({key}) => key),
+      spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+    });
+  }
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -367,82 +412,24 @@ function WidgetBuilder({
                   onChange={handleDataSetChange}
                 />
               </BuildStep>
-              {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) ? (
+              {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                 <BuildStep
                   title={t('Columns')}
                   description="Description of what this means"
                 >
                   {state.dataSet === DataSet.EVENTS ? (
                     <Measurements>
-                      {({measurements}) => {
-                        const explodedFields = state.queries[0].fields.map(field =>
-                          explodeField({field})
-                        );
-
-                        const amendedFieldOptions = generateFieldOptions({
-                          organization,
-                          tagKeys: Object.values(tags).map(({key}) => key),
-                          measurementKeys: Object.values(measurements).map(
-                            ({key}) => key
-                          ),
-                          spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
-                        });
-
-                        return (
-                          <ColumnFields
-                            displayType={state.displayType}
-                            organization={organization}
-                            widgetType={widgetType}
-                            columns={explodedFields}
-                            errors={state.errors?.queries}
-                            fieldOptions={amendedFieldOptions}
-                            onChange={newFields => {
-                              const fieldStrings = newFields.map(generateFieldAsString);
-                              const aggregateAliasFieldStrings =
-                                fieldStrings.map(getAggregateAlias);
-
-                              for (const index in state.queries) {
-                                const queryIndex = Number(index);
-                                const query = state.queries[queryIndex];
-                                const descending = query.orderby.startsWith('-');
-                                const orderbyAggregateAliasField = query.orderby.replace(
-                                  '-',
-                                  ''
-                                );
-                                const prevAggregateAliasFieldStrings =
-                                  query.fields.map(getAggregateAlias);
-                                const newQuery = cloneDeep(query);
-
-                                newQuery.fields = fieldStrings;
-
-                                if (
-                                  !aggregateAliasFieldStrings.includes(
-                                    orderbyAggregateAliasField
-                                  )
-                                ) {
-                                  newQuery.orderby = '';
-
-                                  if (
-                                    prevAggregateAliasFieldStrings.length ===
-                                    newFields.length
-                                  ) {
-                                    // The Field that was used in orderby has changed. Get the new field.
-                                    newQuery.orderby = `${descending && '-'}${
-                                      aggregateAliasFieldStrings[
-                                        prevAggregateAliasFieldStrings.indexOf(
-                                          orderbyAggregateAliasField
-                                        )
-                                      ]
-                                    }`;
-                                  }
-                                }
-
-                                handleQueryChange(queryIndex, newQuery);
-                              }
-                            }}
-                          />
-                        );
-                      }}
+                      {({measurements}) => (
+                        <ColumnFields
+                          displayType={state.displayType}
+                          organization={organization}
+                          widgetType={widgetType}
+                          columns={explodedFields}
+                          errors={state.errors?.queries}
+                          fieldOptions={getAmendedFieldOptions(measurements)}
+                          onChange={handleYAxisOrColumnFieldChange}
+                        />
+                      )}
                     </Measurements>
                   ) : (
                     <ColumnFields
@@ -467,12 +454,24 @@ function WidgetBuilder({
                     />
                   )}
                 </BuildStep>
-              ) : (
+              )}
+              {![DisplayType.TABLE].includes(state.displayType) && (
                 <BuildStep
                   title={t('Choose your y-axis')}
                   description="Description of what this means"
                 >
-                  WIP
+                  <Measurements>
+                    {({measurements}) => (
+                      <YAxisSelector
+                        widgetType={widgetType}
+                        displayType={state.displayType}
+                        fields={explodedFields}
+                        fieldOptions={getAmendedFieldOptions(measurements)}
+                        onChange={handleYAxisOrColumnFieldChange}
+                        // TODO: errors={getFirstQueryError('fields')}
+                      />
+                    )}
+                  </Measurements>
                 </BuildStep>
               )}
               <BuildStep title={t('Query')} description="Description of what this means">
