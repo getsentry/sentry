@@ -1,4 +1,4 @@
-from typing import Any, Dict, Literal, Set, TypedDict
+from typing import Any, Dict, Literal, Mapping, Set, TypedDict
 
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError
@@ -44,7 +44,7 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
     return result
 
 
-def _check_tag(path, method_info) -> None:
+def _check_tag(path: str, method_info: Mapping[str, Any]) -> None:
     if method_info.get("tags") is None:
         raise SentryApiBuildError(
             f"Please add a single tag to {path}. The list of tags is defined at OPENAPI_TAGS in src/sentry/apidocs/build.py "
