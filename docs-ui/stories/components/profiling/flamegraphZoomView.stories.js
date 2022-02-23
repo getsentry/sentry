@@ -2,10 +2,12 @@ import * as React from 'react';
 
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/FlamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/FlamegraphSearch';
+import {FlamegraphToolbar} from 'sentry/components/profiling/FlamegraphToolbar';
 import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/FlamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/FlamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/FlamegraphZoomViewMinimap';
 import {ProfileDragDropImport} from 'sentry/components/profiling/ProfileDragDropImport';
+import {ThreadMenuSelector} from 'sentry/components/profiling/ThreadSelector';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/FlamegraphThemeProvider';
@@ -38,6 +40,15 @@ export const EventedTrace = () => {
     [view.inverted, view.leftHeavy]
   );
 
+  const onProfileIndexChange = React.useCallback(
+    index => {
+      setFlamegraph(
+        new Flamegraph(profiles.profiles[index], index, view.inverted, view.leftHeavy)
+      );
+    },
+    [view.inverted, view.leftHeavy]
+  );
+
   React.useEffect(() => {
     setFlamegraph(new Flamegraph(profiles.profiles[0], 0, view.inverted, view.leftHeavy));
   }, [view.inverted, view.leftHeavy]);
@@ -53,14 +64,7 @@ export const EventedTrace = () => {
           overscrollBehavior: 'contain',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginBottom: 8,
-          }}
-        >
+        <FlamegraphToolbar>
           <FlamegraphViewSelectMenu
             view={view.inverted ? 'bottom up' : 'top down'}
             sorting={view.leftHeavy ? 'left heavy' : 'call order'}
@@ -71,6 +75,11 @@ export const EventedTrace = () => {
               setView({...view, inverted: v === 'bottom up'});
             }}
           />
+          <ThreadMenuSelector
+            profileGroup={profiles}
+            activeProfileIndex={flamegraph.profileIndex}
+            onProfileIndexChange={onProfileIndexChange}
+          />
           <FlamegraphOptionsMenu
             colorCoding={colorCoding}
             onColorCodingChange={setColorCoding}
@@ -78,7 +87,7 @@ export const EventedTrace = () => {
             onHighlightRecursionChange={setHighlightRecursion}
             canvasPoolManager={canvasPoolManager}
           />
-        </div>
+        </FlamegraphToolbar>
         <div style={{height: 100, position: 'relative'}}>
           <FlamegraphZoomViewMinimap
             flamegraph={flamegraph}
