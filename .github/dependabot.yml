@@ -97,6 +97,6 @@ updates:
       timezone: America/Los_Angeles
       time: "09:00"
     reviewers:
-      - "@getsentry/team-webplatform"
+      - "@getsentry/team-web-backend"
     allow:
       - dependency-name: "sentry-sdk"
