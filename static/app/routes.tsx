@@ -1836,6 +1836,11 @@ function buildRoutes() {
         componentPromise={() => import('sentry/views/profiling/content')}
         component={SafeLazyLoad}
       />
+      <Route
+        path="flamegraph/"
+        component={SafeLazyLoad}
+        componentPromise={() => import('sentry/views/profiling/flamegraph')}
+      />
     </Route>
   );
 

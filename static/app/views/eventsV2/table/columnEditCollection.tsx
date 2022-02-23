@@ -549,7 +549,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: ${space(3)} 1fr ${space(3)};
+  grid-template-columns: ${space(3)} 1fr 40px;
   justify-content: center;
   align-items: center;
   width: 100%;
