@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from sentry.models import Project
 
 
-class RateLimiter(Service):  # type: ignore
+class RateLimiter(Service):
     __all__ = ("is_limited", "validate", "current_value", "is_limited_with_value")
 
     window = 60

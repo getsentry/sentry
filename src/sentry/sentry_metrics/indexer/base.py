@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from sentry.utils.services import Service
 
 
-class StringIndexer(Service):  # type: ignore
+class StringIndexer(Service):
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.

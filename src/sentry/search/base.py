@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, FrozenSet, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from sentry.utils.services import Service
 
@@ -13,10 +13,10 @@ if TYPE_CHECKING:
     from sentry.utils.cursors import Cursor, CursorResult
 
 
-class SearchBackend(Service):  # type: ignore
-    __read_methods__ = frozenset(["query"])
-    __write_methods__: FrozenSet[str] = frozenset()
-    __all__ = __read_methods__ | __write_methods__
+class SearchBackend(Service):
+    __read_methods__ = ("query",)
+    __write_methods__ = ()
+    __all__ = tuple(set(__read_methods__ + __write_methods__))
 
     def __init__(self, **options: Optional[Mapping[str, Any]]):
         pass

@@ -130,7 +130,7 @@ class BucketedDurationsHistograms:
         return self.width * len(self.histograms)
 
 
-class RealtimeMetricsStore(Service):  # type: ignore
+class RealtimeMetricsStore(Service):
     """A service for storing metrics about incoming requests within a given time window."""
 
     __all__ = (

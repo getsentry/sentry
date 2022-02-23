@@ -189,7 +189,7 @@ ProjectReleaseSessionStats = Tuple[
 ]
 
 
-class ReleaseHealthBackend(Service):  # type: ignore
+class ReleaseHealthBackend(Service):
     """Abstraction layer for all release health related queries"""
 
     __all__ = (
