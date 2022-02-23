@@ -13,6 +13,9 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 
+import AlertChart from './alertChart';
+import Sidebar from './sidebar';
+
 type Props = AsyncComponent['props'] & {
   organization: Organization;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}>;
@@ -47,6 +50,7 @@ class TeamStability extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
+    const {organization} = this.props;
     const {orgId, ruleId, projectId} = this.props.params;
     const {rule} = this.state;
 
@@ -76,9 +80,11 @@ class TeamStability extends AsyncComponent<Props, State> {
           </Layout.HeaderActions>
         </Layout.Header>
         <StyledLayoutBody>
-          <Layout.Main>Main Content</Layout.Main>
+          <Layout.Main>
+            <AlertChart organization={organization} orgId={orgId} />
+          </Layout.Main>
           <Layout.Side>
-            <h3>Sidebar content</h3>
+            <Sidebar rule={rule} />
           </Layout.Side>
         </StyledLayoutBody>
       </Fragment>

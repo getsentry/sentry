@@ -36,11 +36,17 @@ describe('DatePageFilter', function () {
       organization,
     });
 
-    expect(screen.getByText('7D')).toBeInTheDocument();
-    userEvent.click(screen.getByText('7D'));
+    // Open time period dropdown
+    expect(screen.getByText('Last 7 days')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Last 7 days'));
 
+    // Click 30 day period
+    userEvent.click(screen.getByText('Last 30 days'));
+
+    // Confirm selection changed visible text and query params
+    expect(screen.getByText('Last 30 days')).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {statsPeriod: '7d'}})
+      expect.objectContaining({query: {statsPeriod: '30d'}})
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,

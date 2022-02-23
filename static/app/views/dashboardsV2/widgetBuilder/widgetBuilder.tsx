@@ -14,6 +14,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
+import List from 'sentry/components/list';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PanelAlert} from 'sentry/components/panels';
@@ -69,14 +70,19 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {DEFAULT_STATS_PERIOD} from '../data';
 import WidgetCard from '../widgetCard';
 
-import {mapErrors, normalizeQueries} from './eventWidget/utils';
 import BuildStep from './buildStep';
-import BuildSteps from './buildSteps';
 import {ColumnFields} from './columnFields';
 import {DashboardSelector} from './dashboardSelector';
 import {Header} from './header';
-import {DataSet, DisplayType, displayTypes, FlatValidationError} from './utils';
-import YAxisSelector from './yAxisSelector';
+import {
+  DataSet,
+  DisplayType,
+  displayTypes,
+  FlatValidationError,
+  mapErrors,
+  normalizeQueries,
+} from './utils';
+import {YAxisSelector} from './yAxisSelector';
 
 const DATASET_CHOICES: [DataSet, string][] = [
   [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
@@ -364,7 +370,7 @@ function WidgetBuilder({
     });
   }
 
-  function handleChangeYAxisOrColumnField(newFields: QueryFieldValue[]) {
+  function handleYAxisOrColumnFieldChange(newFields: QueryFieldValue[]) {
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
@@ -582,7 +588,7 @@ function WidgetBuilder({
             onSave={handleSave}
           />
           <Layout.Body>
-            <BuildSteps>
+            <BuildSteps symbol="colored-numeric">
               <BuildStep
                 title={t('Choose your visualization')}
                 description={t(
@@ -624,10 +630,16 @@ function WidgetBuilder({
                 <DataSetChoices
                   label="dataSet"
                   value={state.dataSet}
-                  choices={
-                    state.displayType === DisplayType.TABLE
-                      ? DATASET_CHOICES
-                      : [DATASET_CHOICES[0]]
+                  choices={DATASET_CHOICES}
+                  disabledChoices={
+                    state.displayType !== DisplayType.TABLE
+                      ? [
+                          [
+                            DATASET_CHOICES[1][0],
+                            t('This data set is restricted to the table visualization.'),
+                          ],
+                        ]
+                      : undefined
                   }
                   onChange={handleDataSetChange}
                 />
@@ -647,7 +659,7 @@ function WidgetBuilder({
                           columns={explodedFields}
                           errors={state.errors?.queries}
                           fieldOptions={getAmendedFieldOptions(measurements)}
-                          onChange={handleChangeYAxisOrColumnField}
+                          onChange={handleYAxisOrColumnFieldChange}
                         />
                       )}
                     </Measurements>
@@ -687,7 +699,7 @@ function WidgetBuilder({
                         displayType={state.displayType}
                         fields={explodedFields}
                         fieldOptions={getAmendedFieldOptions(measurements)}
-                        onChange={handleChangeYAxisOrColumnField}
+                        onChange={handleYAxisOrColumnFieldChange}
                         errors={state.errors?.queries}
                       />
                     )}
@@ -895,4 +907,13 @@ const LegendAliasInput = styled(Input)`
 
 const QueryField = styled(Field)`
   padding-bottom: ${space(1)};
+`;
+
+const BuildSteps = styled(List)`
+  gap: ${space(4)};
+  max-width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+    max-width: 50%;
+  }
 `;
