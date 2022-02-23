@@ -1,6 +1,7 @@
 import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
+import * as qs from 'query-string';
 
 import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
 import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
@@ -11,10 +12,11 @@ import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
-import {PageFilters} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {DisplayModes} from 'sentry/utils/discover/types';
 import {
   DashboardDetails,
   DisplayType,
@@ -161,4 +163,79 @@ export function getFieldsFromEquations(fields: string[]): string[] {
     parsed.functions.forEach(({term}) => termsSet.add(term as string));
   });
   return Array.from(termsSet);
+}
+
+export function getWidgetDiscoverUrl(
+  widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const eventView = eventViewFromWidget(
+    widget.title,
+    widget.queries[0],
+    selection,
+    widget.displayType
+  );
+  const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+
+  // Pull a max of 3 valid Y-Axis from the widget
+  const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
+  discoverLocation.query.yAxis = [
+    ...new Set(widget.queries[0].fields.filter(field => yAxisOptions.includes(field))),
+  ].slice(0, 3);
+
+  // Visualization specific transforms
+  switch (widget.displayType) {
+    case DisplayType.WORLD_MAP:
+      discoverLocation.query.display = DisplayModes.WORLDMAP;
+      break;
+    case DisplayType.BAR:
+      discoverLocation.query.display = DisplayModes.BAR;
+      break;
+    case DisplayType.TOP_N:
+      discoverLocation.query.display = DisplayModes.TOP5;
+      // Last field is used as the yAxis
+      const fields = widget.queries[0].fields;
+      discoverLocation.query.yAxis = fields[fields.length - 1];
+      if (fields.slice(0, -1).includes(fields[fields.length - 1])) {
+        discoverLocation.query.field = fields.slice(0, -1);
+      }
+      break;
+    default:
+      break;
+  }
+
+  // Equation fields need to have their terms explicitly selected as columns in the discover table
+  const fields = discoverLocation.query.field;
+  const equationFields = getFieldsFromEquations(widget.queries[0].fields);
+  // Updates fields by adding any individual terms from equation fields as a column
+  equationFields.forEach(term => {
+    if (Array.isArray(fields) && !fields.includes(term)) {
+      fields.unshift(term);
+    }
+  });
+
+  // Construct and return the discover url
+  const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
+    ...discoverLocation.query,
+  })}`;
+  return discoverPath;
+}
+
+export function getWidgetIssueUrl(
+  widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+  const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
+    query: widget.queries?.[0]?.conditions,
+    sort: widget.queries?.[0]?.orderby,
+    ...datetime,
+  })}`;
+  return issuesLocation;
 }
