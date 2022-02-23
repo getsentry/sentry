@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from sentry import analytics, tsdb
+from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -99,6 +100,10 @@ class Endpoint(APIView):
     permission_classes = (NoPermission,)
 
     cursor_name = "cursor"
+
+    # end user of endpoint must set private to true, or define public endpoints
+    private: Optional[bool] = None
+    public: Optional[HTTP_METHODS_SET] = None
 
     # Default Rate Limit Values, override in subclass
     # Should be of format: { <http function>: { <category>: RateLimit(limit, window) } }

@@ -214,6 +214,10 @@ from sentry.api.endpoints.organization_pinned_searches import OrganizationPinned
 from sentry.api.endpoints.organization_plugins import OrganizationPluginsEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
+from sentry.api.endpoints.organization_profiling_profiles import (
+    OrganizationProfilingFiltersEndpoint,
+    OrganizationProfilingProfilesEndpoint,
+)
 from sentry.api.endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
@@ -260,6 +264,9 @@ from sentry.api.endpoints.organization_stats_v2 import OrganizationStatsEndpoint
 from sentry.api.endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from sentry.api.endpoints.organization_tags import OrganizationTagsEndpoint
 from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
+from sentry.api.endpoints.organization_transaction_anomaly_detection import (
+    OrganizationTransactionAnomalyDetectionEndpoint,
+)
 from sentry.api.endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from sentry.api.endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from sentry.api.endpoints.organization_user_issues_search import (
@@ -316,6 +323,7 @@ from sentry.api.endpoints.project_processingissues import (
     ProjectProcessingIssuesEndpoint,
     ProjectProcessingIssuesFixEndpoint,
 )
+from sentry.api.endpoints.project_profiling_profile import ProjectProfilingProfileEndpoint
 from sentry.api.endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from sentry.api.endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from sentry.api.endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -353,51 +361,40 @@ from sentry.api.endpoints.project_user_reports import ProjectUserReportsEndpoint
 from sentry.api.endpoints.project_user_stats import ProjectUserStatsEndpoint
 from sentry.api.endpoints.project_users import ProjectUsersEndpoint
 from sentry.api.endpoints.prompts_activity import PromptsActivityEndpoint
-from sentry.api.endpoints.relay_details import RelayDetailsEndpoint
-from sentry.api.endpoints.relay_healthcheck import RelayHealthCheck
-from sentry.api.endpoints.relay_index import RelayIndexEndpoint
-from sentry.api.endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
-from sentry.api.endpoints.relay_projectids import RelayProjectIdsEndpoint
-from sentry.api.endpoints.relay_publickeys import RelayPublicKeysEndpoint
-from sentry.api.endpoints.relay_register import (
+from sentry.api.endpoints.relay import (
+    RelayDetailsEndpoint,
+    RelayHealthCheck,
+    RelayIdSerializer,
+    RelayIndexEndpoint,
+    RelayProjectConfigsEndpoint,
+    RelayProjectIdsEndpoint,
+    RelayPublicKeysEndpoint,
     RelayRegisterChallengeEndpoint,
     RelayRegisterResponseEndpoint,
 )
 from sentry.api.endpoints.release_deploys import ReleaseDeploysEndpoint
-from sentry.api.endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
-from sentry.api.endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
-from sentry.api.endpoints.sentry_app_components import (
+from sentry.api.endpoints.sentry_app import (
     OrganizationSentryAppComponentsEndpoint,
+    SentryAppAuthorizationsEndpoint,
     SentryAppComponentsEndpoint,
-)
-from sentry.api.endpoints.sentry_app_details import SentryAppDetailsEndpoint
-from sentry.api.endpoints.sentry_app_features import SentryAppFeaturesEndpoint
-from sentry.api.endpoints.sentry_app_installation_details import (
+    SentryAppDetailsEndpoint,
+    SentryAppFeaturesEndpoint,
     SentryAppInstallationDetailsEndpoint,
-)
-from sentry.api.endpoints.sentry_app_installation_external_issue_actions import (
     SentryAppInstallationExternalIssueActionsEndpoint,
-)
-from sentry.api.endpoints.sentry_app_installation_external_issue_details import (
     SentryAppInstallationExternalIssueDetailsEndpoint,
-)
-from sentry.api.endpoints.sentry_app_installation_external_issues import (
     SentryAppInstallationExternalIssuesEndpoint,
-)
-from sentry.api.endpoints.sentry_app_installation_external_requests import (
     SentryAppInstallationExternalRequestsEndpoint,
-)
-from sentry.api.endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
-from sentry.api.endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
-from sentry.api.endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
-from sentry.api.endpoints.sentry_app_requests import SentryAppRequestsEndpoint
-from sentry.api.endpoints.sentry_app_stats import SentryAppStatsEndpoint
-from sentry.api.endpoints.sentry_apps import SentryAppsEndpoint
-from sentry.api.endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
-from sentry.api.endpoints.sentry_internal_app_token_details import (
+    SentryAppInstallationsEndpoint,
+    SentryAppInteractionEndpoint,
+    SentryAppPublishRequestEndpoint,
+    SentryAppRequestsEndpoint,
+    SentryAppsEndpoint,
+    SentryAppsStatsEndpoint,
+    SentryAppStatsEndpoint,
     SentryInternalAppTokenDetailsEndpoint,
+    SentryInternalAppTokensEndpoint,
 )
-from sentry.api.endpoints.sentry_internal_app_tokens import SentryInternalAppTokensEndpoint
+from sentry.api.endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
 from sentry.api.endpoints.setup_wizard import SetupWizard
 from sentry.api.endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from sentry.api.endpoints.system_health import SystemHealthEndpoint
@@ -508,11 +505,11 @@ from sentry.integrations.cloudflare.metadata import CloudflareMetadataEndpoint
 from sentry.integrations.cloudflare.webhook import CloudflareWebhookEndpoint
 from sentry.integrations.github.search import GitHubSearchEndpoint
 from sentry.integrations.gitlab.search import GitlabIssueSearchEndpoint
-from sentry.integrations.jira.descriptor import JiraDescriptorEndpoint
-from sentry.integrations.jira.installed import JiraInstalledEndpoint
-from sentry.integrations.jira.search import JiraSearchEndpoint
-from sentry.integrations.jira.uninstalled import JiraUninstalledEndpoint
 from sentry.integrations.jira.webhooks import JiraIssueUpdatedWebhook
+from sentry.integrations.jira.webhooks.descriptor import JiraDescriptorEndpoint
+from sentry.integrations.jira.webhooks.installed import JiraInstalledEndpoint
+from sentry.integrations.jira.webhooks.search import JiraSearchEndpoint
+from sentry.integrations.jira.webhooks.uninstalled import JiraUninstalledEndpoint
 from sentry.integrations.jira_server.search import JiraServerSearchEndpoint
 from sentry.integrations.jira_server.webhooks import (
     JiraIssueUpdatedWebhook as JiraServerIssueUpdatedWebhook,
@@ -527,9 +524,6 @@ from sentry.integrations.vsts.search import VstsSearchEndpoint
 from sentry.integrations.vsts.webhooks import WorkItemWebhook
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint
 from sentry.plugins.endpoints import PluginGroupEndpoint
-from sentry.scim.endpoints.members import OrganizationSCIMMemberIndex
-from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
-from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 
 __PUBLIC_ENDPOINTS_FROM_JSON = {
     OrganizationIndexEndpoint,
@@ -556,15 +550,9 @@ __PUBLIC_ENDPOINTS_FROM_JSON = {
     ReleaseDeploysEndpoint,
     OrganizationReleaseCommitsEndpoint,
     OrganizationUsersEndpoint,
-    SentryAppInstallationsEndpoint,
     OrganizationStatsEndpoint,
     OrganizationStatsEndpointV2,
     OrganizationTeamsEndpoint,
-    OrganizationSCIMMemberIndex,
-    OrganizationSCIMTeamIndex,
-    OrganizationSCIMTeamDetails,
-    SentryAppInstallationExternalIssuesEndpoint,
-    SentryAppInstallationExternalIssueDetailsEndpoint,
     TeamDetailsEndpoint,
     TeamProjectsEndpoint,
     TeamStatsEndpoint,
@@ -592,14 +580,33 @@ __PUBLIC_ENDPOINTS_FROM_JSON = {
     SharedGroupDetailsEndpoint,
 }
 __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
-    RelayIndexEndpoint,
-    RelayRegisterChallengeEndpoint,
-    RelayRegisterResponseEndpoint,
-    RelayProjectConfigsEndpoint,
-    RelayProjectIdsEndpoint,
-    RelayPublicKeysEndpoint,
-    RelayHealthCheck,
-    RelayDetailsEndpoint,
+    OrganizationSentryAppComponentsEndpoint,
+    SentryAppAuthorizationsEndpoint,
+    SentryAppComponentsEndpoint,
+    SentryAppDetailsEndpoint,
+    SentryAppFeaturesEndpoint,
+    SentryAppInstallationDetailsEndpoint,
+    SentryAppInstallationExternalIssueActionsEndpoint,
+    SentryAppInstallationExternalIssueDetailsEndpoint,
+    SentryAppInstallationExternalIssuesEndpoint,
+    SentryAppInstallationExternalRequestsEndpoint,
+    SentryAppInstallationsEndpoint,
+    SentryAppPublishRequestEndpoint,
+    SentryAppRequestsEndpoint,
+    SentryAppsEndpoint,
+    SentryAppsStatsEndpoint,
+    SentryAppStatsEndpoint,
+    SentryInternalAppTokenDetailsEndpoint,
+    SentryInternalAppTokensEndpoint,
+    SentryAppInteractionEndpoint,
+    OrganizationProfilingFiltersEndpoint,
+    OrganizationTransactionAnomalyDetectionEndpoint,
+    OrganizationProfilingProfilesEndpoint,
+    ProjectProfilingProfileEndpoint,
+    JiraDescriptorEndpoint,
+    JiraInstalledEndpoint,
+    JiraUninstalledEndpoint,
+    JiraSearchEndpoint,
     AssistantEndpoint,
     ApiApplicationsEndpoint,
     ApiApplicationDetailsEndpoint,
@@ -669,6 +676,16 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
     KeyTransactionEndpoint,
+    SentryAppAvatarEndpoint,
+    RelayDetailsEndpoint,
+    RelayHealthCheck,
+    RelayIdSerializer,
+    RelayIndexEndpoint,
+    RelayProjectConfigsEndpoint,
+    RelayProjectIdsEndpoint,
+    RelayPublicKeysEndpoint,
+    RelayRegisterChallengeEndpoint,
+    RelayRegisterResponseEndpoint,
     KeyTransactionListEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
     ProjectTransactionThresholdOverrideEndpoint,
@@ -776,15 +793,11 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationJoinRequestEndpoint,
     OrganizationRelayUsage,
     OrganizationRequestProjectCreation,
-    OrganizationSCIMSchemaIndex,
     OrganizationMetricsEndpoint,
     OrganizationMetricDetailsEndpoint,
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsTagsEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
-    SentryAppInstallationDetailsEndpoint,
-    SentryAppInstallationExternalRequestsEndpoint,
-    SentryAppInstallationExternalIssueActionsEndpoint,
     TeamGroupsOldEndpoint,
     TeamReleaseCountEndpoint,
     TeamTimeToResolutionEndpoint,
@@ -865,20 +878,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
     GroupParticipantsEndpoint,
-    SentryAppsEndpoint,
-    SentryAppsStatsEndpoint,
-    SentryAppDetailsEndpoint,
-    SentryAppFeaturesEndpoint,
-    SentryAppComponentsEndpoint,
-    SentryAppAvatarEndpoint,
-    SentryInternalAppTokensEndpoint,
-    SentryInternalAppTokenDetailsEndpoint,
-    SentryAppStatsEndpoint,
-    SentryAppRequestsEndpoint,
-    SentryAppInteractionEndpoint,
-    OrganizationSentryAppComponentsEndpoint,
-    SentryAppAuthorizationsEndpoint,
-    SentryAppPublishRequestEndpoint,
     DocIntegrationsEndpoint,
     DocIntegrationDetailsEndpoint,
     DocIntegrationAvatarEndpoint,
@@ -899,11 +898,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     IndexEndpoint,
     CloudflareMetadataEndpoint,
     CloudflareWebhookEndpoint,
-    JiraDescriptorEndpoint,
-    JiraInstalledEndpoint,
-    JiraUninstalledEndpoint,
     JiraIssueUpdatedWebhook,
-    JiraSearchEndpoint,
     JiraServerSearchEndpoint,
     SlackActionEndpoint,
     SlackCommandsEndpoint,
