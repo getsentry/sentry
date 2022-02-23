@@ -141,6 +141,7 @@ class WidgetCard extends React.Component<Props> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
+      onEdit,
     } = this.props;
     return (
       <ErrorBoundary
@@ -160,6 +161,7 @@ class WidgetCard extends React.Component<Props> {
                   openWidgetViewerModal({
                     organization,
                     widget,
+                    onEdit,
                   });
                 }}
               />
