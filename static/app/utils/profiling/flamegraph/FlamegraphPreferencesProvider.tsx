@@ -15,7 +15,7 @@ export type FlamegraphPreferencesAction =
   | {type: 'set sorting'; value: FlamegraphPreferences['sorting']}
   | {type: 'set view'; value: FlamegraphPreferences['view']};
 
-export function FlamegraphPreferencesReducer(
+export function flamegraphPreferencesReducer(
   state: FlamegraphPreferences,
   action: FlamegraphPreferencesAction
 ): FlamegraphPreferences {
@@ -60,7 +60,7 @@ interface FlamegraphPreferencesProviderProps {
 export function FlamegraphPreferencesProvider(
   props: FlamegraphPreferencesProviderProps
 ): React.ReactElement {
-  const reducer = useReducer(FlamegraphPreferencesReducer, {
+  const reducer = useReducer(flamegraphPreferencesReducer, {
     colorCoding: 'by symbol name',
     sorting: 'call order',
     view: 'top down',

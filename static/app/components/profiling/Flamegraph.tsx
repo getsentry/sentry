@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/FlamegraphOptionsMenu';
@@ -23,8 +22,8 @@ interface FlamegraphProps {
 
 function Flamegraph(props: FlamegraphProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
-  const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const [{sorting, view}, dispatch] = useFlamegraphPreferences();
+  const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const [flamegraph, setFlamegraph] = useState(
     new FlamegraphModel(props.profiles.profiles[0], 0, {
