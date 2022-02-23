@@ -301,6 +301,7 @@ def create_sample_event(
             data["contexts"]["trace"][key] = kwargs.pop(key)
 
     data.update(kwargs)
+    data.setdefault("tags", []).append(("sample_event", "yes"))
     return create_sample_event_basic(data, project.id, raw=raw)
 
 
