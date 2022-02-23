@@ -9,10 +9,10 @@ import IconSample from './sample';
 import {ExtendedIconData, SelectedIcon} from './searchPanel';
 
 type Props = {
+  groupId: string;
   icon: ExtendedIconData;
   selectedIcon: SelectedIcon;
   setSelectedIcon: Dispatch<SetStateAction<SelectedIcon>>;
-  groupId: string;
 };
 
 const IconInfoBox = ({icon, selectedIcon, setSelectedIcon, groupId}: Props) => {
