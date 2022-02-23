@@ -431,6 +431,8 @@ function WidgetBuilder({
 
       onSave([...dashboard.widgets, widgetData]);
       addSuccessMessage(t('Added widget.'));
+
+      goBack();
     } catch (err) {
       errors = mapErrors(err?.responseJSON ?? {}, {});
     } finally {
@@ -440,8 +442,6 @@ function WidgetBuilder({
         submitFromSelectedDashboard(errors, widgetData);
         return;
       }
-
-      goBack();
     }
   }
 
@@ -715,7 +715,7 @@ function WidgetBuilder({
                         inline={false}
                         flexibleControlStateSize
                         stacked
-                        error={state.errors?.[queryIndex]?.conditions}
+                        error={state.errors?.queries?.[queryIndex]?.conditions}
                       >
                         <SearchConditionsWrapper>
                           <Search
