@@ -4,6 +4,7 @@ import moment from 'moment';
 
 import {pinFilter, updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Button from 'sentry/components/button';
+import DropdownButton from 'sentry/components/dropdownButton';
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
@@ -66,6 +67,28 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
     pinFilter('datetime', !isDatePinned);
   };
 
+  const customDropdownButton = ({getActorProps, isOpen}) => {
+    let label;
+    if (start && end) {
+      const startString = start.toLocaleString('default', {
+        month: 'short',
+        day: 'numeric',
+      });
+      const endString = end.toLocaleString('default', {month: 'short', day: 'numeric'});
+      label = `${startString} - ${endString}`;
+    } else {
+      label = period?.toUpperCase();
+    }
+
+    return (
+      <StyledDropdownButton isOpen={isOpen} icon={<IconCalendar />} {...getActorProps()}>
+        <DropdownTitle>
+          <TitleContainer>{label}</TitleContainer>
+        </DropdownTitle>
+      </StyledDropdownButton>
+    );
+  };
+
   return (
     <DateSelectorContainer>
       <StyledPageTimeRangeSelector
@@ -77,6 +100,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
         onUpdate={handleUpdate}
         label={<IconCalendar color="textColor" />}
         dateSummary={getDateSummary}
+        customDropdownButton={customDropdownButton}
         {...props}
       />
       <PinButton
@@ -102,6 +126,29 @@ const DateSelectorContainer = styled('div')`
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   height: 40px;
   font-weight: 600;
+  background: ${p => p.theme.background};
+  border: none;
+  box-shadow: none;
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  width: 100%;
+  height: 40px;
+  text-overflow: ellipsis;
+`;
+
+const TitleContainer = styled('div')`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1 1 0%;
+`;
+
+const DropdownTitle = styled('div')`
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  flex: 1;
 `;
 
 const PinButton = styled(Button)`
