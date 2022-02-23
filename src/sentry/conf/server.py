@@ -933,14 +933,8 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
-    # Enable explicit use of AND and OR in search.
-    "organizations:boolean-search": False,
-    # Enable the linked event feature in the issue details breadcrumb.
-    "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
-    # Enable unfurling charts using the Chartcuterie service
-    "organizations:chart-unfurls": False,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -950,8 +944,6 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable inline preview of attachments.
-    "organizations:event-attachments-viewer": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
     # Enable Dynamic Sampling errors in the org settings
@@ -960,14 +952,10 @@ SENTRY_FEATURES = {
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
-    # Enable the events stream interface.
-    "organizations:events": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable discover top events queries with other & higher options
-    "organizations:discover-top-events": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -978,20 +966,12 @@ SENTRY_FEATURES = {
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
-    # Enable experimental new version of stacktrace component where additional
-    # data related to grouping is shown on each frame
-    "organizations:grouping-stacktrace-ui": False,
-    # Enable tweaks to group title in relation to hierarchical
-    # grouping.
-    "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable improved syntax highlighting + autocomplete on unified search
-    "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1000,8 +980,6 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
-    # Enable the new widget builder experience on Dashboards
-    "organizations:new-widget-builder-experience": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1014,10 +992,6 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # True if differences between the metrics and sessions backend should be reported
     "organizations:release-health-check-metrics-report": False,
-    # Enable metric aggregate in metric alert rule builder
-    "organizations:metric-alert-builder-aggregate": False,
-    # Enable threshold period in metric alert rule builder
-    "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -1043,22 +1017,12 @@ SENTRY_FEATURES = {
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable react-grid-layout dashboards
-    "organizations:dashboard-grid-layout": False,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboard widget library
-    "organizations:widget-library": False,
     # Enable metrics in dashboards
     "organizations:dashboards-metrics": False,
-    # Enable issue widgets in dashboards
-    "organizations:issues-in-dashboards": False,
-    # Enable widget viewer modal in dashboards
-    "organizations:widget-viewer-modal": False,
-    # Enable navigation features between Discover and Dashboards
-    "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1067,8 +1031,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable removing issue from issue list if action taken.
-    "organizations:issue-list-removal-action": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1097,12 +1059,8 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
-    # Enable the new native stack trace design
-    "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
-    # Enable sorting+filtering by semantic version of a release
-    "organizations:semver": True,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
     # Enable basic SSO functionality, providing configurable single sign on
@@ -1114,20 +1072,10 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
-    # Return unhandled information on the issue level
-    "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules
     "organizations:issue-percent-filters": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
-    # Enable the mobile screenshots feature
-    "organizations:mobile-screenshots": False,
-    # Store release bundles as zip files instead of single files
-    "organizations:release-archives": False,
-    # Enable the release details performance section
-    "organizations:release-comparison-performance": False,
-    # Enable percent displays in issue stream
-    "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
