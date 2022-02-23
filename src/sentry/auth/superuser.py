@@ -62,7 +62,7 @@ def is_active_superuser(request):
 
 class SuperuserAccessSerializer(serializers.Serializer):
     categoryOfSUAccess = serializers.CharField()
-    reasonForSU = serializers.CharField(min_length=1, max_length=128)
+    reasonForSU = serializers.CharField(min_length=4, max_length=128)
 
 
 class Superuser:
@@ -74,7 +74,7 @@ class Superuser:
         if request.session.get("su_access"):
             del request.session["su_access"]
         if request.session.get("orgs_accessed"):
-            request.session["orgs_accessed"] = request.session["orgs_accessed"][:1]
+            del request.session["orgs_accessed"]
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
@@ -291,6 +291,33 @@ class Superuser:
         request = self.request
         if current_datetime is None:
             current_datetime = timezone.now()
+
+        if request.method == "PUT":
+            try:
+                # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
+                su_access_json = json.loads(request.body)
+                su_access_info = SuperuserAccessSerializer(data=su_access_json)
+
+                if not su_access_info.is_valid():
+                    raise serializers.ValidationError(su_access_info.errors)
+
+                logger.info(
+                    "su_access.give_su_access",
+                    extra={
+                        "user_id": request.user.id,
+                        "user_email": request.user.email,
+                        "su_access_category": su_access_info.validated_data["categoryOfSUAccess"],
+                        "reason_for_su": su_access_info.validated_data["reasonForSU"],
+                    },
+                )
+
+                request.session["su_access"] = {
+                    "su_access_category": su_access_info.validated_data["categoryOfSUAccess"],
+                    "reason_for_su": su_access_info.validated_data["reasonForSU"],
+                }
+            except json.JSONDecodeError as err:
+                raise err
+
         self._set_logged_in(
             expires=current_datetime + MAX_AGE,
             token=get_random_string(12),
@@ -301,35 +328,6 @@ class Superuser:
             "superuser.logged-in",
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
         )
-
-        # is there anything else that calls this besides suodalModal?
-        if request.method == "PUT":
-            try:
-                # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
-                SU_access_json = json.loads(request.body)
-                SU_access_info = SuperuserAccessSerializer(data=SU_access_json)
-                if SU_access_info.is_valid():
-                    logger.info(
-                        "su_access.give_su_access",
-                        extra={
-                            "user_id": request.user.id,
-                            "user_email": request.user.email,
-                            "su_access_category": SU_access_info.validated_data[
-                                "categoryOfSUAccess"
-                            ],
-                            "reason_for_su": SU_access_info.validated_data["reasonForSU"],
-                            "orgs_accessed": request.session["orgs_accessed"],
-                        },
-                    )
-
-                    request.session["su_access"] = {
-                        "su_access_category": SU_access_info.validated_data["categoryOfSUAccess"],
-                        "reason_for_su": SU_access_info.validated_data["reasonForSU"],
-                    }
-            except json.JSONDecodeError:
-                pass
-            except serializers.ValidationError:
-                pass
 
     def set_logged_out(self):
         """

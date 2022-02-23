@@ -163,8 +163,9 @@ class OrganizationAlertRulePermission(OrganizationPermission):
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
-    def initialize_request(self, request: Request, organization_slug, *args, **kwargs):
+    def initialize_request(self, request: Request, *args, **kwargs):
         if request.user and request.user.is_superuser and is_active_superuser(request):
+            organization_slug = kwargs["organization_slug"]
             if not request.session.get("orgs_accessed"):
                 request.session["orgs_accessed"] = [organization_slug]
             elif organization_slug not in request.session["orgs_accessed"]:
