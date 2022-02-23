@@ -24,9 +24,8 @@ import {Theme} from 'sentry/utils/theme';
 import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
 
 interface ProfilingScatterChartProps extends WithRouterProps {
-  loading: boolean;
+  isLoading: boolean;
   location: Location;
-  reloading: boolean;
   traces: Trace[];
   end?: string;
   start?: string;
@@ -38,8 +37,7 @@ function ProfilingScatterChart({
   router,
   location,
   traces,
-  loading,
-  reloading,
+  isLoading,
   start,
   end,
   statsPeriod,
@@ -99,8 +97,8 @@ function ProfilingScatterChart({
         >
           {zoomRenderProps => {
             return (
-              <TransitionChart loading={loading} reloading={reloading}>
-                <TransparentLoadingMask visible={reloading} />
+              <TransitionChart loading={isLoading} reloading={isLoading}>
+                <TransparentLoadingMask visible={isLoading} />
                 <ScatterChart series={series} {...chartOptions} {...zoomRenderProps} />
               </TransitionChart>
             );

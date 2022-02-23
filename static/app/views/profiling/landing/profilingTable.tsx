@@ -9,15 +9,15 @@ import {TableColumnKey, TableColumnOrders} from './types';
 
 interface ProfilingTableProps {
   error: string | null;
-  loading: boolean;
+  isLoading: boolean;
   location: Location;
   traces: Trace[];
 }
 
-function ProfilingTable({error, loading, location, traces}: ProfilingTableProps) {
+function ProfilingTable({error, isLoading, location, traces}: ProfilingTableProps) {
   return (
     <GridEditable
-      isLoading={loading}
+      isLoading={isLoading}
       error={error}
       data={traces}
       columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}

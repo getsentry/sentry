@@ -17,6 +17,7 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization, PageFilters} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -24,14 +25,11 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {ProfilingScatterChart} from './landing/profilingScatterChart';
 import {ProfilingTable} from './landing/profilingTable';
 
-interface ProfilingContentProps {
-  location: Location;
-  selection?: PageFilters;
-}
+type RequestState = 'initial' | 'loading' | 'resolved' | 'errored';
 
 function fetchProfiles(
   api: Client,
-  location: Location,
+  cursor: string | undefined,
   organization: Organization,
   selection: PageFilters
 ): Promise<[Trace[], string | undefined, ResponseMeta | undefined]> {
@@ -39,19 +37,24 @@ function fetchProfiles(
     method: 'GET',
     includeAllArgs: true,
     query: {
-      cursor: location.query.cursor,
+      cursor,
       project: selection.projects,
     },
   });
 }
 
+interface ProfilingContentProps {
+  location: Location;
+  selection?: PageFilters;
+}
+
 function ProfilingContent({location, selection}: ProfilingContentProps) {
+  const [requestState, setRequestState] = useState<RequestState>('initial');
   const [traces, setTraces] = useState<Trace[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [pageLinks, setPageLinks] = useState<string | null>(null);
   const organization = useOrganization();
   const dateSelection = normalizeDateTimeParams(location.query);
+  const cursor = decodeScalar(location.query.cursor);
 
   const api = useApi();
 
@@ -61,17 +64,16 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
     }
 
     api.clear();
-    setLoading(true);
-    setError(null);
+    setRequestState('loading');
 
-    fetchProfiles(api, location, organization, selection)
+    fetchProfiles(api, cursor, organization, selection)
       .then(([_traces, , response]) => {
         setTraces(_traces);
         setPageLinks(response?.getResponseHeader('Link') ?? null);
+        setRequestState('resolved');
       })
-      .catch(() => setError(t('Unable to load profiles')))
-      .finally(() => setLoading(false));
-  }, [api, location, organization, selection]);
+      .catch(() => setRequestState('errored'));
+  }, [api, cursor, organization, selection]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -85,20 +87,19 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                {error && (
+                {requestState === 'errored' && (
                   <Alert type="error" icon={<IconFlag size="md" />}>
-                    {error}
+                    {t('Unable to load profiles')}
                   </Alert>
                 )}
                 <ProfilingScatterChart
                   {...dateSelection}
                   traces={traces}
-                  loading={loading}
-                  reloading={loading}
+                  isLoading={requestState === 'loading'}
                 />
                 <ProfilingTable
-                  loading={loading}
-                  error={error}
+                  isLoading={requestState === 'loading'}
+                  error={requestState === 'errored' ? t('Unable to load profiles') : null}
                   location={location}
                   traces={traces}
                 />
