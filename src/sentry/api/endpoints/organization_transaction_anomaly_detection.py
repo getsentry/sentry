@@ -34,7 +34,7 @@ def get_anomalies(snuba_io):
         headers={"content-type": "application/json;charset=utf-8"},
     )
 
-    return Response(serialize(response.data), status=200)
+    return Response(serialize(json.loads(response.data)), status=200)
 
 
 def get_time_params(start, end):
