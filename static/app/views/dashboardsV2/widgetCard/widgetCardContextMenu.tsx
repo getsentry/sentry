@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -10,13 +9,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {DisplayModes} from 'sentry/utils/discover/types';
-import {
-  eventViewFromWidget,
-  getFieldsFromEquations,
-} from 'sentry/views/dashboardsV2/utils';
-import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
 
@@ -80,52 +73,7 @@ function WidgetCardContextMenu({
   ) {
     // Open Widget in Discover
     if (widget.queries.length) {
-      const eventView = eventViewFromWidget(
-        widget.title,
-        widget.queries[0],
-        selection,
-        widget.displayType
-      );
-      const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
-      // Pull a max of 3 valid Y-Axis from the widget
-      const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-      discoverLocation.query.yAxis = [
-        ...new Set(
-          widget.queries[0].fields.filter(field => yAxisOptions.includes(field))
-        ),
-      ].slice(0, 3);
-      switch (widget.displayType) {
-        case DisplayType.WORLD_MAP:
-          discoverLocation.query.display = DisplayModes.WORLDMAP;
-          break;
-        case DisplayType.BAR:
-          discoverLocation.query.display = DisplayModes.BAR;
-          break;
-        case DisplayType.TOP_N:
-          discoverLocation.query.display = DisplayModes.TOP5;
-          // Last field is used as the yAxis
-          const fields = widget.queries[0].fields;
-          discoverLocation.query.yAxis = fields[fields.length - 1];
-          if (fields.slice(0, -1).includes(fields[fields.length - 1])) {
-            discoverLocation.query.field = fields.slice(0, -1);
-          }
-          break;
-        default:
-          break;
-      }
-
-      const fields = discoverLocation.query.field;
-      const equationFields = getFieldsFromEquations(widget.queries[0].fields);
-      // Updates fields by adding any individual terms from equation fields as a column
-      equationFields.forEach(term => {
-        if (Array.isArray(fields) && !fields.includes(term)) {
-          fields.unshift(term);
-        }
-      });
-      const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
-        ...discoverLocation.query,
-      })}`;
-
+      const discoverPath = getWidgetDiscoverUrl(widget, selection, organization);
       menuOptions.push({
         key: 'open-in-discover',
         label: t('Open in Discover'),
@@ -150,16 +98,7 @@ function WidgetCardContextMenu({
   }
 
   if (widget.widgetType === WidgetType.ISSUE) {
-    const {start, end, utc, period} = selection.datetime;
-    const datetime =
-      start && end
-        ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
-        : {statsPeriod: period};
-    const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-      query: widget.queries?.[0]?.conditions,
-      sort: widget.queries?.[0]?.orderby,
-      ...datetime,
-    })}`;
+    const issuesLocation = getWidgetIssueUrl(widget, selection, organization);
 
     menuOptions.push({
       key: 'open-in-issues',

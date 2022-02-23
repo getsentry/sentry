@@ -14,13 +14,18 @@ import {Organization, PageFilters} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {getFieldsFromEquations} from 'sentry/views/dashboardsV2/utils';
+import {
+  getFieldsFromEquations,
+  getWidgetDiscoverUrl,
+  getWidgetIssueUrl,
+} from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 export type WidgetViewerModalOptions = {
   organization: Organization;
   widget: Widget;
+  onEdit?: () => void;
 };
 
 type Props = ModalRenderProps &
@@ -105,7 +110,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const {Footer, Body, Header, widget} = props;
+  const {Footer, Body, Header, widget, onEdit, selection, organization} = props;
 
   const StyledHeader = styled(Header)`
     ${headerCss}
@@ -113,8 +118,20 @@ function WidgetViewerModal(props: Props) {
   const StyledFooter = styled(Footer)`
     ${footerCss}
   `;
-  const openLabel =
-    widget.widgetType === WidgetType.ISSUE ? t('Open in Issues') : t('Open in Discover');
+
+  let openLabel: string;
+  let path: string;
+  switch (widget.widgetType) {
+    case WidgetType.ISSUE:
+      openLabel = t('Open in Issues');
+      path = getWidgetIssueUrl(widget, selection, organization);
+      break;
+    case WidgetType.DISCOVER:
+    default:
+      openLabel = t('Open in Discover');
+      path = getWidgetDiscoverUrl(widget, selection, organization);
+      break;
+  }
   return (
     <React.Fragment>
       <StyledHeader closeButton>
@@ -123,10 +140,10 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={() => undefined}>
+          <Button type="button" onClick={onEdit}>
             {t('Edit Widget')}
           </Button>
-          <Button priority="primary" type="button" onClick={() => undefined}>
+          <Button to={path} priority="primary" type="button">
             {openLabel}
           </Button>
         </ButtonBar>
