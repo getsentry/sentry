@@ -8,7 +8,6 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import InputField from 'sentry/components/forms/inputField';
-import SelectField from 'sentry/components/forms/selectField';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -87,10 +86,6 @@ class SudoModal extends React.Component<Props, State> {
     const {superuser} = this.props;
     const {error} = this.state;
     const user = ConfigStore.get('user');
-    const placeholderForSUCategories = [
-      {value: '1', name: 'a'},
-      {value: '2', name: 'b'},
-    ];
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>
@@ -138,27 +133,6 @@ class SudoModal extends React.Component<Props, State> {
             autoFocus
             flexibleControlStateSize
           />
-          {/* only show the 2 below if they are superusers */}
-          <StyledSelectField
-            name="categoryOfSUAccess"
-            label={t('Catergory of Superuser Access')}
-            options={placeholderForSUCategories.map(SUCategory => ({
-              value: SUCategory.value,
-              label: SUCategory.name,
-            }))}
-            placeholder={t('Select Catergory')}
-            inline={false}
-            flexibleControlStateSize
-            required
-          />
-          <StyledInputField
-            type="text"
-            inline={false}
-            label={t('Reason for Superuser')}
-            name="reasonForSU"
-            flexibleControlStateSize
-            required
-          />
           <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
         </Form>
       </React.Fragment>
@@ -185,10 +159,6 @@ const StyledTextBlock = styled(TextBlock)`
 `;
 
 const StyledInputField = styled(InputField)`
-  padding-left: 0;
-`;
-
-const StyledSelectField = styled(SelectField)`
   padding-left: 0;
 `;
 
