@@ -6,17 +6,17 @@ from sentry.utils.services import LazyServiceWrapper
 
 from .base import RealtimeMetricsStore
 
-realtime_metrics_store: RealtimeMetricsStore = LazyServiceWrapper(
+backend = LazyServiceWrapper(
     RealtimeMetricsStore,
     settings.SENTRY_REALTIME_METRICS_BACKEND,
     settings.SENTRY_REALTIME_METRICS_OPTIONS,
 )
-
-realtime_metrics_store.expose(locals())
+backend.expose(locals())
 
 if TYPE_CHECKING:
     # This is all too dynamic for mypy, so manually set the same attributes from
     # RealtimeMetricsStore.__all__:
+    realtime_metrics_store = RealtimeMetricsStore()
     validate = realtime_metrics_store.validate
     increment_project_event_counter = realtime_metrics_store.increment_project_event_counter
     increment_project_duration_counter = realtime_metrics_store.increment_project_duration_counter
