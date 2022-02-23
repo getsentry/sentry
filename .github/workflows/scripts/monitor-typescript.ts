@@ -1,8 +1,8 @@
 /* eslint-env node */
 
 // eslint-disable-next-line
-const fs = require('fs');
-const Sentry = require('@sentry/node');
+import * as fs from 'fs';
+import * as Sentry from '@sentry/node';
 
 Sentry.init({
   // jest project under Sentry organization (dev productivity team)
@@ -39,44 +39,55 @@ const ALLOWED_KEYS = new Set([
 
 const tsLogFile = fs.readFileSync('/tmp/typescript-monitor.log', 'utf8');
 
-function toKeyValue(input) {
+function parseContentsToKeyValue(
+  input: string
+): Record<string, {unit: string | undefined; value: number}> | null {
   try {
     return input
       .split('\n')
-      .filter(n => !!n)
-      .reduce((acc, line) => {
-        const [k, v] = line.split(':');
+      .filter(n => !!n.trim())
+      .reduce(
+        (
+          acc: Record<string, {unit: string | undefined; value: number}>,
+          line: string
+        ) => {
+          const [k, v] = line.split(':');
 
-        if (typeof k !== 'string' || typeof v !== 'string') {
+          if (typeof k !== 'string' || typeof v !== 'string') {
+            return acc;
+          }
+
+          const key = k.trim();
+          const value = v.trim();
+
+          if (ALLOWED_KEYS.has(key)) {
+            const parsedValue = parseFloat(value);
+
+            if (!isNaN(parsedValue)) {
+              acc[key] = {
+                value: parsedValue,
+                unit: undefined,
+              };
+            }
+
+            if (/([a-zA-Z]$)/.test(value)) {
+              acc[key] = {
+                value: parsedValue,
+                unit: v.match(/([a-zA-Z]$)/)?.[0],
+              };
+            }
+          }
+
           return acc;
-        }
-
-        const key = k.trim();
-        const value = v.trim();
-
-        if (ALLOWED_KEYS.has(key)) {
-          let number = parseFloat(value);
-          let unit = undefined;
-
-          if (!isNaN(number)) {
-            acc[key] = {value: number, unit};
-          }
-
-          if (/([a-zA-Z]$)/.test(value)) {
-            number = parseFloat(v.substring(0, v.length - 2));
-            unit = v.match(/([a-zA-Z]$)/)?.[0];
-            acc[key] = {value: number, unit};
-          }
-        }
-
-        return acc;
-      }, {});
-  } catch (e) {
+        },
+        {}
+      );
+  } catch {
     return null;
   }
 }
 
-const parsedDiagnostics = toKeyValue(tsLogFile);
+const parsedDiagnostics = parseContentsToKeyValue(tsLogFile);
 
 if (parsedDiagnostics === null) {
   // We failed to parse here, but we dont want to impact the pipeline so just exit.
@@ -111,6 +122,8 @@ const transaction = Sentry.startTransaction({
 
 transaction.setName('typescript.compile');
 
+// @TODO: Remove ts ignore once the types are added to the SDK
+// @ts-ignore-expect setMeasurements does not exist?
 transaction.setMeasurements({
   'typescript.time.check': {value: checkTime.value},
   'typescript.time.bind': {value: bindTime.value},

@@ -393,7 +393,8 @@
     <td class="project-breakdown-graph-cell errors">
     <h4 class="total-count-title">Total Project Errors</h4>
     <h1 style="margin: 0;" class="total-count">{{ series.legend.total.data.accepted_errors|small_count:1 }}</h1>
-    <a href="{% url 'sentry-organization-issue-list' organization.slug %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
+    {% url 'sentry-organization-issue-list' organization.slug as issue_list%}
+    <a href="{% absolute_uri issue_list %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
 
     <table class="graph">
       <tr>
@@ -459,9 +460,9 @@
       <td class="project-breakdown-graph-cell transactions-empty">
         <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
           <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px" alt="Sentry">
-          <h1 style="font-weight: bold; font-size: 17px;">Missing transactions?</h1>
-          <p style="font-size: 11px;">With a simple snipped of code, you can see which parts of your app have the most improvements. the worst repgressions. Set it up now.</p>
-          <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_upsell' organization.slug %}" class="btn" style="margin-top: 8px;">Setup Performance</a>
+          <h1 style="font-weight: bold; font-size: 17px;">Something slow?</h1>
+          <p style="font-size: 11px;">Trace those 10-second page loads to poor-performing API calls.</p>
+          <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_upsell' organization.slug %}" class="btn" style="margin-top: 8px;">Set Up Performance</a>
         </div>
       </td>
     {% endif %}
@@ -558,7 +559,8 @@
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
       <div style="width: 65%;">
-        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug %}">{{a.group.message}}</a>
+        {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% absolute_uri issue_detail %}">{{a.group.message}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
       <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto;">{{a.status}}</span>
@@ -576,7 +578,7 @@
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
       <div style="width: 65%;">
-        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="#">{{a.name}}</a>
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% absolute_uri '/organizations/{}/performance/summary/?project={}&transaction={}&referrer=weekly_report' organization.slug a.project.id a.name %}">{{a.name}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
       </div>
       <div style="font-size: 14px; margin-left: auto; display: flex;">
