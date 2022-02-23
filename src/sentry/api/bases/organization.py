@@ -169,8 +169,8 @@ class OrganizationEndpoint(Endpoint):
             if not request.session.get("su_orgs_accessed"):
                 request.session["su_orgs_accessed"] = [organization_slug]
             elif organization_slug not in request.session["su_orgs_accessed"]:
-                if request.session["su_access"]:
-                    request.session["su_orgs_accessed"].append(organization_slug)
+                request.session["su_orgs_accessed"].append(organization_slug)
+                if request.session.get("su_access"):
                     logger.info(
                         "su_access.organization_change",
                         extra={
