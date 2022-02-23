@@ -1,4 +1,5 @@
 import uuid
+from itertools import chain
 from typing import List
 
 from django.db import models
@@ -50,24 +51,25 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
                 sentry_app_component_schema=Subquery(component_query.values("schema")[:1]),
                 sentry_app_component_uuid=Subquery(component_query.values("uuid")[:1]),
             )
+            .filter(sentry_app_component_id__isnull=False)
         )
 
         # There should only be 1 install of a SentryApp per organization
-        sentry_app_installations_by_sentry_app_id = {
+        grouped_sentry_app_installations = {
             getattr(install, group_by): {
-                "sentry_app_installation": install,
-                "sentry_app_component": SentryAppComponent(
-                    id=install.sentry_app_component_id,
-                    type="alert-rule-action",
-                    schema=install.sentry_app_component_schema,
-                    uuid=install.sentry_app_component_uuid,
-                    sentry_app=install.sentry_app,
-                ),
+                "sentry_app_installation": install.to_dict(),
+                "sentry_app_component": {
+                    "id": install.sentry_app_component_id,
+                    "type": type,
+                    "schema": install.sentry_app_component_schema,
+                    "uuid": install.sentry_app_component_uuid,
+                    "sentry_app_id": install.sentry_app_id,
+                },
             }
             for install in sentry_app_installations
         }
 
-        return sentry_app_installations_by_sentry_app_id
+        return grouped_sentry_app_installations
 
 
 class SentryAppInstallation(ParanoidModel):
@@ -124,6 +126,15 @@ class SentryAppInstallation(ParanoidModel):
     # Used when first creating an Installation to tell the serializer that the
     # grant code should be included in the serialization.
     is_new = False
+
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for field in chain(opts.concrete_fields, opts.private_fields):
+            data[field.name] = field.value_from_object(self)
+        for field in opts.many_to_many:
+            data[field.name] = [i.id for i in field.value_from_object(self)]
+        return data
 
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
