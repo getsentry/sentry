@@ -62,6 +62,202 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     MockApiClient.clearMockResponses();
   });
 
+  it('can send chart requests', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_SESSION}),
+    });
+    const children = jest.fn(() => <div />);
+
+    mountWithTheme(
+      <MetricsWidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </MetricsWidgetQueries>,
+      {
+        context: routerContext,
+      }
+    );
+
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    await waitFor(() =>
+      expect(children).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          errorMessage: undefined,
+          loading: false,
+          tableResults: [],
+          timeseriesResults: [
+            {
+              data: expect.arrayContaining([
+                {name: '2021-12-01T16:15:00Z', value: 443.6200417187068},
+                {name: '2021-12-01T16:30:00Z', value: 471.7512262596214},
+                {name: '2021-12-02T15:45:00Z', value: 485.26355742991586},
+                {name: '2021-12-02T16:00:00Z', value: 460.14344601636975},
+              ]),
+              seriesName: 'sessions: sentry.sessions.session',
+            },
+          ],
+        })
+      )
+    );
+  });
+
+  it('can send table requests', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
+    });
+    const children = jest.fn(() => <div />);
+
+    mountWithTheme(
+      <MetricsWidgetQueries
+        api={api}
+        widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </MetricsWidgetQueries>,
+      {
+        context: routerContext,
+      }
+    );
+
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    await waitFor(() =>
+      expect(children).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          errorMessage: undefined,
+          loading: false,
+          tableResults: [
+            {
+              data: [
+                {
+                  'count_unique(sentry.sessions.user)': 1,
+                  id: '0',
+                  release: '1',
+                  'session.status': 'crashed',
+                  'sum(sentry.sessions.session)': 34,
+                },
+                {
+                  'count_unique(sentry.sessions.user)': 1,
+                  id: '1',
+                  release: '1',
+                  'session.status': 'abnormal',
+                  'sum(sentry.sessions.session)': 1,
+                },
+                {
+                  'count_unique(sentry.sessions.user)': 2,
+                  id: '2',
+                  release: '1',
+                  'session.status': 'errored',
+                  'sum(sentry.sessions.session)': 451,
+                },
+                {
+                  'count_unique(sentry.sessions.user)': 3,
+                  id: '3',
+                  release: '1',
+                  'session.status': 'healthy',
+                  'sum(sentry.sessions.session)': 5058,
+                },
+                {
+                  'count_unique(sentry.sessions.user)': 2,
+                  id: '4',
+                  release: '2',
+                  'session.status': 'crashed',
+                  'sum(sentry.sessions.session)': 35,
+                },
+                {
+                  'count_unique(sentry.sessions.user)': 1,
+                  id: '5',
+                  release: '2',
+                  'session.status': 'abnormal',
+                  'sum(sentry.sessions.session)': 1,
+                },
+                {
+                  'count_unique(sentry.sessions.user)': 1,
+                  id: '6',
+                  release: '2',
+                  'session.status': 'errored',
+                  'sum(sentry.sessions.session)': 452,
+                },
+                {
+                  'count_unique(sentry.sessions.user)': 10,
+                  id: '7',
+                  release: '2',
+                  'session.status': 'healthy',
+                  'sum(sentry.sessions.session)': 5059,
+                },
+              ],
+              meta: {
+                'count_unique(sentry.sessions.user)': 'integer',
+                release: 'string',
+                'session.status': 'string',
+                'sum(sentry.sessions.session)': 'integer',
+              },
+              title: 'sessions',
+            },
+          ],
+          timeseriesResults: [],
+        })
+      )
+    );
+  });
+
+  it('can send big number requests', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_SESSION}),
+    });
+    const children = jest.fn(() => <div />);
+
+    mountWithTheme(
+      <MetricsWidgetQueries
+        api={api}
+        widget={{...singleQueryWidget, displayType: DisplayType.BIG_NUMBER}}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </MetricsWidgetQueries>,
+      {
+        context: routerContext,
+      }
+    );
+
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          per_page: 1,
+          orderBy: SessionMetric.SENTRY_SESSIONS_SESSION,
+        }),
+      })
+    );
+
+    await waitFor(() =>
+      expect(children).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+          tableResults: [
+            {
+              data: [{id: '0', 'sentry.sessions.session': 51292.95404741901}],
+              meta: {'sentry.sessions.session': 'integer'},
+              title: 'sessions',
+            },
+          ],
+        })
+      )
+    );
+  });
+
   it('can send multiple API requests', function () {
     const userMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
