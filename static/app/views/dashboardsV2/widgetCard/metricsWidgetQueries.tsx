@@ -15,7 +15,7 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
 import {transformMetricsResponseToTable} from 'sentry/utils/metrics/transformMetricsResponseToTable';
 
-import {DisplayType, Widget} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
 
 type Props = {
@@ -117,9 +117,13 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
   private _isMounted: boolean = false;
 
   get limit() {
+    const {limit} = this.props;
+
     switch (this.props.widget.displayType) {
       case DisplayType.TOP_N:
         return TOP_N;
+      case DisplayType.TABLE:
+        return limit ?? DEFAULT_TABLE_LIMIT;
       case DisplayType.BIG_NUMBER:
         return 1;
       default:
@@ -161,10 +165,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         groupBy: groupingColumns, // TODO(dam): add backend groupBy support
         interval,
         limit: this.limit,
-        orderBy:
-          query.orderby || widget.displayType === DisplayType.BIG_NUMBER
-            ? fields[0]
-            : undefined,
+        orderBy: query.orderby || this.limit ? query.fields[0] : undefined,
         project: projects,
         query: query.conditions,
         start,

@@ -288,6 +288,9 @@ from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
+from .endpoints.organization_transaction_anomaly_detection import (
+    OrganizationTransactionAnomalyDetectionEndpoint,
+)
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
@@ -1461,6 +1464,11 @@ urlpatterns = [
                     OrganizationJoinRequestEndpoint.as_view(),
                     name="sentry-api-0-organization-join-request",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/transaction-anomaly-detection/$",
+                    OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
+                    name="sentry-api-0-organization-transaction-anomaly-detection",
+                ),
                 # relay usage
                 url(
                     r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
@@ -1534,13 +1542,13 @@ urlpatterns = [
                     include(
                         [
                             url(
-                                r"^stacktraces/$",
-                                OrganizationProfilingFiltersEndpoint.as_view(),
+                                r"^profiles/$",
+                                OrganizationProfilingProfilesEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-profiles",
                             ),
                             url(
                                 r"^filters/$",
-                                OrganizationProfilingProfilesEndpoint.as_view(),
+                                OrganizationProfilingFiltersEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-filters",
                             ),
                         ],
