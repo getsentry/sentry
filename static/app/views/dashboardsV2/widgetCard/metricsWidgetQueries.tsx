@@ -14,10 +14,8 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
 import {transformMetricsResponseToTable} from 'sentry/utils/metrics/transformMetricsResponseToTable';
 
-import {DisplayType, Widget} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
-
-const DEFAULT_ITEM_LIMIT = 5;
 
 type Props = {
   api: Client;
@@ -124,7 +122,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       case DisplayType.TOP_N:
         return TOP_N;
       case DisplayType.TABLE:
-        return limit ?? DEFAULT_ITEM_LIMIT;
+        return limit ?? DEFAULT_TABLE_LIMIT;
       case DisplayType.BIG_NUMBER:
         return 1;
       default:

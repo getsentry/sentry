@@ -22,10 +22,8 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {DisplayType, Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
 import {eventViewFromWidget, getWidgetInterval} from '../utils';
-
-const DEFAULT_ITEM_LIMIT = 5;
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
 
@@ -187,7 +185,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
-        per_page: limit ?? DEFAULT_ITEM_LIMIT,
+        per_page: limit ?? DEFAULT_TABLE_LIMIT,
         noPagination: true,
       };
       if (widget.displayType === 'table') {
