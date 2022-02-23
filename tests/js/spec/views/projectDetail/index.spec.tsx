@@ -4,7 +4,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import ProjectDetails from 'sentry/views/projectDetail/projectDetail';
 
 describe('ProjectDetail', function () {
@@ -53,10 +52,8 @@ describe('ProjectDetail', function () {
       ProjectsStore.loadInitialData(projects);
 
       mountWithTheme(
-        <OrganizationContext.Provider value={organization}>
-          <ProjectDetails organization={organization} {...router} params={params} />
-        </OrganizationContext.Provider>,
-        {context: routerContext}
+        <ProjectDetails organization={organization} {...router} params={params} />,
+        {context: routerContext, organization}
       );
 
       expect(
@@ -90,10 +87,8 @@ describe('ProjectDetail', function () {
       });
 
       mountWithTheme(
-        <OrganizationContext.Provider value={organization}>
-          <ProjectDetails organization={organization} {...router} params={params} />
-        </OrganizationContext.Provider>,
-        {context: routerContext}
+        <ProjectDetails organization={organization} {...router} params={params} />,
+        {context: routerContext, organization}
       );
 
       expect(
