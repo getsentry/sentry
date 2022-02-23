@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -35,7 +36,6 @@ import {
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import Timeline from 'sentry/views/alerts/rules/details/timeline';
 
-import AlertBadge from '../../alertBadge';
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';

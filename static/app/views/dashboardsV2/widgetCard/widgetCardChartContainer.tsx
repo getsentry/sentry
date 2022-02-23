@@ -69,6 +69,7 @@ function WidgetCardChartContainer({
       // Align height to other charts.
       return <LoadingPlaceholder height="200px" />;
     }
+
     return (
       <StyledSimpleTableChart
         location={location}

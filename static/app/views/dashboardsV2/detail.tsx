@@ -110,18 +110,6 @@ class DashboardDetail extends Component<Props, State> {
     }
   }
 
-  updateRouteAfterSavingWidget() {
-    if (this.isWidgetBuilderRouter) {
-      const {router, organization, params} = this.props;
-      const {dashboardId} = params;
-      if (dashboardId) {
-        router.replace(`/organizations/${organization.slug}/dashboard/${dashboardId}/`);
-        return;
-      }
-      router.replace(`/organizations/${organization.slug}/dashboards/new/`);
-    }
-  }
-
   updateModifiedDashboard(dashboardState: DashboardState) {
     const {dashboard} = this.props;
     switch (dashboardState) {
@@ -472,18 +460,15 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onUpdateWidget = (widgets: Widget[]) => {
-    this.setState(
-      (state: State) => ({
-        ...state,
-        widgetToBeUpdated: undefined,
-        widgetLimitReached: widgets.length >= MAX_WIDGETS,
-        modifiedDashboard: {
-          ...(state.modifiedDashboard || this.props.dashboard),
-          widgets,
-        },
-      }),
-      this.updateRouteAfterSavingWidget
-    );
+    this.setState((state: State) => ({
+      ...state,
+      widgetToBeUpdated: undefined,
+      widgetLimitReached: widgets.length >= MAX_WIDGETS,
+      modifiedDashboard: {
+        ...(state.modifiedDashboard || this.props.dashboard),
+        widgets,
+      },
+    }));
   };
 
   renderWidgetBuilder(dashboard: DashboardDetails) {
@@ -558,7 +543,6 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   getBreadcrumbLabel() {
-    const {organization, dashboard} = this.props;
     const {dashboardState} = this.state;
 
     let label = this.dashboardTitle;
@@ -566,11 +550,6 @@ class DashboardDetail extends Component<Props, State> {
       label = t('Create Dashboard');
     } else if (this.isPreview) {
       label = t('Preview Dashboard');
-    } else if (
-      organization.features.includes('dashboards-edit') &&
-      dashboard.id === 'default-overview'
-    ) {
-      label = t('Default Dashboard');
     }
     return label;
   }

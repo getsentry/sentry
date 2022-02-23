@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
 import moment from 'moment';
@@ -14,7 +14,7 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCopy, IconDelete, IconEllipsis, IconGraph} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery} from 'sentry/types';
@@ -47,6 +47,7 @@ type Props = {
   organization: Organization;
   pageLinks: string;
   renderPrebuilt: boolean;
+  router: InjectedRouter;
   savedQueries: SavedQuery[];
   savedQuerySearchQuery: string;
 };
@@ -91,7 +92,7 @@ class QueryList extends React.Component<Props> {
   };
 
   handleAddQueryToDashboard = (eventView: EventView, savedQuery?: SavedQuery) => {
-    const {organization} = this.props;
+    const {organization, router, location} = this.props;
 
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
     const defaultTableColumns = eventView.fields.map(({field}) => field);
@@ -112,6 +113,17 @@ class QueryList extends React.Component<Props> {
       organization,
       saved_query: !!savedQuery,
     });
+
+    if (organization.features.includes('new-widget-builder-experience')) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DISCOVERV2,
+        },
+      });
+      return;
+    }
 
     openAddDashboardWidgetModal({
       organization,
@@ -211,7 +223,6 @@ class QueryList extends React.Component<Props> {
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
-          leadingItems: <IconGraph />,
           onAction: () => this.handleAddQueryToDashboard(eventView),
         },
       ];
@@ -279,7 +290,6 @@ class QueryList extends React.Component<Props> {
               {
                 key: 'add-to-dashboard',
                 label: t('Add to Dashboard'),
-                leadingItems: <IconGraph />,
                 onAction: () => this.handleAddQueryToDashboard(eventView, savedQuery),
               },
             ]
@@ -287,14 +297,12 @@ class QueryList extends React.Component<Props> {
         {
           key: 'duplicate',
           label: t('Duplicate Query'),
-          leadingItems: <IconCopy />,
           onAction: () =>
             this.handleDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
         },
         {
           key: 'delete',
           label: t('Delete Query'),
-          leadingItems: <IconDelete />,
           priority: 'danger',
           onAction: () => this.handleDeleteQuery(eventView),
         },

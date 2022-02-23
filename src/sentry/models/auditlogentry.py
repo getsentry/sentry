@@ -24,7 +24,7 @@ def format_ondemand_budget(ondemand_data):
             attachments_budget = format_ondemand_max_spend(
                 ondemand_data.get("attachmentsBudget", 0)
             )
-            return f"split on-demand (errors at {errors_budget}, transactions at {transactions_budget}, and attachments at {attachments_budget})"
+            return f"per-category on-demand (errors at {errors_budget}, transactions at {transactions_budget}, and attachments at {attachments_budget})"
         else:
             shared_budget = ondemand_data.get("sharedMaxBudget", 0)
             return f"shared on-demand of {format_ondemand_max_spend(shared_budget)}"

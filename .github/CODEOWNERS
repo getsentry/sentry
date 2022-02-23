@@ -134,6 +134,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/organization_events_trace.py          @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trends.py         @getsentry/performance
 /src/sentry/api/endpoints/organization_events_vitals.py         @getsentry/performance
+/src/sentry/api/endpoints/organization_transaction_anomaly_detection.py         @getsentry/data
 
 /static/app/views/performance/                                  @getsentry/performance
 /tests/js/spec/views/performance/                               @getsentry/performance
@@ -173,12 +174,17 @@ build-utils/        @getsentry/owners-js-build
 
 
 ### Profiling ###
-static/app/components/profiling                                 @getsentry/profiling
-static/app/types/jsSelfProfiling.d.ts                           @getsentry/profiling
-static/app/types/profiling.d.ts                                 @getsentry/profiling
-static/app/utils/profiling                                      @getsentry/profiling
-tests/js/spec/utils/profiling                                   @getsentry/profiling
-### Endof Profiling ###
+/static/app/components/profiling                                    @getsentry/profiling
+/static/app/types/jsSelfProfiling.d.ts                              @getsentry/profiling
+/static/app/types/profiling.d.ts                                    @getsentry/profiling
+/static/app/utils/profiling                                         @getsentry/profiling
+/tests/js/spec/utils/profiling                                      @getsentry/profiling
+/src/sentry/utils/profiling.py                                      @getsentry/profiling
+/src/sentry/api/endpoints/project_profiling_profile.py              @getsentry/profiling
+/src/sentry/api/endpoints/organization_profiling_profiles.py        @getsentry/profiling
+/tests/sentry/api/endpoints/test_project_profiling_profile.py       @getsentry/profiling
+/tests/sentry/api/endpoints/test_organization_profiling_profiles.py @getsentry/profiling
+### End of Profiling ###
 
 
 ### Ecosystem ###
