@@ -23,7 +23,7 @@ type Props = {
   onSave?: (event: React.MouseEvent) => void;
 };
 
-function Header({
+export function Header({
   title,
   orgSlug,
   goBackLocation,
@@ -54,7 +54,6 @@ function Header({
             value={title}
             onChange={onChangeTitle}
             errorMessage={t('Please set a title for this widget')}
-            successMessage={t('Widget title updated successfully')}
           />
         </Layout.Title>
       </Layout.HeaderContent>
@@ -68,6 +67,12 @@ function Header({
             href="mailto:metrics-feedback@sentry.io?subject=Metrics Feedback"
           >
             {t('Give Feedback')}
+          </Button>
+          <Button
+            external
+            href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+          >
+            {t('Read the docs')}
           </Button>
           <Button to={goBackLocation}>{t('Cancel')}</Button>
           {isEditing && onDelete && (
@@ -92,5 +97,3 @@ function Header({
     </Layout.Header>
   );
 }
-
-export default Header;

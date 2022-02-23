@@ -9,7 +9,7 @@ _INDEXER_CACHE_HIT_METRIC = "sentry_metrics.indexer.memcache.hit"
 _INDEXER_CACHE_MISS_METRIC = "sentry_metrics.indexer.memcache.miss"
 
 
-class PGStringIndexer(Service):  # type: ignore
+class PGStringIndexer(Service):
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.

@@ -25,7 +25,7 @@ class InvalidState(Exception):
     """
 
 
-class Backend(Service):  # type: ignore
+class Backend(Service):
     """
     A digest backend coordinates the addition of records to timelines, as well
     as scheduling their digestion (processing.) This allows for summarizations

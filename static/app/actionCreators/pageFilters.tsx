@@ -99,7 +99,7 @@ function getProjectIdFromProject(project: MinimalProject) {
 }
 
 /**
- * Merges two date time objects, where the `base` object takes presidence, and
+ * Merges two date time objects, where the `base` object takes precedence, and
  * the `fallback` values are used when the base values are null or undefined.
  */
 function mergeDatetime(
@@ -180,6 +180,7 @@ export function initializeUrlState({
   }
 
   const storedPageFilters = skipLoadLastUsed ? null : getPageFilterStorage(orgSlug);
+  let shouldUsePinnedDatetime = false;
 
   // We may want to restore some page filters from local storage. In the new
   // world when they are pinned, and in the old world as long as
@@ -202,8 +203,8 @@ export function initializeUrlState({
     }
 
     if (!hasDatetimeInUrl && filtersToRestore.has('datetime')) {
-      const storedDatetime = getDatetimeFromState(storedState);
-      pageFilters.datetime = mergeDatetime(pageFilters.datetime, storedDatetime);
+      pageFilters.datetime = getDatetimeFromState(storedState);
+      shouldUsePinnedDatetime = true;
     }
   }
 
@@ -251,8 +252,11 @@ export function initializeUrlState({
 
   const newDatetime = {
     ...datetime,
-    period: !parsed.start && !parsed.end && !parsed.period ? null : datetime.period,
-    utc: !parsed.utc ? null : datetime.utc,
+    period:
+      parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
+        ? datetime.period
+        : null,
+    utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
   };
 
   updateParams({project, environment, ...newDatetime}, router, {
@@ -287,7 +291,7 @@ export function updateProjects(
 
   PageFiltersActions.updateProjects(projects, options?.environments);
   updateParams({project: projects, environment: options?.environments}, router, options);
-  persistPageFilters(options);
+  persistPageFilters('projects', options);
 }
 
 /**
@@ -305,7 +309,7 @@ export function updateEnvironments(
 ) {
   PageFiltersActions.updateEnvironments(environment);
   updateParams({environment}, router, options);
-  persistPageFilters(options);
+  persistPageFilters('environments', options);
 }
 
 /**
@@ -323,7 +327,7 @@ export function updateDateTime(
 ) {
   PageFiltersActions.updateDateTime(datetime);
   updateParams(datetime, router, options);
-  persistPageFilters(options);
+  persistPageFilters('datetime', options);
 }
 
 /**
@@ -331,7 +335,7 @@ export function updateDateTime(
  */
 export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
   PageFiltersActions.pin(filter, pin);
-  persistPageFilters({save: true});
+  persistPageFilters(null, {save: true});
 }
 
 /**
@@ -360,9 +364,11 @@ function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options
 }
 
 /**
- * Save the current page filters to local storage
+ * Save a specific page filter to local storage.
+ *
+ * Pinned state is always persisted.
  */
-async function persistPageFilters(options?: Options) {
+async function persistPageFilters(filter: PinnedPageFilter | null, options?: Options) {
   if (!options?.save) {
     return;
   }
@@ -380,7 +386,8 @@ async function persistPageFilters(options?: Options) {
     return;
   }
 
-  setPageFiltersStorage(orgSlug);
+  const targetFilter = filter !== null ? [filter] : [];
+  setPageFiltersStorage(orgSlug, new Set<PinnedPageFilter>(targetFilter));
 }
 
 /**
