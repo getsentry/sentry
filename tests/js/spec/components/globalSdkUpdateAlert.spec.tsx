@@ -11,7 +11,6 @@ import {InnerGlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert'
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const makeFilterProps = (filters: Partial<PageFilters>): PageFilters => {
   return {
@@ -65,9 +64,8 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     const {rerender} = mountWithTheme(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
-        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
-      </OrganizationContext.Provider>
+      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
+      {organization: TestStubs.Organization()}
     );
 
     expect(
@@ -76,12 +74,10 @@ describe('GlobalSDKUpdateAlert', () => {
 
     // ProjectId no longer matches, so updates should not be shown anymore
     rerender(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
-        <InnerGlobalSdkUpdateAlert
-          sdkUpdates={sdkUpdates}
-          selection={{...filters, projects: [2]}}
-        />
-      </OrganizationContext.Provider>
+      <InnerGlobalSdkUpdateAlert
+        sdkUpdates={sdkUpdates}
+        selection={{...filters, projects: [2]}}
+      />
     );
 
     expect(
@@ -103,9 +99,8 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
-        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
-      </OrganizationContext.Provider>
+      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
+      {organization: TestStubs.Organization()}
     );
 
     expect(
@@ -130,9 +125,8 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
-        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
-      </OrganizationContext.Provider>
+      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
+      {organization: TestStubs.Organization()}
     );
 
     await waitFor(() =>
@@ -159,9 +153,8 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
-        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
-      </OrganizationContext.Provider>
+      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
+      {organization: TestStubs.Organization()}
     );
 
     expect(
@@ -186,9 +179,8 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
-        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
-      </OrganizationContext.Provider>
+      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
+      {organization: TestStubs.Organization()}
     );
 
     await waitFor(() =>
@@ -213,9 +205,8 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
-        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
-      </OrganizationContext.Provider>
+      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
+      {organization: TestStubs.Organization()}
     );
 
     expect(
@@ -237,9 +228,8 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
-        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
-      </OrganizationContext.Provider>
+      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
+      {organization: TestStubs.Organization()}
     );
 
     userEvent.click(await screen.findByText(/Remind me later/));
