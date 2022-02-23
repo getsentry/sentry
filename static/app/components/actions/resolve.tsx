@@ -234,7 +234,7 @@ class ResolveActions extends React.Component<Props> {
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
-            tooltipProps={{delay: 300}}
+            tooltipProps={{delay: 300, disabled}}
             icon={<IconCheckmark size="xs" />}
             onClick={onResolve}
             disabled={disabled}
