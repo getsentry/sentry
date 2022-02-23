@@ -66,6 +66,7 @@ type TestStubFixtures = {
   MetricsFieldByMeasurementRating: OverridableStub;
   MetricsFieldByTransactionStatus: OverridableStub;
   MetricsFieldsByMeasurementRating: OverridableStub;
+  MetricsSessionUserCountByStatusByRelease: SimpleStub;
   OrgOwnedApps: SimpleStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;

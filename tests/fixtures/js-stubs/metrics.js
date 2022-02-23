@@ -830,3 +830,137 @@ export function MetricsFieldsByMeasurementRating({fields, ...rest} = {}) {
     ...rest,
   };
 }
+
+export function MetricsSessionUserCountByStatusByRelease() {
+  return {
+    start: '2022-01-15T00:00:00Z',
+    end: '2022-01-29T00:00:00Z',
+    query: '',
+    intervals: [
+      '2022-01-15T00:00:00Z',
+      '2022-01-16T00:00:00Z',
+      '2022-01-17T00:00:00Z',
+      '2022-01-18T00:00:00Z',
+      '2022-01-19T00:00:00Z',
+      '2022-01-20T00:00:00Z',
+      '2022-01-21T00:00:00Z',
+      '2022-01-22T00:00:00Z',
+      '2022-01-23T00:00:00Z',
+      '2022-01-24T00:00:00Z',
+      '2022-01-25T00:00:00Z',
+      '2022-01-26T00:00:00Z',
+      '2022-01-27T00:00:00Z',
+      '2022-01-28T00:00:00Z',
+    ],
+    groups: [
+      {
+        by: {'session.status': 'crashed', release: '1'},
+        totals: {
+          'sum(sentry.sessions.session)': 34,
+          'count_unique(sentry.sessions.user)': 1,
+        },
+        series: {
+          'sum(sentry.sessions.session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 11, 0, 0, 0],
+          'count_unique(sentry.sessions.user)': [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
+          ],
+        },
+      },
+      {
+        by: {'session.status': 'abnormal', release: '1'},
+        totals: {
+          'sum(sentry.sessions.session)': 1,
+          'count_unique(sentry.sessions.user)': 1,
+        },
+        series: {
+          'sum(sentry.sessions.session)': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          'count_unique(sentry.sessions.user)': [
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          ],
+        },
+      },
+      {
+        by: {'session.status': 'errored', release: '1'},
+        totals: {
+          'sum(sentry.sessions.session)': 451,
+          'count_unique(sentry.sessions.user)': 2,
+        },
+        series: {
+          'sum(sentry.sessions.session)': [0, 0, 0, 0, 0, 37, 0, 0, 0, 335, 79, 0, 0, 0],
+          'count_unique(sentry.sessions.user)': [
+            0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 2, 0, 0, 0,
+          ],
+        },
+      },
+      {
+        by: {'session.status': 'healthy', release: '1'},
+        totals: {
+          'sum(sentry.sessions.session)': 5058,
+          'count_unique(sentry.sessions.user)': 3,
+        },
+        series: {
+          'sum(sentry.sessions.session)': [
+            0, 0, 0, 0, 0, 2503, 661, 0, 0, 1464, 430, 0, 0, 0,
+          ],
+          'count_unique(sentry.sessions.user)': [
+            0, 0, 0, 0, 0, 3, 3, 0, 0, 1, 1, 0, 0, 0,
+          ],
+        },
+      },
+      {
+        by: {'session.status': 'crashed', release: '2'},
+        totals: {
+          'sum(sentry.sessions.session)': 35,
+          'count_unique(sentry.sessions.user)': 2,
+        },
+        series: {
+          'sum(sentry.sessions.session)': [1, 0, 0, 0, 0, 0, 0, 0, 0, 23, 11, 0, 0, 0],
+          'count_unique(sentry.sessions.user)': [
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0,
+          ],
+        },
+      },
+      {
+        by: {'session.status': 'abnormal', release: '2'},
+        totals: {
+          'sum(sentry.sessions.session)': 1,
+          'count_unique(sentry.sessions.user)': 1,
+        },
+        series: {
+          'sum(sentry.sessions.session)': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          'count_unique(sentry.sessions.user)': [
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          ],
+        },
+      },
+      {
+        by: {'session.status': 'errored', release: '2'},
+        totals: {
+          'sum(sentry.sessions.session)': 452,
+          'count_unique(sentry.sessions.user)': 1,
+        },
+        series: {
+          'sum(sentry.sessions.session)': [1, 0, 0, 0, 0, 37, 0, 0, 0, 335, 79, 0, 0, 0],
+          'count_unique(sentry.sessions.user)': [
+            1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0,
+          ],
+        },
+      },
+      {
+        by: {'session.status': 'healthy', release: '2'},
+        totals: {
+          'sum(sentry.sessions.session)': 5059,
+          'count_unique(sentry.sessions.user)': 10,
+        },
+        series: {
+          'sum(sentry.sessions.session)': [
+            1, 0, 0, 0, 0, 2503, 661, 0, 0, 1464, 430, 0, 0, 0,
+          ],
+          'count_unique(sentry.sessions.user)': [
+            1, 0, 0, 0, 0, 10, 3, 0, 0, 4, 3, 0, 0, 0,
+          ],
+        },
+      },
+    ],
+  };
+}
