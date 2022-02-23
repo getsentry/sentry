@@ -112,7 +112,9 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('redirects user to Discover when clicking Open in Discover', async function () {
-      expect(await screen.findByLabelText('Open in Discover')).toHaveAttribute(
+      expect(
+        await screen.findByRole('button', {name: 'Open in Discover'})
+      ).toHaveAttribute(
         'href',
         '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
       );
@@ -180,7 +182,7 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('redirects user to Issues when clicking Open in Issues', async function () {
-      expect(await screen.findByLabelText('Open in Issues')).toHaveAttribute(
+      expect(await screen.findByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=&statsPeriod=14d'
       );
