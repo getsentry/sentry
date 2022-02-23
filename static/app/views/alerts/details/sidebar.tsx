@@ -58,35 +58,37 @@ class Sidebar extends PureComponent<Props> {
             </StepContent>
           </StepContainer>
         </Step>
-        <Step>
-          <StepContainer>
-            <ChevronContainer>
-              <IconChevron color="gray200" isCircled direction="right" size="sm" />
-            </ChevronContainer>
-            <StepContent>
-              <StepLead>
-                {tct('[if:If] [selector] of these filters match', {
-                  if: <Badge />,
-                  selector: rule.filterMatch,
-                })}
-              </StepLead>
-              {filters}
-            </StepContent>
-          </StepContainer>
-        </Step>
+        {filters && (
+          <Step>
+            <StepContainer>
+              <ChevronContainer>
+                <IconChevron color="gray200" isCircled direction="right" size="sm" />
+              </ChevronContainer>
+              <StepContent>
+                <StepLead>
+                  {tct('[if:If] [selector] of these filters match', {
+                    if: <Badge />,
+                    selector: rule.filterMatch,
+                  })}
+                </StepLead>
+                {filters}
+              </StepContent>
+            </StepContainer>
+          </Step>
+        )}
         <Step>
           <StepContainer>
             <ChevronContainer>
               <IconChevron isCircled color="gray200" direction="right" size="sm" />
             </ChevronContainer>
-            <StepContent>
+            <div>
               <StepLead>
                 {tct('[then:Then] perform these actions', {
                   then: <Badge />,
                 })}
               </StepLead>
               {actions}
-            </StepContent>
+            </div>
           </StepContainer>
         </Step>
       </PanelBody>
