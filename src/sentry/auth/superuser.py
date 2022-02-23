@@ -73,8 +73,8 @@ class Superuser:
     def _remove_su_access_from_session(self, request):
         if request.session.get("su_access"):
             del request.session["su_access"]
-        if request.session.get("orgs_accessed"):
-            del request.session["orgs_accessed"]
+        if request.session.get("su_orgs_accessed"):
+            del request.session["su_orgs_accessed"]
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request

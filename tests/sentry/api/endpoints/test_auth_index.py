@@ -130,7 +130,14 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             SUPERUSER_ORG_ID=self.organization.id
         ):
             self.login_as(user)
-            response = self.client.put(self.path, data={"password": "admin"})
+            response = self.client.put(
+                self.path,
+                data={
+                    "password": "admin",
+                    "categoryOfSUAccess": "for testing",
+                    "reasonForSU": "for testing",
+                },
+            )
             assert response.status_code == 401
 
     def test_superuser_no_sso_with_referrer(self):
@@ -145,7 +152,13 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         ):
             self.login_as(user)
             response = self.client.put(
-                self.path, HTTP_REFERER="http://testserver/bar", data={"password": "admin"}
+                self.path,
+                HTTP_REFERER="http://testserver/bar",
+                data={
+                    "password": "admin",
+                    "categoryOfSUAccess": "for testing",
+                    "reasonForSU": "for testing",
+                },
             )
             assert response.status_code == 401
             assert self.client.session["_next"] == "http://testserver/bar"
@@ -162,7 +175,13 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         ):
             self.login_as(user)
             response = self.client.put(
-                self.path, HTTP_REFERER="http://hacktheplanet/bar", data={"password": "admin"}
+                self.path,
+                HTTP_REFERER="http://hacktheplanet/bar",
+                data={
+                    "password": "admin",
+                    "categoryOfSUAccess": "for testing",
+                    "reasonForSU": "for testing",
+                },
             )
             assert response.status_code == 401
             assert self.client.session.get("_next") is None
