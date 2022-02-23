@@ -92,10 +92,10 @@ function ThreadMenuSelector(props: ThreadSelectorProps): React.ReactElement | nu
 
   return (
     <div>
-      <Button size="zero" borderless onClick={() => setOpen(true)}>
+      <CurrentThreadButton size="zero" borderless onClick={() => setOpen(true)}>
         {props.profileGroup.profiles[props.activeProfileIndex]?.name ??
           t('Select Thread')}
-      </Button>
+      </CurrentThreadButton>
       <AutoComplete
         // @ts-ignore the type is typed as any
         onSelect={handleSelectItem}
@@ -216,6 +216,11 @@ const ThreadSelectorContainer = styled('div')`
   left: 50%;
   transform: translate(-50%, 0);
   top: 60px;
+`;
+
+const CurrentThreadButton = styled(Button)`
+  margin: 0 auto;
+  display: block;
 `;
 
 export {ThreadMenuSelector};

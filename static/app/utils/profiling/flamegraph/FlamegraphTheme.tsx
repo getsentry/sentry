@@ -76,6 +76,7 @@ export interface FlamegraphTheme {
     HOVERED_FRAME_BORDER_WIDTH: number;
     LABEL_FONT_PADDING: number;
     LABEL_FONT_SIZE: number;
+    MINIMAP_HEIGHT: number;
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
     REQUEST_BAR_HEIGHT: number;
     REQUEST_DEPTH_OFFSET: number;
@@ -125,6 +126,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     REQUEST_FONT_SIZE: 10,
     REQUEST_DEPTH_OFFSET: 4,
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
+    MINIMAP_HEIGHT: 100,
     TIMELINE_HEIGHT: 20,
     LABEL_FONT_SIZE: 10,
     LABEL_FONT_PADDING: 6,
@@ -180,8 +182,8 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     REQUEST_BAR_HEIGHT: 14,
     REQUEST_FONT_SIZE: 10,
     REQUEST_DEPTH_OFFSET: 4,
-
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
+    MINIMAP_HEIGHT: 100,
     TIMELINE_HEIGHT: 20,
     LABEL_FONT_SIZE: 10,
     LABEL_FONT_PADDING: 6,

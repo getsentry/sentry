@@ -2,10 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {ColorCoding} from 'sentry/types/profiling/core';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
@@ -19,9 +19,8 @@ import {BoundTooltip} from './BoundTooltip';
 
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
-  colorCoding: ColorCoding;
+  colorCoding: FlamegraphPreferences['colorCoding'];
   flamegraph: Flamegraph | DifferentialFlamegraph;
-  highlightRecursion: boolean;
   showSelectedNodeStack?: boolean;
 }
 
@@ -29,7 +28,6 @@ function FlamegraphZoomView({
   flamegraph,
   canvasPoolManager,
   colorCoding,
-  highlightRecursion,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const [scheduler, setScheduler] = React.useState<CanvasScheduler | null>(null);
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -39,7 +37,6 @@ function FlamegraphZoomView({
 
   const [gridRenderer, setGridRenderer] = React.useState<GridRenderer | null>(null);
   const [textRenderer, setTextRenderer] = React.useState<TextRenderer | null>(null);
-
   const [canvasBounds, setCanvasBounds] = React.useState<Rect>(Rect.Empty());
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -80,14 +77,7 @@ function FlamegraphZoomView({
       // If we have no renderer, then the canvas is not initialize yet and we cannot initialize the renderer
       return null;
     },
-    [
-      flamegraphCanvasRef,
-      flamegraphTheme,
-      flamegraph,
-      canvasPoolManager,
-      colorCoding,
-      highlightRecursion,
-    ]
+    [flamegraphCanvasRef, flamegraphTheme, flamegraph, canvasPoolManager, colorCoding]
   );
 
   React.useEffect(() => {
