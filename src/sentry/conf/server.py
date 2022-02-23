@@ -933,6 +933,8 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
+    # Enable the linked event feature in the issue details breadcrumb.
+    "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
@@ -966,6 +968,12 @@ SENTRY_FEATURES = {
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
+    # Enable experimental new version of stacktrace component where additional
+    # data related to grouping is shown on each frame
+    "organizations:grouping-stacktrace-ui": False,
+    # Enable tweaks to group title in relation to hierarchical
+    # grouping.
+    "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
@@ -980,6 +988,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Enable the new widget builder experience on Dashboards
+    "organizations:new-widget-builder-experience": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -992,6 +1002,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # True if differences between the metrics and sessions backend should be reported
     "organizations:release-health-check-metrics-report": False,
+    # Enable threshold period in metric alert rule builder
+    "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -1017,12 +1029,20 @@ SENTRY_FEATURES = {
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable react-grid-layout dashboards
+    "organizations:dashboard-grid-layout": False,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
+    # Enable dashboard widget library
+    "organizations:widget-library": False,
     # Enable metrics in dashboards
     "organizations:dashboards-metrics": False,
+    # Enable issue widgets in dashboards
+    "organizations:issues-in-dashboards": False,
+    # Enable widget viewer modal in dashboards
+    "organizations:widget-viewer-modal": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1031,6 +1051,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable removing issue from issue list if action taken.
+    "organizations:issue-list-removal-action": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1059,6 +1081,8 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
+    # Enable the new native stack trace design
+    "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1076,6 +1100,12 @@ SENTRY_FEATURES = {
     "organizations:issue-percent-filters": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
+    # Enable the mobile screenshots feature
+    "organizations:mobile-screenshots": False,
+    # Enable the release details performance section
+    "organizations:release-comparison-performance": False,
+    # Enable percent displays in issue stream
+    "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
