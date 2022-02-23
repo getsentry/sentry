@@ -8,7 +8,6 @@ from urllib3 import Retry
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.net.http import connection_from_url
 from sentry.snuba.discover import timeseries_query
@@ -33,8 +32,7 @@ def get_anomalies(snuba_io):
         body=json.dumps(snuba_io),
         headers={"content-type": "application/json;charset=utf-8"},
     )
-
-    return Response(serialize(json.loads(response.data)), status=200)
+    return Response(json.loads(response.data), status=200)
 
 
 def get_time_params(start, end):
