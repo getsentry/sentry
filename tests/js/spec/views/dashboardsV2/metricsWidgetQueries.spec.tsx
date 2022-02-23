@@ -23,7 +23,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         orderby: '',
       },
       {
-        conditions: 'environment: prod',
+        conditions: 'environment:prod',
         fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
         name: 'users',
         orderby: '',
@@ -291,6 +291,33 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     // Child should be rendered and 2 requests should be sent.
     expect(screen.getByTestId('child')).toBeInTheDocument();
     expect(sessionMock).toHaveBeenCalledTimes(2);
+    expect(sessionMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: {
+          environment: ['prod'],
+          field: ['sum(sentry.sessions.session)'],
+          interval: '30m',
+          project: [1],
+          statsPeriod: '14d',
+        },
+      })
+    );
+    expect(sessionMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: {
+          environment: ['prod'],
+          field: ['sum(sentry.sessions.session)'],
+          interval: '30m',
+          project: [1],
+          statsPeriod: '14d',
+          query: 'environment:prod',
+        },
+      })
+    );
   });
 
   it('sets errorMessage when the first request fails', async function () {
