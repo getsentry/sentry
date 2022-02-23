@@ -51,6 +51,7 @@ export enum DisplayModes {
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   STABILITY = 'crash_free',
+  STABILITY_USERS = 'crash_free_users',
   SESSIONS = 'sessions',
 }
 
@@ -136,6 +137,14 @@ class ProjectCharts extends Component<Props, State> {
         tooltip: !hasSessions ? noHealthTooltip : undefined,
       },
       {
+        value: DisplayModes.STABILITY_USERS,
+        label: t('Crash Free Users'),
+        disabled:
+          this.otherActiveDisplayModes.includes(DisplayModes.STABILITY_USERS) ||
+          !hasSessions,
+        tooltip: !hasSessions ? noHealthTooltip : undefined,
+      },
+      {
         value: DisplayModes.APDEX,
         label: t('Apdex'),
         disabled:
@@ -202,6 +211,8 @@ class ProjectCharts extends Component<Props, State> {
       case DisplayModes.STABILITY:
       case DisplayModes.SESSIONS:
         return t('Total Sessions');
+      case DisplayModes.STABILITY_USERS:
+        return t('Total Users');
       case DisplayModes.APDEX:
       case DisplayModes.FAILURE_RATE:
       case DisplayModes.TPM:
@@ -380,6 +391,18 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseSessionsChart
                   title={t('Crash Free Sessions')}
                   help={getSessionTermDescription(SessionTerm.STABILITY, null)}
+                  router={router}
+                  api={api}
+                  organization={organization}
+                  onTotalValuesChange={this.handleTotalValuesChange}
+                  displayMode={displayMode}
+                  query={query}
+                />
+              )}
+              {displayMode === DisplayModes.STABILITY_USERS && (
+                <ProjectBaseSessionsChart
+                  title={t('Crash Free Users')}
+                  help={getSessionTermDescription(SessionTerm.CRASH_FREE_USERS, null)}
                   router={router}
                   api={api}
                   organization={organization}
