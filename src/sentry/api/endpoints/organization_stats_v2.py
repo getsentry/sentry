@@ -1,22 +1,34 @@
 from contextlib import contextmanager
 
 import sentry_sdk
+from drf_spectacular.utils import {"GET"}, OpenApiExample, @public
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.decorators import public
+from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
+    GROUPBY_MAP,
     QueryDefinition,
     massage_outcomes_result,
     run_outcomes_query_timeseries,
     run_outcomes_query_totals,
 )
-from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
+from sentry.snuba.sessions_v2 import COLUMN_MAP, InvalidField, InvalidParams
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
+
+class OrgStatsQueryParamsSerializer(serializers.Serializer):
+    field = serializers.ChoiceField(COLUMN_MAP.keys())
+    groupBy = serializers.ChoiceField(GROUPBY_MAP.keys())
+    interval = serializers.ChoiceField("")
+    # project =
 
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
     enforce_rate_limit = True
@@ -28,6 +40,32 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         }
     }
 
+    @extend_schema(
+        operation_id="Retrieve an Organization's Stats",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG],
+        request=None,
+        responses={
+            200: None,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDENN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "Successful response",
+                value={
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": "102",
+                    "userName": "test.user@okta.local",
+                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "active": True,
+                    "meta": {"resourceType": "User"},
+                },
+                status_codes=["200"],
+            ),
+        ],
+    )
     def get(self, request: Request, organization) -> Response:
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
