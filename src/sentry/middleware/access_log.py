@@ -51,9 +51,7 @@ def _create_api_access_log(
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
-
-        request_access = getattr(request, "access", None)
-        org_id = getattr(request_access, "organization_id", None)
+        org_id = getattr(getattr(request, "organization", None), "id", None)
 
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
