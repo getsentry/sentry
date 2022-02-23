@@ -218,9 +218,4 @@ const ThreadSelectorContainer = styled('div')`
   top: 60px;
 `;
 
-const CurrentThreadButton = styled(Button)`
-  margin: 0 auto;
-  display: block;
-`;
-
 export {ThreadMenuSelector};
