@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -52,6 +53,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
+  hasAlertWizardV3: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
   onFilterSearch: (query: string) => void;
@@ -139,6 +141,126 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     return undefined;
   }
 
+  renderInterval() {
+    const {
+      organization,
+      dataset,
+      disabled,
+      alertType,
+      hasAlertWizardV3,
+      timeWindow,
+      comparisonDelta,
+      comparisonType,
+      onComparisonTypeChange,
+      onTimeWindowChange,
+      onComparisonDeltaChange,
+    } = this.props;
+
+    const formElemBaseStyle = {
+      padding: `${space(0.5)}`,
+      border: 'none',
+    };
+
+    const {labelText, timeWindowText} = getFunctionHelpText(alertType);
+    const intervalLabelText = hasAlertWizardV3 ? t('Define your metric') : labelText;
+
+    return (
+      <Fragment>
+        {dataset !== Dataset.SESSIONS && (
+          <Feature features={['organizations:change-alerts']} organization={organization}>
+            <StyledListItem>{t('Select threshold type')}</StyledListItem>
+            <FormRow>
+              <RadioGroup
+                style={{flex: 1}}
+                disabled={disabled}
+                choices={[
+                  [AlertRuleComparisonType.COUNT, 'Count'],
+                  [AlertRuleComparisonType.CHANGE, 'Percent Change'],
+                ]}
+                value={comparisonType}
+                label={t('Threshold Type')}
+                onChange={onComparisonTypeChange}
+              />
+            </FormRow>
+          </Feature>
+        )}
+        <StyledListItem>
+          <StyledListTitle>
+            <div>{intervalLabelText}</div>
+            <Tooltip
+              title={t(
+                'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
+              )}
+            >
+              <IconQuestion size="sm" color="gray200" />
+            </Tooltip>
+          </StyledListTitle>
+        </StyledListItem>
+        <FormRow>
+          {timeWindowText && (
+            <MetricField
+              name="aggregate"
+              help={null}
+              organization={organization}
+              disabled={disabled}
+              style={{
+                ...formElemBaseStyle,
+              }}
+              inline={false}
+              flexibleControlStateSize
+              columnWidth={200}
+              alertType={alertType}
+              required
+            />
+          )}
+          {timeWindowText && <FormRowText>{timeWindowText}</FormRowText>}
+          <SelectControl
+            name="timeWindow"
+            styles={{
+              control: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+                minWidth: 130,
+                maxWidth: 300,
+              }),
+            }}
+            options={this.timeWindowOptions}
+            required
+            isDisabled={disabled}
+            value={timeWindow}
+            onChange={({value}) => onTimeWindowChange(value)}
+            inline={false}
+            flexibleControlStateSize
+          />
+          <Feature features={['organizations:change-alerts']} organization={organization}>
+            {comparisonType === AlertRuleComparisonType.CHANGE && (
+              <ComparisonContainer>
+                {t(' compared to ')}
+                <SelectControl
+                  name="comparisonDelta"
+                  styles={{
+                    container: (provided: {[x: string]: string | number | boolean}) => ({
+                      ...provided,
+                      marginLeft: space(1),
+                    }),
+                    control: (provided: {[x: string]: string | number | boolean}) => ({
+                      ...provided,
+                      minWidth: 500,
+                      maxWidth: 1000,
+                    }),
+                  }}
+                  value={comparisonDelta}
+                  onChange={({value}) => onComparisonDeltaChange(value)}
+                  options={COMPARISON_DELTA_OPTIONS}
+                  required={comparisonType === AlertRuleComparisonType.CHANGE}
+                />
+              </ComparisonContainer>
+            )}
+          </Feature>
+        </FormRow>
+      </Fragment>
+    );
+  }
+
   render() {
     const {
       organization,
@@ -146,12 +268,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       onFilterSearch,
       allowChangeEventTypes,
       alertType,
-      timeWindow,
-      comparisonType,
-      comparisonDelta,
-      onTimeWindowChange,
-      onComparisonDeltaChange,
-      onComparisonTypeChange,
+      hasAlertWizardV3,
       dataset,
     } = this.props;
     const {environments} = this.state;
@@ -214,13 +331,12 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       border: 'none',
     };
 
-    const {labelText: intervalLabelText, timeWindowText} = getFunctionHelpText(alertType);
-
     return (
       <React.Fragment>
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
+        {hasAlertWizardV3 && this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow>
           <SelectField
@@ -356,97 +472,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             )}
           </FormField>
         </FormRow>
-        {dataset !== Dataset.SESSIONS && (
-          <Feature features={['organizations:change-alerts']} organization={organization}>
-            <StyledListItem>{t('Select threshold type')}</StyledListItem>
-            <FormRow>
-              <RadioGroup
-                style={{flex: 1}}
-                disabled={disabled}
-                choices={[
-                  [AlertRuleComparisonType.COUNT, 'Count'],
-                  [AlertRuleComparisonType.CHANGE, 'Percent Change'],
-                ]}
-                value={comparisonType}
-                label={t('Threshold Type')}
-                onChange={onComparisonTypeChange}
-              />
-            </FormRow>
-          </Feature>
-        )}
-        <StyledListItem>
-          <StyledListTitle>
-            <div>{intervalLabelText}</div>
-            <Tooltip
-              title={t(
-                'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
-              )}
-            >
-              <IconQuestion size="sm" color="gray200" />
-            </Tooltip>
-          </StyledListTitle>
-        </StyledListItem>
-        <FormRow>
-          {timeWindowText && (
-            <MetricField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              style={{
-                ...formElemBaseStyle,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-            />
-          )}
-          {timeWindowText && <FormRowText>{timeWindowText}</FormRowText>}
-          <SelectControl
-            name="timeWindow"
-            styles={{
-              control: (provided: {[x: string]: string | number | boolean}) => ({
-                ...provided,
-                minWidth: 130,
-                maxWidth: 300,
-              }),
-            }}
-            options={this.timeWindowOptions}
-            required
-            isDisabled={disabled}
-            value={timeWindow}
-            onChange={({value}) => onTimeWindowChange(value)}
-            inline={false}
-            flexibleControlStateSize
-          />
-          <Feature features={['organizations:change-alerts']} organization={organization}>
-            {comparisonType === AlertRuleComparisonType.CHANGE && (
-              <ComparisonContainer>
-                {t(' compared to ')}
-                <SelectControl
-                  name="comparisonDelta"
-                  styles={{
-                    container: (provided: {[x: string]: string | number | boolean}) => ({
-                      ...provided,
-                      marginLeft: space(1),
-                    }),
-                    control: (provided: {[x: string]: string | number | boolean}) => ({
-                      ...provided,
-                      minWidth: 500,
-                      maxWidth: 1000,
-                    }),
-                  }}
-                  value={comparisonDelta}
-                  onChange={({value}) => onComparisonDeltaChange(value)}
-                  options={COMPARISON_DELTA_OPTIONS}
-                  required={comparisonType === AlertRuleComparisonType.CHANGE}
-                />
-              </ComparisonContainer>
-            )}
-          </Feature>
-        </FormRow>
+        {!hasAlertWizardV3 && this.renderInterval()}
       </React.Fragment>
     );
   }
