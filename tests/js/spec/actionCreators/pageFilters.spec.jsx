@@ -247,10 +247,10 @@ describe('PageFilters ActionCreators', function () {
             environment: ['prod'],
             start: null,
             end: null,
-            period: '14d',
+            period: '7d',
             utc: null,
           },
-          pinnedFilters: new Set(['environments']),
+          pinnedFilters: new Set(['environments', 'datetime', 'projects']),
         });
 
       // Initialize state with a page that uses pinned filters
@@ -266,7 +266,8 @@ describe('PageFilters ActionCreators', function () {
         expect.objectContaining({
           query: {
             environment: ['prod'],
-            project: [],
+            project: ['1'],
+            statsPeriod: '7d',
           },
         })
       );

@@ -15,7 +15,9 @@ interface FlamegraphThemeProviderProps {
   children: React.ReactNode;
 }
 
-function FlamegraphThemeProvider(props: FlamegraphThemeProviderProps): React.ReactNode {
+function FlamegraphThemeProvider(
+  props: FlamegraphThemeProviderProps
+): React.ReactElement {
   const {theme} = useLegacyStore(ConfigStore);
 
   return (
