@@ -1430,7 +1430,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
             field: ['sum(sentry.sessions.session)'],
             interval: '30m',
             project: [],
-            groupBy: [],
             statsPeriod: '14d',
           },
         })
