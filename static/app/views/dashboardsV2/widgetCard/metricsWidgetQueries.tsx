@@ -162,7 +162,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         orgSlug: organization.slug,
         end,
         environment: environments,
-        groupBy: groupingColumns, // TODO(dam): add backend groupBy support
+        groupBy: groupingColumns.length ? groupingColumns : undefined, // TODO(dam): add backend groupBy support
         interval,
         limit: this.limit,
         orderBy: query.orderby || this.limit ? query.fields[0] : undefined,
