@@ -70,7 +70,7 @@ class RuleSerializer(Serializer):
 
         sentry_app_installations_by_uuid = (
             SentryAppInstallation.objects.get_related_sentry_app_components(
-                organization_id__in={rule.project.organization_id for rule in rules.values()},
+                organization_ids={rule.project.organization_id for rule in rules.values()},
                 sentry_app_ids=sentry_app_ids,
                 type="alert-rule-action",
                 group_by="uuid",

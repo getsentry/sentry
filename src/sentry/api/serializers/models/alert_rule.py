@@ -44,7 +44,7 @@ class AlertRuleSerializer(Serializer):
 
         sentry_app_installations_by_sentry_app_id = (
             SentryAppInstallation.objects.get_related_sentry_app_components(
-                organization_id__in={
+                organization_ids={
                     alert_rule.organization_id for alert_rule in alert_rules.values()
                 },
                 sentry_app_ids=trigger_actions.values_list("sentry_app_id", flat=True),

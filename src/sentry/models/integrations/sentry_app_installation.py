@@ -20,21 +20,25 @@ def default_uuid():
 
 
 class SentryAppInstallationForProviderManager(ParanoidManager):
-    def get_organization_filter_kwargs(self, organization_id: int):
+    def get_organization_filter_kwargs(self, organization_ids: List[int]):
         return {
-            "organization_id": organization_id,
+            "organization_id__in": organization_ids,
             "status": SentryAppInstallationStatus.INSTALLED,
             "date_deleted": None,
         }
 
     def get_installed_for_organization(self, organization_id: int) -> QuerySet:
-        return self.filter(**self.get_organization_filter_kwargs(organization_id))
+        return self.filter(**self.get_organization_filter_kwargs([organization_id]))
 
     def get_by_api_token(self, token_id: str) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
     def get_related_sentry_app_components(
-        self, organization_id: int, sentry_app_ids: List[int], type: str, group_by="sentry_app_id"
+        self,
+        organization_ids: List[int],
+        sentry_app_ids: List[int],
+        type: str,
+        group_by="sentry_app_id",
     ):
         from sentry.models import SentryAppComponent
 
@@ -43,7 +47,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         )
 
         sentry_app_installations = (
-            self.filter(**self.get_organization_filter_kwargs(organization_id))
+            self.filter(**self.get_organization_filter_kwargs(organization_ids))
             .filter(sentry_app_id__in=sentry_app_ids)
             .annotate(
                 # Cannot annotate model object only individual fields. We can convert it into SentryAppComponent instance later.
