@@ -774,7 +774,7 @@ def verify_prepare_reports(*args, **kwargs):
     max_retries=5,
     acks_late=True,
 )
-def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
+def prepare_organization_report(timestamp, duration, organization_id, user_id=None, dry_run=False):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
     except Organization.DoesNotExist:
@@ -804,10 +804,15 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
         user_id__isnull=False, user__is_active=True
     ).exclude(flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"]))
 
-    for user_id in member_set.values_list("user_id", flat=True):
+    if user_id:
         deliver_organization_user_report.delay(
             timestamp, duration, organization_id, user_id, dry_run=dry_run
         )
+    else:
+        for user_id in member_set.values_list("user_id", flat=True):
+            deliver_organization_user_report.delay(
+                timestamp, duration, organization_id, user_id, dry_run=dry_run
+            )
 
 
 def fetch_personal_statistics(start__stop, organization, user):
