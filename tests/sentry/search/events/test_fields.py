@@ -368,7 +368,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [["uniq", "title", "count_unique_title"]]
         assert result["groupby"] == [
             "event.type",
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.id", "user.ip"], "user.display"],
         ]
 
     def test_aggregate_function_expansion(self):
