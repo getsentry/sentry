@@ -32,7 +32,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
-    def _check_tags():
+    def _check_tags() -> None:
         if method_info.get("tags") is None:
             raise SentryApiBuildError(
                 f"Please add a single tag to {path}. The list of tags is defined at OPENAPI_TAGS in src/sentry/apidocs/build.py "
