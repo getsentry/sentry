@@ -13,7 +13,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconOpen} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconExpand, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -275,7 +275,7 @@ const WidgetHeader = styled('div')`
   justify-content: space-between;
 `;
 
-const OpenWidgetViewerButton = styled(IconOpen)`
+const OpenWidgetViewerButton = styled(IconExpand)`
   &:hover {
     cursor: pointer;
   }
