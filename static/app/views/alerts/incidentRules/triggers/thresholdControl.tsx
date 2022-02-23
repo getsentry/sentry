@@ -189,8 +189,8 @@ class ThresholdControl extends React.Component<Props, State> {
                 </DragContainer>
               </ThresholdInput>
               {comparisonType === AlertRuleComparisonType.CHANGE && (
-              <PercentWrapper>%</PercentWrapper>
-            )}
+                <PercentWrapper>%</PercentWrapper>
+              )}
             </ThresholdContainer>
           )}
         </Container>
