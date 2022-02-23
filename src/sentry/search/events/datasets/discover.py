@@ -155,10 +155,10 @@ class DiscoverDatasetConfig(DatasetConfig):
                                 "notIn",
                                 [
                                     self.builder.column("transaction.status"),
-                                    (
+                                    [
                                         SPAN_STATUS_NAME_TO_CODE[status]
                                         for status in NON_FAILURE_STATUS
-                                    ),
+                                    ],
                                 ],
                             )
                         ],
