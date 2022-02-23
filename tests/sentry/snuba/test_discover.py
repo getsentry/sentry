@@ -488,7 +488,20 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "release": "first-release",
                 "environment": "prod",
                 "platform": "python",
-                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "user": {"username": "brucew", "id": "1234", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        # `user.display` should give `id`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "1234", "ip": "127.0.0.1"},
                 "timestamp": iso_format(self.event_time),
             },
             project_id=self.project.id,
@@ -520,10 +533,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 use_snql=use_snql,
             )
             data = result["data"]
-            assert len(data) == 3, use_snql
+            assert len(data) == 4, use_snql
             assert {item["user.display"] for item in data} == {
                 "bruce@example.com",
                 "brucew",
+                "1234",
                 "127.0.0.1",
             }, use_snql
 

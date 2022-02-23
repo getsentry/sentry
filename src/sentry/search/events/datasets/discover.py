@@ -718,7 +718,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return Function("toStartOfDay", [self.builder.column("timestamp")], TIMESTAMP_TO_DAY_ALIAS)
 
     def _resolve_user_display_alias(self, _: str) -> SelectType:
-        columns = ["user.email", "user.username", "user.ip"]
+        columns = ["user.email", "user.username", "user.id", "user.ip"]
         return Function(
             "coalesce", [self.builder.column(column) for column in columns], USER_DISPLAY_ALIAS
         )
