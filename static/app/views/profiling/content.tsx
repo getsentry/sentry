@@ -20,6 +20,7 @@ import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ProfilingScatterChart} from './landing/profilingScatterChart';
@@ -53,6 +54,7 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
   const [traces, setTraces] = useState<Trace[]>([]);
   const [pageLinks, setPageLinks] = useState<string | null>(null);
   const organization = useOrganization();
+  const {projects} = useProjects();
   const dateSelection = normalizeDateTimeParams(location.query);
   const cursor = decodeScalar(location.query.cursor);
 
@@ -98,6 +100,8 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                   isLoading={requestState === 'loading'}
                 />
                 <ProfilingTable
+                  organization={organization}
+                  projects={projects}
                   isLoading={requestState === 'loading'}
                   error={requestState === 'errored' ? t('Unable to load profiles') : null}
                   location={location}

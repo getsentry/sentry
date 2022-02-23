@@ -9,4 +9,4 @@ function FlamegraphView() {
   );
 }
 
-export {FlamegraphView};
+export default FlamegraphView;

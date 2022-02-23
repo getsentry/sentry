@@ -2,19 +2,29 @@ import {Location} from 'history';
 
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
 
-import {ProfilingTableCell} from './profilingTableCell';
+import {renderProfilingTableCell} from './profilingTableCell';
 import {TableColumnKey, TableColumnOrders} from './types';
 
 interface ProfilingTableProps {
   error: string | null;
   isLoading: boolean;
   location: Location;
+  organization: Organization;
+  projects: Project[];
   traces: Trace[];
 }
 
-function ProfilingTable({error, isLoading, location, traces}: ProfilingTableProps) {
+function ProfilingTable({
+  error,
+  isLoading,
+  location,
+  organization,
+  projects,
+  traces,
+}: ProfilingTableProps) {
   return (
     <GridEditable
       isLoading={isLoading}
@@ -22,7 +32,7 @@ function ProfilingTable({error, isLoading, location, traces}: ProfilingTableProp
       data={traces}
       columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
       columnSortBy={[]}
-      grid={{renderBodyCell: ProfilingTableCell}}
+      grid={{renderBodyCell: renderProfilingTableCell({organization, projects})}}
       location={location}
     />
   );
