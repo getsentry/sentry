@@ -63,7 +63,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       [
         'codeMappings',
         `/organizations/${organization.slug}/code-mappings/`,
-        {query: {allItems: true}},
+        {query: {projectId: -1}},
       ],
     ];
     if (organization.features.includes('integrations-codeowners')) {

@@ -5,10 +5,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import OrganizationIntegration, Project, Repository, RepositoryProjectPathConfig
-from sentry.utils.compat import map
 
 
 def gen_path_regex_field():
@@ -133,32 +133,31 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
 
         integration_id = request.GET.get("integrationId")
         project_id = request.GET.get("projectId")
-        all_items = request.GET.get("allItems")
 
-        if not (integration_id or project_id or all_items):
+        if not (integration_id or project_id):
             return self.respond(
-                {"detail": 'Missing valid "projectId" or "integrationId" or "allItems"'},
+                {"detail": 'Missing valid "projectId" or "integrationId"'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         queryset = RepositoryProjectPathConfig.objects.all()
 
-        if all_items:
-            queryset = queryset.filter(project__in=self.get_projects(request, organization))
         if integration_id:
             # get_organization_integration will raise a 404 if no org_integration is found
             org_integration = self.get_organization_integration(organization, integration_id)
             queryset = queryset.filter(organization_integration=org_integration)
 
         if project_id:
-            # Check that the project is apart of the organization. get_project will raise 404 if project not found.
-            project = self.get_project(organization, project_id)
-            queryset = queryset.filter(project=project)
+            # Check that the project is apart of the organization.
+            projects = self.get_projects(request, organization, project_ids={project_id})
+            queryset = queryset.filter(project__in=projects)
 
-        # front end handles ordering
-        # TODO: Add pagination
-        data = map(lambda x: serialize(x, request.user), queryset)
-        return self.respond(data)
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            on_results=lambda x: serialize(x, request.user),
+            paginator_cls=OffsetPaginator,
+        )
 
     def post(self, request: Request, organization) -> Response:
         """
