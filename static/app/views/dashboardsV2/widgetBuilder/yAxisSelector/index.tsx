@@ -149,19 +149,13 @@ export function YAxisSelector({
     };
   }
 
+  const fieldError = errors?.find(error => error?.fields)?.fields;
+
   if (displayType === DisplayType.TOP_N) {
     const fieldValue = fields[fields.length - 1];
     return (
-      <Field
-        data-test-id="y-axis"
-        label={t('Y-Axis')}
-        inline={false}
-        error={errors?.fields}
-        flexibleControlStateSize
-        required
-        stacked
-      >
-        <QueryFieldWrapper key={`${fieldValue}:0`}>
+      <Field inline={false} flexibleControlStateSize error={fieldError} required stacked>
+        <QueryFieldWrapper>
           <QueryField
             fieldValue={fieldValue}
             fieldOptions={generateFieldOptions({organization})}
@@ -188,53 +182,46 @@ export function YAxisSelector({
       fields.length === 3);
 
   return (
-    <Field
-      data-test-id="y-axis"
-      inline={false}
-      error={errors?.fields}
-      flexibleControlStateSize
-      required
-      stacked
-    >
-      <React.Fragment>
-        {fields.map((fieldValue, i) => (
-          <QueryFieldWrapper key={`${fieldValue}:${i}`}>
-            <QueryField
-              fieldValue={fieldValue}
-              fieldOptions={fieldOptions}
-              onChange={value => handleChangeQueryField(value, i)}
-              filterPrimaryOptions={filterPrimaryOptions}
-              filterAggregateParameters={filterAggregateParameters(fieldValue)}
-              otherColumns={fields}
-            />
-            {(canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
-              <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
-            )}
-          </QueryFieldWrapper>
-        ))}
-        {!hideAddYAxisButtons && (
-          <Actions>
-            <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
-            <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
-          </Actions>
-        )}
-      </React.Fragment>
+    <Field inline={false} flexibleControlStateSize error={fieldError} required stacked>
+      {fields.map((fieldValue, i) => (
+        <QueryFieldWrapper key={`${fieldValue}:${i}`}>
+          <QueryField
+            fieldValue={fieldValue}
+            fieldOptions={fieldOptions}
+            onChange={value => handleChangeQueryField(value, i)}
+            filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters(fieldValue)}
+            otherColumns={fields}
+          />
+          {(canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
+            <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
+          )}
+        </QueryFieldWrapper>
+      ))}
+      {!hideAddYAxisButtons && (
+        <Actions gap={1}>
+          <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
+          <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
+        </Actions>
+      )}
     </Field>
   );
 }
-
-const Actions = styled(ButtonBar)`
-  justify-content: flex-start;
-  gap: ${space(1)};
-`;
 
 const QueryFieldWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+
+  :not(:last-child) {
+    margin-bottom: ${space(1)};
+  }
 
   > * + * {
     margin-left: ${space(1)};
   }
+`;
+
+const Actions = styled(ButtonBar)`
+  justify-content: flex-start;
 `;
