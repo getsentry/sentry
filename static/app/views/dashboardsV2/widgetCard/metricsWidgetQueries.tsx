@@ -163,10 +163,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         // groupBy: query.groupBy // TODO(dam): add backend groupBy support
         interval,
         limit: this.limit,
-        orderBy:
-          query.orderby || widget.displayType === DisplayType.BIG_NUMBER
-            ? query.fields[0]
-            : undefined,
+        orderBy: query.orderby || this.limit ? query.fields[0] : undefined,
         project: projects,
         query: query.conditions,
         start,
