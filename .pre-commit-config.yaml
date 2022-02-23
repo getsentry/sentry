@@ -57,6 +57,11 @@ repos:
       language: system
       files: requirements-base.txt
       pass_filenames: false
+    - id: build-api-docs
+      name: build-api-docs
+      entry: make build-spectacular-docs
+      language: system
+      types: [python]
     - id: pyright
       name: pyright
       entry: pyright
