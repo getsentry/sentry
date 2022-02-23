@@ -165,6 +165,8 @@ class ResolveActions extends React.Component<Props> {
       },
     ];
 
+    const isDisabled = !projectSlug ? disabled : disableDropdown;
+
     return (
       <DropdownMenuControlV2
         items={items}
@@ -175,7 +177,7 @@ class ResolveActions extends React.Component<Props> {
             aria-label={t('More resolve options')}
             size="xsmall"
             icon={<IconChevron direction="down" size="xs" />}
-            disabled={!projectSlug ? disabled : disableDropdown}
+            disabled={isDisabled}
           />
         )}
         disabledKeys={
@@ -184,6 +186,7 @@ class ResolveActions extends React.Component<Props> {
             : []
         }
         menuTitle={t('Resolved In')}
+        isDisabled={isDisabled}
       />
     );
   }
