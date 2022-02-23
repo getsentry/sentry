@@ -1,4 +1,5 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/FlamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/FlamegraphSearch';
@@ -10,8 +11,9 @@ import {ProfileDragDropImport} from 'sentry/components/profiling/ProfileDragDrop
 import {ThreadMenuSelector} from 'sentry/components/profiling/ThreadSelector';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/FlamegraphThemeProvider';
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 interface FlamegraphProps {
@@ -19,12 +21,13 @@ interface FlamegraphProps {
 }
 
 function Flamegraph(props: FlamegraphProps): React.ReactElement {
+  const flamegraphTheme = useFlamegraphTheme();
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const [{sorting, view, colorCoding}, dispatch] = useFlamegraphPreferences();
 
   const [flamegraph, setFlamegraph] = useState(
     new FlamegraphModel(
-      props.profiles.profiles[0],
+      props.profiles.profiles[props.profiles.activeProfileIndex],
       0,
       view === 'bottom up',
       sorting === 'left heavy'
@@ -42,7 +45,7 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
         )
       );
     },
-    [view === 'bottom up', sorting === 'left heavy']
+    [props.profiles, view, sorting]
   );
 
   const onProfileIndexChange = useCallback(
@@ -56,7 +59,7 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
         )
       );
     },
-    [view === 'bottom up', sorting === 'left heavy']
+    [props.profiles, view, sorting]
   );
 
   useEffect(() => {
@@ -68,67 +71,68 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
         sorting === 'left heavy'
       )
     );
-  }, [view === 'bottom up', sorting === 'left heavy']);
+  }, [props.profiles, view, sorting]);
 
   return (
-    <FlamegraphThemeProvider>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: `100vh`,
-          overflow: 'hidden',
-          overscrollBehavior: 'contain',
-        }}
-      >
-        <FlamegraphToolbar>
-          <FlamegraphViewSelectMenu
-            view={view === 'bottom up' ? 'bottom up' : 'top down'}
-            sorting={sorting === 'left heavy' ? 'left heavy' : 'call order'}
-            onSortingChange={s => {
-              dispatch({type: 'set sorting', value: s});
-            }}
-            onViewChange={v => {
-              dispatch({type: 'set view', value: v});
-            }}
-          />
-          <ThreadMenuSelector
-            profileGroup={props.profiles}
-            activeProfileIndex={flamegraph.profileIndex}
-            onProfileIndexChange={onProfileIndexChange}
-          />
-          <FlamegraphOptionsMenu
-            colorCoding={colorCoding}
-            onColorCodingChange={c => dispatch({type: 'set color coding', value: c})}
-            canvasPoolManager={canvasPoolManager}
-          />
-        </FlamegraphToolbar>
-        <div style={{height: 100, position: 'relative'}}>
-          <FlamegraphZoomViewMinimap
+    <React.Fragment>
+      <FlamegraphToolbar>
+        <FlamegraphViewSelectMenu
+          view={view}
+          sorting={sorting}
+          onSortingChange={s => {
+            dispatch({type: 'set sorting', value: s});
+          }}
+          onViewChange={v => {
+            dispatch({type: 'set view', value: v});
+          }}
+        />
+        <ThreadMenuSelector
+          profileGroup={props.profiles}
+          activeProfileIndex={flamegraph.profileIndex}
+          onProfileIndexChange={onProfileIndexChange}
+        />
+        <FlamegraphOptionsMenu
+          colorCoding={colorCoding}
+          onColorCodingChange={c => dispatch({type: 'set color coding', value: c})}
+          canvasPoolManager={canvasPoolManager}
+        />
+      </FlamegraphToolbar>
+
+      <FlamegraphZoomViewMinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
+        <FlamegraphZoomViewMinimap
+          flamegraph={flamegraph}
+          colorCoding={colorCoding}
+          canvasPoolManager={canvasPoolManager}
+        />
+      </FlamegraphZoomViewMinimapContainer>
+      <FlamegraphZoomViewContainer>
+        <ProfileDragDropImport onImport={onImport}>
+          <FlamegraphZoomView
             flamegraph={flamegraph}
-            highlightRecursion={colorCoding === 'by recursion'}
             colorCoding={colorCoding}
             canvasPoolManager={canvasPoolManager}
           />
-        </div>
-        <div style={{position: 'relative', flex: '1 1 0%'}}>
-          <ProfileDragDropImport onImport={onImport}>
-            <FlamegraphZoomView
-              flamegraph={flamegraph}
-              highlightRecursion={colorCoding === 'by recursion'}
-              colorCoding={colorCoding}
-              canvasPoolManager={canvasPoolManager}
-            />
-            <FlamegraphSearch
-              flamegraphs={[flamegraph]}
-              placement="top"
-              canvasPoolManager={canvasPoolManager}
-            />
-          </ProfileDragDropImport>
-        </div>
-      </div>
-    </FlamegraphThemeProvider>
+          <FlamegraphSearch
+            placement="top"
+            flamegraphs={[flamegraph]}
+            canvasPoolManager={canvasPoolManager}
+          />
+        </ProfileDragDropImport>
+      </FlamegraphZoomViewContainer>
+    </React.Fragment>
   );
 }
+
+const FlamegraphZoomViewMinimapContainer = styled('div')<{
+  height: FlamegraphTheme['SIZES']['MINIMAP_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.height};
+`;
+
+const FlamegraphZoomViewContainer = styled('div')`
+  position: relative;
+  flex: 1 1 100%;
+`;
 
 export {Flamegraph};

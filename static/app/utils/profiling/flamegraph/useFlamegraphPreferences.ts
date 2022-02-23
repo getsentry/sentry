@@ -15,7 +15,7 @@ type FlamegraphPreferencesAction =
   | {type: 'set sorting'; value: FlamegraphPreferences['sorting']}
   | {type: 'set view'; value: FlamegraphPreferences['view']};
 
-function FlamegraphPreferencesReducer(
+function flamegraphPreferencesReducer(
   state: FlamegraphPreferences,
   action: FlamegraphPreferencesAction
 ): FlamegraphPreferences {
@@ -48,7 +48,7 @@ function FlamegraphPreferencesReducer(
 function useFlamegraphPreferences(
   initialState: Partial<FlamegraphPreferences> = {}
 ): [FlamegraphPreferences, React.Dispatch<FlamegraphPreferencesAction>] {
-  return useReducer(FlamegraphPreferencesReducer, {
+  return useReducer(flamegraphPreferencesReducer, {
     colorCoding: 'by symbol name',
     sorting: 'call order',
     view: 'top down',

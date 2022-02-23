@@ -21,7 +21,6 @@ interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
   colorCoding: FlamegraphPreferences['colorCoding'];
   flamegraph: Flamegraph | DifferentialFlamegraph;
-  highlightRecursion: boolean;
   showSelectedNodeStack?: boolean;
 }
 
@@ -29,7 +28,6 @@ function FlamegraphZoomView({
   flamegraph,
   canvasPoolManager,
   colorCoding,
-  highlightRecursion,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const [scheduler, setScheduler] = React.useState<CanvasScheduler | null>(null);
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -39,7 +37,6 @@ function FlamegraphZoomView({
 
   const [gridRenderer, setGridRenderer] = React.useState<GridRenderer | null>(null);
   const [textRenderer, setTextRenderer] = React.useState<TextRenderer | null>(null);
-
   const [canvasBounds, setCanvasBounds] = React.useState<Rect>(Rect.Empty());
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -80,14 +77,7 @@ function FlamegraphZoomView({
       // If we have no renderer, then the canvas is not initialize yet and we cannot initialize the renderer
       return null;
     },
-    [
-      flamegraphCanvasRef,
-      flamegraphTheme,
-      flamegraph,
-      canvasPoolManager,
-      colorCoding,
-      highlightRecursion,
-    ]
+    [flamegraphCanvasRef, flamegraphTheme, flamegraph, canvasPoolManager, colorCoding]
   );
 
   React.useEffect(() => {

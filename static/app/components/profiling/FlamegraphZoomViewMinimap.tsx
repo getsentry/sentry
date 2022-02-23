@@ -16,16 +16,12 @@ interface FlamegraphZoomViewMinimapProps {
   canvasPoolManager: CanvasPoolManager;
   colorCoding: FlamegraphPreferences['colorCoding'];
   flamegraph: Flamegraph;
-  highlightRecursion: boolean;
-  height?: number;
 }
 
 function FlamegraphZoomViewMinimap({
   canvasPoolManager,
   flamegraph,
   colorCoding,
-  highlightRecursion,
-  height = 100,
 }: FlamegraphZoomViewMinimapProps): React.ReactElement {
   const [flamegraphMiniMapCanvasRef, setFlamegraphMiniMapRef] =
     React.useState<HTMLCanvasElement | null>(null);
@@ -44,7 +40,8 @@ function FlamegraphZoomViewMinimap({
       }
 
       const BAR_HEIGHT =
-        height / (flamegraph.depth + flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET);
+        flamegraphTheme.SIZES.TIMELINE_HEIGHT /
+        (flamegraph.depth + flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET);
 
       const flamegraphMinimapRenderer = new FlamegraphRenderer(
         flamegraphMiniMapCanvasRef,
@@ -66,13 +63,7 @@ function FlamegraphZoomViewMinimap({
 
       return flamegraphMinimapRenderer;
     },
-    [
-      flamegraphMiniMapCanvasRef,
-      flamegraph,
-      flamegraphTheme,
-      colorCoding,
-      highlightRecursion,
-    ]
+    [flamegraphMiniMapCanvasRef, flamegraph, flamegraphTheme, colorCoding]
   );
 
   const [startDragVector, setStartDragConfigSpaceCursor] = React.useState<vec2 | null>(
