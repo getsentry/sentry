@@ -32,28 +32,9 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
-    def _check_tags() -> None:
-        if method_info.get("tags") is None:
-            raise SentryApiBuildError(
-                f"Please add a single tag to {path}. The list of tags is defined at OPENAPI_TAGS in src/sentry/apidocs/build.py "
-            )
-
-        num_of_tags = len(method_info["tags"])
-
-        if num_of_tags > 1:
-            raise SentryApiBuildError(
-                f"Please add only a single tag to {path}. Right now there are {num_of_tags}."
-            )
-        for tag in method_info["tags"]:
-            if tag not in _DEFINED_TAG_SET:
-                raise SentryApiBuildError(
-                    f"{tag} is not defined by OPENAPI_TAGS in src/sentry/apidocs/build.py. "
-                    "Please use a suitable tag or add a new one to OPENAPI_TAGS"
-                )
-
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
-            _check_tags()
+            _check_tag(path, method_info)
 
             if method_info.get("description") is None:
                 raise SentryApiBuildError(
@@ -61,3 +42,25 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                 )
 
     return result
+
+
+def _check_tag(path, method_info) -> None:
+    if method_info.get("tags") is None:
+        raise SentryApiBuildError(
+            f"Please add a single tag to {path}. The list of tags is defined at OPENAPI_TAGS in src/sentry/apidocs/build.py "
+        )
+
+    num_of_tags = len(method_info["tags"])
+
+    if num_of_tags > 1:
+        raise SentryApiBuildError(
+            f"Please add only a single tag to {path}. Right now there are {num_of_tags}."
+        )
+
+    tag = method_info["tags"][0]
+
+    if tag not in _DEFINED_TAG_SET:
+        raise SentryApiBuildError(
+            f"{tag} is not defined by OPENAPI_TAGS in src/sentry/apidocs/build.py. "
+            "Please use a suitable tag or add a new one to OPENAPI_TAGS"
+        )
