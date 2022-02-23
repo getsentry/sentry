@@ -294,17 +294,6 @@ describe('Dashboards > MetricsWidgetQueries', function () {
   });
 
   it('sets errorMessage when the first request fails', async function () {
-    // const okMock = MockApiClient.addMockResponse({
-    //   url: '/organizations/org-slug/metrics/data/',
-    //   body: TestStubs.MetricsField({
-    //     field: `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`,
-    //   }),
-    //   match: [
-    //     MockApiClient.matchQuery({
-    //       field: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
-    //     }),
-    //   ],
-    // });
     const failMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       statusCode: 400,
@@ -331,7 +320,6 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
     // Child should be rendered and 2 requests should be sent.
     expect(screen.getByTestId('child')).toBeInTheDocument();
-    // expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(2);
     await waitFor(() =>
       expect(children).toHaveBeenLastCalledWith(
