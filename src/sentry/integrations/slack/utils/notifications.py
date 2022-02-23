@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Mapping
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.models import AlertRuleTriggerAction, Incident
+from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.models import Integration
@@ -17,7 +17,7 @@ def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
     metric_value: int,
-    method: str,
+    new_status: IncidentStatus,
 ) -> None:
     # Make sure organization integration is still active:
     try:
@@ -31,7 +31,7 @@ def send_incident_alert_notification(
         return
 
     channel = action.target_identifier
-    attachment = SlackIncidentsMessageBuilder(incident, action, metric_value, method).build()
+    attachment = SlackIncidentsMessageBuilder(incident, new_status, metric_value).build()
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,

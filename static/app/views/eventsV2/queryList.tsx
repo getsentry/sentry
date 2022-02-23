@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
 import moment from 'moment';
@@ -47,6 +47,7 @@ type Props = {
   organization: Organization;
   pageLinks: string;
   renderPrebuilt: boolean;
+  router: InjectedRouter;
   savedQueries: SavedQuery[];
   savedQuerySearchQuery: string;
 };
@@ -91,7 +92,7 @@ class QueryList extends React.Component<Props> {
   };
 
   handleAddQueryToDashboard = (eventView: EventView, savedQuery?: SavedQuery) => {
-    const {organization} = this.props;
+    const {organization, router, location} = this.props;
 
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
     const defaultTableColumns = eventView.fields.map(({field}) => field);
@@ -112,6 +113,17 @@ class QueryList extends React.Component<Props> {
       organization,
       saved_query: !!savedQuery,
     });
+
+    if (organization.features.includes('new-widget-builder-experience')) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DISCOVERV2,
+        },
+      });
+      return;
+    }
 
     openAddDashboardWidgetModal({
       organization,
