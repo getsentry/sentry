@@ -154,7 +154,6 @@ class SuperuserTestCase(TestCase):
                 "reasonForSU": "Edit organization settings",
             }
         )
-        request.session["orgs_accessed"] = ["sentry"]
 
         superuser = Superuser(request, org_id=None)
         superuser.set_logged_in(request.user)
