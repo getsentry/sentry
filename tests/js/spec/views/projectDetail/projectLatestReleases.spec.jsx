@@ -113,7 +113,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     expect(docsButton.text()).toBe('Start Setup');
     expect(docsButton.prop('href')).toBe('https://docs.sentry.io/product/releases/');
 
-    expect(tourButton.text()).toBe('Get a tour');
+    expect(tourButton.text()).toBe('Get Tour');
     expect(wrapper.find('GlobalModal').props().visible).toEqual(false);
     tourButton.simulate('click');
     await tick();

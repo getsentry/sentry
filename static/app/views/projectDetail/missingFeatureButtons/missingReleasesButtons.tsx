@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
@@ -41,7 +39,7 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
   }
 
   return (
-    <MissingReleaseButtonBar gap={1}>
+    <ButtonBar gap={1}>
       <Button
         size="small"
         priority="primary"
@@ -60,17 +58,13 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
         >
           {({showModal}) => (
             <Button size="small" onClick={showModal}>
-              {t('Get a tour')}
+              {t('Get Tour')}
             </Button>
           )}
         </FeatureTourModal>
       )}
-    </MissingReleaseButtonBar>
+    </ButtonBar>
   );
 }
-
-export const MissingReleaseButtonBar = styled(ButtonBar)`
-  grid-template-columns: minmax(auto, max-content) minmax(auto, max-content);
-`;
 
 export default MissingReleasesButtons;
