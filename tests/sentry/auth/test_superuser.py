@@ -159,7 +159,7 @@ class SuperuserTestCase(TestCase):
         superuser.set_logged_in(request.user)
         assert superuser.is_active is True
         assert logger.info.call_count == 2
-        logger.info.assert_called_with(
+        logger.info.assert_any_call(
             "su_access.give_su_access",
             extra={
                 "user_id": 10,
