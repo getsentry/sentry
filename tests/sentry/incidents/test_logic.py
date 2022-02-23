@@ -67,8 +67,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.models import ActorTuple, PagerDutyService
-from sentry.models.integration import Integration
+from sentry.models import ActorTuple, Integration, PagerDutyService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase

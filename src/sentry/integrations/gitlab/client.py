@@ -294,7 +294,7 @@ class GitLabApiClient(ApiClient):
                 raise
             return None
 
-    def get_file(self, repo, path, ref):
+    def get_file(self, repo: Repository, path: str, ref: str) -> bytes:
         """Get the contents of a file
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository

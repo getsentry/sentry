@@ -4,11 +4,11 @@ import GroupEventAttachmentsTableRow from 'sentry/views/organizationGroupDetails
 
 type Props = {
   attachments: IssueAttachment[];
-  orgId: string;
-  projectId: string;
+  deletedAttachments: string[];
   groupId: string;
   onDelete: (attachmentId: string) => void;
-  deletedAttachments: string[];
+  orgId: string;
+  projectId: string;
 };
 
 const GroupEventAttachmentsTable = ({

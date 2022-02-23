@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
+import TextareaField from 'sentry/components/forms/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
-import FieldRequiredBadge from 'sentry/views/settings/components/forms/field/fieldRequiredBadge';
-import TextareaField from 'sentry/views/settings/components/forms/textareaField';
 
 import {getInnerNameLabel} from '../utils';
 
@@ -17,18 +17,18 @@ import {getMatchFieldPlaceholder} from './utils';
 
 type Condition = {
   category: DynamicSamplingInnerName;
-  match?: string;
   legacyBrowsers?: Array<LegacyBrowser>;
+  match?: string;
 };
 
 type Props = Pick<React.ComponentProps<typeof AutoComplete>, 'orgSlug' | 'projectId'> & {
   conditions: Condition[];
-  onDelete: (index: number) => void;
   onChange: <T extends keyof Condition>(
     index: number,
     field: T,
     value: Condition[T]
   ) => void;
+  onDelete: (index: number) => void;
 };
 
 function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props) {

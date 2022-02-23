@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {Client, ResponseMeta} from 'sentry/api';
+import Input from 'sentry/components/forms/controls/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type RenderProps = {
-  defaultSearchBar: React.ReactNode;
   busy: boolean;
+  defaultSearchBar: React.ReactNode;
   handleChange: (value: string) => void;
   value: string;
 };
@@ -29,29 +29,29 @@ type DefaultProps = {
 type Props = WithRouterProps &
   DefaultProps & {
     api: Client;
-    className?: string;
+    onError: () => void;
+    onSuccess: (data: object, resp: ResponseMeta | undefined) => void;
     /**
      * URL to make the search request to
      */
     url: string;
-    /**
-     * Updates URL with search query in the URL param: `query`
-     */
-    updateRoute?: boolean;
-
-    onSearchSubmit?: (query: string, event: React.FormEvent) => void;
-    onSuccess: (data: object, resp: ResponseMeta | undefined) => void;
-    onError: () => void;
 
     /**
      * A render-prop child may be passed to handle custom rendering of the input.
      */
     children?: (otps: RenderProps) => React.ReactNode;
+    className?: string;
+    onSearchSubmit?: (query: string, event: React.FormEvent) => void;
+
+    /**
+     * Updates URL with search query in the URL param: `query`
+     */
+    updateRoute?: boolean;
   };
 
 type State = {
-  query: string;
   busy: boolean;
+  query: string;
 };
 
 /**

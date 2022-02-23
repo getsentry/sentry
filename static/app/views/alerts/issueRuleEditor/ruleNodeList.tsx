@@ -23,27 +23,27 @@ import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/iss
 import RuleNode from './ruleNode';
 
 type Props = {
-  project: Project;
-  organization: Organization;
-  /**
-   * All available actions or conditions
-   */
-  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
+  disabled: boolean;
+  error: React.ReactNode;
   /**
    * actions/conditions that have been added to the rule
    */
   items: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
   /**
+   * All available actions or conditions
+   */
+  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
+  onAddRow: (value: string) => void;
+  onDeleteRow: (ruleIndex: number) => void;
+  onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
+  onResetRow: (ruleIndex: number, name: string, value: string) => void;
+  organization: Organization;
+  /**
    * Placeholder for select control
    */
   placeholder: string;
-  disabled: boolean;
-  error: React.ReactNode;
+  project: Project;
   selectType?: 'grouped';
-  onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
-  onAddRow: (value: string) => void;
-  onResetRow: (ruleIndex: number, name: string, value: string) => void;
-  onDeleteRow: (ruleIndex: number) => void;
 };
 
 class RuleNodeList extends React.Component<Props> {

@@ -32,18 +32,18 @@ const defaultProps = {
 };
 
 type Item = {
-  disabled?: boolean;
   'data-test-id'?: string;
+  disabled?: boolean;
 };
 
 type GetInputArgs<E extends HTMLInputElement> = {
-  type?: string;
+  onBlur?: (event: React.FocusEvent<E>) => void;
+  onChange?: (event: React.ChangeEvent<E>) => void;
+  onFocus?: (event: React.FocusEvent<E>) => void;
+  onKeyDown?: (event: React.KeyboardEvent<E>) => void;
   placeholder?: string;
   style?: React.CSSProperties;
-  onChange?: (event: React.ChangeEvent<E>) => void;
-  onKeyDown?: (event: React.KeyboardEvent<E>) => void;
-  onFocus?: (event: React.FocusEvent<E>) => void;
-  onBlur?: (event: React.FocusEvent<E>) => void;
+  type?: string;
 };
 
 type GetInputOutput<E extends HTMLInputElement> = GetInputArgs<E> &
@@ -52,28 +52,28 @@ type GetInputOutput<E extends HTMLInputElement> = GetInputArgs<E> &
   };
 
 export type GetItemArgs<T> = {
-  item: T;
   index: number;
+  item: T;
   onClick?: (item: T) => (e: React.MouseEvent) => void;
   style?: React.CSSProperties;
 };
 
 type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
-  highlightedIndex: number;
   getInputProps: <E extends HTMLInputElement = HTMLInputElement>(
     args: GetInputArgs<E>
   ) => GetInputOutput<E>;
   getItemProps: (args: GetItemArgs<T>) => Pick<GetItemArgs<T>, 'style'> & {
     onClick: (e: React.MouseEvent) => void;
   };
+  highlightedIndex: number;
   inputValue: string;
   selectedItem?: T;
 };
 
 type State<T> = {
-  isOpen: boolean;
   highlightedIndex: number;
   inputValue: string;
+  isOpen: boolean;
   selectedItem?: T;
 };
 
@@ -81,27 +81,27 @@ type Props<T> = typeof defaultProps & {
   /**
    * Must be a function that returns a component
    */
-  children: (props: ChildrenProps<T>) => React.ReactElement;
+  children: (props: ChildrenProps<T>) => React.ReactElement | null;
   disabled: boolean;
-  itemToString?: (item?: T) => string;
-  /**
-   * Resets autocomplete input when menu closes
-   */
-  resetInputOnClose?: boolean;
+  defaultHighlightedIndex?: number;
+  defaultInputValue?: string;
   /**
    * Currently, this does not act as a "controlled" prop, only for initial state of dropdown
    */
   isOpen?: boolean;
-  defaultHighlightedIndex?: number;
-  defaultInputValue?: string;
-  onOpen?: (...args: Array<any>) => void;
+  itemToString?: (item?: T) => string;
   onClose?: (...args: Array<any>) => void;
+  onMenuOpen?: () => void;
+  onOpen?: (...args: Array<any>) => void;
   onSelect?: (
     item: T,
     state?: State<T>,
     e?: React.MouseEvent | React.KeyboardEvent
   ) => void;
-  onMenuOpen?: () => void;
+  /**
+   * Resets autocomplete input when menu closes
+   */
+  resetInputOnClose?: boolean;
 };
 
 class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
@@ -265,6 +265,15 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       this.handleSelect(item, e);
     };
 
+  handleItemMouseEnter =
+    ({item, index}: GetItemArgs<T>) =>
+    (_e: React.MouseEvent) => {
+      if (item.disabled) {
+        return;
+      }
+      this.setState({highlightedIndex: index});
+    };
+
   handleMenuMouseDown = () => {
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
     setTimeout(() => {
@@ -377,6 +386,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       ...props,
       'data-test-id': item['data-test-id'],
       onClick: this.handleItemClick({item, index: newIndex, ...props}),
+      onMouseEnter: this.handleItemMouseEnter({item, index: newIndex, ...props}),
     };
   };
 

@@ -48,10 +48,10 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
@@ -92,19 +92,21 @@ type Props = {
   location: Location;
   organization: Organization;
   params: Params;
-  selection: PageFilters;
   savedSearch: SavedSearch;
-  savedSearches: SavedSearch[];
   savedSearchLoading: boolean;
+  savedSearches: SavedSearch[];
+  selection: PageFilters;
   tags: TagCollection;
 } & RouteComponentProps<{searchId?: string}, {}>;
 
 type State = {
-  groupIds: string[];
-  reviewedIds: string[];
+  error: string | null;
   forReview: boolean;
-  selectAllActive: boolean;
-  realtimeActive: boolean;
+  groupIds: string[];
+  isSidebarVisible: boolean;
+  issuesLoading: boolean;
+  itemsRemoved: number;
+  memberList: ReturnType<typeof indexMembersByProject>;
   pageLinks: string;
   /**
    * Current query total
@@ -115,26 +117,24 @@ type State = {
    */
   queryCounts: QueryCounts;
   queryMaxCount: number;
-  itemsRemoved: number;
-  error: string | null;
-  isSidebarVisible: boolean;
-  issuesLoading: boolean;
+  realtimeActive: boolean;
+  reviewedIds: string[];
+  selectAllActive: boolean;
   tagsLoading: boolean;
-  memberList: ReturnType<typeof indexMembersByProject>;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
 };
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
-  project: number[];
   environment: string[];
+  project: number[];
+  cursor?: string;
+  display?: string;
+  groupStatsPeriod?: string | null;
+  page?: number | string;
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
-  groupStatsPeriod?: string | null;
-  cursor?: string;
-  page?: number | string;
-  display?: string;
 };
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
@@ -1039,13 +1039,6 @@ class IssueListOverview extends React.Component<Props, State> {
       ),
     });
 
-    // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
-    if (organization.features.includes('semver') && !tags['release.version']) {
-      Object.entries(SEMVER_TAGS).forEach(([key, value]) => {
-        tags[key] = value;
-      });
-    }
-
     const projectIds = selection?.projects?.map(p => p.toString());
 
     const showReprocessingTab = this.displayReprocessingTab();
@@ -1115,7 +1108,12 @@ class IssueListOverview extends React.Component<Props, State> {
                     projectIds={projectIds}
                     showProject
                   />
-                  {this.renderStreamBody()}
+                  <VisuallyCompleteWithData
+                    hasData={this.state.groupIds.length > 0}
+                    id="IssueList-Body"
+                  >
+                    {this.renderStreamBody()}
+                  </VisuallyCompleteWithData>
                 </PanelBody>
               </Panel>
               <StyledPagination

@@ -9,7 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -24,9 +24,9 @@ const DISTRIBUTED_TRACING_FEATURE = 'distributed_tracing';
 
 type Props = {
   api: Client;
-  project: Project;
-  organization: Organization;
   event: Event;
+  organization: Organization;
+  project: Project;
 };
 
 type State = {

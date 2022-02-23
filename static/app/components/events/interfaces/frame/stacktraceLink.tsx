@@ -32,10 +32,10 @@ import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
 
 type Props = AsyncComponent['props'] & {
-  frame: Frame;
   event: Event;
-  organization: Organization;
+  frame: Frame;
   lineNo: number;
+  organization: Organization;
   projects: Project[];
 };
 
@@ -47,15 +47,15 @@ export type StacktraceErrorMessage =
 // format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   integrations: Integration[];
-  config?: RepositoryProjectPathConfigWithIntegration;
-  sourceUrl?: string;
-  error?: StacktraceErrorMessage;
   attemptedUrl?: string;
+  config?: RepositoryProjectPathConfigWithIntegration;
+  error?: StacktraceErrorMessage;
+  sourceUrl?: string;
 };
 
 type State = AsyncComponent['state'] & {
-  match: StacktraceResultItem;
   isDismissed: boolean;
+  match: StacktraceResultItem;
   promptLoaded: boolean;
 };
 

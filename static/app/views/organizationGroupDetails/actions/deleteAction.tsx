@@ -16,11 +16,11 @@ import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 
 type Props = {
-  organization: Organization;
-  project: Project;
+  disabled: boolean;
   onDelete: () => void;
   onDiscard: () => void;
-  disabled: boolean;
+  organization: Organization;
+  project: Project;
 };
 
 function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Props) {
@@ -94,6 +94,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
         />
       </Confirm>
       <DropdownMenuControlV2
+        isDisabled={disabled}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}

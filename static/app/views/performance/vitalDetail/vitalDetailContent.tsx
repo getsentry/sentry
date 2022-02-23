@@ -16,7 +16,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {IconChevron} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconClose} from 'sentry/icons';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -26,6 +26,7 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
+import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -38,7 +39,12 @@ import {MetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
-import {vitalDescription, vitalMap, vitalToMetricsField} from './utils';
+import {
+  vitalDescription,
+  vitalMap,
+  vitalSupportedBrowsers,
+  vitalToMetricsField,
+} from './utils';
 import VitalChart from './vitalChart';
 import VitalChartMetrics from './vitalChartMetrics';
 import VitalInfo from './vitalInfo';
@@ -47,18 +53,18 @@ const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]
 
 type Props = {
   api: Client;
-  location: Location;
   eventView: EventView;
+  isMetricsData: boolean;
+  location: Location;
   organization: Organization;
   projects: Project[];
   router: InjectedRouter;
   vitalName: WebVital;
-  isMetricsData: boolean;
 };
 
 type State = {
-  incompatibleAlertNotice: React.ReactNode;
   error: string | undefined;
+  incompatibleAlertNotice: React.ReactNode;
 };
 
 function getSummaryConditions(query: string) {
@@ -370,6 +376,18 @@ class VitalDetailContent extends Component<Props, State> {
           )}
           <Layout.Main fullWidth>
             <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
+            <SupportedBrowsers>
+              {Object.values(Browser).map(browser => (
+                <BrowserItem key={browser}>
+                  {vitalSupportedBrowsers[vitalName]?.includes(browser) ? (
+                    <IconCheckmark color="green300" size="sm" />
+                  ) : (
+                    <IconClose color="red300" size="sm" />
+                  )}
+                  {browser}
+                </BrowserItem>
+              ))}
+            </SupportedBrowsers>
             {this.renderContent(vital)}
           </Layout.Main>
         </Layout.Body>
@@ -395,4 +413,16 @@ const StyledVitalInfo = styled('div')`
 
 const StyledMetricsSearchBar = styled(MetricsSearchBar)`
   margin-bottom: ${space(2)};
+`;
+
+const SupportedBrowsers = styled('div')`
+  display: inline-flex;
+  gap: ${space(2)};
+  margin-bottom: ${space(3)};
+`;
+
+const BrowserItem = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;

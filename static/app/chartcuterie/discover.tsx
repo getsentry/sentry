@@ -13,7 +13,12 @@ import {t} from 'sentry/locale';
 import {EventsGeoData, EventsStats} from 'sentry/types';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
-import {slackChartDefaults, slackChartSize, slackGeoChartSize} from './slack';
+import {
+  DEFAULT_FONT_FAMILY,
+  slackChartDefaults,
+  slackChartSize,
+  slackGeoChartSize,
+} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
 const discoverxAxis = XAxis({
@@ -22,7 +27,7 @@ const discoverxAxis = XAxis({
   boundaryGap: true,
   splitNumber: 3,
   isGroupedByDate: true,
-  axisLabel: {fontSize: 11},
+  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
 });
 
 export const discoverCharts: RenderDescriptor<ChartType>[] = [];
@@ -32,7 +37,7 @@ discoverCharts.push({
   getOption: (
     data:
       | {seriesName: string; stats: EventsStats}
-      | {seriesName?: string; stats: Record<string, EventsStats>}
+      | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -90,7 +95,7 @@ discoverCharts.push({
   getOption: (
     data:
       | {seriesName: string; stats: EventsStats}
-      | {seriesName?: string; stats: Record<string, EventsStats>}
+      | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -150,7 +155,7 @@ discoverCharts.push({
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_PERIOD,
   getOption: (
-    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+    data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -207,7 +212,7 @@ discoverCharts.push({
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
   getOption: (
-    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+    data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -263,7 +268,7 @@ discoverCharts.push({
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_DAILY,
   getOption: (
-    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+    data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -321,7 +326,7 @@ discoverCharts.push({
   getOption: (
     data:
       | {seriesName: string; stats: EventsStats}
-      | {seriesName?: string; stats: Record<string, EventsStats>}
+      | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const dataMiddleIndex = Math.floor(data.stats.data.length / 2);

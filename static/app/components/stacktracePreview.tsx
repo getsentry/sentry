@@ -4,15 +4,17 @@ import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
+import StackTraceContentV3 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV3';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
-import Hovercard, {Body} from 'sentry/components/hovercard';
+import {Body, Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, PlatformType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 
 import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
@@ -54,14 +56,76 @@ function getStacktrace(event: Event): StacktraceType | null {
   return null;
 }
 
+function StackTracePreviewContent({
+  event,
+  stacktrace,
+  orgFeatures = [],
+  groupingCurrentLevel,
+}: {
+  event: Event;
+  stacktrace: StacktraceType;
+  groupingCurrentLevel?: number;
+  orgFeatures?: string[];
+}) {
+  const includeSystemFrames = React.useMemo(() => {
+    return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
+  }, [stacktrace]);
+
+  const framePlatform = stacktrace?.frames?.find(frame => !!frame.platform)?.platform;
+  const platform = (framePlatform ?? event.platform ?? 'other') as PlatformType;
+  const newestFirst = isStacktraceNewestFirst();
+
+  if (orgFeatures.includes('native-stack-trace-v2') && isNativePlatform(platform)) {
+    return (
+      <StackTraceContentV3
+        data={stacktrace}
+        expandFirstFrame={false}
+        includeSystemFrames={includeSystemFrames}
+        platform={platform}
+        newestFirst={newestFirst}
+        event={event}
+        groupingCurrentLevel={groupingCurrentLevel}
+        isHoverPreviewed
+      />
+    );
+  }
+
+  if (orgFeatures.includes('grouping-stacktrace-ui')) {
+    return (
+      <StackTraceContentV2
+        data={stacktrace}
+        expandFirstFrame={false}
+        includeSystemFrames={includeSystemFrames}
+        platform={platform}
+        newestFirst={newestFirst}
+        event={event}
+        groupingCurrentLevel={groupingCurrentLevel}
+        isHoverPreviewed
+      />
+    );
+  }
+
+  return (
+    <StackTraceContent
+      data={stacktrace}
+      expandFirstFrame={false}
+      includeSystemFrames={includeSystemFrames}
+      platform={platform}
+      newestFirst={newestFirst}
+      event={event}
+      isHoverPreviewed
+    />
+  );
+}
+
 type StackTracePreviewProps = {
+  children: React.ReactNode;
   issueId: string;
   organization: Organization;
-  groupingCurrentLevel?: number;
-  eventId?: string;
-  projectSlug?: string;
   className?: string;
-  children: React.ReactNode;
+  eventId?: string;
+  groupingCurrentLevel?: number;
+  projectSlug?: string;
 };
 
 function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
@@ -139,7 +203,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
 
   // Not sure why we need to stop propagation, maybe to to prevent the hovercard from closing?
   // If we are doing this often, maybe it should be part of the hovercard component.
-  const handleStacktracePreviewClick = React.useCallback((e: React.MouseEvent) => {
+  const handleStackTracePreviewClick = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
 
@@ -150,10 +214,6 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
     return null;
   }, [event]);
 
-  const includeSystemFrames = React.useMemo(() => {
-    return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
-  }, [stacktrace]);
-
   return (
     <span
       className={props.className}
@@ -163,41 +223,25 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
       <StyledHovercard
         body={
           status === 'loading' && !loadingVisible ? null : status === 'loading' ? (
-            <NoStackTraceWrapper onClick={handleStacktracePreviewClick}>
+            <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
               <LoadingIndicator hideMessage size={32} />
             </NoStackTraceWrapper>
           ) : status === 'error' ? (
-            <NoStackTraceWrapper onClick={handleStacktracePreviewClick}>
+            <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
               {t('Failed to load stack trace.')}
             </NoStackTraceWrapper>
           ) : !stacktrace ? (
-            <NoStackTraceWrapper onClick={handleStacktracePreviewClick}>
+            <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
               {t('There is no stack trace available for this issue.')}
             </NoStackTraceWrapper>
           ) : !event ? null : (
-            <div onClick={handleStacktracePreviewClick}>
-              {!!props.organization.features?.includes('grouping-stacktrace-ui') ? (
-                <StackTraceContentV2
-                  data={stacktrace}
-                  expandFirstFrame={false}
-                  includeSystemFrames={includeSystemFrames}
-                  platform={event.platform ?? 'other'}
-                  newestFirst={isStacktraceNewestFirst()}
-                  event={event}
-                  groupingCurrentLevel={props.groupingCurrentLevel}
-                  isHoverPreviewed
-                />
-              ) : (
-                <StackTraceContent
-                  data={stacktrace}
-                  expandFirstFrame={false}
-                  includeSystemFrames={includeSystemFrames}
-                  platform={event.platform ?? 'other'}
-                  newestFirst={isStacktraceNewestFirst()}
-                  event={event}
-                  isHoverPreviewed
-                />
-              )}
+            <div onClick={handleStackTracePreviewClick}>
+              <StackTracePreviewContent
+                event={event}
+                stacktrace={stacktrace}
+                groupingCurrentLevel={props.groupingCurrentLevel}
+                orgFeatures={props.organization.features}
+              />
             </div>
           )
         }

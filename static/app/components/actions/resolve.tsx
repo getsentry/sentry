@@ -28,17 +28,17 @@ const defaultProps = {
 };
 
 type Props = {
-  organization: Organization;
   hasRelease: boolean;
   onUpdate: (data: UpdateResolutionStatus) => void;
   orgSlug: string;
+  organization: Organization;
+  confirmMessage?: React.ReactNode;
+  disableDropdown?: boolean;
+  disabled?: boolean;
   latestRelease?: Release;
+  projectFetchError?: boolean;
   projectSlug?: string;
   shouldConfirm?: boolean;
-  confirmMessage?: React.ReactNode;
-  disabled?: boolean;
-  disableDropdown?: boolean;
-  projectFetchError?: boolean;
 } & Partial<typeof defaultProps>;
 
 class ResolveActions extends React.Component<Props> {
@@ -165,6 +165,8 @@ class ResolveActions extends React.Component<Props> {
       },
     ];
 
+    const isDisabled = !projectSlug ? disabled : disableDropdown;
+
     return (
       <DropdownMenuControlV2
         items={items}
@@ -175,7 +177,7 @@ class ResolveActions extends React.Component<Props> {
             aria-label={t('More resolve options')}
             size="xsmall"
             icon={<IconChevron direction="down" size="xs" />}
-            disabled={!projectSlug ? disabled : disableDropdown}
+            disabled={isDisabled}
           />
         )}
         disabledKeys={
@@ -184,6 +186,7 @@ class ResolveActions extends React.Component<Props> {
             : []
         }
         menuTitle={t('Resolved In')}
+        isDisabled={isDisabled}
       />
     );
   }
@@ -234,7 +237,7 @@ class ResolveActions extends React.Component<Props> {
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
-            tooltipProps={{delay: 300}}
+            tooltipProps={{delay: 300, disabled}}
             icon={<IconCheckmark size="xs" />}
             onClick={onResolve}
             disabled={disabled}

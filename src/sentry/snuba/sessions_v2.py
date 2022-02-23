@@ -281,8 +281,11 @@ class QueryDefinition:
         self.params = params
 
         query_columns = set()
-        for field in self.fields.values():
-            query_columns.update(field.get_snuba_columns(raw_groupby))
+        for i, field in enumerate(self.fields.values()):
+            columns = field.get_snuba_columns(raw_groupby)
+            if i == 0:
+                self.primary_column = columns[0]  # Will be used in order by
+            query_columns.update(columns)
         for groupby in self.groupby:
             query_columns.update(groupby.get_snuba_columns())
         self.query_columns = list(query_columns)
@@ -309,14 +312,19 @@ class QueryDefinition:
         self.filter_keys = filter_keys
 
 
-MAX_POINTS = 1000
+MAX_POINTS = 1000  # max. points in time
 ONE_DAY = timedelta(days=1).total_seconds()
 ONE_HOUR = timedelta(hours=1).total_seconds()
 ONE_MINUTE = timedelta(minutes=1).total_seconds()
 
-#: Snuba applies a default limit of 1000, let's make it explicit here.
-#: https://github.com/getsentry/snuba/blob/69862db3ad224b48810ac1bb3001e4c446bf0aff/snuba/query/snql/parser.py#L908-L909
-SNUBA_LIMIT = 1000
+#: We know that a limit of 1000 is too low for some UI use cases, e.g.
+#: https://sentry.io/organizations/sentry/projects/sentry/?project=1&statsPeriod=14d
+#: (2 * 14d * 24h * 4 statuses = 2688 groups).
+#: At the same time, there is no justification from UI perspective to increase
+#: the limit to the absolute maximum of 10000 (see https://github.com/getsentry/snuba/blob/69862db3ad224b48810ac1bb3001e4c446bf0aff/snuba/query/snql/parser.py#L908-L909).
+#: -> Let's go with 5000, so we can still serve the 50 releases over 90d that are used here:
+#: https://github.com/getsentry/sentry/blob/d6ed7c12844b70edb6a93b4f33d3e60e8516105a/static/app/views/releases/list/releasesAdoptionChart.tsx#L91-L96
+SNUBA_LIMIT = 5000
 
 
 class InvalidParams(Exception):
@@ -421,6 +429,13 @@ def _run_sessions_query(query):
     `totals` and again for the actual time-series data grouped by the requested
     interval.
     """
+
+    # We only return the top-N groups, based on the first field that is being
+    # queried, assuming that those are the most relevant to the user.
+    # In a future iteration we might expose an `orderBy` query parameter.
+    orderby = [f"-{query.primary_column}"]
+    max_groups = SNUBA_LIMIT // len(get_timestamps(query))
+
     result_totals = raw_query(
         dataset=Dataset.Sessions,
         selected_columns=query.query_columns,
@@ -431,40 +446,44 @@ def _run_sessions_query(query):
         start=query.start,
         end=query.end,
         rollup=query.rollup,
+        orderby=orderby,
+        limit=max_groups,
         referrer="sessions.totals",
     )
 
-    # For the time series query, we order the results by descending timestamp,
-    # such that if the maximum snuba limit is surpassed, we get consistent results
-    # for the end of the time range:
-    orderby = [f"-{TS_COL}"]
+    totals = result_totals["data"]
+    if not totals:
+        # No need to query time series if totals is already empty
+        return [], []
+
+    # We only get the time series for groups which also have a total:
+    if query.query_groupby:
+        # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
+        groups = {tuple(row[column] for column in query.query_groupby) for row in totals}
+        extra_conditions = [[["tuple", query.query_groupby], "IN", groups]] + [
+            # This condition is redundant but might lead to better query performance
+            # Eg. [release IN [1, 3]], [environment IN [2, 4]]
+            [column, "IN", {row[column] for row in totals}]
+            for column in query.query_groupby
+        ]
+    else:
+        extra_conditions = []
 
     result_timeseries = raw_query(
         dataset=Dataset.Sessions,
         selected_columns=[TS_COL] + query.query_columns,
         groupby=[TS_COL] + query.query_groupby,
         aggregations=query.aggregations,
-        conditions=query.conditions,
+        conditions=query.conditions + extra_conditions,
         filter_keys=query.filter_keys,
         start=query.start,
         end=query.end,
         rollup=query.rollup,
-        orderby=orderby,
         limit=SNUBA_LIMIT,
         referrer="sessions.timeseries",
     )
-    if len(result_timeseries["data"]) == SNUBA_LIMIT:
-        # We know that for every row returned by the "totals" query, we expect
-        # (end-start)/rollup rows in the "series" query:
-        expected_results = len(result_totals["data"]) * len(get_timestamps(query))
-        logger.error(
-            "sessions_v2.snuba_limit_exceeded",
-            extra={
-                "expected_num_rows": expected_results,
-            },
-        )
 
-    return result_totals["data"], result_timeseries["data"]
+    return totals, result_timeseries["data"]
 
 
 def massage_sessions_result(

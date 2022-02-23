@@ -3,12 +3,13 @@ import {Location, Query} from 'history';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {getSeriesSelection} from 'sentry/components/charts/utils';
-import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
 import {TransactionMetric} from 'sentry/utils/metrics/fields';
+import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {Color, Theme} from 'sentry/utils/theme';
 
@@ -45,11 +46,9 @@ export const vitalStateColors: Record<VitalState, Color> = {
 };
 
 export const vitalStateIcons: Record<VitalState, React.ReactNode> = {
-  [VitalState.POOR]: <IconFire color={vitalStateColors[VitalState.POOR]} />,
-  [VitalState.MEH]: <IconWarning color={vitalStateColors[VitalState.MEH]} />,
-  [VitalState.GOOD]: (
-    <IconCheckmark color={vitalStateColors[VitalState.GOOD]} isCircled />
-  ),
+  [VitalState.POOR]: <IconSad color={vitalStateColors[VitalState.POOR]} />,
+  [VitalState.MEH]: <IconMeh color={vitalStateColors[VitalState.MEH]} />,
+  [VitalState.GOOD]: <IconHappy color={vitalStateColors[VitalState.GOOD]} />,
 };
 
 export function vitalDetailRouteWithQuery({
@@ -59,8 +58,8 @@ export function vitalDetailRouteWithQuery({
   query,
 }: {
   orgSlug: string;
-  vitalName: string;
   query: Query;
+  vitalName: string;
   projectID?: string | string[];
 }) {
   const pathname = generateVitalDetailRoute({
@@ -119,13 +118,13 @@ export const vitalChartTitleMap = vitalMap;
 
 export const vitalDescription: Partial<Record<WebVital, string>> = {
   [WebVital.FCP]:
-    'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks.',
+    'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks. At the moment, there is support for FCP in the following browsers:',
   [WebVital.CLS]:
-    'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. Imagine navigating to an article and trying to click a link before the page finishes loading. Before your cursor even gets there, the link may have shifted down due to an image rendering. Rather than using duration for this Web Vital, the CLS score represents the degree of disruptive and visually unstable shifts.',
+    'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. Imagine navigating to an article and trying to click a link before the page finishes loading. Before your cursor even gets there, the link may have shifted down due to an image rendering. Rather than using duration for this Web Vital, the CLS score represents the degree of disruptive and visually unstable shifts. At the moment, there is support for CLS in the following browsers:',
   [WebVital.FID]:
-    'First Input Delay measures the response time when the user tries to interact with the viewport. Actions maybe include clicking a button, link or other custom Javascript controller. It is key in helping the user determine if a page is usable or not.',
+    'First Input Delay (FID) measures the response time when the user tries to interact with the viewport. Actions maybe include clicking a button, link or other custom Javascript controller. It is key in helping the user determine if a page is usable or not. At the moment, there is support for FID in the following browsers:',
   [WebVital.LCP]:
-    'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. This may be in any form from the document object model (DOM), such as images, SVGs, or text blocks. It’s the largest pixel area in the viewport, thus most visually defining. LCP helps developers understand how long it takes to see the main content on the page.',
+    'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. This may be in any form from the document object model (DOM), such as images, SVGs, or text blocks. It’s the largest pixel area in the viewport, thus most visually defining. LCP helps developers understand how long it takes to see the main content on the page. At the moment, there is support for LCP in the following browsers:',
 };
 
 export const vitalAbbreviations: Partial<Record<WebVital, string>> = {
@@ -152,14 +151,43 @@ export const vitalToMetricsField: Record<string, TransactionMetric> = {
   [WebVital.CLS]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS,
 };
 
+export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
+  [WebVital.LCP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],
+  [WebVital.FID]: [
+    Browser.CHROME,
+    Browser.EDGE,
+    Browser.OPERA,
+    Browser.FIREFOX,
+    Browser.SAFARI,
+    Browser.IE,
+  ],
+  [WebVital.CLS]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],
+  [WebVital.FP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],
+  [WebVital.FCP]: [
+    Browser.CHROME,
+    Browser.EDGE,
+    Browser.OPERA,
+    Browser.FIREFOX,
+    Browser.SAFARI,
+  ],
+  [WebVital.TTFB]: [
+    Browser.CHROME,
+    Browser.EDGE,
+    Browser.OPERA,
+    Browser.FIREFOX,
+    Browser.SAFARI,
+    Browser.IE,
+  ],
+};
+
 export function getVitalChartDefinitions({
   theme,
   location,
   vital,
   yAxis,
 }: {
-  theme: Theme;
   location: Location;
+  theme: Theme;
   vital: string;
   yAxis: string;
 }) {

@@ -31,15 +31,18 @@ import {DisplayModes} from '../projectCharts';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
 type Props = {
-  title: string;
+  api: Client;
+  displayMode:
+    | DisplayModes.SESSIONS
+    | DisplayModes.STABILITY_USERS
+    | DisplayModes.STABILITY;
+  onTotalValuesChange: (value: number | null) => void;
+  organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
-  api: Client;
-  organization: Organization;
-  onTotalValuesChange: (value: number | null) => void;
-  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
-  help?: string;
+  title: string;
   disablePrevious?: boolean;
+  help?: string;
   query?: string;
 };
 
@@ -140,18 +143,21 @@ function ProjectBaseSessionsChart({
 }
 
 type ChartProps = {
-  theme: Theme;
-  zoomRenderProps: ZoomRenderProps;
-  reloading: boolean;
-  timeSeries: Series[];
+  displayMode:
+    | DisplayModes.SESSIONS
+    | DisplayModes.STABILITY
+    | DisplayModes.STABILITY_USERS;
   releaseSeries: Series[];
+  reloading: boolean;
+  theme: Theme;
+  timeSeries: Series[];
+  zoomRenderProps: ZoomRenderProps;
   previousTimeSeries?: Series[];
-  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
 };
 
 type ChartState = {
-  seriesSelection: Record<string, boolean>;
   forceUpdate: boolean;
+  seriesSelection: Record<string, boolean>;
 };
 
 class Chart extends Component<ChartProps, ChartState> {
@@ -206,6 +212,12 @@ class Chart extends Component<ChartProps, ChartState> {
     );
   };
 
+  get isCrashFree() {
+    const {displayMode} = this.props;
+
+    return [DisplayModes.STABILITY, DisplayModes.STABILITY_USERS].includes(displayMode);
+  }
+
   get legend(): LegendComponentOption {
     const {theme, timeSeries, previousTimeSeries, releaseSeries} = this.props;
     const {seriesSelection} = this.state;
@@ -250,8 +262,6 @@ class Chart extends Component<ChartProps, ChartState> {
   }
 
   get chartOptions() {
-    const {displayMode} = this.props;
-
     return {
       grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
       seriesOptions: {
@@ -265,32 +275,29 @@ class Chart extends Component<ChartProps, ChartState> {
             return '\u2014';
           }
 
-          if (displayMode === DisplayModes.STABILITY) {
+          if (this.isCrashFree) {
             return displayCrashFreePercent(value, 0, 3);
           }
 
           return typeof value === 'number' ? value.toLocaleString() : value;
         },
       },
-      yAxis:
-        displayMode === DisplayModes.STABILITY
-          ? {
-              axisLabel: {
-                formatter: (value: number) => displayCrashFreePercent(value),
-              },
-              scale: true,
-              max: 100,
-            }
-          : {min: 0},
+      yAxis: this.isCrashFree
+        ? {
+            axisLabel: {
+              formatter: (value: number) => displayCrashFreePercent(value),
+            },
+            scale: true,
+            max: 100,
+          }
+        : {min: 0},
     };
   }
 
   render() {
-    const {zoomRenderProps, timeSeries, previousTimeSeries, releaseSeries, displayMode} =
-      this.props;
+    const {zoomRenderProps, timeSeries, previousTimeSeries, releaseSeries} = this.props;
 
-    const ChartComponent =
-      displayMode === DisplayModes.STABILITY ? LineChart : StackedAreaChart;
+    const ChartComponent = this.isCrashFree ? LineChart : StackedAreaChart;
 
     return (
       <ChartComponent

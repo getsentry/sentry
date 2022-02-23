@@ -5,6 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import Field from 'sentry/components/forms/field';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -19,18 +20,17 @@ import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/compone
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
 import PasswordForm from 'sentry/views/settings/account/passwordForm';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-import Field from 'sentry/views/settings/components/forms/field';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   authenticators: Authenticator[] | null;
-  orgsRequire2fa: OrganizationSummary[];
   countEnrolled: number;
   deleteDisabled: boolean;
-  hasVerifiedEmail: boolean;
   handleRefresh: () => void;
+  hasVerifiedEmail: boolean;
   onDisable: (auth: Authenticator) => void;
+  orgsRequire2fa: OrganizationSummary[];
 } & AsyncView['props'] &
   RouteComponentProps<{}, {}>;
 

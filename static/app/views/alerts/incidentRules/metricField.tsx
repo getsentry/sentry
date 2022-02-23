@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import FormField from 'sentry/components/forms/formField';
+import FormModel from 'sentry/components/forms/model';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -22,8 +24,6 @@ import {
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import FormField from 'sentry/views/settings/components/forms/formField';
-import FormModel from 'sentry/views/settings/components/forms/model';
 
 import {
   errorFieldConfig,
@@ -36,12 +36,12 @@ import {Dataset} from './types';
 
 type Props = Omit<FormField['props'], 'children'> & {
   organization: Organization;
+  alertType?: AlertType;
   /**
    * Optionally set a width for each column of selector
    */
   columnWidth?: number;
   inFieldLabels?: boolean;
-  alertType?: AlertType;
 };
 
 const getFieldOptionConfig = ({
@@ -97,7 +97,7 @@ const getFieldOptionConfig = ({
   };
 };
 
-const help = ({name, model}: {name: string; model: FormModel}) => {
+const help = ({name, model}: {model: FormModel; name: string}) => {
   const aggregate = model.getValue(name) as string;
 
   const presets = PRESET_AGGREGATES.filter(preset =>

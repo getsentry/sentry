@@ -29,7 +29,7 @@ export function QueryHandler<T extends WidgetDataConstraint>(
 }
 
 function genericQueryReferrer(setting: PerformanceWidgetSetting) {
-  return `api.performance.generic-widget-chart.${setting.replaceAll('_', '-')}`;
+  return `api.performance.generic-widget-chart.${setting.replace(/_/g, '-')}`;
 }
 
 function SingleQueryHandler<T extends WidgetDataConstraint>(
@@ -83,8 +83,9 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
 
 function QueryResultSaver<T extends WidgetDataConstraint>(
   props: {
-    results: any; // TODO(k-fish): Fix this any.
+    // TODO(k-fish): Fix this any.
     query: QueryDefinitionWithKey<T>;
+    results: any;
   } & QueryHandlerProps<T>
 ) {
   const {results, query} = props;

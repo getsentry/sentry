@@ -26,3 +26,10 @@ class SCIM_PARAMS:
         type=int,
         description="The id of the member you'd like to query.",
     )
+    TEAM_ID = OpenApiParameter(
+        name="team_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The id of the team you'd like to query / update.",
+    )

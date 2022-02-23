@@ -23,8 +23,8 @@ export function spansRouteWithQuery({
   query,
 }: {
   orgSlug: string;
-  transaction: string;
   query: Query;
+  transaction: string;
   projectID?: string | string[];
 }) {
   const pathname = generateSpansRoute({
@@ -137,9 +137,9 @@ export function generateSpansEventView({
   transactionName,
   isMetricsData,
 }: {
+  isMetricsData: boolean;
   location: Location;
   transactionName: string;
-  isMetricsData: boolean;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);

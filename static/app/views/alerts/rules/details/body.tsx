@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -35,7 +36,6 @@ import {
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import Timeline from 'sentry/views/alerts/rules/details/timeline';
 
-import AlertBadge from '../../alertBadge';
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
@@ -45,14 +45,14 @@ import RelatedTransactions from './relatedTransactions';
 
 type Props = {
   api: Client;
-  rule?: IncidentRule;
-  incidents?: Incident[];
-  timePeriod: TimePeriodType;
-  selectedIncident?: Incident | null;
-  organization: Organization;
-  location: Location;
   handleTimePeriodChange: (value: string) => void;
   handleZoom: (start: DateString, end: DateString) => void;
+  location: Location;
+  organization: Organization;
+  timePeriod: TimePeriodType;
+  incidents?: Incident[];
+  rule?: IncidentRule;
+  selectedIncident?: Incident | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
@@ -275,11 +275,15 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <StatusContainer>
         <HeaderItem>
-          <Heading noMargin>{t('Current Status')}</Heading>
+          <Heading noMargin>{t('Alert Status')}</Heading>
           <Status>
-            <AlertBadge status={status} hideText />
-            {activeIncident ? t('Triggered') : t('Resolved')}
-            {activityDate ? <TimeSince date={activityDate} /> : ''}
+            <AlertBadge status={status} />
+          </Status>
+        </HeaderItem>
+        <HeaderItem>
+          <Heading noMargin>{t('Last Triggered')}</Heading>
+          <Status>
+            {activityDate ? <TimeSince date={activityDate} /> : t('No alerts triggered')}
           </Status>
         </HeaderItem>
       </StatusContainer>

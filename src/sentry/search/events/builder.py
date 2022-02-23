@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
@@ -29,11 +30,13 @@ from sentry.discover.arithmetic import (
     is_equation_alias,
     resolve_equation_list,
 )
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization
 from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
+    METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
@@ -44,7 +47,8 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     FunctionDetails,
-    InvalidSearchQuery,
+    MetricsFunction,
+    NormalizedArg,
     NumericColumn,
     SnQLArrayCombinator,
     SnQLFunction,
@@ -54,9 +58,22 @@ from sentry.search.events.fields import (
     parse_combinator,
 )
 from sentry.search.events.filter import ParsedTerm, ParsedTerms
-from sentry.search.events.types import HistogramParams, ParamsType, SelectType, WhereType
+from sentry.search.events.types import (
+    HistogramParams,
+    ParamsType,
+    QueryFramework,
+    SelectType,
+    WhereType,
+)
+from sentry.sentry_metrics import indexer
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
-from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, raw_snql_query, resolve_column
+from sentry.utils.snuba import (
+    Dataset,
+    QueryOutsideRetentionError,
+    bulk_snql_query,
+    raw_snql_query,
+    resolve_column,
+)
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
@@ -82,6 +99,7 @@ class QueryBuilder:
         turbo: bool = False,
         sample_rate: Optional[float] = None,
         equation_config: Optional[Dict[str, bool]] = None,
+        granularity: Optional[int] = None,
     ):
         self.dataset = dataset
         self.params = params
@@ -101,7 +119,7 @@ class QueryBuilder:
         self.function_alias_map: Dict[str, FunctionDetails] = {}
 
         self.auto_aggregations = auto_aggregations
-        self.limit = None if limit is None else Limit(limit)
+        self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
         self.turbo = Turbo(turbo)
         self.sample_rate = sample_rate
@@ -123,6 +141,7 @@ class QueryBuilder:
             selected_columns=selected_columns,
             equations=equations,
             orderby=orderby,
+            granularity=granularity,
         )
 
     def resolve_query(
@@ -132,6 +151,7 @@ class QueryBuilder:
         selected_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        granularity: Optional[int] = None,
     ) -> None:
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
@@ -141,6 +161,7 @@ class QueryBuilder:
         self.columns = self.resolve_select(selected_columns, equations)
         self.orderby = self.resolve_orderby(orderby)
         self.groupby = self.resolve_groupby()
+        self.granularity = self.resolve_granularity(granularity)
 
     def load_config(
         self,
@@ -150,6 +171,7 @@ class QueryBuilder:
         Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
     ]:
         from sentry.search.events.datasets.discover import DiscoverDatasetConfig
+        from sentry.search.events.datasets.metrics import MetricsDatasetConfig
         from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 
         self.config: DatasetConfig
@@ -157,6 +179,8 @@ class QueryBuilder:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
+        elif self.dataset == Dataset.Metrics:
+            self.config = MetricsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -165,6 +189,12 @@ class QueryBuilder:
         search_filter_converter = self.config.search_filter_converter
 
         return field_alias_converter, function_converter, search_filter_converter
+
+    def resolve_granularity(self, _: Optional[int] = None) -> Optional[Granularity]:
+        return None
+
+    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+        return None if limit is None else Limit(limit)
 
     def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
         if limitby is None:
@@ -386,11 +416,7 @@ class QueryBuilder:
 
         # Add threshold config alias if there's a function that depends on it
         # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
-        for column in {
-            "apdex()",
-            "count_miserable(user)",
-            "user_misery()",
-        }:
+        for column in self.config.custom_threshold_columns:
             if (
                 column in stripped_columns
                 and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
@@ -502,12 +528,26 @@ class QueryBuilder:
         if combinator and not combinator_applied:
             raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
 
+        resolved_function = self.resolve_snql_function(
+            snql_function, arguments, alias, resolve_only
+        )
+        if resolved_function is not None:
+            return resolved_function
+
+        return snql_function.snql_column(arguments, alias)
+
+    def resolve_snql_function(
+        self,
+        snql_function: SnQLFunction,
+        arguments: Mapping[str, NormalizedArg],
+        alias: str,
+        resolve_only: bool,
+    ) -> Optional[SelectType]:
         if snql_function.snql_aggregate is not None:
             if not resolve_only:
                 self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
             return snql_function.snql_aggregate(arguments, alias)
-
-        return snql_function.snql_column(arguments, alias)
+        return None
 
     def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
         return Function(
@@ -1059,6 +1099,10 @@ class UnresolvedQuery(QueryBuilder):
         self,
         dataset: Dataset,
         params: ParamsType,
+        granularity: Optional[int] = None,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
         functions_acl: Optional[List[str]] = None,
@@ -1073,6 +1117,10 @@ class UnresolvedQuery(QueryBuilder):
         super().__init__(
             dataset=dataset,
             params=params,
+            granularity=granularity,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
             functions_acl=functions_acl,
@@ -1092,6 +1140,7 @@ class UnresolvedQuery(QueryBuilder):
         selected_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        granularity: Optional[int] = None,
     ) -> None:
         pass
 
@@ -1113,22 +1162,24 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         super().__init__(
             dataset,
             params,
+            granularity=granularity,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
             auto_fields=False,
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
         )
 
-        self.resolve_query(
-            query=query,
-            selected_columns=selected_columns,
-            equations=equations,
-        )
-
         self.limit = None if limit is None else Limit(limit)
-        self.granularity = Granularity(granularity)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
+
+    def resolve_granularity(self, granularity: Optional[int] = None) -> Optional[Granularity]:
+        if granularity is None:
+            raise InvalidSearchQuery("Cannot query a timeseries without granularity")
+        return Granularity(granularity)
 
     def resolve_query(
         self,
@@ -1137,12 +1188,14 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         selected_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        granularity: Optional[int] = None,
     ) -> None:
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
         # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
         self.where += self.resolve_params()
         self.columns = self.resolve_select(selected_columns, equations)
+        self.granularity = self.resolve_granularity(granularity)
 
     @property
     def select(self) -> List[SelectType]:
@@ -1405,3 +1458,363 @@ class HistogramQueryBuilder(QueryBuilder):
             base_groupby += [self.resolve_column(field) for field in self.additional_groupby]
 
         return base_groupby
+
+
+class MetricsQueryBuilder(QueryBuilder):
+    def __init__(self, *args: Any, **kwargs: Any):
+        self.distributions: List[CurriedFunction] = []
+        self.sets: List[CurriedFunction] = []
+        self.counters: List[CurriedFunction] = []
+        super().__init__(
+            # Dataset is always Metrics
+            Dataset.Metrics,
+            *args,
+            **kwargs,
+        )
+
+    def resolve_granularity(self, _: Optional[int] = None) -> Optional[Granularity]:
+        """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
+        pre-aggregated
+
+        Granularity is determined by checking the alignment of our start & end timestamps with the timestamps in
+        snuba. eg. we can only use the daily granularity if the query starts and ends at midnight
+        Seconds are ignored under the assumption that there currently isn't a valid use case to have
+        to-the-second accurate information
+        """
+        start = cast(datetime, self.params["start"])
+        end = cast(datetime, self.params["end"])
+        duration = (end - start).seconds
+
+        # TODO: could probably allow some leeway on the start & end (a few minutes) and use a bigger granularity
+        # eg. yesterday at 11:59pm to tomorrow at 12:01am could still use the day bucket
+
+        # Query is at least an hour
+        if start.minute == end.minute == 0 and duration % 3600 == 0:
+            # we're going from midnight -> midnight which aligns with our daily buckets
+            if start.hour == end.hour == 0 and duration % 86400 == 0:
+                granularity = 86400
+            # we're roughly going from start of hour -> next which aligns with our hourly buckets
+            else:
+                granularity = 3600
+        # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
+        # here
+        else:
+            granularity = 60
+        return Granularity(granularity)
+
+    def resolve_params(self) -> List[WhereType]:
+        conditions = super().resolve_params()
+        conditions.append(
+            Condition(self.column("organization_id"), Op.EQ, self.params["organization_id"])
+        )
+        return conditions
+
+    def resolve_limit(self, limit: Optional[int]) -> Limit:
+        """Impose a max limit, since we may need to create a large condition based on the group by values when the query
+        is run"""
+        if limit is not None and limit > METRICS_MAX_LIMIT:
+            raise IncompatibleMetricsQuery(f"Can't have a limit larger than {METRICS_MAX_LIMIT}")
+        elif limit is None:
+            return Limit(METRICS_MAX_LIMIT)
+        else:
+            return Limit(limit)
+
+    def resolve_snql_function(
+        self,
+        snql_function: MetricsFunction,
+        arguments: Mapping[str, NormalizedArg],
+        alias: str,
+        resolve_only: bool,
+    ) -> Optional[SelectType]:
+        if snql_function.snql_distribution is not None:
+            resolved_function = snql_function.snql_distribution(arguments, alias)
+            if not resolve_only:
+                self.distributions.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        if snql_function.snql_set is not None:
+            resolved_function = snql_function.snql_set(arguments, alias)
+            if not resolve_only:
+                self.sets.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        if snql_function.snql_counter is not None:
+            resolved_function = snql_function.snql_counter(arguments, alias)
+            if not resolve_only:
+                self.counters.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        return None
+
+    @staticmethod
+    def _resolve_tag_value(value: str) -> int:
+        result = indexer.resolve(value)
+        if result is None:
+            raise InvalidSearchQuery("Tag value was not found")
+        return cast(int, result)
+
+    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if search_filter.value.is_wildcard():
+            raise IncompatibleMetricsQuery("wildcards not supported")
+
+        name = search_filter.key.name
+        operator = search_filter.operator
+        value = search_filter.value.value
+
+        lhs = self.resolve_column(name)
+        # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
+        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        if is_tag:
+            if isinstance(value, list):
+                value = [self._resolve_tag_value(v) for v in value]
+            else:
+                value = self._resolve_tag_value(value)
+
+        # timestamp{,.to_{hour,day}} need a datetime string
+        # last_seen needs an integer
+        if isinstance(value, datetime) and name not in TIMESTAMP_FIELDS:
+            value = int(to_timestamp(value)) * 1000
+
+        if name in TIMESTAMP_FIELDS:
+            if (
+                operator in ["<", "<="]
+                and value < self.params["start"]
+                or operator in [">", ">="]
+                and value > self.params["end"]
+            ):
+                raise InvalidSearchQuery(
+                    "Filter on timestamp is outside of the selected date range."
+                )
+
+        # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
+
+        return Condition(lhs, Op(search_filter.operator), value)
+
+    def get_snql_query(self) -> List[Query]:
+        """Because metrics table queries need to make multiple requests per metric type this function cannot be
+        inmplemented see run_query"""
+        raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
+
+    def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
+        query_framework: Dict[str, QueryFramework] = {
+            "distribution": QueryFramework(
+                orderby=[],
+                functions=self.distributions,
+                entity=Entity("metrics_distributions", sample=self.sample_rate),
+            ),
+            "counter": QueryFramework(
+                orderby=[],
+                functions=self.counters,
+                entity=Entity("metrics_counters", sample=self.sample_rate),
+            ),
+            "set": QueryFramework(
+                orderby=[],
+                functions=self.sets,
+                entity=Entity("metrics_sets", sample=self.sample_rate),
+            ),
+        }
+        primary = None
+        # if orderby spans more than one table, the query isn't possible with metrics
+        for orderby in self.orderby:
+            if orderby.exp in self.distributions:
+                query_framework["distribution"].orderby.append(orderby)
+                if primary not in [None, "distribution"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "distribution"
+            elif orderby.exp in self.sets:
+                query_framework["set"].orderby.append(orderby)
+                if primary not in [None, "set"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "set"
+            elif orderby.exp in self.counters:
+                query_framework["counter"].orderby.append(orderby)
+                if primary not in [None, "counter"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "counter"
+            else:
+                # An orderby that isn't on a function add it to all of them
+                for framework in query_framework.values():
+                    framework.orderby.append(orderby)
+
+        # Pick one arbitrarily, there's no orderby on functions
+        if primary is None:
+            primary = "distribution"
+
+        return primary, query_framework
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        # Need to split orderby between the 3 possible tables
+        # TODO: need to validate orderby, ordering by tag values is impossible unless the values have low cardinality
+        # and we can transform them (eg. project)
+        primary, query_framework = self._create_query_framework()
+
+        groupby_aliases = [
+            groupby.alias
+            if isinstance(groupby, (AliasedExpression, CurriedFunction))
+            else groupby.name
+            for groupby in self.groupby
+        ]
+        # The typing for these are weak (all using Any) since the results from snuba can contain an assortment of types
+        value_map: Dict[str, Any] = defaultdict(dict)
+        groupby_values: List[Any] = []
+        meta_dict = {}
+        result: Any = {
+            "data": None,
+            "meta": [],
+        }
+        # We need to run the same logic on all 3 queries, since the `primary` query could come back with no results. The
+        # goal is to get n=limit results from one query, then use those n results to create a condition for the
+        # remaining queries. This is so that we can respect function orderbys from the first query, but also so we don't
+        # get 50 different results from each entity
+        for query_details in [query_framework.pop(primary), *query_framework.values()]:
+            # Only run the query if there's at least one function, can't query without metrics
+            if len(query_details.functions) > 0:
+                select = [
+                    column
+                    for column in self.columns
+                    if not isinstance(column, CurriedFunction) or column in query_details.functions
+                ]
+                if groupby_values:
+                    # We already got the groupby values we want, add them to the conditions to limit our results so we
+                    # can get the aggregates for the same values
+                    where = self.where + [
+                        Condition(
+                            # Tuples are allowed to have multiple types in clickhouse
+                            Function(
+                                "tuple",
+                                [
+                                    groupby.exp
+                                    if isinstance(groupby, AliasedExpression)
+                                    else groupby
+                                    for groupby in self.groupby
+                                ],
+                            ),
+                            Op.IN,
+                            Function("tuple", groupby_values),
+                        )
+                    ]
+                    # Because we've added a condition for each groupby value we don't want an offset here
+                    offset = Offset(0)
+                    referrer_suffix = "secondary"
+                else:
+                    # We don't have our groupby values yet, this means this is the query where we're getting them
+                    where = self.where
+                    offset = self.offset
+                    referrer_suffix = "primary"
+
+                query = Query(
+                    dataset=self.dataset.value,
+                    match=query_details.entity,
+                    select=select,
+                    array_join=self.array_join,
+                    where=where,
+                    having=self.having,
+                    groupby=self.groupby,
+                    orderby=query_details.orderby,
+                    limit=self.limit,
+                    offset=offset,
+                    limitby=self.limitby,
+                    turbo=self.turbo,
+                )
+                current_result = raw_snql_query(
+                    query,
+                    f"{referrer}.{referrer_suffix}",
+                    use_cache,
+                )
+                for row in current_result["data"]:
+                    # Arrays in clickhouse cannot contain multiple types, and since groupby values
+                    # can contain any type, we must use tuples instead
+                    groupby_key = tuple(row[key] for key in groupby_aliases)
+                    value_map_key = ",".join(str(value) for value in groupby_key)
+                    # First time we're seeing this value, add it to the values we're going to filter by
+                    if value_map_key not in value_map:
+                        groupby_values.append(groupby_key)
+                    value_map[value_map_key].update(row)
+                for meta in current_result["meta"]:
+                    meta_dict[meta["name"]] = meta["type"]
+
+        result["data"] = list(value_map.values())
+        result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]
+
+        return result
+
+
+class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
+    time_alias = "time"
+    time_column = AliasedExpression(Column("timestamp"), time_alias)
+
+    def __init__(
+        self,
+        params: ParamsType,
+        granularity: int,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        functions_acl: Optional[List[str]] = None,
+    ):
+        super().__init__(
+            params=params,
+            granularity=granularity,
+            query=query,
+            selected_columns=selected_columns,
+            auto_fields=False,
+            functions_acl=functions_acl,
+        )
+
+        # This is a timeseries, the groupby will always be time
+        self.groupby = [self.time_column]
+
+    def resolve_granularity(self, granularity: Optional[int] = None) -> Optional[Granularity]:
+        if granularity is None:
+            raise InvalidSearchQuery("Cannot query a timeseries without granularity")
+        return Granularity(granularity)
+
+    def get_snql_query(self) -> List[Query]:
+        """Because of the way metrics are structured a single request can result in >1 snql query
+
+        This is because different functions will use different entities
+        """
+        # No need for primary from the query framework since there's no orderby to worry about
+        _, query_framework = self._create_query_framework()
+
+        queries: List[Query] = []
+        for query_details in query_framework.values():
+            if len(query_details.functions) > 0:
+                queries.append(
+                    Query(
+                        dataset=self.dataset.value,
+                        match=query_details.entity,
+                        select=query_details.functions,
+                        where=self.where,
+                        having=self.having,
+                        groupby=self.groupby,
+                        orderby=[OrderBy(self.time_column.exp, Direction.ASC)],
+                        granularity=self.granularity,
+                        limit=self.limit,
+                    )
+                )
+
+        return queries
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        queries = self.get_snql_query()
+        if queries:
+            results = bulk_snql_query(queries, referrer, use_cache)
+        else:
+            results = []
+
+        time_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        meta_dict = {}
+        for current_result in results:
+            # there's only 1 thing in the groupby which is time
+            for row in current_result["data"]:
+                time_map[row[self.time_alias]].update(row)
+            for meta in current_result["meta"]:
+                meta_dict[meta["name"]] = meta["type"]
+
+        return {
+            "data": list(time_map.values()),
+            "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
+        }

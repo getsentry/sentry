@@ -6,7 +6,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -17,15 +17,15 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
-  organization: Organization;
+  dashboardState: DashboardState;
   dashboards: DashboardListItem[];
-  onEdit: () => void;
+  onAddWidget: () => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
-  onAddWidget: () => void;
+  onEdit: () => void;
+  organization: Organization;
   widgetLimitReached: boolean;
-  dashboardState: DashboardState;
 };
 
 class Controls extends React.Component<Props> {

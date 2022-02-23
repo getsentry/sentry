@@ -56,14 +56,14 @@ import {
 const MARGIN_LEFT = 0;
 
 type Props = {
-  event: Readonly<EventTransaction>;
-  treeDepth: number;
-  span: Readonly<ProcessedSpanType>;
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  spanNumber: number;
   continuingTreeDepths: Array<TreeDepthType>;
+  event: Readonly<EventTransaction>;
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
+  spanNumber: number;
   toggleSpanGroup: () => void;
+  treeDepth: number;
 };
 
 class SpanGroupBar extends React.Component<Props> {

@@ -9,6 +9,8 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
@@ -18,8 +20,6 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {transactionSummaryRouteWithQuery} from './utils';
 
@@ -35,20 +35,20 @@ export const METRIC_CHOICES = [
 
 type Props = {
   api: Client;
-  organization: Organization;
-  transactionName: string;
-  onApply?: (threshold, metric) => void;
-  project?: string;
-  projects: Project[];
   eventView: EventView;
+  organization: Organization;
+  projects: Project[];
+  transactionName: string;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
+  onApply?: (threshold, metric) => void;
+  project?: string;
 } & ModalRenderProps;
 
 type State = {
-  threshold: number | undefined;
-  metric: TransactionThresholdMetric | undefined;
   error: string | null;
+  metric: TransactionThresholdMetric | undefined;
+  threshold: number | undefined;
 };
 
 class TransactionThresholdModal extends React.Component<Props, State> {

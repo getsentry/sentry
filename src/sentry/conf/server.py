@@ -15,7 +15,6 @@ from urllib.parse import urlparse
 from django.conf.global_settings import *  # NOQA
 
 import sentry
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -282,6 +281,7 @@ MIDDLEWARE = (
     "sentry.middleware.env.SentryEnvMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
     "sentry.middleware.stats.RequestTimingMiddleware",
+    "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -898,9 +898,11 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
-        "PREPROCESSING_HOOKS": ["sentry.apidocs.preprocessor.custom_preprocessing_hook"],
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "DISABLE_ERRORS_AND_WARNINGS": False,
-        "COMPONENT_SPLIT_REQUEST": True,
+        "COMPONENT_SPLIT_REQUEST": False,
+        "COMPONENT_SPLIT_PATCH": False,
         "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
@@ -910,12 +912,11 @@ if os.environ.get("OPENAPIGENERATE", False):
         "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
         "SERVERS": [{"url": "https://sentry.io/"}],
+        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
     }
 
-
 CRISPY_TEMPLATE_PACK = "bootstrap3"
-
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
@@ -925,6 +926,10 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:alert-rule-ui-component": False,
+    # Enable issue alert status page
+    "organizations:alert-rule-status-page": False,
+    # Alert wizard redesign version 3
+    "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -995,8 +1000,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
-    # Enable metrics widget (prototype) on Dashboards
-    "organizations:metrics-dashboards-ui": False,
+    # Enable the new widget builder experience on Dashboards
+    "organizations:new-widget-builder-experience": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1004,14 +1009,15 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
     "organizations:metrics-performance-ui": False,
-    # True if the metrics backend should be checked against the sessions backend
+    # True if release-health related queries should be run against both
+    # backends (sessions and metrics dataset)
     "organizations:release-health-check-metrics": False,
+    # True if differences between the metrics and sessions backend should be reported
+    "organizations:release-health-check-metrics-report": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
-    # Enable migrating auth identities between providers automatically
-    "organizations:idp-automatic-migration": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -1045,8 +1051,12 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable dashboard widget library
     "organizations:widget-library": False,
+    # Enable metrics in dashboards
+    "organizations:dashboards-metrics": False,
     # Enable issue widgets in dashboards
     "organizations:issues-in-dashboards": False,
+    # Enable widget viewer modal in dashboards
+    "organizations:widget-viewer-modal": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
@@ -1057,27 +1067,23 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable removing issue from issue list if action taken.
+    "organizations:issue-list-removal-action": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable logging for select organizations
-    "organizations:pagerduty-metric-alert-resolve-logging": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
-    # Enable landing improvements for performance
-    "organizations:performance-landing-widgets": False,
-    # Enable views for transaction events page in performance
-    "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable mobile vitals
-    "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
+    # Enable histogram view in span details
+    "organizations:performance-span-histogram-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1106,8 +1112,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable Rippling SSO functionality.
-    "organizations:sso-rippling": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
     # Return unhandled information on the issue level
@@ -1126,7 +1130,6 @@ SENTRY_FEATURES = {
     "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
-    "organizations:team-insights-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1364,17 +1367,8 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
-SENTRY_RATELIMITER_ENABLED = False
+SENTRY_RATELIMITER_ENABLED = True
 SENTRY_RATELIMITER_OPTIONS = {}
-# These values were determined from analysis on one week of api access logs
-SENTRY_RATELIMITER_DEFAULT_IP = 620
-SENTRY_RATELIMITER_DEFAULT_USER = 620
-SENTRY_RATELIMITER_DEFAULT_ORG = 620
-SENTRY_RATELIMITER_DEFAULTS = {
-    RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),
-    RateLimitCategory.USER: RateLimit(SENTRY_RATELIMITER_DEFAULT_USER, 1),
-    RateLimitCategory.ORGANIZATION: RateLimit(SENTRY_RATELIMITER_DEFAULT_ORG, 1),
-}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -2531,3 +2525,9 @@ ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
 # Note: The docs have this backwards. We set this to False here so that we always add check
 # constraints instead of setting the column to not null.
 ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
+
+ANOMALY_DETECTION_URL = "127.0.0.1:9091"
+ANOMALY_DETECTION_TIMEOUT = 30
+
+# This is the URL to the profiling service
+SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"

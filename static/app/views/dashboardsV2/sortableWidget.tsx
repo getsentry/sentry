@@ -13,16 +13,16 @@ import DnDKitWidgetWrapper from './widgetWrapper';
 const TABLE_ITEM_LIMIT = 20;
 
 type Props = {
-  widget: Widget;
   dragId: string;
   isEditing: boolean;
   onDelete: () => void;
-  onEdit: () => void;
   onDuplicate: () => void;
-  widgetLimitReached: boolean;
+  onEdit: () => void;
   organization: Organization;
-  isPreview?: boolean;
+  widget: Widget;
+  widgetLimitReached: boolean;
   isMobile?: boolean;
+  isPreview?: boolean;
   windowWidth?: number;
 };
 
@@ -77,6 +77,7 @@ function SortableWidget(props: Props) {
     currentWidgetDragging,
     showContextMenu: true,
     isPreview,
+    showWidgetViewerButton: organization.features.includes('widget-viewer-modal'),
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {

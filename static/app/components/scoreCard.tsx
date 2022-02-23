@@ -11,11 +11,11 @@ import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   title: React.ReactNode;
-  score?: React.ReactNode;
+  className?: string;
   help?: React.ReactNode;
+  score?: React.ReactNode;
   trend?: React.ReactNode;
   trendStatus?: 'good' | 'bad';
-  className?: string;
 };
 
 function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
@@ -66,7 +66,9 @@ export const HeaderTitle = styled('div')`
 `;
 
 const Title = styled('div')`
+  color: ${p => p.theme.headingColor};
   ${overflowEllipsis};
+  font-weight: 600;
 `;
 
 export const ScoreWrapper = styled('div')`

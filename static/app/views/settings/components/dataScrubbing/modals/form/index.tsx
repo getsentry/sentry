@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import Button from 'sentry/components/button';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {
   EventId,
@@ -26,13 +26,13 @@ import SourceField from './sourceField';
 type Values = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
 
 type Props<V extends Values, K extends keyof V> = {
-  values: V;
   errors: Partial<V>;
-  sourceSuggestions: Array<SourceSuggestion>;
-  onValidate: (field: K) => () => void;
-  onChange: (field: K, value: string) => void;
   eventId: EventId;
+  onChange: (field: K, value: string) => void;
   onUpdateEventId: (eventId: string) => void;
+  onValidate: (field: K) => () => void;
+  sourceSuggestions: Array<SourceSuggestion>;
+  values: V;
 };
 
 type State = {

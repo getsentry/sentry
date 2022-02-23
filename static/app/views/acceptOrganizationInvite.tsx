@@ -16,22 +16,22 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
-  orgSlug: string;
-  needsAuthentication: boolean;
-  needs2fa: boolean;
-  needsEmailVerification: boolean;
-  needsSso: boolean;
-  requireSso: boolean;
   existingMember: boolean;
+  hasAuthProvider: boolean;
+  needs2fa: boolean;
+  needsAuthentication: boolean;
+  needsEmailVerification: boolean;
+  orgSlug: string;
+  requireSso: boolean;
   ssoProvider?: string;
 };
 
 type Props = RouteComponentProps<{memberId: string; token: string}, {}>;
 
 type State = AsyncView['state'] & {
-  inviteDetails: InviteDetails;
-  accepting: boolean | undefined;
   acceptError: boolean | undefined;
+  accepting: boolean | undefined;
+  inviteDetails: InviteDetails;
 };
 
 class AcceptOrganizationInvite extends AsyncView<Props, State> {
@@ -107,7 +107,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           </p>
         )}
 
-        {inviteDetails.needsSso && (
+        {inviteDetails.hasAuthProvider && (
           <p data-test-id="action-info-sso">
             {inviteDetails.requireSso
               ? tct(
@@ -133,7 +133,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
 
         <Actions>
           <ActionsLeft>
-            {inviteDetails.needsSso && (
+            {inviteDetails.hasAuthProvider && (
               <Button
                 aria-label="sso-login"
                 priority="primary"
@@ -211,7 +211,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
 
     return (
       <Fragment>
-        {inviteDetails.needsSso && !inviteDetails.requireSso && (
+        {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
           <p data-test-id="action-info-sso">
             {tct(
               `Note that [orgSlug] has enabled Single Sign-On (SSO) using
@@ -226,7 +226,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
         )}
         <Actions>
           <ActionsLeft>
-            {inviteDetails.needsSso && !inviteDetails.requireSso && (
+            {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
               <Button
                 aria-label="sso-login"
                 priority="primary"

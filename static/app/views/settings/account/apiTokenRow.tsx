@@ -2,17 +2,17 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import {PanelItem} from 'sentry/components/panels';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {InternalAppApiToken} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 
 type Props = {
-  token: InternalAppApiToken;
   onRemove: (token: InternalAppApiToken) => void;
+  token: InternalAppApiToken;
 };
 
 function ApiTokenRow({token, onRemove}: Props) {

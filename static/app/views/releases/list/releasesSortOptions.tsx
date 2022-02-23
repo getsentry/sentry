@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 import ReleasesDropdown from './releasesDropdown';
@@ -19,20 +18,13 @@ export enum ReleasesSortOption {
 }
 
 type Props = {
+  environments: string[];
+  onSelect: (key: string) => void;
   selected: ReleasesSortOption;
   selectedDisplay: ReleasesDisplayOption;
-  onSelect: (key: string) => void;
-  organization: Organization;
-  environments: string[];
 };
 
-function ReleasesSortOptions({
-  selected,
-  selectedDisplay,
-  onSelect,
-  organization,
-  environments,
-}: Props) {
+function ReleasesSortOptions({selected, selectedDisplay, onSelect, environments}: Props) {
   const sortOptions = {
     [ReleasesSortOption.DATE]: {label: t('Date Created')},
     [ReleasesSortOption.SESSIONS]: {label: t('Total Sessions')},
@@ -45,12 +37,9 @@ function ReleasesSortOptions({
           [ReleasesSortOption.SESSIONS_24_HOURS]: {label: t('Active Sessions')},
           [ReleasesSortOption.CRASH_FREE_SESSIONS]: {label: t('Crash Free Sessions')},
         }),
+    [ReleasesSortOption.BUILD]: {label: t('Build Number')},
+    [ReleasesSortOption.SEMVER]: {label: t('Semantic Version')},
   } as React.ComponentProps<typeof ReleasesDropdown>['options'];
-
-  if (organization.features.includes('semver')) {
-    sortOptions[ReleasesSortOption.BUILD] = {label: t('Build Number')};
-    sortOptions[ReleasesSortOption.SEMVER] = {label: t('Semantic Version')};
-  }
 
   const isDisabled = environments.length !== 1;
   sortOptions[ReleasesSortOption.ADOPTION] = {

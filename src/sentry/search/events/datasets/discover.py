@@ -89,6 +89,12 @@ from sentry.utils.numbers import format_grouped_length
 
 
 class DiscoverDatasetConfig(DatasetConfig):
+    custom_threshold_columns = {
+        "apdex()",
+        "count_miserable(user)",
+        "user_misery()",
+    }
+
     def __init__(self, builder: QueryBuilder):
         self.builder = builder
 
@@ -712,7 +718,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return Function("toStartOfDay", [self.builder.column("timestamp")], TIMESTAMP_TO_DAY_ALIAS)
 
     def _resolve_user_display_alias(self, _: str) -> SelectType:
-        columns = ["user.email", "user.username", "user.ip"]
+        columns = ["user.email", "user.username", "user.id", "user.ip"]
         return Function(
             "coalesce", [self.builder.column(column) for column in columns], USER_DISPLAY_ALIAS
         )
@@ -764,21 +770,49 @@ class DiscoverDatasetConfig(DatasetConfig):
 
         # Arrays need to have toUint64 casting because clickhouse will define the type as the narrowest possible type
         # that can store listed argument types, which means the comparison will fail because of mismatched types
+        project_thresholds = {}
         project_threshold_config_keys = []
         project_threshold_config_values = []
         for project_id, threshold, metric in project_threshold_configs:
+            metric = TRANSACTION_METRICS[metric]
+            if (
+                threshold == DEFAULT_PROJECT_THRESHOLD
+                and metric == DEFAULT_PROJECT_THRESHOLD_METRIC
+            ):
+                # small optimization, if the configuration is equal to the default,
+                # we can skip it in the final query
+                continue
+
+            project_thresholds[project_id] = (metric, threshold)
             project_threshold_config_keys.append(Function("toUInt64", [project_id]))
-            project_threshold_config_values.append((TRANSACTION_METRICS[metric], threshold))
+            project_threshold_config_values.append((metric, threshold))
 
         project_threshold_override_config_keys = []
         project_threshold_override_config_values = []
         for transaction, project_id, threshold, metric in transaction_threshold_configs:
+            metric = TRANSACTION_METRICS[metric]
+            if (
+                project_id in project_thresholds
+                and threshold == project_thresholds[project_id][1]
+                and metric == project_thresholds[project_id][0]
+            ):
+                # small optimization, if the configuration is equal to the project
+                # configs, we can skip it in the final query
+                continue
+
+            elif (
+                project_id not in project_thresholds
+                and threshold == DEFAULT_PROJECT_THRESHOLD
+                and metric == DEFAULT_PROJECT_THRESHOLD_METRIC
+            ):
+                # small optimization, if the configuration is equal to the default
+                # and no project configs were set, we can skip it in the final query
+                continue
+
             project_threshold_override_config_keys.append(
                 (Function("toUInt64", [project_id]), transaction)
             )
-            project_threshold_override_config_values.append(
-                (TRANSACTION_METRICS[metric], threshold)
-            )
+            project_threshold_override_config_values.append((metric, threshold))
 
         project_threshold_config_index: SelectType = Function(
             "indexOf",
@@ -799,8 +833,8 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
 
         def _project_threshold_config(alias: Optional[str] = None) -> SelectType:
-            return (
-                Function(
+            if project_threshold_config_keys and project_threshold_config_values:
+                return Function(
                     "if",
                     [
                         Function(
@@ -821,15 +855,14 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ],
                     alias,
                 )
-                if project_threshold_configs
-                else Function(
-                    "tuple",
-                    [DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD],
-                    alias,
-                )
+
+            return Function(
+                "tuple",
+                [DEFAULT_PROJECT_THRESHOLD_METRIC, DEFAULT_PROJECT_THRESHOLD],
+                alias,
             )
 
-        if transaction_threshold_configs:
+        if project_threshold_override_config_keys and project_threshold_override_config_values:
             return Function(
                 "if",
                 [
@@ -1040,46 +1073,6 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
 
     # Query Filters
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        """Convert project slugs to ids and create a filter based on those.
-        This is cause we only store project ids in clickhouse.
-        """
-        value = search_filter.value.value
-
-        if Op(search_filter.operator) == Op.EQ and value == "":
-            raise InvalidSearchQuery(
-                'Cannot query for has:project or project:"" as every event will have a project'
-            )
-
-        slugs = to_list(value)
-        project_slugs: Mapping[str, int] = {
-            slug: project_id
-            for slug, project_id in self.builder.project_slugs.items()
-            if slug in slugs
-        }
-        missing: List[str] = [slug for slug in slugs if slug not in project_slugs]
-        if missing and search_filter.operator in EQUALITY_OPERATORS:
-            raise InvalidSearchQuery(
-                f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
-            )
-        # Sorted for consistent query results
-        project_ids = list(sorted(project_slugs.values()))
-        if project_ids:
-            # Create a new search filter with the correct values
-            converted_filter = self.builder.convert_search_filter_to_condition(
-                SearchFilter(
-                    SearchKey("project.id"),
-                    search_filter.operator,
-                    SearchValue(project_ids if search_filter.is_in_filter else project_ids[0]),
-                )
-            )
-            if converted_filter:
-                if search_filter.operator in EQUALITY_OPERATORS:
-                    self.builder.projects_to_filter.update(project_ids)
-                return converted_filter
-
-        return None
-
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         operator = search_filter.operator
         value = to_list(search_filter.value.value)

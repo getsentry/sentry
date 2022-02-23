@@ -12,17 +12,17 @@ function makeLocalStorageKey(orgSlug: string) {
 }
 
 type StoredObject = {
-  projects: number[];
-  environments: string[];
-  start: string | null;
   end: string | null;
+  environments: string[];
   period: string | null;
-  utc: 'true' | null;
   pinnedFilters: PinnedPageFilter[];
+  projects: number[];
+  start: string | null;
+  utc: 'true' | null;
 };
 
 /**
- * Updates the localstorage page filters data
+ * Updates the localstorage page filters data for the specified filters.
  *
  * e.g. if localstorage is empty, user loads issue details for project "foo"
  * this should not consider "foo" as last used and should not save to local
@@ -32,24 +32,55 @@ type StoredObject = {
  * save the current project alongside environment to local storage. It's
  * debatable if this is the desired behavior.
  */
-export function setPageFiltersStorage(orgSlug: string) {
+export function setPageFiltersStorage(
+  orgSlug: string,
+  updateFilters: Set<PinnedPageFilter>
+) {
   const {selection, pinnedFilters} = PageFiltersStore.getState();
-  const {start: currentStart, end: currentEnd} = selection.datetime;
+
+  const {state: currentStoredState} = getPageFilterStorage(orgSlug) ?? {state: null};
+
+  const projects = updateFilters.has('projects')
+    ? selection.projects
+    : currentStoredState?.project ?? [];
+
+  const environments = updateFilters.has('environments')
+    ? selection.environments
+    : currentStoredState?.environment ?? [];
+
+  const shouldUpdateDatetime = updateFilters.has('datetime');
+
+  const currentStart = shouldUpdateDatetime
+    ? selection.datetime.start
+    : currentStoredState?.start;
+
+  const currentEnd = shouldUpdateDatetime
+    ? selection.datetime.end
+    : currentStoredState?.end;
+
+  const currentPeriod = shouldUpdateDatetime
+    ? selection.datetime.period
+    : currentStoredState?.period ?? null;
+
+  const currentUtc = shouldUpdateDatetime
+    ? selection.datetime.utc
+    : currentStoredState?.utc;
 
   const start = currentStart ? getUtcDateString(currentStart) : null;
   const end = currentEnd ? getUtcDateString(currentEnd) : null;
-  const period = !start && !end ? selection.datetime.period : null;
+  const period = !start && !end ? currentPeriod : null;
+  const utc = currentUtc ? 'true' : null;
 
   // XXX(epurkhiser): For legacy reasons the page filter state is stored
   // similarly to how the URL query state is stored, but with different keys
   // (projects, instead of project).
   const dataToSave: StoredObject = {
-    projects: selection.projects,
-    environments: selection.environments,
+    projects,
+    environments,
     start,
     end,
     period,
-    utc: selection.datetime.utc ? 'true' : null,
+    utc,
     pinnedFilters: Array.from(pinnedFilters),
   };
 
@@ -99,7 +130,7 @@ export function getPageFilterStorage(orgSlug: string) {
     {allowAbsoluteDatetime: true}
   );
 
-  return {selection: state, pinnedFilters: new Set(pinnedFilters)};
+  return {state, pinnedFilters: new Set(pinnedFilters)};
 }
 
 /**

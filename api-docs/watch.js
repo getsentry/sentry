@@ -2,17 +2,36 @@
 /* eslint import/no-nodejs-modules:0 no-console:0 */
 
 const sane = require('sane');
-const {execSync} = require('child_process');
+const {spawn} = require('child_process');
+const {stdout, stderr} = require('process');
 
 const watcherPy = sane('src/sentry');
 const watcherJson = sane('api-docs');
 
 const watchers = [watcherPy, watcherJson];
 
+let isCurrentlyRunning = false;
+
 const makeApiDocsCommand = function () {
-  console.log('rebuilding...');
-  output = execSync('make build-api-docs');
-  console.log(output.toString());
+  if (isCurrentlyRunning) {
+    console.log('already rebuilding docs');
+    return;
+  }
+  console.log('rebuilding OpenAPI schema...');
+  isCurrentlyRunning = true;
+  const buildCommand = spawn('make', ['build-api-docs']);
+
+  buildCommand.stdout.on('data', function (data) {
+    stdout.write(data.toString());
+  });
+
+  buildCommand.stderr.on('data', function (data) {
+    stderr.write('stderr: ' + data.toString());
+  });
+
+  buildCommand.on('exit', function () {
+    isCurrentlyRunning = false;
+  });
 };
 
 for (const w of watchers) {
@@ -20,4 +39,4 @@ for (const w of watchers) {
   w.on('add', makeApiDocsCommand);
   w.on('delete', makeApiDocsCommand);
 }
-console.log('rebuilding API docs on changes');
+console.log('rebuilding OpenAPI schema on changes');

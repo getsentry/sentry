@@ -13,7 +13,8 @@ import {
 import * as memberActionCreators from 'sentry/actionCreators/members';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {metric} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import AlertsContainer from 'sentry/views/alerts';
 import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
@@ -30,8 +31,9 @@ jest.mock('sentry/utils/analytics', () => ({
     mark: jest.fn(),
     measure: jest.fn(),
   },
-  trackAnalyticsEvent: jest.fn(),
+  trackAdvancedAnalyticsEvent: jest.fn(),
 }));
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('ProjectAlertsCreate', function () {
   TeamStore.loadInitialData([], false, null);
@@ -120,7 +122,7 @@ describe('ProjectAlertsCreate', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    trackAnalyticsEvent.mockClear();
+    trackAdvancedAnalyticsEvent.mockClear();
   });
 
   const createWrapper = (props = {}, location = {}) => {
@@ -173,8 +175,55 @@ describe('ProjectAlertsCreate', function () {
       expect(screen.getByDisplayValue('30')).toBeInTheDocument();
     });
 
-    it('can remove filters, conditions and actions', async function () {
+    it('can remove filters', async function () {
       createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
+
+      await waitFor(() => {
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+      });
+
+      // Change name of alert rule
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+
+      // Add a filter and remove it
+      await selectEvent.select(screen.getByText('Add optional filter...'), [
+        'The issue is {comparison_type} than {value} {time}',
+      ]);
+
+      userEvent.click(screen.getByLabelText('Delete Node'));
+
+      userEvent.click(screen.getByText('Save Rule'));
+
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
+    });
+
+    it('can remove conditions', async function () {
+      const {organization} = createWrapper({
         organization: {
           features: ['alert-filters'],
         },
@@ -199,21 +248,55 @@ describe('ProjectAlertsCreate', function () {
 
       userEvent.click(screen.getByLabelText('Delete Node'));
 
-      expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-        eventKey: 'edit_alert_rule.add_row',
-        eventName: 'Edit Alert Rule: Add Row',
-        name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-        organization_id: '3',
-        project_id: '2',
-        type: 'conditions',
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+        'edit_alert_rule.add_row',
+        {
+          name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+          organization,
+          project_id: '2',
+          type: 'conditions',
+        }
+      );
+
+      userEvent.click(screen.getByText('Save Rule'));
+
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
+    });
+
+    it('can remove actions', async function () {
+      createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
       });
 
-      // Add a filter and remove it
-      await selectEvent.select(screen.getByText('Add optional filter...'), [
-        'The issue is {comparison_type} than {value} {time}',
-      ]);
+      await waitFor(() => {
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+      });
 
-      userEvent.click(screen.getByLabelText('Delete Node'));
+      // Change name of alert rule
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [

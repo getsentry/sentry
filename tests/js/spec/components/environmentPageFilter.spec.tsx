@@ -1,11 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('EnvironmentPageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({
@@ -25,21 +24,26 @@ describe('EnvironmentPageFilter', function () {
   });
   OrganizationStore.onUpdate(organization, {replace: true});
   ProjectsStore.loadInitialData(organization.projects);
-  PageFiltersStore.onInitializeUrlState({
-    projects: [2],
-    environments: [],
-    datetime: {start: null, end: null, period: '14d', utc: null},
+
+  beforeEach(() => {
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [2],
+          environments: [],
+          datetime: {start: null, end: null, period: '14d', utc: null},
+        },
+        new Set()
+      );
+    });
   });
 
   it('can pick environment', function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EnvironmentPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<EnvironmentPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Open the environment dropdown
     expect(screen.getByText('All Environments')).toBeInTheDocument();
@@ -59,14 +63,10 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('can pin environment', async function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EnvironmentPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    mountWithTheme(<EnvironmentPageFilter />, {
+      context: routerContext,
+      organization,
+    });
     // Confirm no filters are pinned
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
@@ -87,6 +87,43 @@ describe('EnvironmentPageFilter', function () {
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
         pinnedFilters: new Set(['environments']),
+      })
+    );
+  });
+
+  it('can quick select', async function () {
+    mountWithTheme(<EnvironmentPageFilter />, {
+      context: routerContext,
+      organization,
+    });
+
+    // Open the environment dropdown
+    expect(screen.getByText('All Environments')).toBeInTheDocument();
+    userEvent.click(screen.getByText('All Environments'));
+
+    // Click the first environment directly
+    userEvent.click(screen.getByText('prod'));
+
+    // Verify we were redirected
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: {environment: ['prod']}})
+    );
+
+    await screen.findByText('prod');
+
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        isReady: true,
+        selection: {
+          datetime: {
+            end: null,
+            period: '14d',
+            start: null,
+            utc: null,
+          },
+          environments: ['prod'],
+          projects: [2],
+        },
       })
     );
   });

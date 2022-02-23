@@ -105,7 +105,8 @@ jobs:
       - name: tsc
         if: steps.dependencies.outcome == 'success' && steps.changes.outputs.frontend == 'true'
         run: |
-          yarn tsc -p config/tsconfig.build.json
+          set -o pipefail
+          yarn tsc -p config/tsconfig.build.json --diagnostics | tee /tmp/typescript-monitor.log && yarn run ts-node .github/workflows/scripts/monitor-typescript.ts
 
       - name: storybook
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'

@@ -15,6 +15,7 @@ import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
+import Field from 'sentry/components/forms/field';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -28,7 +29,6 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import Teams from 'sentry/utils/teams';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import Field from 'sentry/views/settings/components/forms/field';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelect from 'sentry/views/settings/components/teamSelect';
 
@@ -42,8 +42,8 @@ const TWO_FACTOR_REQUIRED = t(
 );
 
 type RouteParams = {
-  orgId: string;
   memberId: string;
+  orgId: string;
 };
 
 type Props = {
@@ -51,9 +51,9 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
+  member: Member | null;
   roleList: Member['roles'];
   selectedRole: Member['role'];
-  member: Member | null;
 } & AsyncView['state'];
 
 const DisabledMemberTooltip = HookOrDefault({

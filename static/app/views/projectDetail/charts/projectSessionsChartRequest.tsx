@@ -34,31 +34,34 @@ const omitIgnoredProps = (props: Props) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
 type ProjectSessionsChartRequestRenderProps = {
-  loading: boolean;
-  reloading: boolean;
   errored: boolean;
-  timeseriesData: Series[];
+  loading: boolean;
   previousTimeseriesData: Series | null;
+  reloading: boolean;
+  timeseriesData: Series[];
   totalSessions: number | null;
 };
 
 type Props = {
   api: Client;
+  children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
+  displayMode:
+    | DisplayModes.SESSIONS
+    | DisplayModes.STABILITY
+    | DisplayModes.STABILITY_USERS;
+  onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
   selection: PageFilters;
-  children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
-  onTotalValuesChange: (value: number | null) => void;
-  displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   theme: Theme;
   disablePrevious?: boolean;
   query?: string;
 };
 
 type State = {
-  reloading: boolean;
   errored: boolean;
-  timeseriesData: Series[] | null;
   previousTimeseriesData: Series | null;
+  reloading: boolean;
+  timeseriesData: Series[] | null;
   totalSessions: number | null;
 };
 
@@ -156,12 +159,19 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
     return `/organizations/${organization.slug}/sessions/`;
   }
 
+  get field() {
+    const {displayMode} = this.props;
+    return displayMode === DisplayModes.STABILITY_USERS
+      ? SessionField.USERS
+      : SessionField.SESSIONS;
+  }
+
   queryParams({shouldFetchWithPrevious = false}): Record<string, any> {
     const {selection, query, organization} = this.props;
     const {datetime, projects, environments: environment} = selection;
 
     const baseParams = {
-      field: 'sum(session)',
+      field: this.field,
       groupBy: 'session.status',
       interval: getSessionsInterval(datetime, {
         highFidelity: organization.features.includes('minute-resolution-sessions'),
@@ -192,6 +202,7 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
 
   transformData(responseData: SessionApiResponse, {fetchedWithPrevious = false}) {
     const {theme} = this.props;
+    const {field} = this;
 
     // Take the floor just in case, but data should always be divisible by 2
     const dataMiddleIndex = Math.floor(responseData.intervals.length / 2);
@@ -200,7 +211,7 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
     const totalSessions = responseData.groups.reduce(
       (acc, group) =>
         acc +
-        group.series['sum(session)']
+        group.series[field]
           .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
           .reduce((value, groupAcc) => groupAcc + value, 0),
       0
@@ -210,7 +221,7 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
       ? responseData.groups.reduce(
           (acc, group) =>
             acc +
-            group.series['sum(session)']
+            group.series[field]
               .slice(0, dataMiddleIndex)
               .reduce((value, groupAcc) => groupAcc + value, 0),
           0
@@ -228,18 +239,14 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
             const totalIntervalSessions = responseData.groups.reduce(
               (acc, group) =>
                 acc +
-                group.series['sum(session)'].slice(
-                  fetchedWithPrevious ? dataMiddleIndex : 0
-                )[i],
+                group.series[field].slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i],
               0
             );
 
             const intervalCrashedSessions =
               responseData.groups
                 .find(group => group.by['session.status'] === 'crashed')
-                ?.series['sum(session)'].slice(fetchedWithPrevious ? dataMiddleIndex : 0)[
-                i
-              ] ?? 0;
+                ?.series[field].slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i] ?? 0;
 
             const crashedSessionsPercent = percent(
               intervalCrashedSessions,
@@ -264,15 +271,14 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
           seriesName: t('Previous Period'),
           data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
             const totalIntervalSessions = responseData.groups.reduce(
-              (acc, group) =>
-                acc + group.series['sum(session)'].slice(0, dataMiddleIndex)[i],
+              (acc, group) => acc + group.series[field].slice(0, dataMiddleIndex)[i],
               0
             );
 
             const intervalCrashedSessions =
               responseData.groups
                 .find(group => group.by['session.status'] === 'crashed')
-                ?.series['sum(session)'].slice(0, dataMiddleIndex)[i] ?? 0;
+                ?.series[field].slice(0, dataMiddleIndex)[i] ?? 0;
 
             const crashedSessionsPercent = percent(
               intervalCrashedSessions,

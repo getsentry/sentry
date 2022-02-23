@@ -26,7 +26,7 @@ jest.mock('sentry/utils/analytics', () => ({
 
 describe('Incident Rules Form', () => {
   const {organization, project, routerContext} = initializeOrg({
-    organization: {features: ['metric-alert-threshold-period']},
+    organization: {features: ['metric-alert-threshold-period', 'change-alerts']},
   });
   const createWrapper = props =>
     mountWithTheme(
@@ -169,6 +169,37 @@ describe('Incident Rules Form', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'new name',
+          }),
+        })
+      );
+    });
+
+    it('switches from percent change to count', async () => {
+      createWrapper({
+        ruleId: rule.id,
+        rule: {
+          ...rule,
+          timeWindow: 60,
+          comparisonDelta: 100,
+          eventTypes: ['error'],
+          resolution: 2,
+        },
+      });
+
+      expect(screen.getByLabelText('Select Percent Change')).toBeInTheDocument();
+      expect(screen.getByLabelText('Select Percent Change')).toBeChecked();
+
+      userEvent.click(screen.getByLabelText('Select Count'));
+      await waitFor(() => expect(screen.getByLabelText('Select Count')).toBeChecked());
+
+      userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            // Comparison delta is reset
+            comparisonDelta: null,
           }),
         })
       );

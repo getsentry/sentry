@@ -4,6 +4,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -13,23 +14,22 @@ import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields'
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
+import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import WidgetQueryFields from './widgetQueryFields';
 
 type Props = {
   api: Client;
-  organization: Organization;
-  selection: PageFilters;
-  query: WidgetQuery;
-  error?: Record<string, any>;
-  onChange: (widgetQuery: WidgetQuery) => void;
-  tags: TagCollection;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
+  onChange: (widgetQuery: WidgetQuery) => void;
+  organization: Organization;
+  query: WidgetQuery;
+  selection: PageFilters;
+  tags: TagCollection;
+  error?: Record<string, any>;
 };
 
 type State = {

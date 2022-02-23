@@ -2,6 +2,9 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import SelectField from 'sentry/components/forms/selectField';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {fields} from 'sentry/data/forms/accountNotificationSettings';
@@ -19,9 +22,6 @@ import {
   isGroupedByProject,
 } from 'sentry/views/settings/account/notifications/utils';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -33,8 +33,8 @@ const PanelBodyLineItem = styled(PanelBody)`
 `;
 
 type ANBPProps = {
-  projects: Project[];
   field: FineTuneField;
+  projects: Project[];
 };
 
 const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
@@ -77,8 +77,8 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
 };
 
 type ANBOProps = {
-  organizations: Organization[];
   field: FineTuneField;
+  organizations: Organization[];
 };
 
 const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) => {
@@ -121,9 +121,9 @@ type Props = AsyncView['props'] &
 
 type State = AsyncView['state'] & {
   emails: UserEmail[] | null;
-  projects: Project[] | null;
-  notifications: Record<string, any> | null;
   fineTuneData: Record<string, any> | null;
+  notifications: Record<string, any> | null;
+  projects: Project[] | null;
 };
 
 class AccountNotificationFineTuning extends AsyncView<Props, State> {

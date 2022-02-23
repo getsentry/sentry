@@ -25,10 +25,10 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  organization: Organization;
-  repository: Repository;
   api: Client;
   orgId: string;
+  organization: Organization;
+  repository: Repository;
   onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
 };
 

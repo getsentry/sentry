@@ -27,9 +27,7 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import MissingReleasesButtons, {
-  MissingReleaseButtonBar,
-} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
   displayCrashFreePercent,
@@ -40,9 +38,9 @@ import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
 
 type Props = {
   api: Client;
+  hasProjectAccess: boolean;
   organization: Organization;
   project: Project;
-  hasProjectAccess: boolean;
 };
 
 class ProjectCard extends Component<Props> {
@@ -236,9 +234,9 @@ class ProjectCard extends Component<Props> {
 
 type ContainerProps = {
   api: Client;
-  project: Project;
-  organization: Organization;
   hasProjectAccess: boolean;
+  organization: Organization;
+  project: Project;
 };
 
 type ContainerState = {
@@ -332,14 +330,6 @@ const FooterWrapper = styled('div')`
     box-shadow: none;
     font-size: ${p => p.theme.fontSizeMedium};
     padding: 0;
-  }
-  ${MissingReleaseButtonBar} {
-    a {
-      background-color: ${p => p.theme.background};
-      border: 1px solid ${p => p.theme.border};
-      border-radius: ${p => p.theme.borderRadius};
-      color: ${p => p.theme.gray500};
-    }
   }
 `;
 

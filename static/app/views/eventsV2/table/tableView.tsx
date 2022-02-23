@@ -47,26 +47,27 @@ import {getExpandedResults, pushEventViewToLocation} from '../utils';
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
+import TopResultsIndicator from './topResultsIndicator';
 import {TableColumn} from './types';
 
 export type TableViewProps = {
-  location: Location;
-  organization: Organization;
-  projects: Project[];
+  error: string | null;
+  eventView: EventView;
+  isFirstPage: boolean;
 
   isLoading: boolean;
-  error: string | null;
+  location: Location;
 
-  isFirstPage: boolean;
-  eventView: EventView;
+  measurementKeys: null | string[];
+  onChangeShowTags: () => void;
+  organization: Organization;
+  projects: Project[];
+  showTags: boolean;
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
-  measurementKeys: null | string[];
-  spanOperationBreakdownKeys?: string[];
-  title: string;
 
-  onChangeShowTags: () => void;
-  showTags: boolean;
+  title: string;
+  spanOperationBreakdownKeys?: string[];
 };
 
 /**
@@ -373,8 +374,11 @@ class TableView extends React.Component<TableViewProps> {
 
       switch (action) {
         case Actions.TRANSACTION: {
-          const maybeProject = projects.find(project => project.slug === dataRow.project);
-
+          const maybeProject = projects.find(
+            project =>
+              project.slug &&
+              [dataRow['project.name'], dataRow.project].includes(project.slug)
+          );
           const projectID = maybeProject ? [maybeProject.id] : undefined;
 
           const next = transactionSummaryRouteWithQuery({
@@ -536,28 +540,6 @@ const StyledLink = styled(Link)`
 
 const StyledIcon = styled(IconStack)`
   vertical-align: middle;
-`;
-
-type TopResultsIndicatorProps = {
-  count: number;
-  index: number;
-};
-
-const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
-  position: absolute;
-  left: -1px;
-  margin-top: 4.5px;
-  width: 9px;
-  height: 15px;
-  border-radius: 0 3px 3px 0;
-
-  background-color: ${p => {
-    // this background color needs to match the colors used in
-    // app/components/charts/eventsChart so that the ordering matches
-
-    // the color pallete contains n + 2 colors, so we subtract 2 here
-    return p.theme.charts.getColorPalette(p.count - 2)[p.index];
-  }};
 `;
 
 export default withProjects(TableView);

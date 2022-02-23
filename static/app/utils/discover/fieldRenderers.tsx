@@ -56,8 +56,8 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
  * Types, functions and definitions for rendering fields in discover results.
  */
 type RenderFunctionBaggage = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
   eventView?: EventView;
 };
 
@@ -74,6 +74,7 @@ type FieldFormatter = {
 };
 
 type FieldFormatters = {
+  array: FieldFormatter;
   boolean: FieldFormatter;
   date: FieldFormatter;
   duration: FieldFormatter;
@@ -81,7 +82,6 @@ type FieldFormatters = {
   number: FieldFormatter;
   percentage: FieldFormatter;
   string: FieldFormatter;
-  array: FieldFormatter;
 };
 
 export type FieldTypes = keyof FieldFormatters;
@@ -191,25 +191,25 @@ type SpecialFieldRenderFunc = (
 ) => React.ReactNode;
 
 type SpecialField = {
-  sortField: string | null;
   renderFunc: SpecialFieldRenderFunc;
+  sortField: string | null;
 };
 
 type SpecialFields = {
-  id: SpecialField;
-  trace: SpecialField;
-  project: SpecialField;
-  user: SpecialField;
-  'user.display': SpecialField;
   'count_unique(user)': SpecialField;
-  'issue.id': SpecialField;
   'error.handled': SpecialField;
+  id: SpecialField;
   issue: SpecialField;
+  'issue.id': SpecialField;
+  project: SpecialField;
   release: SpecialField;
   team_key_transaction: SpecialField;
-  'trend_percentage()': SpecialField;
-  'timestamp.to_hour': SpecialField;
   'timestamp.to_day': SpecialField;
+  'timestamp.to_hour': SpecialField;
+  trace: SpecialField;
+  'trend_percentage()': SpecialField;
+  user: SpecialField;
+  'user.display': SpecialField;
 };
 
 /**
@@ -661,11 +661,13 @@ const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldRenderer(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
@@ -675,7 +677,7 @@ export function getFieldRenderer(
     return spanOperationRelativeBreakdownRenderer;
   }
 
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   for (const alias in SPECIAL_FUNCTIONS) {
@@ -698,13 +700,15 @@ type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactN
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldFormatter(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldTypeFormatterRenderFunctionPartial {
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {

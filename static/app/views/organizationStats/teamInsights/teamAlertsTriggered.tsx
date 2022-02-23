@@ -21,17 +21,13 @@ import {Color} from 'sentry/utils/theme';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
-import {
-  barAxisLabel,
-  convertDaySeriesToWeeks,
-  convertDayValueObjectToSeries,
-} from './utils';
+import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
 type AlertsTriggered = Record<string, number>;
 
 type AlertsTriggeredRule = IncidentRule & {
-  weeklyAvg: number;
   totalThisWeek: number;
+  weeklyAvg: number;
 };
 
 type Props = AsyncComponent['props'] & {
@@ -125,7 +121,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
   renderBody() {
     const {organization, period, projects} = this.props;
     const {alertsTriggered, alertsTriggeredRules} = this.state;
-    const seriesData = convertDaySeriesToWeeks(
+    const seriesData = sortSeriesByDay(
       convertDayValueObjectToSeries(alertsTriggered ?? {})
     );
 

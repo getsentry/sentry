@@ -1,5 +1,6 @@
 import set from 'lodash/set';
 
+import {FieldObject} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {OrganizationSummary, Project} from 'sentry/types';
 import {
@@ -11,7 +12,6 @@ import {
 } from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
 import ParentLabel from 'sentry/views/settings/account/notifications/parentLabel';
-import {FieldObject} from 'sentry/views/settings/components/forms/type';
 
 /**
  * Which fine-tuning parts are grouped by project
@@ -426,7 +426,7 @@ export const getParentField = (
 export function getDocsLinkForEventType(event: 'error' | 'transaction' | 'attachment') {
   switch (event) {
     case 'transaction':
-      return 'https://docs.sentry.io/product/performance/transaction-summary/';
+      return 'https://docs.sentry.io/product/performance/transaction-summary/#what-is-a-transaction';
     case 'attachment':
       return 'https://docs.sentry.io/product/accounts/quotas/#attachment-limits';
     default:

@@ -35,20 +35,20 @@ import {
   getDefaultDisplayForPlatform,
   getLandingDisplayFromParam,
   handleLandingDisplayChange,
-  LANDING_V3_DISPLAYS,
+  LANDING_DISPLAYS,
   LandingDisplayField,
 } from './utils';
 
 type Props = {
-  organization: Organization;
   eventView: EventView;
-  location: Location;
-  projects: Project[];
-  selection: PageFilters;
-  shouldShowOnboarding: boolean;
-  setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  selection: PageFilters;
+  setError: (msg: string | undefined) => void;
+  shouldShowOnboarding: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -101,10 +101,6 @@ export function PerformanceLanding(props: Props) {
 
   const showOnboarding = shouldShowOnboarding;
 
-  const shownLandingDisplays = LANDING_V3_DISPLAYS.filter(
-    ({isShown}) => !isShown || isShown(organization)
-  );
-
   const ViewComponent = fieldToViewMap[landingDisplay.field];
 
   return (
@@ -129,7 +125,7 @@ export function PerformanceLanding(props: Props) {
         </Layout.HeaderActions>
 
         <Layout.HeaderNavTabs>
-          {shownLandingDisplays.map(({label, field}) => (
+          {LANDING_DISPLAYS.map(({label, field}) => (
             <li key={label} className={landingDisplay.field === field ? 'active' : ''}>
               <a
                 href="#"

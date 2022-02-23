@@ -1,46 +1,9 @@
 export type DashboardsEventParameters = {
-  'dashboards_views.add_widget_modal.opened': {};
-  'dashboards_views.add_widget_modal.change': {
-    from: string;
-    field: string;
-    value: string;
-    widget_type: string;
-  };
-  'dashboards_views.edit_widget_modal.opened': {};
-  'dashboards_views.query_selector.opened': {
-    widget_type: string;
-  };
-  'dashboards_views.query_selector.selected': {
-    widget_type: string;
-  };
-  'dashboards_views.open_in_discover.opened': {
-    widget_type: string;
-  };
-  'dashboards_views.add_widget_modal.confirm': {
-    data_set: string;
-  };
-  'dashboards_views.add_widget_modal.save': {
-    data_set: string;
-  };
-  'dashboards_views.edit_widget_modal.confirm': {};
-  'dashboards_views.widget_library.add': {
-    num_widgets: number;
-  };
-  'dashboards_views.widget_library.add_widget': {
-    title: string;
-  };
-  'dashboards_views.widget_library.switch_tab': {
-    to: string;
-  };
-  'dashboards_views.widget_library.opened': {};
-  'dashboards_manage.search': {};
   'dashboards_manage.change_sort': {
     sort: string;
   };
   'dashboards_manage.create.start': {};
-  'dashboards_manage.templates.toggle': {
-    show_templates: boolean;
-  };
+  'dashboards_manage.search': {};
   'dashboards_manage.templates.add': {
     dashboard_id: string;
     dashboard_title: string;
@@ -48,6 +11,43 @@ export type DashboardsEventParameters = {
   };
   'dashboards_manage.templates.preview': {
     dashboard_id: string;
+  };
+  'dashboards_manage.templates.toggle': {
+    show_templates: boolean;
+  };
+  'dashboards_views.add_widget_modal.change': {
+    field: string;
+    from: string;
+    value: string;
+    widget_type: string;
+  };
+  'dashboards_views.add_widget_modal.confirm': {
+    data_set: string;
+  };
+  'dashboards_views.add_widget_modal.opened': {};
+  'dashboards_views.add_widget_modal.save': {
+    data_set: string;
+  };
+  'dashboards_views.edit_widget_modal.confirm': {};
+  'dashboards_views.edit_widget_modal.opened': {};
+  'dashboards_views.open_in_discover.opened': {
+    widget_type: string;
+  };
+  'dashboards_views.query_selector.opened': {
+    widget_type: string;
+  };
+  'dashboards_views.query_selector.selected': {
+    widget_type: string;
+  };
+  'dashboards_views.widget_library.add': {
+    num_widgets: number;
+  };
+  'dashboards_views.widget_library.add_widget': {
+    title: string;
+  };
+  'dashboards_views.widget_library.opened': {};
+  'dashboards_views.widget_library.switch_tab': {
+    to: string;
   };
 };
 

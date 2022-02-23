@@ -2,11 +2,11 @@ import {Component, Fragment} from 'react';
 import find from 'lodash/find';
 import flatMap from 'lodash/flatMap';
 
+import FormContext from 'sentry/components/forms/formContext';
+import SelectField from 'sentry/components/forms/selectField';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Permissions} from 'sentry/types/index';
-import FormContext from 'sentry/views/settings/components/forms/formContext';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning
@@ -79,9 +79,9 @@ import SelectField from 'sentry/views/settings/components/forms/selectField';
  */
 
 type Props = {
-  permissions: Permissions;
-  onChange: (permissions: Permissions) => void;
   appPublished: boolean;
+  onChange: (permissions: Permissions) => void;
+  permissions: Permissions;
 };
 
 type State = {

@@ -2,7 +2,7 @@ import round from 'lodash/round';
 
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {SessionField} from 'sentry/types';
+import {Organization, SessionField} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -17,7 +17,7 @@ import {
   SessionsAggregate,
 } from 'sentry/views/alerts/incidentRules/types';
 
-import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {AlertRuleStatus, Incident, IncidentStats, IncidentStatus} from '../types';
 
 // Use this api for requests that are getting cancelled
 const uncancellableApi = new Client();
@@ -170,7 +170,7 @@ export function convertDatasetEventTypesToSource(
  */
 export function getQueryDatasource(
   query: string
-): {source: Datasource; query: string} | null {
+): {query: string; source: Datasource} | null {
   let match = query.match(
     /\(?\bevent\.type:(error|default|transaction)\)?\WOR\W\(?event\.type:(error|default|transaction)\)?/i
   );
@@ -230,4 +230,13 @@ export function shouldScaleAlertChart(aggregate: string) {
   // We want crash free rate charts to be scaled because they are usually too
   // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
   return isSessionAggregate(aggregate);
+}
+
+export function alertDetailsLink(organization: Organization, incident: Incident) {
+  return `/organizations/${organization.slug}/alerts/rules/details/${
+    incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+    incident.alertRule.originalAlertRuleId
+      ? incident.alertRule.originalAlertRuleId
+      : incident.alertRule.id
+  }/`;
 }

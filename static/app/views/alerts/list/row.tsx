@@ -17,14 +17,13 @@ import space from 'sentry/styles/space';
 import {Actor, Organization, Project} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {alertDetailsLink} from 'sentry/views/alerts/details';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
   API_INTERVAL_POINTS_MIN,
 } from '../rules/details/constants';
 import {Incident, IncidentStatus} from '../types';
-import {getIncidentMetricPreset} from '../utils';
+import {alertDetailsLink, getIncidentMetricPreset} from '../utils';
 
 /**
  * Retrieve the start/end for showing the graph of the metric
@@ -32,7 +31,7 @@ import {getIncidentMetricPreset} from '../utils';
  */
 export const makeRuleDetailsQuery = (
   incident: Incident
-): {start: string; end: string} => {
+): {end: string; start: string} => {
   const {timeWindow} = incident.alertRule;
   const timeWindowMillis = timeWindow * 60 * 1000;
   const minRange = timeWindowMillis * API_INTERVAL_POINTS_MIN;
@@ -53,10 +52,10 @@ export const makeRuleDetailsQuery = (
 
 type Props = {
   incident: Incident;
-  projects: Project[];
-  projectsLoaded: boolean;
   orgId: string;
   organization: Organization;
+  projects: Project[];
+  projectsLoaded: boolean;
 };
 
 class AlertListRow extends Component<Props> {

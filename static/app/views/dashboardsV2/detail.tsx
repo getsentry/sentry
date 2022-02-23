@@ -59,13 +59,13 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   api: Client;
-  organization: Organization;
-  initialState: DashboardState;
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
+  initialState: DashboardState;
+  organization: Organization;
   route: PlainRoute;
-  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
 };
 
 type State = {
@@ -100,29 +100,13 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   checkStateRoute() {
-    const {router, organization, params} = this.props;
+    const {organization, params} = this.props;
     const {dashboardId} = params;
 
     const dashboardDetailsRoute = `/organizations/${organization.slug}/dashboard/${dashboardId}/`;
 
-    if (this.isWidgetBuilderRouter && !this.isEditing) {
-      router.replace(dashboardDetailsRoute);
-    }
-
     if (location.pathname === dashboardDetailsRoute && !!this.state.widgetToBeUpdated) {
       this.onSetWidgetToBeUpdated(undefined);
-    }
-  }
-
-  updateRouteAfterSavingWidget() {
-    if (this.isWidgetBuilderRouter) {
-      const {router, organization, params} = this.props;
-      const {dashboardId} = params;
-      if (dashboardId) {
-        router.replace(`/organizations/${organization.slug}/dashboard/${dashboardId}/`);
-        return;
-      }
-      router.replace(`/organizations/${organization.slug}/dashboards/new/`);
     }
   }
 
@@ -155,26 +139,16 @@ class DashboardDetail extends Component<Props, State> {
 
   get isWidgetBuilderRouter() {
     const {location, params, organization} = this.props;
-    const {dashboardId} = params;
-
-    const newWidgetRoutes = [
-      `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-    ];
-
-    return newWidgetRoutes.includes(location.pathname) || this.isWidgetBuilderEditRouter;
-  }
-
-  get isWidgetBuilderEditRouter() {
-    const {location, params, organization} = this.props;
     const {dashboardId, widgetId} = params;
 
-    const widgetEditRoutes = [
+    const widgetBuilderRoutes = [
+      `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
       `/organizations/${organization.slug}/dashboards/new/widget/${widgetId}/edit/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetId}/edit/`,
     ];
 
-    return widgetEditRoutes.includes(location.pathname);
+    return widgetBuilderRoutes.includes(location.pathname);
   }
 
   get dashboardTitle() {
@@ -316,9 +290,11 @@ class DashboardDetail extends Component<Props, State> {
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
-    const layoutColumnDepths = calculateColumnDepths(
-      getDashboardLayout(dashboard.widgets)
-    );
+
+    // Use the new widgets for calculating layout because widgets has
+    // the most up to date information in edit state
+    const currentLayout = getDashboardLayout(widgets);
+    const layoutColumnDepths = calculateColumnDepths(currentLayout);
     const newModifiedDashboard = {
       ...cloneDashboard(modifiedDashboard || dashboard),
       widgets: assignDefaultLayout(widgets, layoutColumnDepths),
@@ -334,6 +310,9 @@ class DashboardDetail extends Component<Props, State> {
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
+          this.setState({
+            modifiedDashboard: null,
+          });
         }
         addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {
@@ -362,6 +341,7 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
+
     openAddDashboardWidgetModal({
       organization,
       dashboard,
@@ -480,18 +460,15 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onUpdateWidget = (widgets: Widget[]) => {
-    this.setState(
-      (state: State) => ({
-        ...state,
-        widgetToBeUpdated: undefined,
-        widgetLimitReached: widgets.length >= MAX_WIDGETS,
-        modifiedDashboard: {
-          ...(state.modifiedDashboard || this.props.dashboard),
-          widgets,
-        },
-      }),
-      this.updateRouteAfterSavingWidget
-    );
+    this.setState((state: State) => ({
+      ...state,
+      widgetToBeUpdated: undefined,
+      widgetLimitReached: widgets.length >= MAX_WIDGETS,
+      modifiedDashboard: {
+        ...(state.modifiedDashboard || this.props.dashboard),
+        widgets,
+      },
+    }));
   };
 
   renderWidgetBuilder(dashboard: DashboardDetails) {
@@ -566,7 +543,6 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   getBreadcrumbLabel() {
-    const {organization, dashboard} = this.props;
     const {dashboardState} = this.state;
 
     let label = this.dashboardTitle;
@@ -574,11 +550,6 @@ class DashboardDetail extends Component<Props, State> {
       label = t('Create Dashboard');
     } else if (this.isPreview) {
       label = t('Preview Dashboard');
-    } else if (
-      organization.features.includes('dashboards-edit') &&
-      dashboard.id === 'default-overview'
-    ) {
-      label = t('Default Dashboard');
     }
     return label;
   }
@@ -668,7 +639,7 @@ class DashboardDetail extends Component<Props, State> {
   render() {
     const {organization, dashboard} = this.props;
 
-    if (this.isEditing && this.isWidgetBuilderRouter) {
+    if (this.isWidgetBuilderRouter) {
       return this.renderWidgetBuilder(dashboard);
     }
 

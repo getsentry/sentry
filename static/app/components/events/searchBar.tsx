@@ -34,10 +34,10 @@ type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> 
   api: Client;
   organization: Organization;
   tags: TagCollection;
-  omitTags?: string[];
-  projectIds?: number[] | Readonly<number[]>;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
+  omitTags?: string[];
+  projectIds?: number[] | Readonly<number[]>;
 };
 
 class SearchBar extends React.PureComponent<SearchBarProps> {
@@ -119,11 +119,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
       ? Object.assign({}, measurements, FIELD_TAGS, functionTags)
       : omit(FIELD_TAGS, TRACING_FIELDS);
 
-    const semverTags = organization.features.includes('semver')
-      ? Object.assign({}, SEMVER_TAGS, fieldTags)
-      : fieldTags;
-
-    const combined = assign({}, tags, semverTags);
+    const combined = assign({}, tags, fieldTags, SEMVER_TAGS);
     combined.has = {
       key: 'has',
       name: 'Has property',
@@ -135,9 +131,8 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
   }
 
   render() {
-    const {organization} = this.props;
     return (
-      <Measurements organization={organization}>
+      <Measurements>
         {({measurements}) => {
           const tags = this.getTagList(measurements);
           return (

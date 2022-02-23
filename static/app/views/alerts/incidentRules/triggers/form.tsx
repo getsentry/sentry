@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client} from 'sentry/api';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import Field from 'sentry/components/forms/field';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Config, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import ThresholdControl from 'sentry/views/alerts/incidentRules/triggers/thresholdControl';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {isSessionAggregate} from '../../utils';
 import {
@@ -23,31 +23,31 @@ import {
 } from '../types';
 
 type Props = {
+  aggregate: UnsavedIncidentRule['aggregate'];
   api: Client;
+  comparisonType: AlertRuleComparisonType;
   config: Config;
-  disabled: boolean;
-  organization: Organization;
 
+  disabled: boolean;
+  fieldHelp: React.ReactNode;
+  isCritical: boolean;
+  onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
+  onThresholdPeriodChange: (value: number) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  organization: Organization;
+  placeholder: string;
+  projects: Project[];
+  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
+  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
+  thresholdType: UnsavedIncidentRule['thresholdType'];
+  trigger: Trigger;
+
+  triggerIndex: number;
+  triggerLabel: React.ReactNode;
   /**
    * Map of fieldName -> errorMessage
    */
   error?: {[fieldName: string]: string};
-  projects: Project[];
-  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
-  thresholdType: UnsavedIncidentRule['thresholdType'];
-  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
-  comparisonType: AlertRuleComparisonType;
-  aggregate: UnsavedIncidentRule['aggregate'];
-  trigger: Trigger;
-  triggerIndex: number;
-  isCritical: boolean;
-  fieldHelp: React.ReactNode;
-  triggerLabel: React.ReactNode;
-  placeholder: string;
-
-  onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
-  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
-  onThresholdPeriodChange: (value: number) => void;
 };
 
 class TriggerForm extends React.PureComponent<Props> {
@@ -120,12 +120,12 @@ type TriggerFormContainerProps = Omit<
   | 'triggerLabel'
   | 'placeholder'
 > & {
-  triggers: Trigger[];
-  errors?: Map<number, {[fieldName: string]: string}>;
   onChange: (triggerIndex: number, trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onResolveThresholdChange: (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => void;
+  triggers: Trigger[];
+  errors?: Map<number, {[fieldName: string]: string}>;
 };
 
 class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {

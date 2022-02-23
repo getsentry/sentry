@@ -11,11 +11,11 @@ export const prettyDate = function (x) {
 };
 
 type Row = {
-  id: string;
-  username: string;
-  email: string;
   dateJoined: string;
+  email: string;
+  id: string;
   lastLogin: string;
+  username: string;
 };
 
 type Props = {

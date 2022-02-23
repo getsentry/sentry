@@ -52,23 +52,23 @@ import {generateTitle} from './utils';
 
 type Props = {
   api: Client;
-  router: InjectedRouter;
+  loading: boolean;
   location: Location;
   organization: Organization;
+  router: InjectedRouter;
   selection: PageFilters;
   savedQuery?: SavedQuery;
-  loading: boolean;
 };
 
 type State = {
-  eventView: EventView;
+  confirmedQuery: boolean;
   error: string;
   errorCode: number;
-  totalValues: null | number;
-  showTags: boolean;
-  needConfirmation: boolean;
-  confirmedQuery: boolean;
+  eventView: EventView;
   incompatibleAlertNotice: React.ReactNode;
+  needConfirmation: boolean;
+  showTags: boolean;
+  totalValues: null | number;
   savedQuery?: SavedQuery;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
@@ -495,6 +495,7 @@ class Results extends React.Component<Props, State> {
               eventView={eventView}
               onIncompatibleAlertQuery={this.handleIncompatibleQuery}
               yAxis={yAxisArray}
+              router={router}
             />
             <Layout.Body>
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}

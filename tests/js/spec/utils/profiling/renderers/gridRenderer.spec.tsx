@@ -57,7 +57,7 @@ describe('getIntervalTimeAtX', () => {
       physicalSpace
     );
 
-    expect(getIntervalTimeAtX(configToPhysical, 500)).toBe(20);
+    expect(getIntervalTimeAtX(configToPhysical, 500)).toBe(15);
   });
 });
 

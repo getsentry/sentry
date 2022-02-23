@@ -8,22 +8,29 @@ import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import withOrganization from 'sentry/utils/withOrganization';
+import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
 type Props = {
-  organization: Organization;
-  location: Location;
-  loading: boolean;
-  fields: string[];
-  title: string;
-  metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
+  fields: string[];
+  loading: boolean;
+  location: Location;
+  metadata: TableData['meta'] | undefined;
+  organization: Organization;
+  title: string;
   className?: string;
-  getCustomFieldRenderer?: typeof getFieldRenderer;
   fieldHeaderMap?: Record<string, string>;
+  getCustomFieldRenderer?: (
+    field: string,
+    meta: MetaType
+  ) => ReturnType<typeof getFieldRenderer> | null;
+  stickyHeaders?: boolean;
+  topResultsIndicators?: number;
 };
 
 class SimpleTableChart extends Component<Props> {
@@ -33,20 +40,36 @@ class SimpleTableChart extends Component<Props> {
     tableMeta: NonNullable<TableData['meta']>,
     columns: ReturnType<typeof decodeColumnOrder>
   ) {
-    const {location, organization, getCustomFieldRenderer} = this.props;
+    const {location, organization, getCustomFieldRenderer, topResultsIndicators} =
+      this.props;
 
-    return columns.map(column => {
+    return columns.map((column, columnIndex) => {
       const fieldRenderer =
         getCustomFieldRenderer?.(column.key, tableMeta) ??
         getFieldRenderer(column.key, tableMeta);
       const rendered = fieldRenderer(row, {organization, location});
-      return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
+      return (
+        <TableCell key={`${index}-${columnIndex}:${column.name}`}>
+          {topResultsIndicators && columnIndex === 0 && (
+            <TopResultsIndicator count={topResultsIndicators} index={index} />
+          )}
+          {rendered}
+        </TableCell>
+      );
     });
   }
 
   render() {
-    const {className, loading, fields, metadata, data, title, fieldHeaderMap} =
-      this.props;
+    const {
+      className,
+      loading,
+      fields,
+      metadata,
+      data,
+      title,
+      fieldHeaderMap,
+      stickyHeaders,
+    } = this.props;
     const meta = metadata ?? {};
     const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
@@ -67,6 +90,7 @@ class SimpleTableChart extends Component<Props> {
             );
           })}
           isEmpty={!data?.length}
+          stickyHeaders={stickyHeaders}
           disablePadding
         >
           {data?.map((row, index) => this.renderRow(index, row, meta, columns))}

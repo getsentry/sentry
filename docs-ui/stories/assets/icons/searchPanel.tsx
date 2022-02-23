@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
 import debounce from 'lodash/debounce';
 
-import TextField from 'app/components/forms/textField';
+import TextField from 'app/components/deprecatedforms/textField';
 import space from 'app/styles/space';
 
 import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
@@ -14,7 +14,7 @@ export type ExtendedIconData = IconData & {
   defaultProps?: Partial<Record<IconPropName, unknown>>;
 };
 
-type Results = {id: string; label?: string; icons: ExtendedIconData[]}[];
+type Results = {icons: ExtendedIconData[]; id: string; label?: string}[];
 
 export type SelectedIcon = {
   group: string;
@@ -132,7 +132,7 @@ const SearchPanel = () => {
     <Wrap>
       <TextField
         name="query"
-        placeholder="Search icons"
+        placeholder="Search icons by name or similar keywords"
         value={query}
         onChange={value => {
           setQuery(value as string);
@@ -171,13 +171,14 @@ const GroupWrap = styled('div')`
 `;
 
 const GroupLabel = styled('p')`
-  font-size: 1.125rem;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: bold;
   margin-bottom: 0;
 `;
 
 const GroupIcons = styled('div')`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: ${space(1)};
   margin-top: ${space(1)};
 `;

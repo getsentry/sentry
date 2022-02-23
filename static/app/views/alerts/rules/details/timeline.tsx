@@ -14,7 +14,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {alertDetailsLink} from 'sentry/views/alerts/details';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {
   ActivityType,
@@ -23,6 +22,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from 'sentry/views/alerts/types';
+import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
 export function getTriggerName(value: string | null) {
   if (value === `${IncidentStatus.WARNING}`) {
@@ -39,8 +39,8 @@ export function getTriggerName(value: string | null) {
 
 type IncidentProps = {
   api: Client;
-  organization: Organization;
   incident: Incident;
+  organization: Organization;
   rule: IncidentRule;
 };
 
@@ -181,9 +181,9 @@ class TimelineIncident extends React.Component<IncidentProps> {
 
 type Props = {
   api: Client;
-  rule?: IncidentRule;
   organization: Organization;
   incidents?: Incident[];
+  rule?: IncidentRule;
 };
 
 class Timeline extends React.Component<Props> {

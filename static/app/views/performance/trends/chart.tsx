@@ -35,18 +35,18 @@ import {
 
 type Props = WithRouterProps &
   ViewProps & {
+    isLoading: boolean;
     location: Location;
     organization: OrganizationSummary;
-    trendChangeType: TrendChangeType;
-    trendFunctionField?: TrendFunctionField;
-    isLoading: boolean;
-    statsData: TrendsStats;
     projects: Project[];
-    transaction?: NormalizedTrendsTransaction;
-    height?: number;
-    grid?: React.ComponentProps<typeof LineChart>['grid'];
-    disableXAxis?: boolean;
+    statsData: TrendsStats;
+    trendChangeType: TrendChangeType;
     disableLegend?: boolean;
+    disableXAxis?: boolean;
+    grid?: React.ComponentProps<typeof LineChart>['grid'];
+    height?: number;
+    transaction?: NormalizedTrendsTransaction;
+    trendFunctionField?: TrendFunctionField;
   };
 
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
@@ -233,6 +233,8 @@ export function Chart({
   disableLegend,
   grid,
   height,
+  projects,
+  project,
 }: Props) {
   const theme = useTheme();
 
@@ -263,7 +265,7 @@ export function Chart({
   const data = events?.data ?? [];
 
   const trendFunction = getCurrentTrendFunction(location, trendFunctionField);
-  const trendParameter = getCurrentTrendParameter(location);
+  const trendParameter = getCurrentTrendParameter(location, projects, project);
   const chartLabel = generateTrendFunctionAsString(
     trendFunction.field,
     trendParameter.column

@@ -1,6 +1,7 @@
 import mean from 'lodash/mean';
 import moment from 'moment';
 
+import {getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -195,7 +196,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     }));
 
     return {
-      seriesName: `previous ${metricsField}`,
+      seriesName: getPreviousSeriesName(metricsField),
       stack: 'previous',
       data: series.some(serie => defined(serie.value)) ? series : [],
     };

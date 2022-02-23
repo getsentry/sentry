@@ -54,9 +54,9 @@ function generateEventView({
   transactionName,
   isMetricsData,
 }: {
+  isMetricsData: boolean;
   location: Location;
   transactionName: string;
-  isMetricsData: boolean;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
