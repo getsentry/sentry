@@ -72,7 +72,7 @@ const OptionsMenuContainer = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
-  justify-content: flex-start;
+  justify-content: flex-end;
 `;
 
 export {FlamegraphOptionsMenu};
