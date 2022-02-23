@@ -6,7 +6,8 @@ function FlamegraphView() {
   return (
     <FlamegraphThemeProvider>
       <FullScreenFlamegraphContainer>
-        {/* @ts-ignore */}
+        {/*
+        // @ts-ignore */}
         <Flamegraph profiles={} />
       </FullScreenFlamegraphContainer>
     </FlamegraphThemeProvider>
