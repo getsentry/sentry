@@ -84,9 +84,7 @@ type State = {
   projects: Project[];
   query: string;
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
-
   thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
-
   thresholdType: UnsavedIncidentRule['thresholdType'];
   timeWindow: number;
   triggerErrors: Map<number, {[fieldName: string]: string}>;
@@ -697,6 +695,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const canEdit =
       isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
 
+    const hasAlertWizardV3 =
+      Boolean(isCustomMetric) && organization.features.includes('alert-wizard-v3');
+
     const triggerForm = (hasAccess: boolean) => (
       <Triggers
         disabled={!hasAccess || !canEdit}
@@ -712,15 +713,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         organization={organization}
         ruleId={ruleId}
         availableActions={this.state.availableActions}
+        hasAlertWizardV3={hasAlertWizardV3}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
         onThresholdPeriodChange={this.handleThresholdPeriodChange}
         onResolveThresholdChange={this.handleResolveThresholdChange}
       />
     );
-
-    const hasAlertWizardV3 =
-      Boolean(isCustomMetric) && organization.features.includes('alert-wizard-v3');
 
     const ruleNameOwnerForm = (hasAccess: boolean) => (
       <RuleNameOwnerForm
