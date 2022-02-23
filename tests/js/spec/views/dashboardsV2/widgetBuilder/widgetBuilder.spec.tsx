@@ -3,26 +3,13 @@ import React from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Organization} from 'sentry/types';
 import {
   DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-function TestComponent({
-  organization,
-  ...props
-}: WidgetBuilderProps & {organization: Organization}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <WidgetBuilder {...props} />
-    </OrganizationContext.Provider>
-  );
-}
+import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
 
 describe('WidgetBuilder', function () {
   it('no feature access', function () {
@@ -37,7 +24,7 @@ describe('WidgetBuilder', function () {
     };
 
     mountWithTheme(
-      <TestComponent
+      <WidgetBuilder
         route={{}}
         router={router}
         routes={router.routes}
@@ -45,11 +32,11 @@ describe('WidgetBuilder', function () {
         location={router.location}
         dashboard={dashboard}
         onSave={jest.fn()}
-        organization={organization}
         params={{orgId: organization.slug}}
       />,
       {
         context: routerContext,
+        organization,
       }
     );
 
@@ -101,7 +88,7 @@ describe('WidgetBuilder', function () {
     };
 
     mountWithTheme(
-      <TestComponent
+      <WidgetBuilder
         route={{}}
         router={router}
         routes={router.routes}
@@ -110,15 +97,17 @@ describe('WidgetBuilder', function () {
         dashboard={dashboard}
         onSave={jest.fn()}
         widget={widget}
-        organization={organization}
         params={{orgId: organization.slug, widgetId: Number(widget.id)}}
       />,
       {
         context: routerContext,
+        organization,
       }
     );
 
-    expect(screen.getByText('Widget not found.')).toBeInTheDocument();
+    expect(
+      screen.getByText('The widget you want to edit was not found.')
+    ).toBeInTheDocument();
   });
 
   it('renders', async function () {
@@ -145,7 +134,7 @@ describe('WidgetBuilder', function () {
     };
 
     mountWithTheme(
-      <TestComponent
+      <WidgetBuilder
         route={{}}
         router={router}
         routes={router.routes}
@@ -153,11 +142,11 @@ describe('WidgetBuilder', function () {
         location={router.location}
         dashboard={dashboard}
         onSave={jest.fn()}
-        organization={organization}
         params={{orgId: organization.slug}}
       />,
       {
         context: routerContext,
+        organization,
       }
     );
 
@@ -183,7 +172,9 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('events')).toBeChecked();
+    expect(
+      screen.getByLabelText('Select All Events (Errors and Transactions)')
+    ).toBeChecked();
 
     // Content - Step 2
     expect(
