@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import Optional
 
 
 # Fixed set of rate limit categories
@@ -16,11 +17,13 @@ class RateLimit:
     Attributes:
         limit (int): Max number of hits allowed within the window
         window (int): Period of time in seconds that the rate limit applies for
+        concurrent_limit Optional(int): concurrent request limit (irrespective of window)
 
     """
 
     limit: int
     window: int
+    concurrent_limit: Optional[int] = field(default=None)
 
 
 @dataclass
