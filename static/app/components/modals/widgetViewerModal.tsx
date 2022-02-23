@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -6,21 +7,29 @@ import cloneDeep from 'lodash/cloneDeep';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {getFieldsFromEquations} from 'sentry/views/dashboardsV2/utils';
+import {
+  getFieldsFromEquations,
+  getWidgetDiscoverUrl,
+  getWidgetIssueUrl,
+} from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
+import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 export type WidgetViewerModalOptions = {
   organization: Organization;
   widget: Widget;
+  onEdit?: () => void;
 };
 
 type Props = ModalRenderProps &
+  WithRouterProps &
   WidgetViewerModalOptions & {
     organization: Organization;
     selection: PageFilters;
@@ -32,7 +41,7 @@ const HALF_TABLE_HEIGHT = 300;
 
 function WidgetViewerModal(props: Props) {
   const renderWidgetViewer = () => {
-    const {organization, selection, widget} = props;
+    const {organization, selection, widget, location} = props;
     const api = useApi();
     switch (widget.displayType) {
       case DisplayType.TABLE:
@@ -71,19 +80,37 @@ function WidgetViewerModal(props: Props) {
           />
         </Container>
         <TableContainer height={HALF_TABLE_HEIGHT}>
-          <WidgetCardChartContainer
+          <WidgetQueries
             api={api}
             organization={organization}
-            selection={selection}
             widget={tableWidget}
-            tableItemLimit={TABLE_ITEM_LIMIT}
-          />
+            selection={selection}
+            limit={TABLE_ITEM_LIMIT}
+          >
+            {({tableResults, loading}) => {
+              return (
+                <StyledSimpleTableChart
+                  location={location}
+                  title=""
+                  fields={tableWidget.queries[0].fields}
+                  loading={loading}
+                  metadata={tableResults?.[0]?.meta}
+                  data={tableResults?.[0]?.data}
+                  organization={organization}
+                  topResultsIndicators={
+                    widget.displayType === DisplayType.TOP_N ? 5 : undefined
+                  }
+                  stickyHeaders
+                />
+              );
+            }}
+          </WidgetQueries>
         </TableContainer>
       </React.Fragment>
     );
   };
 
-  const {Footer, Body, Header, widget} = props;
+  const {Footer, Body, Header, widget, onEdit, selection, organization} = props;
 
   const StyledHeader = styled(Header)`
     ${headerCss}
@@ -91,8 +118,20 @@ function WidgetViewerModal(props: Props) {
   const StyledFooter = styled(Footer)`
     ${footerCss}
   `;
-  const openLabel =
-    widget.widgetType === WidgetType.ISSUE ? t('Open in Issues') : t('Open in Discover');
+
+  let openLabel: string;
+  let path: string;
+  switch (widget.widgetType) {
+    case WidgetType.ISSUE:
+      openLabel = t('Open in Issues');
+      path = getWidgetIssueUrl(widget, selection, organization);
+      break;
+    case WidgetType.DISCOVER:
+    default:
+      openLabel = t('Open in Discover');
+      path = getWidgetDiscoverUrl(widget, selection, organization);
+      break;
+  }
   return (
     <React.Fragment>
       <StyledHeader closeButton>
@@ -101,10 +140,10 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={() => undefined}>
+          <Button type="button" onClick={onEdit}>
             {t('Edit Widget')}
           </Button>
-          <Button priority="primary" type="button" onClick={() => undefined}>
+          <Button to={path} priority="primary" type="button">
             {openLabel}
           </Button>
         </ButtonBar>
@@ -150,4 +189,8 @@ const TableContainer = styled('div')<{height: number}>`
   }
 `;
 
-export default withPageFilters(WidgetViewerModal);
+const StyledSimpleTableChart = styled(SimpleTableChart)`
+  box-shadow: none;
+`;
+
+export default withRouter(withPageFilters(WidgetViewerModal));

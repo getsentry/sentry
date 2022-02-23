@@ -30,28 +30,29 @@ describe('DatePageFilter', function () {
     new Set()
   );
 
-  it('can change period', function () {
+  it('can change period', async function () {
     mountWithTheme(<DatePageFilter />, {
       context: routerContext,
       organization,
     });
 
+    // Open time period dropdown
     expect(screen.getByText('7D')).toBeInTheDocument();
     userEvent.click(screen.getByText('7D'));
 
+    // Click 30 day period
+    userEvent.click(screen.getByText('Last 30 days'));
+
+    // Confirm selection changed visible text and query params
+    expect(await screen.findByText('30D')).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {statsPeriod: '7d'}})
+      expect.objectContaining({query: {statsPeriod: '30d'}})
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
       pinnedFilters: new Set(),
       selection: {
-        datetime: {
-          period: '7d',
-          utc: null,
-          start: null,
-          end: null,
-        },
+        datetime: {period: '30d'},
         environments: [],
         projects: [],
       },

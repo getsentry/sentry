@@ -928,6 +928,8 @@ SENTRY_FEATURES = {
     "organizations:alert-rule-ui-component": False,
     # Enable issue alert status page
     "organizations:alert-rule-status-page": False,
+    # Alert wizard redesign version 3
+    "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -2523,6 +2525,9 @@ ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
 # Note: The docs have this backwards. We set this to False here so that we always add check
 # constraints instead of setting the column to not null.
 ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
+
+ANOMALY_DETECTION_URL = "127.0.0.1:9091"
+ANOMALY_DETECTION_TIMEOUT = 30
 
 # This is the URL to the profiling service
 SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
