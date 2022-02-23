@@ -165,12 +165,12 @@ class OrganizationEndpoint(Endpoint):
 
     def initialize_request(self, request: Request, *args, **kwargs):
         if request.user and request.user.is_superuser and is_active_superuser(request):
-            organization_slug = kwargs["organization_slug"]
-            if not request.session.get("orgs_accessed"):
-                request.session["orgs_accessed"] = [organization_slug]
-            elif organization_slug not in request.session["orgs_accessed"]:
+            organization_slug = kwargs.get("organization_slug")
+            if not request.session.get("su_orgs_accessed"):
+                request.session["su_orgs_accessed"] = [organization_slug]
+            elif organization_slug not in request.session["su_orgs_accessed"]:
                 if request.session["su_access"]:
-                    request.session["orgs_accessed"].append(organization_slug)
+                    request.session["su_orgs_accessed"].append(organization_slug)
                     logger.info(
                         "su_access.organization_change",
                         extra={
@@ -180,7 +180,7 @@ class OrganizationEndpoint(Endpoint):
                                 "su_access_category"
                             ],
                             "reason_for_su": request.session["su_access"]["reason_for_su"],
-                            "orgs_accessed": request.session["orgs_accessed"],
+                            "su_orgs_accessed": request.session["su_orgs_accessed"],
                         },
                     )
                 else:
@@ -189,7 +189,7 @@ class OrganizationEndpoint(Endpoint):
                         extra={
                             "user_id": request.user.id,
                             "user_email": request.user.email,
-                            "orgs_accessed": request.session["orgs_accessed"],
+                            "su_orgs_accessed": request.session["su_orgs_accessed"],
                         },
                     )
 
