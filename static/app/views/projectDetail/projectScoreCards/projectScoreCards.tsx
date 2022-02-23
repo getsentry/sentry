@@ -66,7 +66,7 @@ const CardWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
     grid-column-gap: ${space(2)};
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 `;
 
