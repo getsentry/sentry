@@ -68,6 +68,10 @@ const CardWrapper = styled('div')`
     grid-column-gap: ${space(2)};
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  @media (min-width: 1600px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 `;
 
 export default ProjectScoreCards;
