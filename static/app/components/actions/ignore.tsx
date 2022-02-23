@@ -228,6 +228,7 @@ const IgnoreActions = ({
         )}
         menuTitle={t('Ignore')}
         items={dropdownItems}
+        isDisabled={disabled}
       />
     </ButtonBar>
   );
