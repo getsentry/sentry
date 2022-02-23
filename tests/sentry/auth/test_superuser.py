@@ -167,7 +167,6 @@ class SuperuserTestCase(TestCase):
                 "user_email": "test@sentry.io",
                 "su_access_category": "Edit organization settings",
                 "reason_for_su": "Edit organization settings",
-                "orgs_accessed": ["sentry"],
             },
         )
 
