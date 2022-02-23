@@ -127,18 +127,14 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
         :queryparam int integrationId: the optional integration id.
-        :queryparam int projectId: the optional project id.
+        :queryparam int projectId: Optional. Pass "-1" to filter to 'all projects user has access to'. Omit to filter for 'all projects user is a member of'.
+        :qparam int per_page: Pagination size.
+        :qparam string cursor: Pagination cursor.
         :auth: required
         """
 
         integration_id = request.GET.get("integrationId")
         project_id = request.GET.get("projectId")
-
-        if not (integration_id or project_id):
-            return self.respond(
-                {"detail": 'Missing valid "projectId" or "integrationId"'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         queryset = RepositoryProjectPathConfig.objects.all()
 
@@ -147,10 +143,10 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             org_integration = self.get_organization_integration(organization, integration_id)
             queryset = queryset.filter(organization_integration=org_integration)
 
-        if project_id:
-            # Check that the project is apart of the organization.
-            projects = self.get_projects(request, organization, project_ids={project_id})
-            queryset = queryset.filter(project__in=projects)
+        # Check that the project is apart of the organization.
+        project_ids = {project_id} if project_id and type(project_id) == int else None
+        projects = self.get_projects(request, organization, project_ids=project_ids)
+        queryset = queryset.filter(project__in=projects)
 
         return self.paginate(
             request=request,
