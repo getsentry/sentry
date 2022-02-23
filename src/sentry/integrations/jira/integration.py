@@ -25,6 +25,7 @@ from sentry.models import (
 )
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiHostError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
@@ -676,6 +677,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
             mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
             if mb_field:
+                if mb_field["label"] in params.get("ignored", []):
+                    continue
                 mb_field["name"] = field
                 fields.append(mb_field)
 
@@ -913,8 +916,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # don't bother updating if it's already the status we'd change it to
         if jira_issue["fields"]["status"]["id"] == jira_status:
             return
-
-        transitions = client.get_transitions(external_issue.key)
+        try:
+            transitions = client.get_transitions(external_issue.key)
+        except ApiHostError:
+            raise IntegrationError("Could not reach host to get transitions.")
 
         try:
             transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]

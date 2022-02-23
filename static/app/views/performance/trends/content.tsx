@@ -13,7 +13,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
@@ -41,6 +41,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  projects: Project[];
   selection: PageFilters;
 };
 
@@ -161,7 +162,7 @@ class TrendsContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, eventView, location} = this.props;
+    const {organization, eventView, location, projects} = this.props;
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
@@ -192,7 +193,11 @@ class TrendsContent extends React.Component<Props, State> {
       ['epm()', 'eps()']
     );
     const currentTrendFunction = getCurrentTrendFunction(location);
-    const currentTrendParameter = getCurrentTrendParameter(location);
+    const currentTrendParameter = getCurrentTrendParameter(
+      location,
+      projects,
+      eventView.project
+    );
     const query = getTransactionSearchQuery(location);
 
     return (
@@ -224,7 +229,7 @@ class TrendsContent extends React.Component<Props, State> {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <DefaultTrends location={location} eventView={eventView}>
+            <DefaultTrends location={location} eventView={eventView} projects={projects}>
               <StyledSearchContainer>
                 <StyledSearchBar
                   searchSource="trends"
@@ -300,16 +305,21 @@ type DefaultTrendsProps = {
   children: React.ReactNode[];
   eventView: EventView;
   location: Location;
+  projects: Project[];
 };
 
 class DefaultTrends extends React.Component<DefaultTrendsProps> {
   hasPushedDefaults = false;
 
   render() {
-    const {children, location, eventView} = this.props;
+    const {children, location, eventView, projects} = this.props;
 
     const queryString = decodeScalar(location.query.query);
-    const trendParameter = getCurrentTrendParameter(location);
+    const trendParameter = getCurrentTrendParameter(
+      location,
+      projects,
+      eventView.project
+    );
     const conditions = new MutableSearch(queryString || '');
 
     if (queryString || this.hasPushedDefaults) {

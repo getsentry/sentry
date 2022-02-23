@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
 import debounce from 'lodash/debounce';
 
-import TextField from 'app/components/forms/textField';
+import TextField from 'app/components/deprecatedforms/textField';
 import space from 'app/styles/space';
 
 import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
@@ -14,7 +14,7 @@ export type ExtendedIconData = IconData & {
   defaultProps?: Partial<Record<IconPropName, unknown>>;
 };
 
-type Results = {id: string; label?: string; icons: ExtendedIconData[]}[];
+type Results = {icons: ExtendedIconData[]; id: string; label?: string}[];
 
 export type SelectedIcon = {
   group: string;

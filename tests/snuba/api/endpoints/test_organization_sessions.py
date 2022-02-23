@@ -397,6 +397,21 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_filter_unknown_release(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1h",
+                "field": ["sum(session)"],
+                "query": "release:foo@6.6.6",
+                "groupBy": "session.status",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+    @freeze_time("2021-01-14T12:27:28.303Z")
     def test_groupby_project(self):
         response = self.do_request(
             {
@@ -684,6 +699,45 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 assert group["series"] == {key: [None] for key in expected}
 
         assert seen == {"abnormal", "crashed", "errored", "healthy"}
+
+    @freeze_time("2021-01-14T12:37:28.303Z")
+    def test_snuba_limit_exceeded(self):
+        # 2 * 3 => only show two groups
+        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
+            "sentry.release_health.metrics_sessions_v2.SNUBA_LIMIT", 6
+        ):
+
+            response = self.do_request(
+                {
+                    "project": [-1],
+                    "statsPeriod": "3d",
+                    "interval": "1d",
+                    "field": ["sum(session)", "count_unique(user)"],
+                    "groupBy": ["project", "release", "environment"],
+                }
+            )
+
+            assert response.status_code == 200, response.content
+            assert result_sorted(response.data)["groups"] == [
+                {
+                    "by": {
+                        "release": "foo@1.0.0",
+                        "environment": "production",
+                        "project": self.project1.id,
+                    },
+                    "totals": {"sum(session)": 3, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 3], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "release": "foo@1.0.0",
+                        "environment": "production",
+                        "project": self.project3.id,
+                    },
+                    "totals": {"sum(session)": 2, "count_unique(user)": 1},
+                    "series": {"sum(session)": [0, 0, 2], "count_unique(user)": [0, 0, 1]},
+                },
+            ]
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_environment_filter_not_present_in_query(self):

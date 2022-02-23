@@ -3,18 +3,18 @@ import {Popper} from 'react-popper';
 import styled from '@emotion/styled';
 import Code from 'docs-ui/components/code';
 
-import SelectField from 'sentry/components/forms/selectField';
+import SelectField from 'sentry/components/deprecatedforms/selectField';
+import BooleanField from 'sentry/components/forms/booleanField';
 import space from 'sentry/styles/space';
-import BooleanField from 'sentry/views/settings/components/forms/booleanField';
 
 import {iconProps} from './data';
 import IconSample from './sample';
 import {ExtendedIconData, SelectedIcon} from './searchPanel';
 
 type Props = {
+  boxRef: RefObject<HTMLDivElement>;
   icon: ExtendedIconData;
   setSelectedIcon: Dispatch<SetStateAction<SelectedIcon>>;
-  boxRef: RefObject<HTMLDivElement>;
 };
 
 const IconPopper = ({icon, setSelectedIcon, boxRef}: Props) => {

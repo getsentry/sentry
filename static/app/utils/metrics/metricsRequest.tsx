@@ -3,17 +3,19 @@ import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {doMetricsRequest, DoMetricsRequestOptions} from 'sentry/actionCreators/metrics';
 import {Client, ResponseMeta} from 'sentry/api';
-import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
+import {MetricsApiResponse} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
 import {TableData} from '../discover/discoverQuery';
 
-import {getMetricsDataSource} from './getMetricsDataSource';
-import {transformMetricsResponseToTable} from './transformMetricsResponseToTable';
+import {deprecatedTransformMetricsResponseToTable} from './deprecatedTransformMetricsResponseToTable';
+import {transformMetricsResponseToSeries} from './transformMetricsResponseToSeries';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
@@ -28,38 +30,39 @@ export type MetricsRequestRenderProps = {
   reloading: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
+  seriesData?: Series[];
+  seriesDataPrevious?: Series[];
   tableData?: TableData;
 };
 
 type DefaultProps = {
   /**
+   * @deprecated
+   * Transform the response data to be something ingestible by GridEditable tables and rename fields for performance
+   */
+  includeDeprecatedTabularData: boolean;
+  /**
    * Include data for previous period
    */
   includePrevious: boolean;
+  /**
+   * Transform the response data to be something ingestible by charts
+   */
+  includeSeriesData: boolean;
+  /**
+   * If true, no request will be made
+   */
+  isDisabled?: boolean;
 };
 
-type Props = DefaultProps & {
-  api: Client;
-  field: string[];
-  orgSlug: Organization['slug'];
-  children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
-  cursor?: string;
-  end?: DateString;
-  environment?: Readonly<string[]>;
-  groupBy?: string[];
-  /**
-   * Transform the response data to be something ingestible by GridEditable tables
-   */
-  includeTabularData?: boolean;
-  interval?: string;
-  isDisabled?: boolean;
-  limit?: number;
-  orderBy?: string;
-  project?: Readonly<number[]>;
-  query?: string;
-  start?: DateString;
-  statsPeriod?: string | null;
-};
+type Props = DefaultProps &
+  Omit<
+    DoMetricsRequestOptions,
+    'includeAllArgs' | 'statsPeriodStart' | 'statsPeriodEnd'
+  > & {
+    api: Client;
+    children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
+  };
 
 type State = {
   error: string | null;
@@ -73,6 +76,9 @@ type State = {
 class MetricsRequest extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     includePrevious: false,
+    includeSeriesData: false,
+    includeDeprecatedTabularData: false,
+    isDisabled: false,
   };
 
   state: State = {
@@ -102,13 +108,7 @@ class MetricsRequest extends React.Component<Props, State> {
 
   private unmounting: boolean = false;
 
-  get path() {
-    const {orgSlug} = this.props;
-
-    return `/organizations/${orgSlug}/metrics/data/`;
-  }
-
-  baseQueryParams({previousPeriod = false} = {}) {
+  getQueryParams({previousPeriod = false} = {}) {
     const {
       project,
       environment,
@@ -119,25 +119,23 @@ class MetricsRequest extends React.Component<Props, State> {
       limit,
       interval,
       cursor,
+      statsPeriod,
+      start,
+      end,
+      orgSlug,
     } = this.props;
 
-    const {start, end, statsPeriod} = getPeriod({
-      period: this.props.statsPeriod,
-      start: this.props.start,
-      end: this.props.end,
-    });
-
     const commonQuery = {
-      project,
-      environment,
       field,
-      query: query || undefined,
-      groupBy,
-      orderBy,
-      per_page: limit,
       cursor,
-      interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
-      datasource: getMetricsDataSource(),
+      environment,
+      groupBy,
+      interval,
+      query,
+      limit,
+      project,
+      orderBy,
+      orgSlug,
     };
 
     if (!previousPeriod) {
@@ -176,18 +174,12 @@ class MetricsRequest extends React.Component<Props, State> {
     }));
 
     const promises = [
-      api.requestPromise(this.path, {
-        includeAllArgs: true,
-        query: this.baseQueryParams(),
-      }),
+      doMetricsRequest(api, {includeAllArgs: true, ...this.getQueryParams()}),
     ];
 
+    // TODO(metrics): this could be merged into one request by doubling the statsPeriod and then splitting the response in half
     if (shouldFetchPreviousPeriod({start, end, period: statsPeriod, includePrevious})) {
-      promises.push(
-        api.requestPromise(this.path, {
-          query: this.baseQueryParams({previousPeriod: true}),
-        })
-      );
+      promises.push(doMetricsRequest(api, this.getQueryParams({previousPeriod: true})));
     }
 
     try {
@@ -221,7 +213,13 @@ class MetricsRequest extends React.Component<Props, State> {
 
   render() {
     const {reloading, errored, error, response, responsePrevious, pageLinks} = this.state;
-    const {children, isDisabled, includeTabularData} = this.props;
+    const {
+      children,
+      isDisabled,
+      includeDeprecatedTabularData,
+      includeSeriesData,
+      includePrevious,
+    } = this.props;
 
     const loading = response === null && !isDisabled && !error;
 
@@ -234,9 +232,16 @@ class MetricsRequest extends React.Component<Props, State> {
       response,
       responsePrevious,
       pageLinks,
-      tableData: includeTabularData
-        ? transformMetricsResponseToTable({response})
+      tableData: includeDeprecatedTabularData
+        ? deprecatedTransformMetricsResponseToTable({response})
         : undefined,
+      seriesData: includeSeriesData
+        ? transformMetricsResponseToSeries(response)
+        : undefined,
+      seriesDataPrevious:
+        includeSeriesData && includePrevious
+          ? transformMetricsResponseToSeries(responsePrevious)
+          : undefined,
     });
   }
 }

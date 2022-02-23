@@ -36,7 +36,7 @@ class DebugIncidentTriggerEmailView(View):
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 
         context = generate_incident_trigger_email_context(
-            project, incident, trigger, TriggerStatus.ACTIVE
+            project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status)
         )
 
         return MailPreview(

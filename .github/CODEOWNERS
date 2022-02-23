@@ -4,6 +4,10 @@
 # Migrations
 /src/sentry/migrations/  @getsentry/owners-migrations
 
+# API Owners for unowned endpoints / serializers
+endpoints/                      @getsentry/owners-api
+/src/sentry/api/                @getsentry/owners-api
+
 # Snuba
 /src/sentry/eventstream/        @getsentry/owners-snuba
 /src/sentry/utils/snuba.py      @getsentry/owners-snuba @getsentry/visibility
@@ -130,6 +134,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/organization_events_trace.py          @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trends.py         @getsentry/performance
 /src/sentry/api/endpoints/organization_events_vitals.py         @getsentry/performance
+/src/sentry/api/endpoints/organization_transaction_anomaly_detection.py         @getsentry/data
 
 /static/app/views/performance/                                  @getsentry/performance
 /tests/js/spec/views/performance/                               @getsentry/performance
@@ -169,12 +174,17 @@ build-utils/        @getsentry/owners-js-build
 
 
 ### Profiling ###
-static/app/components/profiling                                 @getsentry/profiling
-static/app/types/jsSelfProfiling.d.ts                           @getsentry/profiling
-static/app/types/profiling.d.ts                                 @getsentry/profiling
-static/app/utils/profiling                                      @getsentry/profiling
-tests/js/spec/utils/profiling                                   @getsentry/profiling
-### Endof Profiling ###
+/static/app/components/profiling                                    @getsentry/profiling
+/static/app/types/jsSelfProfiling.d.ts                              @getsentry/profiling
+/static/app/types/profiling.d.ts                                    @getsentry/profiling
+/static/app/utils/profiling                                         @getsentry/profiling
+/tests/js/spec/utils/profiling                                      @getsentry/profiling
+/src/sentry/utils/profiling.py                                      @getsentry/profiling
+/src/sentry/api/endpoints/project_profiling_profile.py              @getsentry/profiling
+/src/sentry/api/endpoints/organization_profiling_profiles.py        @getsentry/profiling
+/tests/sentry/api/endpoints/test_project_profiling_profile.py       @getsentry/profiling
+/tests/sentry/api/endpoints/test_organization_profiling_profiles.py @getsentry/profiling
+### End of Profiling ###
 
 
 ### Ecosystem ###
@@ -186,8 +196,7 @@ tests/js/spec/utils/profiling                                   @getsentry/profi
 /src/sentry/api/endpoints/organization_plugins_configs.py               @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_plugins.py                       @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_release_previous_commits.py      @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_internal_app_token_details.py          @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_internal_app_tokens.py                 @getsentry/ecosystem
+/src/sentry/api/endpoints/sentry_app/                                   @getsentry/ecosystem
 
 /static/app/views/organizationIntegrations  @getsentry/ecosystem
 
@@ -300,3 +309,13 @@ tests/js/spec/utils/profiling                                   @getsentry/profi
 /src/sentry/reprocessing2.py       @getsentry/owners-ingest @getsentry/owners-native
 
 ## End of Native ##
+
+
+### APIs Group ##
+
+/src/sentry/apidocs/                @getsentry/owners-api
+/src/sentry/api/urls.py             @getsentry/owners-api
+/api-docs/                          @getsentry/owners-api
+/tests/apidocs/                     @getsentry/owners-api
+/.github/workflows/openapi.yml      @getsentry/owners-api
+/.github/workflows/openapi-diff.yml @getsentry/owners-api
