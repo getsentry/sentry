@@ -355,7 +355,7 @@ FIELD_ALIASES = {
         PseudoField(
             USER_DISPLAY_ALIAS,
             USER_DISPLAY_ALIAS,
-            expression=["coalesce", ["user.email", "user.username", "user.ip"]],
+            expression=["coalesce", ["user.email", "user.username", "user.id", "user.ip"]],
         ),
         PseudoField(
             PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -1451,7 +1451,7 @@ class DiscoverFunction:
         :param bool private: Whether or not this function should be disabled for general use.
         """
 
-        self.name = name
+        self.name: str = name
         self.required_args = [] if required_args is None else required_args
         self.optional_args = [] if optional_args is None else optional_args
         self.calculated_args = [] if calculated_args is None else calculated_args
