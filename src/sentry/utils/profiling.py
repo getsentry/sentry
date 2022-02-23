@@ -23,10 +23,13 @@ def get_from_profiling_service(method: str, path: str, params: Optional[dict] = 
 
 
 def proxy_profiling_service(method: str, path: str, params: Optional[dict] = None) -> HttpResponse:
-    response = get_from_profiling_service(method, path, params=params)
-    return HttpResponse(
-        content=response.content, status=response.status_code, headers=response.headers
+    profiling_response = get_from_profiling_service(method, path, params=params)
+    response = HttpResponse(
+        content=profiling_response.content, status=profiling_response.status_code
     )
+    if "Content-Type" in profiling_response.headers:
+        response["Content-Type"] = profiling_response.headers["Content-Type"]
+    return response
 
 
 def fetch_id_token_for_service(service_url: str) -> str:
