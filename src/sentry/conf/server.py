@@ -929,7 +929,7 @@ SENTRY_FEATURES = {
     # Enable issue alert status page
     "organizations:alert-rule-status-page": False,
     # Alert wizard redesign version 3
-    "organizations:alert-wizard-v3": True,
+    "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
