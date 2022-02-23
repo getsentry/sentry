@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -22,15 +22,17 @@ function FlamegraphZoomViewMinimap({
   flamegraph,
 }: FlamegraphZoomViewMinimapProps): React.ReactElement {
   const flamegraphPreferences = useFlamegraphPreferencesValue();
-  const [flamegraphMiniMapCanvasRef, setFlamegraphMiniMapRef] =
-    React.useState<HTMLCanvasElement | null>(null);
-  const [flamegraphMiniMapOverlayCanvasRef, setFlamegraphMiniMapOverlayCanvasRef] =
-    React.useState<HTMLCanvasElement | null>(null);
-  const [configSpaceCursor, setConfigSpaceCursor] = React.useState<
-    [number, number] | null
-  >(null);
-
   const flamegraphTheme = useFlamegraphTheme();
+
+  const [flamegraphMiniMapCanvasRef, setFlamegraphMiniMapRef] =
+    useState<HTMLCanvasElement | null>(null);
+  const [flamegraphMiniMapOverlayCanvasRef, setFlamegraphMiniMapOverlayCanvasRef] =
+    useState<HTMLCanvasElement | null>(null);
+  const [configSpaceCursor, setConfigSpaceCursor] = useState<[number, number] | null>(
+    null
+  );
+
+  const scheduler = useMemo(() => new CanvasScheduler(), []);
 
   const flamegraphMiniMapRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
@@ -42,25 +44,19 @@ function FlamegraphZoomViewMinimap({
         flamegraphTheme.SIZES.MINIMAP_HEIGHT /
         (flamegraph.depth + flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET);
 
-      const flamegraphMinimapRenderer = new FlamegraphRenderer(
-        flamegraphMiniMapCanvasRef,
-        flamegraph,
-        {
-          ...flamegraphTheme,
-          SIZES: {
-            ...flamegraphTheme.SIZES,
-            BAR_HEIGHT,
-          },
-        }
-      );
+      const renderer = new FlamegraphRenderer(flamegraphMiniMapCanvasRef, flamegraph, {
+        ...flamegraphTheme,
+        SIZES: {
+          ...flamegraphTheme.SIZES,
+          BAR_HEIGHT,
+        },
+      });
 
-      if (
-        previousRenderer?.flamegraph.name === flamegraphMinimapRenderer.flamegraph.name
-      ) {
-        flamegraphMinimapRenderer.setConfigView(previousRenderer.configView);
+      if (previousRenderer?.flamegraph.name === renderer.flamegraph.name) {
+        renderer.setConfigView(previousRenderer.configView);
       }
 
-      return flamegraphMinimapRenderer;
+      return renderer;
     },
     [
       flamegraphMiniMapCanvasRef,
@@ -70,31 +66,47 @@ function FlamegraphZoomViewMinimap({
     ]
   );
 
-  const [startDragVector, setStartDragConfigSpaceCursor] = React.useState<vec2 | null>(
-    null
-  );
-  const [lastDragVector, setLastDragVector] = React.useState<vec2 | null>(null);
-
-  React.useEffect(() => {
-    if (
-      !flamegraphMiniMapCanvasRef ||
-      !flamegraphMiniMapOverlayCanvasRef ||
-      !flamegraphMiniMapRenderer
-    ) {
-      return undefined;
+  const positionIndicatorRenderer: PositionIndicatorRenderer | null = useMemo(() => {
+    if (!flamegraphMiniMapOverlayCanvasRef) {
+      return null;
     }
 
-    const scheduler = new CanvasScheduler();
-
-    const positionIndicatorRenderer = new PositionIndicatorRenderer(
+    return new PositionIndicatorRenderer(
       flamegraphMiniMapOverlayCanvasRef,
       flamegraphTheme
     );
+  }, [flamegraphMiniMapOverlayCanvasRef, flamegraphTheme]);
+
+  useEffect(() => {
+    if (!flamegraphMiniMapRenderer) {
+      return undefined;
+    }
 
     const drawRectangles = () => {
       flamegraphMiniMapRenderer.draw(
         null,
         flamegraphMiniMapRenderer.configSpaceToPhysicalSpace
+      );
+    };
+
+    scheduler.registerBeforeFrameCallback(drawRectangles);
+
+    return () => {
+      scheduler.unregisterBeforeFrameCallback(drawRectangles);
+    };
+  }, [scheduler, flamegraphMiniMapRenderer]);
+
+  useEffect(() => {
+    if (!flamegraphMiniMapRenderer || !positionIndicatorRenderer) {
+      return undefined;
+    }
+
+    const clearOverlayCanvas = () => {
+      positionIndicatorRenderer.context.clearRect(
+        0,
+        0,
+        flamegraphMiniMapRenderer.physicalSpace.width,
+        flamegraphMiniMapRenderer.physicalSpace.height
       );
     };
 
@@ -106,14 +118,19 @@ function FlamegraphZoomViewMinimap({
       );
     };
 
-    const clearOverlayCanvas = () => {
-      positionIndicatorRenderer.context.clearRect(
-        0,
-        0,
-        flamegraphMiniMapRenderer.physicalSpace.width,
-        flamegraphMiniMapRenderer.physicalSpace.height
-      );
+    scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
+    scheduler.registerAfterFrameCallback(drawPosition);
+
+    return () => {
+      scheduler.unregisterBeforeFrameCallback(clearOverlayCanvas);
+      scheduler.unregisterAfterFrameCallback(drawPosition);
     };
+  }, [scheduler, flamegraphMiniMapRenderer, positionIndicatorRenderer]);
+
+  useEffect(() => {
+    if (!flamegraphMiniMapRenderer) {
+      return undefined;
+    }
 
     const onConfigViewChange = (rect: Rect) => {
       flamegraphMiniMapRenderer.setConfigView(rect);
@@ -125,9 +142,7 @@ function FlamegraphZoomViewMinimap({
       scheduler.draw();
     };
 
-    scheduler.on('setConfigView', onConfigViewChange);
-    scheduler.on('transformConfigView', onTransformConfigView);
-    scheduler.on('zoomIntoFrame', (frame: FlamegraphFrame) => {
+    const onZoomIntoFrame = (frame: FlamegraphFrame) => {
       flamegraphMiniMapRenderer.setConfigView(
         new Rect(
           frame.start,
@@ -144,8 +159,9 @@ function FlamegraphZoomViewMinimap({
 
       setConfigSpaceCursor(null);
       scheduler.draw();
-    });
-    scheduler.on('resetZoom', () => {
+    };
+
+    const onResetZoom = () => {
       flamegraphMiniMapRenderer.setConfigView(
         flamegraph.inverted
           ? flamegraphMiniMapRenderer.configView
@@ -162,11 +178,32 @@ function FlamegraphZoomViewMinimap({
       );
       setConfigSpaceCursor(null);
       scheduler.draw();
-    });
+    };
 
-    scheduler.registerBeforeFrameCallback(drawRectangles);
-    scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
-    scheduler.registerAfterFrameCallback(drawPosition);
+    scheduler.on('setConfigView', onConfigViewChange);
+    scheduler.on('transformConfigView', onTransformConfigView);
+    scheduler.on('zoomIntoFrame', onZoomIntoFrame);
+    scheduler.on('resetZoom', onResetZoom);
+
+    return () => {
+      scheduler.off('setConfigView', onConfigViewChange);
+      scheduler.off('transformConfigView', onTransformConfigView);
+      scheduler.off('zoomIntoFrame', onZoomIntoFrame);
+      scheduler.off('resetZoom', onResetZoom);
+    };
+  }, [scheduler, flamegraphMiniMapRenderer]);
+
+  const [startDragVector, setStartDragConfigSpaceCursor] = useState<vec2 | null>(null);
+  const [lastDragVector, setLastDragVector] = useState<vec2 | null>(null);
+
+  useEffect(() => {
+    if (
+      !flamegraphMiniMapCanvasRef ||
+      !flamegraphMiniMapOverlayCanvasRef ||
+      !flamegraphMiniMapRenderer
+    ) {
+      return undefined;
+    }
 
     const observer = watchForResize(
       [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef],
@@ -176,29 +213,28 @@ function FlamegraphZoomViewMinimap({
       }
     );
 
-    canvasPoolManager.registerScheduler(scheduler);
-
-    return () => {
-      observer.disconnect();
-      canvasPoolManager.unregisterScheduler(scheduler);
-    };
+    return () => observer.disconnect();
   }, [
-    canvasPoolManager,
-    flamegraph,
-    flamegraphTheme,
-    flamegraphMiniMapRenderer,
+    scheduler,
     flamegraphMiniMapCanvasRef,
     flamegraphMiniMapOverlayCanvasRef,
+    flamegraphMiniMapRenderer,
   ]);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    canvasPoolManager.registerScheduler(scheduler);
+    scheduler.draw();
+    return () => canvasPoolManager.unregisterScheduler(scheduler);
+  }, [scheduler]);
+
+  useEffect(() => {
     window.addEventListener('mouseup', () => {
       setLastDragVector(null);
       setStartDragConfigSpaceCursor(null);
     });
   }, []);
 
-  const onMouseDrag = React.useCallback(
+  const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       if (!lastDragVector || !flamegraphMiniMapRenderer) {
         return;
@@ -244,7 +280,7 @@ function FlamegraphZoomViewMinimap({
     [flamegraphMiniMapRenderer, lastDragVector, canvasPoolManager]
   );
 
-  const onMinimapCanvasMouseMove = React.useCallback(
+  const onMinimapCanvasMouseMove = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       if (!flamegraphMiniMapRenderer || !flamegraphMiniMapRenderer.frames.length) {
         return;
@@ -283,7 +319,7 @@ function FlamegraphZoomViewMinimap({
     ]
   );
 
-  const onMinimapScroll = React.useCallback(
+  const onMinimapScroll = useCallback(
     (evt: WheelEvent) => {
       if (!flamegraphMiniMapRenderer || !flamegraphMiniMapRenderer.frames.length) {
         return;
@@ -316,7 +352,7 @@ function FlamegraphZoomViewMinimap({
     [flamegraphMiniMapRenderer, canvasPoolManager]
   );
 
-  const onMinimapZoom = React.useCallback(
+  const onMinimapZoom = useCallback(
     (evt: WheelEvent) => {
       if (!flamegraphMiniMapRenderer || !flamegraphMiniMapRenderer.frames.length) {
         return;
@@ -350,7 +386,7 @@ function FlamegraphZoomViewMinimap({
     [flamegraphMiniMapRenderer, canvasPoolManager]
   );
 
-  const onMinimapCanvasMouseDown = React.useCallback(
+  const onMinimapCanvasMouseDown = useCallback(
     evt => {
       if (!configSpaceCursor || !flamegraphMiniMapRenderer || !canvasPoolManager) {
         return;
@@ -383,13 +419,13 @@ function FlamegraphZoomViewMinimap({
     [configSpaceCursor, flamegraphMiniMapRenderer, canvasPoolManager]
   );
 
-  const onMinimapCanvasMouseUp = React.useCallback(() => {
+  const onMinimapCanvasMouseUp = useCallback(() => {
     setConfigSpaceCursor(null);
     setStartDragConfigSpaceCursor(null);
     setLastDragVector(null);
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!flamegraphMiniMapCanvasRef) {
       return undefined;
     }
