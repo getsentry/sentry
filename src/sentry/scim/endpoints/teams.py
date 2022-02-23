@@ -421,7 +421,21 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
         return self.respond(status=204)
 
+    @extend_schema(
+        operation_id="Delete an Individual Team",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.TEAM_ID],
+        request=None,
+        responses={
+            204: RESPONSE_SUCCESS,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
     def delete(self, request: Request, organization, team) -> Response:
+        """
+        Delete a team with a SCIM Group DELETE Request.
+        """
         return super().delete(request, team)
 
     def put(self, request: Request, organization, team) -> Response:
