@@ -69,6 +69,12 @@ function Header({
           >
             {t('Give Feedback')}
           </Button>
+          <Button
+            external
+            href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+          >
+            {t('Read the docs')}
+          </Button>
           <Button to={goBackLocation}>{t('Cancel')}</Button>
           {isEditing && onDelete && (
             <Confirm
