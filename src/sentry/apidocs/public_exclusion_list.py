@@ -1,3 +1,5 @@
+# TODO(jferge): add is_private True to alllll the endpoints and remove this exclusion list
+
 from sentry.api.endpoints.accept_organization_invite import AcceptOrganizationInvite
 from sentry.api.endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from sentry.api.endpoints.api_application_details import ApiApplicationDetailsEndpoint
