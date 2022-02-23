@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -26,6 +27,7 @@ type Props = {
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
   organization: Organization;
+  router: InjectedRouter;
   yAxis: string[];
 };
 
@@ -94,6 +96,7 @@ class ResultsHeader extends React.Component<Props, State> {
       eventView,
       onIncompatibleAlertQuery,
       yAxis,
+      router,
     } = this.props;
     const {savedQuery, loading} = this.state;
 
@@ -123,6 +126,7 @@ class ResultsHeader extends React.Component<Props, State> {
             updateCallback={() => this.fetchData()}
             onIncompatibleAlertQuery={onIncompatibleAlertQuery}
             yAxis={yAxis}
+            router={router}
           />
         </Layout.HeaderActions>
       </Layout.Header>

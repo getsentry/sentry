@@ -105,7 +105,9 @@ describe('WidgetBuilder', function () {
       }
     );
 
-    expect(screen.getByText('Widget not found.')).toBeInTheDocument();
+    expect(
+      screen.getByText('The widget you want to edit was not found.')
+    ).toBeInTheDocument();
   });
 
   it('renders', async function () {

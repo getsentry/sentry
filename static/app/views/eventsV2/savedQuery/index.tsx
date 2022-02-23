@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -61,6 +61,7 @@ type Props = DefaultProps & {
   >['onIncompatibleQuery'];
   organization: Organization;
   projects: Project[];
+  router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
   updateCallback: () => void;
@@ -234,7 +235,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   };
 
   handleAddDashboardWidget = () => {
-    const {organization, eventView, savedQuery, yAxis} = this.props;
+    const {organization, router, location, eventView, savedQuery, yAxis} = this.props;
 
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
     const defaultTableColumns = eventView.fields.map(({field}) => field);
@@ -253,6 +254,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       organization,
       saved_query: !!savedQuery,
     });
+
+    if (organization.features.includes('new-widget-builder-experience')) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DISCOVERV2,
+        },
+      });
+      return;
+    }
 
     openAddDashboardWidgetModal({
       organization,
