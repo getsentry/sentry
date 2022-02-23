@@ -48,10 +48,6 @@ type Props = {
    * Map of fieldName -> errorMessage
    */
   error?: {[fieldName: string]: string};
-  /**
-   * Map of fieldName -> errorMessage
-   */
-  error?: {[fieldName: string]: string};
 
   hideControl?: boolean;
 };
