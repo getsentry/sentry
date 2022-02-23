@@ -49,7 +49,7 @@ describe('getIssueFieldRenderer', function () {
       filteredEvents: 3000,
       events: 6000,
       period: '7d',
-      annotations: ['<a href="sentry.io">ANNO-123</a>'],
+      links: ['<a href="sentry.io">ANNO-123</a>'],
     };
 
     MockApiClient.addMockResponse({
@@ -128,8 +128,8 @@ describe('getIssueFieldRenderer', function () {
     });
   });
 
-  it('can render annotations', function () {
-    const renderer = getIssueFieldRenderer('annotations');
+  it('can render links', function () {
+    const renderer = getIssueFieldRenderer('links');
 
     mountWithTheme(
       renderer!(data, {
@@ -140,15 +140,15 @@ describe('getIssueFieldRenderer', function () {
     expect(screen.getByText('ANNO-123')).toBeInTheDocument();
   });
 
-  it('can render multiple annotations', function () {
-    const renderer = getIssueFieldRenderer('annotations');
+  it('can render multiple links', function () {
+    const renderer = getIssueFieldRenderer('links');
 
     mountWithTheme(
       renderer!(
         {
           data,
           ...{
-            annotations: [
+            links: [
               '<a href="sentry.io">ANNO-123</a>',
               '<a href="sentry.io">ANNO-456</a>',
             ],

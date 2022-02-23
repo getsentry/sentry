@@ -4,7 +4,6 @@ describe('generateIssueWidgetFieldOptions', function () {
   it('returns default issue fields', () => {
     const issueFields = generateIssueWidgetFieldOptions();
     expect(Object.keys(issueFields)).toEqual([
-      'field:annotations',
       'field:assignee',
       'field:events',
       'field:firstSeen',
@@ -16,6 +15,7 @@ describe('generateIssueWidgetFieldOptions', function () {
       'field:level',
       'field:lifetimeEvents',
       'field:lifetimeUsers',
+      'field:links',
       'field:platform',
       'field:project',
       'field:status',
