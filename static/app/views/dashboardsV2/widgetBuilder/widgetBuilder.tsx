@@ -716,7 +716,7 @@ function WidgetBuilder({
                           inline={false}
                           flexibleControlStateSize
                           stacked
-                          error={state.errors?.[queryIndex]?.conditions}
+                          error={state.errors?.queries?.[queryIndex]?.conditions}
                         >
                           <SearchConditionsWrapper>
                             <Search
