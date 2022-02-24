@@ -1837,7 +1837,7 @@ function buildRoutes() {
         component={SafeLazyLoad}
       />
       <Route
-        path="flamegraph/"
+        path="flamegraph/:projectId/:eventId"
         component={SafeLazyLoad}
         componentPromise={() => import('sentry/views/profiling/flamegraph')}
       />

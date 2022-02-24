@@ -4,6 +4,7 @@ type Annotation = {
 };
 
 export type Trace = {
+  app_id: string;
   app_version: string;
   device_class: string;
   device_locale: string;
