@@ -278,6 +278,7 @@ def create_sample_event(
     trace=None,
     span_id=None,
     spans=None,
+    tagged=False,
     **kwargs,
 ):
     if not platform and not default:
@@ -301,7 +302,7 @@ def create_sample_event(
             data["contexts"]["trace"][key] = kwargs.pop(key)
 
     data.update(kwargs)
-    return create_sample_event_basic(data, project.id, raw=raw, tagged=True)
+    return create_sample_event_basic(data, project.id, raw=raw, tagged=tagged)
 
 
 def create_sample_event_basic(
