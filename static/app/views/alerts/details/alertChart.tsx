@@ -46,17 +46,17 @@ class AlertChart extends React.PureComponent<Props> {
 
   renderEmpty() {
     return (
-      <ChartPanel>
+      <Panel>
         <PanelBody withPadding>
           <Placeholder height="200px" />
         </PanelBody>
-      </ChartPanel>
+      </Panel>
     );
   }
 
   render() {
     return (
-      <ChartPanel>
+      <Panel>
         <StyledPanelBody withPadding>
           <ChartHeader>
             <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
@@ -70,16 +70,12 @@ class AlertChart extends React.PureComponent<Props> {
           <FooterHeader>{t('Alerts Triggered')}</FooterHeader>
           <FooterValue>{'88'}</FooterValue>
         </ChartFooter>
-      </ChartPanel>
+      </Panel>
     );
   }
 }
 
 export default AlertChart;
-
-const ChartPanel = styled(Panel)`
-  margin-top: ${space(2)};
-`;
 
 const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};

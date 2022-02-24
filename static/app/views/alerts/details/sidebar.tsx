@@ -130,10 +130,12 @@ class Sidebar extends PureComponent<Props> {
         <SidebarGroup>
           <Heading>{t('Alert Rule Details')}</Heading>
           <KeyValueTable>
-            <KeyValueTableRow
-              keyName={t('Alert Rule Created')}
-              value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
-            />
+            {rule.dateCreated && (
+              <KeyValueTableRow
+                keyName={t('Alert Rule Created')}
+                value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
+              />
+            )}
             {rule.createdBy && (
               <KeyValueTableRow
                 keyName={t('Created By')}
