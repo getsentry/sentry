@@ -95,7 +95,7 @@ from .releaseprojectenvironment import *  # NOQA
 from .repository import *  # NOQA
 from .reprocessingreport import *  # NOQA
 from .rule import *  # NOQA
-from .rule_fire_history import RuleFireHistory  # NOQA
+from .rulefirehistory import RuleFireHistory  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .scheduledjob import *  # NOQA
