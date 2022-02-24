@@ -30,6 +30,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
+  assignTempId,
   calculateColumnDepths,
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
@@ -305,16 +306,17 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const widgetCopy = cloneDeep(widget);
-    widgetCopy.id = undefined;
-    widgetCopy.tempId = undefined;
+    const widgetCopy = cloneDeep(
+      assignTempId({...widget, id: undefined, tempId: undefined})
+    );
 
     let nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
     nextList = generateWidgetsAfterCompaction(nextList);
 
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
@@ -518,10 +520,16 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue widgets if the user does not have the feature flag
-    if (!organization.features.includes('issues-in-dashboards')) {
-      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
-    }
+    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    widgets = widgets.filter(({widgetType}) => {
+      if (widgetType === WidgetType.ISSUE) {
+        return organization.features.includes('issues-in-dashboards');
+      }
+      if (widgetType === WidgetType.METRICS) {
+        return organization.features.includes('dashboards-metrics');
+      }
+      return true;
+    });
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
@@ -571,10 +579,16 @@ class Dashboard extends Component<Props, State> {
   renderDndDashboard = () => {
     const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue widgets if the user does not have the feature flag
-    if (!organization.features.includes('issues-in-dashboards')) {
-      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
-    }
+    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    widgets = widgets.filter(({widgetType}) => {
+      if (widgetType === WidgetType.ISSUE) {
+        return organization.features.includes('issues-in-dashboards');
+      }
+      if (widgetType === WidgetType.METRICS) {
+        return organization.features.includes('dashboards-metrics');
+      }
+      return true;
+    });
 
     const items = this.getWidgetIds();
 

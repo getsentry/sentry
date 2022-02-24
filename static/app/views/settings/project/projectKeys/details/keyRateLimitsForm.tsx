@@ -5,16 +5,16 @@ import sortBy from 'lodash/sortBy';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import InputControl from 'sentry/components/forms/controls/input';
+import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import Form from 'sentry/components/forms/form';
+import FormField from 'sentry/components/forms/formField';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconFlag} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/formatters';
-import InputControl from 'sentry/views/settings/components/forms/controls/input';
-import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormField from 'sentry/views/settings/components/forms/formField';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 const PREDEFINED_RATE_LIMIT_VALUES = [

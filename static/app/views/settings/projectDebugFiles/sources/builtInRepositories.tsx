@@ -4,12 +4,12 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
+import SelectField from 'sentry/components/forms/selectField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {BuiltinSymbolSource} from 'sentry/types/debugFiles';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 const SECTION_TITLE = t('Built-in Repositories');
 

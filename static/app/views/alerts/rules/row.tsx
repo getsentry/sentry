@@ -3,16 +3,18 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import Access from 'sentry/components/acl/access';
+import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
-import {IconArrow, IconDelete, IconEdit, IconEllipsis} from 'sentry/icons';
+import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -21,7 +23,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Color} from 'sentry/utils/theme';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/incidentRules/types';
 
-import AlertBadge from '../alertBadge';
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
@@ -45,6 +46,7 @@ const getProject = memoize((slug: string, projects: Project[]) =>
 
 function RuleListRow({
   rule,
+  organization,
   projectsLoaded,
   projects,
   orgId,
@@ -145,8 +147,18 @@ function RuleListRow({
     : null;
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
+  const hasAlertRuleStatusPage = organization.features.includes('alert-rule-status-page');
+  // TODO(workflow): Refactor when removing alert-rule-status-page flag
   const alertLink = isIssueAlert(rule) ? (
-    rule.name
+    hasAlertRuleStatusPage ? (
+      <Link
+        to={`/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`}
+      >
+        {rule.name}
+      </Link>
+    ) : (
+      rule.name
+    )
   ) : (
     <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
   );
@@ -158,17 +170,16 @@ function RuleListRow({
     [IncidentStatus.OPENED]: t('Resolved'),
   };
 
-  const actions = [
+  const actions: MenuItemProps[] = [
     {
       key: 'edit',
       label: t('Edit'),
-      leadingItems: <IconEdit />,
       to: editLink,
     },
     {
       key: 'delete',
       label: t('Delete'),
-      leadingItems: <IconDelete />,
+      priority: 'danger',
       onAction: () => {
         openConfirmModal({
           onConfirm: () => onDelete(slug, rule),

@@ -9,14 +9,29 @@ import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 import {CommonStoreInterface} from './types';
 
 type State = {
+  desyncedFilters: Set<PinnedPageFilter>;
   isReady: boolean;
   pinnedFilters: Set<PinnedPageFilter>;
   selection: PageFilters;
 };
 
 type Internals = {
+  /**
+   * The set of page filters which have been pinned but do not match the current
+   * URL state.
+   */
+  desyncedFilters: Set<PinnedPageFilter>;
+  /**
+   * Have we initalized page filters?
+   */
   hasInitialState: boolean;
+  /**
+   * The set of page filters which are currently pinned
+   */
   pinnedFilters: Set<PinnedPageFilter>;
+  /**
+   * The current page filter selection
+   */
   selection: PageFilters;
 };
 
@@ -26,6 +41,7 @@ type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   pin(filter: PinnedPageFilter, pin: boolean): void;
   reset(selection?: PageFilters): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
+  updateDesyncedFilters(filters: Set<PinnedPageFilter>): void;
   updateEnvironments(environments: string[]): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
 };
@@ -33,6 +49,7 @@ type PageFiltersStoreInterface = CommonStoreInterface<State> & {
 const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterface = {
   selection: getDefaultSelection(),
   pinnedFilters: new Set(),
+  desyncedFilters: new Set(),
   hasInitialState: false,
 
   init() {
@@ -42,6 +59,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
     this.listenTo(PageFiltersActions.updateProjects, this.updateProjects);
     this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime);
     this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments);
+    this.listenTo(PageFiltersActions.updateDesyncedFilters, this.updateDesyncedFilters);
     this.listenTo(PageFiltersActions.pin, this.pin);
   },
 
@@ -64,13 +82,18 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
 
   getState() {
     const isReady = this._hasInitialState;
-    const {selection, pinnedFilters} = this;
+    const {selection, pinnedFilters, desyncedFilters} = this;
 
-    return {selection, pinnedFilters, isReady};
+    return {selection, pinnedFilters, desyncedFilters, isReady};
   },
 
   onReset() {
     this.reset();
+    this.trigger(this.getState());
+  },
+
+  updateDesyncedFilters(filters: Set<PinnedPageFilter>) {
+    this.desyncedFilters = filters;
     this.trigger(this.getState());
   },
 

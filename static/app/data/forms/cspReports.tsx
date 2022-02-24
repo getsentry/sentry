@@ -1,6 +1,6 @@
 // Export route to make these forms searchable by label/help
+import {JsonFormObject} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
-import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 export const route = '/settings/:orgId/projects/:projectId/csp/';
 

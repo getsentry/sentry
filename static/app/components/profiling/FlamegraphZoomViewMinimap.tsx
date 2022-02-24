@@ -4,7 +4,8 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -13,23 +14,14 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 interface FlamegraphZoomViewMinimapProps {
   canvasPoolManager: CanvasPoolManager;
-  colorCoding: 'by symbol name' | 'by system / application' | 'by library';
   flamegraph: Flamegraph;
-  flamegraphTheme: FlamegraphTheme;
-  highlightRecursion: boolean;
-  searchResults: Record<string, FlamegraphFrame>;
-  height?: number;
 }
 
 function FlamegraphZoomViewMinimap({
   canvasPoolManager,
   flamegraph,
-  flamegraphTheme,
-  colorCoding,
-  searchResults,
-  highlightRecursion,
-  height = 100,
 }: FlamegraphZoomViewMinimapProps): React.ReactElement {
+  const flamegraphPreferences = useFlamegraphPreferencesValue();
   const [flamegraphMiniMapCanvasRef, setFlamegraphMiniMapRef] =
     React.useState<HTMLCanvasElement | null>(null);
   const [flamegraphMiniMapOverlayCanvasRef, setFlamegraphMiniMapOverlayCanvasRef] =
@@ -38,6 +30,8 @@ function FlamegraphZoomViewMinimap({
     [number, number] | null
   >(null);
 
+  const flamegraphTheme = useFlamegraphTheme();
+
   const flamegraphMiniMapRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
       if (!flamegraphMiniMapCanvasRef) {
@@ -45,7 +39,8 @@ function FlamegraphZoomViewMinimap({
       }
 
       const BAR_HEIGHT =
-        height / (flamegraph.depth + flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET);
+        flamegraphTheme.SIZES.MINIMAP_HEIGHT /
+        (flamegraph.depth + flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET);
 
       const flamegraphMinimapRenderer = new FlamegraphRenderer(
         flamegraphMiniMapCanvasRef,
@@ -71,8 +66,7 @@ function FlamegraphZoomViewMinimap({
       flamegraphMiniMapCanvasRef,
       flamegraph,
       flamegraphTheme,
-      colorCoding,
-      highlightRecursion,
+      flamegraphPreferences.colorCoding,
     ]
   );
 
@@ -99,7 +93,7 @@ function FlamegraphZoomViewMinimap({
 
     const drawRectangles = () => {
       flamegraphMiniMapRenderer.draw(
-        searchResults,
+        null,
         flamegraphMiniMapRenderer.configSpaceToPhysicalSpace
       );
     };
@@ -195,7 +189,6 @@ function FlamegraphZoomViewMinimap({
     flamegraphMiniMapRenderer,
     flamegraphMiniMapCanvasRef,
     flamegraphMiniMapOverlayCanvasRef,
-    searchResults,
   ]);
 
   React.useEffect(() => {

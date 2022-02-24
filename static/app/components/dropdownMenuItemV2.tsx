@@ -29,6 +29,11 @@ export type MenuItemProps = {
    * have appropriate aria-labels.
    */
   details?: React.ReactNode;
+  /**
+   * Hide item from the dropdown menu. Note: this will also remove the item
+   * from the selection manager.
+   */
+  hidden?: boolean;
   /*
    * Whether this menu item is a trigger for a nested sub-menu. Only works
    * when `children` is also defined.

@@ -1,7 +1,5 @@
-import {screen} from '@testing-library/react';
-
 import {mountGlobalModal} from 'sentry-test/modal';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationApiKeysList from 'sentry/views/settings/organizationApiKeys/organizationApiKeysList';
 

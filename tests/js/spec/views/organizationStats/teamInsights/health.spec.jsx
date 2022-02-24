@@ -4,7 +4,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';
 
 jest.mock('sentry/utils/localStorage');
@@ -155,6 +154,7 @@ describe('TeamStatsHealth', () => {
   function createWrapper() {
     const teams = [team1, team2, team3];
     const projects = [project1, project2];
+    ProjectsStore.loadInitialData(projects);
     const organization = TestStubs.Organization({
       teams,
       projects,
@@ -162,14 +162,10 @@ describe('TeamStatsHealth', () => {
     const context = TestStubs.routerContext([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
-    return mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <TeamStatsHealth router={mockRouter} location={{}} />
-      </OrganizationContext.Provider>,
-      {
-        context,
-      }
-    );
+    return mountWithTheme(<TeamStatsHealth router={mockRouter} location={{}} />, {
+      context,
+      organization,
+    });
   }
 
   it('defaults to first team', () => {

@@ -1,3 +1,5 @@
+import {FlamegraphFrame} from '../flamegraphFrame';
+
 import {makeColorBucketTheme, makeColorMap, makeStackToColor} from './../colors/utils';
 import {Frame} from './../frame';
 
@@ -16,22 +18,22 @@ export interface LCH {
 }
 // Color can be rgb or rgba. I want to probably eliminate rgb and just use rgba, but we would be allocating 25% more memory,
 // and I'm not sure about the impact we'd need. There is a tradeoff between memory and runtime performance checks that I'll need to evaluate at some point.
-export type Color = [number, number, number] | [number, number, number, number];
+export type ColorChannels = [number, number, number] | [number, number, number, number];
 
 export interface FlamegraphTheme {
   // @TODO, most colors are defined as strings, which is a mistake as we loose a lot of functionality and impose constraints.
   // They should instead be defined as arrays of numbers so we can use them with glsl and avoid unnecessary parsing
   COLORS: {
     BAR_LABEL_FONT_COLOR: string;
-    COLOR_BUCKET: (t: number, frame?: Frame) => Color;
+    COLOR_BUCKET: (t: number, frame?: Frame) => ColorChannels;
     COLOR_MAP: (
-      frames: ReadonlyArray<Frame>,
+      frames: ReadonlyArray<FlamegraphFrame>,
       colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
-      sortByKey?: (a: Frame, b: Frame) => number
-    ) => Map<Frame['key'], Color>;
+      sortByKey?: (a: FlamegraphFrame, b: FlamegraphFrame) => number
+    ) => Map<FlamegraphFrame['frame']['key'], ColorChannels>;
     CURSOR_CROSSHAIR: string;
-    DIFFERENTIAL_DECREASE: Color;
-    DIFFERENTIAL_INCREASE: Color;
+    DIFFERENTIAL_DECREASE: ColorChannels;
+    DIFFERENTIAL_INCREASE: ColorChannels;
     FRAME_FALLBACK_COLOR: [number, number, number, number];
     GRID_FRAME_BACKGROUND_COLOR: string;
     GRID_LINE_COLOR: string;
@@ -52,12 +54,12 @@ export interface FlamegraphTheme {
     SPAN_FRAME_BACKGROUND: string;
     SPAN_FRAME_BORDER: string;
     STACK_TO_COLOR: (
-      frames: ReadonlyArray<Frame>,
+      frames: ReadonlyArray<FlamegraphFrame>,
       colorMapFn: FlamegraphTheme['COLORS']['COLOR_MAP'],
       colorBucketFn: FlamegraphTheme['COLORS']['COLOR_BUCKET']
     ) => {
       colorBuffer: Array<number>;
-      colorMap: Map<Frame['key'], Color>;
+      colorMap: Map<Frame['key'], ColorChannels>;
     };
   };
   CONFIG: {
@@ -76,6 +78,7 @@ export interface FlamegraphTheme {
     HOVERED_FRAME_BORDER_WIDTH: number;
     LABEL_FONT_PADDING: number;
     LABEL_FONT_SIZE: number;
+    MINIMAP_HEIGHT: number;
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
     REQUEST_BAR_HEIGHT: number;
     REQUEST_DEPTH_OFFSET: number;
@@ -125,6 +128,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     REQUEST_FONT_SIZE: 10,
     REQUEST_DEPTH_OFFSET: 4,
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
+    MINIMAP_HEIGHT: 100,
     TIMELINE_HEIGHT: 20,
     LABEL_FONT_SIZE: 10,
     LABEL_FONT_PADDING: 6,
@@ -180,8 +184,8 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     REQUEST_BAR_HEIGHT: 14,
     REQUEST_FONT_SIZE: 10,
     REQUEST_DEPTH_OFFSET: 4,
-
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
+    MINIMAP_HEIGHT: 100,
     TIMELINE_HEIGHT: 20,
     LABEL_FONT_SIZE: 10,
     LABEL_FONT_PADDING: 6,

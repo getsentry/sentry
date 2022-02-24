@@ -35,7 +35,6 @@ describe('IdBadge', function () {
   });
 
   it('throws when no valid properties are passed', function () {
-    console.error.mockReset(); // eslint-disable-line no-console
     expect(() => mountWithTheme(<IdBadge />, routerContext)).toThrow();
   });
 });

@@ -1,5 +1,6 @@
 import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
+import 'echarts/lib/component/toolbox';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';

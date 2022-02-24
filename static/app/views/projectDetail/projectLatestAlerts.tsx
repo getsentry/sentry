@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
+import AlertBadge from 'sentry/components/alertBadge';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -152,11 +153,9 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
         to={`/organizations/${organization.slug}/alerts/${identifier}/`}
         key={id}
       >
-        <AlertBadge {...statusProps} icon={Icon}>
-          <AlertIconWrapper>
-            <Icon color="white" />
-          </AlertIconWrapper>
-        </AlertBadge>
+        <AlertBadgeWrapper {...statusProps} icon={Icon}>
+          <AlertBadge status={status} hideText />
+        </AlertBadgeWrapper>
         <AlertDetails>
           <AlertTitle>{title}</AlertTitle>
           <AlertDate {...statusProps}>
@@ -249,31 +248,18 @@ const getStatusColor = ({
 }: {theme: Theme} & StatusColorProps) =>
   isResolved ? theme.green300 : isWarning ? theme.yellow300 : theme.red300;
 
-const AlertBadge = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
+const AlertBadgeWrapper = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   /* icon warning needs to be treated differently to look visually centered */
   line-height: ${p => (p.icon === IconExclamation ? undefined : 1)};
-
-  &:before {
-    content: '';
-    width: 30px;
-    height: 30px;
-    border-radius: ${p => p.theme.borderRadius};
-    background-color: ${p => getStatusColor(p)};
-    transform: rotate(45deg);
-  }
-`;
-
-const AlertIconWrapper = styled('div')`
-  position: absolute;
 `;
 
 const AlertDetails = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-left: ${space(2)};
+  margin-left: ${space(1.5)};
   ${overflowEllipsis}
   line-height: 1.35;
 `;

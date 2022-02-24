@@ -169,6 +169,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         self.page.wait_until_loaded()
         self.browser.snapshot(f"{screenshot_name} (refresh)")
 
+    def test_default_overview_dashboard_layout(self):
+        with self.feature(FEATURE_NAMES + GRID_LAYOUT_FEATURE):
+            self.page.visit_default_overview()
+            self.browser.snapshot("dashboards - default overview layout")
+
     def test_add_and_move_new_widget_on_existing_dashboard(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()
@@ -309,7 +314,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.click_dashboard_add_widget_button()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.send_keys(widget_title)
-            self.browser.element('[aria-label="issue"]').click()
+            self.browser.element(
+                '[aria-label="Select Issues (States, Assignment, Time, etc.)"]'
+            ).click()
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
 

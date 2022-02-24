@@ -1,11 +1,11 @@
 import {Component} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import {Field} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {Integration, Organization} from 'sentry/types';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
 type Props = {
   integration: Integration;
