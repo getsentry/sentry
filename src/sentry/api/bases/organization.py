@@ -1,5 +1,3 @@
-import logging
-
 import sentry_sdk
 from django.core.cache import cache
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -29,8 +27,6 @@ from sentry.utils.compat import map
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context
-
-logger = logging.getLogger("sentry.superuser")
 
 
 class NoProjects(Exception):
