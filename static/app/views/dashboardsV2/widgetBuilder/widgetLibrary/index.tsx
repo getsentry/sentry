@@ -20,7 +20,7 @@ export function WidgetLibrary({onWidgetSelect}) {
           <Card
             key={widget.title}
             widget={widget}
-            iconColor={theme.charts.getColorPalette(index)[index]}
+            iconColor={theme.charts.getColorPalette(DEFAULT_WIDGETS.length - 2)[index]}
             onClick={() => onWidgetSelect(widget)}
           />
         ))}

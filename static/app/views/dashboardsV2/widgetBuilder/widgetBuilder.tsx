@@ -307,10 +307,6 @@ function WidgetBuilder({
         }
       }
 
-      if (prevState.dataSet === DataSet.ISSUES) {
-        set(newState, 'dataSet', DataSet.EVENTS);
-      }
-
       set(newState, 'queries', normalized);
 
       return {...newState, errors: undefined};
