@@ -375,11 +375,11 @@ export default class DetailsBody extends React.Component<Props> {
                     <HeaderItem>
                       <Heading noMargin>
                         {t('Time Interval')}
-                        <Tooltip
+                        <StyledTooltip
                           title={t('The time window over which the metric is evaluated.')}
                         >
                           <IconQuestion size="sm" color="gray300" />
-                        </Tooltip>
+                        </StyledTooltip>
                       </Heading>
 
                       <RuleText>{this.getTimeWindow()}</RuleText>
@@ -486,6 +486,10 @@ const HeaderItem = styled('div')`
     display: flex;
     align-items: center;
   }
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  height: 16px;
 `;
 
 const StyledLayoutBody = styled(Layout.Body)`
