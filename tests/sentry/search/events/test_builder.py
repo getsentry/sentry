@@ -594,7 +594,7 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
     )
 
 
-class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase, TestCase):
+class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [
         "foo_transaction",
         "bar_transaction",
@@ -609,9 +609,8 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase, TestCase):
         self.start = datetime.datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
         self.end = datetime.datetime(2015, 1, 19, 10, 15, 0, tzinfo=timezone.utc)
         self.projects = [self.project.id]
-        self.organization_id = 1
         self.params = {
-            "organization_id": self.organization_id,
+            "organization_id": self.organization.id,
             "project_id": self.projects,
             "start": self.start,
             "end": self.end,
@@ -621,7 +620,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase, TestCase):
             Condition(Column("timestamp"), Op.GTE, self.start),
             Condition(Column("timestamp"), Op.LT, self.end),
             Condition(Column("project_id"), Op.IN, self.projects),
-            Condition(Column("org_id"), Op.EQ, self.organization_id),
+            Condition(Column("org_id"), Op.EQ, self.organization.id),
         ]
 
     def setup_orderby_data(self):
@@ -782,7 +781,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         # Need to pick granularity based on the period
         def get_granularity(start, end):
             params = {
-                "organization_id": self.organization_id,
+                "organization_id": self.organization.id,
                 "project_id": self.projects,
                 "start": start,
                 "end": end,

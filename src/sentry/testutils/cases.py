@@ -24,6 +24,7 @@ __all__ = (
     "OrganizationDashboardWidgetTestCase",
     "SCIMTestCase",
     "SCIMAzureTestCase",
+    "MetricsEnhancedPerformanceTestCase",
 )
 
 import hashlib
@@ -1091,7 +1092,7 @@ class SessionMetricsTestCase(SnubaTestCase):
         )
 
 
-class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase):
+class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     TYPE_MAP = {
         "metrics_distributions": "d",
         "metrics_sets": "s",
@@ -1141,7 +1142,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization_id,
+                    "org_id": self.organization.id,
                     "project_id": self.project.id,
                     "metric_id": indexer.resolve(internal_metric),
                     "timestamp": metric_timestamp,
