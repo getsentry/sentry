@@ -3,26 +3,13 @@ import React from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Organization} from 'sentry/types';
 import {
   DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-function TestComponent({
-  organization,
-  ...props
-}: WidgetBuilderProps & {organization: Organization}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <WidgetBuilder {...props} />
-    </OrganizationContext.Provider>
-  );
-}
+import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
 
 describe('WidgetBuilder', function () {
   it('no feature access', function () {
@@ -37,7 +24,7 @@ describe('WidgetBuilder', function () {
     };
 
     mountWithTheme(
-      <TestComponent
+      <WidgetBuilder
         route={{}}
         router={router}
         routes={router.routes}
@@ -45,11 +32,11 @@ describe('WidgetBuilder', function () {
         location={router.location}
         dashboard={dashboard}
         onSave={jest.fn()}
-        organization={organization}
         params={{orgId: organization.slug}}
       />,
       {
         context: routerContext,
+        organization,
       }
     );
 
@@ -101,7 +88,7 @@ describe('WidgetBuilder', function () {
     };
 
     mountWithTheme(
-      <TestComponent
+      <WidgetBuilder
         route={{}}
         router={router}
         routes={router.routes}
@@ -110,22 +97,24 @@ describe('WidgetBuilder', function () {
         dashboard={dashboard}
         onSave={jest.fn()}
         widget={widget}
-        organization={organization}
         params={{orgId: organization.slug, widgetId: Number(widget.id)}}
       />,
       {
         context: routerContext,
+        organization,
       }
     );
 
-    expect(screen.getByText('Widget not found.')).toBeInTheDocument();
+    expect(
+      screen.getByText('The widget you want to edit was not found.')
+    ).toBeInTheDocument();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {organization, router, routerContext} = initializeOrg({
       ...initializeOrg(),
       organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit'],
+        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
       },
       router: {
         location: {
@@ -145,7 +134,7 @@ describe('WidgetBuilder', function () {
     };
 
     mountWithTheme(
-      <TestComponent
+      <WidgetBuilder
         route={{}}
         router={router}
         routes={router.routes}
@@ -153,16 +142,16 @@ describe('WidgetBuilder', function () {
         location={router.location}
         dashboard={dashboard}
         onSave={jest.fn()}
-        organization={organization}
         params={{orgId: organization.slug}}
       />,
       {
         context: routerContext,
+        organization,
       }
     );
 
     // Header - Breadcrumbs
-    expect(screen.getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboards/'
     );
@@ -173,9 +162,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
     // Header - Widget Title
-    expect(
-      screen.getByRole('heading', {name: 'Custom Table Widget'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
 
     // Header - Actions
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
@@ -185,7 +172,9 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('events')).toBeChecked();
+    expect(
+      screen.getByLabelText('Select All Events (Errors and Transactions)')
+    ).toBeChecked();
 
     // Content - Step 2
     expect(
@@ -193,14 +182,12 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
 
     // Content - Step 3
-    expect(screen.getByRole('heading', {name: 'Choose your y-axis'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Columns'})).toBeInTheDocument();
 
     // Content - Step 4
-    expect(
-      screen.getByRole('heading', {name: 'Filter your results'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Query'})).toBeInTheDocument();
 
     // Content - Step 5
-    expect(screen.getByRole('heading', {name: 'Group your results'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sort by'})).toBeInTheDocument();
   });
 });

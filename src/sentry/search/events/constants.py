@@ -72,6 +72,7 @@ TIMESTAMP_FIELDS = {
     "timestamp.to_hour",
     "timestamp.to_day",
 }
+NON_FAILURE_STATUS = {"ok", "cancelled", "unknown"}
 
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
@@ -132,3 +133,5 @@ METRICS_MAP = {
     "transaction.duration": "sentry.transactions.transaction.duration",
     "user": "sentry.transactions.user",
 }
+# 50 to match the size of tables in the UI + 1 for pagination reasons
+METRICS_MAX_LIMIT = 51

@@ -67,9 +67,12 @@ def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapp
     consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
         cluster_name,
         override_params={
+            "auto.offset.reset": auto_offset_reset,
             "enable.auto.commit": False,
             "enable.auto.offset.store": False,
             "group.id": group_id,
+            # `default.topic.config` is now deprecated.
+            # More details: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration)
             "default.topic.config": {"auto.offset.reset": auto_offset_reset},
             # overridden to reduce memory usage when there's a large backlog
             "queued.max.messages.kbytes": DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
@@ -385,7 +388,11 @@ def process_messages(
             metric_name = parsed_payload_value["name"]
             tags = parsed_payload_value.get("tags", {})
 
-            new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
+            try:
+                new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
+            except KeyError:
+                logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
+                continue
 
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = mapping[metric_name]

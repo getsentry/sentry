@@ -1,12 +1,14 @@
 import {Component, Fragment} from 'react';
 import {cache} from '@emotion/css';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
+// eslint-disable-next-line no-restricted-imports
 import {
   fireEvent as reactRtlFireEvent,
   render,
   RenderOptions,
 } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
+import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 import GlobalModal from 'sentry/components/globalModal';
 import {Organization} from 'sentry/types';
@@ -17,6 +19,8 @@ type ProviderOptions = {
   context?: Record<string, any>;
   organization?: Organization;
 };
+
+type Options = ProviderOptions & RenderOptions;
 
 function createProvider(contextDefs: Record<string, any>) {
   return class ContextProvider extends Component {
@@ -39,13 +43,9 @@ function makeAllTheProviders({context, organization}: ProviderOptions) {
       <ContextProvider>
         <CacheProvider value={cache}>
           <ThemeProvider theme={lightTheme}>
-            {organization ? (
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            ) : (
-              children
-            )}
+            <OrganizationContext.Provider value={organization ?? null}>
+              {children}
+            </OrganizationContext.Provider>
           </ThemeProvider>
         </CacheProvider>
       </ContextProvider>
@@ -60,18 +60,13 @@ function makeAllTheProviders({context, organization}: ProviderOptions) {
  * After
  * mountWithTheme(<Something />, {context: routerContext});
  */
-const mountWithTheme = (
-  ui: React.ReactElement,
-  options?: ProviderOptions & RenderOptions
-) => {
+function mountWithTheme(ui: React.ReactElement, options?: Options) {
   const {context, organization, ...otherOptions} = options ?? {};
 
   const AllTheProviders = makeAllTheProviders({context, organization});
 
   return render(ui, {wrapper: AllTheProviders, ...otherOptions});
-};
-
-export * from '@testing-library/react';
+}
 
 /**
  * @deprecated
@@ -80,8 +75,9 @@ export * from '@testing-library/react';
  */
 const fireEvent = reactRtlFireEvent;
 
-export function mountGlobalModal(context) {
-  return mountWithTheme(<GlobalModal />, {context});
+function mountGlobalModal(options?: Options) {
+  return mountWithTheme(<GlobalModal />, options);
 }
 
-export {mountWithTheme, userEvent, fireEvent};
+export * from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+export {mountWithTheme, mountGlobalModal, userEvent, reactHooks, fireEvent};

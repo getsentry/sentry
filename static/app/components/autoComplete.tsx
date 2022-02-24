@@ -81,7 +81,7 @@ type Props<T> = typeof defaultProps & {
   /**
    * Must be a function that returns a component
    */
-  children: (props: ChildrenProps<T>) => React.ReactElement;
+  children: (props: ChildrenProps<T>) => React.ReactElement | null;
   disabled: boolean;
   defaultHighlightedIndex?: number;
   defaultInputValue?: string;
@@ -265,6 +265,15 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       this.handleSelect(item, e);
     };
 
+  handleItemMouseEnter =
+    ({item, index}: GetItemArgs<T>) =>
+    (_e: React.MouseEvent) => {
+      if (item.disabled) {
+        return;
+      }
+      this.setState({highlightedIndex: index});
+    };
+
   handleMenuMouseDown = () => {
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
     setTimeout(() => {
@@ -377,6 +386,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       ...props,
       'data-test-id': item['data-test-id'],
       onClick: this.handleItemClick({item, index: newIndex, ...props}),
+      onMouseEnter: this.handleItemMouseEnter({item, index: newIndex, ...props}),
     };
   };
 

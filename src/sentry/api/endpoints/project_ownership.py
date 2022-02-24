@@ -18,6 +18,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
     raw = serializers.CharField(allow_blank=True)
     fallthrough = serializers.BooleanField()
     autoAssignment = serializers.BooleanField()
+    codeownersAutoSync = serializers.BooleanField(default=True)
 
     @staticmethod
     def _validate_no_codeowners(rules):
@@ -77,6 +78,12 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             fallthrough = self.validated_data["fallthrough"]
             if ownership.fallthrough != fallthrough:
                 ownership.fallthrough = fallthrough
+                changed = True
+
+        if "codeownersAutoSync" in self.validated_data:
+            codeowners_auto_sync = self.validated_data["codeownersAutoSync"]
+            if ownership.codeowners_auto_sync != codeowners_auto_sync:
+                ownership.codeowners_auto_sync = codeowners_auto_sync
                 changed = True
 
         changed = self.__modify_auto_assignment(ownership) or changed

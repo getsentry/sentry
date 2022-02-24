@@ -39,6 +39,10 @@ describe('Performance > Landing > Index', function () {
 
   act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -76,6 +80,11 @@ describe('Performance > Landing > Index', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
+
     if (wrapper) {
       wrapper.unmount();
       wrapper = undefined;

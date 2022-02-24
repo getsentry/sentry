@@ -2,7 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownMenu, {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
@@ -99,6 +99,15 @@ type Props = WithRouterProps & {
    * Default initial value for using UTC
    */
   utc: boolean | null;
+
+  /**
+   * Optionally render a custom dropdown button, instead of the default
+   * <HeaderItem />
+   */
+  customDropdownButton?: (config: {
+    getActorProps: GetActorPropsFn;
+    isOpen: boolean;
+  }) => React.ReactElement;
 
   /**
    * Set an optional default value to prefill absolute date with
@@ -353,6 +362,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       label,
       relativeOptions,
       maxPickableDays,
+      customDropdownButton,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -381,8 +391,10 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
         onClose={this.handleCloseMenu}
         keepMenuOpen
       >
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
-          <TimeRangeRoot {...getRootProps()}>
+        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+          const dropdownButton = customDropdownButton ? (
+            customDropdownButton({getActorProps, isOpen})
+          ) : (
             <StyledHeaderItem
               data-test-id="global-header-timerange-selector"
               icon={label ?? <IconCalendar />}
@@ -397,45 +409,56 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
               hint={hint}
               {...getActorProps()}
             >
-              {getDynamicText({value: summary, fixed: 'start to end'})}
+              {getDynamicText({
+                value: summary,
+                fixed: 'start to end',
+              })}
             </StyledHeaderItem>
-            {isOpen && (
-              <Menu {...getMenuProps()} isAbsoluteSelected={isAbsoluteSelected}>
-                <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
-                  <SelectorItemsHook
-                    handleSelectRelative={this.handleSelectRelative}
-                    handleAbsoluteClick={this.handleAbsoluteClick}
-                    isAbsoluteSelected={isAbsoluteSelected}
-                    relativeSelected={relativeSelected}
-                    relativePeriods={relativeOptions}
-                    shouldShowAbsolute={shouldShowAbsolute}
-                    shouldShowRelative={shouldShowRelative}
-                  />
-                </SelectorList>
-                {isAbsoluteSelected && (
-                  <div>
-                    <DateRangeHook
-                      start={start ?? null}
-                      end={end ?? null}
-                      organization={organization}
-                      showTimePicker
-                      utc={this.state.utc}
-                      onChange={this.handleSelectDateRange}
-                      onChangeUtc={this.handleUseUtc}
-                      maxPickableDays={maxPickableDays}
+          );
+
+          return (
+            <TimeRangeRoot {...getRootProps()}>
+              {dropdownButton}
+              {isOpen && (
+                <Menu {...getMenuProps()} isAbsoluteSelected={isAbsoluteSelected}>
+                  <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
+                    <SelectorItemsHook
+                      handleSelectRelative={this.handleSelectRelative}
+                      handleAbsoluteClick={this.handleAbsoluteClick}
+                      isAbsoluteSelected={isAbsoluteSelected}
+                      relativeSelected={relativeSelected}
+                      relativePeriods={relativeOptions}
+                      shouldShowAbsolute={shouldShowAbsolute}
+                      shouldShowRelative={shouldShowRelative}
                     />
-                    <SubmitRow>
-                      <MultipleSelectorSubmitRow
-                        onSubmit={this.handleCloseMenu}
-                        disabled={!this.state.hasChanges || this.state.hasDateRangeErrors}
+                  </SelectorList>
+                  {isAbsoluteSelected && (
+                    <div>
+                      <DateRangeHook
+                        start={start ?? null}
+                        end={end ?? null}
+                        organization={organization}
+                        showTimePicker
+                        utc={this.state.utc}
+                        onChange={this.handleSelectDateRange}
+                        onChangeUtc={this.handleUseUtc}
+                        maxPickableDays={maxPickableDays}
                       />
-                    </SubmitRow>
-                  </div>
-                )}
-              </Menu>
-            )}
-          </TimeRangeRoot>
-        )}
+                      <SubmitRow>
+                        <MultipleSelectorSubmitRow
+                          onSubmit={this.handleCloseMenu}
+                          disabled={
+                            !this.state.hasChanges || this.state.hasDateRangeErrors
+                          }
+                        />
+                      </SubmitRow>
+                    </div>
+                  )}
+                </Menu>
+              )}
+            </TimeRangeRoot>
+          );
+        }}
       </DropdownMenu>
     );
   }

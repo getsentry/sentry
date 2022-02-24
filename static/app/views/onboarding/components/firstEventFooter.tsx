@@ -48,6 +48,7 @@ export default function FirstEventFooter({
           {
             sample: (
               <CreateSampleEventButton
+                aria-label="View a sample event"
                 project={project}
                 source="onboarding"
                 priority="link"

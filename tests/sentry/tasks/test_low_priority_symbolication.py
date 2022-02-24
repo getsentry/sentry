@@ -12,6 +12,7 @@ from sentry.processing.realtime_metrics.base import (
     DurationsHistogram,
     RealtimeMetricsStore,
 )
+from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore
 from sentry.tasks import low_priority_symbolication
 from sentry.tasks.low_priority_symbolication import (
     _scan_for_suspect_projects,
@@ -148,7 +149,7 @@ class TestUpdateLpqEligibility:
 
     @freeze_time(datetime.fromtimestamp(0))
     def test_is_eligible_recently_moved(
-        self, store: RealtimeMetricsStore, monkeypatch: "pytest.MonkeyPatch"
+        self, store: RedisRealtimeMetricsStore, monkeypatch: "pytest.MonkeyPatch"
     ) -> None:
         store._backoff_timer = 10
         # Abusing the fact that removing always updates the backoff timer even if it's a noop
@@ -161,7 +162,7 @@ class TestUpdateLpqEligibility:
         _update_lpq_eligibility(17, 10)
         assert store.get_lpq_projects() == set()
 
-    def test_not_eligible_recently_moved(self, store: RealtimeMetricsStore) -> None:
+    def test_not_eligible_recently_moved(self, store: RedisRealtimeMetricsStore) -> None:
         store._backoff_timer = 10
         store.add_project_to_lpq(17)
 
@@ -234,6 +235,7 @@ class TestExcessiveEventDuration:
     def test_low_rate_long_duration(self) -> None:
         # 1 event/m for 3m, 9m durations
         histograms = []
+        durations = None
         for i in range(6 * 3):
             hist = DurationsHistogram(bucket_size=10)
             if i % 6 == 0:
@@ -241,4 +243,5 @@ class TestExcessiveEventDuration:
             histograms.append(hist)
             durations = BucketedDurationsHistograms(timestamp=0, width=10, histograms=histograms)
 
+        assert durations is not None
         assert not excessive_event_duration(project_id=1, durations=durations)
