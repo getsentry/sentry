@@ -243,7 +243,7 @@ class OrganizationEndpoint(Endpoint):
 
         return projects
 
-    def get_requested_project_ids_unchecked(self, request: Request, key="project"):
+    def get_requested_project_ids_unchecked(self, request: Request):
         """
         Returns the project ids that were requested by the request.
 
@@ -251,7 +251,7 @@ class OrganizationEndpoint(Endpoint):
         permission checking, use ``get_projects``, instead.
         """
         try:
-            return set(map(int, request.GET.getlist(key)))
+            return set(map(int, request.GET.getlist("project")))
         except ValueError:
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 

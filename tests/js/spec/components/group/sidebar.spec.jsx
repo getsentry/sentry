@@ -59,7 +59,7 @@ describe('GroupSidebar', function () {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,
-      query: {projectId: -1},
+      query: {project: -1},
       method: 'GET',
       body: [],
     });

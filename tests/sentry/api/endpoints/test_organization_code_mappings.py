@@ -121,7 +121,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             default_branch="master",
         )
 
-        url_path = f"{self.url}?projectId={self.project1.id}"
+        url_path = f"{self.url}?project={self.project1.id}"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 200, response.content
@@ -178,7 +178,7 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_basic_get_with_invalid_projectId(self):
 
-        url_path = f"{self.url}?projectId=100"
+        url_path = f"{self.url}?project=100"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 403, response.content

@@ -127,7 +127,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
         :qparam int integrationId: the optional integration id.
-        :qparam int projectId: Optional. Pass "-1" to filter to 'all projects user has access to'. Omit to filter for 'all projects user is a member of'.
+        :qparam int project: Optional. Pass "-1" to filter to 'all projects user has access to'. Omit to filter for 'all projects user is a member of'.
         :qparam int per_page: Pagination size.
         :qparam string cursor: Pagination cursor.
         :auth: required
@@ -143,7 +143,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             queryset = queryset.filter(organization_integration=org_integration)
         else:
             # Filter by project
-            project_ids = self.get_requested_project_ids_unchecked(request, "projectId")
+            project_ids = self.get_requested_project_ids_unchecked(request)
             projects = self.get_projects(request, organization, project_ids=project_ids)
             queryset = queryset.filter(project__in=projects)
 
