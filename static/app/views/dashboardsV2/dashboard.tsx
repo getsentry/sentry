@@ -208,6 +208,7 @@ class Dashboard extends Component<Props, State> {
   fetchTags() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    fetchMetricsTags(api, organization.slug);
   }
 
   handleStartAdd = () => {

@@ -15,7 +15,7 @@ const storeConfig: Reflux.StoreDefinition & MetricTagStoreInterface = {
 
   init() {
     this.state = {};
-    this.listenTo(MetricTagActions.loadTagsSuccess, this.onLoadTagsSuccess);
+    this.listenTo(MetricTagActions.loadMetricsTagsSuccess, this.onLoadTagsSuccess);
   },
 
   reset() {
