@@ -319,3 +319,10 @@ build-utils/        @getsentry/owners-js-build
 /tests/apidocs/                     @getsentry/owners-api
 /.github/workflows/openapi.yml      @getsentry/owners-api
 /.github/workflows/openapi-diff.yml @getsentry/owners-api
+
+
+### SDK ###
+
+/src/sentry/utils/sdk.py            @getsentry/team-web-backend
+
+## End of SDK ##
