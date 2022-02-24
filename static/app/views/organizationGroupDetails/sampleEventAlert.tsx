@@ -5,31 +5,16 @@ import PageAlertBar from 'sentry/components/pageAlertBar';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import {AvatarProject, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
 
 function SampleEventAlert({
-  selection,
   organization,
-  projects,
+  project,
 }: {
   organization: Organization;
-  projects: Project[];
-  selection: PageFilters;
+  project: AvatarProject;
 }) {
-  if (projects.length === 0) {
-    return null;
-  }
-  if (selection.projects.length !== 1) {
-    return null;
-  }
-  const selectedProject = projects.find(p => p.id === selection.projects[0].toString());
-  if (!selectedProject || selectedProject.firstEvent) {
-    return null;
-  }
   return (
     <PageAlertBar>
       <IconLightning />
@@ -41,14 +26,14 @@ function SampleEventAlert({
       <Button
         size="xsmall"
         priority="primary"
-        to={`/${organization.slug}/${selectedProject.slug}/getting-started/${
-          selectedProject.platform || ''
+        to={`/${organization.slug}/${project.slug}/getting-started/${
+          project.platform || ''
         }`}
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.sample_error_onboarding_link_clicked', {
-            project_id: selectedProject.id,
+            project_id: project.id,
             organization,
-            platform: selectedProject.platform,
+            platform: project.platform,
           })
         }
       >
@@ -58,7 +43,7 @@ function SampleEventAlert({
   );
 }
 
-export default withProjects(withOrganization(withPageFilters(SampleEventAlert)));
+export default SampleEventAlert;
 
 const TextWrapper = styled('span')`
   margin: 0 ${space(1)};
