@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as Sentry from '@sentry/react';
 import Jed from 'jed';
-import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
@@ -41,7 +40,7 @@ export function toggleLocaleDebug() {
 /**
  * Global Jed locale object loaded with translations via setLocale
  */
-let i18n: any = null;
+let i18n: Jed | null = null;
 
 /**
  * Set the current application locale.
@@ -68,7 +67,7 @@ type FormatArg = ComponentMap | React.ReactNode;
  * Helper to return the i18n client, and initialize for the default locale (English)
  * if it has otherwise not been initialized.
  */
-function getClient() {
+function getClient(): Jed | null {
   if (!i18n) {
     // If this happens, it could mean that an import was added/changed where
     // locale initialization does not happen soon enough.
@@ -84,7 +83,7 @@ function getClient() {
 /**
  * printf style string formatting which render as react nodes.
  */
-function formatForReact(formatString: string, args: FormatArg[]) {
+function formatForReact(formatString: string, args: FormatArg[]): React.ReactNode[] {
   const nodes: React.ReactNodeArray = [];
   let cursor = 0;
 
@@ -125,7 +124,7 @@ function formatForReact(formatString: string, args: FormatArg[]) {
 /**
  * Determine if any arguments include React elements.
  */
-function argsInvolveReact(args: FormatArg[]) {
+function argsInvolveReact(args: FormatArg[]): boolean {
   if (args.some(React.isValidElement)) {
     return true;
   }
@@ -169,7 +168,7 @@ type ComponentMap = {[group: string]: React.ReactNode};
  * The top level group will be keyed as `root`. All other group names will have
  * been extracted from the template string.
  */
-export function parseComponentTemplate(template: string) {
+export function parseComponentTemplate(template: string): ParsedTemplate {
   const parsed: ParsedTemplate = {};
 
   function process(startPos: number, group: string, inGroup: boolean) {
@@ -230,7 +229,10 @@ export function parseComponentTemplate(template: string) {
  * Renders a parsed template into a React tree given a ComponentMap to use for
  * the parsed groups.
  */
-export function renderTemplate(template: ParsedTemplate, components: ComponentMap) {
+export function renderTemplate(
+  template: ParsedTemplate,
+  components: ComponentMap
+): React.ReactNode {
   let idx = 0;
 
   function renderGroup(groupKey: string) {
@@ -269,30 +271,29 @@ export function renderTemplate(template: ParsedTemplate, components: ComponentMa
  * NOTE: This is a no-op and will return the node if LOCALE_DEBUG is not
  * currently enabled. See setLocaleDebug and toggleLocaleDebug.
  */
-function mark<T>(node: T): T {
+function mark(node: React.ReactNode): string {
   if (!LOCALE_DEBUG) {
-    return node;
+    return node as string;
   }
 
   // TODO(epurkhiser): Explain why we manually create a react node and assign
   // the toString function. This could likely also use better typing, but will
   // require some understanding of reacts internal types.
-  const proxy: any = {
+  const proxy = {
     $$typeof: Symbol.for('react.element'),
     type: 'span',
     key: null,
     ref: null,
     props: {
       style: markerStyles,
-      children: isArray(node) ? node : [node],
+      children: Array.isArray(node) ? node : [node],
     },
     _owner: null,
     _store: {},
   };
 
   proxy.toString = () => '✅' + node + '✅';
-
-  return proxy;
+  return proxy as unknown as string;
 }
 
 /**
@@ -303,7 +304,7 @@ function mark<T>(node: T): T {
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function format(formatString: string, args: FormatArg[]) {
+export function format(formatString: string, args: FormatArg[]): React.ReactNode {
   if (argsInvolveReact(args)) {
     return formatForReact(formatString, args);
   }
@@ -319,7 +320,7 @@ export function format(formatString: string, args: FormatArg[]) {
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function gettext(string: string, ...args: FormatArg[]) {
+export function gettext(string: string, ...args: FormatArg[]): string {
   const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
@@ -329,7 +330,7 @@ export function gettext(string: string, ...args: FormatArg[]) {
   // XXX(ts): It IS possible to use gettext in such a way that it will return a
   // React.ReactNodeArray, however we currently rarely (if at all) use it in
   // this way, and usually just expect strings back.
-  return mark(format(val, args) as string);
+  return mark(format(val, args));
 }
 
 /**
@@ -342,7 +343,7 @@ export function gettext(string: string, ...args: FormatArg[]) {
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function ngettext(singular: string, plural: string, ...args: FormatArg[]) {
+export function ngettext(singular: string, plural: string, ...args: FormatArg[]): string {
   let countArg = 0;
 
   if (args.length > 0) {
@@ -379,9 +380,12 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
  *
  * You may recursively nest additional groups within the grouped string values.
  */
-export function gettextComponentTemplate(template: string, components: ComponentMap) {
-  const tmpl = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(tmpl, components));
+export function gettextComponentTemplate(
+  template: string,
+  components: ComponentMap
+): string {
+  const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
+  return mark(renderTemplate(parsedTemplate, components));
 }
 
 /**
