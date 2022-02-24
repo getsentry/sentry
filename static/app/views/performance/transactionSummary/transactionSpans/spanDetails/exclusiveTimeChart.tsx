@@ -72,12 +72,12 @@ export default function ExclusiveTimeChart(props: Props) {
   return (
     <Fragment>
       <HeaderTitleLegend>
-        {t('Exclusive Time Breakdown')}
+        {t('Self Time Breakdown')}
         <QuestionTooltip
           size="sm"
           position="top"
           title={t(
-            'Exclusive Time Breakdown reflects the span exclusive time by percentile over time.'
+            'Self Time Breakdown reflects the span exclusive time by percentile over time.'
           )}
         />
       </HeaderTitleLegend>

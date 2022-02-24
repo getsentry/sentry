@@ -196,7 +196,7 @@ function SpanDetailsHeader(props: HeaderProps) {
         <SectionSubtext data-test-id="operation-name">{spanSlug.op}</SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-percentiles">
-        <SectionHeading>{t('Exclusive Time Percentiles')}</SectionHeading>
+        <SectionHeading>{t('Self Time Percentiles')}</SectionHeading>
         <PercentileHeaderBodyWrapper>
           <div data-test-id="section-p75">
             <SectionBody>
@@ -244,7 +244,7 @@ function SpanDetailsHeader(props: HeaderProps) {
         </SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
-        <SectionHeading>{t('Total Exclusive Time')}</SectionHeading>
+        <SectionHeading>{t('Total Self Time')}</SectionHeading>
         <SectionBody>
           {defined(sumExclusiveTime) ? (
             <PerformanceDuration abbreviation milliseconds={sumExclusiveTime} />
