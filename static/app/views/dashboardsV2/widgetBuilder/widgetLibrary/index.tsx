@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-
-import {DEFAULT_WIDGETS} from '../../widgetLibrary/data';
+import {DEFAULT_WIDGETS} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import {Card} from './card';
 
