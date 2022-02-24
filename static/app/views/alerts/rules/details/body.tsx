@@ -10,6 +10,7 @@ import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
+import DateTime from 'sentry/components/dateTime';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import Duration from 'sentry/components/duration';
 import IdBadge from 'sentry/components/idBadge';
@@ -225,6 +226,19 @@ export default class DetailsBody extends React.Component<Props> {
               keyName={t('Team')}
               value={
                 teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
+              }
+            />
+
+            <KeyValueTableRow
+              keyName={t('Date created')}
+              value={
+                <DateTime
+                  date={getDynamicText({
+                    value: rule.dateCreated,
+                    fixed: new Date('2021-04-20'),
+                  })}
+                  format="ll"
+                />
               }
             />
 
@@ -457,7 +471,7 @@ export default class DetailsBody extends React.Component<Props> {
 }
 
 const SidebarGroup = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const DetailWrapper = styled('div')`
