@@ -38,7 +38,7 @@ import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
-import withMetricTags from 'sentry/utils/withMetricTags';
+import withMetricsTags from 'sentry/utils/withMetricsTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
@@ -91,7 +91,7 @@ export type DashboardWidgetModalOptions = {
 type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
-    metricTags: MetricTagCollection;
+    metricsTags: MetricTagCollection;
     organization: Organization;
     selection: PageFilters;
     tags: TagCollection;
@@ -596,7 +596,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
 
   renderWidgetQueryForm() {
-    const {organization, selection, tags, metricTags, start, end, statsPeriod} =
+    const {organization, selection, tags, metricsTags, start, end, statsPeriod} =
       this.props;
     const state = this.state;
     const errors = state.errors;
@@ -612,7 +612,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
       state.metricFields.length ? state.metricFields : DEFAULT_METRICS_FIELDS,
-      Object.values(metricTags).map(({key}) => key)
+      Object.values(metricsTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
@@ -921,5 +921,5 @@ const StyledFieldLabel = styled(FieldLabel)`
 `;
 
 export default withApi(
-  withPageFilters(withTags(withMetricTags(AddDashboardWidgetModal)))
+  withPageFilters(withTags(withMetricsTags(AddDashboardWidgetModal)))
 );

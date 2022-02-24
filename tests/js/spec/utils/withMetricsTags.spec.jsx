@@ -1,9 +1,9 @@
 import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import MetricsTagStore from 'sentry/stores/metricsTagStore';
-import withMetricTags from 'sentry/utils/withMetricTags';
+import withMetricsTags from 'sentry/utils/withMetricsTags';
 
-describe('withMetricTags HoC', function () {
+describe('withMetricsTags HoC', function () {
   beforeEach(() => {
     MetricsTagStore.reset();
   });
@@ -12,17 +12,17 @@ describe('withMetricTags HoC', function () {
 
   it('works', async function () {
     jest.spyOn(MetricsTagStore, 'trigger');
-    const MyComponent = ({other, metricTags}) => {
+    const MyComponent = ({other, metricsTags}) => {
       return (
         <div>
           <span>{other}</span>
-          {metricTags &&
-            Object.entries(metricTags).map(([key, tag]) => <em key={key}>{tag.key}</em>)}
+          {metricsTags &&
+            Object.entries(metricsTags).map(([key, tag]) => <em key={key}>{tag.key}</em>)}
         </div>
       );
     };
 
-    const Container = withMetricTags(MyComponent);
+    const Container = withMetricsTags(MyComponent);
     mountWithTheme(<Container other="value" />);
 
     // Should forward props.
