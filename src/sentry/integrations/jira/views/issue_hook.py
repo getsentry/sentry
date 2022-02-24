@@ -23,10 +23,6 @@ from . import UNABLE_TO_VERIFY_INSTALLATION, JiraBaseHook
 logger = logging.getLogger(__name__)
 
 
-def accum(tot: int, item: Mapping[int, int]) -> int:
-    return tot + item[1]
-
-
 # TODO: find more efficient way of getting stats
 def get_serialized_and_stats(group: Group, stats_period: str) -> tuple[Mapping[str, Any], int]:
     result = serialize(
@@ -34,8 +30,13 @@ def get_serialized_and_stats(group: Group, stats_period: str) -> tuple[Mapping[s
         None,
         StreamGroupSerializer(stats_period=stats_period),
     )
-    stats = result["stats"][stats_period]
-    return result, reduce(accum, stats, 0)
+    stats = reduce(
+        lambda x, y: x + y[1],
+        result["stats"][stats_period],
+        0,
+    )
+
+    return result, stats
 
 
 def get_release_url(group: Group, release: str) -> str:
