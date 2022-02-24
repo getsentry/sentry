@@ -89,7 +89,7 @@ class RelatedIssues extends Component<Props> {
       <Fragment>
         <ControlsWrapper>
           <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
-          <Button data-test-id="issues-open" size="small" to={issueSearch}>
+          <Button data-test-id="issues-open" size="xsmall" to={issueSearch}>
             {t('Open in Issues')}
           </Button>
         </ControlsWrapper>

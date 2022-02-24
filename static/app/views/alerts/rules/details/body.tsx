@@ -336,57 +336,55 @@ export default class DetailsBody extends React.Component<Props> {
                 )}
               <StyledLayoutBodyWrapper>
                 <Layout.Main>
-                  <HeaderContainer>
-                    <HeaderGrid>
+                  <HeaderGrid>
+                    <HeaderItem>
+                      <Heading noMargin>{t('Display')}</Heading>
+                      <ChartControls>
+                        <DropdownControl
+                          label={
+                            getDynamicText({
+                              fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
+                              value: timePeriod.display,
+                            }) ?? '' // we should never get here because timePeriod.display is typed as always defined
+                          }
+                        >
+                          {TIME_OPTIONS.map(({label, value}) => (
+                            <DropdownItem
+                              key={value}
+                              eventKey={value}
+                              isActive={!timePeriod.custom && timePeriod.period === value}
+                              onSelect={this.props.handleTimePeriodChange}
+                            >
+                              {label}
+                            </DropdownItem>
+                          ))}
+                        </DropdownControl>
+                      </ChartControls>
+                    </HeaderItem>
+                    {projects && projects.length && (
                       <HeaderItem>
-                        <Heading noMargin>{t('Display')}</Heading>
-                        <ChartControls>
-                          <DropdownControl
-                            label={
-                              getDynamicText({
-                                fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
-                                value: timePeriod.display,
-                              }) ?? '' // we should never get here because timePeriod.display is typed as always defined
-                            }
-                          >
-                            {TIME_OPTIONS.map(({label, value}) => (
-                              <DropdownItem
-                                key={value}
-                                eventKey={value}
-                                isActive={
-                                  !timePeriod.custom && timePeriod.period === value
-                                }
-                                onSelect={this.props.handleTimePeriodChange}
-                              >
-                                {label}
-                              </DropdownItem>
-                            ))}
-                          </DropdownControl>
-                        </ChartControls>
-                      </HeaderItem>
-                      {projects && projects.length && (
-                        <HeaderItem>
-                          <Heading noMargin>{t('Project')}</Heading>
+                        <Heading noMargin>{t('Project')}</Heading>
 
-                          <IdBadge avatarSize={16} project={projects[0]} />
-                        </HeaderItem>
-                      )}
-                      <HeaderItem>
-                        <Heading noMargin>
-                          {t('Time Interval')}
-                          <Tooltip
-                            title={t(
-                              'The time window over which the metric is evaluated.'
-                            )}
-                          >
-                            <IconInfo size="xs" color="gray200" />
-                          </Tooltip>
-                        </Heading>
-
-                        <RuleText>{this.getTimeWindow()}</RuleText>
+                        <IdBadge avatarSize={16} project={projects[0]} />
                       </HeaderItem>
-                    </HeaderGrid>
-                  </HeaderContainer>
+                    )}
+                    <HeaderItem>
+                      <Heading noMargin>{t('Environment')}</Heading>
+                      <RuleText>{rule.environment ?? 'All'}</RuleText>
+                    </HeaderItem>
+                    <HeaderItem>
+                      <Heading noMargin>
+                        {t('Time Interval')}
+                        <Tooltip
+                          title={t('The time window over which the metric is evaluated.')}
+                        >
+                          <IconQuestion size="sm" color="gray300" />
+                        </Tooltip>
+                      </Heading>
+
+                      <RuleText>{this.getTimeWindow()}</RuleText>
+                    </HeaderItem>
+                  </HeaderGrid>
 
                   <MetricChart
                     api={api}
@@ -534,9 +532,7 @@ const StatusContainer = styled('div')`
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
   margin-top: ${p => (p.noMargin ? 0 : space(2))};
   margin-bottom: ${space(0.5)};
-  line-height:
-  gap: ${space(1)};
-  min-width: max-content;
+  line-height: 1;
 `;
 
 const ChartControls = styled('div')`
