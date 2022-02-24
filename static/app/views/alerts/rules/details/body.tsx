@@ -211,7 +211,7 @@ export default class DetailsBody extends React.Component<Props> {
         </SidebarGroup>
 
         <SidebarGroup>
-          <Heading>{t('Thresholds and Actions')}</Heading>
+          <Heading>{t('Thresholds')}</Heading>
           {typeof criticalTrigger?.alertThreshold === 'number' &&
             this.renderTrigger(
               criticalTrigger.label,
