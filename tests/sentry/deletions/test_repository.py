@@ -4,7 +4,14 @@ from django.core import mail
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import PluginError
-from sentry.models import Commit, Repository, ScheduledDeletion
+from sentry.models import (
+    Commit,
+    Integration,
+    ProjectCodeOwners,
+    Repository,
+    RepositoryProjectPathConfig,
+    ScheduledDeletion,
+)
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TransactionTestCase
 
@@ -37,6 +44,42 @@ class DeleteRepositoryTest(TransactionTestCase):
         assert not Repository.objects.filter(id=repo.id).exists()
         assert not Commit.objects.filter(id=commit.id).exists()
         assert Commit.objects.filter(id=commit2.id).exists()
+
+    def test_codeowners(self):
+        org = self.create_organization(owner=self.user)
+        self.integration = Integration.objects.create(
+            provider="github", name="Example", external_id="abcd"
+        )
+        org_integration = self.integration.add_organization(org, self.user)
+        project = self.create_project(organization=org)
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            provider="dummy",
+            name="example/example",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+        path_config = RepositoryProjectPathConfig.objects.create(
+            project=project,
+            repository=repo,
+            stack_root="",
+            source_root="src/packages/store",
+            default_branch="main",
+            organization_integration=org_integration,
+        )
+        code_owner = ProjectCodeOwners.objects.create(
+            project=project,
+            repository_project_path_config=path_config,
+            raw="* @org/devs",
+        )
+        deletion = ScheduledDeletion.schedule(repo, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Repository.objects.filter(id=repo.id).exists()
+        assert not RepositoryProjectPathConfig.objects.filter(id=path_config.id).exists()
+        assert not ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
 
     def test_no_delete_visible(self):
         org = self.create_organization()
