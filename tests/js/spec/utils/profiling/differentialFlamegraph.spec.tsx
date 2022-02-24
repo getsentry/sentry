@@ -25,8 +25,10 @@ const makeFlamegraph = (profile: Profiling.EventedProfile) => {
       createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}, {name: 'f3'}])
     ),
     0,
-    false,
-    false
+    {
+      inverted: false,
+      leftHeavy: false,
+    }
   );
 };
 
