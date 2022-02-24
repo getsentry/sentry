@@ -1,14 +1,21 @@
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
+import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboardsV2/widgetLibrary/widgetCard';
 
-export function Card({widget, iconColor}) {
+type CardProps = {
+  iconColor: string;
+  onClick: () => void;
+  widget: WidgetTemplate;
+};
+
+export function Card({widget, iconColor, onClick}: CardProps) {
   const {title, description, displayType} = widget;
   const Icon = getWidgetIcon(displayType);
 
   return (
-    <Container>
+    <Container onClick={onClick}>
       <IconWrapper backgroundColor={iconColor}>
         <Icon style={{color: '#FFF'}} />
       </IconWrapper>

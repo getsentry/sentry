@@ -9,7 +9,7 @@ import {DEFAULT_WIDGETS} from '../../widgetLibrary/data';
 
 import {Card} from './card';
 
-export function WidgetLibrary() {
+export function WidgetLibrary({onWidgetSelect}) {
   const theme = useTheme();
 
   return (
@@ -21,6 +21,7 @@ export function WidgetLibrary() {
             key={widget.title}
             widget={widget}
             iconColor={theme.charts.getColorPalette(index)[index]}
+            onClick={() => onWidgetSelect(widget)}
           />
         ))}
       </WidgetLibraryWrapper>

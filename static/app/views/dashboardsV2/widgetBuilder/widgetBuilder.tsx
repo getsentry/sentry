@@ -862,7 +862,17 @@ function WidgetBuilder({
               </BuildSteps>
             </Layout.Main>
             <Layout.Side>
-              <WidgetLibrary />
+              <WidgetLibrary
+                onWidgetSelect={prebuiltWidget =>
+                  setState({
+                    ...state,
+                    ...prebuiltWidget,
+                    dataSet: prebuiltWidget.widgetType
+                      ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
+                      : DataSet.EVENTS,
+                  })
+                }
+              />
             </Layout.Side>
           </Layout.Body>
         </PageContentWithoutPadding>
