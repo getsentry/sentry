@@ -12,7 +12,5 @@ LazyServiceWrapper(
 ).expose(locals())
 
 if TYPE_CHECKING:
-    # This is all too dynamic for mypy, so manually set the same attributes from
-    # RealtimeMetricsStore.__all__:
     __rule_history_backend__ = RuleHistoryBackend()
     record = __rule_history_backend__.record
