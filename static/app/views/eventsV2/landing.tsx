@@ -262,7 +262,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {location, organization} = this.props;
+    const {location, organization, router} = this.props;
     const {savedQueries, savedQueriesPageLinks, renderPrebuilt} = this.state;
 
     return (
@@ -274,6 +274,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         location={location}
         organization={organization}
         onQueryChange={this.handleQueryChange}
+        router={router}
       />
     );
   }
