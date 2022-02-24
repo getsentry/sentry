@@ -118,7 +118,7 @@ class ComparisonError:
         sessions, metrics = self._results
         return (metrics - sessions) / abs(sessions)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._message
 
 
@@ -503,7 +503,7 @@ def compare_results(
 def tag_delta(errors: List[ComparisonError], tags: Mapping[str, str]) -> None:
     relative_changes = [e.relative_change for e in errors if e.relative_change is not None]
     if relative_changes:
-        max_relative_change = max(relative_changes, key=abs)
+        max_relative_change = max(relative_changes, key=lambda x: abs(x))
         timing("rh.duplex.rel_change", max_relative_change, tags=tags)
         abs_max_relative_change = abs(max_relative_change)
         tag_value = f"{math.ceil(100 * abs_max_relative_change)}"
