@@ -1,7 +1,12 @@
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   DashboardDetails,
@@ -12,6 +17,59 @@ import {
 import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
 
 describe('WidgetBuilder', function () {
+  const untitledDashboard: DashboardDetails = {
+    id: '1',
+    title: 'Untitled Dashboard',
+    createdBy: undefined,
+    dateCreated: '2020-01-01T00:00:00.000Z',
+    widgets: [],
+  };
+
+  const testDashboard: DashboardDetails = {
+    id: '2',
+    title: 'Test Dashboard',
+    createdBy: undefined,
+    dateCreated: '2020-01-01T00:00:00.000Z',
+    widgets: [],
+  };
+
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        {...untitledDashboard, widgetDisplay: [DisplayType.AREA]},
+        {...testDashboard, widgetDisplay: [DisplayType.AREA]},
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      statusCode: 200,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        meta: {},
+        data: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      method: 'GET',
+      body: [],
+    });
+  });
+
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+  });
+
   it('no feature access', function () {
     const {organization, router, routerContext} = initializeOrg();
 
@@ -189,5 +247,132 @@ describe('WidgetBuilder', function () {
 
     // Content - Step 5
     expect(screen.getByRole('heading', {name: 'Sort by'})).toBeInTheDocument();
+  });
+
+  it('redirects correctly when creating a new dashboard', async function () {
+    const {organization, router, routerContext} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
+      },
+      router: {
+        location: {
+          query: {
+            source: DashboardWidgetSource.DISCOVERV2,
+          },
+        },
+      },
+    });
+
+    mountWithTheme(
+      <WidgetBuilder
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={router.location}
+        dashboard={untitledDashboard}
+        onSave={jest.fn()}
+        params={{orgId: organization.slug}}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    expect(await screen.findByText('Choose your dashboard')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Choose which dashboard you'd like to add this query to. It will appear as a widget."
+      )
+    ).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Select a dashboard'));
+    userEvent.click(screen.getByText('+ Create New Dashboard'));
+    userEvent.click(screen.getByText('Add Widget'));
+
+    await waitFor(() => {
+      expect(router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboards/new/',
+          query: {
+            displayType: 'table',
+            interval: '5m',
+            title: 'Custom Widget',
+            queryNames: [''],
+            queryConditions: [''],
+            queryFields: ['count()'],
+            queryOrderby: '',
+            start: null,
+            end: null,
+            period: '24h',
+            utc: false,
+            project: [],
+            environment: [],
+          },
+        })
+      );
+    });
+  });
+
+  it('redirects correctly when choosing an existing dashboard', async function () {
+    const {organization, router, routerContext} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
+      },
+      router: {
+        location: {
+          query: {
+            source: DashboardWidgetSource.DISCOVERV2,
+          },
+        },
+      },
+    });
+
+    mountWithTheme(
+      <WidgetBuilder
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={router.location}
+        dashboard={untitledDashboard}
+        onSave={jest.fn()}
+        params={{orgId: organization.slug}}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    userEvent.click(await screen.findByText('Select a dashboard'));
+    userEvent.click(screen.getByText('Test Dashboard'));
+    userEvent.click(screen.getByText('Add Widget'));
+
+    await waitFor(() => {
+      expect(router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/2/',
+          query: {
+            displayType: 'table',
+            interval: '5m',
+            title: 'Custom Widget',
+            queryNames: [''],
+            queryConditions: [''],
+            queryFields: ['count()'],
+            queryOrderby: '',
+            start: null,
+            end: null,
+            period: '24h',
+            utc: false,
+            project: [],
+            environment: [],
+          },
+        })
+      );
+    });
   });
 });

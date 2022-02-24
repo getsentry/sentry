@@ -132,7 +132,7 @@ type QueryData = {
   queryOrderby: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
@@ -143,7 +143,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   start?: DateString;
   statsPeriod?: string | null;
   widget?: Widget;
-};
+}
 
 type State = {
   dashboards: DashboardListItem[];
