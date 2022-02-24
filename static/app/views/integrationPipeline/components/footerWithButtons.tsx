@@ -2,20 +2,22 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/actions/button';
+import {ButtonProps} from 'sentry/components/button';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface FooterWithButtonsProps
+  extends Partial<Pick<ButtonProps, 'disabled' | 'onClick' | 'href'>> {
   buttonText: string;
   formFields?: Array<{name: string; value: any}>;
   formProps?: Omit<React.HTMLProps<HTMLFormElement>, 'as'>;
-} & Partial<Pick<React.ComponentProps<typeof Button>, 'disabled' | 'onClick' | 'href'>>;
+}
 
 export default function FooterWithButtons({
   buttonText,
   formFields,
   formProps,
   ...rest
-}: Props) {
+}: FooterWithButtonsProps) {
   /**
    * We use a form post here to replicate what we do with standard HTML views for the integration pipeline.
    * Since this is a form post, we need to pass a hidden replica of the form inputs

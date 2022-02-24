@@ -54,6 +54,7 @@ export function Header({
             value={title}
             onChange={onChangeTitle}
             errorMessage={t('Please set a title for this widget')}
+            maxLength={255}
           />
         </Layout.Title>
       </Layout.HeaderContent>

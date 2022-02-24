@@ -504,11 +504,13 @@ class DashboardDetail extends Component<Props, State> {
         <PageContent>
           <NoProjectMessage organization={organization}>
             <StyledPageHeader>
-              <DashboardTitle
-                dashboard={modifiedDashboard ?? dashboard}
-                onUpdate={this.setModifiedDashboard}
-                isEditing={this.isEditing}
-              />
+              <StyledTitle>
+                <DashboardTitle
+                  dashboard={modifiedDashboard ?? dashboard}
+                  onUpdate={this.setModifiedDashboard}
+                  isEditing={this.isEditing}
+                />
+              </StyledTitle>
               <Controls
                 organization={organization}
                 dashboards={dashboards}
@@ -663,6 +665,10 @@ const StyledPageHeader = styled('div')`
     grid-column-gap: ${space(2)};
     height: 40px;
   }
+`;
+
+const StyledTitle = styled(Layout.Title)`
+  margin-top: 0;
 `;
 
 const StyledPageContent = styled(PageContent)`

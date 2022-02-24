@@ -19,6 +19,7 @@ describe('PageFiltersStore', function () {
   it('getState()', function () {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: false,
+      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
         projects: [],
