@@ -411,7 +411,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         return final_results
 
     def create_or_update(self, **kwargs: Any) -> Tuple[Any, bool]:
-        return create_or_update(self.model, **kwargs)  # type: ignore
+        return create_or_update(self.model, **kwargs)
 
     def uncache_object(self, instance_id: int) -> None:
         pk_name = self.model._meta.pk.name
