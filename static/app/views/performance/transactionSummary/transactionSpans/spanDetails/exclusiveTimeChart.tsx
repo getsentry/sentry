@@ -77,7 +77,7 @@ export default function ExclusiveTimeChart(props: Props) {
           size="sm"
           position="top"
           title={t(
-            'Self Time Breakdown reflects the span exclusive time by percentile over time.'
+            'Self Time Breakdown reflects the span self time by percentile over time.'
           )}
         />
       </HeaderTitleLegend>
