@@ -74,8 +74,8 @@ export class SampledProfile extends Profile {
       while (start >= 0) {
         if (framesInStack[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          this.framesInStack[start].setRecursive(node);
-          node.setRecursive(this.framesInStack[start]);
+          framesInStack[start].setRecursive(node);
+          node.setRecursive(framesInStack[start]);
           break;
         }
         start--;
