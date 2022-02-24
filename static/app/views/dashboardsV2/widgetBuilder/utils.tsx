@@ -162,6 +162,7 @@ export function normalizeQueries(
 }
 
 export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined {
+  // "any" was needed here because it doesn't pass in getsentry
   const urlSeachParams = new URLSearchParams(query);
   const parsedQuery = Object.fromEntries(urlSeachParams.entries());
 
