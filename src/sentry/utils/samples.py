@@ -301,11 +301,14 @@ def create_sample_event(
             data["contexts"]["trace"][key] = kwargs.pop(key)
 
     data.update(kwargs)
-    data.setdefault("tags", []).append(("sample_event", "yes"))
-    return create_sample_event_basic(data, project.id, raw=raw)
+    return create_sample_event_basic(data, project.id, raw=raw, tagged=True)
 
 
-def create_sample_event_basic(data, project_id, raw=True, skip_send_first_transaction=False):
+def create_sample_event_basic(
+    data, project_id, raw=True, skip_send_first_transaction=False, tagged=False
+):
+    if tagged:
+        data.setdefault("tags", []).append(("sample_event", "yes"))
     manager = EventManager(data)
     manager.normalize()
     return manager.save(
