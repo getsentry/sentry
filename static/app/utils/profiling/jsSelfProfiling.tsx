@@ -30,7 +30,7 @@ export function resolveJSSelfProfilingStack(
 
   // There can only be one marker per callStack, so prepend it to the start of the stack
   if (marker && marker !== 'script') {
-    callStack.unshift(new Frame({...createMarkerFrame(marker), key: marker}));
+    callStack.unshift(new Frame({...createMarkerFrame(marker), key: marker}, 'web'));
   }
 
   if (stackId === undefined) {
