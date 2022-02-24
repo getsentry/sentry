@@ -19,7 +19,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
-import {IconDiamond, IconInfo} from 'sentry/icons';
+import {IconDiamond, IconInfo, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -201,16 +201,6 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <React.Fragment>
         <SidebarGroup>
-          <Heading>{t('Metric')}</Heading>
-          <RuleText>{this.getMetricText()}</RuleText>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <Heading>{t('Environment')}</Heading>
-          <RuleText>{rule.environment ?? 'All'}</RuleText>
-        </SidebarGroup>
-
-        <SidebarGroup>
           <Heading>{t('Thresholds and Actions')}</Heading>
           {typeof criticalTrigger?.alertThreshold === 'number' &&
             this.renderTrigger(
@@ -229,7 +219,7 @@ export default class DetailsBody extends React.Component<Props> {
         </SidebarGroup>
 
         <SidebarGroup>
-          <Heading>{t('Other Details')}</Heading>
+          <Heading>{t('Alert Rule Details')}</Heading>
           <KeyValueTable>
             <KeyValueTableRow
               keyName={t('Team')}
@@ -481,22 +471,15 @@ const DetailWrapper = styled('div')`
   }
 `;
 
-const HeaderContainer = styled('div')`
-  height: 60px;
-  display: flex;
-  flex-direction: row;
-  align-content: flex-start;
-`;
-
 const HeaderGrid = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto auto;
-  align-items: stretch;
+  display: flex;
+  flex-shrink: 1;
+  justify-content: start;
   gap: 60px;
+  width: 100%;
 `;
 
 const HeaderItem = styled('div')`
-  flex: 1;
   display: flex;
   flex-direction: column;
 
@@ -542,16 +525,18 @@ const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
   margin-bottom: ${space(1.5)};
+
+  & > div {
+    flex: 1;
+  }
 `;
 
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
-  display: grid;
-  grid-template-columns: auto auto;
-  justify-content: flex-start;
   margin-top: ${p => (p.noMargin ? 0 : space(2))};
   margin-bottom: ${space(0.5)};
-  line-height: 1;
+  line-height:
   gap: ${space(1)};
+  min-width: max-content;
 `;
 
 const ChartControls = styled('div')`
@@ -571,6 +556,7 @@ const RuleText = styled('div')`
 const TriggerConditionContainer = styled('div')`
   display: flex;
   flex-direction: row;
+  margin-bottom: ${space(2)};
 `;
 
 const TriggerCondition = styled('div')`

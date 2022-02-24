@@ -13,8 +13,7 @@ export const SubHeading = styled('h3')`
 `;
 
 export const SectionHeading = styled('h4')`
-  display: inline-grid;
-  grid-auto-flow: column;
+  display: flex;
   gap: ${space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
