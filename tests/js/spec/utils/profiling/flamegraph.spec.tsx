@@ -332,7 +332,7 @@ describe('flamegraph', () => {
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
-        {type: 'O', at: 1, frame: 1},
+        {type: 'O', at: 0, frame: 1},
         {type: 'C', at: 2, frame: 1},
         {type: 'C', at: 3, frame: 0},
       ],
@@ -350,7 +350,7 @@ describe('flamegraph', () => {
 
     expect(flamegraph.frames[0].start).toBe(500);
     expect(flamegraph.frames[1].start).toBe(500);
-    expect(flamegraph.frames[1].end).toBe(501);
+    expect(flamegraph.frames[1].end).toBe(502);
     expect(flamegraph.frames[0].end).toBe(503);
   });
 

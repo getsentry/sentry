@@ -99,8 +99,8 @@ export class JSSelfProfile extends Profile {
       while (stackHeight >= 0) {
         if (framesInStack[stackHeight].frame === node.frame) {
           // The recursion edge is bidirectional
-          this.framesInStack[stackHeight].setRecursive(node);
-          node.setRecursive(this.framesInStack[stackHeight]);
+          framesInStack[stackHeight].setRecursive(node);
+          node.setRecursive(framesInStack[stackHeight]);
           break;
         }
         stackHeight--;
