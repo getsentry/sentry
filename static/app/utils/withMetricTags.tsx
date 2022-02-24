@@ -1,7 +1,6 @@
 import * as React from 'react';
 
 import MetricsTagStore from 'sentry/stores/metricsTagStore';
-import TagStore from 'sentry/stores/tagStore';
 import {MetricTagCollection} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
@@ -26,7 +25,7 @@ function withMetricTags<P extends InjectedTagsProps>(
     componentWillUnmount() {
       this.unsubscribe();
     }
-    unsubscribe = TagStore.listen(
+    unsubscribe = MetricsTagStore.listen(
       (metricTags: MetricTagCollection) => this.setState({metricTags}),
       undefined
     );

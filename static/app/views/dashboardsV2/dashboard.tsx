@@ -142,7 +142,10 @@ class Dashboard extends Component<Props, State> {
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
-    fetchMetricsTags(api, organization.slug);
+
+    if (organization.features.includes('dashboard-metrics')) {
+      fetchMetricsTags(api, organization.slug);
+    }
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
@@ -208,7 +211,9 @@ class Dashboard extends Component<Props, State> {
   fetchTags() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
-    fetchMetricsTags(api, organization.slug);
+    if (organization.features.includes('dashboard-metrics')) {
+      fetchMetricsTags(api, organization.slug);
+    }
   }
 
   handleStartAdd = () => {
