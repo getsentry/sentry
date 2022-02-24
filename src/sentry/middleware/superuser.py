@@ -42,5 +42,16 @@ class SuperuserMiddleware(MiddlewareMixin):
             pass
         su = getattr(request, "superuser", None)
         if su:
+            if su.is_active:
+                org_slug = getattr(getattr(request, "organization", None), "slug", None)
+                if org_slug:
+                    logger.info(
+                        "superuser.superuser_access",
+                        extra={
+                            "user_id": request.user.id,
+                            "user_email": request.user.email,
+                            "su_org_accessed": org_slug,
+                        },
+                    )
             su.on_response(response)
         return response

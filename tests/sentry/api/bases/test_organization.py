@@ -18,7 +18,7 @@ from sentry.api.exceptions import (
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
-from sentry.models import ApiKey, Organization, OrganizationMember, User
+from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.testutils import TestCase
 
 
@@ -432,47 +432,3 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
                 expected_end=timezone.now(),
                 stats_period="2d",
             )
-
-
-class SuperUserLogTest(BaseOrganizationEndpointTest):
-    @mock.patch("sentry.api.bases.organization.logger")
-    def test_org_change_log_success(self, logger):
-        user = User(is_superuser=True, id=10, email="test@sentry.io")
-        self.request = self.build_request(user=user, active_superuser=True)
-
-        self.request.session["su_access"] = {
-            "su_access_category": "Edit organization settings",
-            "reason_for_su": "Edit organization settings",
-        }
-        self.request.session["su_orgs_accessed"] = ["test_org"]
-
-        self.endpoint.initialize_request(self.request, organization_slug="test")
-
-        logger.info.assert_any_call(
-            "su_access.organization_change",
-            extra={
-                "user_id": 10,
-                "user_email": "test@sentry.io",
-                "su_access_category": "Edit organization settings",
-                "reason_for_su": "Edit organization settings",
-                "su_orgs_accessed": ["test_org", "test"],
-            },
-        )
-
-    @mock.patch("sentry.api.bases.organization.logger")
-    def test_org_change_log_no_reason(self, logger):
-        user = User(is_superuser=True, id=10, email="test@sentry.io")
-        self.request = self.build_request(user=user, active_superuser=True)
-
-        self.request.session["su_orgs_accessed"] = ["test_org"]
-
-        self.endpoint.initialize_request(self.request, organization_slug="test")
-
-        logger.warning.assert_any_call(
-            "su_access.organization_change_without_reason",
-            extra={
-                "user_id": 10,
-                "user_email": "test@sentry.io",
-                "su_orgs_accessed": ["test_org", "test"],
-            },
-        )
