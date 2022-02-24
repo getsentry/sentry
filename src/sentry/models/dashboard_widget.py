@@ -85,8 +85,8 @@ class DashboardWidgetQuery(Model):
     # Using django's built-in array field here since the one
     # from sentry/db/model/fields.py adds a default value to the
     # database migration.
-    aggregates = DjangoArrayField(models.TextField(null=True), null=True)
-    columns = DjangoArrayField(models.TextField(null=True), null=True)
+    aggregates = DjangoArrayField(models.TextField(), null=True)
+    columns = DjangoArrayField(models.TextField(), null=True)
     # Orderby condition for the query
     orderby = models.TextField(default="")
     # Order of the widget query in the widget.
