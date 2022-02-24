@@ -52,7 +52,7 @@ class GithubWebhookBase(View, abc.ABC):
     def handle(self, request: Request, organization=None) -> Response:
         secret = self.get_secret(organization)
         if secret is None:
-            logger.error("github.webhook.missing-secret", extra=self.get_logging_data(organization))
+            logger.info("github.webhook.missing-secret", extra=self.get_logging_data(organization))
             return HttpResponse(status=401)
 
         body = bytes(request.body)
