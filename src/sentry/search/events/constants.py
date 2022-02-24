@@ -72,6 +72,7 @@ TIMESTAMP_FIELDS = {
     "timestamp.to_hour",
     "timestamp.to_day",
 }
+NON_FAILURE_STATUS = {"ok", "cancelled", "unknown"}
 
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",

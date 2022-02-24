@@ -623,6 +623,11 @@ class MetricBuilderBaseTest(TestCase, SessionMetricsTestCase):
         PGStringIndexer().bulk_record(
             strings=[
                 "transaction",
+                "transaction.status",
+                "ok",
+                "cancelled",
+                "internal_error",
+                "unknown",
                 "foo_transaction",
                 "bar_transaction",
                 "baz_transaction",
@@ -986,6 +991,45 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     # TODO: multiple groupby with counter
+
+    def test_run_query_with_events_per_aggregates(self):
+        for i in range(5):
+            self.store_metric(100, timestamp=self.start + datetime.timedelta(minutes=i * 15))
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "eps()",
+                "epm()",
+                "tps()",
+                "tpm()",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        # Check the aliases are correct
+        assert data["epm"] == data["tpm"]
+        assert data["eps"] == data["tps"]
+        # Check the values are correct
+        assert data["tpm"] == 5 / ((self.end - self.start).total_seconds() / 60)
+        assert data["tpm"] / 60 == data["tps"]
+
+    def test_failure_rate(self):
+        for _ in range(3):
+            self.store_metric(100, tags={"transaction.status": "internal_error"})
+            self.store_metric(100, tags={"transaction.status": "ok"})
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "failure_rate()",
+                "failure_count()",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["failure_rate"] == 0.5
+        assert data["failure_count"] == 3
 
     def test_run_query_with_multiple_groupby_orderby_null_values_in_second_entity(self):
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions
