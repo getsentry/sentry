@@ -495,6 +495,7 @@ class Results extends React.Component<Props, State> {
               eventView={eventView}
               onIncompatibleAlertQuery={this.handleIncompatibleQuery}
               yAxis={yAxisArray}
+              router={router}
             />
             <Layout.Body>
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
