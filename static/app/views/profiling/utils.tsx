@@ -1,7 +1,7 @@
 import {Location} from 'history';
 
 import {t} from 'sentry/locale';
-import {Organization, Project, SelectValue} from 'sentry/types';
+import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -34,16 +34,4 @@ export function getColorEncodingFromLocation(location: Location): ColorEncoding 
   }
 
   return 'interaction_name';
-}
-
-export function generateFlamegraphRoute({
-  orgSlug,
-  projectSlug,
-  profileId,
-}: {
-  orgSlug: Organization['slug'];
-  profileId: string;
-  projectSlug: Project['slug'];
-}) {
-  return `/organizations/${orgSlug}/profiling/flamegraph/${projectSlug}/${profileId}/`;
 }
