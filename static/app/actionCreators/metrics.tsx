@@ -1,4 +1,5 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import MetricTagActions from 'sentry/actions/metricTagActions';
 import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -79,6 +80,10 @@ export const doMetricsRequest = (
   return api.requestPromise(pathname, {includeAllArgs, query: urlQuery});
 };
 
+function tagFetchSuccess(tags: MetricTag[]) {
+  MetricTagActions.loadTagsSuccess(tags);
+}
+
 export function fetchMetricsTags(
   api: Client,
   orgSlug: Organization['slug'],
@@ -91,6 +96,8 @@ export function fetchMetricsTags(
       metric: fields,
     },
   });
+
+  promise.then(tagFetchSuccess, MetricTagActions.loadTagsError);
 
   promise.catch(response => {
     const errorResponse = response?.responseJSON ?? t('Unable to fetch metric tags');
