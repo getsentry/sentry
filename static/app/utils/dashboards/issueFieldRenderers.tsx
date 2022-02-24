@@ -50,6 +50,7 @@ type SpecialFields = {
   lifetimeEvents: SpecialField;
   lifetimeUserCount: SpecialField;
   lifetimeUsers: SpecialField;
+  links: SpecialField;
   userCount: SpecialField;
   users: SpecialField;
 };
@@ -135,6 +136,10 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: null,
     renderFunc: (data, {organization}) =>
       issuesCountRenderer(data, organization, 'users'),
+  },
+  links: {
+    sortField: null,
+    renderFunc: ({links}) => <LinksContainer dangerouslySetInnerHTML={{__html: links}} />,
   },
 };
 
@@ -273,6 +278,10 @@ const ActorContainer = styled('div')`
   :hover {
     cursor: default;
   }
+`;
+
+const LinksContainer = styled('span')`
+  white-space: nowrap;
 `;
 
 /**

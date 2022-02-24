@@ -1,10 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme as rtlMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -16,7 +11,10 @@ describe('getIssueFieldRenderer', function () {
 
   beforeEach(function () {
     context = initializeOrg({
+      organization,
+      router: {},
       project: TestStubs.Project(),
+      projects: [TestStubs.Project()],
     });
     organization = context.organization;
     project = context.project;
@@ -51,6 +49,7 @@ describe('getIssueFieldRenderer', function () {
       filteredEvents: 3000,
       events: 6000,
       period: '7d',
+      links: ['<a href="sentry.io">ANNO-123</a>'],
     };
 
     MockApiClient.addMockResponse({
@@ -72,15 +71,14 @@ describe('getIssueFieldRenderer', function () {
   describe('Issue fields', () => {
     it('can render assignee', async function () {
       MemberListStore.loadInitialData([
-        {
-          id: '1',
+        TestStubs.User({
           name: 'Test User',
           email: 'test@sentry.io',
           avatar: {
             avatarType: 'letter_avatar',
             avatarUuid: null,
           },
-        },
+        }),
       ]);
 
       const group = TestStubs.Group({project});
@@ -96,34 +94,30 @@ describe('getIssueFieldRenderer', function () {
           },
         },
       ]);
-      const renderer = getIssueFieldRenderer('assignee', {
-        assignee: 'string',
-      });
+      const renderer = getIssueFieldRenderer('assignee');
 
-      rtlMountWithTheme(
-        renderer(data, {
+      mountWithTheme(
+        renderer!(data, {
           location,
           organization,
-        })
+        }) as React.ReactElement
       );
       expect(screen.getByText('TU')).toBeInTheDocument();
       userEvent.hover(screen.getByText('TU'));
       expect(await screen.findByText('Assigned to')).toBeInTheDocument();
-      expect(await screen.findByText('Test User')).toBeInTheDocument();
-      expect(await screen.findByText('Based on')).toBeInTheDocument();
-      expect(await screen.findByText('commit data')).toBeInTheDocument();
+      expect(screen.getByText('Test User')).toBeInTheDocument();
+      expect(screen.getByText('Based on')).toBeInTheDocument();
+      expect(screen.getByText('commit data')).toBeInTheDocument();
     });
 
     it('can render counts', async function () {
-      const renderer = getIssueFieldRenderer('events', {
-        events: 'string',
-      });
+      const renderer = getIssueFieldRenderer('events');
 
-      rtlMountWithTheme(
-        renderer(data, {
+      mountWithTheme(
+        renderer!(data, {
           location,
           organization,
-        })
+        }) as React.ReactElement
       );
       expect(screen.getByText('3k')).toBeInTheDocument();
       expect(screen.getByText('6k')).toBeInTheDocument();
@@ -132,5 +126,41 @@ describe('getIssueFieldRenderer', function () {
       expect(screen.getByText('Matching search filters')).toBeInTheDocument();
       expect(screen.getByText('Since issue began')).toBeInTheDocument();
     });
+  });
+
+  it('can render links', function () {
+    const renderer = getIssueFieldRenderer('links');
+
+    mountWithTheme(
+      renderer!(data, {
+        location,
+        organization,
+      }) as React.ReactElement
+    );
+    expect(screen.getByText('ANNO-123')).toBeInTheDocument();
+  });
+
+  it('can render multiple links', function () {
+    const renderer = getIssueFieldRenderer('links');
+
+    mountWithTheme(
+      renderer!(
+        {
+          data,
+          ...{
+            links: [
+              '<a href="sentry.io">ANNO-123</a>',
+              '<a href="sentry.io">ANNO-456</a>',
+            ],
+          },
+        },
+        {
+          location,
+          organization,
+        }
+      ) as React.ReactElement
+    );
+    expect(screen.getByText('ANNO-123')).toBeInTheDocument();
+    expect(screen.getByText('ANNO-456')).toBeInTheDocument();
   });
 });

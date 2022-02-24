@@ -132,6 +132,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         count,
         userCount,
         project,
+        annotations,
         ...resultProps
       }) => {
         const transformedResultProps: Omit<TableDataRow, 'id'> = {};
@@ -150,6 +151,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
           issue: shortId,
           title,
           project: project.slug,
+          links: annotations?.join(', '),
         };
 
         // Get lifetime stats
