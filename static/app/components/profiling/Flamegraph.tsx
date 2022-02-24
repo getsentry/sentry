@@ -113,7 +113,8 @@ const FlamegraphZoomViewMinimapContainer = styled('div')<{
   height: FlamegraphTheme['SIZES']['MINIMAP_HEIGHT'];
 }>`
   position: relative;
-  height: ${p => p.height};
+  height: ${p => p.height}px;
+  flex-shrink: 0;
 `;
 
 const FlamegraphZoomViewContainer = styled('div')`

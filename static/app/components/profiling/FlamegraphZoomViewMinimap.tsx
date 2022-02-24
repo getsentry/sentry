@@ -39,7 +39,7 @@ function FlamegraphZoomViewMinimap({
       }
 
       const BAR_HEIGHT =
-        flamegraphTheme.SIZES.TIMELINE_HEIGHT /
+        flamegraphTheme.SIZES.MINIMAP_HEIGHT /
         (flamegraph.depth + flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET);
 
       const flamegraphMinimapRenderer = new FlamegraphRenderer(
