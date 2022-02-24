@@ -7,6 +7,7 @@ from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.external_actor import ExternalActorResponse
 from sentry.api.serializers.models.user import UserSerializerResponse
+from sentry.api.serializers.types import SCIMMeta
 from sentry.models import (
     ExternalActor,
     OrganizationMember,
@@ -239,10 +240,6 @@ class SCIMEmail(TypedDict):
     primary: bool
     value: str
     type: str
-
-
-class SCIMMeta(TypedDict):
-    resourceType: str
 
 
 class OrganizationMemberSCIMSerializerOptional(TypedDict, total=False):
