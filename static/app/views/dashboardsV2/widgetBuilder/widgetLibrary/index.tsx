@@ -14,7 +14,7 @@ export function WidgetLibrary({onWidgetSelect}) {
 
   return (
     <React.Fragment>
-      <Heading>{t('Widget Library')}</Heading>
+      <h5>{t('Widget Library')}</h5>
       <WidgetLibraryWrapper>
         {DEFAULT_WIDGETS.map((widget, index) => (
           <Card
@@ -28,11 +28,6 @@ export function WidgetLibrary({onWidgetSelect}) {
     </React.Fragment>
   );
 }
-
-const Heading = styled('h5')`
-  font-weight: 500;
-  color: ${p => p.theme.gray500};
-`;
 
 const WidgetLibraryWrapper = styled('div')`
   display: flex;

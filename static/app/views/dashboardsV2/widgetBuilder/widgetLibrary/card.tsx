@@ -39,8 +39,8 @@ const Information = styled('div')`
   flex-direction: column;
 `;
 
-const Heading = styled('h5')`
-  font-size: 1rem;
+const Heading = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
   font-weight: 500;
   margin-bottom: 0;
   color: ${p => p.theme.gray500};
@@ -54,11 +54,9 @@ const IconWrapper = styled('div')<{backgroundColor: string}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px;
+  padding: ${space(1)};
   min-width: 40px;
-  min-height: 40px;
-  max-width: 40px;
-  max-height: 40px;
-  border-radius: 4px;
+  height: 40px;
+  border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.backgroundColor};
 `;
