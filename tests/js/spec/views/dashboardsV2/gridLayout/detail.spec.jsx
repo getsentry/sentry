@@ -594,5 +594,37 @@ describe('Dashboards > Detail', function () {
 
       expect(window.confirm).not.toHaveBeenCalled();
     });
+
+    it('opens the widget viewer modal using the widget id specified in the url', async () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      const widget = TestStubs.Widget(
+        [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+        {
+          title: 'First Widget',
+          interval: '1d',
+          id: '1',
+          layout: null,
+        }
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
+      });
+
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      expect(openWidgetViewerModal).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({organization: initialData.organization, widget})
+      );
+    });
   });
 });
