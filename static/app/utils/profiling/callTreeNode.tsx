@@ -7,11 +7,12 @@ export class CallTreeNode extends WeightedNode {
   private locked = false;
 
   parent: CallTreeNode | null;
-  recursive?: CallTreeNode;
+  recursive: CallTreeNode | null;
   children: CallTreeNode[] = [];
 
   constructor(frame: Frame, parent: CallTreeNode | null) {
     super();
+    this.recursive = null;
     this.parent = parent;
     this.frame = frame;
   }
@@ -22,7 +23,6 @@ export class CallTreeNode extends WeightedNode {
 
   setRecursive(node: CallTreeNode): void {
     this.recursive = node;
-    this.frame.recursive = node.frame;
   }
 
   isRecursive(): boolean {

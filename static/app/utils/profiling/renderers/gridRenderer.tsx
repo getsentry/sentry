@@ -84,7 +84,7 @@ class GridRenderer {
     }`;
     context.textBaseline = 'top';
 
-    const LINE_WIDTH = 1 * window.devicePixelRatio;
+    const LINE_WIDTH = 1;
 
     // Draw the background of the top timeline
     context.fillStyle = this.theme.COLORS.GRID_FRAME_BACKGROUND_COLOR;

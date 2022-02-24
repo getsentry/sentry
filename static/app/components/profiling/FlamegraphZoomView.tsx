@@ -1,11 +1,11 @@
-import * as React from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
@@ -19,7 +19,6 @@ import {BoundTooltip} from './BoundTooltip';
 
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
-  colorCoding: FlamegraphPreferences['colorCoding'];
   flamegraph: Flamegraph | DifferentialFlamegraph;
   showSelectedNodeStack?: boolean;
 }
@@ -27,17 +26,18 @@ interface FlamegraphZoomViewProps {
 function FlamegraphZoomView({
   flamegraph,
   canvasPoolManager,
-  colorCoding,
 }: FlamegraphZoomViewProps): React.ReactElement {
-  const [scheduler, setScheduler] = React.useState<CanvasScheduler | null>(null);
-  const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
-    React.useState<HTMLCanvasElement | null>(null);
-  const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
-    React.useState<HTMLCanvasElement | null>(null);
+  const flamegraphPreferences = useFlamegraphPreferencesValue();
 
-  const [gridRenderer, setGridRenderer] = React.useState<GridRenderer | null>(null);
-  const [textRenderer, setTextRenderer] = React.useState<TextRenderer | null>(null);
-  const [canvasBounds, setCanvasBounds] = React.useState<Rect>(Rect.Empty());
+  const [scheduler, setScheduler] = useState<CanvasScheduler | null>(null);
+  const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
+    useState<HTMLCanvasElement | null>(null);
+  const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
+    useState<HTMLCanvasElement | null>(null);
+
+  const [gridRenderer, setGridRenderer] = useState<GridRenderer | null>(null);
+  const [textRenderer, setTextRenderer] = useState<TextRenderer | null>(null);
+  const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
 
   const flamegraphTheme = useFlamegraphTheme();
 
@@ -77,10 +77,16 @@ function FlamegraphZoomView({
       // If we have no renderer, then the canvas is not initialize yet and we cannot initialize the renderer
       return null;
     },
-    [flamegraphCanvasRef, flamegraphTheme, flamegraph, canvasPoolManager, colorCoding]
+    [
+      flamegraphCanvasRef,
+      flamegraphTheme,
+      flamegraph,
+      canvasPoolManager,
+      flamegraphPreferences.colorCoding,
+    ]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (
       flamegraphCanvasRef === null ||
       flamegraphOverlayCanvasRef === null ||
@@ -257,7 +263,7 @@ function FlamegraphZoomView({
     flamegraphRenderer,
   ]);
 
-  const selectedFrameRenderer = React.useMemo(
+  const selectedFrameRenderer = useMemo(
     () =>
       flamegraphOverlayCanvasRef
         ? new SelectedFrameRenderer(flamegraphOverlayCanvasRef)
@@ -265,12 +271,12 @@ function FlamegraphZoomView({
     [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]
   );
 
-  const [selectedNode, setSelectedNode] = React.useState<FlamegraphFrame | null>(null);
-  const [configSpaceCursor, setConfigSpaceCursor] = React.useState<
-    [number, number] | null
-  >(null);
+  const [selectedNode, setSelectedNode] = useState<FlamegraphFrame | null>(null);
+  const [configSpaceCursor, setConfigSpaceCursor] = useState<[number, number] | null>(
+    null
+  );
 
-  const hoveredNode = React.useMemo(
+  const hoveredNode = useMemo(
     () =>
       configSpaceCursor && flamegraphRenderer
         ? flamegraphRenderer.getHoveredNode(configSpaceCursor)
@@ -278,7 +284,7 @@ function FlamegraphZoomView({
     [configSpaceCursor, flamegraphRenderer]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (
       !selectedFrameRenderer ||
       !flamegraphRenderer ||
@@ -379,7 +385,7 @@ function FlamegraphZoomView({
     flamegraph,
   ]);
 
-  const onCanvasClick = React.useCallback(
+  const onCanvasClick = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       evt.preventDefault();
       evt.stopPropagation();
@@ -400,7 +406,7 @@ function FlamegraphZoomView({
     [flamegraphRenderer, configSpaceCursor, selectedNode, hoveredNode, canvasPoolManager]
   );
 
-  const onCanvasMouseMove = React.useCallback(
+  const onCanvasMouseMove = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       if (!flamegraphRenderer?.frames.length) {
         return;
@@ -415,11 +421,11 @@ function FlamegraphZoomView({
     [flamegraphRenderer, setConfigSpaceCursor]
   );
 
-  const onCanvasMouseLeave = React.useCallback(() => {
+  const onCanvasMouseLeave = useCallback(() => {
     setConfigSpaceCursor(null);
   }, []);
 
-  const zoom = React.useCallback(
+  const zoom = useCallback(
     (evt: WheelEvent) => {
       if (!flamegraphRenderer?.frames.length) {
         return;
@@ -452,7 +458,7 @@ function FlamegraphZoomView({
     [flamegraphRenderer, canvasPoolManager]
   );
 
-  const scroll = React.useCallback(
+  const scroll = useCallback(
     (evt: WheelEvent) => {
       if (!flamegraphRenderer?.frames.length) {
         return;
@@ -483,7 +489,7 @@ function FlamegraphZoomView({
     [flamegraphRenderer, canvasPoolManager]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!flamegraphCanvasRef) {
       return undefined;
     }

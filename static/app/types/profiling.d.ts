@@ -32,7 +32,7 @@ namespace Profiling {
   };
 
   type FrameInfo = {
-    key: number | string;
+    key: string | number;
     name: string;
     file?: string;
     line?: number;

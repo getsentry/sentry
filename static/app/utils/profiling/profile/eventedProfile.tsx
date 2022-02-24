@@ -114,13 +114,14 @@ export class EventedProfile extends Profile {
         lastTop.children.push(node);
       }
 
-      let start = this.appendOrderStack.length - 1;
-
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
-      // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
+      // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack with their respective indexes
       // We check the stack in a top-down order to find the first recursive frame.
+      let start = this.appendOrderStack.length - 1;
       while (start >= 0) {
-        if (this.appendOrderStack[start]?.frame === node.frame) {
+        if (this.appendOrderStack[start].frame === node.frame) {
+          // The recursion edge is bidirectional
+          this.appendOrderStack[start].setRecursive(node);
           node.setRecursive(this.appendOrderStack[start]);
           break;
         }
@@ -139,7 +140,8 @@ export class EventedProfile extends Profile {
     this.addWeightsToNodes(at);
 
     const leavingStackTop = this.appendOrderStack.pop();
-    if (!leavingStackTop) {
+
+    if (leavingStackTop === undefined) {
       throw new Error('Unbalanced stack');
     }
 
