@@ -8,6 +8,6 @@ import moment from 'moment';
  */
 export function snoozedDays(snoozedTs: number) {
   const now = moment.utc();
-  const snoozedDay = moment.unix(snoozedTs).utc();
-  return now.diff(snoozedDay, 'days');
+  const snoozedOn = moment.unix(snoozedTs).utc();
+  return now.diff(snoozedOn, 'days');
 }

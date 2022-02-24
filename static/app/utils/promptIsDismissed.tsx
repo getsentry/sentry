@@ -2,14 +2,20 @@ import {PromptData} from 'sentry/actionCreators/prompts';
 
 import {snoozedDays} from './promptsActivity';
 
-export const promptIsDismissed = (prompt: PromptData, daysToSnooze: number = 14) => {
-  const {snoozedTime, dismissedTime} = prompt || {};
-  // check if the prompt has been dismissed
-  if (dismissedTime) {
+export const DEFAULT_SNOOZE_PROMPT_DAYS = 14;
+export const promptIsDismissed = (
+  prompt: PromptData,
+  daysToSnooze: number = DEFAULT_SNOOZE_PROMPT_DAYS
+): boolean => {
+  if (typeof prompt?.dismissedTime === 'number') {
     return true;
   }
-  // check if it has been snoozed
-  return !snoozedTime ? false : snoozedDays(snoozedTime) < daysToSnooze;
+
+  if (typeof prompt?.snoozedTime === 'number') {
+    return snoozedDays(prompt.snoozedTime) < daysToSnooze;
+  }
+
+  return false;
 };
 
 export function promptCanShow(prompt: string, uuid: string): boolean {

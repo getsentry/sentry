@@ -13,6 +13,10 @@ describe('ProjectDetail', function () {
   beforeEach(() => {
     PageFiltersStore.reset();
     ProjectsStore.reset();
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -49,7 +53,7 @@ describe('ProjectDetail', function () {
 
       mountWithTheme(
         <ProjectDetails organization={organization} {...router} params={params} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(
@@ -84,7 +88,7 @@ describe('ProjectDetail', function () {
 
       mountWithTheme(
         <ProjectDetails organization={organization} {...router} params={params} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(
