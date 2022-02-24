@@ -62,6 +62,7 @@ describe('GlobalSelectionHeader', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData(organization.projects);
+    OrganizationActions.update(organization);
     OrganizationsStore.add(organization);
 
     getItem.mockImplementation(() => null);
@@ -310,6 +311,7 @@ describe('GlobalSelectionHeader', function () {
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
         datetime: {
@@ -338,6 +340,7 @@ describe('GlobalSelectionHeader', function () {
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
         datetime: {
@@ -365,6 +368,7 @@ describe('GlobalSelectionHeader', function () {
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
         datetime: {
@@ -411,6 +415,7 @@ describe('GlobalSelectionHeader', function () {
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
         datetime: {
@@ -536,6 +541,47 @@ describe('GlobalSelectionHeader', function () {
 
     // Router does not update because params have not changed
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
+  });
+
+  it('updates store with desynced values when url params do not match local storage', async function () {
+    getItem.mockImplementation(() =>
+      JSON.stringify({
+        projects: [1],
+        pinnedFilters: ['projects'],
+      })
+    );
+
+    const initializationObj = initializeOrg({
+      organization: {
+        features: ['global-views', 'selection-filters-v2'],
+      },
+      router: {
+        // we need this to be set to make sure org in context is same as
+        // current org in URL
+        params: {orgId: 'org-slug'},
+        location: {
+          query: {project: ['2']},
+          // TODO: This is only temporary while selection-filters-v2 is limited
+          // to certan pages
+          pathname: '/organizations/org-slug/issues/',
+        },
+      },
+    });
+
+    OrganizationActions.update(initializationObj.organization);
+
+    wrapper = mountWithTheme(
+      <PageFiltersContainer organization={initializationObj.organization} />,
+      initializationObj.routerContext
+    );
+
+    // reflux tick
+    await tick();
+    expect(PageFiltersStore.getState().selection.projects).toEqual([2]);
+
+    // Wait for desynced filters to update
+    await tick();
+    expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']));
   });
 
   /**

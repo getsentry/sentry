@@ -6,6 +6,7 @@ const PageFiltersActions = Reflux.createActions([
   'updateProjects',
   'updateDateTime',
   'updateEnvironments',
+  'updateDesyncedFilters',
   'pin',
 ]);
 
