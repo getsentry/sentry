@@ -292,6 +292,8 @@ class Superuser:
         if current_datetime is None:
             current_datetime = timezone.now()
 
+        token = get_random_string(12)
+
         if request.method == "PUT":
             try:
                 # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
@@ -304,6 +306,7 @@ class Superuser:
                 logger.info(
                     "superuser.superuser_access",
                     extra={
+                        "superuser_session_id": token,
                         "user_id": request.user.id,
                         "user_email": request.user.email,
                         "su_access_category": su_access_info.validated_data["categoryOfSUAccess"],
@@ -320,7 +323,7 @@ class Superuser:
 
         self._set_logged_in(
             expires=current_datetime + MAX_AGE,
-            token=get_random_string(12),
+            token=token,
             user=user,
             current_datetime=current_datetime,
         )
