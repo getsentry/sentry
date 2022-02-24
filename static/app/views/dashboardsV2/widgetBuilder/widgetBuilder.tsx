@@ -73,11 +73,11 @@ import WidgetCard from '../widgetCard';
 import BuildStep from './buildStep';
 import {ColumnFields} from './columnFields';
 import {DashboardSelector} from './dashboardSelector';
+import {DisplayTypeSelector} from './displayTypeSelector';
 import {Header} from './header';
 import {
   DataSet,
   DisplayType,
-  displayTypes,
   FlatValidationError,
   mapErrors,
   normalizeQueries,
@@ -89,11 +89,6 @@ const DATASET_CHOICES: [DataSet, string][] = [
   [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
   // [DataSet.METRICS, t('Metrics (Release Health)')],
 ];
-
-const DISPLAY_TYPES_OPTIONS = Object.keys(displayTypes).map(value => ({
-  label: displayTypes[value],
-  value,
-}));
 
 const QUERIES = {
   [DataSet.EVENTS]: {
@@ -431,6 +426,8 @@ function WidgetBuilder({
 
       onSave([...dashboard.widgets, widgetData]);
       addSuccessMessage(t('Added widget.'));
+
+      goBack();
     } catch (err) {
       errors = mapErrors(err?.responseJSON ?? {}, {});
     } finally {
@@ -440,8 +437,6 @@ function WidgetBuilder({
         submitFromSelectedDashboard(errors, widgetData);
         return;
       }
-
-      goBack();
     }
   }
 
@@ -596,13 +591,12 @@ function WidgetBuilder({
                 )}
               >
                 <VisualizationWrapper>
-                  <DisplayTypeOptions
-                    name="displayType"
-                    options={DISPLAY_TYPES_OPTIONS}
-                    value={state.displayType}
+                  <DisplayTypeSelector
+                    displayType={state.displayType}
                     onChange={(option: {label: string; value: DisplayType}) => {
                       setState({...state, displayType: option.value});
                     }}
+                    error={state.errors?.displayType}
                   />
                   <WidgetCard
                     organization={organization}
@@ -715,7 +709,7 @@ function WidgetBuilder({
                         inline={false}
                         flexibleControlStateSize
                         stacked
-                        error={state.errors?.[queryIndex]?.conditions}
+                        error={state.errors?.queries?.[queryIndex]?.conditions}
                       >
                         <SearchConditionsWrapper>
                           <Search
@@ -882,10 +876,6 @@ const DataSetChoices = styled(RadioGroup)`
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-auto-flow: column;
   }
-`;
-
-const DisplayTypeOptions = styled(SelectControl)`
-  margin-bottom: ${space(1)};
 `;
 
 const SearchConditionsWrapper = styled('div')`
