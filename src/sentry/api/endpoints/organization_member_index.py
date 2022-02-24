@@ -1,6 +1,9 @@
+from typing import List
+
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F, Q
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +15,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
+from sentry.apidocs.decorators import public
+from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.app import locks
 from sentry.models import (
     AuditLogEntryEvent,
@@ -102,10 +108,112 @@ class OrganizationMemberSerializer(serializers.Serializer):
         return role
 
 
+class OrganizationMemberIndexQueryParamSerializer(serializers.Serializer):
+    email = serializers.CharField(
+        required=False,
+        default=None,
+        help_text="an email address to filter by.",
+    )
+    scope = serializers.ChoiceField(
+        required=False,
+        choices=settings.SENTRY_SCOPES,
+        help_text="filter on members with a specific scope.",
+    )
+
+    role = serializers.ChoiceField(
+        choices=roles.get_choices(),
+        required=False,
+        help_text="filter on members with a role.",
+    )
+    isInvited = serializers.BooleanField(
+        required=False, help_text="filter on if the member is in an invited state."
+    )
+    ssoLinked = serializers.BooleanField(
+        required=False, help_text="filter on members who have linked an SSO identity."
+    )
+    has2fa = serializers.BooleanField(
+        required=False, help_text="filter on members who have 2fa enabled."
+    )
+    hasExternalUsers = serializers.BooleanField(
+        required=False, help_text="filter on members who have an external user linked."
+    )
+    query = serializers.CharField(
+        required=False,
+        help_text="filter by an email address, but look at secondary email's and primary account emails as well.",
+    )
+    expand = serializers.MultipleChoiceField(
+        choices=["externalUsers"],
+        required=False,
+        help_text="whether or not to expand the member's external users",
+    )
+
+
+@public(methods={"GET"})
+@extend_schema(tags=["Members"])
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
+    @extend_schema(
+        operation_id="Query an Organization's Members",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, OrganizationMemberIndexQueryParamSerializer],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationMembersList",
+                List[organization_member_serializers.OrganizationMemberResponse],
+            )
+        },
+        examples=[
+            OpenApiExample(
+                "Retrieve a List of Organization Members",
+                response_only=True,
+                value=[
+                    {
+                        "id": "8",
+                        "email": "dummy@example.com",
+                        "name": "dummy@example.com",
+                        "user": {
+                            "id": "5",
+                            "name": "dummy@example.com",
+                            "username": "dummy@example.com",
+                            "email": "dummy@example.com",
+                            "avatarUrl": "https://secure.gravatar.com/avatar/6e8e0bf6135471802a63a17c5e74ddc5?s=32&d=mm",
+                            "isActive": True,
+                            "hasPasswordAuth": True,
+                            "isManaged": False,
+                            "dateJoined": "2022-02-24T05:00:50.796399Z",
+                            "lastLogin": "2022-02-24T05:00:50.818081Z",
+                            "has2fa": False,
+                            "lastActive": "2022-02-24T05:00:50.796406Z",
+                            "isSuperuser": False,
+                            "isStaff": True,
+                            "experiments": {},
+                            "emails": [
+                                {"id": "5", "email": "dummy@example.com", "is_verified": True}
+                            ],
+                            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                        },
+                        "role": "member",
+                        "roleName": "Member",
+                        "pending": False,
+                        "expired": False,
+                        "flags": {
+                            "sso:linked": False,
+                            "sso:invalid": False,
+                            "member-limit:restricted": False,
+                        },
+                        "dateCreated": "2022-02-24T05:00:50.811995Z",
+                        "inviteStatus": "approved",
+                        "inviterName": None,
+                    }
+                ],
+                status_codes=["200"],
+            ),
+        ],
+    )
     def get(self, request: Request, organization) -> Response:
+        """Query an Organization's Members."""
+        # TODO(jferge): have this endpoint use the query param serializer defined above
         queryset = (
             OrganizationMember.objects.filter(
                 Q(user__is_active=True) | Q(user__isnull=True),

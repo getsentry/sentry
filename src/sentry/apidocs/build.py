@@ -79,4 +79,14 @@ OPENAPI_TAGS = [
             "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
         },
     },
+    {
+        "name": "Members",
+        "x-sidebar-name": "Members",
+        "description": "APIs for managing your Organization's members",
+        "x-display-description": True,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
 ]

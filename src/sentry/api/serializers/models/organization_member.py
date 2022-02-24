@@ -71,7 +71,7 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     role: str  # TODO: literal/enum
     roleName: str  # TODO: literal/enum
     pending: bool
-    expired: str
+    expired: bool
     flags: _OrganizationMemberFlags
     dateCreated: str
     inviteStatus: str

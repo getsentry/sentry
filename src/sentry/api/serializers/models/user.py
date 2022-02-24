@@ -87,7 +87,7 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     hasPasswordAuth: bool
     isManaged: bool
     dateJoined: str
-    lastLogin: str
+    lastLogin: Optional[str]
     has2fa: bool
     lastActive: str
     isSuperuser: bool

@@ -256,7 +256,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Members",
+        operation_id="List an Organization's Members via SCIM API",
         parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
@@ -269,7 +269,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         },
         examples=[  # TODO: see if this can go on serializer object instead
             OpenApiExample(
-                "List an Organization's Members",
+                "List an Organization's Members via SCIM API",
                 value={
                     "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
                     "totalResults": 1,
