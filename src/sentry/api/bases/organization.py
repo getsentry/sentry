@@ -163,38 +163,6 @@ class OrganizationAlertRulePermission(OrganizationPermission):
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
-    def initialize_request(self, request: Request, *args, **kwargs):
-        if request.user and request.user.is_superuser and is_active_superuser(request):
-            organization_slug = kwargs.get("organization_slug")
-            if not request.session.get("su_orgs_accessed"):
-                request.session["su_orgs_accessed"] = [organization_slug]
-            elif organization_slug not in request.session["su_orgs_accessed"]:
-                request.session["su_orgs_accessed"].append(organization_slug)
-                if request.session.get("su_access"):
-                    logger.info(
-                        "su_access.organization_change",
-                        extra={
-                            "user_id": request.user.id,
-                            "user_email": request.user.email,
-                            "su_access_category": request.session["su_access"][
-                                "su_access_category"
-                            ],
-                            "reason_for_su": request.session["su_access"]["reason_for_su"],
-                            "su_orgs_accessed": request.session["su_orgs_accessed"],
-                        },
-                    )
-                else:
-                    logger.warning(
-                        "su_access.organization_change_without_reason",
-                        extra={
-                            "user_id": request.user.id,
-                            "user_email": request.user.email,
-                            "su_orgs_accessed": request.session["su_orgs_accessed"],
-                        },
-                    )
-
-        return super().initialize_request(request, *args, **kwargs)
-
     def get_projects(
         self,
         request,
