@@ -4,8 +4,8 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import {t} from 'sentry/locale';
 import {Trace} from 'sentry/types/profiling/core';
 
-import {renderProfilingTableCell} from './profilingTableCell';
-import {TableColumnKey, TableColumnOrders} from './types';
+import {ProfilingTableCell} from './profilingTableCell';
+import {TableColumn, TableColumnKey, TableColumnOrders, TableDataRow} from './types';
 
 interface ProfilingTableProps {
   error: string | null;
@@ -24,6 +24,22 @@ function ProfilingTable({error, isLoading, location, traces}: ProfilingTableProp
       columnSortBy={[]}
       grid={{renderBodyCell: renderProfilingTableCell}}
       location={location}
+    />
+  );
+}
+
+function renderProfilingTableCell(
+  column: TableColumn,
+  dataRow: TableDataRow,
+  rowIndex: number,
+  columnIndex: number
+) {
+  return (
+    <ProfilingTableCell
+      column={column}
+      dataRow={dataRow}
+      rowIndex={rowIndex}
+      columnIndex={columnIndex}
     />
   );
 }

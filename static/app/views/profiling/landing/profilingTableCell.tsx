@@ -13,22 +13,6 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {TableColumn, TableDataRow} from './types';
 
-function renderProfilingTableCell(
-  column: TableColumn,
-  dataRow: TableDataRow,
-  rowIndex: number,
-  columnIndex: number
-) {
-  return (
-    <ProfilingTableCell
-      column={column}
-      dataRow={dataRow}
-      rowIndex={rowIndex}
-      columnIndex={columnIndex}
-    />
-  );
-}
-
 interface ProfilingTableCellProps {
   column: TableColumn;
   columnIndex: number;
@@ -100,4 +84,4 @@ function generateFlamegraphRoute({
   return `/organizations/${orgSlug}/profiling/flamegraph/${projectSlug}/${profileId}/`;
 }
 
-export {renderProfilingTableCell};
+export {ProfilingTableCell};
