@@ -78,6 +78,7 @@ describe('Dashboards > Dashboard', () => {
       method: 'GET',
       body: [
         {
+          annotations: [],
           id: '1',
           title: 'Error: Failed',
           project: {
@@ -214,12 +215,11 @@ describe('Dashboards > Dashboard', () => {
         widgets: [{...issueWidget}],
       };
       mount(mockDashboardWithIssueWidget, organizationWithFlag);
-      await tick();
-      expect(screen.getByText('T')).toBeInTheDocument();
+      expect(await screen.findByText('T')).toBeInTheDocument();
       userEvent.hover(screen.getByText('T'));
       expect(await screen.findByText('Suggestion:')).toBeInTheDocument();
-      expect(await screen.findByText('test@sentry.io')).toBeInTheDocument();
-      expect(await screen.findByText('Matching Issue Owners Rule')).toBeInTheDocument();
+      expect(screen.getByText('test@sentry.io')).toBeInTheDocument();
+      expect(screen.getByText('Matching Issue Owners Rule')).toBeInTheDocument();
     });
   });
 

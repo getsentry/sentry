@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+from typing import Any
+
+from drf_spectacular.plumbing import UnableToProceedError
+
 from sentry.api.serializers import Serializer
 
 
@@ -34,6 +40,16 @@ def inline_sentry_response_serializer(name: str, t: type) -> type:
 
     serializer_class = type(name, (_RawSchema,), {"typeSchema": t})
     return serializer_class
+
+
+class SentryApiBuildError(UnableToProceedError):  # type: ignore
+    def __init__(self, msg: str = "", *args: Any, **kwargs: Any) -> None:
+        super().__init__(
+            msg
+            + "\nSee https://develop.sentry.dev/api/public/#how-to-make-an-endpoint-public for more information.",
+            *args,
+            **kwargs,
+        )
 
 
 # TODO: extend schema wrapper method here?
