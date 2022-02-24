@@ -387,6 +387,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           onIncompatibleQuery={onIncompatibleAlertQuery}
           onSuccess={this.handleCreateAlertSuccess}
           referrer="discover"
+          aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
         />
       </GuideAnchor>

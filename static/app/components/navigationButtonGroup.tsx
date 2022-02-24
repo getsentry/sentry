@@ -1,6 +1,6 @@
 import {LocationDescriptor} from 'history';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,7 +18,7 @@ type Props = {
   onNewestClick?: () => void;
   onOlderClick?: () => void;
   onOldestClick?: () => void;
-  size?: React.ComponentProps<typeof Button>['size'];
+  size?: ButtonProps['size'];
 };
 
 const NavigationButtonGroup = ({

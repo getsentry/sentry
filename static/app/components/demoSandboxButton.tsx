@@ -1,9 +1,9 @@
-import Button from 'sentry/components/button';
+import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import {Organization, SandboxData} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {
+interface DemoSandboxButtonProps extends ButtonPropsWithoutAriaLabel {
   /**
    * The deep link scenario
    */
@@ -32,7 +32,7 @@ type Props = {
    * Which project we should link to in the sandbox
    */
   projectSlug?: 'react' | 'python' | 'ios' | 'android' | 'react-native';
-} & React.ComponentProps<typeof Button>;
+}
 
 /**
  * Renders a button that will kick off the sandbox around children
@@ -45,7 +45,7 @@ function DemoSandboxButton({
   errorType,
   clientData,
   ...buttonProps
-}: Props) {
+}: DemoSandboxButtonProps): React.ReactElement {
   const organization: Organization = useOrganization();
   const url = new URL('https://try.sentry-demo.com/demo/start/');
 

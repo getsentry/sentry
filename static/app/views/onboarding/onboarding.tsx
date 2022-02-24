@@ -3,7 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -290,12 +290,12 @@ ProgressStatus.defaultProps = {
   transition: testableTransition(),
 };
 
-type BackProps = Omit<React.ComponentProps<typeof Button>, 'icon' | 'priority'> & {
+interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
   animate: MotionProps['animate'];
   className?: string;
-};
+}
 
-const Back = styled(({className, animate, ...props}: BackProps) => (
+const Back = styled(({className, animate, ...props}: BackButtonProps) => (
   <motion.div
     className={className}
     animate={animate}

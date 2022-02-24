@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import {APIRequestMethod} from 'sentry/api';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import FormContext, {FormContextData} from 'sentry/components/forms/formContext';
 import FormModel, {FormOptions} from 'sentry/components/forms/model';
 import {Data, OnSubmitCallback} from 'sentry/components/forms/type';
@@ -83,7 +83,7 @@ type Props = {
    */
   submitDisabled?: boolean;
   submitLabel?: string;
-  submitPriority?: React.ComponentProps<typeof Button>['priority'];
+  submitPriority?: ButtonProps['priority'];
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
 export default class Form extends React.Component<Props> {
