@@ -147,9 +147,9 @@ describe('TableView > CellActions', function () {
   });
 
   it('handles add cell action on null value replace has condition', function () {
+    rows.data[0].title = null;
     const view = eventView.clone();
     view.query = 'tag:value has:title';
-    rows.data[0].title = null;
 
     const wrapper = makeWrapper(initialData, rows, view);
     const menu = openContextMenu(wrapper, 0);
