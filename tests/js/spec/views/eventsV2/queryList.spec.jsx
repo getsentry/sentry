@@ -204,9 +204,10 @@ describe('EventsV2 > QueryList', function () {
     card = wrapper.find('QueryCard').last();
     const menuItems = card.find('MenuItemWrap');
 
-    expect(menuItems.length).toEqual(2);
-    expect(menuItems.at(0).text()).toEqual('Duplicate Query');
-    expect(menuItems.at(1).text()).toEqual('Delete Query');
+    expect(menuItems.length).toEqual(3);
+    expect(menuItems.at(0).text()).toEqual('Add to Dashboard');
+    expect(menuItems.at(1).text()).toEqual('Duplicate Query');
+    expect(menuItems.at(2).text()).toEqual('Delete Query');
   });
 
   it('only renders Delete Query and Duplicate Query in context menu', async function () {
