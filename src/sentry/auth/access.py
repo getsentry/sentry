@@ -188,7 +188,7 @@ class Access:
 
 
 class OrganizationGlobalAccess(Access):
-    def __init__(self, organization: Organization, scopes: Iterable[str] = (), **kwargs):
+    def __init__(self, organization: Organization, scopes: Iterable[str], **kwargs):
         # TODO: Refactor these into cached properties to avoid needless queries
         teams = frozenset(Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE))
         projects = frozenset(
