@@ -121,6 +121,8 @@ function FlamegraphZoomViewMinimap({
     scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
     scheduler.registerAfterFrameCallback(drawPosition);
 
+    scheduler.draw();
+
     return () => {
       scheduler.unregisterBeforeFrameCallback(clearOverlayCanvas);
       scheduler.unregisterAfterFrameCallback(drawPosition);
@@ -223,7 +225,6 @@ function FlamegraphZoomViewMinimap({
 
   useEffect(() => {
     canvasPoolManager.registerScheduler(scheduler);
-    scheduler.draw();
     return () => canvasPoolManager.unregisterScheduler(scheduler);
   }, [scheduler]);
 
