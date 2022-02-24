@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -197,10 +197,6 @@ const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
     margin-bottom: 0;
   }
 `;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
