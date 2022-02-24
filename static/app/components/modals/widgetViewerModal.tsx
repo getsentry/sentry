@@ -25,6 +25,7 @@ import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 export type WidgetViewerModalOptions = {
   organization: Organization;
   widget: Widget;
+  onEdit?: () => void;
 };
 
 type Props = ModalRenderProps &
@@ -109,7 +110,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const {Footer, Body, Header, widget, selection, organization} = props;
+  const {Footer, Body, Header, widget, onEdit, selection, organization} = props;
 
   const StyledHeader = styled(Header)`
     ${headerCss}
@@ -139,7 +140,7 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={() => undefined}>
+          <Button type="button" onClick={onEdit}>
             {t('Edit Widget')}
           </Button>
           <Button to={path} priority="primary" type="button">

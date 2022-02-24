@@ -18,8 +18,6 @@ export class Flamegraph {
   inverted?: boolean = false;
   leftHeavy?: boolean = false;
 
-  colors: Map<string | number, number[]> | null = null;
-
   depth = 0;
   duration = 0;
   configSpace: Rect = new Rect(0, 0, 0, 0);
@@ -30,8 +28,7 @@ export class Flamegraph {
   constructor(
     profile: Profile,
     profileIndex: number,
-    inverted = false,
-    leftHeavy = false
+    {inverted = false, leftHeavy = false}: {inverted?: boolean; leftHeavy?: boolean} = {}
   ) {
     this.inverted = inverted;
     this.leftHeavy = leftHeavy;
@@ -70,26 +67,27 @@ export class Flamegraph {
   }
 
   static Empty(): Flamegraph {
-    return new Flamegraph(
-      new Profile(0, 0, 1_000_000, 'Profile', 'microseconds'),
-      0,
-      false,
-      false
-    );
+    return new Flamegraph(new Profile(0, 0, 1_000_000, 'Profile', 'microseconds'), 0, {
+      inverted: false,
+      leftHeavy: false,
+    });
   }
 
-  static From(from: Flamegraph, inverted = false, leftHeavy = false): Flamegraph {
-    return new Flamegraph(from.profile, from.profileIndex, inverted, leftHeavy);
+  static From(from: Flamegraph, {inverted = false, leftHeavy = false}): Flamegraph {
+    return new Flamegraph(from.profile, from.profileIndex, {inverted, leftHeavy});
   }
 
   buildCallOrderGraph(profile: Profile): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
+    let idx = 0;
+
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
 
       const frame: FlamegraphFrame = {
+        key: idx,
         frame: node.frame,
         node,
         parent,
@@ -104,6 +102,7 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+      idx++;
     };
 
     const closeFrame = (_: CallTreeNode, value: number) => {
@@ -140,9 +139,11 @@ export class Flamegraph {
 
     sortTree(profile.appendOrderTree);
 
+    let idx = 0;
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
       const frame: FlamegraphFrame = {
+        key: idx,
         frame: node.frame,
         node,
         parent,
@@ -157,6 +158,7 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+      idx++;
     };
 
     const closeFrame = (_node: CallTreeNode, value: number) => {
@@ -195,10 +197,6 @@ export class Flamegraph {
     }
     visit(profile.appendOrderTree, 0);
     return frames;
-  }
-
-  setColors(colors: Map<string | number, number[]> | null): void {
-    this.colors = colors;
   }
 
   withOffset(offset: number): Flamegraph {

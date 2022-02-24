@@ -11,7 +11,11 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
-from sentry.search.events.builder import MetricsQueryBuilder, QueryBuilder
+from sentry.search.events.builder import (
+    MetricsQueryBuilder,
+    QueryBuilder,
+    TimeseriesMetricQueryBuilder,
+)
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.testutils.cases import SessionMetricsTestCase, TestCase
@@ -591,7 +595,7 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
     )
 
 
-class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
+class MetricBuilderBaseTest(TestCase, SessionMetricsTestCase):
     TYPE_MAP = {
         "metrics_distributions": "d",
         "metrics_sets": "s",
@@ -599,8 +603,8 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
     }
 
     def setUp(self):
-        self.start = datetime.datetime(2021, 1, 1, 10, 15, 1, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2021, 1, 19, 10, 15, 1, tzinfo=timezone.utc)
+        self.start = datetime.datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
+        self.end = datetime.datetime(2015, 1, 19, 10, 15, 0, tzinfo=timezone.utc)
         self.projects = [self.project.id]
         self.organization_id = 1
         self.params = {
@@ -639,7 +643,9 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
         else:
             tags = {indexer.resolve(key): indexer.resolve(value) for key, value in tags.items()}
         if timestamp is None:
-            timestamp = int((self.start + datetime.timedelta(minutes=1)).timestamp())
+            timestamp = (self.start + datetime.timedelta(minutes=1)).timestamp()
+        else:
+            timestamp = timestamp.timestamp()
         if not isinstance(value, list):
             value = [value]
         self._send_buckets(
@@ -680,6 +686,8 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
             tags={"transaction": "bar_transaction"},
         )
 
+
+class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_default_conditions(self):
         query = MetricsQueryBuilder(self.params, "", selected_columns=[])
         self.assertCountEqual(query.where, self.default_conditions)
@@ -862,6 +870,13 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
             "transaction": indexer.resolve("foo_transaction"),
             "p95_transaction_duration": 100,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+            ],
+        )
 
     def test_run_query_multiple_tables(self):
         self.store_metric(100, tags={"transaction": "foo_transaction"})
@@ -887,6 +902,14 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     def test_run_query_with_multiple_groupby_orderby_distribution(self):
         self.setup_orderby_data()
@@ -915,6 +938,15 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     def test_run_query_with_multiple_groupby_orderby_set(self):
         self.setup_orderby_data()
@@ -943,6 +975,15 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     # TODO: multiple groupby with counter
 
@@ -981,6 +1022,15 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
             "project": self.project.slug,
             "p95_transaction_duration": 200,
         }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
 
     @pytest.mark.skip(
         reason="Currently cannot handle the case where null values are in the first entity"
@@ -1035,3 +1085,188 @@ class MetricQueryBuilderTest(TestCase, SessionMetricsTestCase):
                 orderby=["-count_unique(user)", "p95(transaction.duration)"],
             )
             query.run_query("test_query")
+
+
+class TimeseresMetricQueryBuilderTest(MetricBuilderBaseTest):
+    def test_get_query(self):
+        query = TimeseriesMetricQueryBuilder(
+            self.params, granularity=900, query="", selected_columns=["p50(transaction.duration)"]
+        )
+        snql_query = query.get_snql_query()
+        assert len(snql_query) == 1
+        assert snql_query[0].select == [_metric_percentile_definition("50")]
+        assert snql_query[0].match.name == "metrics_distributions"
+        assert snql_query[0].granularity.granularity == 900
+
+    def test_default_conditions(self):
+        query = TimeseriesMetricQueryBuilder(
+            self.params, granularity=900, query="", selected_columns=[]
+        )
+        self.assertCountEqual(query.where, self.default_conditions)
+
+    def test_transaction_in_filter(self):
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            granularity=900,
+            query="transaction:[foo_transaction, bar_transaction]",
+            selected_columns=["p95(transaction.duration)"],
+        )
+        transaction_index = indexer.resolve("transaction")
+        transaction_name1 = indexer.resolve("foo_transaction")
+        transaction_name2 = indexer.resolve("bar_transaction")
+        transaction = Column(f"tags[{transaction_index}]")
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                Condition(transaction, Op.IN, [transaction_name1, transaction_name2]),
+            ],
+        )
+
+    def test_missing_transaction_index(self):
+        with self.assertRaisesRegex(
+            InvalidSearchQuery,
+            re.escape("Tag value was not found"),
+        ):
+            TimeseriesMetricQueryBuilder(
+                self.params,
+                granularity=900,
+                query="transaction:something_else",
+                selected_columns=["project", "p95(transaction.duration)"],
+            )
+
+    def test_missing_transaction_index_in_filter(self):
+        with self.assertRaisesRegex(
+            InvalidSearchQuery,
+            re.escape("Tag value was not found"),
+        ):
+            TimeseriesMetricQueryBuilder(
+                self.params,
+                granularity=900,
+                query="transaction:[something_else, something_else2]",
+                selected_columns=["p95(transaction.duration)"],
+            )
+
+    def test_project_filter(self):
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            granularity=900,
+            query=f"project:{self.project.slug}",
+            selected_columns=["p95(transaction.duration)"],
+        )
+        self.assertCountEqual(
+            query.where,
+            [*self.default_conditions, Condition(Column("project_id"), Op.EQ, self.project.id)],
+        )
+
+    def test_meta(self):
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            granularity=900,
+            selected_columns=["p50(transaction.duration)", "count_unique(user)"],
+        )
+        result = query.run_query("test_query")
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime"},
+                {"name": "p50_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
+
+    def test_with_aggregate_filter(self):
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            granularity=900,
+            query="p50(transaction.duration):>100",
+            selected_columns=["p50(transaction.duration)", "count_unique(user)"],
+        )
+        # Aggregate conditions should be dropped
+        assert query.having == []
+
+    def test_run_query(self):
+        for i in range(5):
+            self.store_metric(100, timestamp=self.start + datetime.timedelta(minutes=i * 15))
+            self.store_metric(
+                1,
+                metric=constants.METRICS_MAP["user"],
+                entity="metrics_sets",
+                timestamp=self.start + datetime.timedelta(minutes=i * 15),
+            )
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            granularity=900,
+            query="",
+            selected_columns=["p50(transaction.duration)", "count_unique(user)"],
+        )
+        result = query.run_query("test_query")
+        assert result["data"] == [
+            {
+                "time": "2015-01-01T10:15:00+00:00",
+                "p50_transaction_duration": 100.0,
+                "count_unique_user": 1,
+            },
+            {
+                "time": "2015-01-01T10:30:00+00:00",
+                "p50_transaction_duration": 100.0,
+                "count_unique_user": 1,
+            },
+            {
+                "time": "2015-01-01T10:45:00+00:00",
+                "p50_transaction_duration": 100.0,
+                "count_unique_user": 1,
+            },
+            {
+                "time": "2015-01-01T11:00:00+00:00",
+                "p50_transaction_duration": 100.0,
+                "count_unique_user": 1,
+            },
+            {
+                "time": "2015-01-01T11:15:00+00:00",
+                "p50_transaction_duration": 100.0,
+                "count_unique_user": 1,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime"},
+                {"name": "p50_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
+
+    def test_run_query_with_filter(self):
+        for i in range(5):
+            self.store_metric(
+                100,
+                tags={"transaction": "foo_transaction"},
+                timestamp=self.start + datetime.timedelta(minutes=i * 15),
+            )
+            self.store_metric(
+                200,
+                tags={"transaction": "bar_transaction"},
+                timestamp=self.start + datetime.timedelta(minutes=i * 15),
+            )
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            granularity=900,
+            query="transaction:foo_transaction",
+            selected_columns=["p50(transaction.duration)"],
+        )
+        result = query.run_query("test_query")
+        assert result["data"] == [
+            {"time": "2015-01-01T10:15:00+00:00", "p50_transaction_duration": 100.0},
+            {"time": "2015-01-01T10:30:00+00:00", "p50_transaction_duration": 100.0},
+            {"time": "2015-01-01T10:45:00+00:00", "p50_transaction_duration": 100.0},
+            {"time": "2015-01-01T11:00:00+00:00", "p50_transaction_duration": 100.0},
+            {"time": "2015-01-01T11:15:00+00:00", "p50_transaction_duration": 100.0},
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime"},
+                {"name": "p50_transaction_duration", "type": "Float64"},
+            ],
+        )
