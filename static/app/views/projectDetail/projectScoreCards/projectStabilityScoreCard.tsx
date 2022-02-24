@@ -11,7 +11,7 @@ import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import {Organization, PageFilters, SessionApiResponse, SessionField} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';
@@ -24,6 +24,7 @@ import {
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
 type Props = AsyncComponent['props'] & {
+  field: SessionField.SESSIONS | SessionField.USERS;
   hasSessions: boolean | null;
   isProjectStabilized: boolean;
   organization: Organization;
@@ -48,7 +49,8 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection, isProjectStabilized, hasSessions, query} = this.props;
+    const {organization, selection, isProjectStabilized, hasSessions, query, field} =
+      this.props;
 
     if (!isProjectStabilized || !hasSessions) {
       return [];
@@ -59,10 +61,10 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     const commonQuery = {
       environment,
       project: projects[0],
-      field: 'sum(session)',
       groupBy: 'session.status',
       interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
       query,
+      field,
     };
 
     // Unfortunately we can't do something like statsPeriod=28d&interval=14d to get scores for this and previous interval with the single request
@@ -110,15 +112,18 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Crash Free Sessions');
+    return this.props.field === SessionField.SESSIONS
+      ? t('Crash Free Sessions')
+      : t('Crash Free Users');
   }
 
   get cardHelp() {
-    return this.trend
-      ? t(
-          'The percentage of crash free sessions and how it has changed since the last period.'
-        )
-      : getSessionTermDescription(SessionTerm.STABILITY, null);
+    return getSessionTermDescription(
+      this.props.field === SessionField.SESSIONS
+        ? SessionTerm.CRASH_FREE_SESSIONS
+        : SessionTerm.CRASH_FREE_USERS,
+      null
+    );
   }
 
   get score() {
@@ -161,18 +166,20 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   calculateCrashFree(data?: SessionApiResponse | null) {
+    const {field} = this.props;
+
     if (!data) {
       return undefined;
     }
 
     const totalSessions = data.groups.reduce(
-      (acc, group) => acc + group.totals['sum(session)'],
+      (acc, group) => acc + group.totals[field],
       0
     );
 
     const crashedSessions = data.groups.find(
       group => group.by['session.status'] === 'crashed'
-    )?.totals['sum(session)'];
+    )?.totals[field];
 
     if (totalSessions === 0 || !defined(totalSessions) || !defined(crashedSessions)) {
       return undefined;
