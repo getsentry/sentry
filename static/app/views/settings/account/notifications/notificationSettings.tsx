@@ -18,7 +18,6 @@ import {
   NotificationSettingsObject,
   SELF_NOTIFICATION_SETTINGS_TYPES,
 } from 'sentry/views/settings/account/notifications/constants';
-import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
 import {
   decideDefault,
@@ -185,8 +184,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title="Notifications" />
-        <TextBlock>Personal notifications sent via email or an integration.</TextBlock>
-        <FeedbackAlert />
+        <TextBlock>Personal notifications sent by email or an integration.</TextBlock>
         <Form
           model={this.model}
           saveOnBlur
