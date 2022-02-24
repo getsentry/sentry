@@ -302,7 +302,7 @@ class Superuser:
                     raise serializers.ValidationError(su_access_info.errors)
 
                 logger.info(
-                    "su_access.give_su_access",
+                    "superuser.superuser_access",
                     extra={
                         "user_id": request.user.id,
                         "user_email": request.user.email,
