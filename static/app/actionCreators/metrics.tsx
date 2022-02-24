@@ -1,10 +1,10 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import MetricTagActions from 'sentry/actions/metricTagActions';
+import MetricsTagActions from 'sentry/actions/metricTagActions';
 import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import MetricTagStore from 'sentry/stores/metricsTagStore';
+import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import {
   DateString,
   MetricMeta,
@@ -82,7 +82,7 @@ export const doMetricsRequest = (
 };
 
 function tagFetchSuccess(tags: MetricTag[]) {
-  MetricTagActions.loadMetricsTagsSuccess(tags);
+  MetricsTagActions.loadMetricsTagsSuccess(tags);
 }
 
 export function fetchMetricsTags(
@@ -91,7 +91,7 @@ export function fetchMetricsTags(
   projects?: number[],
   fields?: string[]
 ): Promise<MetricTag[]> {
-  MetricTagStore.reset();
+  MetricsTagStore.reset();
 
   const promise = api.requestPromise(`/organizations/${orgSlug}/metrics/tags/`, {
     query: {

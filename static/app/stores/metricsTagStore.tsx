@@ -1,21 +1,21 @@
 import Reflux from 'reflux';
 
-import MetricTagActions from 'sentry/actions/metricTagActions';
+import MetricsTagActions from 'sentry/actions/metricTagActions';
 import {MetricTag, MetricTagCollection} from 'sentry/types';
 
-type MetricTagStoreInterface = {
+type MetricsTagStoreInterface = {
   getAllTags(): MetricTagCollection;
   onLoadTagsSuccess(data: MetricTag[]): void;
   reset(): void;
   state: MetricTagCollection;
 };
 
-const storeConfig: Reflux.StoreDefinition & MetricTagStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & MetricsTagStoreInterface = {
   state: {},
 
   init() {
     this.state = {};
-    this.listenTo(MetricTagActions.loadMetricsTagsSuccess, this.onLoadTagsSuccess);
+    this.listenTo(MetricsTagActions.loadMetricsTagsSuccess, this.onLoadTagsSuccess);
   },
 
   reset() {
@@ -41,7 +41,7 @@ const storeConfig: Reflux.StoreDefinition & MetricTagStoreInterface = {
   },
 };
 
-const MetricTagStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  MetricTagStoreInterface;
+const MetricsTagStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  MetricsTagStoreInterface;
 
-export default MetricTagStore;
+export default MetricsTagStore;

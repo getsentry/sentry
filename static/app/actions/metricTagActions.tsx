@@ -1,5 +1,5 @@
 import Reflux from 'reflux';
 
-const MetricTagActions = Reflux.createActions(['loadMetricsTagsSuccess']);
+const MetricsTagActions = Reflux.createActions(['loadMetricsTagsSuccess']);
 
-export default MetricTagActions;
+export default MetricsTagActions;

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import MetricTagStore from 'sentry/stores/metricsTagStore';
+import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import TagStore from 'sentry/stores/tagStore';
 import {MetricTagCollection} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
@@ -20,7 +20,7 @@ function withMetricTags<P extends InjectedTagsProps>(
     static displayName = `withMetricTags(${getDisplayName(WrappedComponent)})`;
 
     state: State = {
-      metricTags: MetricTagStore.getAllTags(),
+      metricTags: MetricsTagStore.getAllTags(),
     };
 
     componentWillUnmount() {
