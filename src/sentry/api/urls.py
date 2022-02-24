@@ -237,15 +237,17 @@ from .endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
 )
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
-from .endpoints.organization_invite_request_details import OrganizationInviteRequestDetailsEndpoint
-from .endpoints.organization_invite_request_index import OrganizationInviteRequestIndexEndpoint
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
-from .endpoints.organization_join_request import OrganizationJoinRequestEndpoint
-from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
-from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from .endpoints.organization_member import (
+    OrganizationInviteRequestDetailsEndpoint,
+    OrganizationInviteRequestIndexEndpoint,
+    OrganizationJoinRequestEndpoint,
+    OrganizationMemberDetailsEndpoint,
+    OrganizationMemberIndexEndpoint,
+)
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
 from .endpoints.organization_member_issues_bookmarked import (
     OrganizationMemberIssuesBookmarkedEndpoint,

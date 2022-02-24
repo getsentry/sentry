@@ -192,19 +192,17 @@ from sentry.api.endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
 )
 from sentry.api.endpoints.organization_integrations import OrganizationIntegrationsEndpoint
-from sentry.api.endpoints.organization_invite_request_details import (
-    OrganizationInviteRequestDetailsEndpoint,
-)
-from sentry.api.endpoints.organization_invite_request_index import (
-    OrganizationInviteRequestIndexEndpoint,
-)
 from sentry.api.endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from sentry.api.endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
-from sentry.api.endpoints.organization_join_request import OrganizationJoinRequestEndpoint
-from sentry.api.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
-from sentry.api.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from sentry.api.endpoints.organization_member import (
+    OrganizationInviteRequestDetailsEndpoint,
+    OrganizationInviteRequestIndexEndpoint,
+    OrganizationJoinRequestEndpoint,
+    OrganizationMemberDetailsEndpoint,
+    OrganizationMemberIndexEndpoint,
+)
 from sentry.api.endpoints.organization_member_issues_assigned import (
     OrganizationMemberIssuesAssignedEndpoint,
 )
