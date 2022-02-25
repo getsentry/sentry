@@ -37,11 +37,14 @@ function Row<T extends Item>({
     );
   }
 
+  const active = index === highlightedIndex;
+
   return (
     <AutoCompleteItem
       itemSize={itemSize}
       disabled={item.disabled}
-      isHighlighted={index === highlightedIndex}
+      isHighlighted={active}
+      ref={element => active && element?.scrollIntoView?.({block: 'nearest'})}
       {...getItemProps({item, index, style})}
     >
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
@@ -92,6 +95,7 @@ const AutoCompleteItem = styled('div')<{
   display: flex;
   flex-direction: column;
   justify-content: center;
+  scroll-margin: 20px 0;
 
   font-size: 0.9em;
   background-color: ${p => (p.isHighlighted ? p.theme.hover : 'transparent')};
