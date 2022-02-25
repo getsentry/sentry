@@ -1,5 +1,6 @@
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
+import abc
 import warnings
 from dataclasses import dataclass
 from typing import FrozenSet, Iterable, Mapping, Optional, Tuple
@@ -78,7 +79,7 @@ def _sso_params(member: OrganizationMember) -> Tuple[bool, bool]:
 
 
 @dataclass(frozen=True)
-class Access:
+class Access(abc.ABC):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so there's clarity in
     # what things mean
@@ -185,6 +186,38 @@ class Access:
 
     def to_django_context(self) -> Mapping[str, bool]:
         return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
+
+
+class OrganizationMemberAccess(Access):
+    def __init__(
+        self, member: OrganizationMember, scopes: Iterable[str], permissions: Iterable[str]
+    ) -> None:
+        requires_sso, sso_is_valid = _sso_params(member)
+
+        teams = frozenset(member.get_teams())
+        with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
+            projects = frozenset(
+                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams).distinct()
+            )
+            span.set_data("Project Count", len(projects))
+            span.set_data("Team Count", len(teams))
+
+        has_global_access = (
+            bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global
+        )
+
+        super().__init__(
+            is_active=True,
+            sso_is_valid=sso_is_valid,
+            requires_sso=requires_sso,
+            organization_id=member.organization_id,
+            teams=teams,
+            projects=projects,
+            has_global_access=has_global_access,
+            scopes=frozenset(scopes),
+            permissions=frozenset(permissions),
+            role=member.role,
+        )
 
 
 class OrganizationGlobalAccess(Access):
@@ -331,37 +364,14 @@ def from_member(
     scopes: Optional[Iterable[str]] = None,
     is_superuser: bool = False,
 ) -> Access:
-    # TODO(dcramer): we want to optimize this access pattern as its several
-    # network hops and needed in a lot of places
-    requires_sso, sso_is_valid = _sso_params(member)
-
-    team_list = frozenset(member.get_teams())
-    with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
-        project_list = frozenset(
-            Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=team_list).distinct()
-        )
-        span.set_data("Project Count", len(project_list))
-        span.set_data("Team Count", len(team_list))
-
     if scopes is not None:
         scopes = set(scopes) & member.get_scopes()
     else:
         scopes = member.get_scopes()
 
-    return Access(
-        is_active=True,
-        requires_sso=requires_sso,
-        sso_is_valid=sso_is_valid,
-        scopes=scopes,
-        organization_id=member.organization_id,
-        teams=team_list,
-        projects=project_list,
-        has_global_access=(
-            bool(member.organization.flags.allow_joinleave) or roles.get(member.role).is_global
-        ),
-        permissions=get_permissions_for_user(member.user_id) if is_superuser else frozenset(),
-        role=member.role,
-    )
+    permissions = get_permissions_for_user(member.user_id) if is_superuser else frozenset()
+
+    return OrganizationMemberAccess(member, scopes, permissions)
 
 
 def from_auth(auth, organization: Organization) -> Access:
