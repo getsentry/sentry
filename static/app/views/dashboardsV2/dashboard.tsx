@@ -143,19 +143,18 @@ class Dashboard extends Component<Props, State> {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
+    if (organization.features.includes('dashboards-metrics')) {
+      fetchMetricsFields(api, organization.slug);
+    }
+    // Load organization tags when in edit mode.
+    if (isEditing) {
+      this.fetchTags();
+    }
+
     this.addNewWidget();
 
     // Get member list data for issue widgets
     this.fetchMemberList();
-    // Load organization tags when in edit mode.
-    if (isEditing) {
-      this.fetchTags();
-      return;
-    }
-
-    if (organization.features.includes('dashboard-metrics')) {
-      fetchMetricsFields(api, organization.slug);
-    }
   }
 
   async componentDidUpdate(prevProps: Props) {
@@ -213,7 +212,6 @@ class Dashboard extends Component<Props, State> {
   fetchTags() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
-    fetchMetricsFields(api, organization.slug);
   }
 
   handleStartAdd = () => {
