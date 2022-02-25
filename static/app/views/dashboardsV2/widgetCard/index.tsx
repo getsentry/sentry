@@ -5,6 +5,7 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -154,11 +155,16 @@ class WidgetCard extends React.Component<Props> {
             </Tooltip>
             {showWidgetViewerButton && (
               <OpenWidgetViewerButton
+                aria-label={t('Open Widget Viewer')}
                 onClick={() => {
-                  browserHistory.push({
-                    pathname: `${location.pathname}widget/${widget.id}/`,
-                    query: location.query,
-                  });
+                  if (widget.id) {
+                    browserHistory.push({
+                      pathname: `${location.pathname}widget/${widget.id}/`,
+                      query: location.query,
+                    });
+                  } else {
+                    openWidgetViewerModal(() => undefined, {organization, widget});
+                  }
                 }}
               />
             )}
