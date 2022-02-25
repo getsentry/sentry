@@ -127,8 +127,10 @@ function MenuControl({
   const [triggerWidth, setTriggerWidth] = useState<number>();
   // Update triggerWidth when its size changes using useResizeObserver
   const updateTriggerWidth = useCallback(() => {
-    const newTriggerWidth = ref.current?.offsetWidth;
-    !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);
+    setTimeout(() => {
+      const newTriggerWidth = ref.current?.offsetWidth;
+      !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);
+    });
   }, [trigger, triggerLabel, triggerProps]);
   useResizeObserver({ref, onResize: updateTriggerWidth});
   // If ResizeObserver is not available, manually update the width
