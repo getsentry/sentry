@@ -5,8 +5,6 @@ describe('MetricsTagStore', function () {
     MetricsTagStore.reset();
   });
 
-  afterEach(() => {});
-
   describe('onLoadTagsSuccess()', () => {
     it('should add a new tags and trigger the new addition', () => {
       jest.spyOn(MetricsTagStore, 'trigger');

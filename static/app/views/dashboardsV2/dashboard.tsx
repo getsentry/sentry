@@ -211,9 +211,6 @@ class Dashboard extends Component<Props, State> {
   fetchTags() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
-    if (organization.features.includes('dashboard-metrics')) {
-      fetchMetricsTags(api, organization.slug);
-    }
   }
 
   handleStartAdd = () => {
