@@ -18,9 +18,9 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
-import {IconDiamond, IconInfo, IconQuestion} from 'sentry/icons';
+import {IconDiamond, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -223,13 +223,6 @@ export default class DetailsBody extends React.Component<Props> {
           <Heading>{t('Alert Rule Details')}</Heading>
           <KeyValueTable>
             <KeyValueTableRow
-              keyName={t('Team')}
-              value={
-                teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
-              }
-            />
-
-            <KeyValueTableRow
               keyName={t('Date created')}
               value={
                 <DateTime
@@ -255,6 +248,12 @@ export default class DetailsBody extends React.Component<Props> {
                 value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
               />
             )}
+            <KeyValueTableRow
+              keyName={t('Team')}
+              value={
+                teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
+              }
+            />
           </KeyValueTable>
         </SidebarGroup>
       </React.Fragment>
@@ -389,11 +388,11 @@ export default class DetailsBody extends React.Component<Props> {
                     <HeaderItem>
                       <Heading noMargin>
                         {t('Time Interval')}
-                        <StyledTooltip
+                        <QuestionTooltip
                           title={t('The time window over which the metric is evaluated.')}
-                        >
-                          <IconQuestion size="sm" color="gray300" />
-                        </StyledTooltip>
+                          position="top"
+                          size="sm"
+                        />
                       </Heading>
 
                       <RuleText>{this.getTimeWindow()}</RuleText>
@@ -500,10 +499,6 @@ const HeaderItem = styled('div')`
     display: flex;
     align-items: center;
   }
-`;
-
-const StyledTooltip = styled(Tooltip)`
-  height: 16px;
 `;
 
 const StyledLayoutBody = styled(Layout.Body)`
