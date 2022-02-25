@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
@@ -95,7 +95,7 @@ function MenuControl({
   className,
   ...props
 }: Props) {
-  const ref = useRef(null);
+  const ref = useRef<HTMLButtonElement>(null);
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
   // Control the menu open state. See:
@@ -120,6 +120,14 @@ function MenuControl({
     },
     ref
   );
+
+  // Calculate the current trigger element's width. This will be used as
+  // the min width for the menu.
+  const [triggerWidth, setTriggerWidth] = useState<number>();
+  useEffect(() => {
+    const newTriggerWidth = ref.current?.offsetWidth;
+    !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);
+  }, [trigger, triggerLabel, triggerProps]);
 
   // Recursively remove hidden items, including those nested in submenus
   function removeHiddenItems(source) {
@@ -159,6 +167,7 @@ function MenuControl({
         {...props}
         {...menuProps}
         triggerRef={ref}
+        triggerWidth={triggerWidth}
         isSubmenu={isSubmenu}
         isDismissable={!isSubmenu && props.isDismissable}
         shouldCloseOnBlur={!isSubmenu && props.shouldCloseOnBlur}
