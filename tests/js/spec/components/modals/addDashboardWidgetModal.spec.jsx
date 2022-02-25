@@ -13,6 +13,7 @@ import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new'
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
+import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import * as types from 'sentry/views/dashboardsV2/types';
@@ -116,16 +117,18 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'browser.name', key: 'browser.name'},
     {name: 'custom-field', key: 'custom-field'},
   ];
+  const metricsTags = [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}];
   const dashboard = TestStubs.Dashboard([], {
     id: '1',
     title: 'Test Dashboard',
     widgetDisplay: ['area'],
   });
 
-  let eventsStatsMock, metricsTagsMock, metricsMetaMock, metricsDataMock;
+  let eventsStatsMock, metricsMetaMock, metricsDataMock;
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
+    MetricsTagStore.onLoadTagsSuccess(metricsTags);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
@@ -156,7 +159,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: '/organizations/org-slug/issues/',
       body: [],
     });
-    metricsTagsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/tags/',
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
     });
@@ -1222,7 +1225,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      expect(metricsTagsMock).not.toHaveBeenCalled();
       expect(metricsMetaMock).not.toHaveBeenCalled();
       expect(metricsDataMock).not.toHaveBeenCalled();
 
@@ -1233,7 +1235,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
-      // Hide without the dashboard-metrics feature flag
+      // Hide without the dashboards-metrics feature flag
       expect(screen.queryByText('Metrics (Release Health)')).not.toBeInTheDocument();
       wrapper.unmount();
     });
@@ -1327,7 +1329,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       wrapper.unmount();
     });
 
-    it('retrieves tags when modal is opened', async function () {
+    it('displays metrics tags', async function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
@@ -1341,7 +1343,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
       expect(metricsMetaMock).toHaveBeenCalledTimes(1);
 
       await act(async () =>
@@ -1382,7 +1383,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
       expect(metricsMetaMock).toHaveBeenCalledTimes(1);
 
       await act(async () =>
@@ -1402,6 +1402,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
       wrapper.unmount();
     });
+
     it('makes the appropriate metrics call', async function () {
       initialData.organization.features = [
         'performance-view',
