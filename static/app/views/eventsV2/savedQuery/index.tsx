@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -240,6 +241,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
     const defaultTableColumns = eventView.fields.map(({field}) => field);
     const sort = eventView.sorts[0];
+
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       fields: [
@@ -255,12 +257,19 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       saved_query: !!savedQuery,
     });
 
+    const defaultTitle =
+      savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+
     if (organization.features.includes('new-widget-builder-experience')) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DISCOVERV2,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          defaultTableColumns,
+          defaultTitle,
+          displayType,
         },
       });
       return;
@@ -271,9 +280,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
       defaultTableColumns,
-      defaultTitle:
-        savedQuery?.name ??
-        (eventView.name !== 'All Events' ? eventView.name : undefined),
+      defaultTitle,
       displayType,
     });
   };

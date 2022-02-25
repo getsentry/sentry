@@ -6,7 +6,7 @@ import {
   isAggregateFieldOrEquation,
   isLegalYAxisType,
 } from 'sentry/utils/discover/fields';
-import {Widget} from 'sentry/views/dashboardsV2/types';
+import {Widget, WidgetQuery} from 'sentry/views/dashboardsV2/types';
 
 export enum DisplayType {
   AREA = 'area',
@@ -159,4 +159,19 @@ export function normalizeQueries(
   }
 
   return queries;
+}
+
+export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined {
+  // "any" was needed here because it doesn't pass in getsentry
+  const urlSeachParams = new URLSearchParams(query) as any;
+  const parsedQuery = Object.fromEntries(urlSeachParams.entries());
+
+  if (!Object.keys(parsedQuery).length) {
+    return undefined;
+  }
+
+  return {
+    ...parsedQuery,
+    fields: parsedQuery.fields?.split(',') ?? [],
+  } as WidgetQuery;
 }
