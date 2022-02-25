@@ -154,7 +154,7 @@ class VitalDetailContent extends Component<Props, State> {
               query: {
                 ...location.query,
                 vitalName: newVitalName,
-                curor: undefined,
+                cursor: undefined,
               },
             });
           },
