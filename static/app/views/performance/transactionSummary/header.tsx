@@ -278,6 +278,13 @@ class TransactionHeader extends React.Component<Props> {
             >
               {t('Overview')}
             </ListLink>
+            <ListLink
+              to={eventsTarget}
+              isActive={() => currentTab === Tab.Events}
+              onClick={this.trackTabClick(Tab.Events)}
+            >
+              {t('All Events')}
+            </ListLink>
             {this.renderWebVitalsTab()}
             <ListLink
               to={tagsTarget}
@@ -285,13 +292,6 @@ class TransactionHeader extends React.Component<Props> {
               onClick={this.trackTabClick(Tab.Tags)}
             >
               {t('Tags')}
-            </ListLink>
-            <ListLink
-              to={eventsTarget}
-              isActive={() => currentTab === Tab.Events}
-              onClick={this.trackTabClick(Tab.Events)}
-            >
-              {t('All Events')}
             </ListLink>
             <Feature
               organization={organization}
