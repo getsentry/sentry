@@ -135,3 +135,4 @@ METRICS_MAP = {
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 51
+METRICS_GRANULARITIES = [86400, 3600, 60, 10]
