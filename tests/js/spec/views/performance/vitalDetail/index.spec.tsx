@@ -510,7 +510,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('TODO')).toBeInTheDocument();
   });
 
-  it('Pagination links exist to switch between vitals', async function () {
+  it('can switch vitals with dropdown menu', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -536,9 +536,13 @@ describe('Performance > VitalDetail', function () {
       organization: org,
     });
 
-    expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Web Vitals: LCP'})
+    ).toBeInTheDocument();
+    userEvent.click(screen.getByRole('button', {name: 'Web Vitals: LCP'}));
 
-    userEvent.click(screen.getByLabelText('Previous'));
+    expect(await screen.findByRole('menuitemradio', {name: 'FCP'})).toBeInTheDocument();
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'FCP'}));
 
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({
