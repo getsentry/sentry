@@ -383,7 +383,7 @@ export default class DetailsBody extends React.Component<Props> {
                     )}
                     <HeaderItem>
                       <Heading noMargin>{t('Environment')}</Heading>
-                      <RuleText>{rule.environment ?? 'All'}</RuleText>
+                      <RuleText>{rule.environment ?? t('All')}</RuleText>
                     </HeaderItem>
                     <HeaderItem>
                       <Heading noMargin>
