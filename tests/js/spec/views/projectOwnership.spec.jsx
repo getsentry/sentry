@@ -22,7 +22,7 @@ describe('Project Ownership', function () {
     });
     Client.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/`,
-      query: {projectId: project.id},
+      query: {project: project.id},
       method: 'GET',
       body: [],
     });
