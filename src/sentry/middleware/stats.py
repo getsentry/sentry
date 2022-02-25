@@ -13,11 +13,10 @@ from sentry.utils import metrics
 
 from . import ViewFunc, get_path
 
-def add_request_metric_tags(request, **kwargs):
-    if not hasattr(request, "_metric_tags"):
-        request._metric_tags = {}
 
-    request._metric_tags.update(**kwargs)
+def add_request_metric_tags(request: Request, **kwargs: Any) -> None:
+    metric_tags = getattr(request, "_metric_tags", {})
+    setattr(request, "_metric_tags", {**metric_tags, **kwargs})
 
 
 class ResponseCodeMiddleware(MiddlewareMixin):
@@ -25,7 +24,7 @@ class ResponseCodeMiddleware(MiddlewareMixin):
         metrics.incr("response", instance=str(response.status_code), skip_internal=False)
         return response
 
-    def process_exception(self, request: Request, exception):
+    def process_exception(self, request: Request, exception: Exception) -> None:
         if not isinstance(exception, Http404):
             metrics.incr("response", instance="500", skip_internal=False)
 
@@ -58,14 +57,16 @@ class RequestTimingMiddleware(MiddlewareMixin):
         self._record_time(request, response.status_code)
         return response
 
-    def process_exception(self, request: Request, exception):
+    def process_exception(self, request: Request, exception: Exception) -> None:
         self._record_time(request, 500)
 
-    def _record_time(self, request: Request, status_code):
-        if not hasattr(request, "_view_path"):
+    @staticmethod
+    def _record_time(request: Request, status_code: int) -> None:
+        view_path = getattr(request, "_view_path", None)
+        if not view_path:
             return
 
-        tags = request._metric_tags if hasattr(request, "_metric_tags") else {}
+        tags = getattr(request, "_metric_tags", {})
         tags.update(
             {
                 "method": request.method,
@@ -74,12 +75,11 @@ class RequestTimingMiddleware(MiddlewareMixin):
             }
         )
 
-        metrics.incr("view.response", instance=request._view_path, tags=tags, skip_internal=False)
+        metrics.incr("view.response", instance=view_path, tags=tags, skip_internal=False)
 
-        if not hasattr(request, "_start_time"):
+        start_time = getattr(request, "_start_time", None)
+        if not start_time:
             return
 
-        ms = int((time.time() - request._start_time) * 1000)
-        metrics.timing(
-            "view.duration", ms, instance=request._view_path, tags={"method": request.method}
-        )
+        ms = int((time.time() - start_time) * 1000)
+        metrics.timing("view.duration", ms, instance=view_path, tags={"method": request.method})
