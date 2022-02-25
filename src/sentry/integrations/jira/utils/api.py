@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Mapping
 
+from rest_framework.response import Response
+
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.shared_integrations.exceptions import ApiHostError, IntegrationError
 
 from ..client import JiraApiClient, JiraCloud
 
@@ -15,16 +16,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def set_badge(integration, issue_key, group_link_num):
-    client = JiraApiClient(
+def _get_client(integration: Integration) -> JiraApiClient:
+    return JiraApiClient(
         integration.metadata["base_url"],
         JiraCloud(integration.metadata["shared_secret"]),
         verify_ssl=True,
     )
-    try:
-        return client.set_issue_property(issue_key, group_link_num)
-    except ApiHostError:
-        raise IntegrationError("Cannot reach host to set badge.")
+
+
+def set_badge(integration: Integration, issue_key: str, group_link_num: int) -> Response:
+    client = _get_client(integration)
+    return client.set_issue_property(issue_key, group_link_num)
 
 
 def get_assignee_email(
@@ -36,15 +38,8 @@ def get_assignee_email(
     email = assignee.get("emailAddress")
     if not email and use_email_scope:
         account_id = assignee.get("accountId")
-        client = JiraApiClient(
-            integration.metadata["base_url"],
-            JiraCloud(integration.metadata["shared_secret"]),
-            verify_ssl=True,
-        )
-        try:
-            email = client.get_email(account_id)
-        except ApiHostError:
-            raise IntegrationError("Cannot reach host to get email.")
+        client = _get_client(integration)
+        email = client.get_email(account_id)
     return email
 
 

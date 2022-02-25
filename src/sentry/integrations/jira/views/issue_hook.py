@@ -6,6 +6,7 @@ from typing import Any, Mapping
 from urllib.parse import quote
 
 from jwt import ExpiredSignatureError
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,7 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models import ExternalIssue, Group, GroupLink
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
@@ -86,12 +87,6 @@ def build_context(group: Group) -> Mapping[str, Any]:
 class JiraIssueHookView(JiraBaseHook):
     html_file = "sentry/integrations/jira-issue.html"
 
-    def handle_exception(self, request: Request, exc: Exception) -> Response:
-        # Sometime set_badge() will fail to connect.
-        if isinstance(exc, IntegrationError):
-            return self.get_response({"error_message": str(exc)})
-        return super().handle_exception(request, exc)
-
     def handle_group(self, group: Group) -> Response:
         context = build_context(group)
         logger.info(
@@ -99,6 +94,25 @@ class JiraIssueHookView(JiraBaseHook):
             extra={"type": context["type"], "title_url": context["title_url"]},
         )
         return self.get_response(context)
+
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+        try:
+            return super().dispatch(request)
+        except ApiError as exc:
+            # Sometime set_badge() will fail to connect.
+            if exc.code in (
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            ):
+                return self.get_response({"error_message": "Cannot reach host to set badge."})
+
+            if exc.code in (
+                status.HTTP_403_FORBIDDEN,
+                status.HTTP_404_NOT_FOUND,
+            ):
+                return self.get_response({"error_message": "User lacks permissions to set badge."})
+
+            raise exc
 
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
         with configure_scope() as scope:
