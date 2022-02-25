@@ -9,7 +9,7 @@ import {
   deleteDashboard,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openAddDashboardWidgetModal,
   openWidgetViewerModal,
@@ -111,8 +111,9 @@ class DashboardDetail extends Component<Props, State> {
       dashboard,
       location,
     } = this.props;
-    if (defined(widgetId)) {
-      const widget = dashboard.widgets.filter(({id}) => id === `${widgetId}`)[0];
+    if (location.pathname.match(/\/widget\/\w*\/$/)) {
+      const widget =
+        defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
       if (widget) {
         openWidgetViewerModal(
           () => {
@@ -123,6 +124,13 @@ class DashboardDetail extends Component<Props, State> {
           },
           {organization, widget}
         );
+      } else {
+        // Replace the URL if the widget isn't found and raise an error in toast
+        browserHistory.replace({
+          pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+          query: location.query,
+        });
+        addErrorMessage(t('Widget not found'));
       }
     }
   }

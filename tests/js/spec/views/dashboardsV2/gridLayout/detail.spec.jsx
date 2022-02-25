@@ -595,7 +595,7 @@ describe('Dashboards > Detail', function () {
       expect(window.confirm).not.toHaveBeenCalled();
     });
 
-    it('opens the widget viewer modal using the widget id specified in the url', async () => {
+    it('opens the widget viewer modal using the widget id specified in the url', () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       const widget = TestStubs.Widget(
         [{name: '', conditions: 'event.type:error', fields: ['count()']}],

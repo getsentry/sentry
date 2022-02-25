@@ -156,7 +156,7 @@ class WidgetCard extends React.Component<Props> {
               <OpenWidgetViewerButton
                 onClick={() => {
                   browserHistory.push({
-                    pathname: `${location.pathname}${widget.id}/`,
+                    pathname: `${location.pathname}widget/${widget.id}/`,
                     query: location.query,
                   });
                 }}
