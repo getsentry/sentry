@@ -35,7 +35,7 @@ import {IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/formatters';
