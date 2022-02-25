@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -619,7 +619,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
   };
 
-  handleRuleSaveFailure = (msg: React.ReactNode) => {
+  handleRuleSaveFailure = (msg: ReactNode) => {
     addErrorMessage(msg);
     metric.endTransaction({name: 'saveAlertRule'});
   };

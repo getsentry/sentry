@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {Fragment} from 'react';
+import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -20,7 +19,7 @@ type Props = {
   organization: Organization;
 };
 
-class ThresholdTypeForm extends React.PureComponent<Props> {
+class ThresholdTypeForm extends PureComponent<Props> {
   render() {
     const {
       organization,
