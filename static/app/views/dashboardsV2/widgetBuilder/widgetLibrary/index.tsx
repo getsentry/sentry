@@ -4,11 +4,18 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DEFAULT_WIDGETS} from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import {
+  DEFAULT_WIDGETS,
+  WidgetTemplate,
+} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import {Card} from './card';
 
-export function WidgetLibrary({onWidgetSelect}) {
+type Props = {
+  onWidgetSelect: (widget: WidgetTemplate) => void;
+};
+
+export function WidgetLibrary({onWidgetSelect}: Props) {
   const theme = useTheme();
 
   return (

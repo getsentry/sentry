@@ -17,7 +17,7 @@ export function Card({widget, iconColor, onClick}: CardProps) {
   return (
     <Container onClick={onClick}>
       <IconWrapper backgroundColor={iconColor}>
-        <Icon style={{color: '#FFF'}} />
+        <Icon color="white" />
       </IconWrapper>
       <Information>
         <Heading>{title}</Heading>
