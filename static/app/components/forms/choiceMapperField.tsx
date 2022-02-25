@@ -18,7 +18,7 @@ type DefaultProps = {
   /**
    * Text used for the 'add row' button.
    */
-  addButtonText: React.ReactNode;
+  addButtonText: NonNullable<React.ReactNode>;
   /**
    * Automatically save even if fields are empty
    */

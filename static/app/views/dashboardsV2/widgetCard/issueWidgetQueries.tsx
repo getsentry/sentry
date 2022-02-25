@@ -18,9 +18,8 @@ import {
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
-import {Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
 
-const DEFAULT_ITEM_LIMIT = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 const DEFAULT_EXPAND = ['owners'];
@@ -133,6 +132,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         count,
         userCount,
         project,
+        annotations,
         ...resultProps
       }) => {
         const transformedResultProps: Omit<TableDataRow, 'id'> = {};
@@ -151,6 +151,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
           issue: shortId,
           title,
           project: project.slug,
+          links: annotations?.join(', '),
         };
 
         // Get lifetime stats
@@ -232,7 +233,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         method: 'GET',
         data: qs.stringify({
           ...params,
-          limit: limit ?? DEFAULT_ITEM_LIMIT,
+          limit: limit ?? DEFAULT_TABLE_LIMIT,
         }),
       });
       this.setState({

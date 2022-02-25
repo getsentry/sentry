@@ -10,8 +10,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.constants import SentryAppInstallationStatus
-from sentry.incidents.models import INCIDENT_STATUS
-from sentry.integrations.metric_alerts import incident_attachment_info, incident_status_info
+from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
@@ -24,13 +24,13 @@ logger = logging.getLogger("sentry.integrations.sentry_app")
 PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack"]
 
 
-def build_incident_attachment(action, incident, metric_value=None, method=None):
+def build_incident_attachment(incident, new_status: IncidentStatus, metric_value=None):
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, metric_value, action=action, method=method)
+    data = incident_attachment_info(incident, new_status, metric_value)
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
@@ -41,7 +41,9 @@ def build_incident_attachment(action, incident, metric_value=None, method=None):
     }
 
 
-def send_incident_alert_notification(action, incident, metric_value=None, method=None):
+def send_incident_alert_notification(
+    action, incident, new_status: IncidentStatus, metric_value=None
+):
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.
     :param action: The triggered `AlertRuleTriggerAction`.
@@ -74,11 +76,9 @@ def send_incident_alert_notification(action, incident, metric_value=None, method
 
     app_platform_event = AppPlatformEvent(
         resource="metric_alert",
-        action=INCIDENT_STATUS[
-            incident_status_info(incident, metric_value, action, method)
-        ].lower(),
+        action=INCIDENT_STATUS[new_status].lower(),
         install=install,
-        data=build_incident_attachment(action, incident, metric_value, method),
+        data=build_incident_attachment(incident, new_status, metric_value),
     )
 
     # Can raise errors if client returns >= 400

@@ -126,6 +126,7 @@ class VitalDetailContent extends Component<Props, State> {
         projects={projects}
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={() => {}}
+        aria-label={t('Create Alert')}
         referrer="performance"
       />
     );
@@ -380,7 +381,7 @@ class VitalDetailContent extends Component<Props, State> {
               {Object.values(Browser).map(browser => (
                 <BrowserItem key={browser}>
                   {vitalSupportedBrowsers[vitalName]?.includes(browser) ? (
-                    <IconCheckmark color="green200" size="sm" />
+                    <IconCheckmark color="green300" size="sm" />
                   ) : (
                     <IconClose color="red300" size="sm" />
                   )}

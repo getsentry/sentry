@@ -1,3 +1,4 @@
+from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.utils import timezone
 
@@ -38,9 +39,11 @@ class TypesClass:
 class DashboardWidgetTypes(TypesClass):
     DISCOVER = 0
     ISSUE = 1
+    METRICS = 2
     TYPES = [
         (DISCOVER, "discover"),
         (ISSUE, "issue"),
+        (METRICS, "metrics"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -78,6 +81,12 @@ class DashboardWidgetQuery(Model):
     name = models.CharField(max_length=255)
     fields = ArrayField()
     conditions = models.TextField()
+    # aggregates and columns will eventually replace fields.
+    # Using django's built-in array field here since the one
+    # from sentry/db/model/fields.py adds a default value to the
+    # database migration.
+    aggregates = DjangoArrayField(models.TextField(), null=True)
+    columns = DjangoArrayField(models.TextField(), null=True)
     # Orderby condition for the query
     orderby = models.TextField(default="")
     # Order of the widget query in the widget.

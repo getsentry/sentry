@@ -9,6 +9,7 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {fetchMetricsFields} from 'sentry/actionCreators/metrics';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
@@ -25,18 +26,19 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DateString,
-  MetricTag,
+  MetricMeta,
+  MetricTagCollection,
   Organization,
   PageFilters,
   SelectValue,
   TagCollection,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
+import withMetricsTags from 'sentry/utils/withMetricsTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
@@ -51,15 +53,13 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {
-  mapErrors,
-  normalizeQueries,
-} from 'sentry/views/dashboardsV2/widgetBuilder/eventWidget/utils';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {
+  DEFAULT_METRICS_FIELDS,
   generateMetricsWidgetFieldOptions,
-  METRICS_FIELDS,
+  METRICS_FIELDS_ALLOW_LIST,
 } from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {mapErrors, normalizeQueries} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -91,6 +91,7 @@ export type DashboardWidgetModalOptions = {
 type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
+    metricsTags: MetricTagCollection;
     organization: Organization;
     selection: PageFilters;
     tags: TagCollection;
@@ -105,7 +106,7 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   loading: boolean;
-  metricTags: MetricTag[];
+  metricFields: MetricMeta[];
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
@@ -162,7 +163,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         errors: undefined,
         loading: !!this.omitDashboardProp,
         dashboards: [],
-        metricTags: [],
+        metricFields: [],
         userHasModified: false,
         widgetType: WidgetType.DISCOVER,
       };
@@ -177,7 +178,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       errors: undefined,
       loading: false,
       dashboards: [],
-      metricTags: [],
+      metricFields: [],
       userHasModified: false,
       widgetType: widget.widgetType ?? WidgetType.DISCOVER,
     };
@@ -188,7 +189,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       this.fetchDashboards();
     }
     if (this.props.organization.features.includes('dashboards-metrics')) {
-      this.fetchMetricsTags();
+      this.fetchMetricsFields();
     }
   }
 
@@ -524,27 +525,17 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState({loading: false});
   }
 
-  async fetchMetricsTags() {
+  async fetchMetricsFields() {
     const {api, organization, selection} = this.props;
-    const promise: Promise<MetricTag[]> = api.requestPromise(
-      `/organizations/${organization.slug}/metrics/tags/`,
-      {
-        query: {
-          project: !selection.projects.length ? undefined : selection.projects,
-        },
-      }
-    );
+    const projects = !selection.projects.length ? undefined : selection.projects;
 
-    try {
-      const metricTags = await promise;
-      this.setState({
-        metricTags,
-      });
-    } catch (error) {
-      const errorResponse = error?.responseJSON ?? t('Unable to fetch metric tags');
-      addErrorMessage(errorResponse);
-      handleXhrErrorResponse(errorResponse)(error);
-    }
+    const metricFields = await fetchMetricsFields(api, organization.slug, projects);
+    const filteredFields = metricFields.filter(field =>
+      METRICS_FIELDS_ALLOW_LIST.includes(field.name)
+    );
+    this.setState({
+      metricFields: filteredFields,
+    });
   }
 
   handleDashboardChange(option: SelectValue<string>) {
@@ -605,7 +596,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
 
   renderWidgetQueryForm() {
-    const {organization, selection, tags, start, end, statsPeriod} = this.props;
+    const {organization, selection, tags, metricsTags, start, end, statsPeriod} =
+      this.props;
     const state = this.state;
     const errors = state.errors;
 
@@ -619,8 +611,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      METRICS_FIELDS,
-      Object.values(state.metricTags).map(({key}) => key)
+      state.metricFields.length ? state.metricFields : DEFAULT_METRICS_FIELDS,
+      Object.values(metricsTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
@@ -665,21 +657,41 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
       case WidgetType.METRICS:
         return (
-          <WidgetQueriesForm
-            organization={organization}
-            selection={querySelection}
-            displayType={state.displayType}
-            widgetType={state.widgetType}
-            queries={state.queries}
-            errors={errors?.queries}
-            fieldOptions={metricsWidgetFieldOptions}
-            onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
-              this.handleQueryChange(widgetQuery, queryIndex)
-            }
-            canAddSearchConditions={this.canAddSearchConditions()}
-            handleAddSearchConditions={this.handleAddSearchConditions}
-            handleDeleteQuery={this.handleQueryRemove}
-          />
+          <React.Fragment>
+            <WidgetQueriesForm
+              organization={organization}
+              selection={querySelection}
+              displayType={state.displayType}
+              widgetType={state.widgetType}
+              queries={state.queries}
+              errors={errors?.queries}
+              fieldOptions={metricsWidgetFieldOptions}
+              onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
+                this.handleQueryChange(widgetQuery, queryIndex)
+              }
+              canAddSearchConditions={this.canAddSearchConditions()}
+              handleAddSearchConditions={this.handleAddSearchConditions}
+              handleDeleteQuery={this.handleQueryRemove}
+            />
+            <WidgetCard
+              organization={organization}
+              selection={querySelection}
+              widget={this.state}
+              isEditing={false}
+              onDelete={() => undefined}
+              onEdit={() => undefined}
+              onDuplicate={() => undefined}
+              widgetLimitReached={false}
+              renderErrorMessage={errorMessage =>
+                typeof errorMessage === 'string' && (
+                  <PanelAlert type="error">{errorMessage}</PanelAlert>
+                )
+              }
+              isSorting={false}
+              currentWidgetDragging={false}
+              noLazyLoad
+            />
+          </React.Fragment>
         );
 
       case WidgetType.DISCOVER:
@@ -908,4 +920,6 @@ const StyledFieldLabel = styled(FieldLabel)`
   display: inline-flex;
 `;
 
-export default withApi(withPageFilters(withTags(AddDashboardWidgetModal)));
+export default withApi(
+  withPageFilters(withTags(withMetricsTags(AddDashboardWidgetModal)))
+);

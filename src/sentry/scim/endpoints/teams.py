@@ -4,7 +4,8 @@ import re
 import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.template.defaultfilters import slugify
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,9 +19,14 @@ from sentry.api.serializers.models.team import (
     OrganizationTeamSCIMSerializerResponse,
     TeamSCIMSerializer,
 )
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOTFOUND,
+    RESPONSE_SUCCESS,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.decorators import public
-from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.models import (
     AuditLogEntryEvent,
     OrganizationMember,
@@ -51,11 +57,27 @@ from .utils import (
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
+class SCIMTeamPatchOperationSerializer(serializers.Serializer):
+    op = serializers.ChoiceField(choices=("replace", "remove", "add"), required=True)
+    value = serializers.ListField(serializers.DictField(), allow_empty=True)
+    # TODO: define exact schema for value
+    # TODO: actually use these in the patch request for validation
+
+
+class SCIMTeamPatchRequestSerializer(serializers.Serializer):
+    # we don't actually use "schemas" for anything atm but its part of the spec
+    schemas = serializers.ListField(child=serializers.CharField(), required=True)
+
+    Operations = serializers.ListField(
+        child=SCIMTeamPatchOperationSerializer(), required=True, source="operations"
+    )
+
+
 def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
-@public(methods={"GET"})
+@public(methods={"GET", "POST"})
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
@@ -133,7 +155,44 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             cursor_cls=SCIMCursor,
         )
 
+    @extend_schema(
+        operation_id="Provision a New Team",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG],
+        request=inline_serializer(
+            "SCIMTeamRequestBody",
+            fields={
+                "schemas": serializers.ListField(serializers.CharField()),
+                "displayName": serializers.CharField(),
+                "members": serializers.ListField(serializers.IntegerField()),
+            },
+        ),
+        responses={
+            201: TeamSCIMSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "provisionTeam",
+                response_only=True,
+                value={
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                    "displayName": "Test SCIMv2",
+                    "members": [],
+                    "meta": {"resourceType": "Group"},
+                    "id": "123",
+                },
+                status_codes=["201"],
+            ),
+        ],
+    )
     def post(self, request: Request, organization) -> Response:
+        """
+        Create a new team bound to an organization via a SCIM Groups POST Request.
+        Note that teams are always created with an empty member set.
+        The endpoint will also do a normalization of uppercase / spaces to lowercase and dashes.
+        """
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
         request.data.update(
@@ -142,6 +201,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         return super().post(request, organization)
 
 
+@public(methods={"GET", "PATCH"})
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
@@ -163,7 +223,34 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             raise Team.DoesNotExist
         return team
 
+    @extend_schema(
+        operation_id="Query an Individual Team",
+        parameters=[SCIM_PARAMS.TEAM_ID, GLOBAL_PARAMS.ORG_SLUG],
+        request=None,
+        responses={
+            200: TeamSCIMSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "Successful response",
+                value={
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                    "id": "23232",
+                    "displayName": "test-scimv2",
+                    "members": [],
+                    "meta": {"resourceType": "Group"},
+                },
+            ),
+        ],
+    )
     def get(self, request: Request, organization, team) -> Response:
+        """
+        Query an individual team with a SCIM Group GET Request.
+        - Note that the members field will only contain up to 10000 members.
+        """
         query_params = self.get_query_parameters(request)
 
         context = serialize(
@@ -226,11 +313,70 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 data=team.get_audit_log_data(),
             )
 
+    @extend_schema(
+        operation_id="Update a Team's Attributes",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.TEAM_ID],
+        request=SCIMTeamPatchRequestSerializer,
+        responses={
+            204: RESPONSE_SUCCESS,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
     def patch(self, request: Request, organization, team):
         """
         A SCIM Group PATCH request takes a series of operations to perform on a team.
         It does them sequentially and if any of them fail no operations should go through.
         The operations are add members, remove members, replace members, and rename team.
+        Update a team's attributes with a SCIM Group PATCH Request. Valid Operations are:
+        * Renaming a team:
+        ```json
+        {
+            "op": "replace",
+            "value": {
+                "id": 23,
+                "displayName": "newName"
+            }
+        }
+        ```
+        * Adding a member to a team:
+        ```json
+        {
+            "op": "add",
+            "path": "members",
+            "value": [
+                {
+                    "value": 23,
+                    "display": "testexample@example.com"
+                }
+            ]
+        }
+        ```
+        * Removing a member from a team:
+        ```json
+        {
+            "op": "remove",
+            "path": "members[value eq \"23\"]"
+        }
+        ```
+        * Replacing an entire member set of a team:
+        ```json
+        {
+            "op": "replace",
+            "path": "members",
+            "value": [
+                {
+                    "value": 23,
+                    "display": "testexample2@sentry.io"
+                },
+                {
+                    "value": 24,
+                    "display": "testexample3@sentry.io"
+                }
+            ]
+        }
+        ```
         """
         operations = request.data.get("Operations", [])
         if len(operations) > 100:
@@ -275,7 +421,21 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
         return self.respond(status=204)
 
+    @extend_schema(
+        operation_id="Delete an Individual Team",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.TEAM_ID],
+        request=None,
+        responses={
+            204: RESPONSE_SUCCESS,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
     def delete(self, request: Request, organization, team) -> Response:
+        """
+        Delete a team with a SCIM Group DELETE Request.
+        """
         return super().delete(request, team)
 
     def put(self, request: Request, organization, team) -> Response:

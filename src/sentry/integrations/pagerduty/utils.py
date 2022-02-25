@@ -3,7 +3,7 @@ import logging
 from django.http import Http404
 
 from sentry.incidents.models import IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info, incident_status_info
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import PagerDutyService
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -12,19 +12,20 @@ from .client import PagerDutyClient
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
 
-def build_incident_attachment(action, incident, integration_key, metric_value=None, method=None):
-    data = incident_attachment_info(incident, metric_value, action=action, method=method)
-    incident_status = incident_status_info(incident, metric_value, action=action, method=method)
+def build_incident_attachment(
+    incident, integration_key, new_status: IncidentStatus, metric_value=None
+):
+    data = incident_attachment_info(incident, new_status, metric_value)
     severity = "info"
-    if incident_status == IncidentStatus.CRITICAL:
+    if new_status == IncidentStatus.CRITICAL:
         severity = "critical"
-    elif incident_status == IncidentStatus.WARNING:
+    elif new_status == IncidentStatus.WARNING:
         severity = "warning"
-    elif incident_status == IncidentStatus.CLOSED:
+    elif new_status == IncidentStatus.CLOSED:
         severity = "info"
 
     event_action = "resolve"
-    if incident_status in [IncidentStatus.WARNING, IncidentStatus.CRITICAL]:
+    if new_status in [IncidentStatus.WARNING, IncidentStatus.CRITICAL]:
         event_action = "trigger"
 
     return {
@@ -41,7 +42,7 @@ def build_incident_attachment(action, incident, integration_key, metric_value=No
     }
 
 
-def send_incident_alert_notification(action, incident, metric_value, method):
+def send_incident_alert_notification(action, incident, metric_value, new_status: IncidentStatus):
     integration = action.integration
     try:
         service = PagerDutyService.objects.get(id=action.target_identifier)
@@ -58,7 +59,7 @@ def send_incident_alert_notification(action, incident, metric_value, method):
         raise Http404
     integration_key = service.integration_key
     client = PagerDutyClient(integration_key=integration_key)
-    attachment = build_incident_attachment(action, incident, integration_key, metric_value, method)
+    attachment = build_incident_attachment(incident, integration_key, new_status, metric_value)
     try:
         client.send_trigger(attachment)
     except ApiError as e:
