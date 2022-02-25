@@ -791,7 +791,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         # If we're doing atleast day and its midnight we should use the daily bucket
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 86400, "A day at midnight"
 
         # If we're on the start of the hour we should use the hour granularity
@@ -1112,7 +1112,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
         # If we're doing atleast day and its midnight we should use the daily bucket
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 86400, "A day at midnight"
 
         # If we're on the start of the hour we should use the hour granularity
