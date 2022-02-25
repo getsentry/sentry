@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   DEFAULT_WIDGETS,
   WidgetTemplate,
@@ -19,7 +20,7 @@ export function WidgetLibrary({onWidgetSelect}: Props) {
 
   return (
     <React.Fragment>
-      <h5>{t('Widget Library')}</h5>
+      <Header>{t('Widget Library')}</Header>
       <WidgetLibraryWrapper>
         {DEFAULT_WIDGETS.map((widget, index) => (
           <Card
@@ -37,4 +38,8 @@ export function WidgetLibrary({onWidgetSelect}: Props) {
 const WidgetLibraryWrapper = styled('div')`
   display: flex;
   flex-direction: column;
+`;
+
+const Header = styled('h5')`
+  margin-left: ${space(2)};
 `;
