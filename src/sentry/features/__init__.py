@@ -85,7 +85,6 @@ default_manager.add("organizations:invite-members-rate-limits", OrganizationFeat
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)
 default_manager.add("organizations:issue-list-removal-action", OrganizationFeature, True)
 default_manager.add("organizations:issue-percent-display", OrganizationFeature, True)
-default_manager.add("organizations:issue-percent-filters", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, True)
 default_manager.add("organizations:issues-in-dashboards", OrganizationFeature, True)

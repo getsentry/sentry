@@ -1116,8 +1116,6 @@ SENTRY_FEATURES = {
     "organizations:sso-migration": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
-    # Enable percent-based conditions on issue rules
-    "organizations:issue-percent-filters": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
