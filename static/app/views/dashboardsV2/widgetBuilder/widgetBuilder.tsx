@@ -599,8 +599,8 @@ function WidgetBuilder({
             onChangeTitle={newTitle => setState({...state, title: newTitle})}
             onSave={handleSave}
           />
-          <Layout.Body>
-            <Layout.Main>
+          <Body>
+            <Main>
               <BuildSteps symbol="colored-numeric">
                 <BuildStep
                   title={t('Choose your visualization')}
@@ -876,8 +876,8 @@ function WidgetBuilder({
                   </BuildStep>
                 )}
               </BuildSteps>
-            </Layout.Main>
-            <Layout.Side>
+            </Main>
+            <Side>
               <WidgetLibrary
                 onWidgetSelect={prebuiltWidget =>
                   setState({
@@ -889,8 +889,8 @@ function WidgetBuilder({
                   })
                 }
               />
-            </Layout.Side>
-          </Layout.Body>
+            </Side>
+          </Body>
         </PageContentWithoutPadding>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -906,7 +906,6 @@ const PageContentWithoutPadding = styled(PageContent)`
 const VisualizationWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  margin-right: ${space(2)};
 `;
 
 const DataSetChoices = styled(RadioGroup)`
@@ -939,8 +938,19 @@ const QueryField = styled(Field)`
 const BuildSteps = styled(List)`
   gap: ${space(4)};
   max-width: 100%;
+`;
 
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
-    max-width: 50%;
-  }
+const Body = styled(Layout.Body)`
+  gap: 0 !important;
+  padding: 0 !important;
+  grid-template-rows: 1fr;
+`;
+
+const Main = styled(Layout.Main)`
+  border-right: 1px solid ${p => p.theme.gray200};
+  padding: ${space(4)};
+`;
+
+const Side = styled(Layout.Side)`
+  padding: ${space(4)};
 `;
