@@ -13,11 +13,11 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models import ExternalIssue, Group, GroupLink
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
-from ..utils import set_badge
+from ..utils import handle_jira_api_error, set_badge
 from . import UNABLE_TO_VERIFY_INSTALLATION, JiraBaseHook
 
 logger = logging.getLogger(__name__)
@@ -86,12 +86,6 @@ def build_context(group: Group) -> Mapping[str, Any]:
 class JiraIssueHookView(JiraBaseHook):
     html_file = "sentry/integrations/jira-issue.html"
 
-    def handle_exception(self, request: Request, exc: Exception) -> Response:
-        # Sometime set_badge() will fail to connect.
-        if isinstance(exc, IntegrationError):
-            return self.get_response({"error_message": str(exc)})
-        return super().handle_exception(request, exc)
-
     def handle_group(self, group: Group) -> Response:
         context = build_context(group)
         logger.info(
@@ -99,6 +93,16 @@ class JiraIssueHookView(JiraBaseHook):
             extra={"type": context["type"], "title_url": context["title_url"]},
         )
         return self.get_response(context)
+
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except ApiError as exc:
+            # Sometime set_badge() will fail to connect.
+            response_option = handle_jira_api_error(exc, " to set badge")
+            if response_option:
+                return self.get_response(response_option)
+            raise exc
 
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
         with configure_scope() as scope:

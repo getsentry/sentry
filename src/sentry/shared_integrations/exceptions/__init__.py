@@ -9,7 +9,14 @@ from rest_framework.response import Response
 
 from .base import ApiError
 
-__all__ = ("ApiError",)
+__all__ = (
+    "ApiError",
+    "ApiHostError",
+    "ApiTimeoutError",
+    "ApiUnauthorized",
+    "ApiRateLimitedError",
+    "IntegrationError",
+)
 
 
 class ApiHostError(ApiError):
