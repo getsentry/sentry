@@ -105,14 +105,27 @@ export const VisuallyCompleteWithData = ({
         performance.mark(`${id}-vcsd-end-pre-timeout`);
 
         setTimeout(() => {
+          if (!browserPerformanceTimeOrigin) {
+            return;
+          }
           performance.mark(`${id}-vcsd-end`);
+          const measureName = `VCD [${id}] #${num.current}`;
           performance.measure(
             `VCD [${id}] #${num.current}`,
             `${id}-vcsd-start`,
             `${id}-vcsd-end`
           );
           num.current = num.current++;
-          const time = performance.now();
+          const [measureEntry] = performance.getEntriesByName(measureName);
+          if (!measureEntry) {
+            return;
+          }
+
+          // Adjust to be relative to transaction.startTimestamp
+          const entryStartSeconds =
+            browserPerformanceTimeOrigin / 1000 + measureEntry.startTime / 1000;
+          const time = (entryStartSeconds - transaction.startTimestamp) * 1000;
+
           transaction.registerBeforeFinishCallback(t => {
             // Should be called after performance entries finish callback.
             const lcp = t._measurements.lcp?.value;
