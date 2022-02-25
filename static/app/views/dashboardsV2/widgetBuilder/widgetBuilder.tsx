@@ -959,5 +959,5 @@ const Main = styled(Layout.Main)`
 `;
 
 const Side = styled(Layout.Side)`
-  padding: ${space(4)};
+  padding: ${space(4)} ${space(2)};
 `;

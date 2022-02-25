@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {
   DEFAULT_WIDGETS,
   WidgetTemplate,
@@ -38,5 +37,4 @@ export function WidgetLibrary({onWidgetSelect}: Props) {
 const WidgetLibraryWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
 `;
