@@ -1,5 +1,7 @@
-import inspect
+from __future__ import annotations
+
 import time
+from typing import Any
 
 from django.conf import settings
 from django.http import Http404
@@ -9,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry.utils import metrics
 
+from . import ViewFunc, get_path
 
 def add_request_metric_tags(request, **kwargs):
     if not hasattr(request, "_metric_tags"):
@@ -33,27 +36,23 @@ class RequestTimingMiddleware(MiddlewareMixin):
         settings, "SENTRY_REQUEST_METRIC_ALLOWED_PATHS", ("sentry.web.api", "sentry.api.endpoints")
     )  # Store endpoints
 
-    def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response:
-        if not hasattr(request, "_metric_tags"):
-            request._metric_tags = {}
+    def process_view(
+        self,
+        request: Request,
+        view_func: ViewFunc,
+        view_args: Any,
+        view_kwargs: Any,
+    ) -> Response | None:
+        add_request_metric_tags(request)
 
         if request.method not in self.allowed_methods:
-            return
+            return None
 
-        view = view_func
-        if not inspect.isfunction(view_func):
-            view = view.__class__
-
-        try:
-            path = f"{view.__module__}.{view.__name__}"
-        except AttributeError:
-            return
-
-        if not path.startswith(self.allowed_paths):
-            return
-
-        request._view_path = path
-        request._start_time = time.time()
+        path = get_path(view_func)
+        if path and path.startswith(self.allowed_paths):
+            setattr(request, "_view_path", path)
+            setattr(request, "_start_time", time.time())
+        return None
 
     def process_response(self, request: Request, response: Response) -> Response:
         self._record_time(request, response.status_code)
