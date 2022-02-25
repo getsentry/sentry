@@ -1,3 +1,5 @@
+import {browserHistory} from 'react-router';
+
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -616,7 +618,7 @@ describe('Dashboards > Detail', function () {
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
           router={initialData.router}
-          location={initialData.router.location}
+          location={{...initialData.router.location, pathname: '/widget/123/'}}
         />,
         {context: initialData.routerContext}
       );
@@ -624,6 +626,31 @@ describe('Dashboards > Detail', function () {
       expect(openWidgetViewerModal).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({organization: initialData.organization, widget})
+      );
+    });
+
+    it('redirects user to dashboard url if widget is not found', () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '123'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/123/'}}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      expect(openWidgetViewerModal).not.toHaveBeenCalled();
+      expect(browserHistory.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {},
+        })
       );
     });
   });
