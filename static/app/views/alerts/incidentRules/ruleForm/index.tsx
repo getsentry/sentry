@@ -26,6 +26,7 @@ import {defined} from 'sentry/utils';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import RuleNameOwnerForm from 'sentry/views/alerts/incidentRules/ruleNameOwnerForm';
+import ThresholdTypeForm from 'sentry/views/alerts/incidentRules/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/incidentRules/triggers';
 import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
@@ -732,6 +733,17 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
+    const thresholdTypeForm = (hasAccess: boolean) => (
+      <ThresholdTypeForm
+        comparisonType={comparisonType}
+        dataset={dataset}
+        disabled={!hasAccess || !canEdit}
+        onComparisonTypeChange={this.handleComparisonTypeChange}
+        organization={organization}
+        hasAlertWizardV3={hasAlertWizardV3}
+      />
+    );
+
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => (
@@ -795,7 +807,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 }
                 onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               />
+              {!hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
               <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
+              {hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
               {triggerForm(hasAccess)}
               {ruleNameOwnerForm(hasAccess)}
             </List>
