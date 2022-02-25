@@ -40,7 +40,7 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
         try:
             codeowner_contents = get_codeowner_contents(config)
         except ApiError as e:
-            return self.respond({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return self.respond({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         if not codeowner_contents:
             return self.respond(status=status.HTTP_404_NOT_FOUND)
