@@ -26,7 +26,7 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const [flamegraph, setFlamegraph] = useState(
-    new FlamegraphModel(props.profiles.profiles[0], 0, {
+    new FlamegraphModel(props.profiles.profiles[props.profiles.activeProfileIndex], 0, {
       inverted: view === 'bottom up',
       leftHeavy: sorting === 'left heavy',
     })
