@@ -10,13 +10,25 @@ class OrganizationCodeMappingsTest(APITestCase):
         super().setUp()
 
         self.login_as(user=self.user)
-
-        self.team = self.create_team(organization=self.organization, name="Mariachi Band")
+        self.user2 = self.create_user("nisanthan@sentry.io", is_superuser=False)
+        self.team = self.create_team(
+            organization=self.organization, name="Mariachi Band", members=[self.user]
+        )
+        self.team2 = self.create_team(
+            organization=self.organization,
+            name="Ecosystem",
+        )
+        self.create_member(
+            organization=self.organization,
+            user=self.user2,
+            has_global_access=False,
+            teams=[self.team2],
+        )
         self.project1 = self.create_project(
             organization=self.organization, teams=[self.team], name="Bengal"
         )
         self.project2 = self.create_project(
-            organization=self.organization, teams=[self.team], name="Tiger"
+            organization=self.organization, teams=[self.team, self.team2], name="Tiger"
         )
         self.repo1 = Repository.objects.create(
             name="example", organization_id=self.organization.id, integration_id=self.integration.id
@@ -109,7 +121,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             default_branch="master",
         )
 
-        url_path = f"{self.url}?projectId={self.project1.id}"
+        url_path = f"{self.url}?project={self.project1.id}"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 200, response.content
@@ -154,8 +166,8 @@ class OrganizationCodeMappingsTest(APITestCase):
         url_path = f"{self.url}"
         response = self.client.get(url_path, format="json")
 
-        assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Missing valid "projectId" or "integrationId"'}
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
 
     def test_basic_get_with_invalid_integrationId(self):
 
@@ -166,10 +178,33 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_basic_get_with_invalid_projectId(self):
 
-        url_path = f"{self.url}?projectId=100"
+        url_path = f"{self.url}?project=100"
         response = self.client.get(url_path, format="json")
 
-        assert response.status_code == 404, response.content
+        assert response.status_code == 403, response.content
+
+    def test_basic_get_with_projectId_minus_1(self):
+        self.login_as(user=self.user2)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.create_code_mapping(
+            project=self.project1,
+            repo=self.repo1,
+            stack_root="stack/root",
+            source_root="source/root",
+            default_branch="master",
+        )
+        self.create_code_mapping(
+            project=self.project2,
+            repo=self.repo1,
+            stack_root="another/path",
+            source_root="hey/there",
+        )
+        url_path = f"{self.url}?projectId=-1"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
 
     def test_basic_post_with_valid_integrationId(self):
         response = self.make_post()

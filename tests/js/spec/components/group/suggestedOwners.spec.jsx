@@ -30,6 +30,12 @@ describe('SuggestedOwners', function () {
       url: `/prompts-activity/`,
       body: {},
     });
+    Client.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      query: {project: -1},
+      method: 'GET',
+      body: [],
+    });
   });
 
   afterEach(function () {

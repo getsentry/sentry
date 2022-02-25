@@ -67,7 +67,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
       [
         'codeMappings',
         `/organizations/${organization.slug}/code-mappings/`,
-        {query: {projectId: project.id}},
+        {query: {project: project.id}},
       ],
       [
         'integrations',

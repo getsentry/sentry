@@ -81,6 +81,12 @@ describe('groupEventDetails', () => {
       url: `/projects/${org.slug}/${project.slug}/codeowners/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/code-mappings/`,
+      query: {project: -1},
+      method: 'GET',
+      body: [],
+    });
   };
 
   beforeEach(() => {
