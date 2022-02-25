@@ -16,7 +16,7 @@ import isEqual from 'lodash/isEqual';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {fetchMetricsFields} from 'sentry/actionCreators/metrics';
+import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -145,6 +145,7 @@ class Dashboard extends Component<Props, State> {
 
     if (organization.features.includes('dashboards-metrics')) {
       fetchMetricsFields(api, organization.slug);
+      fetchMetricsTags(api, organization.slug);
     }
     // Load organization tags when in edit mode.
     if (isEditing) {

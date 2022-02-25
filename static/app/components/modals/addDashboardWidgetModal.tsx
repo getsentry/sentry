@@ -9,7 +9,6 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
@@ -27,7 +26,7 @@ import space from 'sentry/styles/space';
 import {
   DateString,
   MetricsMetaCollection,
-  MetricTag,
+  MetricTagCollection,
   Organization,
   PageFilters,
   SelectValue,
@@ -39,6 +38,7 @@ import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withMetricsMeta from 'sentry/utils/withMetricsMeta';
+import withMetricsTags from 'sentry/utils/withMetricsTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
@@ -92,6 +92,7 @@ type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
     metricsMeta: MetricsMetaCollection;
+    metricsTags: MetricTagCollection;
     organization: Organization;
     selection: PageFilters;
     tags: TagCollection;
@@ -106,7 +107,6 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   loading: boolean;
-  metricTags: MetricTag[];
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
@@ -163,7 +163,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         errors: undefined,
         loading: !!this.omitDashboardProp,
         dashboards: [],
-        metricTags: [],
         userHasModified: false,
         widgetType: WidgetType.DISCOVER,
       };
@@ -178,7 +177,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       errors: undefined,
       loading: false,
       dashboards: [],
-      metricTags: [],
       userHasModified: false,
       widgetType: widget.widgetType ?? WidgetType.DISCOVER,
     };
@@ -187,9 +185,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   componentDidMount() {
     if (this.omitDashboardProp) {
       this.fetchDashboards();
-    }
-    if (this.props.organization.features.includes('dashboards-metrics')) {
-      this.fetchMetricsTags();
     }
   }
 
@@ -525,15 +520,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState({loading: false});
   }
 
-  async fetchMetricsTags() {
-    const {api, organization, selection} = this.props;
-    const projects = !selection.projects.length ? undefined : selection.projects;
-    const metricTags = await fetchMetricsTags(api, organization.slug, projects);
-    this.setState({
-      metricTags,
-    });
-  }
-
   handleDashboardChange(option: SelectValue<string>) {
     this.setState({selectedDashboard: option});
   }
@@ -592,8 +578,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
 
   renderWidgetQueryForm() {
-    const {organization, selection, tags, start, end, statsPeriod, metricsMeta} =
-      this.props;
+    const {
+      organization,
+      selection,
+      tags,
+      metricsTags,
+      metricsMeta,
+      start,
+      end,
+      statsPeriod,
+    } = this.props;
     const state = this.state;
     const errors = state.errors;
 
@@ -612,7 +606,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             METRICS_FIELDS_ALLOW_LIST.includes(field.name)
           )
         : DEFAULT_METRICS_FIELDS,
-      Object.values(state.metricTags).map(({key}) => key)
+      Object.values(metricsTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
@@ -921,5 +915,5 @@ const StyledFieldLabel = styled(FieldLabel)`
 `;
 
 export default withApi(
-  withPageFilters(withTags(withMetricsMeta(AddDashboardWidgetModal)))
+  withPageFilters(withTags(withMetricsMeta(withMetricsTags(AddDashboardWidgetModal))))
 );
