@@ -131,7 +131,7 @@ class Access:
 
         >>> access.has_team_access(team)
         """
-        if not self.is_active:
+        if not self.is_active or team.status != TeamStatus.VISIBLE:
             return False
         if self.has_global_access and self.organization_id == team.organization_id:
             return True
@@ -152,7 +152,7 @@ class Access:
 
         >>> access.has_project_access(project)
         """
-        if not self.is_active:
+        if not self.is_active or project.status != ProjectStatus.VISIBLE:
             return False
         if self.has_global_access and self.organization_id == project.organization_id:
             return True
@@ -197,6 +197,7 @@ class OrganizationGlobalAccess(Access):
 
         super().__init__(
             is_active=True,
+            has_global_access=True,
             scopes=frozenset(scopes),
             organization_id=organization.id,
             teams=teams,
@@ -205,13 +206,12 @@ class OrganizationGlobalAccess(Access):
         )
 
     def has_team_access(self, team: Team) -> bool:
-        return team.organization_id == self.organization_id and (
-            self.has_global_access or team.status == TeamStatus.VISIBLE
-        )
+        return team.organization_id == self.organization_id and team.status == TeamStatus.VISIBLE
 
     def has_project_access(self, project: Project) -> bool:
-        return project.organization_id == self.organization_id and (
-            self.has_global_access or project.status == ProjectStatus.VISIBLE
+        return (
+            project.organization_id == self.organization_id
+            and project.status == ProjectStatus.VISIBLE
         )
 
 
@@ -275,7 +275,6 @@ def from_request(
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
-            has_global_access=True,
             permissions=get_permissions_for_user(request.user.id),
             role=role,
         )
@@ -370,7 +369,7 @@ def from_auth(auth, organization: Organization) -> Access:
         return SystemAccess()
     if auth.organization_id == organization.id:
         return OrganizationGlobalAccess(
-            auth.organization, settings.SENTRY_SCOPES, sso_is_valid=True, has_global_access=True
+            auth.organization, settings.SENTRY_SCOPES, sso_is_valid=True
         )
     else:
         return DEFAULT

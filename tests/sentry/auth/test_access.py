@@ -51,7 +51,7 @@ class FromUserTest(TestCase):
         results = [access.from_user(user, organization), access.from_request(request, organization)]
 
         for result in results:
-            assert result.has_project_access(deleted_project) is True
+            assert result.has_project_access(deleted_project) is False
             assert result.has_project_membership(deleted_project) is False
             assert len(result.projects) == 0
 
@@ -72,7 +72,7 @@ class FromUserTest(TestCase):
 
         for result in results:
             assert result.has_team_access(team) is True
-            assert result.has_team_access(deleted_team) is True
+            assert result.has_team_access(deleted_team) is False
             assert result.teams == frozenset({team})
 
     def test_unique_projects(self):
@@ -370,6 +370,7 @@ class FromSentryAppTest(TestCase):
         request = self.make_request(user=self.proxy_user)
         result = access.from_request(request, self.org)
         assert result.is_active
+        assert result.has_global_access
         assert result.has_team_access(self.team)
         assert result.teams == frozenset({self.team})
         assert result.scopes == frozenset()
