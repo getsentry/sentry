@@ -3,6 +3,6 @@
   "compilerOptions": {
     "allowJs": true
   },
-  "include": ["static", "tests/js", "docs-ui"],
+  "include": ["static/app/views/alerts", "tests/js", "docs-ui"],
   "exclude": ["node_modules"]
 }

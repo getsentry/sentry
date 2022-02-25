@@ -210,6 +210,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
   async fetchTotalCount() {
     const {api, organization, environment, projects, query} = this.props;
     const statsPeriod = this.getStatsPeriod();
+
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],

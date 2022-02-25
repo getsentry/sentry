@@ -41,13 +41,11 @@ type State = {
 
 class Create extends Component<Props, State> {
   state = this.getInitialState();
-
   getInitialState(): State {
     const {organization, location, project} = this.props;
     const {createFromDiscover, createFromWizard, aggregate, dataset, eventTypes} =
       location?.query ?? {};
     let alertType: AlertType = 'issue';
-
     // Alerts can only be created via create from discover or alert wizard
     if (createFromDiscover) {
       alertType = 'metric';
@@ -63,10 +61,8 @@ class Create extends Component<Props, State> {
         `/organizations/${organization.slug}/alerts/${project.slug}/wizard`
       );
     }
-
     return {alertType};
   }
-
   componentDidMount() {
     const {organization, project} = this.props;
     trackAdvancedAnalyticsEvent('new_alert_rule.viewed', {
@@ -76,10 +72,8 @@ class Create extends Component<Props, State> {
       alert_type: this.state.alertType,
     });
   }
-
   /** Used to track analytics within one visit to the creation page */
   sessionId = uniqueId();
-
   render() {
     const {
       hasMetricAlerts,
@@ -94,20 +88,16 @@ class Create extends Component<Props, State> {
       location?.query ?? {};
     const wizardTemplate: WizardRuleTemplate = {aggregate, dataset, eventTypes};
     const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
-
     let wizardAlertType: undefined | WizardAlertType;
     if (createFromWizard && alertType === 'metric') {
       wizardAlertType = wizardTemplate
         ? getAlertTypeFromAggregateDataset(wizardTemplate)
         : 'issues';
     }
-
     const title = t('New Alert Rule');
-
     return (
       <Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
-
         <Layout.Header>
           <StyledHeaderContent>
             <BuilderBreadCrumbs
@@ -139,7 +129,6 @@ class Create extends Component<Props, State> {
                         userTeamIds={teams.map(({id}) => id)}
                       />
                     )}
-
                     {hasMetricAlerts && alertType === 'metric' && (
                       <IncidentRulesCreate
                         {...this.props}

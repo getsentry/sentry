@@ -12,13 +12,13 @@ import {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 import RuleForm from './ruleForm';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   projectId: string;
   ruleId?: string;
-};
+}
 
-type Props = {
+interface IncidentRulesCreateProps extends RouteComponentProps<RouteParams, {}> {
   eventView: EventView | undefined;
   organization: Organization;
   project: Project;
@@ -26,23 +26,21 @@ type Props = {
   isCustomMetric?: boolean;
   sessionId?: string;
   wizardTemplate?: WizardRuleTemplate;
-} & RouteComponentProps<RouteParams, {}>;
+}
 
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.
  */
-function IncidentRulesCreate(props: Props) {
+function IncidentRulesCreate(props: IncidentRulesCreateProps) {
   function handleSubmitSuccess() {
     const {router, project} = props;
     const {orgId} = props.params;
-
     metric.endTransaction({name: 'saveAlertRule'});
     router.push({
       pathname: `/organizations/${orgId}/alerts/rules/`,
       query: {project: project.id},
     });
   }
-
   const {project, eventView, wizardTemplate, sessionId, userTeamIds, ...otherProps} =
     props;
   const defaultRule = eventView
@@ -50,11 +48,9 @@ function IncidentRulesCreate(props: Props) {
     : wizardTemplate
     ? createRuleFromWizardTemplate(wizardTemplate)
     : createDefaultRule();
-
   const projectTeamIds = new Set(project.teams.map(({id}) => id));
   const defaultOwnerId = userTeamIds.find(id => projectTeamIds.has(id)) ?? null;
   defaultRule.owner = defaultOwnerId && `team:${defaultOwnerId}`;
-
   return (
     <RuleForm
       onSubmitSuccess={handleSubmitSuccess}

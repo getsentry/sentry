@@ -29,6 +29,7 @@ function AlertBuilderProjectProvider(props: Props) {
   const {projects, initiallyLoaded, fetching, fetchError} = useProjects({
     slugs: [projectId],
   });
+
   const project = projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {

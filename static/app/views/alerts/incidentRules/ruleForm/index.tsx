@@ -673,8 +673,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
     };
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 
+    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}

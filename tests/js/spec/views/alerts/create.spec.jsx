@@ -10,7 +10,6 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as memberActionCreators from 'sentry/actionCreators/members';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {metric} from 'sentry/utils/analytics';
@@ -97,6 +96,7 @@ const createWrapper = (props = {}, location = {}) => {
   const {organization, project, routerContext, router} = initializeOrg(props);
   ProjectsStore.loadInitialData([project]);
   const params = {orgId: organization.slug, projectId: project.slug};
+
   const wrapper = mountWithTheme(
     <AlertsContainer>
       <AlertBuilderProjectProvider params={params}>
@@ -114,6 +114,7 @@ const createWrapper = (props = {}, location = {}) => {
     </AlertsContainer>,
     {context: routerContext, organization}
   );
+
   mockRouterPush(wrapper, router);
 
   return {
@@ -126,7 +127,6 @@ const createWrapper = (props = {}, location = {}) => {
 
 describe('ProjectAlertsCreate', () => {
   beforeEach(() => {
-    memberActionCreators.fetchOrgMembers = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
       body: TestStubs.ProjectAlertRuleConfiguration(),
@@ -147,12 +147,16 @@ describe('ProjectAlertsCreate', () => {
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
       body: {},
     });
-    metric.startTransaction.mockClear();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 0},
+    });
+    // metric.startTransaction.mockClear();
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    trackAdvancedAnalyticsEvent.mockClear();
+    // trackAdvancedAnalyticsEvent.mockClear();
   });
 
   TeamStore.loadInitialData([], false, null);
@@ -160,6 +164,7 @@ describe('ProjectAlertsCreate', () => {
   it('redirects to wizard', async function () {
     const location = {query: {}};
     createWrapper(undefined, location);
+
     await waitFor(() => {
       expect(browserHistory.replace).toHaveBeenCalledWith(
         '/organizations/org-slug/alerts/project-slug/wizard'
@@ -167,266 +172,250 @@ describe('ProjectAlertsCreate', () => {
     });
   });
 
-  // describe('Issue Alert', function () {
-  //   it('loads default values', async function () {
-  //     createWrapper();
+  describe('Issue Alert', function () {
+    it('loads default values', async function () {
+      createWrapper();
 
-  //     expect(await screen.findByDisplayValue('__all_environments__')).toBeInTheDocument();
-  //     expect(screen.getByDisplayValue('all')).toBeInTheDocument();
-  //     expect(screen.getByDisplayValue('30')).toBeInTheDocument();
-  //   });
+      expect(await screen.findByDisplayValue('__all_environments__')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('all')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+    });
 
-  //   it('can remove filters', async function () {
-  //     createWrapper({
-  //       organization: {
-  //         features: ['alert-filters'],
-  //       },
-  //     });
-  //     const mock = MockApiClient.addMockResponse({
-  //       url: '/projects/org-slug/project-slug/rules/',
-  //       method: 'POST',
-  //       body: TestStubs.ProjectAlertRule(),
-  //     });
+    it('can remove filters', async function () {
+      createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
 
-  //     await waitFor(() => {
-  //       expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-  //     });
+      // Change name of alert rule
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
-  //     // Change name of alert rule
-  //     userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      // Add a filter and remove it
+      await selectEvent.select(screen.getByText('Add optional filter...'), [
+        'The issue is {comparison_type} than {value} {time}',
+      ]);
 
-  //     // Add a filter and remove it
-  //     await selectEvent.select(screen.getByText('Add optional filter...'), [
-  //       'The issue is {comparison_type} than {value} {time}',
-  //     ]);
+      userEvent.click(screen.getByLabelText('Delete Node'));
 
-  //     userEvent.click(screen.getByLabelText('Delete Node'));
+      userEvent.click(screen.getByText('Save Rule'));
 
-  //     userEvent.click(screen.getByText('Save Rule'));
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
+    });
 
-  //     await waitFor(() => {
-  //       expect(mock).toHaveBeenCalledWith(
-  //         expect.any(String),
-  //         expect.objectContaining({
-  //           data: {
-  //             actionMatch: 'all',
-  //             actions: [],
-  //             conditions: [],
-  //             filterMatch: 'all',
-  //             filters: [],
-  //             frequency: 30,
-  //             name: 'My Rule Name',
-  //             owner: null,
-  //           },
-  //         })
-  //       );
-  //     });
-  //   });
+    it('can remove conditions', async function () {
+      const {organization} = createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
 
-  //   it('can remove conditions', async function () {
-  //     const {organization} = createWrapper({
-  //       organization: {
-  //         features: ['alert-filters'],
-  //       },
-  //     });
-  //     const mock = MockApiClient.addMockResponse({
-  //       url: '/projects/org-slug/project-slug/rules/',
-  //       method: 'POST',
-  //       body: TestStubs.ProjectAlertRule(),
-  //     });
+      // Change name of alert rule
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
-  //     await waitFor(() => {
-  //       expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-  //     });
+      // Add a condition and remove it
+      await selectEvent.select(screen.getByText('Add optional condition...'), [
+        'A new issue is created',
+      ]);
 
-  //     // Change name of alert rule
-  //     userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.click(screen.getByLabelText('Delete Node'));
 
-  //     // Add a condition and remove it
-  //     await selectEvent.select(screen.getByText('Add optional condition...'), [
-  //       'A new issue is created',
-  //     ]);
+      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+        'edit_alert_rule.add_row',
+        {
+          name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+          organization,
+          project_id: '2',
+          type: 'conditions',
+        }
+      );
 
-  //     userEvent.click(screen.getByLabelText('Delete Node'));
+      userEvent.click(screen.getByText('Save Rule'));
 
-  //     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-  //       'edit_alert_rule.add_row',
-  //       {
-  //         name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-  //         organization,
-  //         project_id: '2',
-  //         type: 'conditions',
-  //       }
-  //     );
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
+    });
 
-  //     userEvent.click(screen.getByText('Save Rule'));
+    it('can remove actions', async function () {
+      createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
 
-  //     await waitFor(() => {
-  //       expect(mock).toHaveBeenCalledWith(
-  //         expect.any(String),
-  //         expect.objectContaining({
-  //           data: {
-  //             actionMatch: 'all',
-  //             actions: [],
-  //             conditions: [],
-  //             filterMatch: 'all',
-  //             filters: [],
-  //             frequency: 30,
-  //             name: 'My Rule Name',
-  //             owner: null,
-  //           },
-  //         })
-  //       );
-  //     });
-  //   });
+      // Change name of alert rule
+      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
-  //   it('can remove actions', async function () {
-  //     createWrapper({
-  //       organization: {
-  //         features: ['alert-filters'],
-  //       },
-  //     });
-  //     const mock = MockApiClient.addMockResponse({
-  //       url: '/projects/org-slug/project-slug/rules/',
-  //       method: 'POST',
-  //       body: TestStubs.ProjectAlertRule(),
-  //     });
+      // Add an action and remove it
+      await selectEvent.select(screen.getByText('Add action...'), [
+        'Send a notification (for all legacy integrations)',
+      ]);
 
-  //     await waitFor(() => {
-  //       expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-  //     });
+      userEvent.click(screen.getByLabelText('Delete Node'));
 
-  //     // Change name of alert rule
-  //     userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.click(screen.getByText('Save Rule'));
 
-  //     // Add an action and remove it
-  //     await selectEvent.select(screen.getByText('Add action...'), [
-  //       'Send a notification (for all legacy integrations)',
-  //     ]);
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
+    });
 
-  //     userEvent.click(screen.getByLabelText('Delete Node'));
+    it('updates values and saves', async function () {
+      const {router} = createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
 
-  //     userEvent.click(screen.getByText('Save Rule'));
+      // Change target environment
+      await selectEvent.select(screen.getByText('All Environments'), ['production']);
 
-  //     await waitFor(() => {
-  //       expect(mock).toHaveBeenCalledWith(
-  //         expect.any(String),
-  //         expect.objectContaining({
-  //           data: {
-  //             actionMatch: 'all',
-  //             actions: [],
-  //             conditions: [],
-  //             filterMatch: 'all',
-  //             filters: [],
-  //             frequency: 30,
-  //             name: 'My Rule Name',
-  //             owner: null,
-  //           },
-  //         })
-  //       );
-  //     });
-  //   });
+      // Change actionMatch and filterMatch dropdown
+      await selectEvent.select(screen.getAllByText('all')[0], ['any']);
+      await selectEvent.select(screen.getAllByText('all')[0], ['any']);
 
-  //   it('updates values and saves', async function () {
-  //     const {router} = createWrapper({
-  //       organization: {
-  //         features: ['alert-filters'],
-  //       },
-  //     });
-  //     const mock = MockApiClient.addMockResponse({
-  //       url: '/projects/org-slug/project-slug/rules/',
-  //       method: 'POST',
-  //       body: TestStubs.ProjectAlertRule(),
-  //     });
+      // `userEvent.paste` isn't really ideal, but since `userEvent.type` doesn't provide good performance and
+      // the purpose of this test is not focused on how the user interacts with the fields,
+      // but rather on whether the form will be saved and updated, we decided use `userEvent.paste`
+      // so that this test does not time out from the default jest value of 5000ms
 
-  //     await waitFor(() => {
-  //       expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-  //     });
+      // Change name of alert rule
+      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
-  //     // Change target environment
-  //     await selectEvent.select(screen.getByText('All Environments'), ['production']);
+      // Add another condition
+      await selectEvent.select(screen.getByText('Add optional condition...'), [
+        "An event's tags match {key} {match} {value}",
+      ]);
+      // Edit new Condition
+      userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
 
-  //     // Change actionMatch and filterMatch dropdown
-  //     await selectEvent.select(screen.getAllByText('all')[0], ['any']);
-  //     await selectEvent.select(screen.getAllByText('all')[0], ['any']);
+      userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
+      await selectEvent.select(screen.getByText('equals'), ['does not equal']);
 
-  //     // `userEvent.paste` isn't really ideal, but since `userEvent.type` doesn't provide good performance and
-  //     // the purpose of this test is not focused on how the user interacts with the fields,
-  //     // but rather on whether the form will be saved and updated, we decided use `userEvent.paste`
-  //     // so that this test does not time out from the default jest value of 5000ms
+      // Add a new filter
+      await selectEvent.select(screen.getByText('Add optional filter...'), [
+        'The issue is {comparison_type} than {value} {time}',
+      ]);
+      userEvent.paste(screen.getByPlaceholderText('10'), '12');
 
-  //     // Change name of alert rule
-  //     userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      // Add a new action
+      await selectEvent.select(screen.getByText('Add action...'), [
+        'Send a notification via {service}',
+      ]);
 
-  //     // Add another condition
-  //     await selectEvent.select(screen.getByText('Add optional condition...'), [
-  //       "An event's tags match {key} {match} {value}",
-  //     ]);
-  //     // Edit new Condition
-  //     userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
+      // Update action interval
+      await selectEvent.select(screen.getByText('30 minutes'), ['60 minutes']);
 
-  //     userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
-  //     await selectEvent.select(screen.getByText('equals'), ['does not equal']);
+      userEvent.click(screen.getByText('Save Rule'));
 
-  //     // Add a new filter
-  //     await selectEvent.select(screen.getByText('Add optional filter...'), [
-  //       'The issue is {comparison_type} than {value} {time}',
-  //     ]);
-  //     userEvent.paste(screen.getByPlaceholderText('10'), '12');
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'any',
+              filterMatch: 'any',
+              actions: [
+                {
+                  id: 'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+                  service: 'mail',
+                },
+              ],
+              conditions: [
+                {
+                  id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+                  key: 'conditionKey',
+                  match: 'ne',
+                  value: 'conditionValue',
+                },
+              ],
+              filters: [
+                {
+                  id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+                  comparison_type: 'older',
+                  time: 'minute',
+                  value: '12',
+                },
+              ],
+              environment: 'production',
+              frequency: '60',
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
+      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
-  //     // Add a new action
-  //     await selectEvent.select(screen.getByText('Add action...'), [
-  //       'Send a notification via {service}',
-  //     ]);
-
-  //     // Update action interval
-  //     await selectEvent.select(screen.getByText('30 minutes'), ['60 minutes']);
-
-  //     userEvent.click(screen.getByText('Save Rule'));
-
-  //     await waitFor(() => {
-  //       expect(mock).toHaveBeenCalledWith(
-  //         expect.any(String),
-  //         expect.objectContaining({
-  //           data: {
-  //             actionMatch: 'any',
-  //             filterMatch: 'any',
-  //             actions: [
-  //               {
-  //                 id: 'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
-  //                 service: 'mail',
-  //               },
-  //             ],
-  //             conditions: [
-  //               {
-  //                 id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-  //                 key: 'conditionKey',
-  //                 match: 'ne',
-  //                 value: 'conditionValue',
-  //               },
-  //             ],
-  //             filters: [
-  //               {
-  //                 id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-  //                 comparison_type: 'older',
-  //                 time: 'minute',
-  //                 value: '12',
-  //               },
-  //             ],
-  //             environment: 'production',
-  //             frequency: '60',
-  //             name: 'My Rule Name',
-  //             owner: null,
-  //           },
-  //         })
-  //       );
-  //     });
-  //     expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
-
-  //     expect(router.push).toHaveBeenCalledWith({
-  //       pathname: '/organizations/org-slug/alerts/rules/',
-  //       query: {project: '2'},
-  //     });
-  //   });
-  // });
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/alerts/rules/',
+        query: {project: '2'},
+      });
+    });
+  });
 });
