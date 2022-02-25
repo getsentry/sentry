@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import type Fuse from 'fuse.js';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
@@ -77,7 +78,7 @@ type State = {
   searchInput: string;
   selectedCategory: string;
   extraApp?: SentryApp;
-  fuzzy?: Fuse<AppOrProviderOrPlugin, typeof fuseOptions>;
+  fuzzy?: Fuse<AppOrProviderOrPlugin>;
 };
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;

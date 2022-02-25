@@ -52,7 +52,7 @@ function ThreadMenuSelector(props: ThreadSelectorProps): React.ReactElement | nu
   const [open, setOpen] = React.useState<boolean>(false);
 
   const handleSelectItem = React.useCallback(
-    (p: Fuse.FuseResultWithMatches<Profile & {index: number}>) => {
+    (p: Fuse.FuseResult<Profile & {index: number}>) => {
       const index = props.profileGroup.profiles.findIndex(
         profile => profile.name === p.item.name
       );

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type Fuse from 'fuse.js';
 import flatten from 'lodash/flatten';
 
 import {Result} from './types';
@@ -14,7 +15,7 @@ type Props = {
   params: {orgId: string};
   query: string;
   sources: React.ComponentType[];
-  searchOptions?: Fuse.FuseOptions<any>;
+  searchOptions?: Fuse.IFuseOptions<any>;
 };
 
 type SourceResult = {
@@ -33,7 +34,7 @@ class SearchSources extends React.Component<Props> {
     const foundResults = isLoading
       ? []
       : flatten(allSources.map(({results}) => results || [])).sort(
-          (a, b) => a.score - b.score
+          (a, b) => (a.score ?? 0) - (b.score ?? 0)
         );
     const hasAnyResults = !!foundResults.length;
 
