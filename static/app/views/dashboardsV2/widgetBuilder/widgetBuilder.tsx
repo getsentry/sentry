@@ -947,8 +947,15 @@ const Body = styled(Layout.Body)`
 `;
 
 const Main = styled(Layout.Main)`
-  border-right: 1px solid ${p => p.theme.gray200};
   padding: ${space(4)};
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    border-right: 1px solid ${p => p.theme.gray200};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    border-bottom: 1px solid ${p => p.theme.gray200};
+  }
 `;
 
 const Side = styled(Layout.Side)`
