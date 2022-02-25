@@ -2,6 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 
+import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
+import OnboardingPreview from 'sentry-images/spot/onboarding-preview.svg';
+import OnboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import DemoSandboxButton from 'sentry/components/demoSandboxButton';
@@ -12,7 +16,6 @@ import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import withOrganization from 'sentry/utils/withOrganization';
-import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 
 const fadeAway: MotionProps = {
   variants: {
@@ -25,13 +28,15 @@ const fadeAway: MotionProps = {
 
 type TextWrapperProps = {
   cta: React.ReactNode;
+  src: string;
   subText: React.ReactNode;
   title: React.ReactNode;
 };
 
-function InnerAction({title, subText, cta}: TextWrapperProps) {
+function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   return (
     <React.Fragment>
+      <ActionImage src={src} />
       <TextWrapper>
         <ActionTitle>{title}</ActionTitle>
         <SubText>{subText}</SubText>
@@ -55,7 +60,6 @@ function TargetedOnboardingWelcome({organization}: Props) {
   });
   return (
     <Wrapper>
-      <WelcomeBackground />
       <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
       <SubHeaderText {...fadeAway}>
         {t('Your code is probably broken.')}
@@ -68,6 +72,7 @@ function TargetedOnboardingWelcome({organization}: Props) {
           subText={t(
             'Select your lanaguages or frameworks and install the SDKs to start tracking issues'
           )}
+          src={OnboardingInstall}
           cta={
             <Button
               onClick={() => {
@@ -93,6 +98,7 @@ function TargetedOnboardingWelcome({organization}: Props) {
             'Invite [friends] coworkers. You shouldn’t have to fix what you didn’t break',
             {friends: <Strike>{t('friends')}</Strike>}
           )}
+          src={OnboardingSetup}
           cta={
             <Button
               onClick={() => {
@@ -112,6 +118,7 @@ function TargetedOnboardingWelcome({organization}: Props) {
             subText={t(
               'Check out sample issue reports, transactions, and tour all of Sentry '
             )}
+            src={OnboardingPreview}
             cta={
               <DemoSandboxButton scenario="oneIssue" priority="primary" {...{source}}>
                 {t('Explore')}
@@ -160,12 +167,14 @@ const ActionItem = styled('div')`
   padding: ${space(2)};
   margin-bottom: ${space(2)};
   justify-content: space-around;
-  display: flex;
   border: 1px solid ${p => p.theme.gray200};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+    grid-template-columns: 125px auto auto;
     width: 680px;
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
     flex-direction: column;
   }
 `;
@@ -197,8 +206,17 @@ const SubHeaderText = styled(motion.h6)`
 
 const ButtonWrapper = styled('div')`
   margin: ${space(3)} ${space(3)} 0;
+  display: flex;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    justify-content: center;
+    align-items: center;
+  }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: flex;
     justify-content: flex-end;
   }
+`;
+
+const ActionImage = styled('img')`
+  height: 100px;
 `;
