@@ -134,10 +134,9 @@ class SentryAppInstallation(ParanoidModel):
     def to_dict(self):
         opts = self._meta
         data = {}
-        for field in chain(opts.concrete_fields, opts.private_fields):
-            data[field.name] = field.value_from_object(self)
-        for field in opts.many_to_many:
-            data[field.name] = [i.id for i in field.value_from_object(self)]
+        for field in chain(opts.concrete_fields, opts.private_fields, opts.many_to_many):
+            field_name = field.get_attname()
+            data[field_name] = self.serializable_value(field_name)
         return data
 
     def save(self, *args, **kwargs):

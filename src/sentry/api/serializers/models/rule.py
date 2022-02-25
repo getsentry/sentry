@@ -61,7 +61,7 @@ class RuleSerializer(Serializer):
         sentry_app_uuids = {
             action.get("sentryAppInstallationUuid")
             for rule in rules.values()
-            for action in rule.get("actions", [])
+            for action in rule.data.get("actions", [])
         }
 
         sentry_app_ids = (
@@ -94,7 +94,7 @@ class RuleSerializer(Serializer):
                 if rule.owner_id in resolved_actors[type]:
                     result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
 
-            for action in rule.get("actions", []):
+            for action in rule.data.get("actions", []):
                 install = sentry_app_installations_by_uuid.get(
                     action.get("sentryAppInstallationUuid")
                 )

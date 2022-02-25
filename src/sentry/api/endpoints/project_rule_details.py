@@ -60,7 +60,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         )
 
         # Prepare Rule Actions that are SentryApp components using the meta fields
-        for action in serialized_rule.data.get("actions", []):
+        for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
 
                 component = SentryAppInstallation(
