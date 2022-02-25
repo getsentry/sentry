@@ -43,7 +43,7 @@ export const VisuallyCompleteWithData = ({
   const longTaskCount = useRef(0);
 
   useEffect(() => {
-    if (!PerformanceObserver || !browserPerformanceTimeOrigin) {
+    if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
       return () => {};
     }
     const timeOrigin = browserPerformanceTimeOrigin / 1000;
