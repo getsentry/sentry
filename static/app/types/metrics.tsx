@@ -12,6 +12,8 @@ export type MetricsApiResponse = {
   start: string;
 };
 
+export type MetricTagCollection = Record<string, MetricTag>;
+
 export type MetricTag = {
   key: string;
 };

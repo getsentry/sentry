@@ -78,12 +78,14 @@ import {Header} from './header';
 import {
   DataSet,
   DisplayType,
-  FlatValidationError,
+  getParsedDefaultWidgetQuery,
   mapErrors,
   normalizeQueries,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 import {YAxisSelector} from './yAxisSelector';
+
+const NEW_DASHBOARD_ID = 'new';
 
 const DATASET_CHOICES: [DataSet, string][] = [
   [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
@@ -137,9 +139,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   selection: PageFilters;
   tags: TagCollection;
-  defaultTableColumns?: readonly string[];
-  defaultTitle?: string;
-  defaultWidgetQuery?: WidgetQuery;
   displayType?: DisplayType;
   end?: DateString;
   start?: DateString;
@@ -170,16 +169,15 @@ function WidgetBuilder({
   start,
   end,
   statsPeriod,
-  defaultWidgetQuery,
-  displayType,
-  defaultTitle,
-  defaultTableColumns,
   tags,
   onSave,
   router,
 }: Props) {
   const {widgetId, orgId, dashboardId} = params;
-  const {source} = location.query;
+  const {source, displayType, defaultTitle, defaultTableColumns} = location.query;
+  const defaultWidgetQuery = getParsedDefaultWidgetQuery(
+    location.query.defaultWidgetQuery
+  );
 
   const isEditing = defined(widgetId);
   const orgSlug = organization.slug;
@@ -396,8 +394,6 @@ function WidgetBuilder({
   }
 
   async function handleSave() {
-    setState({...state, loading: true});
-
     const widgetData: Widget = assignTempId(currentWidget);
 
     if (widgetToBeUpdated) {
@@ -411,29 +407,75 @@ function WidgetBuilder({
       });
     }
 
-    let errors: FlatValidationError = {};
+    if (!(await dataIsValid(widgetData))) {
+      return;
+    }
+
+    if (notDashboardsOrigin) {
+      submitFromSelectedDashboard(widgetData);
+      return;
+    }
+
+    if (!!widgetToBeUpdated) {
+      let nextWidgetList = [...dashboard.widgets];
+      const updateIndex = nextWidgetList.indexOf(widgetToBeUpdated);
+      const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
+
+      // Only modify and re-compact if the default height has changed
+      if (
+        getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
+        getDefaultWidgetHeight(widgetData.displayType)
+      ) {
+        nextWidgetList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+        nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
+      } else {
+        nextWidgetList[updateIndex] = nextWidgetData;
+      }
+
+      onSave(nextWidgetList);
+      addSuccessMessage(t('Updated widget.'));
+      goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
+      return;
+    }
+
+    onSave([...dashboard.widgets, widgetData]);
+    addSuccessMessage(t('Added widget.'));
+    goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
+  }
+
+  async function dataIsValid(widgetData: Widget): Promise<boolean> {
+    if (notDashboardsOrigin) {
+      // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
+      if (
+        !state.selectedDashboard ||
+        !(
+          state.dashboards.find(
+            ({title, id}) =>
+              title === state.selectedDashboard?.label &&
+              id === state.selectedDashboard?.value
+          ) || state.selectedDashboard.value === NEW_DASHBOARD_ID
+        )
+      ) {
+        setState({
+          ...state,
+          errors: {...state.errors, dashboard: t('This field may not be blank')},
+        });
+        return false;
+      }
+    }
+
+    setState({...state, loading: true});
 
     try {
       await validateWidget(api, organization.slug, widgetData);
-
-      if (!!widgetToBeUpdated) {
-        updateWidget(widgetToBeUpdated, widgetData);
-        return;
-      }
-
-      onSave([...dashboard.widgets, widgetData]);
-      addSuccessMessage(t('Added widget.'));
-
-      goBack();
-    } catch (err) {
-      errors = mapErrors(err?.responseJSON ?? {}, {});
-    } finally {
-      setState({...state, errors, loading: false});
-
-      if (notDashboardsOrigin) {
-        submitFromSelectedDashboard(errors, widgetData);
-        return;
-      }
+      return true;
+    } catch (error) {
+      setState({
+        ...state,
+        loading: false,
+        errors: {...state.errors, ...mapErrors(error?.responseJSON ?? {}, {})},
+      });
+      return false;
     }
   }
 
@@ -457,65 +499,51 @@ function WidgetBuilder({
     }
   }
 
-  function submitFromSelectedDashboard(errors: FlatValidationError, widgetData: Widget) {
-    // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
-    if (
-      !state.selectedDashboard ||
-      !(
-        state.dashboards.find(({title, id}) => {
-          return (
-            title === state.selectedDashboard?.label &&
-            id === state.selectedDashboard?.value
-          );
-        }) || state.selectedDashboard.value === 'new'
-      )
-    ) {
-      errors.dashboard = t('This field may not be blank');
-      setState({...state, errors});
+  function submitFromSelectedDashboard(widgetData: Widget) {
+    if (!state.selectedDashboard) {
+      return;
     }
 
-    if (!Object.keys(errors).length && state.selectedDashboard) {
-      const queryData: QueryData = {
-        queryNames: [],
-        queryConditions: [],
-        queryFields: widgetData.queries[0].fields,
-        queryOrderby: widgetData.queries[0].orderby,
-      };
+    const queryData: QueryData = {
+      queryNames: [],
+      queryConditions: [],
+      queryFields: widgetData.queries[0].fields,
+      queryOrderby: widgetData.queries[0].orderby,
+    };
 
-      widgetData.queries.forEach(query => {
-        queryData.queryNames.push(query.name);
-        queryData.queryConditions.push(query.conditions);
-      });
+    widgetData.queries.forEach(query => {
+      queryData.queryNames.push(query.name);
+      queryData.queryConditions.push(query.conditions);
+    });
 
-      const query = {
-        displayType: widgetData.displayType,
-        interval: widgetData.interval,
-        title: widgetData.title,
-        ...(queryData ?? {}),
-      };
+    const pathQuery = {
+      displayType: widgetData.displayType,
+      interval: widgetData.interval,
+      title: widgetData.title,
+      ...queryData,
+      // Propagate page filters
+      ...selection.datetime,
+      project: selection.projects,
+      environment: selection.environments,
+    };
 
-      goBack(query);
-    }
+    addSuccessMessage(t('Added widget.'));
+    goToDashboards(state.selectedDashboard.value, pathQuery);
   }
 
-  function updateWidget(prevWidget: Widget, nextWidget: Widget) {
-    let nextWidgetList = [...dashboard.widgets];
-    const updateIndex = nextWidgetList.indexOf(prevWidget);
-    const nextWidgetData = {...nextWidget, id: prevWidget.id};
-
-    // Only modify and re-compact if the default height has changed
-    if (
-      getDefaultWidgetHeight(prevWidget.displayType) !==
-      getDefaultWidgetHeight(nextWidget.displayType)
-    ) {
-      nextWidgetList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
-      nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
-    } else {
-      nextWidgetList[updateIndex] = nextWidgetData;
+  function goToDashboards(id: string, query?: Record<string, any>) {
+    if (id === NEW_DASHBOARD_ID) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/`,
+        query,
+      });
+      return;
     }
 
-    onSave(nextWidgetList);
-    addSuccessMessage(t('Updated widget.'));
+    router.push({
+      pathname: `/organizations/${organization.slug}/dashboard/${id}/`,
+      query,
+    });
   }
 
   function getAmendedFieldOptions(measurements: MeasurementCollection) {
@@ -525,14 +553,6 @@ function WidgetBuilder({
       measurementKeys: Object.values(measurements).map(({key}) => key),
       spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
     });
-  }
-
-  function goBack(query?: Record<string, any>) {
-    if (query) {
-      previousLocation.query = {...previousLocation.query, ...query};
-    }
-
-    router.push(previousLocation);
   }
 
   if (isEditing && !dashboard.widgets.some(({id}) => id === String(widgetId))) {
