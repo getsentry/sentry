@@ -16,6 +16,7 @@ import isEqual from 'lodash/isEqual';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {fetchMetricsFields} from 'sentry/actionCreators/metrics';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -137,18 +138,24 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization} = this.props;
+    const {isEditing, organization, api} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
-    // Load organization tags when in edit mode.
-    if (isEditing) {
-      this.fetchTags();
-    }
+
     this.addNewWidget();
 
     // Get member list data for issue widgets
     this.fetchMemberList();
+    // Load organization tags when in edit mode.
+    if (isEditing) {
+      this.fetchTags();
+      return;
+    }
+
+    if (organization.features.includes('dashboard-metrics')) {
+      fetchMetricsFields(api, organization.slug);
+    }
   }
 
   async componentDidUpdate(prevProps: Props) {
@@ -206,6 +213,7 @@ class Dashboard extends Component<Props, State> {
   fetchTags() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    fetchMetricsFields(api, organization.slug);
   }
 
   handleStartAdd = () => {

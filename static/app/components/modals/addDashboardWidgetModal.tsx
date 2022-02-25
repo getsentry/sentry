@@ -9,7 +9,7 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
+import {fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
@@ -26,7 +26,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DateString,
-  MetricMeta,
+  MetricsMetaCollection,
   MetricTag,
   Organization,
   PageFilters,
@@ -38,6 +38,7 @@ import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
+import withMetricsMeta from 'sentry/utils/withMetricsMeta';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
@@ -90,6 +91,7 @@ export type DashboardWidgetModalOptions = {
 type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
+    metricsMeta: MetricsMetaCollection;
     organization: Organization;
     selection: PageFilters;
     tags: TagCollection;
@@ -104,7 +106,6 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   loading: boolean;
-  metricFields: MetricMeta[];
   metricTags: MetricTag[];
   queries: Widget['queries'];
   title: string;
@@ -163,7 +164,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         loading: !!this.omitDashboardProp,
         dashboards: [],
         metricTags: [],
-        metricFields: [],
         userHasModified: false,
         widgetType: WidgetType.DISCOVER,
       };
@@ -179,7 +179,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       loading: false,
       dashboards: [],
       metricTags: [],
-      metricFields: [],
       userHasModified: false,
       widgetType: widget.widgetType ?? WidgetType.DISCOVER,
     };
@@ -191,7 +190,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
     if (this.props.organization.features.includes('dashboards-metrics')) {
       this.fetchMetricsTags();
-      this.fetchMetricsFields();
     }
   }
 
@@ -536,19 +534,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     });
   }
 
-  async fetchMetricsFields() {
-    const {api, organization, selection} = this.props;
-    const projects = !selection.projects.length ? undefined : selection.projects;
-
-    const metricFields = await fetchMetricsFields(api, organization.slug, projects);
-    const filteredFields = metricFields.filter(field =>
-      METRICS_FIELDS_ALLOW_LIST.includes(field.name)
-    );
-    this.setState({
-      metricFields: filteredFields,
-    });
-  }
-
   handleDashboardChange(option: SelectValue<string>) {
     this.setState({selectedDashboard: option});
   }
@@ -607,7 +592,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
 
   renderWidgetQueryForm() {
-    const {organization, selection, tags, start, end, statsPeriod} = this.props;
+    const {organization, selection, tags, start, end, statsPeriod, metricsMeta} =
+      this.props;
     const state = this.state;
     const errors = state.errors;
 
@@ -621,7 +607,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      state.metricFields.length ? state.metricFields : DEFAULT_METRICS_FIELDS,
+      metricsMeta.length
+        ? Object.values(metricsMeta).filter(field =>
+            METRICS_FIELDS_ALLOW_LIST.includes(field.name)
+          )
+        : DEFAULT_METRICS_FIELDS,
       Object.values(state.metricTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
@@ -930,4 +920,6 @@ const StyledFieldLabel = styled(FieldLabel)`
   display: inline-flex;
 `;
 
-export default withApi(withPageFilters(withTags(AddDashboardWidgetModal)));
+export default withApi(
+  withPageFilters(withTags(withMetricsMeta(AddDashboardWidgetModal)))
+);
