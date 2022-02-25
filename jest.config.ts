@@ -161,7 +161,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setupFramework.ts',
     '@testing-library/jest-dom/extend-expect',
   ],
-  testMatch: ['tests/js/spec/views/alerts/create.spec.jsx'] || testMatch,
+  testMatch: ['<rootDir>/tests/js/spec/views/alerts/create.spec.jsx'] || testMatch,
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
 
   unmockedModulePathPatterns: [

@@ -304,7 +304,6 @@ describe('ProjectAlertsCreate', function () {
       ]);
 
       userEvent.click(screen.getByLabelText('Delete Node'));
-
       userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
@@ -421,7 +420,6 @@ describe('ProjectAlertsCreate', function () {
         );
       });
       expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
-
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/alerts/rules/',
         query: {project: '2'},
