@@ -8,7 +8,7 @@ import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScr
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
 import {FlamegraphPreferencesProvider} from 'sentry/utils/profiling/flamegraph/flamegraphPreferencesProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
@@ -22,8 +22,7 @@ function fetchFlamegraphs(
   api: Client,
   eventId: string,
   projectId: Project['id'],
-  organization: Organization,
-  selection: PageFilters
+  organization: Organization
 ): Promise<ProfileGroup> {
   return api
     .requestPromise(
@@ -31,9 +30,6 @@ function fetchFlamegraphs(
       {
         method: 'GET',
         includeAllArgs: true,
-        query: {
-          project: selection.projects,
-        },
       }
     )
     .then(([data]) => importProfile(data, eventId));
@@ -43,7 +39,6 @@ interface FlamegraphViewProps {
   eventId: Trace['id'];
   location: Location;
   projectId: Project['id'];
-  selection?: PageFilters;
 }
 
 function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
@@ -54,20 +49,16 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
   const [requestState, setRequestState] = useState<RequestState>('initial');
 
   useEffect(() => {
-    if (!props.selection) {
-      return;
-    }
-
     api.clear();
     setRequestState('loading');
 
-    fetchFlamegraphs(api, props.eventId, '', organization, props.selection)
+    fetchFlamegraphs(api, props.eventId, props.projectId, organization)
       .then(importedFlamegraphs => {
         setProfiles(importedFlamegraphs);
         setRequestState('resolved');
       })
       .catch(() => setRequestState('errored'));
-  }, [props.eventId]);
+  }, [props.eventId, props.projectId, api, organization]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
