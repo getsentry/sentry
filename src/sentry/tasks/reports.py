@@ -520,6 +520,7 @@ def build_key_errors(interval, project):
 
 def build_key_transactions(interval, project):
     start, stop = interval
+    startLastWeek = start - timedelta(days=7)
 
     # Take the 3 most frequently occuring transactions
     query = Query(
@@ -527,60 +528,52 @@ def build_key_transactions(interval, project):
         match=Entity("transactions"),
         select=[
             Column("transaction_name"),
-            Function("count", []),
+            Function("count", [], "count"),
+            Function(
+                "quantileIf(0.95)",
+                [
+                    Column("duration"),
+                    Function(
+                        "lessOrEquals", [Function("toDateTime", [start]), Column("finish_ts")]
+                    ),
+                ],
+                "p95LastWeek",
+            ),
+            Function(
+                "quantileIf(0.95)",
+                [
+                    Column("duration"),
+                    Function("greater", [Function("toDateTime", [start]), Column("finish_ts")]),
+                ],
+                "p95",
+            ),
+            Function(
+                "abs",
+                [Function("minus", [Column("p95LastWeek"), Column("p95")])],
+                "trend_difference",
+            ),
         ],
         where=[
-            Condition(Column("finish_ts"), Op.GTE, start),
+            Condition(Column("finish_ts"), Op.GTE, startLastWeek),
             Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
             Condition(Column("project_id"), Op.EQ, project.id),
         ],
         groupby=[Column("transaction_name")],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        orderby=[OrderBy(Column("trend_difference"), Direction.DESC)],
         limit=Limit(3),
     )
     query_result = raw_snql_query(query, referrer="reports.key_transactions")
-    key_errors = query_result["data"]
-
-    transaction_names = map(lambda p: p["transaction_name"], key_errors)
-
-    def query_p95(interval):
-        start, stop = interval
-        query = Query(
-            dataset=Dataset.Transactions.value,
-            match=Entity("transactions"),
-            select=[
-                Column("transaction_name"),
-                Function("quantile(0.95)", [Column("duration")], "p95"),
-            ],
-            where=[
-                Condition(Column("finish_ts"), Op.GTE, start),
-                Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
-                Condition(Column("transaction_name"), Op.IN, transaction_names),
-                Condition(Column("project_id"), Op.EQ, project.id),
-            ],
-            groupby=[Column("transaction_name")],
-        )
-        return raw_snql_query(query, referrer="reports.key_transactions.p95")
-
-    query_result = query_p95((start, stop))
-    this_week_p95 = {}
-    for point in query_result["data"]:
-        this_week_p95[point["transaction_name"]] = point["p95"]
-
-    query_result = query_p95((start - timedelta(days=7), stop - timedelta(days=7)))
-    last_week_p95 = {}
-    for point in query_result["data"]:
-        last_week_p95[point["transaction_name"]] = point["p95"]
+    key_transactions = query_result["data"]
 
     return [
         (
             e["transaction_name"],
-            e["count()"],
+            e["count"],
             project.id,
-            this_week_p95.get(e["transaction_name"], None),
-            last_week_p95.get(e["transaction_name"], None),
+            e["p95"],
+            e["p95LastWeek"],
         )
-        for e in key_errors
+        for e in key_transactions
     ]
 
 
