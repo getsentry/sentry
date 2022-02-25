@@ -191,35 +191,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: '/organizations/org-slug/metrics/tags/',
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
     });
-    // metricsMetaMock = MockApiClient.addMockResponse({
-    //   url: '/organizations/org-slug/metrics/meta/',
-    //   body: [
-    //     {
-    //       name: 'sentry.sessions.session',
-    //       type: 'counter',
-    //       operations: ['sum'],
-    //       unit: null,
-    //     },
-    //     {
-    //       name: 'sentry.sessions.session.error',
-    //       type: 'set',
-    //       operations: ['count_unique'],
-    //       unit: null,
-    //     },
-    //     {
-    //       name: 'sentry.sessions.user',
-    //       type: 'set',
-    //       operations: ['count_unique'],
-    //       unit: null,
-    //     },
-    //     {
-    //       name: 'not.on.allow.list',
-    //       type: 'set',
-    //       operations: ['count_unique'],
-    //       unit: null,
-    //     },
-    //   ],
-    // });
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
