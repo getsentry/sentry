@@ -23,12 +23,10 @@ describe('Tooltip', function () {
   });
 
   it('updates title', async function () {
-    const context = TestStubs.routerContext();
     const {rerender} = mountWithTheme(
       <Tooltip delay={0} title="test">
         <span>My Button</span>
-      </Tooltip>,
-      {context}
+      </Tooltip>
     );
 
     // Change title

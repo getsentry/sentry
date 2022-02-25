@@ -47,8 +47,7 @@ describe('Project Ownership', function () {
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
           project={project}
-        />,
-        TestStubs.routerContext()
+        />
       );
       expect(wrapper).toSnapshot();
       // only rendered when `integrations-codeowners` feature flag enabled

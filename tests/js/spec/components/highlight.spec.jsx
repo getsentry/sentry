@@ -22,17 +22,13 @@ describe('Highlight', function () {
   });
 
   it('does not have highlighted text if `text` prop is empty', function () {
-    mountWithTheme(<HighlightComponent text="">billy@sentry.io</HighlightComponent>, {
-      context: TestStubs.routerContext(),
-    });
+    mountWithTheme(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });
 
   it('does not have highlighted text if `disabled` prop is true', function () {
-    mountWithTheme(<HighlightComponent text="">billy@sentry.io</HighlightComponent>, {
-      context: TestStubs.routerContext(),
-    });
+    mountWithTheme(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });

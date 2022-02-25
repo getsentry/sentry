@@ -74,13 +74,13 @@ describe('TeamMisery', () => {
       },
       match: [MockApiClient.matchQuery({statsPeriod: '8w'})],
     });
-    const routerContext = TestStubs.routerContext();
+
     mountWithTheme(
       <TeamMisery
         organization={TestStubs.Organization()}
         projects={[project]}
         period="8w"
-        location={routerContext.context}
+        location={location}
       />
     );
 
@@ -102,13 +102,12 @@ describe('TeamMisery', () => {
   });
 
   it('should render empty state', async () => {
-    const routerContext = TestStubs.routerContext();
     mountWithTheme(
       <TeamMisery
         organization={TestStubs.Organization()}
         projects={[]}
         period="8w"
-        location={routerContext.context}
+        location={location}
       />
     );
 
@@ -124,13 +123,12 @@ describe('TeamMisery', () => {
       body: {},
     });
 
-    const routerContext = TestStubs.routerContext();
     mountWithTheme(
       <TeamMisery
         organization={TestStubs.Organization()}
         projects={[TestStubs.Project()]}
         period="8w"
-        location={routerContext.context}
+        location={location}
       />
     );
 
