@@ -126,6 +126,7 @@ class VitalDetailContent extends Component<Props, State> {
         projects={projects}
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={() => {}}
+        aria-label={t('Create Alert')}
         referrer="performance"
       />
     );

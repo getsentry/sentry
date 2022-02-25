@@ -17,23 +17,18 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
-type ConditionalAriaLabel =
-  | {
-      children: Omit<React.ReactNode, 'null' | 'undefined' | 'boolean'>;
-      'aria-label'?: string;
-    }
-  | {
-      'aria-label': string;
-      children?: null | boolean;
-    };
-
-type Props = {
+interface BaseButtonProps
+  extends Omit<
+    React.ButtonHTMLAttributes<ButtonElement>,
+    'ref' | 'label' | 'size' | 'title'
+  > {
   align?: 'center' | 'left' | 'right';
   // This is only used with `<ButtonBar>`
   barId?: string;
   borderless?: boolean;
   busy?: boolean;
   disabled?: boolean;
+  download?: HTMLAnchorElement['download'];
   external?: boolean;
   forwardRef?: React.Ref<ButtonElement>;
   href?: string;
@@ -41,16 +36,24 @@ type Props = {
   name?: string;
   onClick?: (e: React.MouseEvent) => void;
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
+  rel?: HTMLAnchorElement['rel'];
   size?: 'zero' | 'xsmall' | 'small';
+  target?: HTMLAnchorElement['target'];
   title?: React.ComponentProps<typeof Tooltip>['title'];
   to?: string | object;
   tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
-
   translucentBorder?: boolean;
-} & ConditionalAriaLabel;
+}
 
-type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref' | 'label'> &
-  Props;
+export interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
+  children: React.ReactNode;
+}
+export interface ButtonPropsWithAriaLabel extends BaseButtonProps {
+  'aria-label': string;
+  children?: never;
+}
+
+export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
@@ -71,7 +74,7 @@ function BaseButton({
   tooltipProps,
   onClick,
   ...buttonProps
-}: Props) {
+}: ButtonProps) {
   // Intercept onClick and propagate
   function handleClick(e: React.MouseEvent) {
     // Don't allow clicks when disabled or busy
@@ -147,7 +150,6 @@ const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
 ));
 
 Button.displayName = 'Button';
-
 export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
@@ -272,7 +274,7 @@ const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
 const StyledButton = styled(
   reactForwardRef<any, ButtonProps>(
     (
-      {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: Props,
+      {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: ButtonProps,
       forwardRefAlt
     ) => {
       // XXX: There may be two forwarded refs here, one potentially passed from a
@@ -309,7 +311,7 @@ const StyledButton = styled(
       prop === 'external' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
-)<Props>`
+)<ButtonProps>`
   display: inline-block;
   border-radius: ${p => p.theme.button.borderRadius};
   text-transform: none;

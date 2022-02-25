@@ -50,6 +50,7 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
         datetime: {period: '30d'},

@@ -1,15 +1,22 @@
-import * as React from 'react';
+import {createContext, useMemo} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+
+import {
+  makeColorMapByImage,
+  makeColorMapByRecursion,
+  makeColorMapBySystemVsApplication,
+} from '../colors/utils';
 
 import {
   DarkFlamegraphTheme,
   FlamegraphTheme,
   LightFlamegraphTheme,
 } from './FlamegraphTheme';
+import {useFlamegraphPreferences} from './useFlamegraphPreferences';
 
-export const FlamegraphThemeContext = React.createContext<FlamegraphTheme | null>(null);
+export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);
 
 interface FlamegraphThemeProviderProps {
   children: React.ReactNode;
@@ -19,11 +26,37 @@ function FlamegraphThemeProvider(
   props: FlamegraphThemeProviderProps
 ): React.ReactElement {
   const {theme} = useLegacyStore(ConfigStore);
+  const [flamegraphPreferences] = useFlamegraphPreferences();
+
+  const activeFlamegraphTheme = useMemo((): FlamegraphTheme => {
+    const base = theme === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;
+
+    switch (flamegraphPreferences.colorCoding) {
+      case 'by symbol name': {
+        return base;
+      }
+      case 'by recursion': {
+        return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByRecursion}};
+      }
+      case 'by library': {
+        return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByImage}};
+      }
+      case 'by system / application': {
+        return {
+          ...base,
+          COLORS: {...base.COLORS, COLOR_MAP: makeColorMapBySystemVsApplication},
+        };
+      }
+      default: {
+        throw new TypeError(
+          `Unsupported flamegraph color coding ${flamegraphPreferences.colorCoding}`
+        );
+      }
+    }
+  }, [theme, flamegraphPreferences.colorCoding]);
 
   return (
-    <FlamegraphThemeContext.Provider
-      value={theme === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme}
-    >
+    <FlamegraphThemeContext.Provider value={activeFlamegraphTheme}>
       {props.children}
     </FlamegraphThemeContext.Provider>
   );

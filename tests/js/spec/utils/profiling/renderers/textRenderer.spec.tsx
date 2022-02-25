@@ -25,7 +25,7 @@ const makeBaseFlamegraph = (): Flamegraph => {
     createFrameIndex([{name: 'f0'}, {name: 'f1'}])
   );
 
-  return new Flamegraph(profile, 0, false, false);
+  return new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 };
 
 describe('TextRenderer', () => {
@@ -83,7 +83,7 @@ describe('TextRenderer', () => {
       createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
     );
 
-    const flamegraph = new Flamegraph(profile, 0, false, false);
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockReturnValue({width: 10}),
@@ -132,7 +132,7 @@ describe('TextRenderer', () => {
       createFrameIndex([{name: longFrameName}])
     );
 
-    const flamegraph = new Flamegraph(profile, 0, false, false);
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockImplementation(n => {
@@ -185,7 +185,7 @@ describe('TextRenderer', () => {
       createFrameIndex([{name: longFrameName}])
     );
 
-    const flamegraph = new Flamegraph(profile, 0, false, false);
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockImplementation(n => {
