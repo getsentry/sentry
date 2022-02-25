@@ -330,8 +330,6 @@ class Superuser:
             current_datetime=current_datetime,
         )
 
-        # self.session_start_time = current_datetime
-
         logger.info(
             "superuser.logged-in",
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
