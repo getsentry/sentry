@@ -166,7 +166,7 @@
     "babel-plugin-dynamic-import-node": "^2.2.0",
     "csstype": "^3.0.8",
     "eslint": "5.11.1",
-    "eslint-config-sentry-app": "1.76.0",
+    "eslint-config-sentry-app": "1.77.0",
     "eslint-plugin-simple-import-sort": "^6.0.0",
     "html-webpack-plugin": "^5.3.2",
     "jest": "27.0.6",
