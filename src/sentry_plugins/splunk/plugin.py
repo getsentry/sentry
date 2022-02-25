@@ -238,6 +238,8 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 isinstance(exc, (ApiHostError, ApiTimeoutError))
                 # Most 4xxs are not errors or actionable for us do not re-raise.
                 or (401 <= exc.code <= 404)
+                # 502s are too noisy.
+                or exc.code == 502
             ):
                 return False
             raise exc
