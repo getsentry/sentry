@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
+import type {TooltipComponentFormatterCallback} from 'echarts';
 import {Location} from 'history';
+import momentTimezone from 'moment-timezone';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -16,11 +18,13 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import {getDuration} from 'sentry/utils/formatters';
 import {Theme} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -154,6 +158,48 @@ function makeScatterChartOptions({
   projects: Project[];
   theme: Theme;
 }) {
+  const user = ConfigStore.get('user');
+  const options = user?.options;
+
+  const _tooltipFormatter: TooltipComponentFormatterCallback<any> = seriesParams => {
+    const dataPoint = data[seriesParams.seriesName]?.[seriesParams.dataIndex];
+    const project = dataPoint && projects.find(proj => proj.id === dataPoint.app_id);
+
+    const entries = [
+      {label: t('Project'), value: project?.slug},
+      {label: t('App Version'), value: dataPoint?.app_version},
+      {
+        label: t('Duration'),
+        value: defined(dataPoint?.trace_duration_ms)
+          ? getDuration(dataPoint?.trace_duration_ms, 2, true)
+          : null,
+      },
+      {label: t('Interaction'), value: dataPoint?.interaction_name},
+      {label: t('Device Model'), value: dataPoint?.device_model},
+      {label: t('Device Class'), value: dataPoint?.device_class},
+      {label: t('Device Manufacturer'), value: dataPoint?.device_manufacturer},
+    ]
+      .filter(({value}) => defined(value))
+      .map(
+        ({label, value}) =>
+          `<div><span class="tooltip-label"><strong>${label}</strong></span> ${value}</div>`
+      );
+
+    const date = defined(dataPoint?.start_time_unix)
+      ? momentTimezone
+          .tz(dataPoint?.start_time_unix * 1000, options?.timezone ?? '')
+          .format('lll')
+      : null;
+
+    return [
+      '<div class="tooltip-series">',
+      ...entries,
+      '</div>',
+      `<div class="tooltip-date">${date}</div>`,
+      '<div class="tooltip-arrow"></div>',
+    ].join('');
+  };
+
   return {
     grid: {
       left: '10px',
@@ -163,7 +209,7 @@ function makeScatterChartOptions({
     },
     tooltip: {
       trigger: 'item' as const,
-      valueFormatter: (value: number) => tooltipFormatter(value, 'p50()'),
+      formatter: _tooltipFormatter,
     },
     yAxis: {
       axisLabel: {
