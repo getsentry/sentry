@@ -61,7 +61,7 @@ describe('Performance > Transaction Tags', function () {
 
     const pageLinks =
       '<https://sentry.io/api/0/organizations/sentry/events-facets-performance/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
-      '<https://sentry.io//api/0/organizations/sentry/events-facets-performance/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:20:0"';
+      '<https://sentry.io/api/0/organizations/sentry/events-facets-performance/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:20:0"';
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-facets-performance/',
