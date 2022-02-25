@@ -185,12 +185,13 @@ function makeScatterChartOptions({
       if (!defined(project)) {
         return;
       }
-      const target = generateFlamegraphRoute({
-        orgSlug: organization.slug,
-        projectSlug: project.slug,
-        profileId: dataPoint.id,
-      });
-      browserHistory.push(target);
+      browserHistory.push(
+        generateFlamegraphRoute({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          profileId: dataPoint.id,
+        })
+      );
     },
   };
 }
