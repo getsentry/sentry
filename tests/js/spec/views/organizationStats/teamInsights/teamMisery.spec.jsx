@@ -81,8 +81,7 @@ describe('TeamMisery', () => {
         projects={[project]}
         period="8w"
         location={routerContext.context}
-      />,
-      {context: routerContext}
+      />
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -110,8 +109,7 @@ describe('TeamMisery', () => {
         projects={[]}
         period="8w"
         location={routerContext.context}
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(
@@ -133,8 +131,7 @@ describe('TeamMisery', () => {
         projects={[TestStubs.Project()]}
         period="8w"
         location={routerContext.context}
-      />,
-      {context: routerContext}
+      />
     );
 
     await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));

@@ -5,8 +5,7 @@ import {HighlightComponent} from 'sentry/components/highlight';
 describe('Highlight', function () {
   it('highlights text', function () {
     const wrapper = mountWithTheme(
-      <HighlightComponent text="ILL">billy@sentry.io</HighlightComponent>,
-      {context: TestStubs.routerContext()}
+      <HighlightComponent text="ILL">billy@sentry.io</HighlightComponent>
     );
     expect(wrapper.container.childNodes).toHaveLength(3);
     expect(wrapper.container.childNodes[0]).toHaveTextContent('b');
@@ -16,8 +15,7 @@ describe('Highlight', function () {
 
   it('does not have highlighted text if `text` prop is not found in main text', function () {
     mountWithTheme(
-      <HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>,
-      {context: TestStubs.routerContext()}
+      <HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>
     );
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();

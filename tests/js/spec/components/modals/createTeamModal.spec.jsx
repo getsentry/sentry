@@ -32,8 +32,7 @@ describe('CreateTeamModal', function () {
         closeModal={closeModal}
         onClose={onClose}
         onSuccess={onSuccess}
-      />,
-      {context: TestStubs.routerContext()}
+      />
     );
 
     userEvent.type(screen.getByText('Team Name'), 'new-team');
