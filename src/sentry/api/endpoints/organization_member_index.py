@@ -139,7 +139,7 @@ class OrganizationMemberIndexQueryParamSerializer(serializers.Serializer):
     )
     query = serializers.CharField(
         required=False,
-        help_text="filter by an email address, but look at secondary email's and primary account emails as well.",
+        help_text="filter by an email address, but look at secondary emails and primary account emails as well.",
     )
     expand = serializers.MultipleChoiceField(
         choices=["externalUsers"],
