@@ -8,13 +8,17 @@ type Props = {
   children: React.ReactNode;
   description: string;
   title: string;
+  required?: boolean;
 };
 
-function BuildStep({title, description, children}: Props) {
+function BuildStep({title, description, required = false, children}: Props) {
   return (
     <Wrapper>
       <Header>
-        <Heading>{title}</Heading>
+        <Heading>
+          {title}
+          {required && <RequiredBadge />}
+        </Heading>
         <SubHeading>{description}</SubHeading>
       </Header>
       <Content>{children}</Content>
@@ -46,4 +50,15 @@ const SubHeading = styled('small')`
 
 const Content = styled('div')`
   display: grid;
+`;
+
+const RequiredBadge = styled('div')`
+  background: ${p => p.theme.red300};
+  opacity: 0.6;
+  width: 5px;
+  height: 5px;
+  border-radius: 5px;
+  margin-left: ${space(0.5)};
+  display: inline-block;
+  vertical-align: super;
 `;

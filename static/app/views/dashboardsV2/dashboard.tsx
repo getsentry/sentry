@@ -16,6 +16,7 @@ import isEqual from 'lodash/isEqual';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -137,9 +138,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization} = this.props;
+    const {isEditing, organization, api} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
+    }
+
+    if (organization.features.includes('dashboards-metrics')) {
+      fetchMetricsTags(api, organization.slug);
     }
     // Load organization tags when in edit mode.
     if (isEditing) {
