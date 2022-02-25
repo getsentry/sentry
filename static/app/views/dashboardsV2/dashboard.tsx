@@ -327,7 +327,7 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
-  handleEditWidget = (widget: Widget) => () => {
+  handleEditWidget = (widget: Widget, index: number) => () => {
     const {
       organization,
       dashboard,
@@ -344,7 +344,7 @@ class Dashboard extends Component<Props, State> {
 
       if (paramDashboardId) {
         router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${widget.id}/edit/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
@@ -354,7 +354,7 @@ class Dashboard extends Component<Props, State> {
       }
 
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${widget.id}/edit/`,
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
@@ -397,7 +397,7 @@ class Dashboard extends Component<Props, State> {
       isEditing,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
-      onEdit: this.handleEditWidget(widget),
+      onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
     };
