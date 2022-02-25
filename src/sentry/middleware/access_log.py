@@ -63,6 +63,7 @@ def _create_api_access_log(
             user_id=str(user_id),
             is_app=str(is_app),
             token_type=str(_get_token_name(request_auth)),
+            is_frontend_request=str(bool(getattr(request, "COOKIES", {}))),
             organization_id=str(org_id),
             auth_id=str(auth_id),
             path=str(request.path),
