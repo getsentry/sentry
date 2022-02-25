@@ -510,7 +510,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('TODO')).toBeInTheDocument();
   });
 
-  it('switch vitals with dropdown menu', async function () {
+  it('can switch vitals with dropdown menu', async function () {
     const newRouter = {
       ...router,
       location: {
