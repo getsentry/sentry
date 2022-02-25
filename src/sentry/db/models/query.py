@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import itertools
 from functools import reduce
+from typing import Any, Tuple, Type, cast
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q
@@ -11,7 +14,7 @@ from .utils import resolve_combined_expression
 __all__ = ("update", "create_or_update")
 
 
-def update(self, using=None, **kwargs):
+def update(self: Model, using: str | None = None, **kwargs: Any) -> int:
     """
     Updates specified attributes on the current instance.
     """
@@ -23,7 +26,9 @@ def update(self, using=None, **kwargs):
         if getattr(field, "auto_now", False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(self, False)
 
-    affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
+    affected = cast(
+        int, self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
+    )
     for k, v in kwargs.items():
         if isinstance(v, CombinedExpression):
             v = resolve_combined_expression(self, v)
@@ -41,10 +46,12 @@ def update(self, using=None, **kwargs):
         raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
 
 
-update.alters_data = True
+update.alters_data = True  # type: ignore
 
 
-def create_or_update(model, using=None, **kwargs):
+def create_or_update(
+    model: Type[Model], using: str | None = None, **kwargs: Any
+) -> Tuple[int, bool]:
     """
     Similar to get_or_create, either updates a row or creates it.
 
@@ -95,7 +102,7 @@ def create_or_update(model, using=None, **kwargs):
     return affected, False
 
 
-def in_iexact(column, values):
+def in_iexact(column: str, values: Any) -> Q:
     """Operator to test if any of the given values are (case-insensitive)
     matching to values in the given column."""
     from operator import or_
@@ -105,7 +112,7 @@ def in_iexact(column, values):
     return reduce(or_, [Q(**{query: v}) for v in values])
 
 
-def in_icontains(column, values):
+def in_icontains(column: str, values: Any) -> Q:
     """Operator to test if any of the given values are (case-insensitively)
     contained within values in the given column."""
     from operator import or_

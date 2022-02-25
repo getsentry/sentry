@@ -5,22 +5,41 @@ import {t} from 'sentry/locale';
 import {Trace} from 'sentry/types/profiling/core';
 
 import {ProfilingTableCell} from './profilingTableCell';
-import {TableColumnKey, TableColumnOrders} from './types';
+import {TableColumn, TableColumnKey, TableColumnOrders, TableDataRow} from './types';
 
 interface ProfilingTableProps {
+  error: string | null;
+  isLoading: boolean;
   location: Location;
   traces: Trace[];
 }
 
-function ProfilingTable({location, traces}: ProfilingTableProps) {
+function ProfilingTable({error, isLoading, location, traces}: ProfilingTableProps) {
   return (
     <GridEditable
-      isLoading={false}
+      isLoading={isLoading}
+      error={error}
       data={traces}
       columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
       columnSortBy={[]}
-      grid={{renderBodyCell: ProfilingTableCell}}
+      grid={{renderBodyCell: renderProfilingTableCell}}
       location={location}
+    />
+  );
+}
+
+function renderProfilingTableCell(
+  column: TableColumn,
+  dataRow: TableDataRow,
+  rowIndex: number,
+  columnIndex: number
+) {
+  return (
+    <ProfilingTableCell
+      column={column}
+      dataRow={dataRow}
+      rowIndex={rowIndex}
+      columnIndex={columnIndex}
     />
   );
 }

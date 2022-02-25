@@ -17,6 +17,7 @@ type Props = {
   autoSelect?: boolean;
   errorMessage?: React.ReactNode;
   isDisabled?: boolean;
+  maxLength?: number;
   name?: string;
   successMessage?: React.ReactNode;
 };
@@ -27,6 +28,7 @@ function EditableText({
   name,
   errorMessage,
   successMessage,
+  maxLength,
   isDisabled = false,
   autoSelect = false,
 }: Props) {
@@ -151,6 +153,7 @@ function EditableText({
             value={inputValue}
             onChange={handleInputChange}
             onFocus={event => autoSelect && event.target.select()}
+            maxLength={maxLength}
           />
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>

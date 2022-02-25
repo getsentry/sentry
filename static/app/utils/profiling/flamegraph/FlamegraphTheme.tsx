@@ -1,3 +1,5 @@
+import {FlamegraphFrame} from '../flamegraphFrame';
+
 import {makeColorBucketTheme, makeColorMap, makeStackToColor} from './../colors/utils';
 import {Frame} from './../frame';
 
@@ -25,10 +27,10 @@ export interface FlamegraphTheme {
     BAR_LABEL_FONT_COLOR: string;
     COLOR_BUCKET: (t: number, frame?: Frame) => ColorChannels;
     COLOR_MAP: (
-      frames: ReadonlyArray<Frame>,
+      frames: ReadonlyArray<FlamegraphFrame>,
       colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
-      sortByKey?: (a: Frame, b: Frame) => number
-    ) => Map<Frame['key'], ColorChannels>;
+      sortByKey?: (a: FlamegraphFrame, b: FlamegraphFrame) => number
+    ) => Map<FlamegraphFrame['frame']['key'], ColorChannels>;
     CURSOR_CROSSHAIR: string;
     DIFFERENTIAL_DECREASE: ColorChannels;
     DIFFERENTIAL_INCREASE: ColorChannels;
@@ -52,7 +54,7 @@ export interface FlamegraphTheme {
     SPAN_FRAME_BACKGROUND: string;
     SPAN_FRAME_BORDER: string;
     STACK_TO_COLOR: (
-      frames: ReadonlyArray<Frame>,
+      frames: ReadonlyArray<FlamegraphFrame>,
       colorMapFn: FlamegraphTheme['COLORS']['COLOR_MAP'],
       colorBucketFn: FlamegraphTheme['COLORS']['COLOR_BUCKET']
     ) => {

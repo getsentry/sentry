@@ -1,4 +1,4 @@
-import React from 'react';
+import {useCallback, useMemo} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location} from 'history';
@@ -16,17 +16,21 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {Organization, Project} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {Trace} from 'sentry/types/profiling/core';
+import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {Theme} from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
+import {generateFlamegraphRoute} from '../routes';
 import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
 
 interface ProfilingScatterChartProps extends WithRouterProps {
-  loading: boolean;
+  isLoading: boolean;
   location: Location;
-  reloading: boolean;
   traces: Trace[];
   end?: string;
   start?: string;
@@ -38,43 +42,55 @@ function ProfilingScatterChart({
   router,
   location,
   traces,
-  loading,
-  reloading,
+  isLoading,
   start,
   end,
   statsPeriod,
   utc,
 }: ProfilingScatterChartProps) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
   const theme = useTheme();
 
-  const colorEncoding = React.useMemo(
-    () => getColorEncodingFromLocation(location),
-    [location]
-  );
+  const colorEncoding = useMemo(() => getColorEncodingFromLocation(location), [location]);
 
-  const series: Series[] = React.useMemo(() => {
-    const seriesMap: Record<string, SeriesDataUnit[]> = {};
-
+  const data: Record<string, Trace[]> = useMemo(() => {
+    const dataMap = {};
     for (const row of traces) {
       const seriesName = row[colorEncoding];
-      if (!seriesMap[seriesName]) {
-        seriesMap[seriesName] = [];
+      if (!dataMap[seriesName]) {
+        dataMap[seriesName] = [];
       }
-      seriesMap[seriesName].push({
-        name: row.start_time_unix * 1000,
-        value: row.trace_duration_ms,
-      });
+      dataMap[seriesName].push(row);
     }
+    return dataMap;
+  }, [colorEncoding, traces]);
 
-    return Object.entries(seriesMap).map(([seriesName, data]) => ({seriesName, data}));
-  }, [colorEncoding]);
+  const series: Series[] = useMemo(() => {
+    return Object.entries(data).map(([seriesName, seriesData]) => {
+      return {
+        seriesName,
+        data: seriesData.map(row => ({
+          name: row.start_time_unix * 1000,
+          value: row.trace_duration_ms,
+        })),
+      };
+    });
+  }, [data]);
 
-  const chartOptions = React.useMemo(
-    () => makeScatterChartOptions({location, theme}),
-    [location, theme]
+  const chartOptions = useMemo(
+    () =>
+      makeScatterChartOptions({
+        data,
+        location,
+        organization,
+        projects,
+        theme,
+      }),
+    [location, theme, data]
   );
 
-  const handleColorEncodingChange = React.useCallback(
+  const handleColorEncodingChange = useCallback(
     value => {
       browserHistory.push({
         ...location,
@@ -99,8 +115,8 @@ function ProfilingScatterChart({
         >
           {zoomRenderProps => {
             return (
-              <TransitionChart loading={loading} reloading={reloading}>
-                <TransparentLoadingMask visible={reloading} />
+              <TransitionChart loading={isLoading} reloading={isLoading}>
+                <TransparentLoadingMask visible={isLoading} />
                 <ScatterChart series={series} {...chartOptions} {...zoomRenderProps} />
               </TransitionChart>
             );
@@ -121,7 +137,23 @@ function ProfilingScatterChart({
   );
 }
 
-function makeScatterChartOptions({location, theme}: {location: Location; theme: Theme}) {
+function makeScatterChartOptions({
+  data,
+  location,
+  organization,
+  projects,
+  theme,
+}: {
+  /**
+   * The data is a mapping from the series name to a list of traces in the series. In particular,
+   * the order of the traces must match the order of the data in the series in the scatter plot.
+   */
+  data: Record<string, Trace[]>;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  theme: Theme;
+}) {
   return {
     grid: {
       left: '10px',
@@ -144,7 +176,23 @@ function makeScatterChartOptions({location, theme}: {location: Location; theme: 
       top: 5,
       selected: getSeriesSelection(location),
     },
-    onClick: _params => {}, // TODO
+    onClick: params => {
+      const dataPoint = data[params.seriesName]?.[params.dataIndex];
+      if (!defined(dataPoint)) {
+        return;
+      }
+      const project = projects.find(proj => proj.id === dataPoint.app_id);
+      if (!defined(project)) {
+        return;
+      }
+      browserHistory.push(
+        generateFlamegraphRoute({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          profileId: dataPoint.id,
+        })
+      );
+    },
   };
 }
 
