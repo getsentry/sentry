@@ -76,7 +76,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     return endpoints as ReturnType<AsyncComponent['getEndpoints']>;
   }
 
-  async componentDidMount() {
+  async onLoadAllEndpointsSuccess() {
     await this.checkCodeOwnersPrompt();
   }
 
@@ -103,6 +103,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     if (!codeMappings.length) {
       return;
     }
+    this.setState({loading: true});
     // check our prompt backend
     const promptData = await promptsCheck(api, {
       organizationId: organization.id,
@@ -110,7 +111,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       feature: 'code_owners',
     });
     const isDismissed = promptIsDismissed(promptData, 30);
-    this.setState({isDismissed}, () => {
+    this.setState({isDismissed, loading: false}, () => {
       if (!isDismissed) {
         // now record the results
         trackIntegrationAnalytics(
