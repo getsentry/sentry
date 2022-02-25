@@ -143,8 +143,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             queryset = queryset.filter(organization_integration=org_integration)
         else:
             # Filter by project
-            project_ids = self.get_requested_project_ids_unchecked(request)
-            projects = self.get_projects(request, organization, project_ids=project_ids)
+            projects = self.get_projects(request, organization)
             queryset = queryset.filter(project__in=projects)
 
         return self.paginate(
