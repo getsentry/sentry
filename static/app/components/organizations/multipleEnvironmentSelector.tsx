@@ -53,6 +53,7 @@ type Props = WithRouterProps & {
     summary: string;
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  forceEnvironment?: string;
   pinned?: boolean;
 } & DefaultProps;
 
@@ -237,8 +238,14 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {value, loadingProjects, customDropdownButton, customLoadingIndicator, pinned} =
-      this.props;
+    const {
+      value,
+      loadingProjects,
+      customDropdownButton,
+      customLoadingIndicator,
+      pinned,
+      forceEnvironment,
+    } = this.props;
     const environments = this.getEnvironments();
 
     const hasNewPageFilters =
@@ -249,7 +256,16 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       ? `${validatedValue.join(', ')}`
       : t('All Environments');
 
-    return loadingProjects ? (
+    return forceEnvironment !== undefined ? (
+      <StyledHeaderItem
+        data-test-id="global-header-environment-selector"
+        icon={<IconWindow />}
+        isOpen={false}
+        locked
+      >
+        {forceEnvironment ? forceEnvironment : t('All Environments')}
+      </StyledHeaderItem>
+    ) : loadingProjects ? (
       customLoadingIndicator ?? (
         <StyledHeaderItem
           data-test-id="global-header-environment-selector"
@@ -344,6 +360,7 @@ export default withApi(withRouter(MultipleEnvironmentSelector));
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
+  width: 100%;
 `;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
