@@ -124,6 +124,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     };
   }
 
+  static defaultProps: DefaultProps = {
+    disabled: false,
+  };
+
+  state: State = {
+    isNewQuery: true,
+    isEditingQuery: false,
+
+    queryName: '',
+  };
+
   /**
    * Stop propagation for the input and container so people can interact with
    * the inputs in the dropdown.
@@ -138,17 +149,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       event.preventDefault();
       event.stopPropagation();
     }
-  };
-
-  static defaultProps: DefaultProps = {
-    disabled: false,
-  };
-
-  state: State = {
-    isNewQuery: true,
-    isEditingQuery: false,
-
-    queryName: '',
   };
 
   onBlurInput = (event: React.FormEvent<HTMLInputElement>) => {
