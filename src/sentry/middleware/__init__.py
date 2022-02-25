@@ -4,6 +4,7 @@ import inspect
 from typing import Callable, Union
 
 from django.views import View
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
@@ -21,4 +22,8 @@ def get_path(view_func: ViewFunc) -> str | None:
     return path
 
 
-__all__ = ("get_path", "ViewFunc")
+def is_frontend_request(request: Request) -> bool:
+    return bool(getattr(request, "COOKIES", {}))
+
+
+__all__ = ("get_path", "is_frontend_request", "ViewFunc")

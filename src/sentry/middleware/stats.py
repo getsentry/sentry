@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.utils import metrics
 
-from . import ViewFunc, get_path
+from . import ViewFunc, get_path, is_frontend_request
 
 
 def add_request_metric_tags(request: Request, **kwargs: Any) -> None:
@@ -71,7 +71,7 @@ class RequestTimingMiddleware(MiddlewareMixin):
             {
                 "method": request.method,
                 "status_code": status_code,
-                "ui_request": bool(getattr(request, "COOKIES", {})),
+                "ui_request": is_frontend_request(request),
             }
         )
 
