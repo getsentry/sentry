@@ -41,7 +41,10 @@ COOKIE_PATH = getattr(settings, "SUPERUSER_COOKIE_PATH", settings.SESSION_COOKIE
 COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(minutes=15))
+MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
+
+# the maximum time the session can stay alive when accessing different orgs
+MAX_AGE_CHANGED_ORG = getattr(settings, "SUPERUSER_ORG_CHANGE_MAX_AGE", timedelta(minutes=15))
 
 # the maximum time the session can stay alive without making another request
 IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
@@ -70,11 +73,14 @@ class Superuser:
 
     org_id = ORG_ID
 
-    def _remove_su_access_from_session(self, request):
-        if request.session.get("su_access"):
-            del request.session["su_access"]
-        if request.session.get("su_orgs_accessed"):
-            del request.session["su_orgs_accessed"]
+    def _check_expired_on_org_change(self):
+        if hasattr(self, "expires") and self.expires is not None:
+            session_start_time = self.expires - MAX_AGE
+            current_datetime = timezone.now()
+            if current_datetime - session_start_time > MAX_AGE_CHANGED_ORG:
+                self.set_logged_out()
+                return False
+        return self._is_active
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
@@ -88,17 +94,18 @@ class Superuser:
 
     @property
     def is_active(self):
+        # if accessing differnt org. Also can't use self.org_id as ORG_ID is None
+        org = getattr(self.request, "organization", None)
+        if org and org not in self.request.user.get_orgs():
+            return self._check_expired_on_org_change()
         # if we've been logged out
         if not self.request.user.is_authenticated:
-            self._remove_su_access_from_session(self.request)
             return False
         # if superuser status was changed
         if not self.request.user.is_superuser:
-            self._remove_su_access_from_session(self.request)
             return False
         # if the user has changed
         if str(self.request.user.id) != self.uid:
-            self._remove_su_access_from_session(self.request)
             return False
         return self._is_active
 
@@ -313,11 +320,6 @@ class Superuser:
                         "reason_for_su": su_access_info.validated_data["reasonForSU"],
                     },
                 )
-
-                request.session["su_access"] = {
-                    "su_access_category": su_access_info.validated_data["categoryOfSUAccess"],
-                    "reason_for_su": su_access_info.validated_data["reasonForSU"],
-                }
             except json.JSONDecodeError as err:
                 raise err
 
@@ -327,6 +329,7 @@ class Superuser:
             user=user,
             current_datetime=current_datetime,
         )
+
         logger.info(
             "superuser.logged-in",
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},

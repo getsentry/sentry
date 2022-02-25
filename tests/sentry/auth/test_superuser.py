@@ -160,14 +160,30 @@ class SuperuserTestCase(TestCase):
         assert superuser.is_active is True
         assert logger.info.call_count == 2
         logger.info.assert_any_call(
-            "su_access.give_su_access",
+            "superuser.superuser_access",
             extra={
+                "superuser_session_id": superuser.token,
                 "user_id": 10,
                 "user_email": "test@sentry.io",
                 "su_access_category": "Edit organization settings",
                 "reason_for_su": "Edit organization settings",
             },
         )
+
+    def test_max_time_org_change_within_time(self):
+        request = self.build_request()
+        request.organization = "not_our_org"
+        superuser = Superuser(request, allowed_ips=())
+
+        assert superuser.is_active is True
+
+    def test_max_time_org_change_time_expired(self):
+        request = self.build_request()
+        request.organization = "not_our_org"
+        superuser = Superuser(request, allowed_ips=())
+        superuser.expires = timezone.now()
+
+        assert superuser.is_active is False
 
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)
