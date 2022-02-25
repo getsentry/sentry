@@ -143,7 +143,7 @@ class Dashboard extends Component<Props, State> {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
-    if (organization.features.includes('dashboard-metrics')) {
+    if (organization.features.includes('dashboards-metrics')) {
       fetchMetricsTags(api, organization.slug);
     }
     // Load organization tags when in edit mode.

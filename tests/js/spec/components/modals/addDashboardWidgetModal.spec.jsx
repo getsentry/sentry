@@ -1235,7 +1235,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
-      // Hide without the dashboard-metrics feature flag
+      // Hide without the dashboards-metrics feature flag
       expect(screen.queryByText('Metrics (Release Health)')).not.toBeInTheDocument();
       wrapper.unmount();
     });
