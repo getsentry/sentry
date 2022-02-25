@@ -17,13 +17,11 @@ describe('MetricsMetaStore', function () {
           name: 'sentry.sessions.session',
           type: 'counter',
           operations: ['sum'],
-          unit: null,
         },
         {
           name: 'sentry.sessions.session.error',
           type: 'set',
           operations: ['count_unique'],
-          unit: null,
         },
       ]);
 
@@ -33,13 +31,11 @@ describe('MetricsMetaStore', function () {
           name: 'sentry.sessions.session',
           type: 'counter',
           operations: ['sum'],
-          unit: null,
         },
         'sentry.sessions.session.error': {
           name: 'sentry.sessions.session.error',
           type: 'set',
           operations: ['count_unique'],
-          unit: null,
         },
       });
 
