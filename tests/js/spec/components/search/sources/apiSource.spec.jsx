@@ -135,6 +135,7 @@ describe('ApiSource', function () {
               to: '/org-slug/project-slug/issues/1/',
             }),
             score: 1,
+            refIndex: 0,
           },
         ],
       })
@@ -181,6 +182,7 @@ describe('ApiSource', function () {
               to: '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
             }),
             score: 1,
+            refIndex: 0,
           },
         ],
       })
