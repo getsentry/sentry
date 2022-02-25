@@ -599,13 +599,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
 
+    const filteredMeta = Object.values(metricsMeta).filter(field =>
+      METRICS_FIELDS_ALLOW_LIST.includes(field.name)
+    );
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      metricsMeta.length
-        ? Object.values(metricsMeta).filter(field =>
-            METRICS_FIELDS_ALLOW_LIST.includes(field.name)
-          )
-        : DEFAULT_METRICS_FIELDS,
+      filteredMeta.length ? filteredMeta : DEFAULT_METRICS_FIELDS,
       Object.values(metricsTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>

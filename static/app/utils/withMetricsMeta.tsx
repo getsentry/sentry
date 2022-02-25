@@ -4,7 +4,7 @@ import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
 import {MetricsMetaCollection} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedTagsProps = {
+export type InjectedMetricsMetaProps = {
   metricsMeta: MetricsMetaCollection;
 };
 
@@ -12,10 +12,13 @@ type State = {
   metricsMeta: MetricsMetaCollection;
 };
 
-function withMetricsMeta<P extends InjectedTagsProps>(
+function withMetricsMeta<P extends InjectedMetricsMetaProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithMetricMeta extends React.Component<Omit<P, keyof InjectedTagsProps>, State> {
+  class WithMetricMeta extends React.Component<
+    Omit<P, keyof InjectedMetricsMetaProps>,
+    State
+  > {
     static displayName = `withMetricsMeta(${getDisplayName(WrappedComponent)})`;
 
     state: State = {
