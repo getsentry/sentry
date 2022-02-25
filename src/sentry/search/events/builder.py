@@ -36,6 +36,7 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
+    METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -1457,7 +1458,7 @@ class MetricsQueryBuilder(QueryBuilder):
         )
         self.granularity = self.resolve_granularity()
 
-    def resolve_granularity(self) -> Optional[Granularity]:
+    def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
         pre-aggregated
 
@@ -1745,6 +1746,11 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             auto_fields=False,
             functions_acl=functions_acl,
         )
+        if self.granularity.granularity > interval:
+            for granularity in METRICS_GRANULARITIES:
+                if granularity <= interval:
+                    self.granularity = Granularity(granularity)
+                    break
 
         self.time_column = self.resolve_time_column(interval)
 

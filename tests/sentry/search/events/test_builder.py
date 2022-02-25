@@ -1099,37 +1099,55 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(query.where, self.default_conditions)
 
     def test_granularity(self):
-        # Need to pick granularity based on the period
-        def get_granularity(start, end):
+        # Need to pick granularity based on the period and interval for timeseries
+        def get_granularity(start, end, interval):
             params = {
                 "organization_id": self.organization.id,
                 "project_id": self.projects,
                 "start": start,
                 "end": end,
             }
-            query = TimeseriesMetricQueryBuilder(params, interval=3600)
+            query = TimeseriesMetricQueryBuilder(params, interval=interval)
             return query.granularity.granularity
 
         # If we're doing atleast day and its midnight we should use the daily bucket
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
-        assert get_granularity(start, end) == 86400, "A day at midnight"
+        assert get_granularity(start, end, 30) == 10, "A day at midnight, 30s interval"
+        assert get_granularity(start, end, 900) == 60, "A day at midnight, 15min interval"
+        assert get_granularity(start, end, 3600) == 3600, "A day at midnight, 1hr interval"
+        assert get_granularity(start, end, 86400) == 86400, "A day at midnight, 1d interval"
 
         # If we're on the start of the hour we should use the hour granularity
         start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
-        assert get_granularity(start, end) == 3600, "On the hour"
+        assert get_granularity(start, end, 30) == 10, "On the hour, 30s interval"
+        assert get_granularity(start, end, 900) == 60, "On the hour, 15min interval"
+        assert get_granularity(start, end, 3600) == 3600, "On the hour, 1hr interval"
+        assert get_granularity(start, end, 86400) == 3600, "On the hour, 1d interval"
 
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
         # granularity
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
-        assert get_granularity(start, end) == 60, "A few hours, but random minute"
+        assert get_granularity(start, end, 30) == 10, "A few hours, but random minute, 30s interval"
+        assert (
+            get_granularity(start, end, 900) == 60
+        ), "A few hours, but random minute, 15min interval"
+        assert (
+            get_granularity(start, end, 3600) == 60
+        ), "A few hours, but random minute, 1hr interval"
+        assert (
+            get_granularity(start, end, 86400) == 60
+        ), "A few hours, but random minute, 1d interval"
 
         # Less than a minute, no reason to work hard for such a small window, just use a minute
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 10, 15, 34, tzinfo=timezone.utc)
-        assert get_granularity(start, end) == 60, "less than a minute"
+        assert get_granularity(start, end, 30) == 10, "less than a minute, 30s interval"
+        assert get_granularity(start, end, 900) == 60, "less than a minute, 15min interval"
+        assert get_granularity(start, end, 3600) == 60, "less than a minute, 1hr interval"
+        assert get_granularity(start, end, 86400) == 60, "less than a minute, 1d interval"
 
     def test_transaction_in_filter(self):
         query = TimeseriesMetricQueryBuilder(
@@ -1290,6 +1308,44 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert result["data"] == [
             {"time": "2015-01-01T15:00:00+00:00", "epm_3600": 2 / (3600 / 60)},
             {"time": "2015-01-01T16:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "epm_3600", "type": "Float64"},
+            ],
+        )
+
+    def test_run_query_with_granularity_larger_than_interval(self):
+        """The base MetricsQueryBuilder with a perfect 1d query will try to use granularity 86400 which is larger than
+        the interval of 3600, in this case we want to make sure to use a smaller granularity to get the correct
+        result"""
+        self.start = datetime.datetime(2015, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        self.end = datetime.datetime(2015, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        self.params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+            "start": self.start,
+            "end": self.end,
+        }
+
+        for i in range(5):
+            self.store_metric(
+                100,
+                timestamp=self.start + datetime.timedelta(minutes=i * 15),
+            )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            interval=3600,
+            query="",
+            selected_columns=["epm(3600)"],
+        )
+        result = query.run_query("test_query")
+        assert result["data"] == [
+            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 4 / (3600 / 60)},
+            {"time": "2015-01-01T01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
         ]
         self.assertCountEqual(
             result["meta"],
