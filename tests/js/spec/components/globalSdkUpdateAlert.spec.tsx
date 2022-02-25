@@ -1,6 +1,7 @@
 import moment from 'moment';
 
 import {
+  BaseProviders,
   mountWithTheme,
   screen,
   userEvent,
@@ -64,8 +65,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     const {rerender} = mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <BaseProviders organization={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </BaseProviders>
     );
 
     expect(
@@ -99,8 +101,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <BaseProviders organization={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </BaseProviders>
     );
 
     expect(
@@ -125,8 +128,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <BaseProviders organization={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </BaseProviders>
     );
 
     await waitFor(() =>
@@ -153,8 +157,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <BaseProviders organization={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </BaseProviders>
     );
 
     expect(
@@ -179,8 +184,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <BaseProviders organization={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </BaseProviders>
     );
 
     await waitFor(() =>
@@ -205,8 +211,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <BaseProviders organization={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </BaseProviders>
     );
 
     expect(
@@ -228,8 +235,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <BaseProviders organization={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </BaseProviders>
     );
 
     userEvent.click(await screen.findByText(/Remind me later/));

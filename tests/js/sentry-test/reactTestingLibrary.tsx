@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import React, {Component, Fragment} from 'react';
 import {cache} from '@emotion/css';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports
@@ -34,6 +34,21 @@ function createProvider(contextDefs: Record<string, any>) {
       return this.props.children;
     }
   };
+}
+
+export function BaseProviders(props: {
+  children: React.ReactNode;
+  organization?: Organization;
+}): React.ReactElement {
+  return (
+    <CacheProvider value={cache}>
+      <ThemeProvider theme={lightTheme}>
+        <OrganizationContext.Provider value={props.organization ?? null}>
+          {props.children}
+        </OrganizationContext.Provider>
+      </ThemeProvider>
+    </CacheProvider>
+  );
 }
 
 function makeAllTheProviders({context, organization}: ProviderOptions) {
