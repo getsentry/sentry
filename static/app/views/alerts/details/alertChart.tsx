@@ -67,7 +67,7 @@ class AlertChart extends React.PureComponent<Props> {
           })}
         </StyledPanelBody>
         <ChartFooter>
-          <FooterHeader>{t('Alerts Triggered')}</FooterHeader>
+          <FooterHeader>{t('Total Alerts')}</FooterHeader>
           <FooterValue>{'88'}</FooterValue>
         </ChartFooter>
       </Panel>
@@ -92,7 +92,7 @@ const FooterHeader = styled(SectionHeading)`
   align-items: center;
   margin: 0;
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
 `;
 
