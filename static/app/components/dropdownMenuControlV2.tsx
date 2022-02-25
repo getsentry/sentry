@@ -1,8 +1,9 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
 import {AriaPositionProps, OverlayProps} from '@react-aria/overlays';
+import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {useMenuTriggerState} from '@react-stately/menu';
 import {MenuTriggerProps} from '@react-types/menu';
@@ -124,10 +125,20 @@ function MenuControl({
   // Calculate the current trigger element's width. This will be used as
   // the min width for the menu.
   const [triggerWidth, setTriggerWidth] = useState<number>();
-  useEffect(() => {
+  // Update triggerWidth when its size changes using useResizeObserver
+  const updateTriggerWidth = useCallback(() => {
     const newTriggerWidth = ref.current?.offsetWidth;
     !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);
   }, [trigger, triggerLabel, triggerProps]);
+  useResizeObserver({ref, onResize: updateTriggerWidth});
+  // If ResizeObserver is not available, manually update the width
+  // when any of [trigger, triggerLabel, triggerProps] changes.
+  useEffect(() => {
+    if (typeof window.ResizeObserver !== 'undefined') {
+      return;
+    }
+    updateTriggerWidth();
+  }, [updateTriggerWidth]);
 
   // Recursively remove hidden items, including those nested in submenus
   function removeHiddenItems(source) {
