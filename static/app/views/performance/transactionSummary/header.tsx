@@ -285,7 +285,6 @@ class TransactionHeader extends React.Component<Props> {
             >
               {t('All Events')}
             </ListLink>
-            {this.renderWebVitalsTab()}
             <ListLink
               to={tagsTarget}
               isActive={() => currentTab === Tab.Tags}
@@ -321,6 +320,7 @@ class TransactionHeader extends React.Component<Props> {
                 <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>
+            {this.renderWebVitalsTab()}
           </StyledNavTabs>
         </React.Fragment>
       </Layout.Header>
