@@ -486,8 +486,11 @@ const HeaderGrid = styled('div')`
   display: flex;
   flex-shrink: 1;
   justify-content: start;
-  gap: 60px;
   width: 100%;
+
+  & > * {
+    margin-right: ${space(4)};
+  }
 `;
 
 const HeaderItem = styled('div')`
