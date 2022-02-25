@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Mapping
 
+from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.shared_integrations.exceptions import ApiError
 
 from ..client import JiraApiClient, JiraCloud
 
@@ -98,3 +100,19 @@ def handle_status_change(integration, data):
         installation.sync_status_inbound(
             issue_key, {"changelog": changelog, "issue": data["issue"]}
         )
+
+
+def handle_jira_api_error(error: ApiError, message: str = "") -> Mapping[str, str] | None:
+    if error.code in (
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+    ):
+        return {"error_message": f"Cannot reach host{message}."}
+
+    if error.code in (
+        status.HTTP_403_FORBIDDEN,
+        status.HTTP_404_NOT_FOUND,
+    ):
+        return {"error_message": f"User lacks permissions{message}."}
+
+    return None

@@ -1,14 +1,13 @@
 import logging
 
 from django.conf import settings
-from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.utils import get_integration_from_jwt
 from sentry.shared_integrations.exceptions import ApiError
 
-from ..utils import handle_assignee_change, handle_status_change
+from ..utils import handle_assignee_change, handle_jira_api_error, handle_status_change
 from .base import JiraEndpointBase
 
 logger = logging.getLogger("sentry.integrations.jira.webhooks")
@@ -17,17 +16,9 @@ logger = logging.getLogger("sentry.integrations.jira.webhooks")
 class JiraIssueUpdatedWebhook(JiraEndpointBase):
     def handle_exception(self, request: Request, exc: Exception) -> Response:
         if isinstance(exc, ApiError):
-            if exc.code in (
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-            ):
-                return self.get_response({"error_message": "Cannot reach host to get email."})
-
-            if exc.code in (
-                status.HTTP_403_FORBIDDEN,
-                status.HTTP_404_NOT_FOUND,
-            ):
-                return self.get_response({"error_message": "User lacks permissions to get email."})
+            response_option = handle_jira_api_error(exc, " to get email")
+            if response_option:
+                return self.get_response(response_option)
 
         return super().handle_exception(request, exc)
 

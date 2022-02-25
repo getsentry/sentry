@@ -6,7 +6,6 @@ from typing import Any, Mapping
 from urllib.parse import quote
 
 from jwt import ExpiredSignatureError
-from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,7 +17,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
-from ..utils import set_badge
+from ..utils import handle_jira_api_error, set_badge
 from . import UNABLE_TO_VERIFY_INSTALLATION, JiraBaseHook
 
 logger = logging.getLogger(__name__)
@@ -97,21 +96,12 @@ class JiraIssueHookView(JiraBaseHook):
 
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         try:
-            return super().dispatch(request)
+            return super().dispatch(request, *args, **kwargs)
         except ApiError as exc:
             # Sometime set_badge() will fail to connect.
-            if exc.code in (
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-            ):
-                return self.get_response({"error_message": "Cannot reach host to set badge."})
-
-            if exc.code in (
-                status.HTTP_403_FORBIDDEN,
-                status.HTTP_404_NOT_FOUND,
-            ):
-                return self.get_response({"error_message": "User lacks permissions to set badge."})
-
+            response_option = handle_jira_api_error(exc, " to set badge")
+            if response_option:
+                return self.get_response(response_option)
             raise exc
 
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
