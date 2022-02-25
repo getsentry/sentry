@@ -3,13 +3,14 @@ from typing import List
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F, Q
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, ratelimits, roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.examples.organization_member_index import basic_get_example
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
@@ -139,7 +140,7 @@ class OrganizationMemberIndexQueryParamSerializer(serializers.Serializer):
     )
     query = serializers.CharField(
         required=False,
-        help_text="filter by an email address, but look at secondary email's and primary account emails as well.",
+        help_text="filter by an email address, but look at secondary emails and primary account emails as well.",
     )
     expand = serializers.MultipleChoiceField(
         choices=["externalUsers"],
@@ -163,53 +164,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 List[organization_member_serializers.OrganizationMemberResponse],
             )
         },
-        examples=[
-            OpenApiExample(
-                "Retrieve a List of Organization Members",
-                response_only=True,
-                value=[
-                    {
-                        "id": "8",
-                        "email": "dummy@example.com",
-                        "name": "dummy@example.com",
-                        "user": {
-                            "id": "5",
-                            "name": "dummy@example.com",
-                            "username": "dummy@example.com",
-                            "email": "dummy@example.com",
-                            "avatarUrl": "https://secure.gravatar.com/avatar/6e8e0bf6135471802a63a17c5e74ddc5?s=32&d=mm",
-                            "isActive": True,
-                            "hasPasswordAuth": True,
-                            "isManaged": False,
-                            "dateJoined": "2022-02-24T05:00:50.796399Z",
-                            "lastLogin": "2022-02-24T05:00:50.818081Z",
-                            "has2fa": False,
-                            "lastActive": "2022-02-24T05:00:50.796406Z",
-                            "isSuperuser": False,
-                            "isStaff": True,
-                            "experiments": {},
-                            "emails": [
-                                {"id": "5", "email": "dummy@example.com", "is_verified": True}
-                            ],
-                            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                        },
-                        "role": "member",
-                        "roleName": "Member",
-                        "pending": False,
-                        "expired": False,
-                        "flags": {
-                            "sso:linked": False,
-                            "sso:invalid": False,
-                            "member-limit:restricted": False,
-                        },
-                        "dateCreated": "2022-02-24T05:00:50.811995Z",
-                        "inviteStatus": "approved",
-                        "inviterName": None,
-                    }
-                ],
-                status_codes=["200"],
-            ),
-        ],
+        examples=[basic_get_example],
     )
     def get(self, request: Request, organization) -> Response:
         """Query an Organization's Members."""
