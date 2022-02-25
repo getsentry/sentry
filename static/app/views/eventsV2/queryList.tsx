@@ -349,10 +349,7 @@ class QueryList extends React.Component<Props> {
             />
           )}
           renderContextMenu={() => (
-            <Feature
-              organization={organization}
-              features={['connect-discover-and-dashboards', 'dashboards-edit']}
-            >
+            <Feature organization={organization} features={['dashboards-edit']}>
               {({hasFeature}) => this.renderDropdownMenu(menuItems(hasFeature))}
             </Feature>
           )}

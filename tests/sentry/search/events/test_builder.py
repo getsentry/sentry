@@ -17,8 +17,7 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.testutils.cases import SessionMetricsTestCase, TestCase
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
 
@@ -595,20 +594,23 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
     )
 
 
-class MetricBuilderBaseTest(TestCase, SessionMetricsTestCase):
-    TYPE_MAP = {
-        "metrics_distributions": "d",
-        "metrics_sets": "s",
-        "metrics_counters": "c",
-    }
+class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
+    METRIC_STRINGS = [
+        "foo_transaction",
+        "bar_transaction",
+        "baz_transaction",
+    ]
+    DEFAULT_METRIC_TIMESTAMP = datetime.datetime(
+        2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc
+    ) + datetime.timedelta(minutes=1)
 
     def setUp(self):
+        super().setUp()
         self.start = datetime.datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
         self.end = datetime.datetime(2015, 1, 19, 10, 15, 0, tzinfo=timezone.utc)
         self.projects = [self.project.id]
-        self.organization_id = 1
         self.params = {
-            "organization_id": self.organization_id,
+            "organization_id": self.organization.id,
             "project_id": self.projects,
             "start": self.start,
             "end": self.end,
@@ -618,71 +620,25 @@ class MetricBuilderBaseTest(TestCase, SessionMetricsTestCase):
             Condition(Column("timestamp"), Op.GTE, self.start),
             Condition(Column("timestamp"), Op.LT, self.end),
             Condition(Column("project_id"), Op.IN, self.projects),
-            Condition(Column("org_id"), Op.EQ, self.organization_id),
+            Condition(Column("org_id"), Op.EQ, self.organization.id),
         ]
-        PGStringIndexer().bulk_record(
-            strings=[
-                "transaction",
-                "foo_transaction",
-                "bar_transaction",
-                "baz_transaction",
-            ]
-            + list(constants.METRICS_MAP.values())
-        )
-
-    def store_metric(
-        self,
-        value,
-        metric=constants.METRICS_MAP["transaction.duration"],
-        entity="metrics_distributions",
-        tags=None,
-        timestamp=None,
-    ):
-        if tags is None:
-            tags = {}
-        else:
-            tags = {indexer.resolve(key): indexer.resolve(value) for key, value in tags.items()}
-        if timestamp is None:
-            timestamp = (self.start + datetime.timedelta(minutes=1)).timestamp()
-        else:
-            timestamp = timestamp.timestamp()
-        if not isinstance(value, list):
-            value = [value]
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization_id,
-                    "project_id": self.project.id,
-                    "metric_id": indexer.resolve(metric),
-                    "timestamp": timestamp,
-                    "tags": tags,
-                    "type": self.TYPE_MAP[entity],
-                    "value": value,
-                    "retention_days": 90,
-                }
-            ],
-            entity=entity,
-        )
 
     def setup_orderby_data(self):
         self.store_metric(100, tags={"transaction": "foo_transaction"})
         self.store_metric(
             1,
-            metric=constants.METRICS_MAP["user"],
-            entity="metrics_sets",
+            metric="user",
             tags={"transaction": "foo_transaction"},
         )
         self.store_metric(50, tags={"transaction": "bar_transaction"})
         self.store_metric(
             1,
-            metric=constants.METRICS_MAP["user"],
-            entity="metrics_sets",
+            metric="user",
             tags={"transaction": "bar_transaction"},
         )
         self.store_metric(
             2,
-            metric=constants.METRICS_MAP["user"],
-            entity="metrics_sets",
+            metric="user",
             tags={"transaction": "bar_transaction"},
         )
 
@@ -825,7 +781,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         # Need to pick granularity based on the period
         def get_granularity(start, end):
             params = {
-                "organization_id": self.organization_id,
+                "organization_id": self.organization.id,
                 "project_id": self.projects,
                 "start": start,
                 "end": end,
@@ -882,8 +838,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.store_metric(100, tags={"transaction": "foo_transaction"})
         self.store_metric(
             1,
-            metric=constants.METRICS_MAP["user"],
-            entity="metrics_sets",
+            metric="user",
             tags={"transaction": "foo_transaction"},
         )
         query = MetricsQueryBuilder(
@@ -987,6 +942,45 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     # TODO: multiple groupby with counter
 
+    def test_run_query_with_events_per_aggregates(self):
+        for i in range(5):
+            self.store_metric(100, timestamp=self.start + datetime.timedelta(minutes=i * 15))
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "eps()",
+                "epm()",
+                "tps()",
+                "tpm()",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        # Check the aliases are correct
+        assert data["epm"] == data["tpm"]
+        assert data["eps"] == data["tps"]
+        # Check the values are correct
+        assert data["tpm"] == 5 / ((self.end - self.start).total_seconds() / 60)
+        assert data["tpm"] / 60 == data["tps"]
+
+    def test_failure_rate(self):
+        for _ in range(3):
+            self.store_metric(100, tags={"transaction.status": "internal_error"})
+            self.store_metric(100, tags={"transaction.status": "ok"})
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "failure_rate()",
+                "failure_count()",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["failure_rate"] == 0.5
+        assert data["failure_count"] == 3
+
     def test_run_query_with_multiple_groupby_orderby_null_values_in_second_entity(self):
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions
         first which will have it, and then just not find a unique count in the second"""
@@ -1087,7 +1081,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.run_query("test_query")
 
 
-class TimeseresMetricQueryBuilderTest(MetricBuilderBaseTest):
+class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):
         query = TimeseriesMetricQueryBuilder(
             self.params, granularity=900, query="", selected_columns=["p50(transaction.duration)"]
@@ -1190,8 +1184,7 @@ class TimeseresMetricQueryBuilderTest(MetricBuilderBaseTest):
             self.store_metric(100, timestamp=self.start + datetime.timedelta(minutes=i * 15))
             self.store_metric(
                 1,
-                metric=constants.METRICS_MAP["user"],
-                entity="metrics_sets",
+                metric="user",
                 timestamp=self.start + datetime.timedelta(minutes=i * 15),
             )
         query = TimeseriesMetricQueryBuilder(
