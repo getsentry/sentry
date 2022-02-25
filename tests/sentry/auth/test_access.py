@@ -299,7 +299,6 @@ class FromRequestTest(TestCase):
         assert result.role == "admin"
         assert result.is_active
         assert result.has_global_access
-        assert result.organization_id == org.id
 
         assert result.teams == frozenset({team})
         assert result.has_team_access(team)
