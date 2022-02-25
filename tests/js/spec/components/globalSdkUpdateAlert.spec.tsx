@@ -11,6 +11,7 @@ import {InnerGlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert'
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const makeFilterProps = (filters: Partial<PageFilters>): PageFilters => {
   return {
@@ -64,8 +65,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     const {rerender} = mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <OrganizationContext.Provider value={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </OrganizationContext.Provider>
     );
 
     expect(
@@ -99,8 +101,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <OrganizationContext.Provider value={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </OrganizationContext.Provider>
     );
 
     expect(
@@ -125,8 +128,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <OrganizationContext.Provider value={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </OrganizationContext.Provider>
     );
 
     await waitFor(() =>
@@ -153,8 +157,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <OrganizationContext.Provider value={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </OrganizationContext.Provider>
     );
 
     expect(
@@ -179,8 +184,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <OrganizationContext.Provider value={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </OrganizationContext.Provider>
     );
 
     await waitFor(() =>
@@ -205,8 +211,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <OrganizationContext.Provider value={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </OrganizationContext.Provider>
     );
 
     expect(
@@ -228,8 +235,9 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
+      <OrganizationContext.Provider value={TestStubs.Organization()}>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />
+      </OrganizationContext.Provider>
     );
 
     userEvent.click(await screen.findByText(/Remind me later/));

@@ -11,16 +11,9 @@ import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-li
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 import GlobalModal from 'sentry/components/globalModal';
-import {Organization} from 'sentry/types';
 import {lightTheme} from 'sentry/utils/theme';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-type ProviderOptions = {
-  context?: Record<string, any>;
-  organization?: Organization;
-};
-
-type Options = ProviderOptions & RenderOptions;
+type Options = Record<string, any> & RenderOptions;
 
 function createProvider(contextDefs: Record<string, any>) {
   return class ContextProvider extends Component {
@@ -36,17 +29,13 @@ function createProvider(contextDefs: Record<string, any>) {
   };
 }
 
-function makeAllTheProviders({context, organization}: ProviderOptions) {
+function makeBaseProviders(context?: Record<string, any>) {
   const ContextProvider = context ? createProvider(context) : Fragment;
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <ContextProvider>
         <CacheProvider value={cache}>
-          <ThemeProvider theme={lightTheme}>
-            <OrganizationContext.Provider value={organization ?? null}>
-              {children}
-            </OrganizationContext.Provider>
-          </ThemeProvider>
+          <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>
         </CacheProvider>
       </ContextProvider>
     );
@@ -60,12 +49,14 @@ function makeAllTheProviders({context, organization}: ProviderOptions) {
  * After
  * mountWithTheme(<Something />, {context: routerContext});
  */
-function mountWithTheme(ui: React.ReactElement, options?: Options) {
-  const {context, organization, ...otherOptions} = options ?? {};
+function mountWithTheme(component: React.ReactElement, options: Options = {}) {
+  const {context, ...testingLibraryOptions} = options;
 
-  const AllTheProviders = makeAllTheProviders({context, organization});
+  const BaseProviders = makeBaseProviders(context);
 
-  return render(ui, {wrapper: AllTheProviders, ...otherOptions});
+  return render(<BaseProviders>{component}</BaseProviders>, {
+    ...testingLibraryOptions,
+  });
 }
 
 /**
