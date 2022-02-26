@@ -22,7 +22,7 @@ class RuleHistoryBackend(Service):
     This backend is an interface for storing and retrieving issue alert fire history.
     """
 
-    __all__ = ("record",)
+    __all__ = ("record", "fetch_rule_groups_paginated")
 
     def record(self, rule: Rule, group: Group) -> None:
         """
