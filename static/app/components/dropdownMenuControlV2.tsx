@@ -126,11 +126,13 @@ function MenuControl({
   // the min width for the menu.
   const [triggerWidth, setTriggerWidth] = useState<number>();
   // Update triggerWidth when its size changes using useResizeObserver
-  const updateTriggerWidth = useCallback(() => {
-    setTimeout(() => {
-      const newTriggerWidth = ref.current?.offsetWidth;
-      !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);
-    });
+  const updateTriggerWidth = useCallback(async () => {
+    // Wait until the trigger element finishes rendering, otherwise
+    // ResizeObserver might throw an infinite loop error.
+    await new Promise(resolve => setTimeout(resolve));
+
+    const newTriggerWidth = ref.current?.offsetWidth;
+    !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);
   }, [trigger, triggerLabel, triggerProps]);
   useResizeObserver({ref, onResize: updateTriggerWidth});
   // If ResizeObserver is not available, manually update the width
