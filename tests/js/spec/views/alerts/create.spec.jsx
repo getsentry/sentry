@@ -192,7 +192,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add a filter and remove it
       await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -239,7 +239,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add a condition and remove it
       await selectEvent.select(screen.getByText('Add optional condition...'), [
@@ -296,7 +296,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.type(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
