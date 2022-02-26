@@ -43,6 +43,11 @@ COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 # the maximum time the session can stay alive
 MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
 
+# the maximum time the session can stay alive when accessing different orgs
+MAX_AGE_PRIVILEGED_ORG_ACCESS = getattr(
+    settings, "SUPERUSER_ORG_CHANGE_MAX_AGE", timedelta(minutes=15)
+)
+
 # the maximum time the session can stay alive without making another request
 IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
 
@@ -70,6 +75,15 @@ class Superuser:
 
     org_id = ORG_ID
 
+    def _check_expired_on_org_change(self):
+        if hasattr(self, "expires") and self.expires is not None:
+            session_start_time = self.expires - MAX_AGE
+            current_datetime = timezone.now()
+            if current_datetime - session_start_time > MAX_AGE_PRIVILEGED_ORG_ACCESS:
+                self.set_logged_out()
+                return False
+        return self._is_active
+
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
         if allowed_ips is not UNSET:
@@ -82,6 +96,10 @@ class Superuser:
 
     @property
     def is_active(self):
+        # if accessing differnt org. Also can't use self.org_id as ORG_ID is None
+        org = getattr(self.request, "organization", None)
+        if org and org not in self.request.user.get_orgs():
+            return self._check_expired_on_org_change()
         # if we've been logged out
         if not self.request.user.is_authenticated:
             return False
