@@ -554,7 +554,7 @@
   {%if report.key_errors|length > 0 %}
   <div id="key-errors">
     {% with report.key_errors as errors %}
-    <h4>Key Errors</h4>
+    <h4>Issues with the Most Errors</h4>
     {% for a in errors %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
