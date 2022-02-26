@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import type Fuse from 'fuse.js';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -81,7 +82,7 @@ interface SearchProps extends WithRouterProps<{orgId: string}> {
   /**
    * Fuse search options
    */
-  searchOptions?: Fuse.FuseOptions<any>;
+  searchOptions?: Fuse.IFuseOptions<any>;
   /**
    * The sources to query
    */
