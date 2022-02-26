@@ -140,7 +140,7 @@ class SudoModal extends React.Component<Props, State> {
           />
           {/* only show the 2 below if they are superusers */}
           <StyledSelectField
-            name="categoryOfSUAccess"
+            name="superuserAccessCategory"
             label={t('Catergory of Superuser Access')}
             options={placeholderForSUCategories.map(SUCategory => ({
               value: SUCategory.value,
@@ -155,7 +155,7 @@ class SudoModal extends React.Component<Props, State> {
             type="text"
             inline={false}
             label={t('Reason for Superuser')}
-            name="reasonForSU"
+            name="superuserReason"
             flexibleControlStateSize
             required
           />

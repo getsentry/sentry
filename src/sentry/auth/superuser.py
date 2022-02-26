@@ -44,7 +44,9 @@ COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
 
 # the maximum time the session can stay alive when accessing different orgs
-MAX_AGE_CHANGED_ORG = getattr(settings, "SUPERUSER_ORG_CHANGE_MAX_AGE", timedelta(minutes=15))
+MAX_AGE_PRIVILEGED_ORG_ACCESS = getattr(
+    settings, "SUPERUSER_ORG_CHANGE_MAX_AGE", timedelta(minutes=15)
+)
 
 # the maximum time the session can stay alive without making another request
 IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
@@ -64,8 +66,8 @@ def is_active_superuser(request):
 
 
 class SuperuserAccessSerializer(serializers.Serializer):
-    categoryOfSUAccess = serializers.CharField()
-    reasonForSU = serializers.CharField(min_length=4, max_length=128)
+    superuserAccessCategory = serializers.CharField()
+    superuserReason = serializers.CharField(min_length=4, max_length=128)
 
 
 class Superuser:
@@ -77,7 +79,7 @@ class Superuser:
         if hasattr(self, "expires") and self.expires is not None:
             session_start_time = self.expires - MAX_AGE
             current_datetime = timezone.now()
-            if current_datetime - session_start_time > MAX_AGE_CHANGED_ORG:
+            if current_datetime - session_start_time > MAX_AGE_PRIVILEGED_ORG_ACCESS:
                 self.set_logged_out()
                 return False
         return self._is_active
@@ -302,26 +304,23 @@ class Superuser:
         token = get_random_string(12)
 
         if request.method == "PUT":
-            try:
-                # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
-                su_access_json = json.loads(request.body)
-                su_access_info = SuperuserAccessSerializer(data=su_access_json)
+            # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
+            su_access_json = json.loads(request.body)
+            su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
-                if not su_access_info.is_valid():
-                    raise serializers.ValidationError(su_access_info.errors)
+            if not su_access_info.is_valid():
+                raise serializers.ValidationError(su_access_info.errors)
 
-                logger.info(
-                    "superuser.superuser_access",
-                    extra={
-                        "superuser_session_id": token,
-                        "user_id": request.user.id,
-                        "user_email": request.user.email,
-                        "su_access_category": su_access_info.validated_data["categoryOfSUAccess"],
-                        "reason_for_su": su_access_info.validated_data["reasonForSU"],
-                    },
-                )
-            except json.JSONDecodeError as err:
-                raise err
+            logger.info(
+                "superuser.superuser_access",
+                extra={
+                    "superuser_session_id": token,
+                    "user_id": request.user.id,
+                    "user_email": request.user.email,
+                    "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
+                    "reason_for_su": su_access_info.validated_data["superuserReason"],
+                },
+            )
 
         self._set_logged_in(
             expires=current_datetime + MAX_AGE,
