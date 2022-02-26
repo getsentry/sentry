@@ -7,8 +7,8 @@ import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
-import PageCorners from './components/pageCorners';
 import TargetedOnboardingWelcome from './welcome';
 
 export default function Onboarding() {

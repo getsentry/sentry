@@ -17,6 +17,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import testableTransition from 'sentry/utils/testableTransition';
 import withOrganization from 'sentry/utils/withOrganization';
 
+import WelcomeBackground from './components/welcomeBackground';
+
 const fadeAway: MotionProps = {
   variants: {
     initial: {opacity: 0},
@@ -60,11 +62,12 @@ function TargetedOnboardingWelcome({organization}: Props) {
   });
   return (
     <Wrapper>
+      <WelcomeBackground />
       <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
       <SubHeaderText {...fadeAway}>
-        {t('Your code is probably broken.')}
+        {t('Your code is probably broken. Maybe not.')}
         <br />
-        {t('Maybe not. Find out in two steps.')}
+        {t('Find out for sure. Get started Below.')}
       </SubHeaderText>
       <ActionItem>
         <InnerAction
@@ -74,7 +77,7 @@ function TargetedOnboardingWelcome({organization}: Props) {
           )}
           src={OnboardingInstall}
           cta={
-            <Button
+            <ButtonWithFill
               onClick={() => {
                 trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
                   organization,
@@ -87,7 +90,7 @@ function TargetedOnboardingWelcome({organization}: Props) {
               priority="primary"
             >
               {t('Start')}
-            </Button>
+            </ButtonWithFill>
           }
         />
       </ActionItem>
@@ -100,14 +103,14 @@ function TargetedOnboardingWelcome({organization}: Props) {
           )}
           src={OnboardingSetup}
           cta={
-            <Button
+            <ButtonWithFill
               onClick={() => {
                 openInviteMembersModal({source});
               }}
               priority="primary"
             >
               {t('Invite Team')}
-            </Button>
+            </ButtonWithFill>
           }
         />
       </ActionItem>
@@ -120,9 +123,9 @@ function TargetedOnboardingWelcome({organization}: Props) {
             )}
             src={OnboardingPreview}
             cta={
-              <DemoSandboxButton scenario="oneIssue" priority="primary" {...{source}}>
+              <SandboxWithFill scenario="oneIssue" priority="primary" {...{source}}>
                 {t('Explore')}
-              </DemoSandboxButton>
+              </SandboxWithFill>
             }
           />
         </ActionItem>
@@ -170,7 +173,7 @@ const ActionItem = styled('div')`
   border: 1px solid ${p => p.theme.gray200};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
-    grid-template-columns: 125px auto auto;
+    grid-template-columns: 125px auto 125px;
     width: 680px;
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -205,7 +208,7 @@ const SubHeaderText = styled(motion.h6)`
 `;
 
 const ButtonWrapper = styled('div')`
-  margin: ${space(3)} ${space(3)} 0;
+  margin: ${space(1)};
   display: flex;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -219,4 +222,12 @@ const ButtonWrapper = styled('div')`
 
 const ActionImage = styled('img')`
   height: 100px;
+`;
+
+const ButtonWithFill = styled(Button)`
+  min-width: -webkit-fill-available;
+`;
+
+const SandboxWithFill = styled(DemoSandboxButton)`
+  min-width: -webkit-fill-available;
 `;
