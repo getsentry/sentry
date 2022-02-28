@@ -43,7 +43,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
     interval = serializers.CharField(
         help_text=(
-            "This is the resolution of the time series, given in the same format as `statsPeriod` "
+            "This is the resolution of the time series, given in the same format as `statsPeriod`. "
             "The default resolution is `1h` and the minimum resolution is currently restricted to `1h` as well. "
             "Intervals larger than `1d` are not supported, and the interval has to cleanly divide one day."
         ),
@@ -62,7 +62,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         list(GROUPBY_MAP.keys()),
         required=True,
         help_text=(
-            "can pass multiple groupBy parameters to group by multiple, e.g. groupBy=project&groupBy=outcome to group by multiple dimensions. "
+            "can pass multiple groupBy parameters to group by multiple, e.g. `groupBy=project&groupBy=outcome` to group by multiple dimensions. "
             "Note that grouping by project can cause missing rows if the number of projects / interval is large. "
             "If you have a large number of projects, we reccomend filtering and querying by them individually."
         ),
@@ -71,8 +71,8 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     field = serializers.ChoiceField(
         list(COLUMN_MAP.keys()),
         help_text=(
-            "- `sum(quantity)` for summing quantity values. for attachments this will be bytes, and all others the 'event' count for those types of events.\n"
-            "- `sum(times_seen)` this sums the number of times an event has been seen. "
+            "the `sum(quantity)` field is bytes for attachments, and all others the 'event' count for those types of events.\n\n"
+            "`sum(times_seen)` sums the number of times an event has been seen. "
             "For 'normal' event types, this will be equal to `sum(quantity)` for now. "
             "For sessions, quantity will sum the total number of events seen in a session, while times_seen will be the unique number of sessions. "
             "and for attachments, times_seen will be the total number of attachments, while quantity will be the total sum of attachment bytes."
@@ -90,8 +90,8 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         ("error", "transaction", "attachment"),
         required=False,
         help_text=(
-            "- If filtering by attachments, you cannot filter by any other category due to quantity values becoming non-sensical (combining bytes and event counts)"
-            "- If filtering by `error`, it will automatically add `default` and `security` as we currently roll those two categories into `error` for displaying."
+            "If filtering by attachments, you cannot filter by any other category due to quantity values becoming non-sensical (combining bytes and event counts).\n\n"
+            "If filtering by `error`, it will automatically add `default` and `security` as we currently roll those two categories into `error` for displaying."
         ),
     )
     outcome = serializers.ChoiceField(
