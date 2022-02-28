@@ -108,7 +108,12 @@ const ProgressRing = ({
   );
 
   return (
-    <RingSvg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>
+    <RingSvg
+      role="img"
+      height={radius * 2 + barWidth}
+      width={radius * 2 + barWidth}
+      {...p}
+    >
       <RingBackground
         r={radius}
         barWidth={barWidth}
