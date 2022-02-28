@@ -406,7 +406,10 @@ class _TransactionThreshold(TypedDict):
 
 
 class _TransactionThresholdConfig(TypedDict):
+    #: The project-wide threshold to apply (see `ProjectTransactionThreshold`)
     projectThreshold: _TransactionThreshold
+    #: Transaction-specific overrides of the project-wide threshold
+    #: (see `ProjectTransactionThresholdOverride`)
     transactionThresholds: Mapping[str, _TransactionThreshold]
 
 
