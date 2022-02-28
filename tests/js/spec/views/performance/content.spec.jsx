@@ -275,8 +275,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     // performance landing container
     expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
@@ -288,6 +291,7 @@ describe('Performance > Content', function () {
 
     // Table should render.
     expect(wrapper.find('Table')).toHaveLength(1);
+
     wrapper.unmount();
   });
 
@@ -305,7 +309,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     // onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(1);
@@ -329,7 +337,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(wrapper.find('Onboarding')).toHaveLength(0);
     wrapper.unmount();
@@ -346,8 +358,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     const link = wrapper.find('[data-test-id="grid-editable"] GridBody Link').at(0);
     link.simulate('click', {button: 0});
@@ -372,8 +387,12 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
+
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
     wrapper.unmount();
   });
@@ -391,7 +410,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -424,7 +447,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
     wrapper.unmount();
@@ -440,7 +467,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
     wrapper.unmount();
@@ -456,7 +487,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -486,8 +521,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(
       wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()

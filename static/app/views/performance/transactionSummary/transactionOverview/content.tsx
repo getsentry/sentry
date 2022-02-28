@@ -9,7 +9,6 @@ import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
 import SearchBar from 'sentry/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -390,6 +389,7 @@ function SummaryContent({
           totals={totalValues}
           eventView={eventView}
           isMetricsData={isMetricsData}
+          transactionName={transactionName}
         />
         <SidebarSpacer />
         <Tags
@@ -487,15 +487,5 @@ const Search = styled('div')`
 const SearchBarContainer = styled('div')`
   flex-grow: 1;
 `;
-
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
-  }
-`;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 export default withProjects(SummaryContent);

@@ -2,12 +2,15 @@ import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Count from 'sentry/components/count';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
@@ -79,10 +82,35 @@ function renderBodyCellWithMeta(location: Location, organization: Organization) 
         </ConfidenceCell>
       );
     }
+    if (column.key === 'expected') {
+      return (
+        <NumberCell>
+          <Count value={dataRow.expected} />
+        </NumberCell>
+      );
+    }
+    if (column.key === 'received') {
+      return (
+        <NumberCell>
+          <Count value={dataRow.received} />
+          <IconArrow
+            size="sm"
+            direction={dataRow.received > dataRow.expected ? 'up' : 'down'}
+          />
+        </NumberCell>
+      );
+    }
 
     return fieldRenderer(dataRow, {location, organization});
   };
 }
+
+const NumberCell = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
 
 const LowConfidence = styled('div')`
   color: ${p => p.theme.yellow300};

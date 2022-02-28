@@ -9,17 +9,10 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
-function uniqueFrameKey(frame: FlamegraphFrame): string {
-  return `${frame.frame.key + String(frame.start)}`;
-}
-
 function frameSearch(
   query: string,
   frames: ReadonlyArray<FlamegraphFrame>,
-  index: Fuse<
-    FlamegraphFrame,
-    {includeMatches: true; keys: 'frame.name'[]; threshold: number}
-  >
+  index: Fuse<FlamegraphFrame>
 ): Record<string, FlamegraphFrame> {
   const results = {};
   if (isRegExpString(query)) {
@@ -89,7 +82,7 @@ const numericSort = (
 
 interface FlamegraphSearchProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraphs: Flamegraph[];
+  flamegraphs: Flamegraph | Flamegraph[];
   placement: 'top' | 'bottom';
 }
 
@@ -106,10 +99,14 @@ function FlamegraphSearch({
   >({});
 
   const allFrames = React.useMemo(() => {
-    return flamegraphs.reduce(
-      (acc: FlamegraphFrame[], graph) => acc.concat(graph.frames),
-      []
-    );
+    if (Array.isArray(flamegraphs)) {
+      return flamegraphs.reduce(
+        (acc: FlamegraphFrame[], graph) => acc.concat(graph.frames),
+        []
+      );
+    }
+
+    return flamegraphs.frames;
   }, [flamegraphs]);
 
   const searchIndex = React.useMemo(() => {
@@ -160,9 +157,7 @@ function FlamegraphSearch({
       return onZoomIntoFrame(frames[0] ?? null);
     }
 
-    const index = frames.findIndex(
-      f => uniqueFrameKey(f) === uniqueFrameKey(selectedNode)
-    );
+    const index = frames.findIndex(f => f.key === selectedNode.key);
 
     if (index + 1 > frames.length - 1) {
       return onZoomIntoFrame(frames[0]);
@@ -183,9 +178,7 @@ function FlamegraphSearch({
     if (!selectedNode) {
       return onZoomIntoFrame(frames[0] ?? null);
     }
-    const index = frames.findIndex(
-      f => uniqueFrameKey(f) === uniqueFrameKey(selectedNode)
-    );
+    const index = frames.findIndex(f => f.key === selectedNode.key);
 
     if (index - 1 < 0) {
       return onZoomIntoFrame(frames[frames.length - 1]);

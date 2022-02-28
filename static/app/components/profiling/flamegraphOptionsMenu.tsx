@@ -6,19 +6,18 @@ import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphPreferencesProvider';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 
 interface FlamegraphOptionsMenuProps {
   canvasPoolManager: CanvasPoolManager;
-  colorCoding: FlamegraphPreferences['colorCoding'];
-  onColorCodingChange: (value: FlamegraphPreferences['colorCoding']) => void;
 }
 
 function FlamegraphOptionsMenu({
   canvasPoolManager,
-  colorCoding,
-  onColorCodingChange,
 }: FlamegraphOptionsMenuProps): React.ReactElement {
+  const [{colorCoding}, dispatch] = useFlamegraphPreferences();
+
   return (
     <OptionsMenuContainer>
       <DropdownControl
@@ -33,16 +32,23 @@ function FlamegraphOptionsMenu({
           </DropdownButton>
         )}
       >
-        {Object.entries(COLOR_CODINGS).map(([value, label]) => (
-          <DropdownItem
-            key={value}
-            onSelect={onColorCodingChange}
-            eventKey={value}
-            isActive={value === colorCoding}
-          >
-            {label}
-          </DropdownItem>
-        ))}
+        {Object.entries(COLOR_CODINGS).map(
+          ([value, label]: [string, string]): React.ReactElement => (
+            <DropdownItem
+              key={value}
+              onSelect={() =>
+                dispatch({
+                  type: 'set color coding',
+                  value: value as FlamegraphPreferences['colorCoding'],
+                })
+              }
+              eventKey={value}
+              isActive={value === colorCoding}
+            >
+              {label}
+            </DropdownItem>
+          )
+        )}
       </DropdownControl>
       <Button size="xsmall" onClick={() => canvasPoolManager.dispatch('resetZoom', [])}>
         {t('Reset Zoom')}

@@ -36,6 +36,7 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
+    METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -67,7 +68,13 @@ from sentry.search.events.types import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
-from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, raw_snql_query, resolve_column
+from sentry.utils.snuba import (
+    Dataset,
+    QueryOutsideRetentionError,
+    bulk_snql_query,
+    raw_snql_query,
+    resolve_column,
+)
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
@@ -1086,6 +1093,9 @@ class UnresolvedQuery(QueryBuilder):
         self,
         dataset: Dataset,
         params: ParamsType,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
         functions_acl: Optional[List[str]] = None,
@@ -1100,6 +1110,9 @@ class UnresolvedQuery(QueryBuilder):
         super().__init__(
             dataset=dataset,
             params=params,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
             functions_acl=functions_acl,
@@ -1130,7 +1143,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         self,
         dataset: Dataset,
         params: ParamsType,
-        granularity: int,
+        interval: int,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
@@ -1140,19 +1153,17 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         super().__init__(
             dataset,
             params,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
             auto_fields=False,
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
         )
 
-        self.resolve_query(
-            query=query,
-            selected_columns=selected_columns,
-            equations=equations,
-        )
+        self.granularity = Granularity(interval)
 
         self.limit = None if limit is None else Limit(limit)
-        self.granularity = Granularity(granularity)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
@@ -1239,7 +1250,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         self,
         dataset: Dataset,
         params: ParamsType,
-        granularity: int,
+        interval: int,
         top_events: List[Dict[str, Any]],
         other: bool = False,
         query: Optional[str] = None,
@@ -1256,7 +1267,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         super().__init__(
             dataset,
             params,
-            granularity=granularity,
+            interval=interval,
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),
             equations=list(set(equations + timeseries_equations)),
@@ -1568,7 +1579,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
-    def get_snql_query(self) -> None:
+    def get_snql_query(self) -> List[Query]:
         """Because metrics table queries need to make multiple requests per metric type this function cannot be
         inmplemented see run_query"""
         raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
@@ -1635,6 +1646,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # The typing for these are weak (all using Any) since the results from snuba can contain an assortment of types
         value_map: Dict[str, Any] = defaultdict(dict)
         groupby_values: List[Any] = []
+        meta_dict = {}
         result: Any = {
             "data": None,
             "meta": [],
@@ -1707,7 +1719,126 @@ class MetricsQueryBuilder(QueryBuilder):
                     if value_map_key not in value_map:
                         groupby_values.append(groupby_key)
                     value_map[value_map_key].update(row)
-                result["meta"] += current_result["meta"]
+                for meta in current_result["meta"]:
+                    meta_dict[meta["name"]] = meta["type"]
+
         result["data"] = list(value_map.values())
+        result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]
 
         return result
+
+
+class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
+    time_alias = "time"
+
+    def __init__(
+        self,
+        params: ParamsType,
+        interval: int,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        functions_acl: Optional[List[str]] = None,
+    ):
+        super().__init__(
+            params=params,
+            query=query,
+            selected_columns=selected_columns,
+            auto_fields=False,
+            functions_acl=functions_acl,
+        )
+        if self.granularity.granularity > interval:
+            for granularity in METRICS_GRANULARITIES:
+                if granularity <= interval:
+                    self.granularity = Granularity(granularity)
+                    break
+
+        self.time_column = self.resolve_time_column(interval)
+
+        # This is a timeseries, the groupby will always be time
+        self.groupby = [self.time_column]
+
+    def resolve_time_column(self, interval: int) -> Function:
+        """Need to round the timestamp to the interval requested
+
+        We commonly use interval & granularity interchangeably, but in the case of the metrics dataset they must be
+        considered as two separate things. The reason being the way we store metrics will rarely align with the
+        start&end of the query.
+        This means that we'll need to select granularity for data accuracy, and then use the clickhouse
+        toStartOfInterval function to group results by their displayed interval
+
+        eg.
+        See test_builder.test_run_query_with_hour_interval for this in test form
+        we have a query from yesterday at 15:30 -> today at 15:30
+        there is 1 event at 15:45
+        and we want the timeseries displayed at 1 hour intervals
+
+        The event is in the quantized hour-aligned metrics bucket of 15:00, since the bounds of the query are
+        (Yesterday 15:30, Today 15:30) the condition > Yesterday 15:30 means using the hour-aligned bucket you'd
+        miss that event.
+
+        So instead in this case we want the minute-aligned bucket, while rounding timestamp to the hour, so we'll
+        only get data that is relevant because of the timestamp filters. And Snuba will merge the datasketches for
+        us to get correct data.
+        """
+        if interval < 10:
+            raise IncompatibleMetricsQuery(
+                "Interval must be at least 10s because our smallest granularity is 10s"
+            )
+
+        return Function(
+            "toStartOfInterval",
+            [
+                Column("timestamp"),
+                Function("toIntervalSecond", [interval]),
+                "Universal",
+            ],
+            self.time_alias,
+        )
+
+    def get_snql_query(self) -> List[Query]:
+        """Because of the way metrics are structured a single request can result in >1 snql query
+
+        This is because different functions will use different entities
+        """
+        # No need for primary from the query framework since there's no orderby to worry about
+        _, query_framework = self._create_query_framework()
+
+        queries: List[Query] = []
+        for query_details in query_framework.values():
+            if len(query_details.functions) > 0:
+                queries.append(
+                    Query(
+                        dataset=self.dataset.value,
+                        match=query_details.entity,
+                        select=query_details.functions,
+                        where=self.where,
+                        having=self.having,
+                        groupby=self.groupby,
+                        orderby=[OrderBy(self.time_column, Direction.ASC)],
+                        granularity=self.granularity,
+                        limit=self.limit,
+                    )
+                )
+
+        return queries
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        queries = self.get_snql_query()
+        if queries:
+            results = bulk_snql_query(queries, referrer, use_cache)
+        else:
+            results = []
+
+        time_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        meta_dict = {}
+        for current_result in results:
+            # there's only 1 thing in the groupby which is time
+            for row in current_result["data"]:
+                time_map[row[self.time_alias]].update(row)
+            for meta in current_result["meta"]:
+                meta_dict[meta["name"]] = meta["type"]
+
+        return {
+            "data": list(time_map.values()),
+            "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
+        }

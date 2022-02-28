@@ -15,7 +15,6 @@ const mockResponse = mocks => {
 
 describe('PluginDetailedView', function () {
   const org = TestStubs.Organization();
-  const routerContext = TestStubs.routerContext();
   let wrapper;
 
   beforeEach(() => {
@@ -72,8 +71,7 @@ describe('PluginDetailedView', function () {
       <PluginDetailedView
         params={{integrationSlug: 'pagerduty', orgId: org.slug}}
         location={{query: {}}}
-      />,
-      routerContext
+      />
     );
   });
   it('shows the Integration name and install status', async function () {
@@ -96,8 +94,7 @@ describe('PluginDetailedView', function () {
       <PluginDetailedView
         params={{integrationSlug: 'pagerduty', orgId: org.slug}}
         location={{query: {tab: 'configurations'}}}
-      />,
-      routerContext
+      />
     );
     expect(wrapper.find('InstalledPlugin')).toHaveLength(1);
   });

@@ -16,6 +16,7 @@ import isEqual from 'lodash/isEqual';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -137,14 +138,20 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization} = this.props;
+    const {isEditing, organization, api} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
+    }
+
+    if (organization.features.includes('dashboards-metrics')) {
+      fetchMetricsFields(api, organization.slug);
+      fetchMetricsTags(api, organization.slug);
     }
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
     }
+
     this.addNewWidget();
 
     // Get member list data for issue widgets
@@ -322,7 +329,7 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
-  handleEditWidget = (widget: Widget) => () => {
+  handleEditWidget = (widget: Widget, index: number) => () => {
     const {
       organization,
       dashboard,
@@ -339,7 +346,7 @@ class Dashboard extends Component<Props, State> {
 
       if (paramDashboardId) {
         router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${widget.id}/edit/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
@@ -349,7 +356,7 @@ class Dashboard extends Component<Props, State> {
       }
 
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${widget.id}/edit/`,
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
@@ -392,7 +399,7 @@ class Dashboard extends Component<Props, State> {
       isEditing,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
-      onEdit: this.handleEditWidget(widget),
+      onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
     };
