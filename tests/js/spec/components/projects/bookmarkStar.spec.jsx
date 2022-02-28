@@ -10,8 +10,7 @@ describe('BookmarkStar', function () {
       <BookmarkStar
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     projectMock = MockApiClient.addMockResponse({
@@ -53,8 +52,7 @@ describe('BookmarkStar', function () {
         project={TestStubs.Project({
           isBookmarked: true,
         })}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const star = wrapper.find('BookmarkStar');
 
@@ -78,8 +76,7 @@ describe('BookmarkStar', function () {
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}
         isBookmarked
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const star = wrapper.find('BookmarkStar');

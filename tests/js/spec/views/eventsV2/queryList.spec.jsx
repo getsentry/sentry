@@ -56,8 +56,7 @@ describe('EventsV2 > QueryList', function () {
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const content = wrapper.find('QueryCard');
     // No queries
@@ -74,8 +73,7 @@ describe('EventsV2 > QueryList', function () {
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const content = wrapper.find('QueryCard');
     // pre built + saved queries
@@ -90,8 +88,7 @@ describe('EventsV2 > QueryList', function () {
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const card = wrapper.find('QueryCard').last();
     expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
@@ -114,8 +111,7 @@ describe('EventsV2 > QueryList', function () {
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const card = wrapper.find('QueryCard').last();
     expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
@@ -138,8 +134,7 @@ describe('EventsV2 > QueryList', function () {
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const card = wrapper.find('QueryCard').last();
     const link = card.find('Link').last().prop('to');
@@ -158,8 +153,7 @@ describe('EventsV2 > QueryList', function () {
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const card = wrapper.find('QueryCard').last();
     expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
@@ -189,8 +183,7 @@ describe('EventsV2 > QueryList', function () {
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />,
-      TestStubs.routerContext()
+      />
     );
     let card = wrapper.find('QueryCard').last();
 
@@ -218,8 +211,7 @@ describe('EventsV2 > QueryList', function () {
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />,
-      TestStubs.routerContext()
+      />
     );
     let card = wrapper.find('QueryCard').last();
 
@@ -254,8 +246,7 @@ describe('EventsV2 > QueryList', function () {
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const miniGraph = wrapper.find('MiniGraph');
