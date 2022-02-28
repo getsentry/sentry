@@ -6,16 +6,17 @@ import {getWidgetIcon} from 'sentry/views/dashboardsV2/widgetLibrary/widgetCard'
 
 type CardProps = {
   iconColor: string;
-  onClick: () => void;
   widget: WidgetTemplate;
+  disableHoverAnimation?: boolean;
+  onClick?: () => void;
 };
 
-export function Card({widget, iconColor, onClick}: CardProps) {
+export function Card({widget, iconColor, onClick, disableHoverAnimation}: CardProps) {
   const {title, description, displayType} = widget;
   const Icon = getWidgetIcon(displayType);
 
   return (
-    <Container onClick={onClick}>
+    <Container onClick={onClick} disableHoverAnimation={disableHoverAnimation}>
       <IconWrapper backgroundColor={iconColor}>
         <Icon color="white" />
       </IconWrapper>
@@ -27,19 +28,22 @@ export function Card({widget, iconColor, onClick}: CardProps) {
   );
 }
 
-const Container = styled('div')`
+const Container = styled('div')<{disableHoverAnimation?: boolean}>`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  cursor: pointer;
   padding: calc(${space(2)} - 1px);
   border: 1px solid transparent;
   border-radius: ${p => p.theme.borderRadius};
   transition: border-color 0.3s ease;
 
-  &:hover {
-    border-color: ${p => p.theme.gray100};
-  }
+  ${p =>
+    !p.disableHoverAnimation &&
+    `
+    cursor: pointer;
+    &:hover {
+    border-color: ${p.theme.gray100};
+  }`}
 `;
 
 const Information = styled('div')`
