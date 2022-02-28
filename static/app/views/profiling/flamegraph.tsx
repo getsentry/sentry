@@ -1,12 +1,15 @@
-import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/FullScreenFlamegraphContainer';
-import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/FlamegraphThemeProvider';
+import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
+import {FlamegraphPreferencesProvider} from 'sentry/utils/profiling/flamegraph/flamegraphPreferencesProvider';
+import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 
 function FlamegraphView() {
   return (
     <FlamegraphThemeProvider>
-      <FullScreenFlamegraphContainer>{null}</FullScreenFlamegraphContainer>
+      <FlamegraphPreferencesProvider>
+        <FullScreenFlamegraphContainer>{null}</FullScreenFlamegraphContainer>
+      </FlamegraphPreferencesProvider>
     </FlamegraphThemeProvider>
   );
 }
 
-export {FlamegraphView};
+export default FlamegraphView;

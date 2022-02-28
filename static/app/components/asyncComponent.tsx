@@ -66,45 +66,6 @@ class AsyncComponent<
     router: PropTypes.object,
   };
 
-  /**
-   * Override this flag to have the component reload its state when the window
-   * becomes visible again. This will set the loading and reloading state, but
-   * will not render a loading state during reloading.
-   *
-   * eslint-disable-next-line react/sort-comp
-   */
-  reloadOnVisible = false;
-
-  /**
-   * When enabling reloadOnVisible, this flag may be used to turn on and off
-   * the reloading. This is useful if your component only needs to reload when
-   * becoming visible during certain states.
-   *
-   * eslint-disable-next-line react/sort-comp
-   */
-  shouldReloadOnVisible = false;
-
-  /**
-   * This affects how the component behaves when `remountComponent` is called
-   * By default, the component gets put back into a "loading" state when re-fetching data.
-   * If this is true, then when we fetch data, the original ready component remains mounted
-   * and it will need to handle any additional "reloading" states
-   */
-  shouldReload = false;
-
-  /**
-   * should `renderError` render the `detail` attribute of a 400 error
-   */
-  shouldRenderBadRequests = false;
-
-  /**
-   * If a request fails and is not a bad request, and if `disableErrorReport` is set to false,
-   * the UI will display an error modal.
-   *
-   * It is recommended to enable this property ideally only when the subclass is used by a top level route.
-   */
-  disableErrorReport = true;
-
   constructor(props: P, context: any) {
     super(props, context);
 
@@ -182,6 +143,45 @@ class AsyncComponent<
     this.api.clear();
     document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
+
+  /**
+   * Override this flag to have the component reload its state when the window
+   * becomes visible again. This will set the loading and reloading state, but
+   * will not render a loading state during reloading.
+   *
+   * eslint-disable-next-line react/sort-comp
+   */
+  reloadOnVisible = false;
+
+  /**
+   * When enabling reloadOnVisible, this flag may be used to turn on and off
+   * the reloading. This is useful if your component only needs to reload when
+   * becoming visible during certain states.
+   *
+   * eslint-disable-next-line react/sort-comp
+   */
+  shouldReloadOnVisible = false;
+
+  /**
+   * This affects how the component behaves when `remountComponent` is called
+   * By default, the component gets put back into a "loading" state when re-fetching data.
+   * If this is true, then when we fetch data, the original ready component remains mounted
+   * and it will need to handle any additional "reloading" states
+   */
+  shouldReload = false;
+
+  /**
+   * should `renderError` render the `detail` attribute of a 400 error
+   */
+  shouldRenderBadRequests = false;
+
+  /**
+   * If a request fails and is not a bad request, and if `disableErrorReport` is set to false,
+   * the UI will display an error modal.
+   *
+   * It is recommended to enable this property ideally only when the subclass is used by a top level route.
+   */
+  disableErrorReport = true;
 
   api: Client = new Client();
   private _measurement: any;

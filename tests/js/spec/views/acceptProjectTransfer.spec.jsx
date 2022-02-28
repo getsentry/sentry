@@ -32,8 +32,7 @@ describe('AcceptProjectTransfer', function () {
           pathname: 'endpoint',
           query: {data: 'XYZ'},
         }}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     expect(getMock).toHaveBeenCalled();
@@ -46,8 +45,7 @@ describe('AcceptProjectTransfer', function () {
           pathname: 'endpoint',
           query: {data: 'XYZ'},
         }}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     wrapper.find('form').simulate('submit');

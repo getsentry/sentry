@@ -87,7 +87,7 @@ function mapSearchResults(results: SearchResult[]) {
   const items: Result[] = [];
 
   results.forEach(section => {
-    const sectionItems = section.hits.map<Result>(hit => {
+    const sectionItems = section.hits.map(hit => {
       const title = parseHtmlMarks({
         key: 'title',
         htmlString: hit.title ?? '',
@@ -109,7 +109,7 @@ function mapSearchResults(results: SearchResult[]) {
         to: hit.url,
       };
 
-      return {item, matches: [title, description], score: 1};
+      return {item, matches: [title, description], score: 1, refIndex: 0};
     });
 
     // The first element should indicate the section.
@@ -130,7 +130,7 @@ function mapSearchResults(results: SearchResult[]) {
       empty: true,
     };
 
-    items.push({item: emptyHeaderItem, score: 1});
+    items.push({item: emptyHeaderItem, score: 1, refIndex: 0});
   });
 
   return items;

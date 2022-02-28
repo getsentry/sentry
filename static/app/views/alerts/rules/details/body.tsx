@@ -211,7 +211,7 @@ export default class DetailsBody extends React.Component<Props> {
         </SidebarGroup>
 
         <SidebarGroup>
-          <Heading>{t('Thresholds and Actions')}</Heading>
+          <Heading>{t('Thresholds')}</Heading>
           {typeof criticalTrigger?.alertThreshold === 'number' &&
             this.renderTrigger(
               criticalTrigger.label,
@@ -352,10 +352,12 @@ export default class DetailsBody extends React.Component<Props> {
                         <Heading noMargin>{t('Display')}</Heading>
                         <ChartControls>
                           <DropdownControl
-                            label={getDynamicText({
-                              fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
-                              value: timePeriod.display,
-                            })}
+                            label={
+                              getDynamicText({
+                                fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
+                                value: timePeriod.display,
+                              }) ?? '' // we should never get here because timePeriod.display is typed as always defined
+                            }
                           >
                             {TIME_OPTIONS.map(({label, value}) => (
                               <DropdownItem

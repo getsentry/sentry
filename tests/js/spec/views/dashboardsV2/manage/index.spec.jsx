@@ -90,8 +90,7 @@ describe('Dashboards > Detail', function () {
     const org = TestStubs.Organization({features: FEATURES});
 
     const wrapper = mountWithTheme(
-      <ManageDashboards organization={org} location={{query: {}}} router={{}} />,
-      TestStubs.routerContext()
+      <ManageDashboards organization={org} location={{query: {}}} router={{}} />
     );
     await tick();
 
