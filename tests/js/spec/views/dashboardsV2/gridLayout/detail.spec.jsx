@@ -212,7 +212,7 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
+        body: {data: [], start: 1000, end: 2000},
       });
       MockApiClient.addMockResponse({
         method: 'POST',
