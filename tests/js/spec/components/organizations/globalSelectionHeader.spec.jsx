@@ -571,7 +571,10 @@ describe('GlobalSelectionHeader', function () {
     OrganizationActions.update(initializationObj.organization);
 
     wrapper = mountWithTheme(
-      <PageFiltersContainer organization={initializationObj.organization} />,
+      <PageFiltersContainer
+        organization={initializationObj.organization}
+        hideGlobalHeader
+      />,
       initializationObj.routerContext
     );
 
@@ -582,6 +585,9 @@ describe('GlobalSelectionHeader', function () {
     // Wait for desynced filters to update
     await tick();
     expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']));
+
+    wrapper.update();
+    expect(wrapper.find('DesyncedFilterAlert')).toHaveLength(1);
   });
 
   /**

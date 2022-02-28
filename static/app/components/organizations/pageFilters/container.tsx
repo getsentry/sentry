@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -9,6 +9,7 @@ import {
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
+import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -62,7 +63,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     hideGlobalHeader,
   } = props;
 
-  const {isReady} = useLegacyStore(PageFiltersStore);
+  const {isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -162,6 +163,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     lastQuery.current = location.query;
   }, [location.query]);
 
+  const [hideDesyncedAlert, setHideDesyncedAlert] = useState<boolean>(false);
+  const showDesyncedAlert = desyncedFilters.size > 0 && !hideDesyncedAlert;
+
   // Wait for global selection to be ready before rendering chilren
   if (!isReady) {
     return <PageContent />;
@@ -170,6 +174,13 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   return (
     <Fragment>
       {!hideGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
+      {hideGlobalHeader && showDesyncedAlert && (
+        <DesyncedFilterAlert
+          router={router}
+          organization={organization}
+          onClose={() => setHideDesyncedAlert(true)}
+        />
+      )}
       {children}
     </Fragment>
   );
