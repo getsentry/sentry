@@ -110,23 +110,25 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       dashboard,
       location,
+      router,
     } = this.props;
     if (location.pathname.match(/\/widget\/\w*\/$/)) {
       const widget =
         defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
       if (widget) {
-        openWidgetViewerModal(
-          () => {
-            browserHistory.push({
+        openWidgetViewerModal({
+          organization,
+          widget,
+          onClose: () => {
+            router.push({
               pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
               query: location.query,
             });
           },
-          {organization, widget}
-        );
+        });
       } else {
         // Replace the URL if the widget isn't found and raise an error in toast
-        browserHistory.replace({
+        router.replace({
           pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
           query: location.query,
         });

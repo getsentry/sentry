@@ -164,7 +164,10 @@ class WidgetCard extends React.Component<Props> {
                       query: location.query,
                     });
                   } else {
-                    openWidgetViewerModal(() => undefined, {organization, widget});
+                    openWidgetViewerModal({
+                      organization,
+                      widget,
+                    });
                   }
                 }}
               />
