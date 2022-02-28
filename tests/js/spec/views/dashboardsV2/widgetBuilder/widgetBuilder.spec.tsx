@@ -71,7 +71,7 @@ function renderTestComponent({
       widget={widget}
       params={{
         orgId: organization.slug,
-        widgetId: widget ? Number(widget.id) : undefined,
+        widgetIndex: widget ? Number(widget.id) : undefined,
       }}
     />,
     {
