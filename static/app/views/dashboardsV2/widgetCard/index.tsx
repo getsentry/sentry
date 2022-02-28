@@ -143,6 +143,7 @@ class WidgetCard extends React.Component<Props> {
       noLazyLoad,
       showWidgetViewerButton,
       onEdit,
+      isEditing,
     } = this.props;
     return (
       <ErrorBoundary
@@ -153,7 +154,7 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
-            {showWidgetViewerButton && (
+            {showWidgetViewerButton && !isEditing && (
               <OpenWidgetViewerButton
                 onClick={() => {
                   openWidgetViewerModal({
