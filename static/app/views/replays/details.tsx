@@ -15,7 +15,7 @@ import {getMessage} from 'sentry/utils/events';
 import AsyncView from 'sentry/views/asyncView';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string; eventSlug: string}, {}>;
+  RouteComponentProps<{eventSlug: string; orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   event: Event | undefined;
