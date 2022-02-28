@@ -408,7 +408,6 @@ def _get_satisfaction_thresholds(project: Project) -> Mapping[Optional[str], _Tr
     """Return a mapping from transaction name to threshold.
     If transaction name is None, apply threshold to all transactions
     """
-
     # Always start with the default threshold, so we do not have to maintain
     # A separate default in Relay:
     thresholds: Mapping[Optional[str], _TransactionThreshold] = {
@@ -418,7 +417,7 @@ def _get_satisfaction_thresholds(project: Project) -> Mapping[Optional[str], _Tr
         }
     }
 
-    # Apply custom threasholds
+    # Apply custom thresholds
     custom_thresholds = list(project.projecttransactionthreshold_set.all()) + list(
         project.projecttransactionthresholdoverride_set.all()
     )
