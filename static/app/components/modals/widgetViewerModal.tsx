@@ -8,6 +8,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -147,7 +148,9 @@ function WidgetViewerModal(props: Props) {
     <React.Fragment>
       <StyledHeader closeButton>
         <h4>
-          <Truncate value={widget.title} maxLength={120} />
+          <Tooltip title={widget.title} showOnlyOnOverflow>
+            <Truncate value={widget.title} maxLength={120} />
+          </Tooltip>
         </h4>
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
