@@ -189,16 +189,6 @@ def get_project_key():
     return key
 
 
-def _override_on_full_queue(transport, metric_name):
-    if transport is None:
-        return
-
-    def on_full_queue(*args, **kwargs):
-        metrics.incr(metric_name, tags={"reason": "queue_full"})
-
-    transport._worker.on_full_queue = on_full_queue
-
-
 def traces_sampler(sampling_context):
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
@@ -272,9 +262,6 @@ def configure_sdk():
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         relay_transport = None
-
-    _override_on_full_queue(relay_transport, "internal.uncaptured.events.relay")
-    _override_on_full_queue(upstream_transport, "internal.uncaptured.events.upstream")
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
