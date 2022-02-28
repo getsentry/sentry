@@ -26,26 +26,34 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const [flamegraph, setFlamegraph] = useState(
-    new FlamegraphModel(props.profiles.profiles[props.profiles.activeProfileIndex], 0, {
-      inverted: view === 'bottom up',
-      leftHeavy: sorting === 'left heavy',
-    })
+    new FlamegraphModel(
+      props.profiles.profiles[props.profiles.activeProfileIndex],
+      props.profiles.activeProfileIndex,
+      {
+        inverted: view === 'bottom up',
+        leftHeavy: sorting === 'left heavy',
+      }
+    )
   );
 
   const onImport = useCallback(
-    profile => {
+    (profile: ProfileGroup) => {
       setFlamegraph(
-        new FlamegraphModel(profile.profiles[0], 0, {
-          inverted: view === 'bottom up',
-          leftHeavy: sorting === 'left heavy',
-        })
+        new FlamegraphModel(
+          profile.profiles[profile.activeProfileIndex],
+          profile.activeProfileIndex,
+          {
+            inverted: view === 'bottom up',
+            leftHeavy: sorting === 'left heavy',
+          }
+        )
       );
     },
     [props.profiles, view, sorting]
   );
 
   const onProfileIndexChange = useCallback(
-    index => {
+    (index: number) => {
       setFlamegraph(
         new FlamegraphModel(props.profiles.profiles[index], index, {
           inverted: view === 'bottom up',
@@ -58,10 +66,14 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
 
   useEffect(() => {
     setFlamegraph(
-      new FlamegraphModel(props.profiles.profiles[0], 0, {
-        inverted: view === 'bottom up',
-        leftHeavy: sorting === 'left heavy',
-      })
+      new FlamegraphModel(
+        props.profiles.profiles[flamegraph.profileIndex],
+        flamegraph.profileIndex,
+        {
+          inverted: view === 'bottom up',
+          leftHeavy: sorting === 'left heavy',
+        }
+      )
     );
   }, [props.profiles, view, sorting]);
 
