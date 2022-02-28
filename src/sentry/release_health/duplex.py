@@ -116,7 +116,8 @@ class ComparisonError:
         if self._results is None:
             return None
         sessions, metrics = self._results
-        return (metrics - sessions) / abs(sessions)
+        if sessions:
+            return (metrics - sessions) / abs(sessions)
 
     def __str__(self) -> str:
         return self._message
@@ -565,7 +566,6 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> ReleaseHealthResult:
         if rollup is None:
             rollup = 0  # force exact date comparison if not specified
-
         sessions_fn = getattr(self.sessions, fn_name)
         set_tag("releasehealth.duplex.rollup", str(rollup))
         set_tag("releasehealth.duplex.method", fn_name)
@@ -612,8 +612,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
             with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
                 errors = compare_results(copy, metrics_val, rollup, None, schema)
-
-            set_context("release-health-duplex-errors", {"errors": errors})
+            set_context(
+                "release-health-duplex-errors", {"errors": [str(error) for error in errors]}
+            )
 
             incr(
                 "releasehealth.metrics.compare",
