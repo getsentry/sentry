@@ -932,8 +932,10 @@ function WidgetBuilder({
                     dataSet: prebuiltWidget.widgetType
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
+                    userHasModified: false,
                   })
                 }
+                bypassOverwriteModal={!state.userHasModified}
               />
             </Side>
           </Body>

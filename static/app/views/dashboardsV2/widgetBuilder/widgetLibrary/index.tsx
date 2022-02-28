@@ -14,6 +14,7 @@ import {
 import {Card} from './card';
 
 type Props = {
+  bypassOverwriteModal: boolean;
   onWidgetSelect: (widget: WidgetTemplate) => void;
 };
 
@@ -26,11 +27,16 @@ export async function openWidgetBuilderOverwriteModal(
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
-export function WidgetLibrary({onWidgetSelect}: Props) {
+export function WidgetLibrary({bypassOverwriteModal, onWidgetSelect}: Props) {
   const theme = useTheme();
 
   function getLibrarySelectionHandler(widget, iconColor) {
     return function handleWidgetSelect() {
+      if (bypassOverwriteModal) {
+        onWidgetSelect(widget);
+        return;
+      }
+
       openWidgetBuilderOverwriteModal({
         onConfirm: () => onWidgetSelect(widget),
         widget,
