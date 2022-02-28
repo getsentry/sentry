@@ -23,7 +23,7 @@ import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldFormatter, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateArg,
   getEquation,
@@ -35,7 +35,7 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
-import {DisplayType, Widget} from '../types';
+import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
@@ -129,6 +129,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           data={result.data}
           organization={organization}
           stickyHeaders
+          getCustomFieldRenderer={(field, meta) =>
+            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.METRICS)
+          }
         />
       );
     });
@@ -165,7 +168,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       }
 
       const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(field, tableMeta);
+      const fieldRenderer = getFieldFormatter(
+        field,
+        tableMeta,
+        widget.widgetType !== WidgetType.METRICS
+      );
 
       const rendered = fieldRenderer(dataRow);
 

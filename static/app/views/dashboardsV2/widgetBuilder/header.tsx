@@ -15,15 +15,14 @@ type Props = {
   dashboardTitle: DashboardDetails['title'];
   goBackLocation: React.ComponentProps<typeof Link>['to'];
   onChangeTitle: (title: string) => void;
+  onSave: (event: React.MouseEvent) => void;
   orgSlug: string;
   title: string;
-  disabled?: boolean;
   isEditing?: boolean;
   onDelete?: () => void;
-  onSave?: (event: React.MouseEvent) => void;
 };
 
-function Header({
+export function Header({
   title,
   orgSlug,
   goBackLocation,
@@ -54,7 +53,7 @@ function Header({
             value={title}
             onChange={onChangeTitle}
             errorMessage={t('Please set a title for this widget')}
-            successMessage={t('Widget title updated successfully')}
+            maxLength={255}
           />
         </Layout.Title>
       </Layout.HeaderContent>
@@ -69,6 +68,12 @@ function Header({
           >
             {t('Give Feedback')}
           </Button>
+          <Button
+            external
+            href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+          >
+            {t('Read the docs')}
+          </Button>
           <Button to={goBackLocation}>{t('Cancel')}</Button>
           {isEditing && onDelete && (
             <Confirm
@@ -79,12 +84,7 @@ function Header({
               <Button priority="danger">{t('Delete')}</Button>
             </Confirm>
           )}
-          <Button
-            priority="primary"
-            onClick={onSave}
-            disabled={!onSave}
-            title={!onSave ? t('This feature is not yet available') : undefined}
-          >
+          <Button priority="primary" onClick={onSave}>
             {isEditing ? t('Update Widget') : t('Add Widget')}
           </Button>
         </ButtonBar>
@@ -92,5 +92,3 @@ function Header({
     </Layout.Header>
   );
 }
-
-export default Header;

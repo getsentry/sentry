@@ -14,13 +14,18 @@ import {Organization, PageFilters} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {getFieldsFromEquations} from 'sentry/views/dashboardsV2/utils';
+import {
+  getFieldsFromEquations,
+  getWidgetDiscoverUrl,
+  getWidgetIssueUrl,
+} from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 export type WidgetViewerModalOptions = {
   organization: Organization;
   widget: Widget;
+  onEdit?: () => void;
 };
 
 type Props = ModalRenderProps &
@@ -33,6 +38,7 @@ type Props = ModalRenderProps &
 const TABLE_ITEM_LIMIT = 30;
 const FULL_TABLE_HEIGHT = 600;
 const HALF_TABLE_HEIGHT = 300;
+const GEO_COUNTRY_CODE = 'geo.country_code';
 
 function WidgetViewerModal(props: Props) {
   const renderWidgetViewer = () => {
@@ -57,6 +63,15 @@ function WidgetViewerModal(props: Props) {
     // Create Table widget
     const tableWidget = {...cloneDeep(widget), displayType: DisplayType.TABLE};
     const fields = tableWidget.queries[0].fields;
+
+    // World Map view should always have geo.country in the table chart
+    if (
+      widget.displayType === DisplayType.WORLD_MAP &&
+      !fields.includes(GEO_COUNTRY_CODE)
+    ) {
+      fields.unshift(GEO_COUNTRY_CODE);
+    }
+
     // Updates fields by adding any individual terms from equation fields as a column
     const equationFields = getFieldsFromEquations(fields);
     equationFields.forEach(term => {
@@ -105,7 +120,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const {Footer, Body, Header, widget} = props;
+  const {Footer, Body, Header, widget, onEdit, selection, organization} = props;
 
   const StyledHeader = styled(Header)`
     ${headerCss}
@@ -113,8 +128,20 @@ function WidgetViewerModal(props: Props) {
   const StyledFooter = styled(Footer)`
     ${footerCss}
   `;
-  const openLabel =
-    widget.widgetType === WidgetType.ISSUE ? t('Open in Issues') : t('Open in Discover');
+
+  let openLabel: string;
+  let path: string;
+  switch (widget.widgetType) {
+    case WidgetType.ISSUE:
+      openLabel = t('Open in Issues');
+      path = getWidgetIssueUrl(widget, selection, organization);
+      break;
+    case WidgetType.DISCOVER:
+    default:
+      openLabel = t('Open in Discover');
+      path = getWidgetDiscoverUrl(widget, selection, organization);
+      break;
+  }
   return (
     <React.Fragment>
       <StyledHeader closeButton>
@@ -123,10 +150,10 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={() => undefined}>
+          <Button type="button" onClick={onEdit}>
             {t('Edit Widget')}
           </Button>
-          <Button priority="primary" type="button" onClick={() => undefined}>
+          <Button to={path} priority="primary" type="button">
             {openLabel}
           </Button>
         </ButtonBar>

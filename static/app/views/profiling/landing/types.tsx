@@ -4,6 +4,7 @@ import {Trace} from 'sentry/types/profiling/core';
 export type TableColumnKey = keyof Trace;
 
 type NonTableColumnKey =
+  | 'app_id'
   | 'device_locale'
   | 'device_manufacturer'
   | 'backtrace_available'
@@ -21,4 +22,5 @@ export type TableColumnOrders = Omit<
 
 export type TableColumn = GridColumnOrder<TableColumnKey>;
 
-export type TableDataRow = Omit<Record<TableColumnKey, any>, NonTableColumnKey>;
+export type TableDataRow = Omit<Record<TableColumnKey, any>, NonTableColumnKey> &
+  Partial<Record<TableColumnKey, any>>;

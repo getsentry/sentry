@@ -92,7 +92,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   function getReasonDetails(): {
     reasonBadgeText: string;
     tagType: React.ComponentProps<typeof Tag>['type'];
-    tooltipDescription?: string | React.ReactElement;
+    tooltipDescription?: string | React.ReactNode;
     tooltipText?: string;
   } {
     switch (reason) {

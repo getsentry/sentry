@@ -28,7 +28,7 @@ type Props = {
 
 const HISTOGRAM_TAG_KEY_LIMIT = 8;
 const HISTOGRAM_BUCKET_LIMIT = 40;
-const TAG_PAGE_TABLE_CURSOR = 'tableCursor';
+export const TAG_PAGE_TABLE_CURSOR = 'tableCursor';
 
 export type TagsTableColumnKeys =
   | 'key'
