@@ -411,9 +411,6 @@ class _TransactionThresholdConfig(TypedDict):
 
 
 def _get_satisfaction_thresholds(project: Project) -> _TransactionThresholdConfig:
-    """Return a mapping from transaction name to threshold.
-    If transaction name is None, apply threshold to all transactions
-    """
     # Always start with the default threshold, so we do not have to maintain
     # A separate default in Relay:
     project_threshold: _TransactionThreshold = {
