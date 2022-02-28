@@ -111,7 +111,7 @@ class StatsApiResponse(TypedDict):
     start: str
     end: str
     intervals: List[str]
-    groups: List[_StatsGroup]  # Groups is pretty dynamic, leaving as Any for now.
+    groups: List[_StatsGroup]
 
 
 @public({"GET"})
