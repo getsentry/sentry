@@ -7,14 +7,14 @@ from snuba_sdk import Column, Function
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.sentry_metrics import indexer
 
 
 class MetricsDatasetConfig(DatasetConfig):
-    def __init__(self, builder: QueryBuilder):
+    def __init__(self, builder: MetricsQueryBuilder):
         self.builder = builder
 
     @property
@@ -40,6 +40,7 @@ class MetricsDatasetConfig(DatasetConfig):
             # TODO: unsure if this should be incompatible or invalid
             raise InvalidSearchQuery(f"Metric: {value} could not be resolved")
 
+        self.builder.metric_ids.append(metric_id)
         return metric_id
 
     @property
@@ -112,7 +113,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     required_args=[fields.FunctionArg("column")],
                     calculated_args=[resolve_metric_id],
                     snql_set=lambda args, alias: Function(
-                        "uniqCombinedIf",
+                        "uniqIf",
                         [
                             Column("value"),
                             Function("equals", [Column("metric_id"), args["metric_id"]]),
@@ -127,9 +128,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         "divide",
                         [
                             Function(
-                                "countMergeIf",
+                                "countIf",
                                 [
-                                    Column("count"),
+                                    Column("value"),
                                     Function(
                                         "equals",
                                         [
@@ -152,9 +153,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         "divide",
                         [
                             Function(
-                                "countMergeIf",
+                                "countIf",
                                 [
-                                    Column("count"),
+                                    Column("value"),
                                     Function(
                                         "equals",
                                         [
@@ -183,9 +184,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         [
                             self._resolve_failure_count(args),
                             Function(
-                                "countMergeIf",
+                                "countIf",
                                 [
-                                    Column("count"),
+                                    Column("value"),
                                     Function(
                                         "equals",
                                         [
@@ -225,9 +226,9 @@ class MetricsDatasetConfig(DatasetConfig):
     ) -> SelectType:
         statuses = [indexer.resolve(status) for status in constants.NON_FAILURE_STATUS]
         return Function(
-            "countMergeIf",
+            "countIf",
             [
-                Column("count"),
+                Column("value"),
                 Function(
                     "and",
                     [
@@ -261,9 +262,9 @@ class MetricsDatasetConfig(DatasetConfig):
             "arrayElement",
             [
                 Function(
-                    f"quantilesMergeIf({fixed_percentile})",
+                    f"quantilesIf({fixed_percentile})",
                     [
-                        Column("percentiles"),
+                        Column("value"),
                         Function("equals", [Column("metric_id"), args["metric_id"]]),
                     ],
                 ),
