@@ -134,8 +134,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 data={
                     "password": "admin",
-                    "categoryOfSUAccess": "for testing",
-                    "reasonForSU": "for testing",
+                    "superuserAccessCategory": "for testing",
+                    "superuserReason": "for testing",
                 },
             )
             assert response.status_code == 401
@@ -156,8 +156,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 HTTP_REFERER="http://testserver/bar",
                 data={
                     "password": "admin",
-                    "categoryOfSUAccess": "for testing",
-                    "reasonForSU": "for testing",
+                    "superuserAccessCategory": "for testing",
+                    "superuserReason": "for testing",
                 },
             )
             assert response.status_code == 401
@@ -179,8 +179,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 HTTP_REFERER="http://hacktheplanet/bar",
                 data={
                     "password": "admin",
-                    "categoryOfSUAccess": "for testing",
-                    "reasonForSU": "for testing",
+                    "superuserAccessCategory": "for testing",
+                    "superuserReason": "for testing",
                 },
             )
             assert response.status_code == 401
