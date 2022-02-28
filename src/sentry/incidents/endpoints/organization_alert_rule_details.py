@@ -8,7 +8,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
-from sentry.models import OrganizationMemberTeam
+from sentry.models import OrganizationMemberTeam, SentryAppComponent, SentryAppInstallation
 from sentry.models.actor import ACTOR_TYPES
 
 
@@ -19,8 +19,30 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         ``````````````````
         :auth: required
         """
-        data = serialize(alert_rule, request.user, DetailedAlertRuleSerializer())
-        return Response(data)
+        # Serialize Alert Rule
+        serialized_rule = serialize(alert_rule, request.user, DetailedAlertRuleSerializer())
+
+        # Prepare AlertRuleTriggerActions that are SentryApp components
+
+        for trigger in serialized_rule.get("triggers", []):
+            for action in trigger.get("actions", []):
+                if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
+
+                    component = SentryAppInstallation(
+                        **action.get("_sentry_app_installation", {})
+                    ).prepare_ui_component(
+                        SentryAppComponent(**action.get("_sentry_app_component")),
+                        None,
+                        action.get("settings"),
+                    )
+
+                    action["formFields"] = component.schema.get("settings", {})
+
+                    # Delete meta fields
+                    del action["_sentry_app_installation"]
+                    del action["_sentry_app_component"]
+
+        return Response(serialized_rule)
 
     def put(self, request: Request, organization, alert_rule) -> Response:
         serializer = DrfAlertRuleSerializer(

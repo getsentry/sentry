@@ -3,7 +3,15 @@ from unittest.mock import patch
 import responses
 from django.urls import reverse
 
-from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models import (
+    Environment,
+    Integration,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    RuleStatus,
+    SentryAppComponent,
+)
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
@@ -810,13 +818,17 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.create(project=project, label="my super cool rule")
 
-        self.create_sentry_app(
+        sentry_app = self.create_sentry_app(
             name="Pied Piper",
             organization=project.organization,
             schema={"elements": [self.create_alert_rule_action_schema()]},
         )
         install = self.create_sentry_app_installation(
             slug="pied-piper", organization=project.organization
+        )
+
+        sentry_app_component = SentryAppComponent.objects.get(
+            sentry_app=sentry_app, type="alert-rule-action"
         )
 
         actions = [
@@ -839,19 +851,21 @@ class UpdateProjectRuleTest(APITestCase):
                 "rule_id": rule.id,
             },
         )
-
-        response = self.client.put(
-            url,
-            data={
-                "name": "my super cool rule",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": actions,
-                "conditions": [],
-                "filters": [],
-            },
-            format="json",
-        )
+        with patch(
+            "sentry.mediators.sentry_app_components.Preparer.run", return_value=sentry_app_component
+        ):
+            response = self.client.put(
+                url,
+                data={
+                    "name": "my super cool rule",
+                    "actionMatch": "any",
+                    "filterMatch": "any",
+                    "actions": actions,
+                    "conditions": [],
+                    "filters": [],
+                },
+                format="json",
+            )
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(rule.id)

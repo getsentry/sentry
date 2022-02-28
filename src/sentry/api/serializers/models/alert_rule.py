@@ -11,9 +11,16 @@ from sentry.incidents.models import (
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
     AlertRuleTrigger,
+    AlertRuleTriggerAction,
     Incident,
 )
-from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
+from sentry.models import (
+    ACTOR_TYPES,
+    Rule,
+    SentryAppInstallation,
+    actor_type_to_class,
+    actor_type_to_string,
+)
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.utils.compat import zip
 
@@ -29,11 +36,34 @@ class AlertRuleSerializer(Serializer):
 
         result = defaultdict(dict)
         triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")
-        serialized_triggers = serialize(list(triggers))
+        serialized_triggers = serialize(list(triggers), **kwargs)
+
+        trigger_actions = AlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger__alert_rule_id__in=alert_rules.keys()
+        ).exclude(sentry_app_config__isnull=True, sentry_app_id__isnull=True)
+
+        sentry_app_installations_by_sentry_app_id = (
+            SentryAppInstallation.objects.get_related_sentry_app_components(
+                organization_ids={
+                    alert_rule.organization_id for alert_rule in alert_rules.values()
+                },
+                sentry_app_ids=trigger_actions.values_list("sentry_app_id", flat=True),
+                type="alert-rule-action",
+            )
+        )
+
         for trigger, serialized in zip(triggers, serialized_triggers):
             alert_rule_triggers = result[alert_rules[trigger.alert_rule_id]].setdefault(
                 "triggers", []
             )
+            for action in serialized.get("actions", []):
+                install = sentry_app_installations_by_sentry_app_id.get(action.get("sentryAppId"))
+                if install:
+                    action["_sentry_app_component"] = install.get("sentry_app_component")
+                    action["_sentry_app_installation"] = install.get("sentry_app_installation")
+                    action["sentryAppInstallationUuid"] = install.get(
+                        "sentry_app_installation"
+                    ).get("uuid")
             alert_rule_triggers.append(serialized)
 
         alert_rule_projects = AlertRule.objects.filter(
@@ -89,7 +119,7 @@ class AlertRuleSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
@@ -143,7 +173,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
