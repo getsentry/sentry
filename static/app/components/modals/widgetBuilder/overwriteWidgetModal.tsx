@@ -31,7 +31,7 @@ export default function OverwriteWidgetModal({
   widget,
   iconColor,
 }: Props) {
-  function handleSubmit() {
+  function handleConfirm() {
     onConfirm();
     closeModal();
   }
@@ -50,7 +50,7 @@ export default function OverwriteWidgetModal({
       <Footer>
         <Actions>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" onClick={handleSubmit}>
+          <Button priority="primary" onClick={handleConfirm}>
             {t('Confirm')}
           </Button>
         </Actions>

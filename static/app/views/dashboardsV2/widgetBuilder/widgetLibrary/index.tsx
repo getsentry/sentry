@@ -2,7 +2,7 @@ import React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openWidgetLibraryOverwriteModal} from 'sentry/actionCreators/modal';
+import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -21,7 +21,7 @@ export function WidgetLibrary({onWidgetSelect}: Props) {
 
   function getLibrarySelectionHandler(widget, iconColor) {
     return function handleWidgetSelect() {
-      openWidgetLibraryOverwriteModal({
+      openWidgetBuilderOverwriteModal({
         onConfirm: () => onWidgetSelect(widget),
         widget,
         iconColor,

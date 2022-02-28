@@ -242,7 +242,7 @@ export async function openAddDashboardWidgetModal(options: DashboardWidgetModalO
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
-export async function openWidgetLibraryOverwriteModal(
+export async function openWidgetBuilderOverwriteModal(
   options: OverwriteWidgetModalProps
 ) {
   const mod = await import('sentry/components/modals/widgetBuilder/overwriteWidgetModal');
