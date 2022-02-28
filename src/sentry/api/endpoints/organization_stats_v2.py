@@ -31,7 +31,7 @@ from sentry.utils.outcomes import Outcome
 
 class OrgStatsQueryParamsSerializer(serializers.Serializer):
     # TODO: refactor endpoint and use this to validate query parameters.
-    # TODO: define fields for date parametrs for use elsewhere
+    # TODO: define fields for date parameters for use elsewhere
     # time params
     statsPeriod = serializers.CharField(
         help_text=(
@@ -61,7 +61,11 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     groupBy = serializers.MultipleChoiceField(
         list(GROUPBY_MAP.keys()),
         required=True,
-        help_text="can pass multiple groupBy parameters to group by multiple, e.g. groupBy=project&groupBy=outcome to group by multiple dimensions",
+        help_text=(
+            "can pass multiple groupBy parameters to group by multiple, e.g. groupBy=project&groupBy=outcome to group by multiple dimensions. "
+            "Note that grouping by project can cause missing rows if the number of projects / interval is large. "
+            "If you have a large number of projects, we reccomend filtering and querying by them individually."
+        ),
     )
 
     field = serializers.ChoiceField(
@@ -69,7 +73,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         help_text=(
             "- `sum(quantity)` for summing quantity values. for attachments this will be bytes, and all others the 'event' count for those types of events.\n"
             "- `sum(times_seen)` this sums the number of times an event has been seen. "
-            " For 'normal' event types, this will be equal to `sum(quantity)` for now. "
+            "For 'normal' event types, this will be equal to `sum(quantity)` for now. "
             "For sessions, quantity will sum the total number of events seen in a session, while times_seen will be the unique number of sessions. "
             "and for attachments, times_seen will be the total number of attachments, while quantity will be the total sum of attachment bytes."
         ),
