@@ -165,6 +165,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         if orderby:
             snuba_filter.orderby = get_function_alias(orderby)
 
+        # TODO(dam): Add validation for metrics fields/queries
         try:
             resolve_field_list(fields, snuba_filter, resolved_equations=resolved_equations)
         except InvalidSearchQuery as err:
