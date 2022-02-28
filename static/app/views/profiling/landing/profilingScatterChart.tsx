@@ -178,12 +178,12 @@ function makeScatterChartOptions({
       {label: t('Device Model'), value: dataPoint?.device_model},
       {label: t('Device Class'), value: dataPoint?.device_class},
       {label: t('Device Manufacturer'), value: dataPoint?.device_manufacturer},
-    ]
-      .filter(({value}) => defined(value))
-      .map(
-        ({label, value}) =>
-          `<div><span class="tooltip-label"><strong>${label}</strong></span> ${value}</div>`
-      );
+    ].map(
+      ({label, value}) =>
+        `<div><span class="tooltip-label"><strong>${label}</strong></span> ${
+          value ?? t('Unknown')
+        }</div>`
+    );
 
     const date = defined(dataPoint?.start_time_unix)
       ? momentTimezone
