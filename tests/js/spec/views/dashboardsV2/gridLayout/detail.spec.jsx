@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -624,8 +622,11 @@ describe('Dashboards > Detail', function () {
       );
 
       expect(openWidgetViewerModal).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({organization: initialData.organization, widget})
+        expect.objectContaining({
+          organization: initialData.organization,
+          widget,
+          onClose: expect.anything(),
+        })
       );
     });
 
@@ -646,7 +647,7 @@ describe('Dashboards > Detail', function () {
       );
 
       expect(openWidgetViewerModal).not.toHaveBeenCalled();
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/dashboard/1/',
           query: {},
