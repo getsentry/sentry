@@ -872,9 +872,6 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.data["actions"] == actions
-        assert response.data["actions"][0]["formFields"] == sentry_app_component.schema.get(
-            "settings"
-        )
 
         kwargs = {
             "install": install,
