@@ -150,8 +150,8 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user, method="PUT")
         request._body = json.dumps(
             {
-                "categoryOfSUAccess": "Edit organization settings",
-                "reasonForSU": "Edit organization settings",
+                "superuserAccessCategory": "Edit organization settings",
+                "superuserReason": "Edit organization settings",
             }
         )
 
