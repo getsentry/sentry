@@ -25,9 +25,7 @@ function generateWrappedComponent(organization, eventView) {
 }
 
 function generateWrappedComponentButton(organization, extraProps) {
-  return enzymeRender(
-    <CreateAlertButton organization={organization} {...extraProps} />
-  );
+  return enzymeRender(<CreateAlertButton organization={organization} {...extraProps} />);
 }
 
 describe('CreateAlertFromViewButton', () => {

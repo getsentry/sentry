@@ -1,9 +1,4 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {StackTracePreview} from 'sentry/components/stacktracePreview';
 import {EntryType, Event} from 'sentry/types/event';

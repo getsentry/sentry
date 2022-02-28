@@ -36,9 +36,7 @@ describe('IntegrationOrganizationLink', () => {
     });
 
     getMountedComponent = () =>
-      enzymeRender(
-        <IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />
-      );
+      enzymeRender(<IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />);
   });
 
   it('selecting org from dropdown loads the org through the API', async () => {

@@ -10,9 +10,7 @@ describe('AwsLambdaFunctionSelect', () => {
       {FunctionName: 'lambdaB', Runtime: 'nodejs10.x'},
       {FunctionName: 'lambdaC', Runtime: 'nodejs10.x'},
     ];
-    ({container} = render(
-      <AwsLambdaFunctionSelect lambdaFunctions={lambdaFunctions} />
-    ));
+    ({container} = render(<AwsLambdaFunctionSelect lambdaFunctions={lambdaFunctions} />));
   });
   it('choose lambdas', () => {
     expect(container).toSnapshot();

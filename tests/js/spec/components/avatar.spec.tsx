@@ -118,9 +118,7 @@ describe('Avatar', function () {
     });
 
     it('should not show a gravatar when no avatar type is set and user has no email address', function () {
-      render(
-        <AvatarComponent gravatar user={{...user, email: '', avatar: undefined}} />
-      );
+      render(<AvatarComponent gravatar user={{...user, email: '', avatar: undefined}} />);
 
       expect(screen.getByTestId(`letter_avatar-avatar`)).toBeInTheDocument();
       expect(screen.getByText(userNameInitials)).toBeInTheDocument();
@@ -201,9 +199,7 @@ describe('Avatar', function () {
       );
       avatar1.unmount();
 
-      const avatar2 = render(
-        <AvatarComponent sentryApp={sentryApp} isColor={false} />
-      );
+      const avatar2 = render(<AvatarComponent sentryApp={sentryApp} isColor={false} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
         `/sentry-app-avatar/${simpleAvatar.avatarUuid}/?s=120`

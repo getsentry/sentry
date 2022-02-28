@@ -106,9 +106,7 @@ describe('MetricsRequest', () => {
   });
 
   it('refetches when props change', () => {
-    const {rerender} = render(
-      <MetricsRequest {...props}>{childrenMock}</MetricsRequest>
-    );
+    const {rerender} = render(<MetricsRequest {...props}>{childrenMock}</MetricsRequest>);
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
 
@@ -128,9 +126,7 @@ describe('MetricsRequest', () => {
   });
 
   it('does not refetch when ignored props change', () => {
-    const {rerender} = render(
-      <MetricsRequest {...props}>{childrenMock}</MetricsRequest>
-    );
+    const {rerender} = render(<MetricsRequest {...props}>{childrenMock}</MetricsRequest>);
 
     const differentChildrenMock = jest.fn(() => 'lorem ipsum');
     rerender(<MetricsRequest {...props}>{differentChildrenMock}</MetricsRequest>);

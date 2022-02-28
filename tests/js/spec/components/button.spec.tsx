@@ -14,16 +14,12 @@ describe('Button', function () {
   });
 
   it('renders normal link', function () {
-    const {container} = render(
-      <Button href="/some/relative/url">Normal Link</Button>
-    );
+    const {container} = render(<Button href="/some/relative/url">Normal Link</Button>);
     expect(container).toSnapshot();
   });
 
   it('renders disabled normal link', function () {
-    const {container} = render(
-      <Button href="/some/relative/url">Normal Link</Button>
-    );
+    const {container} = render(<Button href="/some/relative/url">Normal Link</Button>);
     expect(container).toSnapshot();
   });
 

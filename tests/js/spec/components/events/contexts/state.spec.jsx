@@ -19,9 +19,7 @@ const STATE_CONTEXT = {
 
 describe('StateContext', function () {
   it('renders', () => {
-    const wrapper = enzymeRender(
-      <StateContextType alias="state" data={STATE_CONTEXT} />
-    );
+    const wrapper = enzymeRender(<StateContextType alias="state" data={STATE_CONTEXT} />);
 
     const keys = wrapper.find('TableSubject.key');
     const values = wrapper.find('.val');

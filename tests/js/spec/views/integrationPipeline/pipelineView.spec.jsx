@@ -13,9 +13,7 @@ jest.mock(
 
 describe('PipelineView', () => {
   it('renders awsLambdaProjectSelect', () => {
-    render(
-      <PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />
-    );
+    render(<PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />);
 
     expect(screen.getByText('mock_AwsLambdaProjectSelect')).toBeInTheDocument();
 

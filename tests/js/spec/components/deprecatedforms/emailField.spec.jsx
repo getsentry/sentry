@@ -10,9 +10,7 @@ describe('EmailField', function () {
     });
 
     it('renders with value', function () {
-      const {container} = render(
-        <EmailField name="fieldName" value="foo@example.com" />
-      );
+      const {container} = render(<EmailField name="fieldName" value="foo@example.com" />);
       expect(container).toSnapshot();
     });
 

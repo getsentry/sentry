@@ -35,9 +35,7 @@ describe('EventsRequest', function () {
         );
 
       await act(async () => {
-        wrapper = render(
-          <EventsGeoRequest {...DEFAULTS}>{mock}</EventsGeoRequest>
-        );
+        wrapper = render(<EventsGeoRequest {...DEFAULTS}>{mock}</EventsGeoRequest>);
         return wrapper;
       });
     });
@@ -70,9 +68,7 @@ describe('EventsRequest', function () {
         return Promise.reject();
       });
       await act(async () => {
-        wrapper = render(
-          <EventsGeoRequest {...DEFAULTS}>{mock}</EventsGeoRequest>
-        );
+        wrapper = render(<EventsGeoRequest {...DEFAULTS}>{mock}</EventsGeoRequest>);
         return wrapper;
       });
       expect(mock).toHaveBeenLastCalledWith(

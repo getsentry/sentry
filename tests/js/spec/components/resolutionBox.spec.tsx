@@ -58,9 +58,7 @@ describe('ResolutionBox', function () {
       expect(container).toSnapshot();
     });
     it('handles default', function () {
-      const {container} = render(
-        <ResolutionBox statusDetails={{}} projectId="1" />
-      );
+      const {container} = render(<ResolutionBox statusDetails={{}} projectId="1" />);
       expect(container).toSnapshot();
     });
     it('handles inCommit', function () {

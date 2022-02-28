@@ -13,9 +13,7 @@ describe('ScoreBar', function () {
   });
 
   it('renders vertically', function () {
-    const {container} = render(
-      <ScoreBar size={60} thickness={2} vertical score={2} />
-    );
+    const {container} = render(<ScoreBar size={60} thickness={2} vertical score={2} />);
     expect(container).toSnapshot();
   });
 

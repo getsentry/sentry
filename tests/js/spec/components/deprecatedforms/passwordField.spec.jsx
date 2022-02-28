@@ -10,9 +10,7 @@ describe('PasswordField', function () {
     });
 
     it('renders with value', function () {
-      const {container} = render(
-        <PasswordField name="fieldName" value="foobar" />
-      );
+      const {container} = render(<PasswordField name="fieldName" value="foobar" />);
       expect(container).toSnapshot();
     });
 

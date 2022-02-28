@@ -1,9 +1,4 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {createTeam} from 'sentry/actionCreators/teams';
 import CreateTeamModal from 'sentry/components/modals/createTeamModal';

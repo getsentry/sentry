@@ -131,15 +131,11 @@ describe('getFieldRenderer', function () {
     );
     expect(wrapper.text()).toEqual('true');
 
-    wrapper = enzymeRender(
-      renderer({'error.handled': [0, 0]}, {location, organization})
-    );
+    wrapper = enzymeRender(renderer({'error.handled': [0, 0]}, {location, organization}));
     expect(wrapper.text()).toEqual('false');
 
     // null = true for error.handled data.
-    wrapper = enzymeRender(
-      renderer({'error.handled': [null]}, {location, organization})
-    );
+    wrapper = enzymeRender(renderer({'error.handled': [null]}, {location, organization}));
     expect(wrapper.text()).toEqual('true');
 
     // Default events won't have error.handled and will return an empty list.

@@ -59,9 +59,7 @@ describe('Rules', () => {
   });
 
   it('render edit button only', () => {
-    const wrapper = enzymeRender(
-      <Rules rules={rules} onEditRule={handleShowEditRule} />
-    );
+    const wrapper = enzymeRender(<Rules rules={rules} onEditRule={handleShowEditRule} />);
     expect(wrapper.find('[aria-label="Edit Rule"]').hostNodes()).toHaveLength(3);
     expect(wrapper.find('[aria-label="Delete Rule"]')).toHaveLength(0);
   });

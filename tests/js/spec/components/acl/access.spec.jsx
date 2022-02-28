@@ -31,10 +31,9 @@ describe('Access', function () {
     });
 
     it('has access', function () {
-      render(
-        <Access access={['project:write', 'project:read']}>{childrenMock}</Access>,
-        {context: routerContext}
-      );
+      render(<Access access={['project:write', 'project:read']}>{childrenMock}</Access>, {
+        context: routerContext,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,

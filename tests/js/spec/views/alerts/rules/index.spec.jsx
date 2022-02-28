@@ -29,8 +29,7 @@ describe('OrganizationRuleList', () => {
     />
   );
 
-  const createWrapper = props =>
-    render(getComponent(props), {context: routerContext});
+  const createWrapper = props => render(getComponent(props), {context: routerContext});
 
   beforeEach(() => {
     rulesMock = MockApiClient.addMockResponse({

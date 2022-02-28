@@ -51,10 +51,10 @@ describe('ProjectDetail', function () {
 
       ProjectsStore.loadInitialData(projects);
 
-      render(
-        <ProjectDetails organization={organization} {...router} params={params} />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectDetails organization={organization} {...router} params={params} />, {
+        context: routerContext,
+        organization,
+      });
 
       expect(
         screen.queryByText(
@@ -86,10 +86,10 @@ describe('ProjectDetail', function () {
         body: projects[0],
       });
 
-      render(
-        <ProjectDetails organization={organization} {...router} params={params} />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectDetails organization={organization} {...router} params={params} />, {
+        context: routerContext,
+        organization,
+      });
 
       expect(
         await screen.findByText(

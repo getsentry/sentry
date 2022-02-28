@@ -15,9 +15,7 @@ describe('FirstEventIndicator', function () {
     it('renders', function () {
       const org = TestStubs.Organization();
 
-      const wrapper = enzymeRender(
-        <Indicator organization={org} firstIssue={{id: 1}} />
-      );
+      const wrapper = enzymeRender(<Indicator organization={org} firstIssue={{id: 1}} />);
 
       expect(wrapper.find('ReceivedIndicator').exists()).toBe(true);
     });

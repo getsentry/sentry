@@ -12,9 +12,7 @@ describe('MutedBox', function () {
       expect(container).toSnapshot();
     });
     it('handles ignoreCount', function () {
-      const {container} = render(
-        <MutedBox statusDetails={{ignoreUserCount: 100}} />
-      );
+      const {container} = render(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
       expect(
         screen.getByText(/This issue has been ignored until it affects/)
       ).toBeInTheDocument();
@@ -30,9 +28,7 @@ describe('MutedBox', function () {
       expect(container).toSnapshot();
     });
     it('handles ignoreUserCount', function () {
-      const {container} = render(
-        <MutedBox statusDetails={{ignoreUserCount: 100}} />
-      );
+      const {container} = render(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
       expect(
         screen.getByText(/This issue has been ignored until it affects/)
       ).toBeInTheDocument();

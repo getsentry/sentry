@@ -9,10 +9,7 @@ describe('ApiApplications', function () {
   const {router, routerContext} = initializeOrg();
 
   const createWrapper = props => {
-    wrapper = enzymeRender(
-      <ApiApplications {...props} router={router} />,
-      routerContext
-    );
+    wrapper = enzymeRender(<ApiApplications {...props} router={router} />, routerContext);
   };
 
   beforeEach(function () {

@@ -277,9 +277,7 @@ describe('OrganizationMemberRow', function () {
     });
 
     it('has Remove button when `canRemoveMembers` is true', function () {
-      const wrapper = enzymeRender(
-        <OrganizationMemberRow {...props} canRemoveMembers />
-      );
+      const wrapper = enzymeRender(<OrganizationMemberRow {...props} canRemoveMembers />);
 
       expect(wrapper.find(removeButton).prop('disabled')).toBe(false);
     });

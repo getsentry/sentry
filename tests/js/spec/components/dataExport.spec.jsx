@@ -1,10 +1,4 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport from 'sentry/components/dataExport';

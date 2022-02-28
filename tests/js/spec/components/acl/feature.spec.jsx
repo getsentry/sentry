@@ -146,10 +146,9 @@ describe('Feature', function () {
     });
 
     it('handles features prefixed with org/project', function () {
-      render(
-        <Feature features={['organizations:org-bar']}>{childrenMock}</Feature>,
-        {context: routerContext}
-      );
+      render(<Feature features={['organizations:org-bar']}>{childrenMock}</Feature>, {
+        context: routerContext,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
@@ -176,10 +175,9 @@ describe('Feature', function () {
       ConfigStore.config = {
         features: new Set(['organizations:create']),
       };
-      render(
-        <Feature features={['organizations:create']}>{childrenMock}</Feature>,
-        {context: routerContext}
-      );
+      render(<Feature features={['organizations:create']}>{childrenMock}</Feature>, {
+        context: routerContext,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,

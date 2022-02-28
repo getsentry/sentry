@@ -39,9 +39,7 @@ describe('autoplayVideo', () => {
     // @ts-ignore we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
-    render(
-      <AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />
-    );
+    render(<AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />);
 
     expect(screen.getByLabelText('video')).toBeInTheDocument();
     expect(mock.current.muted).toBe(true);
@@ -57,9 +55,7 @@ describe('autoplayVideo', () => {
     // @ts-ignore we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
-    render(
-      <AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />
-    );
+    render(<AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />);
 
     expect(screen.getByLabelText('video')).toBeInTheDocument();
     expect(mock.current.muted).toBe(true);

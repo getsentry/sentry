@@ -1,10 +1,4 @@
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import ProjectsStore from 'sentry/stores/projectsStore';

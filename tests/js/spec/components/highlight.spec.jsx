@@ -14,9 +14,7 @@ describe('Highlight', function () {
   });
 
   it('does not have highlighted text if `text` prop is not found in main text', function () {
-    render(
-      <HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>
-    );
+    render(<HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>);
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });

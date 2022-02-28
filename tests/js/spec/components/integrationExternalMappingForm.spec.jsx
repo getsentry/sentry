@@ -58,9 +58,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
   it('renders with no mapping as an inline field', async function () {
-    render(
-      <IntegrationExternalMappingForm isInline type="user" {...baseProps} />
-    );
+    render(<IntegrationExternalMappingForm isInline type="user" {...baseProps} />);
     await act(tick);
     expect(screen.queryByPlaceholderText('@username')).not.toBeInTheDocument();
     expect(screen.getByText('Select Sentry User')).toBeInTheDocument();
