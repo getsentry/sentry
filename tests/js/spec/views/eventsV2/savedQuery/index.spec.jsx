@@ -31,8 +31,7 @@ function generateWrappedComponent(
       disabled={disabled}
       updateCallback={() => {}}
       yAxis={yAxis}
-    />,
-    TestStubs.routerContext()
+    />
   );
 }
 

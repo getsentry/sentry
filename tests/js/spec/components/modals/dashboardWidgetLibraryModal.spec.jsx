@@ -14,7 +14,6 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 function mountModal({initialData}, onApply, closeModal, widgets = []) {
-  const routerContext = TestStubs.routerContext();
   return mountWithTheme(
     <DashboardWidgetLibraryModal
       Header={stubEl}
@@ -30,8 +29,7 @@ function mountModal({initialData}, onApply, closeModal, widgets = []) {
       })}
       onAddWidget={onApply}
       closeModal={closeModal}
-    />,
-    {context: routerContext}
+    />
   );
 }
 

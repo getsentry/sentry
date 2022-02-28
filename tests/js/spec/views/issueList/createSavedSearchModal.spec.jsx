@@ -19,8 +19,7 @@ describe('CreateSavedSearchModal', function () {
         organization={organization}
         query="is:unresolved assigned:lyn@sentry.io"
         sort={IssueSortOptions.DATE}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     createMock = MockApiClient.addMockResponse({

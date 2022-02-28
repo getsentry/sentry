@@ -43,8 +43,7 @@ describe('projectPerformance', function () {
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
     await tick();
     expect(wrapper.find('input[name="threshold"]').prop('value')).toBe('300');
@@ -58,8 +57,7 @@ describe('projectPerformance', function () {
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
     await tick();
     wrapper
@@ -84,8 +82,7 @@ describe('projectPerformance', function () {
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
     await tick();
 

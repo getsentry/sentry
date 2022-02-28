@@ -31,7 +31,7 @@ describe('Incident Rules Create', () => {
   });
 
   it('renders a metric', async () => {
-    const {organization, project, routerContext} = initializeOrg();
+    const {organization, project} = initializeOrg();
     mountWithTheme(
       <TriggersChart
         api={api}
@@ -41,8 +41,7 @@ describe('Incident Rules Create', () => {
         timeWindow={1}
         aggregate="count()"
         triggers={[]}
-      />,
-      {context: routerContext}
+      />
     );
 
     await tick();

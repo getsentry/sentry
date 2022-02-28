@@ -55,8 +55,7 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
     // Wait for team list to fetch.
     await wrapper.update();
@@ -89,8 +88,7 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
     // Wait for team list to fetch.
     await wrapper.update();
@@ -162,8 +160,7 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
     // Wait for team list to fetch.
     await wrapper.update();
@@ -210,8 +207,7 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
     // Wait for team list to fetch.
     await wrapper.update();
@@ -263,8 +259,7 @@ describe('ProjectTeams', function () {
           project={project}
           organization={org}
         />
-      </App>,
-      TestStubs.routerContext()
+      </App>
     );
     // Wait for team list to fetch.
     await wrapper.update();

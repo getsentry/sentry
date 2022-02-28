@@ -23,8 +23,7 @@ describe('Resource Subscriptions', () => {
             }}
             onChange={onChange}
           />
-        </Form>,
-        TestStubs.routerContext()
+        </Form>
       );
     });
 
@@ -45,8 +44,7 @@ describe('Resource Subscriptions', () => {
       wrapper = mountWithTheme(
         <Form>
           <Subscriptions events={[]} permissions={permissions} onChange={onChange} />
-        </Form>,
-        TestStubs.routerContext()
+        </Form>
       );
 
       expect(
@@ -71,8 +69,7 @@ describe('Resource Subscriptions', () => {
             }}
             onChange={onChange}
           />
-        </Form>,
-        TestStubs.routerContext()
+        </Form>
       );
     });
 
@@ -97,8 +94,7 @@ describe('Resource Subscriptions', () => {
             permissions={permissions}
             onChange={onChange}
           />
-        </Form>,
-        TestStubs.routerContext()
+        </Form>
       );
 
       wrapper.setProps({permissions});

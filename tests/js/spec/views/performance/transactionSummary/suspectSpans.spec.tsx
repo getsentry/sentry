@@ -29,6 +29,7 @@ function initializeData({query} = {query: {}}) {
       },
     },
   });
+
   act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
   return {
     ...initialData,
@@ -57,8 +58,7 @@ describe('SuspectSpans', function () {
           projectId="1"
           transactionName="Test Transaction"
           totals={{count: 1}}
-        />,
-        {context: initialData.routerContext}
+        />
       );
 
       expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
@@ -87,7 +87,6 @@ describe('SuspectSpans', function () {
     //       projectId="1"
     //       transactionName="Test Transaction"
     //     />,
-    //     {context: initialData.routerContext}
     //   );
 
     //   await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));

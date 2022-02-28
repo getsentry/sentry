@@ -83,7 +83,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
 
       const {container} = mountWithTheme(
         <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
-        {context: data.routerContext, organization: data.organization}
+        {organization: data.organization}
       );
 
       expect(container).toBeEmptyDOMElement();
@@ -94,7 +94,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
 
       const {container} = mountWithTheme(
         <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
-        {context: data.routerContext, organization: data.organization}
+        {organization: data.organization}
       );
 
       expect(container).toBeEmptyDOMElement();

@@ -22,8 +22,7 @@ describe('PermissionSelection', () => {
           }}
           onChange={onChange}
         />
-      </Form>,
-      TestStubs.routerContext()
+      </Form>
     );
   });
 

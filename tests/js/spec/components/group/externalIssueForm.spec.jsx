@@ -47,8 +47,7 @@ describe('ExternalIssueForm', () => {
         group={group}
         integration={integration}
         onChange={onChange}
-      />,
-      TestStubs.routerContext()
+      />
     );
     component.instance().handleClick(action);
     return component;

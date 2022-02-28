@@ -32,15 +32,14 @@ const event = TestStubs.Event({
 });
 
 describe('EventOrGroupHeader', function () {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
       const {container} = mountWithTheme(
-        <EventOrGroupHeader organization={organization} data={group} {...router} />,
-        {context: routerContext}
+        <EventOrGroupHeader organization={organization} data={group} {...router} />
       );
 
       expect(container).toSnapshot();
@@ -55,8 +54,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(container).toSnapshot();
@@ -75,8 +73,7 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(container).toSnapshot();
@@ -91,8 +88,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(screen.getByText('metadata value')).toBeInTheDocument();
@@ -111,8 +107,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(
@@ -131,8 +126,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
@@ -146,8 +140,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
@@ -165,8 +158,7 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
@@ -186,8 +178,7 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });

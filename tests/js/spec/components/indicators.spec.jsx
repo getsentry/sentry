@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   mountWithTheme,
@@ -28,8 +27,7 @@ describe('Indicators', function () {
   let wrapper;
 
   beforeEach(function () {
-    const {routerContext} = initializeOrg();
-    wrapper = mountWithTheme(<Indicators />, {context: routerContext});
+    wrapper = mountWithTheme(<Indicators />);
 
     clearIndicators();
     act(jest.runAllTimers);

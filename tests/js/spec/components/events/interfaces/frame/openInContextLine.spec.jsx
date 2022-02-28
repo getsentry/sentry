@@ -43,8 +43,7 @@ describe('OpenInContextLine', function () {
   describe('with stacktrace-link component', function () {
     it('renders multiple buttons', function () {
       const wrapper = mountWithTheme(
-        <OpenInContextLine filename={filename} lineNo={lineNo} components={components} />,
-        TestStubs.routerContext()
+        <OpenInContextLine filename={filename} lineNo={lineNo} components={components} />
       );
       expect(wrapper.props().components[0].schema.url).toEqual(
         `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group.project.slug}`

@@ -3,15 +3,12 @@ import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 
 describe('FeatureDisabled', function () {
-  const routerContext = TestStubs.routerContext();
-
   it('renders', function () {
     mountWithTheme(
       <FeatureDisabled
         features={['organization:my-features']}
         featureName="Some Feature"
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(
@@ -27,8 +24,7 @@ describe('FeatureDisabled', function () {
         message={customMessage}
         features={['organization:my-features']}
         featureName="Some Feature"
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByText(customMessage)).toBeInTheDocument();
@@ -41,8 +37,7 @@ describe('FeatureDisabled', function () {
         alert={customAlert}
         features={['organization:my-features']}
         featureName="Some Feature"
-      />,
-      {context: routerContext}
+      />
     );
     expect(customAlert).toHaveBeenCalled();
   });
@@ -53,8 +48,7 @@ describe('FeatureDisabled', function () {
         alert
         features={['organization:my-features']}
         featureName="Some Feature"
-      />,
-      {context: routerContext}
+      />
     );
     fireEvent.click(screen.getByText('Help'));
     expect(

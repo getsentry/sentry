@@ -14,8 +14,7 @@ describe('EventsTableRow', function () {
             event={TestStubs.DetailedEvents()[0]}
           />
         </tbody>
-      </table>,
-      TestStubs.routerContext()
+      </table>
     );
     expect(wrapper).toSnapshot();
   });

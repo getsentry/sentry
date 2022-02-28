@@ -53,8 +53,7 @@ describe('StacktraceLinkModal', function () {
         integrations={[integration]}
         organization={org}
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
   };
 

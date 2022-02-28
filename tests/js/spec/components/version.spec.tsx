@@ -11,13 +11,13 @@ describe('Version', () => {
   });
 
   it('renders', () => {
-    const {container} = mountWithTheme(<Version version={VERSION} />, {context});
+    const {container} = mountWithTheme(<Version version={VERSION} />);
     expect(container).toSnapshot();
   });
 
   it('shows correct parsed version', () => {
     // component uses @sentry/release-parser package for parsing versions
-    mountWithTheme(<Version version={VERSION} />, {context});
+    mountWithTheme(<Version version={VERSION} />);
 
     expect(screen.getByText('1.0.0 (20200101)')).toBeInTheDocument();
   });

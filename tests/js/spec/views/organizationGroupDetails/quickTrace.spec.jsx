@@ -9,7 +9,6 @@ jest.mock('sentry/utils/analytics');
 
 describe('ConfigureDistributedTracing', function () {
   let putMock;
-  const routerContext = TestStubs.routerContext();
   const organization = TestStubs.Organization({features: ['performance-view']});
   const project = TestStubs.Project({platform: 'javascript'});
   const event = TestStubs.Event({
@@ -39,8 +38,7 @@ describe('ConfigureDistributedTracing', function () {
         event={event}
         organization={organization}
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();
@@ -57,8 +55,7 @@ describe('ConfigureDistributedTracing', function () {
         event={event}
         organization={newOrganization}
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();
@@ -82,8 +79,7 @@ describe('ConfigureDistributedTracing', function () {
         event={newEvent}
         organization={organization}
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();
@@ -99,8 +95,7 @@ describe('ConfigureDistributedTracing', function () {
         event={event}
         organization={organization}
         project={newProject}
-      />,
-      routerContext
+      />
     );
 
     await tick();
@@ -115,8 +110,7 @@ describe('ConfigureDistributedTracing', function () {
         event={event}
         organization={organization}
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();
@@ -165,8 +159,7 @@ describe('ConfigureDistributedTracing', function () {
         event={event}
         organization={organization}
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();
@@ -181,8 +174,7 @@ describe('ConfigureDistributedTracing', function () {
         event={event}
         organization={organization}
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();
@@ -229,8 +221,7 @@ describe('ConfigureDistributedTracing', function () {
         event={event}
         organization={organization}
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();
@@ -245,8 +236,7 @@ describe('ConfigureDistributedTracing', function () {
         event={event}
         organization={organization}
         project={project}
-      />,
-      routerContext
+      />
     );
 
     await tick();

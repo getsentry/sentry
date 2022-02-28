@@ -46,10 +46,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
@@ -60,10 +57,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     // Validate that the first step is shown
     expect(wrapper.find('#step_name').text()).toEqual('step_1');
@@ -80,10 +74,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     wrapper.find('#complete').simulate('click');
     expect(browserHistory.push).toHaveBeenCalledWith('/onboarding/org-bar/step2/');
@@ -95,10 +86,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     // Validate that second step is visible
     expect(wrapper.find('#step_name').text()).toEqual('step_2');
@@ -113,10 +101,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     wrapper.find('Back Button').simulate('click');
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');

@@ -38,15 +38,14 @@ describe('Incident Rules Create', function () {
   });
 
   it('renders', function () {
-    const {organization, project, routerContext} = initializeOrg();
+    const {organization, project} = initializeOrg();
     mountWithTheme(
       <IncidentRulesCreate
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
         project={project}
         userTeamIds={[]}
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(eventStatsMock).toHaveBeenCalledWith(

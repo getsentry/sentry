@@ -33,8 +33,7 @@ describe('ProjectCspReports', function () {
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
         })}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper).toSnapshot();
   });
@@ -48,8 +47,7 @@ describe('ProjectCspReports', function () {
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
         })}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const mock = MockApiClient.addMockResponse({
@@ -84,8 +82,7 @@ describe('ProjectCspReports', function () {
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
         })}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const mock = MockApiClient.addMockResponse({

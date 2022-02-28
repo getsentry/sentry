@@ -31,8 +31,7 @@ describe('IssueListSavedSearchSelector', function () {
         onSavedSearchSelect={onSelect}
         onSavedSearchDelete={onDelete}
         query="is:unresolved assigned:lyn@sentry.io"
-      />,
-      TestStubs.routerContext()
+      />
     );
   });
 

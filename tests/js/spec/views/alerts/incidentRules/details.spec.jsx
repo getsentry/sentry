@@ -58,7 +58,7 @@ describe('Incident Rules Details', function () {
   });
 
   it('renders and edits trigger', async function () {
-    const {organization, project, routerContext} = initializeOrg();
+    const {organization, project} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const onChangeTitleMock = jest.fn();
     const req = MockApiClient.addMockResponse({
@@ -90,8 +90,7 @@ describe('Incident Rules Details', function () {
           onChangeTitle={onChangeTitleMock}
           project={project}
         />
-      </Fragment>,
-      {context: routerContext}
+      </Fragment>
     );
 
     // has existing trigger
@@ -163,7 +162,7 @@ describe('Incident Rules Details', function () {
   });
 
   it('clears trigger', async function () {
-    const {organization, project, routerContext} = initializeOrg();
+    const {organization, project} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     rule.triggers.push({label: 'warning', alertThreshold: 13, actions: []});
     rule.resolveThreshold = 12;
@@ -198,8 +197,7 @@ describe('Incident Rules Details', function () {
           onChangeTitle={onChangeTitleMock}
           project={project}
         />
-      </Fragment>,
-      {context: routerContext}
+      </Fragment>
     );
 
     // has existing trigger

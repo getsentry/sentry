@@ -17,7 +17,7 @@ const mockResponse = mocks => {
 
 describe('SentryAppDetailedView', function () {
   const org = TestStubs.Organization();
-  const routerContext = TestStubs.routerContext();
+
   let wrapper;
   const {router} = initializeOrg({
     projects: [
@@ -108,8 +108,7 @@ describe('SentryAppDetailedView', function () {
         <SentryAppDetailedView
           params={{integrationSlug: 'clickup', orgId: org.slug}}
           location={{query: {}}}
-        />,
-        routerContext
+        />
       );
     });
 
@@ -222,8 +221,7 @@ describe('SentryAppDetailedView', function () {
           params={{integrationSlug: 'my-headband-washer-289499', orgId: org.slug}}
           location={{query: {}}}
           router={router}
-        />,
-        routerContext
+        />
       );
 
       mockRouterPush(wrapper, router);
@@ -308,8 +306,7 @@ describe('SentryAppDetailedView', function () {
         <SentryAppDetailedView
           params={{integrationSlug: 'la-croix-monitor', orgId: org.slug}}
           location={{query: {}}}
-        />,
-        routerContext
+        />
       );
     });
     it('shows the Integration name and install status', async function () {
@@ -397,8 +394,7 @@ describe('SentryAppDetailedView', function () {
           params={{integrationSlug: 'go-to-google', orgId: org.slug}}
           location={{query: {}}}
           router={router}
-        />,
-        routerContext
+        />
       );
       mockRouterPush(wrapper, router);
     });

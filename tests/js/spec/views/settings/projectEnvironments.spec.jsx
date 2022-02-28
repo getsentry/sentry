@@ -19,8 +19,7 @@ function mountComponent(isHidden) {
       }}
       location={{pathname}}
       routes={[]}
-    />,
-    TestStubs.routerContext()
+    />
   );
 }
 

@@ -17,8 +17,7 @@ describe('OrganizationAuditLog', function () {
 
   it('renders', function (done) {
     const wrapper = mountWithTheme(
-      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />
     );
     wrapper.setState({loading: false});
     wrapper.update();
@@ -31,8 +30,7 @@ describe('OrganizationAuditLog', function () {
 
   it('displays whether an action was done by a superuser', function () {
     const wrapper = mountWithTheme(
-      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />
     );
     expect(wrapper.find('div[data-test-id="actor-name"]').at(0).text()).toEqual(
       expect.stringContaining('(Sentry Staff)')
