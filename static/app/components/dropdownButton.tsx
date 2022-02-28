@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-type Props = Omit<React.ComponentProps<typeof Button>, 'type' | 'priority'> & {
+interface DropdownButtonProps extends Omit<ButtonProps, 'prefix'> {
   /**
    * Forward a ref to the button's root
    */
@@ -30,7 +30,7 @@ type Props = Omit<React.ComponentProps<typeof Button>, 'type' | 'priority'> & {
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
-};
+}
 
 const DropdownButton = ({
   children,
@@ -42,7 +42,7 @@ const DropdownButton = ({
   disabled = false,
   priority = 'form',
   ...props
-}: Props) => {
+}: DropdownButtonProps) => {
   return (
     <StyledButton
       {...props}
@@ -69,7 +69,9 @@ const StyledChevron = styled(IconChevron)`
 `;
 
 const StyledButton = styled(Button)<
-  Required<Pick<Props, 'isOpen' | 'disabled' | 'hideBottomBorder' | 'priority'>>
+  Required<
+    Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'hideBottomBorder' | 'priority'>
+  >
 >`
   border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
@@ -95,6 +97,6 @@ const LabelText = styled('span')`
   }
 `;
 
-export default React.forwardRef<typeof Button, Props>((props, ref) => (
+export default React.forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
   <DropdownButton forwardedRef={ref} {...props} />
 ));

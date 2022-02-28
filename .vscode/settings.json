@@ -25,19 +25,23 @@
   },
 
   "[javascript]": {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
   },
 
   "[typescript]": {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
   },
 
   "[typescriptreact]": {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
   },
 
   "[javascriptreact]": {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
   },
 
   "[less]": {

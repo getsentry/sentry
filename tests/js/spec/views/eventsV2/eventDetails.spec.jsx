@@ -117,8 +117,7 @@ describe('EventsV2 > EventDetails', function () {
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
@@ -130,8 +129,7 @@ describe('EventsV2 > EventDetails', function () {
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{query: allEventsView.generateQueryStringObject()}}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const content = wrapper.find('NotFound');
     expect(content).toHaveLength(1);
@@ -143,8 +141,7 @@ describe('EventsV2 > EventDetails', function () {
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: errorsView.generateQueryStringObject()}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     // loading state
@@ -167,8 +164,7 @@ describe('EventsV2 > EventDetails', function () {
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const alert = wrapper.find('Alert');
     expect(alert).toHaveLength(1);

@@ -56,7 +56,7 @@ describe('importProfile', () => {
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
   });
-  it('imports JS self profile', () => {
+  it('imports JS self profile from schema', () => {
     const jsSelfProfile: JSSelfProfiling.Trace = {
       resources: ['app.js', 'vendor.js'],
       frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
@@ -90,6 +90,32 @@ describe('importProfile', () => {
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });
+
+  it('imports JS self profile from raw Profiling output', () => {
+    const jsSelfProfile: JSSelfProfiling.Trace = {
+      resources: ['app.js', 'vendor.js'],
+      frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
+      samples: [
+        {
+          timestamp: 0,
+        },
+        {
+          timestamp: 1000,
+          stackId: 0,
+        },
+      ],
+      stacks: [
+        {
+          frameId: 0,
+        },
+      ],
+    };
+
+    const imported = importProfile(jsSelfProfile, 'profile');
+
+    expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
+  });
+
   it('throws on unrecognized profile type', () => {
     expect(() =>
       importProfile(
