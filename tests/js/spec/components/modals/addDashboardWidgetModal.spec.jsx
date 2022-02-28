@@ -13,6 +13,7 @@ import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new'
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
+import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
 import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
@@ -118,17 +119,44 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'custom-field', key: 'custom-field'},
   ];
   const metricsTags = [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}];
+  const metricsMeta = [
+    {
+      name: 'sentry.sessions.session',
+      type: 'counter',
+      operations: ['sum'],
+      unit: null,
+    },
+    {
+      name: 'sentry.sessions.session.error',
+      type: 'set',
+      operations: ['count_unique'],
+      unit: null,
+    },
+    {
+      name: 'sentry.sessions.user',
+      type: 'set',
+      operations: ['count_unique'],
+      unit: null,
+    },
+    {
+      name: 'not.on.allow.list',
+      type: 'set',
+      operations: ['count_unique'],
+      unit: null,
+    },
+  ];
   const dashboard = TestStubs.Dashboard([], {
     id: '1',
     title: 'Test Dashboard',
     widgetDisplay: ['area'],
   });
 
-  let eventsStatsMock, metricsMetaMock, metricsDataMock;
+  let eventsStatsMock, metricsDataMock;
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
     MetricsTagStore.onLoadTagsSuccess(metricsTags);
+    MetricsMetaStore.onLoadSuccess(metricsMeta);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
@@ -162,35 +190,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/tags/',
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
-    });
-    metricsMetaMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/meta/',
-      body: [
-        {
-          name: 'sentry.sessions.session',
-          type: 'counter',
-          operations: ['sum'],
-          unit: null,
-        },
-        {
-          name: 'sentry.sessions.session.error',
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-        {
-          name: 'sentry.sessions.user',
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-        {
-          name: 'not.on.allow.list',
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-      ],
     });
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -1225,7 +1224,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      expect(metricsMetaMock).not.toHaveBeenCalled();
       expect(metricsDataMock).not.toHaveBeenCalled();
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
@@ -1343,8 +1341,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      expect(metricsMetaMock).toHaveBeenCalledTimes(1);
-
       await act(async () =>
         userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
       );
@@ -1383,8 +1379,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      expect(metricsMetaMock).toHaveBeenCalledTimes(1);
-
       await act(async () =>
         userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
       );

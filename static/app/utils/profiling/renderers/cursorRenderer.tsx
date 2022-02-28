@@ -1,6 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {FlamegraphTheme} from '../flamegraph/FlamegraphTheme';
+import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, Rect, resizeCanvasToDisplaySize} from '../gl/utils';
 
 class CursorRenderer {
