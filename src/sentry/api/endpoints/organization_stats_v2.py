@@ -35,8 +35,8 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     # time params
     statsPeriod = serializers.CharField(
         help_text=(
-            "This defines the range of the time series, relative to now."
-            "The range is given in a `<number><unit>` format."
+            "This defines the range of the time series, relative to now. "
+            "The range is given in a `<number><unit>` format. "
             "For example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks."
         ),
         required=False,
