@@ -12,6 +12,7 @@ import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
@@ -683,7 +684,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
             {dataset !== Dataset.SESSIONS && (
               <AlertInfo>
-                {aggregate} | event.type:{eventTypes?.join(',')}
+                <StyledCircleIndicator size={8} />
+                <Aggregate>{aggregate}</Aggregate>
+                event.type:{eventTypes?.join(',')}
               </AlertInfo>
             )}
           </ChartHeader>
@@ -824,10 +827,20 @@ const AlertName = styled('div')`
 `;
 
 const AlertInfo = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.family};
   font-weight: normal;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
+`;
+
+const StyledCircleIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.formText};
+  height: ${space(1)};
+  margin-right: ${space(0.5)};
+`;
+
+const Aggregate = styled('span')`
+  margin-right: ${space(1)};
 `;
 
 export default RuleFormContainer;
