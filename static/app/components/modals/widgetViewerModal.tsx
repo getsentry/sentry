@@ -38,6 +38,7 @@ type Props = ModalRenderProps &
 const TABLE_ITEM_LIMIT = 30;
 const FULL_TABLE_HEIGHT = 600;
 const HALF_TABLE_HEIGHT = 300;
+const GEO_COUNTRY_CODE = 'geo.country_code';
 
 function WidgetViewerModal(props: Props) {
   const renderWidgetViewer = () => {
@@ -62,6 +63,15 @@ function WidgetViewerModal(props: Props) {
     // Create Table widget
     const tableWidget = {...cloneDeep(widget), displayType: DisplayType.TABLE};
     const fields = tableWidget.queries[0].fields;
+
+    // World Map view should always have geo.country in the table chart
+    if (
+      widget.displayType === DisplayType.WORLD_MAP &&
+      !fields.includes(GEO_COUNTRY_CODE)
+    ) {
+      fields.unshift(GEO_COUNTRY_CODE);
+    }
+
     // Updates fields by adding any individual terms from equation fields as a column
     const equationFields = getFieldsFromEquations(fields);
     equationFields.forEach(term => {

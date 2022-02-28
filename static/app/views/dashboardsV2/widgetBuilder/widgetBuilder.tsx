@@ -123,7 +123,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
 type RouteParams = {
   orgId: string;
   dashboardId?: string;
-  widgetId?: number;
+  widgetIndex?: number;
 };
 
 type QueryData = {
@@ -173,13 +173,13 @@ function WidgetBuilder({
   onSave,
   router,
 }: Props) {
-  const {widgetId, orgId, dashboardId} = params;
+  const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, defaultTableColumns} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
 
-  const isEditing = defined(widgetId);
+  const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
@@ -555,7 +555,7 @@ function WidgetBuilder({
     });
   }
 
-  if (isEditing && !dashboard.widgets.some(({id}) => id === String(widgetId))) {
+  if (isEditing && widgetIndex >= dashboard.widgets.length) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
@@ -864,12 +864,17 @@ function WidgetBuilder({
                     description={t(
                       "Choose which dashboard you'd like to add this query to. It will appear as a widget."
                     )}
+                    required
                   >
                     <DashboardSelector
                       error={state.errors?.dashboard}
                       dashboards={state.dashboards}
                       onChange={selectedDashboard =>
-                        setState({...state, selectedDashboard})
+                        setState({
+                          ...state,
+                          selectedDashboard,
+                          errors: {...state.errors, dashboard: undefined},
+                        })
                       }
                       disabled={state.loading}
                     />

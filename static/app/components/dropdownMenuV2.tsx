@@ -48,6 +48,11 @@ type Props = {
    */
   menuTitle?: string;
   onClose?: () => void;
+  /**
+   * Current width of the trigger element. This is used as the menu's minumum
+   * width.
+   */
+  triggerWidth?: number;
 } & AriaMenuOptions<MenuItemProps> &
   Partial<OverlayProps> &
   Partial<AriaPositionProps>;
@@ -59,6 +64,7 @@ function Menu({
   placement = 'bottom left',
   closeOnSelect = true,
   triggerRef,
+  triggerWidth,
   isSubmenu,
   menuTitle,
   closeRootMenu,
@@ -224,7 +230,10 @@ function Menu({
         <MenuWrap
           ref={menuRef}
           {...modifiedMenuProps}
-          style={{maxHeight: positionProps.style?.maxHeight}}
+          style={{
+            maxHeight: positionProps.style?.maxHeight,
+            minWidth: triggerWidth,
+          }}
         >
           {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
           {renderCollection(stateCollection)}
