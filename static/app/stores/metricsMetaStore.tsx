@@ -28,15 +28,15 @@ const storeConfig: Reflux.StoreDefinition & MetricsMetaStoreInterface = {
   },
 
   onLoadSuccess(data) {
-    const newTags = data.reduce<MetricsMetaCollection>((acc, tag) => {
-      acc[tag.name] = {
-        ...tag,
+    const newFields = data.reduce<MetricsMetaCollection>((acc, field) => {
+      acc[field.name] = {
+        ...field,
       };
 
       return acc;
     }, {});
 
-    this.state = {...this.state, ...newTags};
+    this.state = {...this.state, ...newFields};
     this.trigger(this.state);
   },
 };
