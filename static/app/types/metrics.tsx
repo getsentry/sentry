@@ -12,6 +12,8 @@ export type MetricsApiResponse = {
   start: string;
 };
 
+export type MetricTagCollection = Record<string, MetricTag>;
+
 export type MetricTag = {
   key: string;
 };
@@ -26,6 +28,8 @@ export type MetricMeta = {
   operations: string[];
   type: MetricsColumnType;
 };
+
+export type MetricsMetaCollection = Record<string, MetricMeta>;
 
 export type MetricQuery = {
   aggregation?: string;
