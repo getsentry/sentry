@@ -1,6 +1,6 @@
-import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/FullScreenFlamegraphContainer';
-import {FlamegraphPreferencesProvider} from 'sentry/utils/profiling/flamegraph/FlamegraphPreferencesProvider';
-import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/FlamegraphThemeProvider';
+import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
+import {FlamegraphPreferencesProvider} from 'sentry/utils/profiling/flamegraph/flamegraphPreferencesProvider';
+import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 
 function FlamegraphView() {
   return (
@@ -12,4 +12,4 @@ function FlamegraphView() {
   );
 }
 
-export {FlamegraphView};
+export default FlamegraphView;

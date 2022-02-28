@@ -1021,20 +1021,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"email": "foo@example.com"})
         assert resp.status_code == 200
 
-    @mock.patch("sentry.auth.helper.using_okta_migration_workaround")
-    def test_anonymous_user_with_okta_workaround(self, mock_workaround):
-        mock_workaround.return_value = True
-
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
-        resp = self.client.post(self.path, {"init": True})
-        assert resp.status_code == 200
-
-        path = reverse("sentry-auth-sso")
-
-        # Check that we don't query OrganizationMember with an AnonymousUser
-        resp = self.client.post(path, {"email": "foo@example.com"})
-        assert resp.status_code == 200
-
 
 class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
     def setUp(self):

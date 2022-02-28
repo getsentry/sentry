@@ -241,14 +241,14 @@ class SCIMEmail(TypedDict):
     type: str
 
 
-class SCIMMeta(TypedDict):
-    resourceType: str
-
-
 class OrganizationMemberSCIMSerializerOptional(TypedDict, total=False):
     """Sentry doesn't use this field but is expected by SCIM"""
 
     active: bool
+
+
+class SCIMMeta(TypedDict):
+    resourceType: str
 
 
 class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):
