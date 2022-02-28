@@ -100,8 +100,6 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    # Default Rate Limit Values, override in subclass
-    # Should be of format: { <http function>: { <category>: RateLimit(limit, window) } }
     rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 

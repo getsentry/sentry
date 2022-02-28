@@ -15,8 +15,10 @@ class InvalidRateLimitConfig(Exception):
     pass
 
 
-RateLimitOverrideDict = Mapping[str, Mapping[RateLimitCategory, RateLimit]]
 GroupName = str
+HttpMethodName = str
+
+RateLimitOverrideDict = Mapping[HttpMethodName, Mapping[RateLimitCategory, RateLimit]]
 
 # This default value is going to shrink over time
 _SENTRY_RATELIMITER_DEFAULT = 620
