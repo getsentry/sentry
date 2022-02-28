@@ -69,6 +69,9 @@ export default function ExclusiveTimeChart(props: Props) {
     browserHistory.push(to);
   };
 
+  const getExclusiveTimeDisplayedValue = (value: string) =>
+    value.replace('exclusive', 'self');
+
   return (
     <Fragment>
       <HeaderTitleLegend>
@@ -152,7 +155,13 @@ export default function ExclusiveTimeChart(props: Props) {
                 right: 10,
                 top: 5,
                 selected: getSeriesSelection(location),
+                formatter: getExclusiveTimeDisplayedValue,
               };
+
+              const formattedResults = results?.map(result => ({
+                ...result,
+                seriesName: getExclusiveTimeDisplayedValue(result.seriesName),
+              }));
 
               return (
                 <TransitionChart loading={loading} reloading={reloading}>
@@ -164,7 +173,7 @@ export default function ExclusiveTimeChart(props: Props) {
                         {...chartOptions}
                         legend={legend}
                         onLegendSelectChanged={handleLegendSelectChanged}
-                        series={results ?? []}
+                        series={formattedResults ?? []}
                       />
                     ),
                     fixed: <Placeholder height="200px" />,
