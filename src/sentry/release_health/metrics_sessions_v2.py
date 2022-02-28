@@ -23,6 +23,7 @@ from typing import (
     TypedDict,
     Union,
     cast,
+    get_args,
 )
 
 from snuba_sdk import (
@@ -709,48 +710,61 @@ def run_sessions_query(
         }
     )
 
-    for key in data_points.keys():
-        try:
-            output_field = metric_to_output_field[key.metric_key, key.column]
-        except KeyError:
-            continue  # secondary metric, like session.error
+    groups_as_list = []
+    if len(data_points) == 0:
+        for status in get_args(_SessionStatus):
+            group = {}
+            group["by"] = {"session.status": status}
+            group["totals"] = {}
+            group["series"] = {}
+            for field in query_clone.fields:
+                default_value = default_for(field)
+                group["totals"][field] = default_value
+                group["series"][field] = [default_value for _ in range(len(intervals))]
+            groups_as_list.append(group)
+    else:
+        for key in data_points.keys():
+            try:
+                output_field = metric_to_output_field[key.metric_key, key.column]
+            except KeyError:
+                continue  # secondary metric, like session.error
 
-        by: MutableMapping[GroupByFieldName, Union[str, int]] = {}
-        if key.release is not None:
-            # Every session has a release, so this should not throw
-            by["release"] = reverse_resolve(key.release)
-        if key.environment is not None:
-            # To match behavior of the old sessions backend, session data
-            # without environment is grouped under the empty string.
-            by["environment"] = reverse_resolve_weak(key.environment) or ""
-        if key.project_id is not None:
-            by["project"] = key.project_id
+            by: MutableMapping[GroupByFieldName, Union[str, int]] = {}
+            if key.release is not None:
+                # Every session has a release, so this should not throw
+                by["release"] = reverse_resolve(key.release)
+            if key.environment is not None:
+                # To match behavior of the old sessions backend, session data
+                # without environment is grouped under the empty string.
+                by["environment"] = reverse_resolve_weak(key.environment) or ""
+            if key.project_id is not None:
+                by["project"] = key.project_id
 
-        for status_value in output_field.get_values(data_points, key):
-            if status_value.session_status is not None:
-                by["session.status"] = status_value.session_status
+            for status_value in output_field.get_values(data_points, key):
+                if status_value.session_status is not None:
+                    by["session.status"] = status_value.session_status  # !
 
-            group_key: GroupKey = tuple(sorted(by.items()))
-            group = groups[group_key]
+                group_key: GroupKey = tuple(sorted(by.items()))
+                group = groups[group_key]
 
-            value = status_value.value
-            if value is not None:
-                value = finite_or_none(value)
+                value = status_value.value
+                if value is not None:
+                    value = finite_or_none(value)
 
-            if key.bucketed_time is None:
-                group["totals"][output_field.get_name()] = value
-            else:
-                index = timestamp_index[key.bucketed_time]
-                group["series"][output_field.get_name()][index] = value
+                if key.bucketed_time is None:
+                    group["totals"][output_field.get_name()] = value
+                else:
+                    index = timestamp_index[key.bucketed_time]
+                    group["series"][output_field.get_name()][index] = value
 
-    groups_as_list: List[SessionsQueryGroup] = [
-        {
-            "by": dict(by),
-            "totals": group["totals"],
-            "series": group["series"],
-        }
-        for by, group in groups.items()
-    ]
+        groups_as_list: List[SessionsQueryGroup] = [
+            {
+                "by": dict(by),
+                "totals": group["totals"],
+                "series": group["series"],
+            }
+            for by, group in groups.items()
+        ]
 
     def format_datetime(dt: datetime) -> str:
         return dt.isoformat().replace("+00:00", "Z")
