@@ -119,6 +119,8 @@ class ComparisonError:
         if sessions:
             return (metrics - sessions) / abs(sessions)
 
+        return None
+
     def __str__(self) -> str:
         return self._message
 
