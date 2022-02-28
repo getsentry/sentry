@@ -28,10 +28,10 @@ const ThresholdTypeForm = ({
   disabled,
   comparisonType,
   onComparisonDeltaChange,
-  onComparisonTypeChange,
-  hasAlertWizardV3,
-  comparisonDelta,
-}: Props) =>
+      onComparisonTypeChange,
+      hasAlertWizardV3,
+      comparisonDelta,
+    } : Props) =>
   dataset === Dataset.SESSIONS ? null : (
     <Feature features={['organizations:change-alerts']} organization={organization}>
       {!hasAlertWizardV3 && <StyledListItem>{t('Select threshold type')}</StyledListItem>}
