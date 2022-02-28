@@ -1,4 +1,5 @@
 import uuid
+from asyncio.log import logger
 from datetime import datetime
 from typing import Any, List, Mapping, Optional, TypedDict
 
@@ -404,33 +405,43 @@ class _TransactionThreshold(TypedDict):
     threshold: float
 
 
-def _get_satisfaction_thresholds(project: Project) -> Mapping[Optional[str], _TransactionThreshold]:
+class _TransactionThresholdConfig(TypedDict):
+    projectThreshold: _TransactionThreshold
+    transactionThresholds: Mapping[str, _TransactionThreshold]
+
+
+def _get_satisfaction_thresholds(project: Project) -> _TransactionThresholdConfig:
     """Return a mapping from transaction name to threshold.
     If transaction name is None, apply threshold to all transactions
     """
     # Always start with the default threshold, so we do not have to maintain
     # A separate default in Relay:
-    thresholds: Mapping[Optional[str], _TransactionThreshold] = {
-        None: {
-            "metric": DEFAULT_THRESHOLD["metric"],
-            "threshold": float(DEFAULT_THRESHOLD["threshold"]),
-        }
+    project_threshold: _TransactionThreshold = {
+        "metric": DEFAULT_THRESHOLD["metric"],
+        "threshold": float(DEFAULT_THRESHOLD["threshold"]),
     }
 
-    # Apply custom thresholds
-    custom_thresholds = list(project.projecttransactionthreshold_set.all()) + list(
-        project.projecttransactionthresholdoverride_set.all()
-    )
-    thresholds.update(
-        {
-            getattr(threshold, "transaction", None): {
+    # Apply custom project threshold
+    for i, threshold in enumerate(project.projecttransactionthreshold_set.all()):
+        if i > 0:
+            logger.error("More than one transaction threshold applied for project")
+            break
+        project_threshold = {
+            "metric": TRANSACTION_THRESHOLD_KEYS[threshold.metric],
+            "threshold": threshold.threshold,
+        }
+
+    # Apply transaction-specific override
+    return {
+        "projectThreshold": project_threshold,
+        "transactionThresholds": {
+            threshold.transaction: {
                 "metric": TRANSACTION_THRESHOLD_KEYS[threshold.metric],
                 "threshold": threshold.threshold,
             }
-            for threshold in custom_thresholds
+            for threshold in project.projecttransactionthresholdoverride_set.all()
         },
-    )
-    return thresholds
+    }
 
 
 def get_transaction_metrics_settings(

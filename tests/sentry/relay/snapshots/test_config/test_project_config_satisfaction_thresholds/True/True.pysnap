@@ -1,14 +1,15 @@
 ---
-created: '2022-02-28T12:11:47.337388Z'
+created: '2022-02-28T13:20:49.611007Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
-null:
+projectThreshold:
   metric: lcp
   threshold: 500
-bar:
-  metric: lcp
-  threshold: 600
-foo:
-  metric: duration
-  threshold: 400
+transactionThresholds:
+  bar:
+    metric: lcp
+    threshold: 600
+  foo:
+    metric: duration
+    threshold: 400
