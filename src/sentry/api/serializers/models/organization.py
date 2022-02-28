@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from rest_framework import serializers
@@ -112,7 +113,7 @@ class OrganizationSerializerResponse(TypedDict):
     slug: str
     status: _Status
     name: str
-    dateCreated: str
+    dateCreated: datetime
     isEarlyAdopter: bool
     require2FA: bool
     requireEmailVerification: bool
@@ -224,8 +225,8 @@ class OnboardingTasksSerializerResponse(TypedDict):
     task: str  # TODO: literal/enum
     status: str  # TODO: literal/enum
     user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
-    completionSeen: str
-    dateCompleted: str
+    completionSeen: datetime
+    dateCompleted: datetime
     data: Any  # JSON object
 
 
@@ -268,7 +269,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     availableRoles: list[Any]  # TODO replace with enum/literal
     openMembership: bool
     allowSharedIssues: bool
-    enahncedPrivacy: bool
+    enhancedPrivacy: bool
     dataScrubber: bool
     dataScrubberDefaults: bool
     sensitiveFields: list[Any]  # TODO
