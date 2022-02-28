@@ -47,17 +47,9 @@ const HALF_TABLE_ITEM_LIMIT = 10;
 
 function WidgetViewerModal(props: Props) {
   const {organization, widget, selection, location, Footer, Body, Header, onEdit} = props;
-  const eventView = eventViewFromWidget(
-    widget.title,
-    widget.queries[0],
-    selection,
-    widget.displayType
-  );
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const renderWidgetViewer = () => {
     const api = useApi();
-    const columnOrder = eventView.getColumns();
-    const columnSortBy = eventView.getSorts();
 
     // Create Table widget
     const tableWidget = {...cloneDeep(widget), displayType: DisplayType.TABLE};
@@ -71,6 +63,14 @@ function WidgetViewerModal(props: Props) {
         }
       });
     }
+    const eventView = eventViewFromWidget(
+      tableWidget.title,
+      tableWidget.queries[0],
+      selection,
+      tableWidget.displayType
+    );
+    const columnOrder = eventView.getColumns();
+    const columnSortBy = eventView.getSorts();
     return (
       <React.Fragment>
         {widget.displayType !== DisplayType.TABLE && (
