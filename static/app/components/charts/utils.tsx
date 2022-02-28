@@ -194,10 +194,20 @@ export function getSeriesSelection(
   }, {});
 }
 
+function isSingleSeriesStats(
+  data: MultiSeriesEventsStats | EventsStats
+): data is EventsStats {
+  return (
+    (defined(data.data) || defined(data.totals)) &&
+    defined(data.start) &&
+    defined(data.end)
+  );
+}
+
 export function isMultiSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | null | undefined
 ): data is MultiSeriesEventsStats {
-  return defined(data) && data.data === undefined && data.totals === undefined;
+  return defined(data) && !!!isSingleSeriesStats(data);
 }
 
 // If dimension is a number convert it to pixels, otherwise use dimension
