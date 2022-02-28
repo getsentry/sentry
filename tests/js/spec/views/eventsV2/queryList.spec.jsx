@@ -21,7 +21,7 @@ describe('EventsV2 > QueryList', function () {
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
       statusCode: 200,
-      body: {data: [], start: 1000, end: 2000},
+      body: TestStubs.EventsStats({start: 1000, end: 2000}),
     });
 
     deleteMock = MockApiClient.addMockResponse({
