@@ -24,8 +24,7 @@ describe('ProjectTags', function () {
 
   it('renders', function () {
     const wrapper = mountWithTheme(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     expect(wrapper).toSnapshot();
@@ -40,8 +39,7 @@ describe('ProjectTags', function () {
     });
 
     const wrapper = mountWithTheme(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
@@ -62,8 +60,7 @@ describe('ProjectTags', function () {
 
   it('deletes tag', async function () {
     const wrapper = mountWithTheme(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     const tags = wrapper.state('tags').length;

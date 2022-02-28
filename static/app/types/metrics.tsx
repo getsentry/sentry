@@ -29,6 +29,8 @@ export type MetricMeta = {
   type: MetricsColumnType;
 };
 
+export type MetricsMetaCollection = Record<string, MetricMeta>;
+
 export type MetricQuery = {
   aggregation?: string;
   groupBy?: string[];
