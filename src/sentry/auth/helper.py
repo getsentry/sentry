@@ -83,16 +83,6 @@ class AuthHelperSessionStore(PipelineSessionStore):
         self.request.session.modified = True
 
 
-def using_okta_migration_workaround(
-    organization: Organization, user: User, auth_provider: Optional[AuthProvider]
-) -> bool:
-    # XXX(leedongwei): Workaround for migrating Okta instance
-    # TODO: Delete after workaround is not needed
-    has_flag = features.has("organizations:sso-migration", organization, actor=user)
-    has_provider = auth_provider and (auth_provider.provider in ("okta", "saml2"))
-    return has_flag and has_provider
-
-
 @dataclass
 class AuthIdentityHandler:
 
@@ -461,13 +451,7 @@ class AuthIdentityHandler:
                     # adding is_account_verified to the check below in order to redirect
                     # to 2fa when the user migrates their idp but has 2fa enabled,
                     # otherwise it would stop them from linking their sso provider
-                    if (
-                        self._has_usable_password()
-                        or is_account_verified
-                        or using_okta_migration_workaround(
-                            self.organization, self.user, self.auth_provider
-                        )
-                    ):
+                    if self._has_usable_password() or is_account_verified:
                         return self._post_login_redirect()
                     else:
                         is_new_account = True
@@ -751,22 +735,6 @@ class AuthHelper(Pipeline):
 
             auth_handler = self.auth_handler(identity)
             if not auth_identity:
-                if using_okta_migration_workaround(
-                    self.organization, self.request.user, auth_provider
-                ):
-                    identity["email_verified"] = True
-
-                    logger.info(
-                        "sso.login-pipeline.okta-verified-workaround",
-                        extra={
-                            "organization_id": self.organization.id,
-                            "user_id": self.request.user.id,
-                            "auth_provider_id": self.provider_model.id,
-                            "idp_identity_id": identity["id"],
-                            "idp_identity_email": identity["email"],
-                        },
-                    )
-
                 return auth_handler.handle_unknown_identity(self.state)
 
             # If the User attached to this AuthIdentity is not active,
