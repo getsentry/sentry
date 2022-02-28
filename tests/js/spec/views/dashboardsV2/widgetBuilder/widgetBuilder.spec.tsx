@@ -8,6 +8,7 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   DashboardDetails,
@@ -15,7 +16,72 @@ import {
   DisplayType,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
-import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
+import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
+import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
+
+function renderTestComponent({
+  widget,
+  dashboard,
+  query,
+  orgFeatures,
+  onSave,
+}: {
+  dashboard?: WidgetBuilderProps['dashboard'];
+  onSave?: WidgetBuilderProps['onSave'];
+  orgFeatures?: string[];
+  query?: Record<string, any>;
+  widget?: WidgetBuilderProps['widget'];
+} = {}) {
+  const {organization, router, routerContext} = initializeOrg({
+    ...initializeOrg(),
+    organization: {
+      features: orgFeatures ?? [
+        'new-widget-builder-experience',
+        'dashboards-edit',
+        'global-views',
+      ],
+    },
+    router: {
+      location: {
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          ...(query ?? {}),
+        },
+      },
+    },
+  });
+
+  mountWithTheme(
+    <WidgetBuilder
+      route={{}}
+      router={router}
+      routes={router.routes}
+      routeParams={router.params}
+      location={router.location}
+      dashboard={
+        dashboard ?? {
+          id: '1',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [],
+        }
+      }
+      onSave={onSave ?? jest.fn()}
+      widget={widget}
+      params={{
+        orgId: organization.slug,
+        widgetId: widget ? Number(widget.id) : undefined,
+      }}
+    />,
+    {
+      context: routerContext,
+      organization,
+    }
+  );
+
+  return {router};
+}
 
 describe('WidgetBuilder', function () {
   const untitledDashboard: DashboardDetails = {
@@ -94,51 +160,12 @@ describe('WidgetBuilder', function () {
   });
 
   it('no feature access', function () {
-    const {organization, router, routerContext} = initializeOrg();
-
-    const dashboard: DashboardDetails = {
-      id: '1',
-      title: 'Dashboard',
-      createdBy: undefined,
-      dateCreated: '2020-01-01T00:00:00.000Z',
-      widgets: [],
-    };
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={dashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
+    renderTestComponent({orgFeatures: []});
 
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
   it('widget not found', function () {
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DASHBOARDS,
-          },
-        },
-      },
-    });
-
     const widget: Widget = {
       displayType: DisplayType.AREA,
       interval: '1d',
@@ -160,31 +187,10 @@ describe('WidgetBuilder', function () {
       id: '1',
     };
 
-    const dashboard: DashboardDetails = {
-      id: '1',
-      title: 'Dashboard',
-      createdBy: undefined,
-      dateCreated: '2020-01-01T00:00:00.000Z',
-      widgets: [],
-    };
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={dashboard}
-        onSave={jest.fn()}
-        widget={widget}
-        params={{orgId: organization.slug, widgetId: Number(widget.id)}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
+    renderTestComponent({
+      widget,
+      orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
+    });
 
     expect(
       screen.getByText('The widget you want to edit was not found.')
@@ -192,44 +198,7 @@ describe('WidgetBuilder', function () {
   });
 
   it('renders', async function () {
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DASHBOARDS,
-          },
-        },
-      },
-    });
-
-    const dashboard: DashboardDetails = {
-      id: '1',
-      title: 'Dashboard',
-      createdBy: undefined,
-      dateCreated: '2020-01-01T00:00:00.000Z',
-      widgets: [],
-    };
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={dashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
+    renderTestComponent();
 
     // Header - Breadcrumbs
     expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
@@ -273,36 +242,9 @@ describe('WidgetBuilder', function () {
   });
 
   it('redirects correctly when creating a new dashboard', async function () {
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DISCOVERV2,
-          },
-        },
-      },
+    const {router} = renderTestComponent({
+      query: {source: DashboardWidgetSource.DISCOVERV2},
     });
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={untitledDashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
 
     expect(await screen.findByText('Choose your dashboard')).toBeInTheDocument();
     expect(
@@ -340,36 +282,9 @@ describe('WidgetBuilder', function () {
   });
 
   it('redirects correctly when choosing an existing dashboard', async function () {
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DISCOVERV2,
-          },
-        },
-      },
+    const {router} = renderTestComponent({
+      query: {source: DashboardWidgetSource.DISCOVERV2},
     });
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={untitledDashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
 
     userEvent.click(await screen.findByText('Select a dashboard'));
     userEvent.click(screen.getByText('Test Dashboard'));
@@ -399,55 +314,10 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  // it('disables dashboards with max widgets', async function () {
-  //   types.MAX_WIDGETS = 1;
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     source: types.DashboardWidgetSource.DISCOVERV2,
-  //   });
-  //   await tick();
-  //   await wrapper.update();
-  //   openMenu(wrapper, {name: 'dashboard', control: true});
-
-  //   const input = wrapper.find('SelectControl[name="dashboard"]');
-  //   expect(input.find('Option Option')).toHaveLength(2);
-  //   expect(input.find('Option Option').at(0).props().isDisabled).toBe(false);
-  //   expect(input.find('Option Option').at(1).props().isDisabled).toBe(true);
-
-  //   wrapper.unmount();
-  // });
-
   it('can update the title', async function () {
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DISCOVERV2,
-          },
-        },
-      },
+    renderTestComponent({
+      query: {source: DashboardWidgetSource.DISCOVERV2},
     });
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={untitledDashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
 
     const customWidgetLabels = await screen.findAllByText('Custom Widget');
     // EditableText and chart title
@@ -466,36 +336,9 @@ describe('WidgetBuilder', function () {
   });
 
   it('can add query conditions', async function () {
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DISCOVERV2,
-          },
-        },
-      },
+    const {router} = renderTestComponent({
+      query: {source: DashboardWidgetSource.DISCOVERV2},
     });
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={untitledDashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
 
     userEvent.type(
       await screen.findByRole('textbox', {name: 'Search events'}),
@@ -531,36 +374,9 @@ describe('WidgetBuilder', function () {
   });
 
   it('can choose a field', async function () {
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DISCOVERV2,
-          },
-        },
-      },
+    const {router} = renderTestComponent({
+      query: {source: DashboardWidgetSource.DISCOVERV2},
     });
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={untitledDashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
 
     expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
 
@@ -1274,39 +1090,14 @@ describe('WidgetBuilder', function () {
       orderby: '',
     };
 
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DISCOVERV2,
-            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-            displayType: DisplayType.TOP_N,
-            defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
-          },
-        },
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        displayType: DisplayType.TOP_N,
+        defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
       },
     });
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={untitledDashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
 
     //  Top N display
     expect(await screen.findByText('Top 5 Events')).toBeInTheDocument();
@@ -1338,37 +1129,12 @@ describe('WidgetBuilder', function () {
       orderby: '',
     };
 
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DISCOVERV2,
-            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          },
-        },
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
       },
     });
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={untitledDashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
 
     expect(await screen.findByText('tag:value')).toBeInTheDocument();
 
@@ -1379,37 +1145,11 @@ describe('WidgetBuilder', function () {
   });
 
   it('uses displayType if given a displayType', async function () {
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DASHBOARDS,
-            displayType: DisplayType.BAR,
-          },
-        },
+    renderTestComponent({
+      query: {
+        displayType: DisplayType.BAR,
       },
     });
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={untitledDashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
 
     expect(await screen.findByText('Bar Chart')).toBeInTheDocument();
   });
@@ -1515,36 +1255,7 @@ describe('WidgetBuilder', function () {
   // });
 
   it('limits TopN display to one query when switching from another visualization', async () => {
-    const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-      },
-      router: {
-        location: {
-          query: {
-            source: DashboardWidgetSource.DASHBOARDS,
-          },
-        },
-      },
-    });
-
-    mountWithTheme(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={untitledDashboard}
-        onSave={jest.fn()}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
+    renderTestComponent();
 
     userEvent.click(await screen.findByText('Table'));
     userEvent.click(screen.getByText('Bar Chart'));
@@ -1564,36 +1275,7 @@ describe('WidgetBuilder', function () {
     it('sets widgetType to issues', async function () {
       const onSave = jest.fn();
 
-      const {organization, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
-        organization: {
-          features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-        },
-        router: {
-          location: {
-            query: {
-              source: DashboardWidgetSource.DASHBOARDS,
-            },
-          },
-        },
-      });
-
-      mountWithTheme(
-        <WidgetBuilder
-          route={{}}
-          router={router}
-          routes={router.routes}
-          routeParams={router.params}
-          location={router.location}
-          dashboard={untitledDashboard}
-          onSave={onSave}
-          params={{orgId: organization.slug}}
-        />,
-        {
-          context: routerContext,
-          organization,
-        }
-      );
+      renderTestComponent({onSave});
 
       userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
@@ -1621,36 +1303,11 @@ describe('WidgetBuilder', function () {
     });
 
     it('render issues data set disabled', async function () {
-      const {organization, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
-        organization: {
-          features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-        },
-        router: {
-          location: {
-            query: {
-              source: DashboardWidgetSource.DISCOVERV2,
-            },
-          },
+      renderTestComponent({
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
         },
       });
-
-      mountWithTheme(
-        <WidgetBuilder
-          route={{}}
-          router={router}
-          routes={router.routes}
-          routeParams={router.params}
-          location={router.location}
-          dashboard={untitledDashboard}
-          onSave={jest.fn()}
-          params={{orgId: organization.slug}}
-        />,
-        {
-          context: routerContext,
-          organization,
-        }
-      );
 
       userEvent.click(await screen.findByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -1667,36 +1324,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('disables moving and deleting issue column', async function () {
-      const {organization, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
-        organization: {
-          features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-        },
-        router: {
-          location: {
-            query: {
-              source: DashboardWidgetSource.DASHBOARDS,
-            },
-          },
-        },
-      });
-
-      mountWithTheme(
-        <WidgetBuilder
-          route={{}}
-          router={router}
-          routes={router.routes}
-          routeParams={router.params}
-          location={router.location}
-          dashboard={untitledDashboard}
-          onSave={jest.fn()}
-          params={{orgId: organization.slug}}
-        />,
-        {
-          context: routerContext,
-          organization,
-        }
-      );
+      renderTestComponent();
 
       userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       expect(screen.getByText('issue')).toBeInTheDocument();
@@ -1722,38 +1350,32 @@ describe('WidgetBuilder', function () {
 
   describe('Widget Library', function () {
     it('renders', async function () {
-      const {organization, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
-        organization: {
-          features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-        },
-        router: {
-          location: {
-            query: {
-              source: DashboardWidgetSource.DASHBOARDS,
-            },
-          },
-        },
-      });
-
-      mountWithTheme(
-        <WidgetBuilder
-          route={{}}
-          router={router}
-          routes={router.routes}
-          routeParams={router.params}
-          location={router.location}
-          dashboard={untitledDashboard}
-          onSave={jest.fn()}
-          params={{orgId: organization.slug}}
-        />,
-        {
-          context: routerContext,
-          organization,
-        }
-      );
-
+      renderTestComponent();
       expect(await screen.findByText('Widget Library')).toBeInTheDocument();
     });
+  });
+
+  it('disables dashboards with max widgets', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        {...untitledDashboard, widgetDisplay: []},
+        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
+      ],
+    });
+
+    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+      },
+    });
+
+    userEvent.click(await screen.findByText('Select a dashboard'));
+    userEvent.hover(screen.getByText('Test Dashboard'));
+    expect(
+      screen.getByText(textWithMarkupMatcher('Max widgets (1) per dashboard reached.'))
+    ).toBeInTheDocument();
   });
 });

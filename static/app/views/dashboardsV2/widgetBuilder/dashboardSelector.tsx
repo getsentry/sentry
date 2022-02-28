@@ -31,6 +31,9 @@ export function DashboardSelector({dashboards, disabled, onChange, error}: Props
           })),
         ]}
         onChange={(option: SelectValue<string>) => {
+          if (option.disabled) {
+            return;
+          }
           onChange(option);
         }}
         disabled={disabled}
@@ -38,6 +41,7 @@ export function DashboardSelector({dashboards, disabled, onChange, error}: Props
           Option: ({label, data, ...optionProps}: OptionProps<any>) => (
             <Tooltip
               disabled={!!!data.isDisabled}
+              forceShow
               title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
                 maxWidgets: MAX_WIDGETS,
               })}
