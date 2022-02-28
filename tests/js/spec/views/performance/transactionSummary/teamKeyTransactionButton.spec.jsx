@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -51,7 +51,7 @@ describe('TeamKeyTransactionButton', function () {
       match: [MockApiClient.matchQuery({project: [project.id], team: ['myteams']})],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -75,7 +75,7 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -117,7 +117,7 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -157,7 +157,7 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -205,7 +205,7 @@ describe('TeamKeyTransactionButton', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -247,7 +247,7 @@ describe('TeamKeyTransactionButton', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -292,7 +292,7 @@ describe('TeamKeyTransactionButton', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -345,7 +345,7 @@ describe('TeamKeyTransactionButton', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -389,7 +389,7 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}
@@ -426,7 +426,7 @@ describe('TeamKeyTransactionButton', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionButton
         eventView={eventView}
         organization={organization}

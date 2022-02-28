@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import AdminBuffer from 'sentry/views/admin/adminBuffer';
 
@@ -7,7 +7,7 @@ import AdminBuffer from 'sentry/views/admin/adminBuffer';
 describe('AdminBuffer', function () {
   describe('render()', function () {
     it('renders', function () {
-      const wrapper = mountWithTheme(<AdminBuffer params={{}} />, {
+      const wrapper = enzymeRender(<AdminBuffer params={{}} />, {
         context: {
           router: TestStubs.router(),
         },

@@ -1,10 +1,10 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 
 describe('KeyValueTable', function () {
   it('basic', function () {
-    mountWithTheme(
+    render(
       <KeyValueTable>
         <KeyValueTableRow keyName="Coffee" value="Black hot drink" />
         <KeyValueTableRow keyName="Milk" value={<a href="#">White cold drink</a>} />

@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -177,7 +177,7 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -224,7 +224,7 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -281,7 +281,7 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -317,7 +317,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -364,7 +364,7 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -401,7 +401,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -436,7 +436,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -465,7 +465,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -496,7 +496,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -524,7 +524,7 @@ describe('EventsV2 > Results', function () {
         location: {query: {id: '1', statsPeriod: '24h'}},
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -564,7 +564,7 @@ describe('EventsV2 > Results', function () {
         location: {query: {id: '1', statsPeriod: '24h'}},
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -604,7 +604,7 @@ describe('EventsV2 > Results', function () {
         },
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -641,7 +641,7 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -701,7 +701,7 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -761,7 +761,7 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}
@@ -819,7 +819,7 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Results
         organization={organization}
         location={initialData.router.location}

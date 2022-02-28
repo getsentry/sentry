@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
@@ -11,7 +11,7 @@ const stubEl: any = (props: any) => <div>{props.children}</div>;
 const api: Client = new Client();
 
 function mountModal({initialData, widget}) {
-  return mountWithTheme(
+  return enzymeRender(
     <DashboardWidgetQuerySelectorModal
       Header={stubEl}
       Footer={stubEl}

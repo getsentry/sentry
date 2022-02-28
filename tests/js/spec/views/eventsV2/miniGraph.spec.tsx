@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'sentry/utils/discover/eventView';
@@ -66,7 +66,7 @@ describe('EventsV2 > MiniGraph', function () {
 
   it('makes an EventsRequest with all selected multi y axis', async function () {
     const yAxis = ['count()', 'failure_count()'];
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <MiniGraph
         location={location}
         eventView={eventView}
@@ -82,7 +82,7 @@ describe('EventsV2 > MiniGraph', function () {
   it('uses low fidelity interval for bar charts', async function () {
     const yAxis = ['count()', 'failure_count()'];
     eventView.display = 'bar';
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <MiniGraph
         location={location}
         eventView={eventView}
@@ -98,7 +98,7 @@ describe('EventsV2 > MiniGraph', function () {
   it('renders WorldMapChart', async function () {
     const yAxis = ['count()', 'failure_count()'];
     eventView.display = 'worldmap';
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <MiniGraph
         location={location}
         eventView={eventView}
@@ -131,7 +131,7 @@ describe('EventsV2 > MiniGraph', function () {
       statusCode: 400,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <MiniGraph
         location={location}
         eventView={eventView}

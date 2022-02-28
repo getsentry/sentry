@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
@@ -8,7 +8,7 @@ describe('SettingsIndex', function () {
   let wrapper;
 
   it('renders', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <SettingsIndex
         router={TestStubs.router()}
         organization={TestStubs.Organization()}
@@ -18,7 +18,7 @@ describe('SettingsIndex', function () {
   });
 
   it('has loading when there is no organization', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <SettingsIndex router={TestStubs.router()} organization={null} />
     );
 
@@ -28,7 +28,7 @@ describe('SettingsIndex', function () {
   it('has different links for self-hosted users', function () {
     ConfigStore.set('isSelfHosted', true);
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <SettingsIndex
         router={TestStubs.router()}
         organization={TestStubs.Organization()}
@@ -63,7 +63,7 @@ describe('SettingsIndex', function () {
         url: `/organizations/${organization.slug}/`,
       });
       ConfigStore.config.isSelfHosted = false;
-      wrapper = mountWithTheme(<SettingsIndex router={TestStubs.router()} params={{}} />);
+      wrapper = enzymeRender(<SettingsIndex router={TestStubs.router()} params={{}} />);
     });
 
     it('fetches org details for SidebarDropdown', function () {

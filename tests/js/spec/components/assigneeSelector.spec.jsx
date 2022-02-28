@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -102,7 +102,7 @@ describe('AssigneeSelector', function () {
     MemberListStore.state = [];
     MemberListStore.loaded = false;
 
-    assigneeSelector = mountWithTheme(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    assigneeSelector = enzymeRender(<AssigneeSelectorComponent id={GROUP_1.id} />);
 
     openMenu = () => assigneeSelector.find('DropdownButton').simulate('click');
   });
@@ -113,7 +113,7 @@ describe('AssigneeSelector', function () {
 
   describe('render with props', function () {
     it('renders members from the prop when present', async function () {
-      assigneeSelector = mountWithTheme(
+      assigneeSelector = enzymeRender(
         <AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />
       );
       MemberListStore.loadInitialData([USER_1]);
@@ -321,7 +321,7 @@ describe('AssigneeSelector', function () {
   it('successfully shows suggested assignees', async function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
     const onAssign = jest.fn();
-    assigneeSelector = mountWithTheme(
+    assigneeSelector = enzymeRender(
       <AssigneeSelectorComponent id={GROUP_2.id} onAssign={onAssign} />
     );
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
@@ -329,7 +329,7 @@ describe('AssigneeSelector', function () {
     await tick();
     assigneeSelector.update();
 
-    const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));
+    const avatarTooltip = enzymeRender(assigneeSelector.find('Tooltip').prop('title'));
     expect(avatarTooltip.text()).toContain('Suggestion: Jane Bloggs');
     expect(avatarTooltip.text()).toContain('Based on commit data');
 
@@ -362,8 +362,8 @@ describe('AssigneeSelector', function () {
 
   it('renders unassigned', async function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
-    assigneeSelector = mountWithTheme(<AssigneeSelectorComponent id={GROUP_2.id} />);
-    const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));
+    assigneeSelector = enzymeRender(<AssigneeSelectorComponent id={GROUP_2.id} />);
+    const avatarTooltip = enzymeRender(assigneeSelector.find('Tooltip').prop('title'));
     expect(avatarTooltip.text()).toContain('Unassigned');
   });
 });

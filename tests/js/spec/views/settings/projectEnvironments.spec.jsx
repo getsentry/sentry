@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -11,7 +11,7 @@ function mountComponent(isHidden) {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
   const pathname = isHidden ? 'environments/hidden/' : 'environments/';
-  return mountWithTheme(
+  return enzymeRender(
     <ProjectEnvironments
       params={{
         orgId: org.slug,

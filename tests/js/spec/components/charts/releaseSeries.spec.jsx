@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
@@ -24,7 +24,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('does not fetch releases if releases is truthy', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries organization={organization} releases={[]}>
         {renderFunc}
       </ReleaseSeries>,
@@ -38,7 +38,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('fetches releases if no releases passed through props', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries>{renderFunc}</ReleaseSeries>,
       routerContext
     );
@@ -56,7 +56,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('fetches releases with project conditions', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries projects={[1, 2]}>{renderFunc}</ReleaseSeries>,
       routerContext
     );
@@ -73,7 +73,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('fetches releases with environment conditions', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries environments={['dev', 'test']}>{renderFunc}</ReleaseSeries>,
       routerContext
     );
@@ -90,7 +90,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('fetches releases with start and end date strings', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries start="2020-01-01" end="2020-01-31">
         {renderFunc}
       </ReleaseSeries>,
@@ -111,7 +111,7 @@ describe('ReleaseSeries', function () {
   it('fetches releases with start and end dates', async function () {
     const start = new Date(Date.UTC(2020, 0, 1, 12, 13, 14));
     const end = new Date(Date.UTC(2020, 0, 31, 14, 15, 16));
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries start={start} end={end}>
         {renderFunc}
       </ReleaseSeries>,
@@ -130,7 +130,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('fetches releases with period', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries period="14d">{renderFunc}</ReleaseSeries>,
       routerContext
     );
@@ -147,7 +147,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('fetches on property updates', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries period="14d">{renderFunc}</ReleaseSeries>,
       routerContext
     );
@@ -173,7 +173,7 @@ describe('ReleaseSeries', function () {
   it('doesnt not refetch releases with memoize enabled', async function () {
     const originalPeriod = '14d';
     const updatedPeriod = '7d';
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries period={originalPeriod} memoized>
         {renderFunc}
       </ReleaseSeries>,
@@ -199,7 +199,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('generates an eCharts `markLine` series from releases', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries>{renderFunc}</ReleaseSeries>,
       routerContext
     );
@@ -232,7 +232,7 @@ describe('ReleaseSeries', function () {
       version: 'sentry-android-shop@1.2.1',
       date: '2020-03-24T00:00:00Z',
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleaseSeries emphasizeReleases={['sentry-android-shop@1.2.0']}>
         {renderFunc}
       </ReleaseSeries>,

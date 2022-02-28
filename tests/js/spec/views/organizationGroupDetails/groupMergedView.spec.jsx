@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {GroupMergedView} from 'sentry/views/organizationGroupDetails/groupMerged';
@@ -38,7 +38,7 @@ describe('Issues -> Merged View', function () {
   });
 
   it('renders initially with loading component', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
@@ -51,7 +51,7 @@ describe('Issues -> Merged View', function () {
   });
 
   it('renders with mocked data', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}

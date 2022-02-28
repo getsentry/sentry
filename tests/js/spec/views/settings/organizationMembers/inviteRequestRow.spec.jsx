@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
@@ -54,7 +54,7 @@ describe('InviteRequestRow', function () {
   });
 
   it('renders request to be invited', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithoutAdminAccess}
@@ -71,7 +71,7 @@ describe('InviteRequestRow', function () {
   });
 
   it('renders request to join', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithoutAdminAccess}
@@ -89,7 +89,7 @@ describe('InviteRequestRow', function () {
     const mockApprove = jest.fn();
     const mockDeny = jest.fn();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithAdminAccess}
@@ -114,7 +114,7 @@ describe('InviteRequestRow', function () {
     const mockApprove = jest.fn();
 
     const mockDeny = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithAdminAccess}
@@ -132,7 +132,7 @@ describe('InviteRequestRow', function () {
   });
 
   it('non-admin can not approve or deny invite request', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithoutAdminAccess}
@@ -161,7 +161,7 @@ describe('InviteRequestRow', function () {
     act(() => void TeamStore.loadInitialData([{slug: 'one'}, {slug: 'two'}]));
     const mockUpdate = jest.fn();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithAdminAccess}
@@ -193,7 +193,7 @@ describe('InviteRequestRow', function () {
 
     const mockUpdate = jest.fn();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithoutAdminAccess}

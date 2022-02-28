@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import SentryProjectSelectorField from 'sentry/components/forms/sentryProjectSelectorField';
@@ -14,7 +14,7 @@ describe('SentryProjectSelectorField', () => {
         name: 'My Proj',
       }),
     ];
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SentryProjectSelectorField onChange={mock} name="project" projects={projects} />
     );
 

@@ -1,10 +1,10 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  mountWithTheme as reactMountWithTheme,
+  enzymeRender as reactMountWithTheme,
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
@@ -37,7 +37,7 @@ function mountModal({
   selectedWidgets,
   onAddLibraryWidget,
 }) {
-  return mountWithTheme(
+  return enzymeRender(
     <AddDashboardWidgetModal
       Header={stubEl}
       Footer={stubEl}

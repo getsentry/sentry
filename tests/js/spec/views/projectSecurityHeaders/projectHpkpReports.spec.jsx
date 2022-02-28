@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ProjectHpkpReports from 'sentry/views/settings/projectSecurityHeaders/hpkp';
 
@@ -22,7 +22,7 @@ describe('ProjectHpkpReports', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectHpkpReports
         organization={org}
         project={project}

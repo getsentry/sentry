@@ -1,6 +1,6 @@
 import sortBy from 'lodash/sortBy';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
@@ -23,7 +23,7 @@ const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
 
 async function renderComponent() {
-  const wrapper = mountWithTheme(<GlobalModal />);
+  const wrapper = enzymeRender(<GlobalModal />);
 
   openModal(modalProps => (
     <Add

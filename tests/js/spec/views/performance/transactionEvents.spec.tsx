@@ -1,4 +1,4 @@
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -162,7 +162,7 @@ describe('Performance > TransactionSummary', function () {
 
   it('renders basic UI elements', async function () {
     const initialData = initializeData();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
@@ -185,7 +185,7 @@ describe('Performance > TransactionSummary', function () {
 
   it('renders relative span breakdown header when no filter selected', async function () {
     const initialData = initializeData();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
@@ -203,7 +203,7 @@ describe('Performance > TransactionSummary', function () {
 
   it('renders event column results correctly', async function () {
     const initialData = initializeData();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
@@ -240,7 +240,7 @@ describe('Performance > TransactionSummary', function () {
     const initialData = initializeData({
       query: {webVital: WebVital.LCP},
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}

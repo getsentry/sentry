@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import GlobalModal from 'sentry/components/globalModal';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
@@ -23,7 +23,7 @@ describe('FeatureTourModal', function () {
   let onAdvance, onCloseModal;
 
   const createWrapper = (props = {}) =>
-    mountWithTheme(
+    enzymeRender(
       <Fragment>
         <GlobalModal />
         <FeatureTourModal

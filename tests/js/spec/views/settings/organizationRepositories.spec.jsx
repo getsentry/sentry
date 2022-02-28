@@ -1,11 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories/organizationRepositories';
 
 describe('OrganizationRepositories', function () {
   it('renders without providers', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
         itemList={[]}
@@ -16,7 +16,7 @@ describe('OrganizationRepositories', function () {
   });
 
   it('renders with github provider', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
         repoConfig={{providers: [TestStubs.GitHubRepositoryProvider({id: 'github'})]}}
@@ -31,7 +31,7 @@ describe('OrganizationRepositories', function () {
       url: '/organizations/org-slug/repos/',
       body: [TestStubs.Repository()],
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationRepositories
         api={new Client()}
         params={{orgId: 'org-slug'}}

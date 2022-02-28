@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ExternalIssueForm from 'sentry/components/group/externalIssueForm';
 
@@ -40,7 +40,7 @@ describe('ExternalIssueForm', () => {
       body: formConfig,
       match: [MockApiClient.matchQuery({action: 'create'})],
     });
-    const component = mountWithTheme(
+    const component = enzymeRender(
       <ExternalIssueForm
         Body={p => p.children}
         Header={p => p.children}

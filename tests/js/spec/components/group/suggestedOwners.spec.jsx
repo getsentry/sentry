@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
@@ -64,7 +64,7 @@ describe('SuggestedOwners', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SuggestedOwners project={project} group={group} event={event} />,
       routerContext
     );
@@ -112,7 +112,7 @@ describe('SuggestedOwners', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SuggestedOwners project={project} group={TestStubs.Group()} event={event} />,
       routerContext
     );
@@ -144,7 +144,7 @@ describe('SuggestedOwners', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SuggestedOwners project={project} group={group} event={event} />,
       routerContext
     );

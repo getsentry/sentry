@@ -1,6 +1,6 @@
 import {
   act,
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitFor,
@@ -27,7 +27,7 @@ describe('Indicators', function () {
   let wrapper;
 
   beforeEach(function () {
-    wrapper = mountWithTheme(<Indicators />);
+    wrapper = render(<Indicators />);
 
     clearIndicators();
     act(jest.runAllTimers);

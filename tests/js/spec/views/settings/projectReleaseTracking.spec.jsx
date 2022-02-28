@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {fetchPlugins} from 'sentry/actionCreators/plugins';
@@ -33,7 +33,7 @@ describe('ProjectReleaseTracking', function () {
   });
 
   it('renders with token', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -46,7 +46,7 @@ describe('ProjectReleaseTracking', function () {
   });
 
   it('can regenerate token', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -87,7 +87,7 @@ describe('ProjectReleaseTracking', function () {
   });
 
   it('fetches new plugins when project changes', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectReleaseTrackingContainer
         organization={org}
         project={project}

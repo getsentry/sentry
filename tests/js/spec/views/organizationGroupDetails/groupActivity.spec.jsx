@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -40,7 +40,7 @@ describe('GroupActivity', function () {
     });
     act(() => TeamStore.loadInitialData([TestStubs.Team({id: '999', slug: 'no-team'})]));
     act(() => OrganizationStore.onUpdate(organization, {replace: true}));
-    return mountWithTheme(
+    return enzymeRender(
       <GroupActivity
         api={new MockApiClient()}
         params={{orgId: 'org-slug'}}

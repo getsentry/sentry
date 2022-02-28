@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 
@@ -19,7 +19,7 @@ describe('DropdownAutoComplete', function () {
   ];
 
   it('has actor wrapper', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
     expect(wrapper.find('div[role="button"]')).toHaveLength(1);
@@ -27,7 +27,7 @@ describe('DropdownAutoComplete', function () {
   });
 
   it('opens dropdown menu when actor is clicked', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
     wrapper.find('Actor[role="button"]').simulate('click');
@@ -38,7 +38,7 @@ describe('DropdownAutoComplete', function () {
   });
 
   it('toggles dropdown menu when actor is clicked', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DropdownAutoComplete allowActorToggle items={items}>
         {() => 'Click Me!'}
       </DropdownAutoComplete>

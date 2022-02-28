@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {IssueDiff} from 'sentry/components/issueDiff';
 
@@ -43,7 +43,7 @@ describe('IssueDiff', function () {
   });
 
   it('is loading when initially rendering', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -58,7 +58,7 @@ describe('IssueDiff', function () {
 
   it('can dynamically import SplitDiff', async function () {
     // Need `mount` because of componentDidMount in <IssueDiff>
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -91,7 +91,7 @@ describe('IssueDiff', function () {
     });
 
     // Need `mount` because of componentDidMount in <IssueDiff>
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueDiff
         api={api}
         baseIssueId="base"

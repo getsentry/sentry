@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'sentry/components/globalModal';
@@ -29,7 +29,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
   });
 
   it('renders a list', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
@@ -61,7 +61,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
@@ -89,7 +89,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Fragment>
         <GlobalModal />
         <ProjectLatestReleases
@@ -122,7 +122,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
   });
 
   it('calls API with the right params', function () {
-    mountWithTheme(
+    enzymeRender(
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
@@ -144,7 +144,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
   });
 
   it('does not call API if project is not stabilized yet', function () {
-    mountWithTheme(
+    enzymeRender(
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}

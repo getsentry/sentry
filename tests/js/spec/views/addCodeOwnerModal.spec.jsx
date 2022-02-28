@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {Client} from 'sentry/api';
@@ -30,7 +30,7 @@ describe('AddCodeOwnerModal', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AddCodeOwnerModal
         {...modalProps}
         api={new Client()}
@@ -49,7 +49,7 @@ describe('AddCodeOwnerModal', function () {
       method: 'GET',
       body: {html_url: 'blah', filepath: 'CODEOWNERS', raw: '* @MeredithAnya\n'},
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AddCodeOwnerModal
         {...modalProps}
         api={new Client()}
@@ -76,7 +76,7 @@ describe('AddCodeOwnerModal', function () {
       method: 'GET',
       statusCode: 404,
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AddCodeOwnerModal
         {...modalProps}
         api={new Client()}
@@ -107,7 +107,7 @@ describe('AddCodeOwnerModal', function () {
       method: 'POST',
       body: {},
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AddCodeOwnerModal
         {...modalProps}
         api={new Client()}

@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -42,7 +42,7 @@ describe('Dashboards > Detail', function () {
   });
 
   it('denies access on missing feature', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ManageDashboards
         organization={mockUnauthorizedOrg}
         location={{query: {}}}
@@ -57,7 +57,7 @@ describe('Dashboards > Detail', function () {
   it('denies access on no projects', function () {
     act(() => ProjectsStore.loadInitialData([]));
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ManageDashboards
         organization={mockAuthorizedOrg}
         location={{query: {}}}
@@ -72,7 +72,7 @@ describe('Dashboards > Detail', function () {
   it('creates new dashboard', async function () {
     const org = TestStubs.Organization({features: FEATURES});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ManageDashboards organization={org} location={{query: {}}} router={{}} />
     );
     await tick();
@@ -89,7 +89,7 @@ describe('Dashboards > Detail', function () {
   it('can sort', async function () {
     const org = TestStubs.Organization({features: FEATURES});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ManageDashboards organization={org} location={{query: {}}} router={{}} />
     );
     await tick();

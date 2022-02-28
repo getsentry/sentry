@@ -1,7 +1,7 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -261,7 +261,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('MetricsSwitch is visible if feature flag enabled', async () => {
-    mountWithTheme(<TestComponent isMetricsData />, {
+    render(<TestComponent isMetricsData />, {
       context: routerContext,
       organization: {...org, features: [...org.features, 'metrics-performance-ui']},
     });
@@ -270,7 +270,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('renders basic UI elements', async function () {
-    mountWithTheme(<TestComponent />, {
+    render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
@@ -295,7 +295,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('renders basic UI elements - metrics based', async function () {
-    mountWithTheme(<TestComponent isMetricsData />, {
+    render(<TestComponent isMetricsData />, {
       context: routerContext,
       organization: {...org, features: [...org.features, 'metrics-performance-ui']},
     });
@@ -320,7 +320,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('triggers a navigation on search', async function () {
-    mountWithTheme(<TestComponent />, {
+    render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
@@ -344,7 +344,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('triggers a navigation on search - metrics based', async function () {
-    mountWithTheme(<TestComponent isMetricsData />, {
+    render(<TestComponent isMetricsData />, {
       context: routerContext,
       organization: {...org, features: [...org.features, 'metrics-performance-ui']},
     });
@@ -387,7 +387,7 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context,
       organization: org,
     });
@@ -440,7 +440,7 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context,
       organization: org,
     });
@@ -495,7 +495,7 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(<TestComponent router={newRouter} isMetricsData />, {
+    render(<TestComponent router={newRouter} isMetricsData />, {
       context,
       organization: {...org, features: [...org.features, 'metrics-performance-ui']},
     });
@@ -531,7 +531,7 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context,
       organization: org,
     });
@@ -556,7 +556,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('Check LCP vital renders correctly', async function () {
-    mountWithTheme(<TestComponent />, {
+    render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
@@ -591,7 +591,7 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(<TestComponent router={newRouter} isMetricsData />, {
+    render(<TestComponent router={newRouter} isMetricsData />, {
       context,
       organization: {...org, features: [...org.features, 'metrics-performance-ui']},
     });
@@ -607,7 +607,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('correctly renders which browsers support LCP', async function () {
-    mountWithTheme(<TestComponent />, {
+    render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
@@ -626,7 +626,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,
     });
@@ -645,7 +645,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,
     });
@@ -664,7 +664,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,
     });

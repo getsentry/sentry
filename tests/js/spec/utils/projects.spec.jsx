@@ -1,6 +1,6 @@
 import {
   act,
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitFor,
@@ -14,7 +14,7 @@ describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
 
   const createWrapper = props =>
-    mountWithTheme(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
+    render(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
 
   beforeEach(function () {
     renderer.mockClear();

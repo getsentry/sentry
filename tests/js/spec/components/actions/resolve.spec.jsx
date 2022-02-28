@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import ResolveActions from 'sentry/components/actions/resolve';
@@ -13,7 +13,7 @@ describe('ResolveActions', function () {
     const spy = jest.fn();
 
     beforeEach(function () {
-      component = mountWithTheme(
+      component = enzymeRender(
         <ResolveActions
           onUpdate={spy}
           disabled
@@ -40,7 +40,7 @@ describe('ResolveActions', function () {
     const spy = jest.fn();
 
     beforeEach(function () {
-      component = mountWithTheme(
+      component = enzymeRender(
         <ResolveActions
           onUpdate={spy}
           disableDropdown
@@ -72,7 +72,7 @@ describe('ResolveActions', function () {
     let component;
     const spy = jest.fn();
     beforeEach(function () {
-      component = mountWithTheme(
+      component = enzymeRender(
         <ResolveActions
           onUpdate={spy}
           disabled
@@ -99,7 +99,7 @@ describe('ResolveActions', function () {
   describe('auto resolved', function () {
     it('cannot be unresolved manually', function () {
       const spy = jest.fn();
-      const component = mountWithTheme(
+      const component = enzymeRender(
         <ResolveActions
           onUpdate={spy}
           disabled
@@ -120,7 +120,7 @@ describe('ResolveActions', function () {
     let component;
     const spy = jest.fn();
     beforeEach(function () {
-      component = mountWithTheme(
+      component = enzymeRender(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
@@ -147,7 +147,7 @@ describe('ResolveActions', function () {
     const spy = jest.fn();
 
     beforeEach(function () {
-      component = mountWithTheme(
+      component = enzymeRender(
         <Fragment>
           <GlobalModal />
           <ResolveActions
@@ -188,7 +188,7 @@ describe('ResolveActions', function () {
       url: '/projects/org-slug/project-slug/releases/',
       body: [TestStubs.Release()],
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Fragment>
         <GlobalModal />
         <ResolveActions

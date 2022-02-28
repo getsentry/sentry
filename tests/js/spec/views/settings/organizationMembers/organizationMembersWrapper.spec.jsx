@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -55,7 +55,7 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can invite member', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersWrapper organization={organization} {...defaultProps} />
     );
 
@@ -73,7 +73,7 @@ describe('OrganizationMembersWrapper', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersWrapper organization={org} {...defaultProps} />
     );
 
@@ -89,7 +89,7 @@ describe('OrganizationMembersWrapper', function () {
       method: 'GET',
       body: [member],
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersWrapper organization={organization} {...defaultProps}>
         <OrganizationMembersList {...defaultProps} router={{routes: []}} />
       </OrganizationMembersWrapper>

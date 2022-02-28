@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AwsLambdaFunctionSelect from 'sentry/views/integrationPipeline/awsLambdaFunctionSelect';
 
@@ -10,7 +10,7 @@ describe('AwsLambdaFunctionSelect', () => {
       {FunctionName: 'lambdaB', Runtime: 'nodejs10.x'},
       {FunctionName: 'lambdaC', Runtime: 'nodejs10.x'},
     ];
-    ({container} = mountWithTheme(
+    ({container} = render(
       <AwsLambdaFunctionSelect lambdaFunctions={lambdaFunctions} />
     ));
   });

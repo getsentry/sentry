@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
@@ -42,7 +42,7 @@ describe('OpenInContextLine', function () {
 
   describe('with stacktrace-link component', function () {
     it('renders multiple buttons', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OpenInContextLine filename={filename} lineNo={lineNo} components={components} />
       );
       expect(wrapper.props().components[0].schema.url).toEqual(

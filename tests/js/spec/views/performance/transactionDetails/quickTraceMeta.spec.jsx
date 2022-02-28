@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
@@ -31,7 +31,7 @@ describe('QuickTraceMeta', function () {
   };
 
   it('renders basic UI', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedQuickTraceMeta
         event={event}
         project={project}
@@ -59,7 +59,7 @@ describe('QuickTraceMeta', function () {
   });
 
   it('renders placeholder while loading', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedQuickTraceMeta
         event={event}
         project={project}
@@ -90,7 +90,7 @@ describe('QuickTraceMeta', function () {
   });
 
   it('renders errors', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedQuickTraceMeta
         event={event}
         project={project}
@@ -120,7 +120,7 @@ describe('QuickTraceMeta', function () {
 
   it('renders missing trace when trace id is not present', async function () {
     const newEvent = TestStubs.Event();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedQuickTraceMeta
         event={newEvent}
         project={project}
@@ -150,7 +150,7 @@ describe('QuickTraceMeta', function () {
   it('renders missing trace with hover card when feature disabled', async function () {
     const newEvent = TestStubs.Event();
     const newOrg = TestStubs.Organization();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedQuickTraceMeta
         event={newEvent}
         project={project}
@@ -183,7 +183,7 @@ describe('QuickTraceMeta', function () {
   it('does not render when platform does not support tracing', async function () {
     const newProject = TestStubs.Project();
     const newEvent = TestStubs.Event();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedQuickTraceMeta
         event={newEvent}
         project={newProject}

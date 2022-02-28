@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {SmartSearchBar} from 'sentry/components/smartSearchBar';
@@ -74,7 +74,7 @@ describe('SmartSearchBar', function () {
       onGetTagValues: getTagValuesMock,
       onSearch,
     };
-    const searchBar = mountWithTheme(
+    const searchBar = enzymeRender(
       <SmartSearchBar {...props} api={new Client()} />,
 
       options
@@ -109,7 +109,7 @@ describe('SmartSearchBar', function () {
       onGetTagValues: getTagValuesMock,
       onSearch,
     };
-    const searchBar = mountWithTheme(
+    const searchBar = enzymeRender(
       <SmartSearchBar {...props} api={new Client()} />,
 
       options
@@ -145,7 +145,7 @@ describe('SmartSearchBar', function () {
       onSearch,
     };
 
-    const searchBar = mountWithTheme(
+    const searchBar = enzymeRender(
       <SmartSearchBar {...props} api={new Client()} />,
 
       options
@@ -178,7 +178,7 @@ describe('SmartSearchBar', function () {
       onSearch,
     };
 
-    const searchBar = mountWithTheme(
+    const searchBar = enzymeRender(
       <SmartSearchBar {...props} api={new Client()} />,
 
       options
@@ -205,7 +205,7 @@ describe('SmartSearchBar', function () {
 
   describe('componentWillReceiveProps()', function () {
     it('should add a space when setting state.query', function () {
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar
           organization={organization}
           location={location}
@@ -219,7 +219,7 @@ describe('SmartSearchBar', function () {
     });
 
     it('should update state.query if props.query is updated from outside', function () {
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar
           organization={organization}
           location={location}
@@ -235,7 +235,7 @@ describe('SmartSearchBar', function () {
     });
 
     it('should update state.query if props.query is updated to null/undefined from outside', function () {
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar
           organization={organization}
           location={location}
@@ -251,7 +251,7 @@ describe('SmartSearchBar', function () {
     });
 
     it('should not reset user textarea if a noop props change happens', function () {
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar
           organization={organization}
           location={location}
@@ -268,7 +268,7 @@ describe('SmartSearchBar', function () {
     });
 
     it('should reset user textarea if a meaningful props change happens', function () {
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar
           organization={organization}
           location={location}
@@ -294,7 +294,7 @@ describe('SmartSearchBar', function () {
         defaultQuery: 'is:unresolved',
         supportedTags,
       };
-      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = enzymeRender(<SmartSearchBar {...props} />, options).instance();
 
       searchBar.clearSearch();
 
@@ -310,7 +310,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = enzymeRender(<SmartSearchBar {...props} />, options).instance();
 
       await searchBar.clearSearch();
       expect(props.onSearch).toHaveBeenCalledWith('');
@@ -319,7 +319,7 @@ describe('SmartSearchBar', function () {
 
   describe('onQueryFocus()', function () {
     it('displays the drop down', function () {
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar
           organization={organization}
           location={location}
@@ -336,7 +336,7 @@ describe('SmartSearchBar', function () {
     });
 
     it('displays dropdown in hasPinnedSearch mode', function () {
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar
           organization={organization}
           location={location}
@@ -356,7 +356,7 @@ describe('SmartSearchBar', function () {
 
   describe('onQueryBlur()', function () {
     it('hides the drop down', function () {
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar
           organization={organization}
           location={location}
@@ -377,7 +377,7 @@ describe('SmartSearchBar', function () {
   describe('onPaste()', function () {
     it('trims pasted content', function () {
       const onChange = jest.fn();
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <SmartSearchBar
           organization={organization}
           location={location}
@@ -401,7 +401,7 @@ describe('SmartSearchBar', function () {
   describe('onKeyUp()', function () {
     describe('escape', function () {
       it('blurs the textarea', function () {
-        const wrapper = mountWithTheme(
+        const wrapper = enzymeRender(
           <SmartSearchBar
             organization={organization}
             location={location}
@@ -424,7 +424,7 @@ describe('SmartSearchBar', function () {
   describe('render()', function () {
     it('invokes onSearch() when submitting the form', function () {
       const stubbedOnSearch = jest.fn();
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <SmartSearchBar
           onSearch={stubbedOnSearch}
           organization={organization}
@@ -451,7 +451,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const wrapper = enzymeRender(<SmartSearchBar {...props} />, options);
 
       wrapper.find('button[aria-label="Clear search"]').simulate('click');
 
@@ -461,7 +461,7 @@ describe('SmartSearchBar', function () {
 
     it('invokes onSearch() on submit in hasPinnedSearch mode', function () {
       const stubbedOnSearch = jest.fn();
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <SmartSearchBar
           onSearch={stubbedOnSearch}
           organization={organization}
@@ -487,7 +487,7 @@ describe('SmartSearchBar', function () {
       location,
       supportedTags,
     };
-    const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SmartSearchBar {...props} />, options);
     expect(wrapper.state('query')).toEqual('');
   });
 
@@ -502,7 +502,7 @@ describe('SmartSearchBar', function () {
         location,
         supportedTags,
       };
-      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = enzymeRender(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('');
       expect(searchBar.state.searchGroups).toEqual([]);
@@ -517,7 +517,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const wrapper = enzymeRender(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
       wrapper.find('textarea').simulate('focus');
       searchBar.updateAutoCompleteItems();
@@ -538,7 +538,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const wrapper = enzymeRender(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
       wrapper.find('textarea').simulate('focus');
       searchBar.updateAutoCompleteItems();
@@ -559,7 +559,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const wrapper = enzymeRender(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
       // Cursor is at end of line
       mockCursorPosition(searchBar, 15);
@@ -580,7 +580,7 @@ describe('SmartSearchBar', function () {
         organization,
         supportedTags,
       };
-      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = enzymeRender(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       jest.advanceTimersByTime(301);
       expect(environmentTagValuesMock).not.toHaveBeenCalled();
@@ -597,7 +597,7 @@ describe('SmartSearchBar', function () {
         organization,
         supportedTags,
       };
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar {...props} api={new Client()} />,
         options
       ).instance();
@@ -620,7 +620,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
 
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar {...props} api={new Client()} />,
         options
       ).instance();
@@ -648,7 +648,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const wrapper = enzymeRender(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
       // Cursor is on ':'
       mockCursorPosition(searchBar, 3);
@@ -668,7 +668,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const wrapper = enzymeRender(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
       // Cursor is on ':'
       mockCursorPosition(searchBar, 3);
@@ -695,7 +695,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const wrapper = enzymeRender(<SmartSearchBar {...props} />, options);
       wrapper.find('Filter').forEach(filter => {
         expect(filter.prop('invalid')).toBe(true);
       });
@@ -710,7 +710,7 @@ describe('SmartSearchBar', function () {
         location,
         supportedTags,
       };
-      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = enzymeRender(<SmartSearchBar {...props} />, options).instance();
       searchBar.onAutoComplete('myTag:', {type: 'tag'});
       expect(searchBar.state.query).toEqual('event.type:error myTag:');
     });
@@ -722,7 +722,7 @@ describe('SmartSearchBar', function () {
         location,
         supportedTags,
       };
-      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = enzymeRender(<SmartSearchBar {...props} />, options).instance();
       mockCursorPosition(searchBar, 3);
       searchBar.onAutoComplete('12345', {type: 'tag-value'});
       expect(searchBar.state.query).toEqual('id:12345 event.type:error ');
@@ -735,7 +735,7 @@ describe('SmartSearchBar', function () {
         location,
         supportedTags,
       };
-      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = enzymeRender(<SmartSearchBar {...props} />, options).instance();
       mockCursorPosition(searchBar, 20);
       searchBar.onAutoComplete('12345', {type: 'tag-value'});
       expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
@@ -749,7 +749,7 @@ describe('SmartSearchBar', function () {
         location,
         supportedTags,
       };
-      const searchBar = mountWithTheme(
+      const searchBar = enzymeRender(
         <SmartSearchBar {...props} onChange={onChange} />,
         options
       ).instance();
@@ -768,7 +768,7 @@ describe('SmartSearchBar', function () {
         location,
         supportedTags,
       };
-      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const smartSearchBar = enzymeRender(<SmartSearchBar {...props} />, options);
       const searchBar = smartSearchBar.instance();
       const textarea = smartSearchBar.find('textarea');
       // start typing part of the tag prefixed by the negation operator!
@@ -786,7 +786,7 @@ describe('SmartSearchBar', function () {
         location,
         supportedTags,
       };
-      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const smartSearchBar = enzymeRender(<SmartSearchBar {...props} />, options);
       const searchBar = smartSearchBar.instance();
       const textarea = smartSearchBar.find('textarea');
 

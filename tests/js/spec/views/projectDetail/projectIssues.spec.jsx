@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
@@ -34,7 +34,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a list', async function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
@@ -48,7 +48,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Issues', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
@@ -67,7 +67,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Discover', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
@@ -88,7 +88,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('changes according to global header', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectIssues
         organization={organization}
         location={{

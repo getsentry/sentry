@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Access from 'sentry/components/acl/access';
 import ConfigStore from 'sentry/stores/configStore';
@@ -17,7 +17,7 @@ describe('Access', function () {
     });
 
     it('has access when requireAll is false', function () {
-      mountWithTheme(
+      render(
         <Access access={['project:write', 'project:read', 'org:read']} requireAll={false}>
           {childrenMock}
         </Access>,
@@ -31,7 +31,7 @@ describe('Access', function () {
     });
 
     it('has access', function () {
-      mountWithTheme(
+      render(
         <Access access={['project:write', 'project:read']}>{childrenMock}</Access>,
         {context: routerContext}
       );
@@ -43,7 +43,7 @@ describe('Access', function () {
     });
 
     it('has no access', function () {
-      mountWithTheme(<Access access={['org:write']}>{childrenMock}</Access>, {
+      render(<Access access={['org:write']}>{childrenMock}</Access>, {
         context: routerContext,
       });
 
@@ -55,7 +55,7 @@ describe('Access', function () {
 
     it('calls render function when no access', function () {
       const noAccessRenderer = jest.fn(() => null);
-      mountWithTheme(
+      render(
         <Access access={['org:write']} renderNoAccessMessage={noAccessRenderer}>
           {childrenMock}
         </Access>,
@@ -67,7 +67,7 @@ describe('Access', function () {
     });
 
     it('can specify org from props', function () {
-      mountWithTheme(
+      render(
         <Access
           organization={TestStubs.Organization({access: ['org:write']})}
           access={['org:write']}
@@ -84,7 +84,7 @@ describe('Access', function () {
     });
 
     it('handles no org/project', function () {
-      mountWithTheme(<Access access={['org:write']}>{childrenMock}</Access>, {
+      render(<Access access={['org:write']}>{childrenMock}</Access>, {
         context: routerContext,
       });
 
@@ -102,7 +102,7 @@ describe('Access', function () {
         user: null,
       };
 
-      mountWithTheme(<Access>{childrenMock}</Access>, {context: routerContext});
+      render(<Access>{childrenMock}</Access>, {context: routerContext});
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -114,7 +114,7 @@ describe('Access', function () {
       ConfigStore.config = {
         user: {isSuperuser: true},
       };
-      mountWithTheme(<Access isSuperuser>{childrenMock}</Access>, {
+      render(<Access isSuperuser>{childrenMock}</Access>, {
         context: routerContext,
       });
 
@@ -128,7 +128,7 @@ describe('Access', function () {
       ConfigStore.config = {
         user: {isSuperuser: false},
       };
-      mountWithTheme(<Access isSuperuser>{childrenMock}</Access>, {
+      render(<Access isSuperuser>{childrenMock}</Access>, {
         context: routerContext,
       });
 
@@ -141,7 +141,7 @@ describe('Access', function () {
 
   describe('as React node', function () {
     it('has access', function () {
-      mountWithTheme(
+      render(
         <Access access={['project:write']}>
           <p>The Child</p>
         </Access>,
@@ -155,7 +155,7 @@ describe('Access', function () {
       ConfigStore.config = {
         user: {isSuperuser: true},
       };
-      mountWithTheme(
+      render(
         <Access isSuperuser>
           <p>The Child</p>
         </Access>,
@@ -166,7 +166,7 @@ describe('Access', function () {
     });
 
     it('has no access', function () {
-      mountWithTheme(
+      render(
         <Access access={['org:write']}>
           <p>The Child</p>
         </Access>,
@@ -180,7 +180,7 @@ describe('Access', function () {
       ConfigStore.config = {
         user: {isSuperuser: false},
       };
-      mountWithTheme(
+      render(
         <Access isSuperuser>
           <p>The Child</p>
         </Access>,

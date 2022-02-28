@@ -1,10 +1,10 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 
 describe('FeatureDisabled', function () {
   it('renders', function () {
-    mountWithTheme(
+    render(
       <FeatureDisabled
         features={['organization:my-features']}
         featureName="Some Feature"
@@ -19,7 +19,7 @@ describe('FeatureDisabled', function () {
 
   it('renders with custom message', function () {
     const customMessage = 'custom message';
-    mountWithTheme(
+    render(
       <FeatureDisabled
         message={customMessage}
         features={['organization:my-features']}
@@ -32,7 +32,7 @@ describe('FeatureDisabled', function () {
 
   it('renders with custom alert component', function () {
     const customAlert = jest.fn().mockReturnValue(null);
-    mountWithTheme(
+    render(
       <FeatureDisabled
         alert={customAlert}
         features={['organization:my-features']}
@@ -43,7 +43,7 @@ describe('FeatureDisabled', function () {
   });
 
   it('displays instructions when help is clicked', function () {
-    mountWithTheme(
+    render(
       <FeatureDisabled
         alert
         features={['organization:my-features']}

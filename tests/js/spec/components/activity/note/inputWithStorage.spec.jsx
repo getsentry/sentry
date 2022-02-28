@@ -1,5 +1,5 @@
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
 import localStorage from 'sentry/utils/localStorage';
@@ -16,7 +16,7 @@ describe('NoteInputWithStorage', function () {
   };
 
   const createWrapper = props =>
-    mountWithTheme(<NoteInputWithStorage {...defaultProps} {...props} />);
+    enzymeRender(<NoteInputWithStorage {...defaultProps} {...props} />);
 
   it('loads draft item from local storage when mounting', function () {
     localStorage.getItem.mockImplementation(() => JSON.stringify({item1: 'saved item'}));

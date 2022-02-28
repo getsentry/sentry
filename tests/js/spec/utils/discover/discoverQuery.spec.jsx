@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -30,7 +30,7 @@ describe('DiscoverQuery', function () {
         data: [{transaction: '/health', count: 1000}],
       },
     });
-    mountWithTheme(
+    render(
       <DiscoverQuery
         orgSlug="test-org"
         api={api}
@@ -60,7 +60,7 @@ describe('DiscoverQuery', function () {
         data: [{transaction: '/health', count: 1000}],
       },
     });
-    mountWithTheme(
+    render(
       <DiscoverQuery
         orgSlug="test-org"
         api={api}

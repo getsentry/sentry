@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import Level from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/level';
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
@@ -68,7 +68,7 @@ describe('SearchBarActionFilter', () => {
   });
 
   it('default render', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SearchBarActionFilter options={options} onChange={handleFilter} />
     );
 
@@ -90,7 +90,7 @@ describe('SearchBarActionFilter', () => {
   });
 
   it('Without Options', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SearchBarActionFilter options={{}} onChange={handleFilter} />
     );
     expect(wrapper.find('Header').exists()).toBe(false);
@@ -99,7 +99,7 @@ describe('SearchBarActionFilter', () => {
 
   it('With Option Type only', () => {
     const {Types} = options;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SearchBarActionFilter options={{Types}} onChange={handleFilter} />
     );
 
@@ -131,7 +131,7 @@ describe('SearchBarActionFilter', () => {
 
   it('With Option Level only', () => {
     const {Levels} = options;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SearchBarActionFilter options={{Levels}} onChange={handleFilter} />
     );
 

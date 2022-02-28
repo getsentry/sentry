@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
@@ -16,7 +16,7 @@ describe('OrganizationAuditLog', function () {
   });
 
   it('renders', function (done) {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />
     );
     wrapper.setState({loading: false});
@@ -29,7 +29,7 @@ describe('OrganizationAuditLog', function () {
   });
 
   it('displays whether an action was done by a superuser', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />
     );
     expect(wrapper.find('div[data-test-id="actor-name"]').at(0).text()).toEqual(

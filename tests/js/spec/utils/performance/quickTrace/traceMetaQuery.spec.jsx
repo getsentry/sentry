@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
@@ -48,7 +48,7 @@ describe('TraceMetaQuery', function () {
         errors: 2,
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TraceMetaQuery
         api={api}
         traceId={traceId}

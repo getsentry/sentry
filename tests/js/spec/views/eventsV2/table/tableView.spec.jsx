@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -36,7 +36,7 @@ describe('TableView > CellActions', function () {
   const tagKeys = ['size', 'shape', 'direction'];
 
   function makeWrapper(context, tableData, view) {
-    return mountWithTheme(
+    return enzymeRender(
       <TableView
         organization={context.organization}
         location={location}

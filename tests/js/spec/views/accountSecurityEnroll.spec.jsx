@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
@@ -27,7 +27,7 @@ describe('AccountSecurityEnroll', function () {
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <AccountSecurityEnroll />,
         TestStubs.routerContext([
           {
@@ -78,7 +78,7 @@ describe('AccountSecurityEnroll', function () {
       });
 
       const pushMock = jest.fn();
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <AccountSecurityEnroll />,
         TestStubs.routerContext([
           {

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -35,7 +35,7 @@ describe('EventsRequest', function () {
           data: [[new Date(), [COUNT_OBJ]]],
         })
       );
-      wrapper = mountWithTheme(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
+      wrapper = enzymeRender(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
     });
 
     it('makes requests', async function () {
@@ -130,7 +130,7 @@ describe('EventsRequest', function () {
           ],
         })
       );
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <EventsRequest {...DEFAULTS} includePrevious>
           {mock}
         </EventsRequest>
@@ -233,7 +233,7 @@ describe('EventsRequest', function () {
         yAxis: ['count()', 'failure_count()'],
         previousSeriesNames: ['previous count()', 'previous failure_count()'],
       };
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <EventsRequest {...DEFAULTS} {...multiYOptions} includePrevious>
           {mock}
         </EventsRequest>
@@ -288,7 +288,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <EventsRequest {...DEFAULTS} includeTimeseries>
           {mock}
         </EventsRequest>
@@ -327,7 +327,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <EventsRequest {...DEFAULTS} includeTimeseries>
           {mock}
         </EventsRequest>
@@ -381,7 +381,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <EventsRequest {...DEFAULTS} includePrevious yAxis="apdex()">
           {mock}
         </EventsRequest>
@@ -473,7 +473,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <EventsRequest {...DEFAULTS} yAxis={['apdex()', 'epm()']}>
           {mock}
         </EventsRequest>
@@ -537,7 +537,7 @@ describe('EventsRequest', function () {
         })
       );
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <EventsRequest {...DEFAULTS} field={['project', 'level']} topEvents={2}>
           {mock}
         </EventsRequest>
@@ -575,7 +575,7 @@ describe('EventsRequest', function () {
     });
 
     it('does not make request', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <EventsRequest {...DEFAULTS} expired>
           {mock}
         </EventsRequest>
@@ -584,7 +584,7 @@ describe('EventsRequest', function () {
     });
 
     it('errors', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <EventsRequest {...DEFAULTS} expired>
           {mock}
         </EventsRequest>
@@ -613,7 +613,7 @@ describe('EventsRequest', function () {
           },
         })
       );
-      wrapper = mountWithTheme(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
+      wrapper = enzymeRender(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
 
       await tick();
       wrapper.update();

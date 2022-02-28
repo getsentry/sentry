@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
@@ -9,11 +9,11 @@ describe('UserFeedbackEmpty', function () {
   const organization = TestStubs.Organization();
 
   it('renders empty', function () {
-    mountWithTheme(<UserFeedbackEmpty projects={[]} organization={organization} />);
+    enzymeRender(<UserFeedbackEmpty projects={[]} organization={organization} />);
   });
 
   it('renders landing for project with no user feedback', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <UserFeedbackEmpty projects={[project]} organization={organization} />
     );
 
@@ -21,7 +21,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for project with any user feedback', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <UserFeedbackEmpty projects={[projectWithReports]} organization={organization} />
     );
 
@@ -29,7 +29,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for projects with any user feedback', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <UserFeedbackEmpty
         projects={[project, projectWithReports]}
         organization={organization}
@@ -40,7 +40,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for project query with user feedback', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <UserFeedbackEmpty
         projects={[project, projectWithReports]}
         organization={organization}
@@ -52,7 +52,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders landing for project query without any user feedback', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <UserFeedbackEmpty
         projects={[project, projectWithReports]}
         organization={organization}
@@ -64,7 +64,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders warning for multi project query with any user feedback', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <UserFeedbackEmpty
         projects={[project, projectWithReports]}
         organization={organization}
@@ -76,7 +76,7 @@ describe('UserFeedbackEmpty', function () {
   });
 
   it('renders landing for multi project query without any user feedback', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <UserFeedbackEmpty
         projects={[project, projectWithoutReports]}
         organization={organization}

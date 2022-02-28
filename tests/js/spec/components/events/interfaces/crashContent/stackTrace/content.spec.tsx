@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {StacktraceType} from 'sentry/types/stacktrace';
@@ -11,7 +11,7 @@ const data = eventEntryStacktrace.data as Required<StacktraceType>;
 function renderedComponent(
   props: Partial<React.ComponentProps<typeof StackTraceContent>>
 ) {
-  return mountWithTheme(
+  return render(
     <StackTraceContent
       data={data}
       className="no-exception"

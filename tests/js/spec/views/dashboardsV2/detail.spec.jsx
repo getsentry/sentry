@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {createListeners} from 'sentry-test/createListeners';
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -74,7 +74,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/default-overview/',
         method: 'DELETE',
       });
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
@@ -111,7 +111,7 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
         body: TestStubs.Dashboard([], {id: '8', title: 'Updated prebuilt'}),
       });
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
@@ -168,7 +168,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
@@ -312,7 +312,7 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
         body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -365,7 +365,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('opens edit modal for widgets', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -420,7 +420,7 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
         statusCode: 400,
       });
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -463,7 +463,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('shows add widget option', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -482,7 +482,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('opens custom modal when add widget option is clicked', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -515,7 +515,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -542,7 +542,7 @@ describe('Dashboards > Detail', function () {
     it('hides add widget option', async function () {
       types.MAX_WIDGETS = 1;
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -568,7 +568,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={newOrg.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -582,7 +582,7 @@ describe('Dashboards > Detail', function () {
 
       expect(wrapper.find('Breadcrumbs').exists()).toBe(false);
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -613,7 +613,7 @@ describe('Dashboards > Detail', function () {
           title: 'Widget Title',
         },
       };
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -630,7 +630,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('enters view mode when not given a new widget in location query', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -662,7 +662,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -705,7 +705,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -737,7 +737,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('opens edit modal when editing widget from context menu', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}

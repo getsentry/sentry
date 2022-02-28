@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import JsonForm from 'sentry/components/forms/jsonForm';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
@@ -9,7 +9,7 @@ const user = TestStubs.User({});
 describe('JsonForm', function () {
   describe('form prop', function () {
     it('default', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
       );
       expect(wrapper).toSnapshot();
@@ -19,7 +19,7 @@ describe('JsonForm', function () {
       // eslint-disable-next-line no-console
       console.error = jest.fn();
       try {
-        mountWithTheme(<JsonForm forms={accountDetailsFields} />);
+        enzymeRender(<JsonForm forms={accountDetailsFields} />);
       } catch (error) {
         expect(error.message).toBe(
           "Cannot read properties of undefined (reading 'email')"
@@ -33,7 +33,7 @@ describe('JsonForm', function () {
         fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
       }));
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />
       );
 
@@ -49,7 +49,7 @@ describe('JsonForm', function () {
         })),
       }));
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />
       );
 
@@ -58,7 +58,7 @@ describe('JsonForm', function () {
 
     it('should NOT hide panel, if at least one field has visible set to true -  no visible prop (1 field) + visible prop is of type func (2 field)', function () {
       // accountDetailsFields has two fields. The second field will always have visible set to false, because the username and the email are the same 'foo@example.com'
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
       );
 
@@ -72,7 +72,7 @@ describe('JsonForm', function () {
         fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
       }));
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm
           forms={modifiedAccountDetails}
           additionalFieldProps={{user}}
@@ -90,7 +90,7 @@ describe('JsonForm', function () {
         fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
       }));
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm
           forms={modifiedAccountDetails}
           additionalFieldProps={{user}}
@@ -107,7 +107,7 @@ describe('JsonForm', function () {
     const jsonFormFields = [fields.slug, fields.platform];
 
     it('default', function () {
-      const wrapper = mountWithTheme(<JsonForm fields={jsonFormFields} />);
+      const wrapper = enzymeRender(<JsonForm fields={jsonFormFields} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -115,7 +115,7 @@ describe('JsonForm', function () {
       // eslint-disable-next-line no-console
       console.error = jest.fn();
       try {
-        mountWithTheme(
+        enzymeRender(
           <JsonForm
             fields={[{...jsonFormFields[0], visible: ({test}) => !!test.email}]}
           />
@@ -129,14 +129,14 @@ describe('JsonForm', function () {
 
     it('should NOT hide panel, if at least one field has visible set to true - no visible prop', function () {
       // slug and platform have no visible prop, that means they will be always visible
-      const wrapper = mountWithTheme(<JsonForm fields={jsonFormFields} />);
+      const wrapper = enzymeRender(<JsonForm fields={jsonFormFields} />);
       expect(wrapper.find('FormPanel')).toHaveLength(1);
       expect(wrapper.find('input[type="text"]')).toHaveLength(2);
     });
 
     it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type boolean', function () {
       // slug and platform have no visible prop, that means they will be always visible
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm fields={jsonFormFields.map(field => ({...field, visible: true}))} />
       );
       expect(wrapper.find('FormPanel')).toHaveLength(1);
@@ -145,7 +145,7 @@ describe('JsonForm', function () {
 
     it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type func', function () {
       // slug and platform have no visible prop, that means they will be always visible
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm
           fields={jsonFormFields.map(field => ({...field, visible: () => true}))}
         />
@@ -156,7 +156,7 @@ describe('JsonForm', function () {
 
     it('should ALWAYS hide panel, if all fields have visible set to false -  visible prop is of type boolean', function () {
       // slug and platform have no visible prop, that means they will be always visible
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm fields={jsonFormFields.map(field => ({...field, visible: false}))} />
       );
       expect(wrapper.find('FormPanel')).toHaveLength(0);
@@ -164,7 +164,7 @@ describe('JsonForm', function () {
 
     it('should ALWAYS hide panel, if all fields have visible set to false - visible prop is of type function', function () {
       // slug and platform have no visible prop, that means they will be always visible
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <JsonForm
           fields={jsonFormFields.map(field => ({...field, visible: () => false}))}
         />

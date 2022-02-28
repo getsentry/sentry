@@ -1,5 +1,5 @@
 import {mountGlobalModal} from 'sentry-test/modal';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationApiKeysList from 'sentry/views/settings/organizationApiKeys/organizationApiKeysList';
 
@@ -14,7 +14,7 @@ const routes = [
 
 describe('OrganizationApiKeysList', function () {
   it('opens a modal when trying to delete a key', async function () {
-    mountWithTheme(
+    render(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
         routes={routes}

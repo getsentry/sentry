@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
@@ -40,7 +40,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('renders', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={org} />
     );
 
@@ -55,7 +55,7 @@ describe('InviteMembersModal', function () {
 
   it('renders without organization.access', async function () {
     const organization = TestStubs.Organization({access: undefined});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={organization} />
     );
 
@@ -63,7 +63,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('can add a second row', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={org} />
     );
 
@@ -73,7 +73,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('errors on duplicate emails', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={org} />
     );
 
@@ -98,7 +98,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('indicates the total invites on the invite button', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={org} />
     );
 
@@ -117,7 +117,7 @@ describe('InviteMembersModal', function () {
   it('can be closed', function () {
     const close = jest.fn();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={org} closeModal={close} />
     );
 
@@ -131,7 +131,7 @@ describe('InviteMembersModal', function () {
       method: 'POST',
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={org} />
     );
 
@@ -204,7 +204,7 @@ describe('InviteMembersModal', function () {
       statusCode: 400,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={org} />
     );
 
@@ -236,7 +236,7 @@ describe('InviteMembersModal', function () {
     const initialEmail = 'test@gmail.com';
     const initialData = [{emails: new Set([initialEmail])}];
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />
     );
 
@@ -268,7 +268,7 @@ describe('InviteMembersModal', function () {
       {emails: new Set([initialEmail]), role, teams: new Set([team.slug])},
     ];
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />
     );
 
@@ -306,7 +306,7 @@ describe('InviteMembersModal', function () {
 
   describe('member invite request mode', function () {
     it('has adjusted wording', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <InviteMembersModal {...modalProps} organization={noWriteOrg} />
       );
 
@@ -323,7 +323,7 @@ describe('InviteMembersModal', function () {
         method: 'POST',
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <InviteMembersModal {...modalProps} organization={noWriteOrg} />
       );
 

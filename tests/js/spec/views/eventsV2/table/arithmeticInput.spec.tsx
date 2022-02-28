@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Column, generateFieldAsString} from 'sentry/utils/discover/fields';
 import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
@@ -36,7 +36,7 @@ describe('ArithmeticInput', function () {
       {kind: 'equation', field: 'transaction.duration+measurements.lcp'},
     ];
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ArithmeticInput
         name="refinement"
         key="parameter:text"

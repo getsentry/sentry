@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import AccountSubscriptions from 'sentry/views/settings/account/accountSubscriptions';
@@ -17,7 +17,7 @@ describe('AccountSubscriptions', function () {
       url: ENDPOINT,
       body: [],
     });
-    const wrapper = mountWithTheme(<AccountSubscriptions />, {
+    const wrapper = enzymeRender(<AccountSubscriptions />, {
       context: {
         router: TestStubs.router(),
       },
@@ -39,7 +39,7 @@ describe('AccountSubscriptions', function () {
       method: 'PUT',
     });
 
-    const wrapper = mountWithTheme(<AccountSubscriptions />, {
+    const wrapper = enzymeRender(<AccountSubscriptions />, {
       context: {
         router: TestStubs.router(),
       },

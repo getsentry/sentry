@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
@@ -57,7 +57,7 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('fetches linked and unlinked projects', async function () {
-    mountWithTheme(
+    enzymeRender(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -74,7 +74,7 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('Should render', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -92,7 +92,7 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('Should allow bookmarking', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -114,7 +114,7 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('Should allow adding and removing projects', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -148,7 +148,7 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('handles filtering unlinked projects', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}

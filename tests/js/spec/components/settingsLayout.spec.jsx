@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
@@ -31,7 +31,7 @@ describe('SettingsLayout', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SettingsLayout router={TestStubs.router()} route={{}} routes={[]} />
     );
 
@@ -40,7 +40,7 @@ describe('SettingsLayout', function () {
 
   it('can render navigation', function () {
     const Navigation = () => <div>Navigation</div>;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SettingsLayout
         router={TestStubs.router()}
         route={{}}
@@ -54,7 +54,7 @@ describe('SettingsLayout', function () {
 
   it('can toggle mobile navigation', function () {
     const Navigation = () => <div>Navigation</div>;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SettingsLayout
         router={TestStubs.router()}
         route={{}}

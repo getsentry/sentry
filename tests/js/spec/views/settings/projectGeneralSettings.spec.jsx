@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
@@ -82,7 +82,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('renders form fields', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
@@ -107,7 +107,7 @@ describe('projectGeneralSettings', function () {
 
   it('disables scrapeJavaScript when equivalent org setting is false', function () {
     routerContext.context.organization.scrapeJavaScript = false;
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -121,7 +121,7 @@ describe('projectGeneralSettings', function () {
       method: 'DELETE',
     });
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
@@ -147,7 +147,7 @@ describe('projectGeneralSettings', function () {
       method: 'POST',
     });
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
@@ -187,7 +187,7 @@ describe('projectGeneralSettings', function () {
       body: {detail: 'An organization owner could not be found'},
     });
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
@@ -211,7 +211,7 @@ describe('projectGeneralSettings', function () {
     expect(addSuccessMessage).not.toHaveBeenCalled();
 
     expect(addErrorMessage).toHaveBeenCalled();
-    const content = mountWithTheme(addErrorMessage.mock.calls[0][0]);
+    const content = enzymeRender(addErrorMessage.mock.calls[0][0]);
     expect(content.text()).toEqual(
       expect.stringContaining('An organization owner could not be found')
     );
@@ -219,7 +219,7 @@ describe('projectGeneralSettings', function () {
 
   it('displays transfer/remove message for non-admins', function () {
     routerContext.context.organization.access = ['org:read'];
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -234,7 +234,7 @@ describe('projectGeneralSettings', function () {
 
   it('disables the form for users without write permissions', function () {
     routerContext.context.organization.access = ['org:read'];
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -257,7 +257,7 @@ describe('projectGeneralSettings', function () {
       },
     });
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -298,7 +298,7 @@ describe('projectGeneralSettings', function () {
       },
     });
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -363,7 +363,7 @@ describe('projectGeneralSettings', function () {
           slug: 'new-project',
         },
       });
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ProjectContext orgId={org.slug} projectId={project.slug}>
           <ProjectGeneralSettings
             routes={[]}

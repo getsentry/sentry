@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
@@ -19,7 +19,7 @@ describe('GroupReleaseStats', function () {
   });
 
   const createWrapper = props =>
-    mountWithTheme(
+    enzymeRender(
       <GroupReleaseStats
         group={TestStubs.Group()}
         project={project}

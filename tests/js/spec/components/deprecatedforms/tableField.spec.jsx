@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import Form from 'sentry/components/forms/form';
@@ -16,7 +16,7 @@ describe('TableField', function () {
   describe('renders', function () {
     beforeEach(() => {
       model = new FormModel();
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <Form onSubmit={mockSubmit} model={model}>
           <TableField
             name="fieldName"
@@ -28,7 +28,7 @@ describe('TableField', function () {
       );
     });
     it('renders without form context', function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <TableField
           name="fieldName"
           columnKeys={columnKeys}

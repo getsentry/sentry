@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValueAsync} from 'sentry-test/select-new';
 
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -33,7 +33,7 @@ describe('Project Ownership Input', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OwnerInput
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -60,7 +60,7 @@ describe('Project Ownership Input', function () {
   });
 
   it('updates on add preserving existing text', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OwnerInput
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}

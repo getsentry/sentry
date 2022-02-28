@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import AccountAuthorizations from 'sentry/views/settings/account/accountAuthorizations';
@@ -17,7 +17,7 @@ describe('AccountAuthorizations', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<AccountAuthorizations />, {
+    const wrapper = enzymeRender(<AccountAuthorizations />, {
       context: {
         location: TestStubs.location(),
         router: TestStubs.router(),

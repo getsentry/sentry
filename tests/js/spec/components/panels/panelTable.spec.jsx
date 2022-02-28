@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import PanelTable from 'sentry/components/panels/panelTable';
 
 describe('PanelTable', function () {
   const createWrapper = (props = {}) =>
-    mountWithTheme(
+    enzymeRender(
       <PanelTable
         headers={[<div key="1">1</div>, <div key="2">2</div>, <div key="3">3</div>]}
         {...props}
@@ -71,7 +71,7 @@ describe('PanelTable', function () {
   });
 
   it('children can be a render function', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <PanelTable
         headers={[<div key="1">1</div>, <div key="2">2</div>, <div key="3">3</div>]}
       >

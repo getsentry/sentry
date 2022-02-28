@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />
     );
 
@@ -14,7 +14,7 @@ describe('ApiTokenRow', function () {
 
   it('calls onRemove callback when trash can is clicked', function () {
     const cb = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ApiTokenRow onRemove={cb} token={TestStubs.ApiToken()} />
     );
 

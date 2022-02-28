@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
@@ -14,7 +14,7 @@ describe('CustomResolutionModal', function () {
 
   it('can select a version', async function () {
     const onSelected = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <CustomResolutionModal
         Header={p => p.children}
         Body={p => p.children}

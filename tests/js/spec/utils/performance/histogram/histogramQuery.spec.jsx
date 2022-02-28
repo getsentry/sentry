@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import EventView from 'sentry/utils/discover/eventView';
@@ -56,7 +56,7 @@ describe('HistogramQuery', function () {
           .map((_, i) => ({bin: i * 1000, count: i})),
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <HistogramQuery
         api={api}
         location={location}

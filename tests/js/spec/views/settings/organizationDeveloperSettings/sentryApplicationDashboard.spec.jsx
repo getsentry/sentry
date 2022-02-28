@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import SentryApplicationDashboard from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard';
@@ -69,7 +69,7 @@ describe('Sentry Application Dashboard', function () {
         body: sentryApp,
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />
       );
     });
@@ -125,7 +125,7 @@ describe('Sentry Application Dashboard', function () {
         body: [],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />
       );
 
@@ -207,7 +207,7 @@ describe('Sentry Application Dashboard', function () {
         body: sentryApp,
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />
       );
     });
@@ -236,7 +236,7 @@ describe('Sentry Application Dashboard', function () {
         body: [],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />
       );
 

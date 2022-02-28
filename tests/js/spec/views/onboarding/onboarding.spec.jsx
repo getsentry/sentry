@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -46,7 +46,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    enzymeRender(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
@@ -57,7 +57,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    const wrapper = enzymeRender(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     // Validate that the first step is shown
     expect(wrapper.find('#step_name').text()).toEqual('step_1');
@@ -74,7 +74,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    const wrapper = enzymeRender(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     wrapper.find('#complete').simulate('click');
     expect(browserHistory.push).toHaveBeenCalledWith('/onboarding/org-bar/step2/');
@@ -86,7 +86,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    const wrapper = enzymeRender(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     // Validate that second step is visible
     expect(wrapper.find('#step_name').text()).toEqual('step_2');
@@ -101,7 +101,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    const wrapper = enzymeRender(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     wrapper.find('Back Button').simulate('click');
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
@@ -124,7 +124,7 @@ describe('Onboarding', function () {
       orgId: organization.slug,
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Onboarding steps={MOCKED_STEPS} params={params} />,
       routerContext
     );

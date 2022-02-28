@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import AccountClose from 'sentry/views/settings/account/accountClose';
@@ -32,7 +32,7 @@ describe('AccountClose', function () {
   });
 
   it('lists all orgs user is an owner of', async function () {
-    const wrapper = mountWithTheme(<AccountClose />);
+    const wrapper = enzymeRender(<AccountClose />);
 
     // Input for single owner org
     expect(wrapper.find('input').first().prop('checked')).toBe(true);

@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   formatStoreCrashReports,
@@ -17,17 +17,17 @@ describe('crashReportsUtils', () => {
     expect(formatStoreCrashReports(0)).toBe('Disabled');
   });
   it('formats per issue values', () => {
-    mountWithTheme(<div data-test-id="subject">{formatStoreCrashReports(10)}</div>);
+    render(<div data-test-id="subject">{formatStoreCrashReports(10)}</div>);
     expect(screen.getByTestId('subject')).toHaveTextContent('10 per issue');
   });
   it('formats with org inheritance', () => {
-    mountWithTheme(<div data-test-id="subject">{formatStoreCrashReports(null, 5)}</div>);
+    render(<div data-test-id="subject">{formatStoreCrashReports(null, 5)}</div>);
     expect(screen.getByTestId('subject')).toHaveTextContent(
       'Inherit organization settings (5 per issue)'
     );
   });
   it('formats with org inheritance disabled', () => {
-    mountWithTheme(<div data-test-id="subject">{formatStoreCrashReports(null, 0)}</div>);
+    render(<div data-test-id="subject">{formatStoreCrashReports(null, 0)}</div>);
     expect(screen.getByTestId('subject')).toHaveTextContent(
       'Inherit organization settings (Disabled)'
     );

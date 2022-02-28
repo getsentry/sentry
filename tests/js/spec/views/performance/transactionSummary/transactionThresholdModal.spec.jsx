@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByLabel} from 'sentry-test/select-new';
 
@@ -23,7 +23,7 @@ async function clickReset(wrapper) {
 }
 
 function mountModal(eventView, organization, onApply) {
-  return mountWithTheme(
+  return enzymeRender(
     <TransactionThresholdModal
       Header={stubEl}
       Footer={stubEl}

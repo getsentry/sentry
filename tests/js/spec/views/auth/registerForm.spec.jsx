@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ConfigStore from 'sentry/stores/configStore';
 import RegisterForm from 'sentry/views/auth/registerForm';
@@ -40,7 +40,7 @@ describe('Register', function () {
 
     const authConfig = {};
 
-    const wrapper = mountWithTheme(<RegisterForm api={api} authConfig={authConfig} />);
+    const wrapper = enzymeRender(<RegisterForm api={api} authConfig={authConfig} />);
     doLogin(wrapper, mockRequest);
 
     await tick();
@@ -66,7 +66,7 @@ describe('Register', function () {
     });
 
     const authConfig = {};
-    const wrapper = mountWithTheme(<RegisterForm api={api} authConfig={authConfig} />);
+    const wrapper = enzymeRender(<RegisterForm api={api} authConfig={authConfig} />);
 
     doLogin(wrapper, mockRequest);
 

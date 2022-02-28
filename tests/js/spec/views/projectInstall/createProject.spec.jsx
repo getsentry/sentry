@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
@@ -25,7 +25,7 @@ describe('CreateProject', function () {
       ...baseProps,
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <CreateProject {...props} />,
       TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
     );
@@ -38,7 +38,7 @@ describe('CreateProject', function () {
       ...baseProps,
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <CreateProject {...props} />,
       TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
     );
@@ -52,7 +52,7 @@ describe('CreateProject', function () {
       ...baseProps,
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <CreateProject {...props} teams={[teamWithAccess]} />,
       TestStubs.routerContext([
         {organization: {id: '1', slug: 'testOrg'}, location: {query: {}}},
@@ -83,7 +83,7 @@ describe('CreateProject', function () {
       location: {query: {platform: 'ruby-rails'}},
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <CreateProject {...props} teams={[teamWithAccess]} />,
       TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
     );
@@ -99,7 +99,7 @@ describe('CreateProject', function () {
       location: {query: {category: 'mobile'}},
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <CreateProject {...props} teams={[teamWithAccess]} />,
       TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
     );
@@ -112,7 +112,7 @@ describe('CreateProject', function () {
       ...baseProps,
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <CreateProject {...props} teams={[teamWithAccess]} />,
       TestStubs.routerContext([
         {
@@ -145,7 +145,7 @@ describe('CreateProject', function () {
     });
 
     it('should enabled the submit button if and only if all the required information has been filled', () => {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <CreateProject {...props} />,
         TestStubs.routerContext([
           {

@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import App from 'sentry/views/app';
@@ -29,7 +29,7 @@ describe('App', function () {
   });
 
   it('renders', async function () {
-    mountWithTheme(
+    render(
       <App params={{orgId: 'org-slug'}}>
         <div>placeholder content</div>
       </App>
@@ -42,7 +42,7 @@ describe('App', function () {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
 
-    mountWithTheme(
+    render(
       <App params={{orgId: 'org-slug'}}>
         <div>placeholder content</div>
       </App>
@@ -61,7 +61,7 @@ describe('App', function () {
     ConfigStore.set('needsUpgrade', true);
     ConfigStore.set('version', {current: '1.33.7'});
 
-    mountWithTheme(
+    render(
       <App params={{orgId: 'org-slug'}}>
         <div>placeholder content</div>
       </App>

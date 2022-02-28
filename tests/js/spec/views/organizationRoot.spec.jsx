@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {setActiveProject} from 'sentry/actionCreators/projects';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -9,7 +9,7 @@ jest.mock('sentry/actionCreators/projects', () => ({
 
 describe('OrganizationRoot', function () {
   it('sets active project as null when mounted', function () {
-    mountWithTheme(<OrganizationRoot location={{}}>{null}</OrganizationRoot>);
+    render(<OrganizationRoot location={{}}>{null}</OrganizationRoot>);
 
     expect(setActiveProject).toHaveBeenCalledWith(null);
   });

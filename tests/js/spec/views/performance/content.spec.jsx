@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -268,7 +268,7 @@ describe('Performance > Content', function () {
     const projects = [TestStubs.Project({firstTransactionEvent: true})];
     const data = initializeData(projects, {});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -302,7 +302,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {project: [1]});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -330,7 +330,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {project: ['-1']});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -351,7 +351,7 @@ describe('Performance > Content', function () {
     const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -380,7 +380,7 @@ describe('Performance > Content', function () {
 
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -403,7 +403,7 @@ describe('Performance > Content', function () {
       statsPeriod: '24h',
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -440,7 +440,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {view: undefined});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -460,7 +460,7 @@ describe('Performance > Content', function () {
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -480,7 +480,7 @@ describe('Performance > Content', function () {
   it('Tags are replaced with trends default query if navigating to trends', async function () {
     const data = initializeTrendsData({query: 'device.family:Mac'}, false);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -514,7 +514,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {view: undefined});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}

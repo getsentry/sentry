@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import IntegrationDetailedView from 'sentry/views/organizationIntegrations/integrationDetailedView';
@@ -81,7 +81,7 @@ describe('IntegrationDetailedView', function () {
       ],
     ]);
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}
         location={{query: {}}}
@@ -96,7 +96,7 @@ describe('IntegrationDetailedView', function () {
     expect(wrapper.find('AddIntegrationButton').props().disabled).toEqual(false);
   });
   it('view configurations', async function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}
         location={{query: {tab: 'configurations'}}}

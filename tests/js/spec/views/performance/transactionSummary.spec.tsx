@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -292,7 +292,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders basic UI elements', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -331,7 +331,7 @@ describe('Performance > TransactionSummary', function () {
       features: ['incidents'],
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -349,7 +349,7 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -426,7 +426,7 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    mountWithTheme(<TestComponent location={router.location} isMetricsData />, {
+    render(<TestComponent location={router.location} isMetricsData />, {
       context: routerContext,
       organization,
     });
@@ -465,7 +465,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders sidebar widgets', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -526,7 +526,7 @@ describe('Performance > TransactionSummary', function () {
 
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} isMetricsData />, {
+    render(<TestComponent location={router.location} isMetricsData />, {
       context: routerContext,
       organization,
     });
@@ -595,7 +595,7 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -622,7 +622,7 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -636,7 +636,7 @@ describe('Performance > TransactionSummary', function () {
   it('triggers a navigation on search', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -661,7 +661,7 @@ describe('Performance > TransactionSummary', function () {
   it('can mark a transaction as key', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -686,7 +686,7 @@ describe('Performance > TransactionSummary', function () {
   it('triggers a navigation on transaction filter', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -713,7 +713,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders pagination buttons', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -746,7 +746,7 @@ describe('Performance > TransactionSummary', function () {
       query: {query: 'tag:value'},
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -772,7 +772,7 @@ describe('Performance > TransactionSummary', function () {
       query: {query: 'tag:value event.type:transaction'},
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -792,7 +792,7 @@ describe('Performance > TransactionSummary', function () {
       features: ['performance-suspect-spans-view'],
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -803,7 +803,7 @@ describe('Performance > TransactionSummary', function () {
   it('adds search condition on transaction status when clicking on status breakdown', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -825,7 +825,7 @@ describe('Performance > TransactionSummary', function () {
   it('appends tag value to existing query when clicked', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });

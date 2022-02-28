@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import GroupSimilarIssues from 'sentry/views/organizationGroupDetails/groupSimilarIssues';
@@ -42,7 +42,7 @@ describe('Issues Similar View', function () {
   });
 
   it('renders initially with loading component', function () {
-    const component = mountWithTheme(
+    const component = enzymeRender(
       <GroupSimilarIssues
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
@@ -55,7 +55,7 @@ describe('Issues Similar View', function () {
   });
 
   it('renders with mocked data', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <GroupSimilarIssues
         project={project}
         query=""
@@ -73,7 +73,7 @@ describe('Issues Similar View', function () {
   });
 
   it('can merge and redirect to new parent', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <GroupSimilarIssues
         project={project}
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}

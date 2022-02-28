@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import EventView from 'sentry/utils/discover/eventView';
@@ -22,7 +22,7 @@ function generateWrappedComponent(
   yAxis,
   disabled = false
 ) {
-  return mountWithTheme(
+  return enzymeRender(
     <SavedQueryButtonGroup
       location={location}
       organization={organization}
@@ -128,7 +128,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
       // The banner should not render
-      const banner = mountWithTheme(<DiscoverBanner />);
+      const banner = enzymeRender(<DiscoverBanner />);
       expect(banner.find('BannerTitle').exists()).toBe(false);
     });
 

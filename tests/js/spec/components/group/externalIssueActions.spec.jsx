@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ExternalIssueActions from 'sentry/components/group/externalIssueActions';
 
@@ -8,7 +8,7 @@ describe('ExternalIssueActions', function () {
   describe('with no external issues linked', function () {
     const integration = TestStubs.GitHubIntegration({externalIssues: []});
     const configurations = [integration];
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ExternalIssueActions
         key="github"
         group={group}
@@ -56,7 +56,7 @@ describe('ExternalIssueActions', function () {
     ];
     const integration = TestStubs.GitHubIntegration({externalIssues});
     const configurations = [integration];
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ExternalIssueActions
         key="github"
         group={group}

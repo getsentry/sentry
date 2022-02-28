@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {t} from 'sentry/locale';
@@ -156,7 +156,7 @@ describe('Performance Transaction Events Content', function () {
   });
 
   it('basic rendering', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventsPageContent
         eventView={eventView}
         organization={organization}
@@ -190,7 +190,7 @@ describe('Performance Transaction Events Content', function () {
   });
 
   it('rendering with webvital selected', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventsPageContent
         eventView={eventView}
         organization={organization}

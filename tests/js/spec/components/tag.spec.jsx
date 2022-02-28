@@ -1,16 +1,16 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import Tag from 'sentry/components/tag';
 import {IconFire} from 'sentry/icons';
 
 describe('Tag', function () {
   it('basic', function () {
-    const wrapper = mountWithTheme(<Tag>Text</Tag>);
+    const wrapper = enzymeRender(<Tag>Text</Tag>);
     expect(wrapper.text()).toEqual('Text');
   });
 
   it('with icon', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Tag icon={<IconFire />} type="error">
         Error
       </Tag>
@@ -21,7 +21,7 @@ describe('Tag', function () {
   });
 
   it('with tooltip', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Tag type="highlight" tooltipText="lorem ipsum">
         Tooltip
       </Tag>
@@ -33,7 +33,7 @@ describe('Tag', function () {
   it('with dismiss', function () {
     const mockCallback = jest.fn();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Tag type="highlight" onDismiss={mockCallback}>
         Dismissable
       </Tag>
@@ -48,7 +48,7 @@ describe('Tag', function () {
 
   it('with internal link', function () {
     const to = '/organizations/sentry/issues/';
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Tag type="highlight" to={to}>
         Internal link
       </Tag>
@@ -60,7 +60,7 @@ describe('Tag', function () {
 
   it('with external link', function () {
     const href = 'https://sentry.io/';
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Tag type="highlight" href={href}>
         External link
       </Tag>
@@ -77,13 +77,13 @@ describe('Tag', function () {
   });
 
   it('overrides a link default icon', function () {
-    const wrapper1 = mountWithTheme(<Tag href="#">1</Tag>);
-    const wrapper2 = mountWithTheme(
+    const wrapper1 = enzymeRender(<Tag href="#">1</Tag>);
+    const wrapper2 = enzymeRender(
       <Tag href="#" icon={null}>
         2
       </Tag>
     );
-    const wrapper3 = mountWithTheme(
+    const wrapper3 = enzymeRender(
       <Tag href="#" icon={<IconFire />}>
         3
       </Tag>

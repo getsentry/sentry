@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -150,7 +150,7 @@ describe('Performance > Web Vitals', function () {
       features: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent organization={organization} location={router.location} />
     );
 
@@ -163,7 +163,7 @@ describe('Performance > Web Vitals', function () {
   it('renders the basic UI components', async function () {
     const {organization, router, routerContext} = initialize();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={organization}
         location={router.location}
@@ -183,7 +183,7 @@ describe('Performance > Web Vitals', function () {
   it('renders the correct bread crumbs', async function () {
     const {organization, router, routerContext} = initialize();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={organization}
         location={router.location}
@@ -203,7 +203,7 @@ describe('Performance > Web Vitals', function () {
   it('renders all vitals cards correctly', async function () {
     const {organization, router, routerContext} = initialize();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         organization={organization}
         location={router.location}
@@ -231,7 +231,7 @@ describe('Performance > Web Vitals', function () {
     it('disables button on default view', async function () {
       const {organization, router, routerContext} = initialize();
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <WrappedComponent
           organization={organization}
           location={router.location}
@@ -255,7 +255,7 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <WrappedComponent
           organization={organization}
           location={router.location}
@@ -279,7 +279,7 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <WrappedComponent
           organization={organization}
           location={router.location}
@@ -304,7 +304,7 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <WrappedComponent
           organization={organization}
           location={router.location}
@@ -329,7 +329,7 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <WrappedComponent
           organization={organization}
           location={router.location}
@@ -367,7 +367,7 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <WrappedComponent
           organization={organization}
           location={router.location}
@@ -389,7 +389,7 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <WrappedComponent
           organization={organization}
           location={router.location}

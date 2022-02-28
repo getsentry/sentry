@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -20,7 +20,7 @@ describe('NoProjectMessage', function () {
     const organization = TestStubs.Organization({slug: 'org-slug'});
     delete organization.projects;
     act(() => ProjectsStore.loadInitialData([project1, project2]));
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <NoProjectMessage organization={organization}>{null}</NoProjectMessage>
     );
     expect(wrapper.prop('children')).toBe(null);
@@ -29,7 +29,7 @@ describe('NoProjectMessage', function () {
 
   it('shows "Create Project" button when there are no projects', function () {
     act(() => ProjectsStore.loadInitialData([]));
-    const wrapper = mountWithTheme(<NoProjectMessage organization={org} />);
+    const wrapper = enzymeRender(<NoProjectMessage organization={org} />);
     expect(
       wrapper.find('Button[to="/organizations/org-slug/projects/new/"]')
     ).toHaveLength(1);
@@ -37,7 +37,7 @@ describe('NoProjectMessage', function () {
 
   it('"Create Project" is disabled when no access to `project:write`', function () {
     act(() => ProjectsStore.loadInitialData([]));
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <NoProjectMessage organization={TestStubs.Organization({access: []})} />
     );
     expect(
@@ -46,19 +46,19 @@ describe('NoProjectMessage', function () {
   });
 
   it('has no "Join a Team" button when projects are missing', function () {
-    const wrapper = mountWithTheme(<NoProjectMessage organization={org} />);
+    const wrapper = enzymeRender(<NoProjectMessage organization={org} />);
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(0);
   });
 
   it('has a "Join a Team" button when no projects but org has projects', function () {
     act(() => ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]));
-    const wrapper = mountWithTheme(<NoProjectMessage organization={org} />);
+    const wrapper = enzymeRender(<NoProjectMessage organization={org} />);
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(1);
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function () {
     act(() => ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]));
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <NoProjectMessage organization={{...org, access: []}} />
     );
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]').prop('disabled')).toBe(
@@ -73,7 +73,7 @@ describe('NoProjectMessage', function () {
       ])
     );
     ConfigStore.config.user = {isSuperuser: true};
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <NoProjectMessage organization={org} superuserNeedsToBeProjectMember>
         {null}
       </NoProjectMessage>
@@ -100,7 +100,7 @@ describe('NoProjectMessage', function () {
     const project2 = TestStubs.Project();
     const organization = TestStubs.Organization({slug: 'org-slug'});
     delete organization.projects;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <NoProjectMessage organization={organization}>
         <MockComponent />
       </NoProjectMessage>

@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import TeamStore from 'sentry/stores/teamStore';
@@ -23,7 +23,7 @@ describe('TeamSettings', function () {
       method: 'PUT',
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamSettings
         team={team}
         onTeamChange={() => {}}
@@ -56,7 +56,7 @@ describe('TeamSettings', function () {
   it('needs team:admin in order to see an enabled Remove Team button', function () {
     const team = TestStubs.Team();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamSettings
         team={team}
         onTeamChange={() => {}}
@@ -85,7 +85,7 @@ describe('TeamSettings', function () {
       },
     ]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamSettings
         params={{orgId: 'org', teamId: team.slug}}
         team={team}

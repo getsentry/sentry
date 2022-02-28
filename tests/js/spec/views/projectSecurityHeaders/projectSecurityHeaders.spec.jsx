@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ProjectSecurityHeaders from 'sentry/views/settings/projectSecurityHeaders';
 
@@ -17,7 +17,7 @@ describe('ProjectSecurityHeaders', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSecurityHeaders
         organization={org}
         project={project}

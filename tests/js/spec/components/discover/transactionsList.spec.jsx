@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
@@ -116,7 +116,7 @@ describe('TransactionsList', function () {
     };
 
     it('renders basic UI components', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <TransactionsList
           api={api}
           location={location}
@@ -149,7 +149,7 @@ describe('TransactionsList', function () {
         label: t('Trending Regressions'),
         trendType: 'regression',
       });
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <TransactionsList
           api={api}
           location={location}
@@ -176,7 +176,7 @@ describe('TransactionsList', function () {
     });
 
     it('renders default titles', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <TransactionsList
           api={api}
           location={location}
@@ -198,7 +198,7 @@ describe('TransactionsList', function () {
     });
 
     it('renders custom titles', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <TransactionsList
           api={api}
           location={location}
@@ -221,7 +221,7 @@ describe('TransactionsList', function () {
     });
 
     it('allows users to change the sort in the dropdown', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <TransactionsList
           api={api}
           location={location}
@@ -254,7 +254,7 @@ describe('TransactionsList', function () {
     });
 
     it('generates link for the transaction cell', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <TransactionsList
           api={api}
           location={location}
@@ -293,7 +293,7 @@ describe('TransactionsList', function () {
     });
 
     it('handles forceLoading correctly', async function () {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <TransactionsList
           api={null}
           location={location}

@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ConfigStore from 'sentry/stores/configStore';
 import LoginForm from 'sentry/views/auth/loginForm';
@@ -34,7 +34,7 @@ describe('LoginForm', function () {
 
     const authConfig = {};
 
-    const wrapper = mountWithTheme(<LoginForm api={api} authConfig={authConfig} />);
+    const wrapper = enzymeRender(<LoginForm api={api} authConfig={authConfig} />);
     doLogin(wrapper, mockRequest);
 
     await tick();
@@ -60,7 +60,7 @@ describe('LoginForm', function () {
     });
 
     const authConfig = {};
-    const wrapper = mountWithTheme(<LoginForm api={api} authConfig={authConfig} />);
+    const wrapper = enzymeRender(<LoginForm api={api} authConfig={authConfig} />);
 
     doLogin(wrapper, mockRequest);
 
@@ -76,7 +76,7 @@ describe('LoginForm', function () {
       githubLoginLink: '/githubLogin',
     };
 
-    const wrapper = mountWithTheme(<LoginForm api={api} authConfig={authConfig} />);
+    const wrapper = enzymeRender(<LoginForm api={api} authConfig={authConfig} />);
 
     expect(wrapper.find('ProviderWrapper Button').map(b => b.props().href)).toEqual(
       expect.arrayContaining(['/vstsLogin', '/githubLogin'])

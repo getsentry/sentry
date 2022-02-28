@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationCreate from 'sentry/views/organizationCreate';
@@ -20,7 +20,7 @@ describe('OrganizationCreate', function () {
     it('renders without terms', function () {
       ConfigStore.set('termsUrl', null);
       ConfigStore.set('privacyUrl', null);
-      const wrapper = mountWithTheme(<OrganizationCreate />, {
+      const wrapper = enzymeRender(<OrganizationCreate />, {
         context: {router: TestStubs.router()},
       });
       expect(wrapper).toSnapshot();
@@ -29,7 +29,7 @@ describe('OrganizationCreate', function () {
     it('renders with terms', function () {
       ConfigStore.set('termsUrl', 'https://example.com/terms');
       ConfigStore.set('privacyUrl', 'https://example.com/privacy');
-      const wrapper = mountWithTheme(<OrganizationCreate />, {
+      const wrapper = enzymeRender(<OrganizationCreate />, {
         context: {router: TestStubs.router()},
       });
       expect(wrapper).toSnapshot();

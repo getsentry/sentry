@@ -3,7 +3,7 @@ import selectEvent from 'react-select-event';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitFor,
@@ -29,7 +29,7 @@ describe('Incident Rules Form', () => {
     organization: {features: ['metric-alert-threshold-period', 'change-alerts']},
   });
   const createWrapper = props =>
-    mountWithTheme(
+    render(
       <RuleFormContainer
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}

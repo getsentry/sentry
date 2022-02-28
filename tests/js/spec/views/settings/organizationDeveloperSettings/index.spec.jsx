@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -32,7 +32,7 @@ describe('Organization Developer Settings', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
     );
 
@@ -53,7 +53,7 @@ describe('Organization Developer Settings', function () {
         body: [sentryApp],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
         {organization: org}
       );
@@ -125,7 +125,7 @@ describe('Organization Developer Settings', function () {
       });
 
       // mock with App to render modal
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <App>
           <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
         </App>
@@ -182,7 +182,7 @@ describe('Organization Developer Settings', function () {
       body: [publishedSentryApp],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
     );
 
@@ -207,7 +207,7 @@ describe('Organization Developer Settings', function () {
       body: [internalIntegration],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
     );
 
@@ -231,7 +231,7 @@ describe('Organization Developer Settings', function () {
       body: [sentryApp],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationDeveloperSettings
         params={{orgId: newOrg.slug}}
         organization={newOrg}

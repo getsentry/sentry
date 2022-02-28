@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {
   openInviteMembersModal,
@@ -45,7 +45,7 @@ describe('TeamMembers', function () {
   });
 
   it('renders', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
@@ -58,7 +58,7 @@ describe('TeamMembers', function () {
 
   it('can add member to team with open membership', async function () {
     const org = TestStubs.Organization({access: [], openMembership: true});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
@@ -77,7 +77,7 @@ describe('TeamMembers', function () {
 
   it('can add member to team with team:admin permission', async function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
@@ -93,7 +93,7 @@ describe('TeamMembers', function () {
 
   it('can add member to team with org:write permission', async function () {
     const org = TestStubs.Organization({access: ['org:write'], openMembership: false});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
@@ -109,7 +109,7 @@ describe('TeamMembers', function () {
 
   it('can request access to add member to team without permission', async function () {
     const org = TestStubs.Organization({access: [], openMembership: false});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
@@ -125,7 +125,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown with access', async function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
@@ -143,7 +143,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown with access and `Open Membership` enabled', async function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: true});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
@@ -161,7 +161,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown without access and `Open Membership` enabled', async function () {
     const org = TestStubs.Organization({access: [], openMembership: true});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
@@ -179,7 +179,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown without access and `Open Membership` disabled', async function () {
     const org = TestStubs.Organization({access: [], openMembership: false});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
@@ -200,7 +200,7 @@ describe('TeamMembers', function () {
       url: `/organizations/${organization.slug}/members/${members[0].id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
@@ -237,7 +237,7 @@ describe('TeamMembers', function () {
       access: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organizationMember}

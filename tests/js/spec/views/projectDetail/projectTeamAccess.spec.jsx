@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
@@ -7,7 +7,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
   const {organization, routerContext} = initializeOrg();
 
   it('renders a list', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectTeamAccess
         organization={organization}
         project={TestStubs.Project({teams: [TestStubs.Team()]})}
@@ -21,7 +21,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
   });
 
   it('links to a team settings', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectTeamAccess
         organization={organization}
         project={TestStubs.Project({teams: [TestStubs.Team()]})}
@@ -35,7 +35,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
   });
 
   it('displays the right empty state', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
       routerContext
     );
@@ -46,7 +46,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
     expect(assignTeamButton.text()).toBe('Assign Team');
 
-    const wrapperNoPermissions = mountWithTheme(
+    const wrapperNoPermissions = enzymeRender(
       <ProjectTeamAccess
         organization={{...organization, access: []}}
         project={TestStubs.Project({teams: []})}
@@ -57,7 +57,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
   });
 
   it('collapses more than 5 teams', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectTeamAccess
         organization={organization}
         project={TestStubs.Project({
@@ -85,7 +85,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
   });
 
   it('sorts teams alphabetically', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectTeamAccess
         organization={organization}
         project={TestStubs.Project({

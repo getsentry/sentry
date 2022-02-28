@@ -4,7 +4,7 @@ import selectEvent from 'react-select-event';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitFor,
@@ -129,7 +129,7 @@ describe('ProjectAlertsCreate', function () {
     const {organization, project, router} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
-    const wrapper = mountWithTheme(
+    const wrapper = render(
       <AlertsContainer>
         <AlertBuilderProjectProvider params={params}>
           <ProjectAlertsCreate

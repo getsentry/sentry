@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -183,7 +183,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {});
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -200,7 +200,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -214,7 +214,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -244,7 +244,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -273,7 +273,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -303,7 +303,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -333,7 +333,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -362,7 +362,7 @@ describe('Performance > Trends', function () {
   it('choosing a trend function changes location', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -389,7 +389,7 @@ describe('Performance > Trends', function () {
   it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async function () {
     const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1]});
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -405,7 +405,7 @@ describe('Performance > Trends', function () {
   it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
     const projects = [TestStubs.Project({id: 1, platform: 'python'})];
     const data = initializeTrendsData(projects, {project: [1]});
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -421,7 +421,7 @@ describe('Performance > Trends', function () {
   it('sets trend parameter from query and ignores default trend parameter', async function () {
     const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1], trendParameter: 'FCP'});
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -437,7 +437,7 @@ describe('Performance > Trends', function () {
   it('choosing a parameter changes location', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -463,7 +463,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -513,7 +513,7 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project(), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -578,7 +578,7 @@ describe('Performance > Trends', function () {
   it('Visiting trends with trends feature will update filters if none are set', async function () {
     const data = initializeTrendsData(undefined, {}, false);
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
@@ -604,7 +604,7 @@ describe('Performance > Trends', function () {
       false
     );
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );

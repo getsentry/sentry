@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {ProjectContext} from 'sentry/views/projects/projectContext';
 
@@ -56,7 +56,7 @@ describe('projectContext component', function () {
       />
     );
 
-    const wrapper = mountWithTheme(projectContext);
+    const wrapper = enzymeRender(projectContext);
 
     await tick();
     wrapper.update();
@@ -88,7 +88,7 @@ describe('projectContext component', function () {
       />
     );
 
-    const wrapper = mountWithTheme(projectContext);
+    const wrapper = enzymeRender(projectContext);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -133,7 +133,7 @@ describe('projectContext component', function () {
       />
     );
 
-    const wrapper = mountWithTheme(projectContext);
+    const wrapper = enzymeRender(projectContext);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 

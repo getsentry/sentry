@@ -1,5 +1,5 @@
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import NoteInput from 'sentry/components/activity/note/input';
 
@@ -12,12 +12,12 @@ describe('NoteInput', function () {
     };
 
     it('renders', function () {
-      mountWithTheme(<NoteInput {...props} />);
+      enzymeRender(<NoteInput {...props} />);
     });
 
     it('submits when meta + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
+      const wrapper = enzymeRender(<NoteInput {...props} onCreate={onCreate} />);
 
       const input = wrapper.find('textarea');
 
@@ -29,7 +29,7 @@ describe('NoteInput', function () {
 
     it('submits when ctrl + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
+      const wrapper = enzymeRender(<NoteInput {...props} onCreate={onCreate} />);
 
       const input = wrapper.find('textarea');
 
@@ -41,7 +41,7 @@ describe('NoteInput', function () {
 
     it('does not submit when nothing is entered', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
+      const wrapper = enzymeRender(<NoteInput {...props} onCreate={onCreate} />);
 
       const input = wrapper.find('textarea');
       input.simulate('keyDown', {key: 'Enter', metaKey: true});
@@ -50,7 +50,7 @@ describe('NoteInput', function () {
 
     it('handles errors', function () {
       const errorJSON = {detail: {message: '', code: 401, extra: ''}};
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
       );
 
@@ -65,7 +65,7 @@ describe('NoteInput', function () {
 
     it('has a disabled submit button when no text is entered', function () {
       const errorJSON = {detail: {message: '', code: 401, extra: ''}};
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
       );
 
@@ -74,7 +74,7 @@ describe('NoteInput', function () {
 
     it('enables the submit button when text is entered', function () {
       const errorJSON = {detail: {message: '', code: 401, extra: ''}};
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
       );
 
@@ -94,7 +94,7 @@ describe('NoteInput', function () {
     };
 
     const createWrapper = props =>
-      mountWithTheme(<NoteInput {...defaultProps} {...props} />);
+      enzymeRender(<NoteInput {...defaultProps} {...props} />);
 
     it('edits existing message', function () {
       const onUpdate = jest.fn();

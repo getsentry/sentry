@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
@@ -46,7 +46,7 @@ describe('ContextPickerModal', function () {
   );
 
   it('renders with only org selector when no org is selected', async function () {
-    const wrapper = mountWithTheme(getComponent());
+    const wrapper = enzymeRender(getComponent());
 
     expect(wrapper.find('StyledSelectControl[name="organization"]').exists()).toBe(true);
     expect(wrapper.find('StyledSelectControl[name="project"]').exists()).toBe(false);
@@ -62,7 +62,7 @@ describe('ContextPickerModal', function () {
       url: `/organizations/${org2.slug}/projects/`,
       body: [],
     });
-    const wrapper = mountWithTheme(getComponent());
+    const wrapper = enzymeRender(getComponent());
 
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/');
     await tick();
@@ -79,7 +79,7 @@ describe('ContextPickerModal', function () {
       body: [project2],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       getComponent({
         needOrg: true,
         needProject: true,
@@ -101,7 +101,7 @@ describe('ContextPickerModal', function () {
 
   it('selects an org and calls `onFinish` with URL with organization slug', async function () {
     OrganizationsStore.load([org]);
-    const wrapper = mountWithTheme(getComponent({}));
+    const wrapper = enzymeRender(getComponent({}));
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
@@ -125,7 +125,7 @@ describe('ContextPickerModal', function () {
     });
     await tick();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       getComponent({
         needOrg: true,
         needProject: true,
@@ -192,7 +192,7 @@ describe('ContextPickerModal', function () {
 
     OrganizationsStore.load(organizations);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       getComponent({
         needOrg: true,
         needProject: true,
@@ -269,7 +269,7 @@ describe('ContextPickerModal', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       getComponent({
         needOrg: false,
         needProject: false,
@@ -309,7 +309,7 @@ describe('ContextPickerModal', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       getComponent({
         needOrg: false,
         needProject: false,
@@ -346,7 +346,7 @@ describe('ContextPickerModal', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       getComponent({
         needOrg: false,
         needProject: false,

@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import cloneDeep from 'lodash/cloneDeep';
 import range from 'lodash/range';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {enzymeRender, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -200,7 +200,7 @@ describe('IssueList', function () {
         },
       };
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <IssueListWithStores {...newRouter} {...defaultProps} {...p} />,
         routerContext
       );
@@ -1348,7 +1348,7 @@ describe('IssueList', function () {
 
   describe('processingIssues', function () {
     beforeEach(function () {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = enzymeRender(<IssueListOverview {...props} />);
     });
 
     it('fetches and displays processing issues', async function () {
@@ -1369,13 +1369,13 @@ describe('IssueList', function () {
 
   describe('render states', function () {
     it('displays the loading icon', function () {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = enzymeRender(<IssueListOverview {...props} />);
       wrapper.setState({savedSearchLoading: true});
       expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     });
 
     it('displays an error', function () {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = enzymeRender(<IssueListOverview {...props} />);
       wrapper.setState({
         error: 'Things broke',
         savedSearchLoading: false,
@@ -1388,7 +1388,7 @@ describe('IssueList', function () {
     });
 
     it('displays congrats robots animation with only is:unresolved query', async function () {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = enzymeRender(<IssueListOverview {...props} />);
       wrapper.setState({
         savedSearchLoading: false,
         issuesLoading: false,
@@ -1409,7 +1409,7 @@ describe('IssueList', function () {
         },
       };
 
-      wrapper = mountWithTheme(<IssueListOverview {...errorsOnlyQuery} />);
+      wrapper = enzymeRender(<IssueListOverview {...errorsOnlyQuery} />);
 
       wrapper.setState({
         savedSearchLoading: false,
@@ -1433,7 +1433,7 @@ describe('IssueList', function () {
         },
       };
 
-      wrapper = mountWithTheme(<IssueListOverview {...hasBrowserQuery} />);
+      wrapper = enzymeRender(<IssueListOverview {...hasBrowserQuery} />);
 
       wrapper.setState({
         savedSearchLoading: false,
@@ -1468,7 +1468,7 @@ describe('IssueList', function () {
         }),
         ...moreProps,
       };
-      const localWrapper = mountWithTheme(<IssueListOverview {...defaultProps} />);
+      const localWrapper = enzymeRender(<IssueListOverview {...defaultProps} />);
       localWrapper.setState({
         error: false,
         issuesLoading: false,
@@ -1689,7 +1689,7 @@ describe('IssueList', function () {
     };
 
     const {routerContext} = initializeOrg();
-    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+    wrapper = enzymeRender(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 500,
@@ -1742,7 +1742,7 @@ describe('IssueList', function () {
     };
 
     const {routerContext} = initializeOrg();
-    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+    wrapper = enzymeRender(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 500,
@@ -1794,7 +1794,7 @@ describe('IssueList', function () {
     };
 
     const {routerContext} = initializeOrg();
-    wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+    wrapper = enzymeRender(<IssueListOverview {...props} />, routerContext);
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 75,
@@ -1815,7 +1815,7 @@ describe('IssueList', function () {
         query: {query: 'is:unresolved', sort: 'trend'},
         search: 'query=is:unresolved',
       };
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper = enzymeRender(<IssueListOverview {...props} />);
       expect(wrapper.instance().getGroupStatsPeriod()).toBe('auto');
     });
   });
@@ -1830,7 +1830,7 @@ describe('IssueList', function () {
     it('does not render alert', function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
-      wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+      wrapper = enzymeRender(<IssueListOverview {...props} />, routerContext);
 
       const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
       expect(eventProcessingAlert.exists()).toBe(true);
@@ -1845,7 +1845,7 @@ describe('IssueList', function () {
           ])
         );
 
-        wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+        wrapper = enzymeRender(<IssueListOverview {...props} />, routerContext);
 
         const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
         expect(eventProcessingAlert.exists()).toBe(true);
@@ -1877,7 +1877,7 @@ describe('IssueList', function () {
           ])
         );
 
-        wrapper = mountWithTheme(
+        wrapper = enzymeRender(
           <IssueListOverview
             {...props}
             selection={{

@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -51,7 +51,7 @@ describe('ProjectDetail', function () {
 
       ProjectsStore.loadInitialData(projects);
 
-      mountWithTheme(
+      render(
         <ProjectDetails organization={organization} {...router} params={params} />,
         {context: routerContext, organization}
       );
@@ -86,7 +86,7 @@ describe('ProjectDetail', function () {
         body: projects[0],
       });
 
-      mountWithTheme(
+      render(
         <ProjectDetails organization={organization} {...router} params={params} />,
         {context: routerContext, organization}
       );

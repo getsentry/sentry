@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -25,7 +25,7 @@ describe('ProjectSourceMaps', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMaps {...props} />);
+    const wrapper = enzymeRender(<ProjectSourceMaps {...props} />);
 
     const items = wrapper.find('SourceMapsArchiveRow');
 
@@ -39,7 +39,7 @@ describe('ProjectSourceMaps', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMaps {...props} />);
+    const wrapper = enzymeRender(<ProjectSourceMaps {...props} />);
 
     expect(wrapper.find('EmptyStateWarning').text()).toBe(
       'There are no archives for this project.'
@@ -59,7 +59,7 @@ describe('ProjectSourceMaps', function () {
       url: endpoint,
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMaps {...props} />);
+    const wrapper = enzymeRender(<ProjectSourceMaps {...props} />);
 
     wrapper.find('button[aria-label="Remove All Artifacts"]').simulate('click');
 
@@ -80,7 +80,7 @@ describe('ProjectSourceMaps', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSourceMaps
         {...props}
         location={{query: {query: 'abc'}}}
@@ -127,7 +127,7 @@ describe('ProjectSourceMapsDetail', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
+    const wrapper = enzymeRender(<ProjectSourceMapsDetail {...props} />);
 
     const items = wrapper.find('SourceMapsArtifactRow');
 
@@ -141,7 +141,7 @@ describe('ProjectSourceMapsDetail', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
+    const wrapper = enzymeRender(<ProjectSourceMapsDetail {...props} />);
 
     expect(wrapper.find('EmptyStateWarning').text()).toBe(
       'There are no artifacts in this archive.'
@@ -154,7 +154,7 @@ describe('ProjectSourceMapsDetail', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
+    const wrapper = enzymeRender(<ProjectSourceMapsDetail {...props} />);
 
     expect(wrapper.find('Link[aria-label="Go to Release"]').prop('to')).toBe(
       `/organizations/${organization.slug}/releases/${archiveName}/?project=${project.id}`
@@ -172,7 +172,7 @@ describe('ProjectSourceMapsDetail', function () {
       url: archiveDeleteEndpoint,
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
+    const wrapper = enzymeRender(<ProjectSourceMapsDetail {...props} />);
 
     wrapper.find('button[aria-label="Remove All Artifacts"]').simulate('click');
 
@@ -195,7 +195,7 @@ describe('ProjectSourceMapsDetail', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSourceMapsDetail
         {...props}
         location={{query: {query: 'abc'}}}
@@ -233,7 +233,7 @@ describe('ProjectSourceMapsDetail', function () {
       url: `${endpoint}${artifact.id}/`,
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
+    const wrapper = enzymeRender(<ProjectSourceMapsDetail {...props} />);
 
     wrapper
       .find('SourceMapsArtifactRow button[aria-label="Remove Artifact"]')

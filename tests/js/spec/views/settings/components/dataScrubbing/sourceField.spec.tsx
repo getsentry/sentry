@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import SourceField from 'sentry/views/settings/components/dataScrubbing/modals/form/sourceField';
 import {
@@ -12,7 +12,7 @@ function renderComponent({
   onChange = jest.fn(),
   ...props
 }: Partial<SourceField['props']>) {
-  return mountWithTheme(
+  return enzymeRender(
     <SourceField
       isRegExMatchesSelected={false}
       suggestions={valueSuggestions}

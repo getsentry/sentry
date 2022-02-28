@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {ExportQueryType} from 'sentry/components/dataExport';
 import DataDownload, {DownloadStatus} from 'sentry/views/dataExport/dataDownload';
@@ -20,7 +20,7 @@ describe('DataDownload', function () {
 
   it('should send a request to the data export endpoint', function () {
     const getValid = getDataExportDetails(DownloadStatus.Valid);
-    mountWithTheme(<DataDownload params={mockRouteParams} />);
+    enzymeRender(<DataDownload params={mockRouteParams} />);
     expect(getValid).toHaveBeenCalled();
   });
 
@@ -35,7 +35,7 @@ describe('DataDownload', function () {
       },
     };
     getDataExportDetails({errors}, 403);
-    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const wrapper = enzymeRender(<DataDownload params={mockRouteParams} />);
     expect(wrapper.state('errors')).toBeDefined();
     expect(wrapper.state('errors').download.status).toBe(403);
   });
@@ -43,7 +43,7 @@ describe('DataDownload', function () {
   it("should render the 'Early' view when appropriate", function () {
     const status = DownloadStatus.Early;
     getDataExportDetails({status});
-    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const wrapper = enzymeRender(<DataDownload params={mockRouteParams} />);
     expect(wrapper.state('download')).toEqual({status});
     expect(wrapper.state('download').dateExpired).toBeUndefined();
     expect(wrapper.find('Header').text()).toBe('What are you doing here?');
@@ -53,7 +53,7 @@ describe('DataDownload', function () {
     const status = DownloadStatus.Expired;
     const response = {status, query: {type: ExportQueryType.IssuesByTag}};
     getDataExportDetails(response);
-    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const wrapper = enzymeRender(<DataDownload params={mockRouteParams} />);
     expect(wrapper.state('download')).toEqual(response);
     expect(wrapper.state('download').dateExpired).toBeUndefined();
     expect(wrapper.find('Header').text()).toBe('This is awkward.');
@@ -66,7 +66,7 @@ describe('DataDownload', function () {
   it("should render the 'Valid' view when appropriate", function () {
     const status = DownloadStatus.Valid;
     getDataExportDetails({dateExpired, status});
-    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const wrapper = enzymeRender(<DataDownload params={mockRouteParams} />);
     expect(wrapper.state('download')).toEqual({dateExpired, status});
     expect(wrapper.find('Header').text()).toBe('All done.');
     const buttonWrapper = wrapper.find('a[aria-label="Download CSV"]');
@@ -87,7 +87,7 @@ describe('DataDownload', function () {
         info: {},
       },
     });
-    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const wrapper = enzymeRender(<DataDownload params={mockRouteParams} />);
     const buttonWrapper = wrapper.find('button[aria-label="Open in Discover"]');
     expect(buttonWrapper.exists()).toBeTruthy();
   });
@@ -102,7 +102,7 @@ describe('DataDownload', function () {
         info: {},
       },
     });
-    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const wrapper = enzymeRender(<DataDownload params={mockRouteParams} />);
     const buttonWrapper = wrapper.find('button[aria-label="Open in Discover"]');
     expect(buttonWrapper.exists()).toBeFalsy();
   });

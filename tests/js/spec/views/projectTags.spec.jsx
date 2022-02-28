@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import ProjectTags from 'sentry/views/settings/projectTags';
@@ -23,7 +23,7 @@ describe('ProjectTags', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
     );
 
@@ -38,7 +38,7 @@ describe('ProjectTags', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
     );
 
@@ -50,7 +50,7 @@ describe('ProjectTags', function () {
       organization: TestStubs.Organization({access: []}),
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext([context])
     );
@@ -59,7 +59,7 @@ describe('ProjectTags', function () {
   });
 
   it('deletes tag', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
     );
 

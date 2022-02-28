@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -22,7 +22,7 @@ const defaultData = {
 };
 
 function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaultData) {
-  return mountWithTheme(
+  return enzymeRender(
     <CellAction
       dataRow={data}
       eventView={eventView}

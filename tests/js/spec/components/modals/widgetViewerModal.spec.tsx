@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
@@ -25,7 +25,7 @@ jest.mock('echarts-for-react/lib/core', () => {
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 function mountModal({initialData, widget}) {
-  return mountWithTheme(
+  return render(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
         Header={stubEl}

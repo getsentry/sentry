@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 
@@ -13,7 +13,7 @@ describe('EventOrGroupTitle', function () {
   };
 
   it('renders with subtitle when `type = error`', function () {
-    const component = mountWithTheme(
+    const component = enzymeRender(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -28,7 +28,7 @@ describe('EventOrGroupTitle', function () {
   });
 
   it('renders with subtitle when `type = csp`', function () {
-    const component = mountWithTheme(
+    const component = enzymeRender(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -43,7 +43,7 @@ describe('EventOrGroupTitle', function () {
   });
 
   it('renders with no subtitle when `type = default`', function () {
-    const component = mountWithTheme(
+    const component = enzymeRender(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -64,7 +64,7 @@ describe('EventOrGroupTitle', function () {
       {organization: TestStubs.Organization({features: ['custom-event-title']})},
     ]);
 
-    const component = mountWithTheme(
+    const component = enzymeRender(
       <EventOrGroupTitle
         data={{
           ...data,

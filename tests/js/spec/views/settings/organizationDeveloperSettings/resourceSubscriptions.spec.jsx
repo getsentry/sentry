@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import Form from 'sentry/components/forms/form';
 import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
@@ -10,7 +10,7 @@ describe('Resource Subscriptions', () => {
   describe('initial no-access permissions', () => {
     beforeEach(() => {
       onChange = jest.fn();
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <Form>
           <Subscriptions
             events={[]}
@@ -41,7 +41,7 @@ describe('Resource Subscriptions', () => {
         Release: 'admin',
         Organization: 'admin',
       };
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <Form>
           <Subscriptions events={[]} permissions={permissions} onChange={onChange} />
         </Form>
@@ -56,7 +56,7 @@ describe('Resource Subscriptions', () => {
   describe('initial access to permissions', () => {
     beforeEach(() => {
       onChange = jest.fn();
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <Form>
           <Subscriptions
             events={['issue']}
@@ -87,7 +87,7 @@ describe('Resource Subscriptions', () => {
         Release: 'admin',
         Organization: 'admin',
       };
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <Form>
           <Subscriptions
             events={['issue']}

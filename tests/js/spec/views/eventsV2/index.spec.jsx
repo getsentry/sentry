@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -71,7 +71,7 @@ describe('EventsV2 > Landing', function () {
   it('handles no projects', function () {
     act(() => ProjectsStore.loadInitialData([]));
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DiscoverLanding
         organization={TestStubs.Organization({features})}
         location={{query: {}}}
@@ -84,7 +84,7 @@ describe('EventsV2 > Landing', function () {
   });
 
   it('denies access on missing feature', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DiscoverLanding
         organization={TestStubs.Organization()}
         location={{query: {}}}
@@ -99,7 +99,7 @@ describe('EventsV2 > Landing', function () {
   it('has the right sorts', async function () {
     const org = TestStubs.Organization({features});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DiscoverLanding organization={org} location={{query: {}}} router={{}} />
     );
 

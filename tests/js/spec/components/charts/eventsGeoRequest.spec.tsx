@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {act} from 'react-dom/test-utils';
 
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventsGeoRequest from 'sentry/components/charts/eventsGeoRequest';
 import * as genericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
@@ -35,7 +35,7 @@ describe('EventsRequest', function () {
         );
 
       await act(async () => {
-        wrapper = mountWithTheme(
+        wrapper = render(
           <EventsGeoRequest {...DEFAULTS}>{mock}</EventsGeoRequest>
         );
         return wrapper;
@@ -70,7 +70,7 @@ describe('EventsRequest', function () {
         return Promise.reject();
       });
       await act(async () => {
-        wrapper = mountWithTheme(
+        wrapper = render(
           <EventsGeoRequest {...DEFAULTS}>{mock}</EventsGeoRequest>
         );
         return wrapper;

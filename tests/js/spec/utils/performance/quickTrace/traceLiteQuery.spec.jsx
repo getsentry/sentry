@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
@@ -43,7 +43,7 @@ describe('TraceLiteQuery', function () {
       body: [],
       match: [MockApiClient.matchQuery({event_id: eventId})],
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TraceLiteQuery
         api={api}
         traceId={traceId}

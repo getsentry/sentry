@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {makePinSearchAction} from 'sentry/components/smartSearchBar/actions';
 
@@ -43,7 +43,7 @@ describe('SmartSearchBarActions', () => {
     it('does not pin when query is empty', async function () {
       const {Action} = makePinSearchAction({sort: ''});
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <Action
           api={api}
           organization={organization}
@@ -62,7 +62,7 @@ describe('SmartSearchBarActions', () => {
     it('adds pins', async function () {
       const {Action} = makePinSearchAction({sort: ''});
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <Action
           api={api}
           organization={organization}
@@ -83,7 +83,7 @@ describe('SmartSearchBarActions', () => {
       const pinnedSearch = TestStubs.Search({isPinned: true});
       const {Action} = makePinSearchAction({pinnedSearch, sort: ''});
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <Action
           api={api}
           organization={organization}

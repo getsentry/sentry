@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {OrganizationIntegration} from 'sentry/types/integrations';
@@ -38,7 +38,7 @@ const createWrapper = (
   const {routerContext} = initializeOrg();
   const org = TestStubs.Organization();
   addMockResponses(notificationSettings, identities, organizationIntegrations);
-  return mountWithTheme(
+  return enzymeRender(
     <NotificationSettingsByType notificationType="alerts" organizations={[org]} />,
     routerContext
   );

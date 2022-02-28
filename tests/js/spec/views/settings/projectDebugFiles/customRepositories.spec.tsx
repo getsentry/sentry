@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitForElementToBeRemoved,
@@ -92,7 +92,7 @@ describe('Custom Repositories', function () {
   });
 
   it('renders', async function () {
-    const {rerender} = mountWithTheme(<TestComponent {...props} />);
+    const {rerender} = render(<TestComponent {...props} />);
 
     // Section title
     expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
@@ -183,7 +183,7 @@ describe('Custom Repositories', function () {
   it('renders with custom-symbol-sources feature enabled', async function () {
     const newOrganization = {...organization, features: ['custom-symbol-sources']};
 
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <TestComponent {...props} organization={newOrganization} />
     );
 
@@ -236,7 +236,7 @@ describe('Custom Repositories', function () {
   it('renders with app-store-connect-multiple feature enabled', async function () {
     const newOrganization = {...organization, features: ['app-store-connect-multiple']};
 
-    mountWithTheme(
+    render(
       <TestComponent
         {...props}
         organization={newOrganization}
@@ -279,7 +279,7 @@ describe('Custom Repositories', function () {
       features: ['custom-symbol-sources', 'app-store-connect-multiple'],
     };
 
-    mountWithTheme(
+    render(
       <TestComponent
         {...props}
         organization={newOrganization}

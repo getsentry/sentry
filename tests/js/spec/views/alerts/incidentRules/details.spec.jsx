@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitFor,
@@ -77,7 +77,7 @@ describe('Incident Rules Details', function () {
       body: rule,
     });
 
-    mountWithTheme(
+    render(
       <Fragment>
         <GlobalModal />
         <IncidentRulesDetails
@@ -184,7 +184,7 @@ describe('Incident Rules Details', function () {
       body: rule,
     });
 
-    mountWithTheme(
+    render(
       <Fragment>
         <GlobalModal />
         <IncidentRulesDetails

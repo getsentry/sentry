@@ -2,7 +2,7 @@ import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {triggerPress} from 'sentry-test/utils';
 
 import QueryList from 'sentry/views/eventsV2/queryList';
@@ -48,7 +48,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('renders an empty list', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QueryList
         organization={organization}
         savedQueries={[]}
@@ -65,7 +65,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('renders pre-built queries and saved ones', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -81,7 +81,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can duplicate and trigger change callback', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -104,7 +104,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can delete and trigger change callback', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -127,7 +127,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('returns short url location for saved query', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -146,7 +146,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can redirect on last query deletion', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
@@ -176,7 +176,7 @@ describe('EventsV2 > QueryList', function () {
     const featuredOrganization = TestStubs.Organization({
       features: ['dashboards-edit'],
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QueryList
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
@@ -204,7 +204,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('only renders Delete Query and Duplicate Query in context menu', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
@@ -239,7 +239,7 @@ describe('EventsV2 > QueryList', function () {
       ...savedQueries.slice(1)[0],
       yAxis,
     };
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QueryList
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}

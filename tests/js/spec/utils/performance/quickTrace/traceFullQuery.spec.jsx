@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {
@@ -42,7 +42,7 @@ describe('TraceFullQuery', function () {
       url: `/organizations/test-org/events-trace/${traceId}/`,
       body: [],
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TraceFullQuery
         api={api}
         traceId={traceId}
@@ -67,7 +67,7 @@ describe('TraceFullQuery', function () {
       body: [],
       match: [MockApiClient.matchQuery({detailed: '1'})],
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TraceFullDetailedQuery
         api={api}
         traceId={traceId}

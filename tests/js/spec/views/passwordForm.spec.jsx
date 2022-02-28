@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import PasswordForm from 'sentry/views/settings/account/passwordForm';
@@ -25,7 +25,7 @@ describe('PasswordForm', function () {
       url: ENDPOINT,
       method: 'PUT',
     });
-    wrapper = mountWithTheme(<PasswordForm />, routerContext);
+    wrapper = enzymeRender(<PasswordForm />, routerContext);
   });
 
   it('has 3 text inputs', function () {

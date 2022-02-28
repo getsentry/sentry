@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import DropdownMenu from 'sentry/components/dropdownMenu';
 
@@ -8,7 +8,7 @@ describe('DropdownMenu', function () {
   let wrapper;
 
   beforeEach(function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <DropdownMenu>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({})}>
@@ -68,7 +68,7 @@ describe('DropdownMenu', function () {
   });
 
   it('ignores "Escape" key if `closeOnEscape` is false', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <DropdownMenu closeOnEscape={false}>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({})}>
@@ -91,7 +91,7 @@ describe('DropdownMenu', function () {
   });
 
   it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <DropdownMenu keepMenuOpen>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({})}>
@@ -119,7 +119,7 @@ describe('DropdownMenu', function () {
     const addSpy = jest.spyOn(document, 'addEventListener');
     const removeSpy = jest.spyOn(document, 'removeEventListener');
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <DropdownMenu keepMenuOpen>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span
@@ -176,7 +176,7 @@ describe('DropdownMenu', function () {
     const addSpy = jest.spyOn(document, 'addEventListener');
     const removeSpy = jest.spyOn(document, 'removeEventListener');
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <DropdownMenu alwaysRenderMenu>
         {({getRootProps, getActorProps, getMenuProps}) => (
           <span
@@ -219,7 +219,7 @@ describe('DropdownMenu', function () {
   });
 
   it('does not close nested dropdown on actor clicks', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <DropdownMenu isNestedDropdown>
         {({getRootProps, getActorProps, getMenuProps}) => (
           <span {...getRootProps({})}>

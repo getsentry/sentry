@@ -1,16 +1,16 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 
 describe('IssueSyncListElement', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(<IssueSyncListElement integrationType="github" />);
+    const wrapper = enzymeRender(<IssueSyncListElement integrationType="github" />);
     expect(wrapper).toSnapshot();
   });
 
   it('can open', function () {
     const onOpen = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueSyncListElement integrationType="github" onOpen={onOpen} />
     );
     expect(onOpen).not.toHaveBeenCalled();
@@ -22,7 +22,7 @@ describe('IssueSyncListElement', function () {
     const onClose = jest.fn();
     const onOpen = jest.fn();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueSyncListElement
         integrationType="github"
         externalIssueLink="github.com/issues/gh-101"

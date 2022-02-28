@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import QuickTrace from 'sentry/components/quickTrace';
@@ -71,7 +71,7 @@ describe('Quick Trace', function () {
 
   describe('Empty Trace', function () {
     it('renders nothing for empty trace', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(1) as Event}
           quickTrace={{
@@ -91,7 +91,7 @@ describe('Quick Trace', function () {
 
   describe('Partial Trace', function () {
     it('renders nothing when partial trace is empty', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(1) as Event}
           quickTrace={{
@@ -109,7 +109,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders nothing when partial trace missing current event', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent('not-1') as Event}
           quickTrace={{
@@ -127,7 +127,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders partial trace with no children', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
           quickTrace={{
@@ -147,7 +147,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders partial trace with single child', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
           quickTrace={{
@@ -169,7 +169,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders partial trace with multiple children', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
           quickTrace={{
@@ -191,7 +191,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with root as parent', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(1) as Event}
           quickTrace={{
@@ -215,7 +215,7 @@ describe('Quick Trace', function () {
 
   describe('Full Trace', function () {
     it('renders full trace with single ancestor', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(3) as Event}
           quickTrace={{
@@ -242,7 +242,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with multiple ancestors', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
           quickTrace={{
@@ -271,7 +271,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with single descendant', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
           quickTrace={{
@@ -297,7 +297,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with multiple descendants', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
           quickTrace={{
@@ -325,7 +325,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
           quickTrace={{
@@ -360,7 +360,7 @@ describe('Quick Trace', function () {
 
   describe('Event Node Clicks', function () {
     it('renders single event targets', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(3) as Event}
           quickTrace={{
@@ -394,7 +394,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders multiple event targets', function () {
-      const quickTrace = mountWithTheme(
+      const quickTrace = enzymeRender(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
           quickTrace={{

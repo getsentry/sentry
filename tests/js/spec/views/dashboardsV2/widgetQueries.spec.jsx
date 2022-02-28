@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
@@ -55,7 +55,7 @@ describe('Dashboards > WidgetQueries', function () {
       body: [],
       match: [MockApiClient.matchQuery({query: 'event.type:default'})],
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -89,7 +89,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let error = '';
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -127,7 +127,7 @@ describe('Dashboards > WidgetQueries', function () {
         period: '90d',
       },
     };
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -163,7 +163,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     const widget = {...singleQueryWidget, interval: '1m'};
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -197,7 +197,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={tableWidget}
@@ -264,7 +264,7 @@ describe('Dashboards > WidgetQueries', function () {
     };
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -301,7 +301,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={{
@@ -355,7 +355,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={{
@@ -426,7 +426,7 @@ describe('Dashboards > WidgetQueries', function () {
     };
 
     let childProps = undefined;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -463,7 +463,7 @@ describe('Dashboards > WidgetQueries', function () {
       // Should be ignored for bars.
       interval: '5m',
     };
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={barWidget}
@@ -529,7 +529,7 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
     };
     const child = jest.fn(() => <div data-test-id="child" />);
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={barWidget}
@@ -566,7 +566,7 @@ describe('Dashboards > WidgetQueries', function () {
       displayType: 'area',
       interval: '1d',
     };
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={areaWidget}
@@ -604,7 +604,7 @@ describe('Dashboards > WidgetQueries', function () {
       displayType: 'area',
       interval: '5m',
     };
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WidgetQueries
         api={api}
         widget={areaWidget}

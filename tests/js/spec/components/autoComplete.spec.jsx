@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import AutoComplete from 'sentry/components/autoComplete';
 
@@ -33,7 +33,7 @@ describe('AutoComplete', function () {
     autoCompleteState = [];
     Object.keys(mocks).forEach(key => mocks[key].mockReset());
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <AutoComplete {...mocks} itemToString={item => item.name} {...props}>
         {injectedProps => {
           const {

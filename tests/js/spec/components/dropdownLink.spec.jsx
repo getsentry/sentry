@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import DropdownLink from 'sentry/components/dropdownLink';
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
@@ -17,7 +17,7 @@ describe('DropdownLink', function () {
 
   describe('renders', function () {
     it('and anchors to left by default', function () {
-      const component = mountWithTheme(
+      const component = enzymeRender(
         <DropdownLink {...INPUT_1}>
           <div>1</div>
           <div>2</div>
@@ -28,7 +28,7 @@ describe('DropdownLink', function () {
     });
 
     it('and anchors to right', function () {
-      const component = mountWithTheme(
+      const component = enzymeRender(
         <DropdownLink {...INPUT_1} anchorRight>
           <div>1</div>
           <div>2</div>
@@ -47,7 +47,7 @@ describe('DropdownLink', function () {
         wrapper.unmount();
       }
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <DropdownLink alwaysRenderMenu={false} title="test">
           <li>hi</li>
         </DropdownLink>
@@ -91,7 +91,7 @@ describe('DropdownLink', function () {
       });
 
       it('does not close when menu is clicked and `keepMenuOpen` is on', function () {
-        wrapper = mountWithTheme(
+        wrapper = enzymeRender(
           <DropdownLink title="test" alwaysRenderMenu={false} keepMenuOpen>
             <li>hi</li>
           </DropdownLink>
@@ -114,7 +114,7 @@ describe('DropdownLink', function () {
     });
     describe('Opened', function () {
       beforeEach(function () {
-        wrapper = mountWithTheme(
+        wrapper = enzymeRender(
           <DropdownLink isOpen alwaysRenderMenu={false} title="test">
             <li>hi</li>
           </DropdownLink>
@@ -145,7 +145,7 @@ describe('DropdownLink', function () {
     });
     describe('Closed', function () {
       beforeEach(function () {
-        wrapper = mountWithTheme(
+        wrapper = enzymeRender(
           <DropdownLink isOpen={false} alwaysRenderMenu={false} title="test">
             <li>hi</li>
           </DropdownLink>
@@ -168,7 +168,7 @@ describe('DropdownLink', function () {
         wrapper.unmount();
       }
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <DropdownLink title="parent" alwaysRenderMenu={false}>
           <li id="nested-actor">
             <DropdownLink

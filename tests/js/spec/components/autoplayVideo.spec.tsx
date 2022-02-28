@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AutoplayVideo} from 'sentry/components/autoplayVideo';
 
@@ -39,7 +39,7 @@ describe('autoplayVideo', () => {
     // @ts-ignore we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
-    mountWithTheme(
+    render(
       <AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />
     );
 
@@ -57,7 +57,7 @@ describe('autoplayVideo', () => {
     // @ts-ignore we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
-    mountWithTheme(
+    render(
       <AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />
     );
 

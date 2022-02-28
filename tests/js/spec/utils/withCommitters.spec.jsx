@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import CommitterStore from 'sentry/stores/committerStore';
 import withCommitters from 'sentry/utils/withCommitters';
@@ -35,7 +35,7 @@ describe('withCommitters HoC', function () {
   it('adds committers prop', async () => {
     const Component = () => null;
     const Container = withCommitters(Component);
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Container
         api={api}
         organization={organization}
@@ -63,7 +63,7 @@ describe('withCommitters HoC', function () {
     jest.spyOn(Container.prototype, 'fetchCommitters');
 
     // Mount and run component
-    mountWithTheme(
+    enzymeRender(
       <Container
         api={api}
         organization={organization}
@@ -76,7 +76,7 @@ describe('withCommitters HoC', function () {
     await tick();
 
     // Mount and run duplicates
-    mountWithTheme(
+    enzymeRender(
       <Container
         api={api}
         organization={organization}
@@ -86,7 +86,7 @@ describe('withCommitters HoC', function () {
       />
     );
     await tick();
-    mountWithTheme(
+    enzymeRender(
       <Container
         api={api}
         organization={organization}
@@ -117,7 +117,7 @@ describe('withCommitters HoC', function () {
     jest.spyOn(Container.prototype, 'fetchCommitters');
 
     // Mount and run duplicates
-    mountWithTheme(
+    enzymeRender(
       <Container
         api={api}
         organization={organization}
@@ -126,7 +126,7 @@ describe('withCommitters HoC', function () {
         group={group}
       />
     );
-    mountWithTheme(
+    enzymeRender(
       <Container
         api={api}
         organization={organization}
@@ -135,7 +135,7 @@ describe('withCommitters HoC', function () {
         group={group}
       />
     );
-    mountWithTheme(
+    enzymeRender(
       <Container
         api={api}
         organization={organization}

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import AwsLambdaProjectSelect from 'sentry/views/integrationPipeline/awsLambdaProjectSelect';
@@ -14,7 +14,7 @@ describe('AwsLambdaProjectSelect', () => {
       TestStubs.Project(),
       TestStubs.Project({id: '53', name: 'My Proj', slug: 'my-proj'}),
     ];
-    wrapper = mountWithTheme(<AwsLambdaProjectSelect projects={projects} />);
+    wrapper = enzymeRender(<AwsLambdaProjectSelect projects={projects} />);
   });
   it('submit project', () => {
     selectByValue(wrapper, '53', {name: 'projectId', control: true});

@@ -1,10 +1,10 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 
 describe('RadioGroup', function () {
   it('renders', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <RadioGroup
         label="test"
         value="choice_one"
@@ -20,7 +20,7 @@ describe('RadioGroup', function () {
   });
 
   it('renders disabled', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <RadioGroup
         label="test"
         value="choice_one"
@@ -36,7 +36,7 @@ describe('RadioGroup', function () {
   });
 
   it('renders disabled choice', async function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <RadioGroup
         label="test"
         value="choice_one"
@@ -61,7 +61,7 @@ describe('RadioGroup', function () {
   });
 
   it('can select a different item', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <RadioGroup
         label="test"
         value="choice_three"
@@ -79,7 +79,7 @@ describe('RadioGroup', function () {
   it('calls onChange when clicked', function () {
     const mock = jest.fn();
 
-    mountWithTheme(
+    render(
       <RadioGroup
         label="test"
         value="choice_one"

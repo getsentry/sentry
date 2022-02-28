@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
@@ -37,7 +37,7 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -89,7 +89,7 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -139,7 +139,7 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -198,7 +198,7 @@ describe('TeamKeyTransactionField', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -252,7 +252,7 @@ describe('TeamKeyTransactionField', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -309,7 +309,7 @@ describe('TeamKeyTransactionField', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -363,7 +363,7 @@ describe('TeamKeyTransactionField', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -409,7 +409,7 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={myTeams}

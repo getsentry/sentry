@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -45,7 +45,7 @@ describe('Sudo Modal', function () {
   it('can delete an org with sudo flow', async function () {
     setHasPasswordAuth(true);
 
-    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = enzymeRender(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();
@@ -127,7 +127,7 @@ describe('Sudo Modal', function () {
   it('shows button to redirect if user does not have password auth', async function () {
     setHasPasswordAuth(false);
 
-    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = enzymeRender(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();

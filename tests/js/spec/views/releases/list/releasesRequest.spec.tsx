@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {HealthStatsPeriodOption} from 'sentry/types';
@@ -162,7 +162,7 @@ describe('ReleasesRequest', function () {
   it('calculates correct session health data', async function () {
     let healthData;
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleasesRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
@@ -393,7 +393,7 @@ describe('ReleasesRequest', function () {
   it('calculates correct user health data', async function () {
     let healthData;
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleasesRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
@@ -622,7 +622,7 @@ describe('ReleasesRequest', function () {
   it('calculates correct session count histogram (auto period)', async function () {
     let healthData;
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ReleasesRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',

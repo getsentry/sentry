@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import Content from 'sentry/views/settings/components/dataScrubbing/content';
 import convertRelayPiiConfig from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
@@ -12,14 +12,14 @@ const handleDelete = jest.fn();
 
 describe('Content', () => {
   it('default render - empty', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Content rules={[]} onEditRule={handleEditRule} onDeleteRule={handleDelete} />
     );
     expect(wrapper.text()).toEqual('You have no data scrubbing rules');
   });
 
   it('render rules', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Content
         rules={convertedRules}
         onEditRule={handleEditRule}

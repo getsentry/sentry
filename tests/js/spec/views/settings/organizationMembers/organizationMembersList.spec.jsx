@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
@@ -123,7 +123,7 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
@@ -149,7 +149,7 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
@@ -175,7 +175,7 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
@@ -207,7 +207,7 @@ describe('OrganizationMembersList', function () {
     });
     OrganizationsStore.add(secondOrg);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
@@ -234,7 +234,7 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
@@ -263,7 +263,7 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
@@ -285,7 +285,7 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
@@ -304,7 +304,7 @@ describe('OrganizationMembersList', function () {
       body: [],
     });
     const routerContext = TestStubs.routerContext();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       routerContext
     );
@@ -334,7 +334,7 @@ describe('OrganizationMembersList', function () {
       body: [],
     });
     const routerContext = TestStubs.routerContext();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       routerContext
     );
@@ -421,7 +421,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMembersList
           {...defaultProps}
           params={{orgId: 'org-id'}}
@@ -458,7 +458,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMembersList
           {...defaultProps}
           params={{orgId: 'org-id'}}
@@ -510,7 +510,7 @@ describe('OrganizationMembersList', function () {
         method: 'DELETE',
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMembersList
           {...defaultProps}
           params={{orgId: 'org-id'}}
@@ -557,7 +557,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMembersList
           {...defaultProps}
           params={{orgId: 'org-id'}}

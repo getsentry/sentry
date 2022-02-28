@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
@@ -26,7 +26,7 @@ describe('SharedGroupDetails', function () {
   });
 
   it('renders', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <SharedGroupDetails
         params={params}
         api={new MockApiClient()}

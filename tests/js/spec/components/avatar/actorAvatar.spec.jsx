@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -33,7 +33,7 @@ describe('ActorAvatar', function () {
 
   describe('render()', function () {
     it('should show a gravatar when actor type is a user', function () {
-      const avatar = mountWithTheme(
+      const avatar = enzymeRender(
         <ActorAvatar
           actor={{
             id: '1',
@@ -46,7 +46,7 @@ describe('ActorAvatar', function () {
     });
 
     it('should not show a gravatar when actor type is a team', function () {
-      const avatar = mountWithTheme(
+      const avatar = enzymeRender(
         <ActorAvatar
           actor={{
             id: '3',
@@ -61,7 +61,7 @@ describe('ActorAvatar', function () {
     });
 
     it('should return null when actor type is a unknown', function () {
-      const avatar = mountWithTheme(
+      const avatar = enzymeRender(
         <ActorAvatar
           actor={{
             id: '3',
@@ -83,7 +83,7 @@ describe('ActorAvatar', function () {
         body: [team2],
       });
 
-      const avatar = mountWithTheme(
+      const avatar = enzymeRender(
         <ActorAvatar
           actor={{
             id: '2',

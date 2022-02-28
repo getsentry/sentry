@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
 
@@ -9,7 +9,7 @@ describe('ProjectCard', function () {
   let wrapper;
 
   beforeEach(function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -52,7 +52,7 @@ describe('ProjectCard', function () {
       },
     };
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -85,7 +85,7 @@ describe('ProjectCard', function () {
   });
 
   it('renders header link for errors', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -109,7 +109,7 @@ describe('ProjectCard', function () {
   });
 
   it('renders header link for transactions', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectCard
         organization={TestStubs.Organization({features: ['performance-view']})}
         project={TestStubs.Project({
@@ -136,7 +136,7 @@ describe('ProjectCard', function () {
   });
 
   it('renders loading placeholder card if there are no stats', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Form, RadioBooleanField} from 'sentry/components/deprecatedforms';
 import NewRadioBooleanField from 'sentry/components/forms/radioBooleanField';
@@ -6,14 +6,14 @@ import NewRadioBooleanField from 'sentry/components/forms/radioBooleanField';
 describe('RadioBooleanField', function () {
   describe('render()', function () {
     it('renders without form context', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
       );
       expect(wrapper).toSnapshot();
     });
 
     it('renders with form context', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <Form initialData={{fieldName: true}}>
           <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
         </Form>
@@ -22,7 +22,7 @@ describe('RadioBooleanField', function () {
     });
 
     it('renders new field without form context', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <NewRadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
       );
       expect(wrapper).toSnapshot();
@@ -30,7 +30,7 @@ describe('RadioBooleanField', function () {
 
     it('can change values', function () {
       const mock = jest.fn();
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <NewRadioBooleanField
           onChange={mock}
           name="fieldName"

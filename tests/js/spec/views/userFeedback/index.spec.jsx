@@ -1,4 +1,4 @@
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -49,7 +49,7 @@ describe('UserFeedback', function () {
       headers: {Link: pageLinks},
     });
 
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = enzymeRender(<UserFeedback {...params} />, routerContext);
     await tick();
     wrapper.update();
 
@@ -66,7 +66,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = enzymeRender(<UserFeedback {...params} />, routerContext);
 
     expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
     expect(wrapper.find('UserFeedbackEmpty').exists()).toBe(false);
@@ -87,7 +87,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = enzymeRender(<UserFeedback {...params} />, routerContext);
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual([]);
   });
@@ -107,7 +107,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = enzymeRender(<UserFeedback {...params} />, routerContext);
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112']);
   });
@@ -127,7 +127,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    const wrapper = enzymeRender(<UserFeedback {...params} />, routerContext);
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112', '113']);
   });

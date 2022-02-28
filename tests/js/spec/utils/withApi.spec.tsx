@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import withApi from 'sentry/utils/withApi';
@@ -20,7 +20,7 @@ describe('withApi', function () {
 
   it('renders MyComponent with an api prop', function () {
     const MyComponentWithApi = withApi(MyComponent);
-    mountWithTheme(<MyComponentWithApi />);
+    render(<MyComponentWithApi />);
 
     expect(MyComponent).toHaveBeenCalledWith(
       expect.objectContaining({api: apiInstance}),
@@ -30,7 +30,7 @@ describe('withApi', function () {
 
   it('cancels pending API requests when component is unmounted', async function () {
     const MyComponentWithApi = withApi(MyComponent);
-    const wrapper = mountWithTheme(<MyComponentWithApi />);
+    const wrapper = render(<MyComponentWithApi />);
 
     if (apiInstance === undefined) {
       throw new Error("apiInstance wasn't defined");

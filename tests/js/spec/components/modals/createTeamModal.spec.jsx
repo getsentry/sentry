@@ -1,5 +1,5 @@
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitFor,
@@ -24,7 +24,7 @@ describe('CreateTeamModal', function () {
   });
 
   it('calls createTeam action creator on submit', async function () {
-    mountWithTheme(
+    render(
       <CreateTeamModal
         Body={p => p.children}
         Header={p => p.children}

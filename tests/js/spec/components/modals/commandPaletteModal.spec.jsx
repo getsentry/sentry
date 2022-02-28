@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -68,7 +68,7 @@ describe('Command Palette Modal', function () {
   });
 
   it('can open command palette modal and search', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
       TestStubs.routerContext([
         {

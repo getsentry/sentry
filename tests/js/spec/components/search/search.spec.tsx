@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Fuse from 'fuse.js';
 
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Search, SearchProps} from 'sentry/components/search';
@@ -75,7 +75,7 @@ describe('Search', () => {
     jest.useRealTimers();
   });
   it('renders search results from source', () => {
-    mountWithTheme(<Search {...makeSearchProps()} />, {
+    render(<Search {...makeSearchProps()} />, {
       context: TestStubs.routerContext(),
     });
 
@@ -93,7 +93,7 @@ describe('Search', () => {
   });
 
   it('navigates to a route when item has to prop', () => {
-    mountWithTheme(
+    render(
       <Search
         {...makeSearchProps({
           sources: [
@@ -132,7 +132,7 @@ describe('Search', () => {
   });
 
   it('calls item action when it is a function', () => {
-    mountWithTheme(
+    render(
       <Search
         {...makeSearchProps({
           sources: [
@@ -178,7 +178,7 @@ describe('Search', () => {
       model: {slug: 'vdl-imp'},
     }));
 
-    mountWithTheme(
+    render(
       <Search
         {...makeSearchProps({
           maxResults: 5,
@@ -201,7 +201,7 @@ describe('Search', () => {
     }
   });
   it('shows no search result', () => {
-    mountWithTheme(
+    render(
       <Search
         {...makeSearchProps({
           maxResults: 5,

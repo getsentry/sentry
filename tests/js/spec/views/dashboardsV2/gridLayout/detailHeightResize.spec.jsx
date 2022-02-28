@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -102,7 +102,7 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      const {container} = mountWithTheme(
+      const {container} = render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}

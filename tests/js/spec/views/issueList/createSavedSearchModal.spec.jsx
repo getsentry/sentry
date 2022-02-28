@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
@@ -11,7 +11,7 @@ describe('CreateSavedSearchModal', function () {
     organization = TestStubs.Organization({
       access: ['org:write'],
     });
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <CreateSavedSearchModal
         Header={p => p.children}
         Body={p => p.children}

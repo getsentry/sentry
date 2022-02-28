@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {logout} from 'sentry/actionCreators/account';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
@@ -25,7 +25,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
@@ -59,7 +59,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
@@ -84,7 +84,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
@@ -109,7 +109,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
@@ -134,7 +134,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
@@ -159,7 +159,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: true,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
@@ -190,7 +190,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
@@ -211,7 +211,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: true,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
@@ -242,7 +242,7 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 

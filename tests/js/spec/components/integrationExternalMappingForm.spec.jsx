@@ -1,4 +1,4 @@
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 
@@ -52,13 +52,13 @@ describe('IntegrationExternalMappingForm', function () {
 
   // No mapping provided (e.g. Create a new mapping)
   it('renders with no mapping provided as a form', async function () {
-    mountWithTheme(<IntegrationExternalMappingForm type="user" {...baseProps} />);
+    render(<IntegrationExternalMappingForm type="user" {...baseProps} />);
     expect(screen.getByPlaceholderText('@username')).toBeInTheDocument();
     expect(screen.getByText('Select Sentry User')).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
   it('renders with no mapping as an inline field', async function () {
-    mountWithTheme(
+    render(
       <IntegrationExternalMappingForm isInline type="user" {...baseProps} />
     );
     await act(tick);
@@ -69,7 +69,7 @@ describe('IntegrationExternalMappingForm', function () {
 
   // Full mapping provided (e.g. Update an existing mapping)
   it('renders with a full mapping provided as a form', async function () {
-    mountWithTheme(
+    render(
       <IntegrationExternalMappingForm
         type="user"
         mapping={MOCK_USER_MAPPING}
@@ -82,7 +82,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
   it('renders with a full mapping provided as an inline field', async function () {
-    mountWithTheme(
+    render(
       <IntegrationExternalMappingForm
         isInline
         type="user"
@@ -100,7 +100,7 @@ describe('IntegrationExternalMappingForm', function () {
 
   // Suggested mapping provided (e.g. Create new mapping from suggested external name)
   it('renders with a suggested mapping provided as a form', async function () {
-    mountWithTheme(
+    render(
       <IntegrationExternalMappingForm
         type="team"
         mapping={{externalName: MOCK_TEAM_MAPPING.externalName}}
@@ -112,7 +112,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
   it('renders with a suggested mapping provided as an inline field', async function () {
-    mountWithTheme(
+    render(
       <IntegrationExternalMappingForm
         isInline
         type="team"
@@ -128,7 +128,7 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   it('updates the model when submitting', async function () {
-    mountWithTheme(
+    render(
       <IntegrationExternalMappingForm
         type="user"
         mapping={{externalName: MOCK_USER_MAPPING.externalName}}
@@ -153,7 +153,7 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   it('submits on blur when used as an inline field', async function () {
-    mountWithTheme(
+    render(
       <IntegrationExternalMappingForm
         isInline
         type="team"
@@ -180,7 +180,7 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   it('allows defaultOptions to be provided', async function () {
-    mountWithTheme(
+    render(
       <IntegrationExternalMappingForm
         type="user"
         mapping={MOCK_USER_MAPPING}

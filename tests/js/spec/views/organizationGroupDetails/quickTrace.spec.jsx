@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import ConfigureDistributedTracing from 'sentry/views/organizationGroupDetails/quickTrace/configureDistributedTracing';
@@ -33,7 +33,7 @@ describe('ConfigureDistributedTracing', function () {
   });
 
   it('renders basic UI', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfigureDistributedTracing
         event={event}
         organization={organization}
@@ -50,7 +50,7 @@ describe('ConfigureDistributedTracing', function () {
 
   it('renders hover card when feature is disabled', async function () {
     const newOrganization = TestStubs.Organization();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfigureDistributedTracing
         event={event}
         organization={newOrganization}
@@ -74,7 +74,7 @@ describe('ConfigureDistributedTracing', function () {
       id: 'B',
       eventID: 'BAFEDCBAFEDCBAFEDCBAFEDCBAFEDCBA',
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfigureDistributedTracing
         event={newEvent}
         organization={organization}
@@ -90,7 +90,7 @@ describe('ConfigureDistributedTracing', function () {
 
   it('doesnt render when the project platform doesnt support tracing', async function () {
     const newProject = TestStubs.Project({platform: ''});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfigureDistributedTracing
         event={event}
         organization={organization}
@@ -105,7 +105,7 @@ describe('ConfigureDistributedTracing', function () {
   });
 
   it('can be snoozed', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfigureDistributedTracing
         event={event}
         organization={organization}
@@ -154,7 +154,7 @@ describe('ConfigureDistributedTracing', function () {
       body: {data: {snoozed_ts}},
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfigureDistributedTracing
         event={event}
         organization={organization}
@@ -169,7 +169,7 @@ describe('ConfigureDistributedTracing', function () {
   });
 
   it('can be dismissed', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfigureDistributedTracing
         event={event}
         organization={organization}
@@ -216,7 +216,7 @@ describe('ConfigureDistributedTracing', function () {
       body: {data: {dismissed_ts: moment().unix()}},
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfigureDistributedTracing
         event={event}
         organization={organization}
@@ -231,7 +231,7 @@ describe('ConfigureDistributedTracing', function () {
   });
 
   it('can capture analytics on docs click', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfigureDistributedTracing
         event={event}
         organization={organization}

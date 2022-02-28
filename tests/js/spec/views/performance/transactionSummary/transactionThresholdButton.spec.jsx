@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ModalActions from 'sentry/actions/modalActions';
@@ -7,7 +7,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdButton from 'sentry/views/performance/transactionSummary/transactionThresholdButton';
 
 function mountComponent(eventView, organization, onChangeThreshold) {
-  return mountWithTheme(
+  return enzymeRender(
     <TransactionThresholdButton
       eventView={eventView}
       organization={organization}

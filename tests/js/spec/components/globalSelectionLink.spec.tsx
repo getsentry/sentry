@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 
@@ -21,7 +21,7 @@ describe('GlobalSelectionLink', function () {
     };
     const context = getContext(query);
 
-    const {container} = mountWithTheme(
+    const {container} = render(
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
       {context}
     );
@@ -36,7 +36,7 @@ describe('GlobalSelectionLink', function () {
   });
 
   it('does not have global selection values in query', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>
     );
 
@@ -52,7 +52,7 @@ describe('GlobalSelectionLink', function () {
     };
     const context = getContext(query);
     const customQuery = {query: 'something'};
-    mountWithTheme(
+    render(
       <GlobalSelectionLink to={{pathname: path, query: customQuery}}>
         Go somewhere!
       </GlobalSelectionLink>,
@@ -72,7 +72,7 @@ describe('GlobalSelectionLink', function () {
       environment: 'staging',
     };
     const context = getContext(query);
-    mountWithTheme(
+    render(
       <GlobalSelectionLink to={{pathname: path}}>Go somewhere!</GlobalSelectionLink>,
       {context}
     );

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import EventVitals from 'sentry/components/events/eventVitals';
 
@@ -17,7 +17,7 @@ function makeEvent(measurements = {}, sdk = {version: '5.27.3'}) {
 describe('EventVitals', function () {
   it('should not render anything', function () {
     const event = makeEvent({});
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
+    const wrapper = enzymeRender(<EventVitals event={event} />);
     expect(wrapper.isEmptyRender()).toBe(true);
   });
 
@@ -26,7 +26,7 @@ describe('EventVitals', function () {
       'mark.stuff': 123,
       'op.more.stuff': 123,
     });
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
+    const wrapper = enzymeRender(<EventVitals event={event} />);
     expect(wrapper.isEmptyRender()).toBe(true);
   });
 
@@ -40,7 +40,7 @@ describe('EventVitals', function () {
       ttfb: 5,
       'ttfb.requesttime': 6,
     });
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
+    const wrapper = enzymeRender(<EventVitals event={event} />);
     expect(wrapper.find('SectionHeading').text()).toEqual('Web Vitals');
     expect(wrapper.find('WarningIconContainer').exists()).toBe(false);
     expect(wrapper.find('EventVital')).toHaveLength(7);
@@ -48,7 +48,7 @@ describe('EventVitals', function () {
 
   it('should render some web vitals with a heading and a sdk warning', async function () {
     const event = makeEvent({fp: 1}, {version: '5.26.0'});
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
+    const wrapper = enzymeRender(<EventVitals event={event} />);
     expect(wrapper.find('SectionHeading').text()).toEqual('Web Vitals');
     expect(wrapper.find('WarningIconContainer').exists()).toBe(true);
     expect(wrapper.find('EventVital')).toHaveLength(1);
@@ -64,7 +64,7 @@ describe('EventVitals', function () {
       ttfb: 5,
       'ttfb.requesttime': 6,
     });
-    const wrapper = mountWithTheme(<EventVitals event={event} />);
+    const wrapper = enzymeRender(<EventVitals event={event} />);
     expect(wrapper.find('SectionHeading').text()).toEqual('Web Vitals');
     expect(wrapper.find('EventVital')).toHaveLength(7);
     expect(wrapper.find('IconFire')).toHaveLength(3);

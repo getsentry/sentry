@@ -1,11 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {changeInputValue, openMenu} from 'sentry-test/select-new';
 
 import {Form, SelectCreatableField} from 'sentry/components/deprecatedforms';
 
 describe('SelectCreatableField', function () {
   it('can add user input into select field when using options', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SelectCreatableField options={[{value: 'foo', label: 'Foo'}]} name="fieldName" />
     );
 
@@ -27,7 +27,7 @@ describe('SelectCreatableField', function () {
   });
 
   it('can add user input into select field when using choices', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SelectCreatableField choices={['foo']} name="fieldName" />
     );
 
@@ -49,7 +49,7 @@ describe('SelectCreatableField', function () {
   });
 
   it('can add user input into select field when using paired choices', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
     );
 
@@ -72,7 +72,7 @@ describe('SelectCreatableField', function () {
 
   it('with Form context', function () {
     const submitMock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Form onSubmit={submitMock}>
         <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
       </Form>,

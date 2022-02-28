@@ -1,6 +1,6 @@
 import pick from 'lodash/pick';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
@@ -36,7 +36,7 @@ describe('IntegrationOrganizationLink', () => {
     });
 
     getMountedComponent = () =>
-      mountWithTheme(
+      enzymeRender(
         <IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />
       );
   });

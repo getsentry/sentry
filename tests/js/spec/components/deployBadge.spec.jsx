@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import DeployBadge from 'sentry/components/deployBadge';
 
@@ -13,7 +13,7 @@ const deploy = {
 
 describe('DeployBadge', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(<DeployBadge deploy={deploy} />);
+    const wrapper = enzymeRender(<DeployBadge deploy={deploy} />);
 
     expect(wrapper.find('Tag').text()).toEqual('production');
     expect(wrapper.find('IconOpen').length).toEqual(0);
@@ -22,7 +22,7 @@ describe('DeployBadge', function () {
   it('renders with icon and link', function () {
     const projectId = 1;
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DeployBadge
         deploy={deploy}
         orgSlug="sentry"

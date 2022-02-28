@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ProjectCspReports from 'sentry/views/settings/projectSecurityHeaders/csp';
 
@@ -25,7 +25,7 @@ describe('ProjectCspReports', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectCspReports
         organization={org}
         project={project}
@@ -39,7 +39,7 @@ describe('ProjectCspReports', function () {
   });
 
   it('can enable default ignored sources', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectCspReports
         organization={org}
         project={project}
@@ -74,7 +74,7 @@ describe('ProjectCspReports', function () {
   });
 
   it('can set additional ignored sources', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectCspReports
         organization={org}
         project={project}

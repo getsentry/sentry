@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import Device from 'sentry/components/events/contexts/device/device';
 import {commonDisplayResolutions} from 'sentry/components/events/contexts/device/utils';
@@ -12,7 +12,7 @@ describe('User', function () {
       name: FILTER_MASK,
     };
 
-    const wrapper1 = mountWithTheme(<User data={user1} />);
+    const wrapper1 = enzymeRender(<User data={user1} />);
     expect(wrapper1.find('[data-test-id="user-context-name-value"]').text()).toEqual(
       FILTER_MASK
     );
@@ -23,7 +23,7 @@ describe('User', function () {
       email: FILTER_MASK,
     };
 
-    const wrapper2 = mountWithTheme(<User data={user2} />);
+    const wrapper2 = enzymeRender(<User data={user2} />);
     expect(wrapper2.find('[data-test-id="user-context-email-value"]').text()).toEqual(
       FILTER_MASK
     );
@@ -34,7 +34,7 @@ describe('User', function () {
       username: FILTER_MASK,
     };
 
-    const wrapper3 = mountWithTheme(<User data={user3} />);
+    const wrapper3 = enzymeRender(<User data={user3} />);
     expect(wrapper3.find('[data-test-id="user-context-username-value"]').text()).toEqual(
       FILTER_MASK
     );
@@ -53,12 +53,12 @@ describe('Device', function () {
 
   describe('getInferredData', function () {
     it('renders', function () {
-      const wrapper = mountWithTheme(<Device data={device} event={event} />);
+      const wrapper = enzymeRender(<Device data={device} event={event} />);
       expect(wrapper).toSnapshot();
     });
 
     it('renders screen_resolution inferred from screen_width_pixels and screen_height_pixels', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <Device data={{...device, screen_resolution: undefined}} event={event} />
       );
 
@@ -80,7 +80,7 @@ describe('Device', function () {
     });
 
     it('renders screen_width_pixels and screen_height_pixels inferred from screen_resolution', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <Device
           data={{
             ...device,

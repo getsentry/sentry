@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import IgnoreActions from 'sentry/components/actions/ignore';
@@ -9,7 +9,7 @@ describe('IgnoreActions', function () {
     const spy = jest.fn();
 
     beforeEach(function () {
-      component = mountWithTheme(<IgnoreActions onUpdate={spy} disabled />);
+      component = enzymeRender(<IgnoreActions onUpdate={spy} disabled />);
       button = component.find('IgnoreButton');
     });
 
@@ -27,7 +27,7 @@ describe('IgnoreActions', function () {
     let component;
     const spy = jest.fn();
     beforeEach(function () {
-      component = mountWithTheme(<IgnoreActions onUpdate={spy} isIgnored />);
+      component = enzymeRender(<IgnoreActions onUpdate={spy} isIgnored />);
     });
 
     it('displays ignored view', function () {
@@ -48,7 +48,7 @@ describe('IgnoreActions', function () {
     const spy = jest.fn();
 
     beforeEach(function () {
-      component = mountWithTheme(<IgnoreActions onUpdate={spy} />);
+      component = enzymeRender(<IgnoreActions onUpdate={spy} />);
     });
 
     it('calls spy with ignore details when clicked', function () {
@@ -64,7 +64,7 @@ describe('IgnoreActions', function () {
     const spy = jest.fn();
 
     beforeEach(function () {
-      component = mountWithTheme(
+      component = enzymeRender(
         <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="confirm me" />
       );
       button = component.find('IgnoreButton');

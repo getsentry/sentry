@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Project} from 'sentry/types';
@@ -22,7 +22,7 @@ const createWrapper = (projects: Project[]) => {
     },
   };
 
-  return mountWithTheme(
+  return enzymeRender(
     <NotificationSettingsByProjects
       notificationType="alerts"
       notificationSettings={notificationSettings}

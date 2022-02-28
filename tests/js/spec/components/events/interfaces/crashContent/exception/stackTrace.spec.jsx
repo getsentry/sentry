@@ -1,6 +1,6 @@
 import cloneDeep from 'lodash/cloneDeep';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ExceptionStacktraceContent from 'sentry/components/events/interfaces/crashContent/exception/stackTrace';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -89,7 +89,7 @@ describe('ExceptionStacktraceContent', () => {
   };
 
   it('default behaviour', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationContext.Provider value={organization}>
         <ExceptionStacktraceContent {...props} />
       </OrganizationContext.Provider>
@@ -98,7 +98,7 @@ describe('ExceptionStacktraceContent', () => {
   });
 
   it('should return an emptyRender', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationContext.Provider value={organization}>
         <ExceptionStacktraceContent {...props} stacktrace={undefined} />
       </OrganizationContext.Provider>
@@ -107,7 +107,7 @@ describe('ExceptionStacktraceContent', () => {
   });
 
   it('should return the EmptyMessage component', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationContext.Provider value={organization}>
         <ExceptionStacktraceContent {...props} />
       </OrganizationContext.Provider>
@@ -119,7 +119,7 @@ describe('ExceptionStacktraceContent', () => {
   it('should not return the EmptyMessage component', () => {
     const modifiedProps = cloneDeep(props);
     modifiedProps.stacktrace.frames[0].inApp = true;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationContext.Provider value={organization}>
         <ExceptionStacktraceContent {...modifiedProps} />
       </OrganizationContext.Provider>
@@ -129,7 +129,7 @@ describe('ExceptionStacktraceContent', () => {
   });
 
   it('should render system frames if "stackView: app" and there are no inApp frames and is a chained exceptions', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationContext.Provider value={organization}>
         <ExceptionStacktraceContent {...props} chainedException />
       </OrganizationContext.Provider>
@@ -141,7 +141,7 @@ describe('ExceptionStacktraceContent', () => {
     const modifiedProps = cloneDeep(props);
     modifiedProps.stacktrace.frames[0].inApp = true;
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationContext.Provider value={organization}>
         <ExceptionStacktraceContent {...modifiedProps} chainedException />
       </OrganizationContext.Provider>

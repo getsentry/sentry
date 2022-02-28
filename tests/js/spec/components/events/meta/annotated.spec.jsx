@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import Annotated from 'sentry/components/events/meta/annotated';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
@@ -29,7 +29,7 @@ describe('Annotated', () => {
       const obj = {
         value: 'foo',
       };
-      mountWithTheme(
+      enzymeRender(
         <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
@@ -45,14 +45,14 @@ describe('Annotated', () => {
       const obj = {
         value: 'foo',
       };
-      mountWithTheme(<Annotated object={obj} objectKey="invalid" />);
+      enzymeRender(<Annotated object={obj} objectKey="invalid" />);
     });
 
     it('renders a number', () => {
       const obj = {
         value: 0,
       };
-      mountWithTheme(
+      enzymeRender(
         <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
@@ -68,7 +68,7 @@ describe('Annotated', () => {
       const obj = {
         value: false,
       };
-      mountWithTheme(
+      enzymeRender(
         <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
@@ -93,7 +93,7 @@ describe('Annotated', () => {
           },
         },
       });
-      mountWithTheme(
+      enzymeRender(
         <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
@@ -108,7 +108,7 @@ describe('Annotated', () => {
     it('does not call render prop if required and value is falsy and no meta', () => {
       const obj = createEvent(null, {});
 
-      mountWithTheme(
+      enzymeRender(
         <Annotated object={obj} objectKey="value" required>
           {mock}
         </Annotated>
@@ -123,7 +123,7 @@ describe('Annotated', () => {
       const meta = {err: ['something']};
       const obj = createEvent('foo', meta);
 
-      mountWithTheme(
+      enzymeRender(
         <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
@@ -145,7 +145,7 @@ describe('Annotated', () => {
       const meta = {rem: [{type: 't'}], chunks: [{text: 'foo'}]};
       const obj = createEvent('foo', meta);
 
-      mountWithTheme(
+      enzymeRender(
         <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
@@ -166,7 +166,7 @@ describe('Annotated', () => {
       const meta = {err: ['something']};
       const obj = createEvent(null, meta);
 
-      mountWithTheme(
+      enzymeRender(
         <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>

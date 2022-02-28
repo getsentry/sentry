@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 
@@ -23,7 +23,7 @@ const TestContainer = ({children}) => (
 
 describe('BaseChart', function () {
   it('can scale to full parent height when given autoHeightResize', async () => {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <TestContainer>
         <BaseChart autoHeightResize />
       </TestContainer>
@@ -33,7 +33,7 @@ describe('BaseChart', function () {
   });
 
   it('renders with default height when autoHeightResize not provided', async () => {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <TestContainer>
         <BaseChart />
       </TestContainer>

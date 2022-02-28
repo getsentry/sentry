@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
 
@@ -8,7 +8,7 @@ describe('EventsTable', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventsTable
         tagList={[]}
         orgId="orgId"

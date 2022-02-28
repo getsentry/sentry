@@ -1,4 +1,4 @@
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {TeamSelector} from 'sentry/components/forms/teamSelector';
@@ -32,7 +32,7 @@ const organization = TestStubs.Organization({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
 function createWrapper(props = {}) {
-  return mountWithTheme(
+  return render(
     <TeamSelector
       organization={organization}
       name="teamSelector"

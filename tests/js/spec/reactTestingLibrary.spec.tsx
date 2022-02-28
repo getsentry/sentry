@@ -1,6 +1,6 @@
 import React, {useRef} from 'react';
 
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 describe('rerender', () => {
   // Taken from https://testing-library.com/docs/example-update-props/
@@ -18,7 +18,7 @@ describe('rerender', () => {
   };
 
   test('calling render with the same component on the same container does not remount', () => {
-    const {rerender} = mountWithTheme(<NumberDisplay number={1} />);
+    const {rerender} = render(<NumberDisplay number={1} />);
     expect(screen.getByTestId('number-display')).toHaveTextContent('1');
 
     // re-render the same component with different props

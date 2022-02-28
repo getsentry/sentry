@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -29,7 +29,7 @@ describe('OrganizationStats', function () {
   });
 
   it('renders with default state', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationStats organization={organization} />,
       routerContext
     );
@@ -122,7 +122,7 @@ describe('OrganizationStats', function () {
       statusCode: 500,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationStats organization={organization} />,
       routerContext
     );
@@ -146,7 +146,7 @@ describe('OrganizationStats', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationStats organization={organization} />,
       routerContext
     );
@@ -162,7 +162,7 @@ describe('OrganizationStats', function () {
   });
 
   it('passes state from router down to components', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationStats
         organization={organization}
         location={{
@@ -249,7 +249,7 @@ describe('OrganizationStats', function () {
     );
     act(() => ProjectsStore.loadInitialData(moreProjects));
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationStats
         organization={organization}
         location={{
@@ -320,7 +320,7 @@ describe('OrganizationStats', function () {
   });
 
   it('removes page query parameters during outbound navigation', async () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationStats
         organization={organization}
         location={{

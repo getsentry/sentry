@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -45,7 +45,7 @@ describe('AccountSecurityDetails', function () {
         url: ACCOUNT_EMAILS_ENDPOINT,
         body: TestStubs.AccountEmails(),
       });
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <AccountSecurityWrapper router={router} params={params}>
           <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
@@ -85,7 +85,7 @@ describe('AccountSecurityDetails', function () {
         method: 'DELETE',
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <AccountSecurityWrapper router={router} params={params}>
           <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
@@ -113,7 +113,7 @@ describe('AccountSecurityDetails', function () {
         method: 'DELETE',
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <AccountSecurityWrapper router={router} params={params}>
           <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
@@ -155,7 +155,7 @@ describe('AccountSecurityDetails', function () {
         body: TestStubs.AccountEmails(),
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <AccountSecurityWrapper router={router} params={params}>
           <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,

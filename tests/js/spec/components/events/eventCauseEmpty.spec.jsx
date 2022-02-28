@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import {trackAnalyticsEventV2} from 'sentry/utils/analytics';
@@ -38,7 +38,7 @@ describe('EventCauseEmpty', function () {
   });
 
   it('renders', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
@@ -66,7 +66,7 @@ describe('EventCauseEmpty', function () {
       id: 'A',
       eventID: 'ABCDEFABCDEFABCDEFABCDEFABCDEFAB',
     };
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventCauseEmpty event={newEvent} organization={organization} project={project} />
     );
 
@@ -78,7 +78,7 @@ describe('EventCauseEmpty', function () {
   });
 
   it('can be snoozed', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
@@ -123,7 +123,7 @@ describe('EventCauseEmpty', function () {
       body: {data: {snoozed_ts}},
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
@@ -142,7 +142,7 @@ describe('EventCauseEmpty', function () {
       body: {data: {snoozed_ts}},
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
@@ -153,7 +153,7 @@ describe('EventCauseEmpty', function () {
   });
 
   it('can be dismissed', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
@@ -196,7 +196,7 @@ describe('EventCauseEmpty', function () {
       body: {data: {dismissed_ts: moment().unix()}},
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
@@ -207,7 +207,7 @@ describe('EventCauseEmpty', function () {
   });
 
   it('can capture analytics on docs click', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 

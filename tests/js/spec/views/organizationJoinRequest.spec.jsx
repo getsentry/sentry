@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {trackAdhocEvent} from 'sentry/utils/analytics';
@@ -19,7 +19,7 @@ describe('OrganizationJoinRequest', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationJoinRequest params={{orgId: org.slug}} />
     );
 
@@ -39,7 +39,7 @@ describe('OrganizationJoinRequest', function () {
       method: 'POST',
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationJoinRequest params={{orgId: org.slug}} />
     );
 
@@ -65,7 +65,7 @@ describe('OrganizationJoinRequest', function () {
       statusCode: 400,
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationJoinRequest params={{orgId: org.slug}} />
     );
 
@@ -87,7 +87,7 @@ describe('OrganizationJoinRequest', function () {
 
   it('cancels', function () {
     const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationJoinRequest params={{orgId: org.slug}} />
     );
 

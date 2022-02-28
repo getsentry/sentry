@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {MultiSelectField} from 'sentry/components/deprecatedforms';
 import Form from 'sentry/components/deprecatedforms/form';
@@ -6,7 +6,7 @@ import Form from 'sentry/components/deprecatedforms/form';
 describe('MultiSelectField', function () {
   describe('render()', function () {
     it('renders without form context', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <MultiSelectField
           options={[
             {label: 'a', value: 'a'},
@@ -19,7 +19,7 @@ describe('MultiSelectField', function () {
     });
 
     it('has the right value from props', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <MultiSelectField
           options={[
             {label: 'a', value: 'a'},
@@ -33,7 +33,7 @@ describe('MultiSelectField', function () {
     });
 
     it('renders with form context', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <Form initialData={{fieldName: ['a', 'b']}}>
           <MultiSelectField
             options={[

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -30,7 +30,7 @@ function renderComponent({
   Pick<DataScrubbing<ProjectId>['props'], 'endpoint'>) {
   const organization = props.organization ?? getOrganization();
   if (projectId) {
-    return mountWithTheme(
+    return enzymeRender(
       <DataScrubbing
         additionalContext={additionalContext}
         endpoint={endpoint}
@@ -43,7 +43,7 @@ function renderComponent({
     );
   }
 
-  return mountWithTheme(
+  return enzymeRender(
     <DataScrubbing
       additionalContext={additionalContext}
       endpoint={endpoint}

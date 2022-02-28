@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import RuleDetailsContainer from 'sentry/views/alerts/details/index';
@@ -21,7 +21,7 @@ describe('AlertRuleDetails', () => {
       projectId: project.slug,
       ruleId: rule.id,
     };
-    return mountWithTheme(
+    return render(
       <RuleDetailsContainer
         params={params}
         location={{query: {}}}

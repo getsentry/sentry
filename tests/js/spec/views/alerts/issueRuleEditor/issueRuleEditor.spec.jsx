@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
@@ -92,7 +92,7 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
     const {organization, project, routerContext} = initializeOrg(props);
     const params = {orgId: organization.slug, projectId: project.slug, ruleId: '1'};
     const onChangeTitleMock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectAlerts organization={organization} params={params}>
         <IssueRuleEditor
           params={params}

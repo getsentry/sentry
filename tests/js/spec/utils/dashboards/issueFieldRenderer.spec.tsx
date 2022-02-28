@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -96,7 +96,7 @@ describe('getIssueFieldRenderer', function () {
       ]);
       const renderer = getIssueFieldRenderer('assignee');
 
-      mountWithTheme(
+      render(
         renderer!(data, {
           location,
           organization,
@@ -113,7 +113,7 @@ describe('getIssueFieldRenderer', function () {
     it('can render counts', async function () {
       const renderer = getIssueFieldRenderer('events');
 
-      mountWithTheme(
+      render(
         renderer!(data, {
           location,
           organization,
@@ -131,7 +131,7 @@ describe('getIssueFieldRenderer', function () {
   it('can render links', function () {
     const renderer = getIssueFieldRenderer('links');
 
-    mountWithTheme(
+    render(
       renderer!(data, {
         location,
         organization,
@@ -143,7 +143,7 @@ describe('getIssueFieldRenderer', function () {
   it('can render multiple links', function () {
     const renderer = getIssueFieldRenderer('links');
 
-    mountWithTheme(
+    render(
       renderer!(
         {
           data,

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   DashboardDetails,
@@ -23,7 +23,7 @@ describe('WidgetBuilder', function () {
       widgets: [],
     };
 
-    mountWithTheme(
+    render(
       <WidgetBuilder
         route={{}}
         router={router}
@@ -87,7 +87,7 @@ describe('WidgetBuilder', function () {
       widgets: [],
     };
 
-    mountWithTheme(
+    render(
       <WidgetBuilder
         route={{}}
         router={router}
@@ -133,7 +133,7 @@ describe('WidgetBuilder', function () {
       widgets: [],
     };
 
-    mountWithTheme(
+    render(
       <WidgetBuilder
         route={{}}
         router={router}

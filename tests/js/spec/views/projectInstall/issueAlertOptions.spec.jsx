@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
@@ -48,7 +48,7 @@ describe('IssueAlertOptions', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
+    const wrapper = enzymeRender(<IssueAlertOptions {...props} />, routerContext);
     expect(wrapper.find('RadioLineItem')).toHaveLength(2);
   });
 
@@ -58,7 +58,7 @@ describe('IssueAlertOptions', function () {
       body: {},
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
+    const wrapper = enzymeRender(<IssueAlertOptions {...props} />, routerContext);
     expect(wrapper.find('RadioLineItem')).toHaveLength(2);
   });
 
@@ -68,7 +68,7 @@ describe('IssueAlertOptions', function () {
       body: TestStubs.MOCK_RESP_INCONSISTENT_INTERVALS,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
+    const wrapper = enzymeRender(<IssueAlertOptions {...props} />, routerContext);
     expect(wrapper.find('RadioLineItem')).toHaveLength(2);
   });
 
@@ -77,7 +77,7 @@ describe('IssueAlertOptions', function () {
       url: URL,
       body: TestStubs.MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
     });
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
+    const wrapper = enzymeRender(<IssueAlertOptions {...props} />, routerContext);
     expect(wrapper.find('RadioLineItem')).toHaveLength(3);
   });
 
@@ -87,7 +87,7 @@ describe('IssueAlertOptions', function () {
       body: TestStubs.MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
+    const wrapper = enzymeRender(<IssueAlertOptions {...props} />, routerContext);
     expect(wrapper.find('RadioLineItem')).toHaveLength(3);
     selectControlVerifier(wrapper, 'metric-select-control', ['users affected by']);
   });
@@ -98,7 +98,7 @@ describe('IssueAlertOptions', function () {
       body: TestStubs.MOCK_RESP_VERBOSE,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
+    const wrapper = enzymeRender(<IssueAlertOptions {...props} />, routerContext);
     expect(wrapper.find('RadioLineItem')).toHaveLength(3);
   });
 
@@ -108,7 +108,7 @@ describe('IssueAlertOptions', function () {
       body: TestStubs.MOCK_RESP_VERBOSE,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
+    const wrapper = enzymeRender(<IssueAlertOptions {...props} />, routerContext);
 
     [
       ['metric-select-control', ['occurrences of', 'users affected by']],
@@ -127,7 +127,7 @@ describe('IssueAlertOptions', function () {
       body: TestStubs.MOCK_RESP_VERBOSE,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
+    const wrapper = enzymeRender(<IssueAlertOptions {...props} />, routerContext);
 
     expect(wrapper.find('input[data-test-id="range-input"]').props().value).toBe('');
   });

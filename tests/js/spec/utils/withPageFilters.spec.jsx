@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -12,7 +12,7 @@ describe('withPageFilters HoC', function () {
   it('handles projects', function () {
     const MyComponent = () => null;
     const Container = withPageFilters(MyComponent);
-    const wrapper = mountWithTheme(<Container />);
+    const wrapper = enzymeRender(<Container />);
 
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([]);
 
@@ -26,7 +26,7 @@ describe('withPageFilters HoC', function () {
     let selection;
     const MyComponent = () => null;
     const Container = withPageFilters(MyComponent);
-    const wrapper = mountWithTheme(<Container />);
+    const wrapper = enzymeRender(<Container />);
 
     selection = wrapper.find('MyComponent').prop('selection');
     expect(selection.datetime.period).toEqual('14d');
@@ -65,7 +65,7 @@ describe('withPageFilters HoC', function () {
   it('handles environments', function () {
     const MyComponent = () => null;
     const Container = withPageFilters(MyComponent);
-    const wrapper = mountWithTheme(<Container />);
+    const wrapper = enzymeRender(<Container />);
 
     expect(wrapper.find('MyComponent').prop('selection').environments).toEqual([]);
 

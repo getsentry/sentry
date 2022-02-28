@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
@@ -11,7 +11,7 @@ describe('withSentryAppComponents HoC', function () {
   it('handles components without a type', function () {
     const MyComponent = () => null;
     const Container = withSentryAppComponents(MyComponent);
-    const wrapper = mountWithTheme(<Container />);
+    const wrapper = enzymeRender(<Container />);
 
     expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
 
@@ -30,7 +30,7 @@ describe('withSentryAppComponents HoC', function () {
   it('handles components of a certain type', function () {
     const MyComponent = () => null;
     const Container = withSentryAppComponents(MyComponent, {componentType: 'some-type'});
-    const wrapper = mountWithTheme(<Container />);
+    const wrapper = enzymeRender(<Container />);
 
     expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
 

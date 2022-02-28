@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 
@@ -6,7 +6,7 @@ describe('BookmarkStar', function () {
   let wrapper, projectMock;
 
   beforeEach(function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <BookmarkStar
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}
@@ -46,7 +46,7 @@ describe('BookmarkStar', function () {
   });
 
   it('can unstar', async function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <BookmarkStar
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -71,7 +71,7 @@ describe('BookmarkStar', function () {
   });
 
   it('takes a manual isBookmarked prop', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <BookmarkStar
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}

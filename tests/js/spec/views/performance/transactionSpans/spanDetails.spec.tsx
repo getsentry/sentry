@@ -2,7 +2,7 @@ import {
   generateSuspectSpansResponse,
   initializeData as _initializeData,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
@@ -81,7 +81,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
     it('renders empty when missing project param', async function () {
       const data = initializeData({query: {transaction: 'transaction'}});
 
-      const {container} = mountWithTheme(
+      const {container} = render(
         <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
         {organization: data.organization}
       );
@@ -92,7 +92,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
     it('renders empty when missing transaction param', async function () {
       const data = initializeData({query: {project: '1'}});
 
-      const {container} = mountWithTheme(
+      const {container} = render(
         <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
         {organization: data.organization}
       );
@@ -106,7 +106,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });
@@ -176,7 +176,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });
@@ -241,7 +241,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });
@@ -302,7 +302,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });
@@ -316,7 +316,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });

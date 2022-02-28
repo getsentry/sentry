@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -14,7 +14,7 @@ describe('CreateSampleEventButton', function () {
   const {org, project, routerContext} = initializeOrg();
   const groupID = '123';
 
-  const wrapper = mountWithTheme(
+  const wrapper = enzymeRender(
     <CreateSampleEventButton
       source="test"
       project={{...project, platform: 'javascript'}}

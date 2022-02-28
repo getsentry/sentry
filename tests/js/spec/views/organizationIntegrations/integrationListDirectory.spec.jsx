@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
@@ -40,7 +40,7 @@ describe('IntegrationListDirectory', function () {
         [`/organizations/${org.slug}/repos/?status=unmigratable`, []],
       ]);
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
         routerContext
       );

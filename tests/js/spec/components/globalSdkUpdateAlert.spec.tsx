@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitFor,
@@ -63,7 +63,7 @@ describe('GlobalSDKUpdateAlert', () => {
       body: promptResponse,
     });
 
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
       {organization: TestStubs.Organization()}
     );
@@ -98,7 +98,7 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
+    render(
       <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
       {organization: TestStubs.Organization()}
     );
@@ -124,7 +124,7 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
+    render(
       <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
       {organization: TestStubs.Organization()}
     );
@@ -152,7 +152,7 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
+    render(
       <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
       {organization: TestStubs.Organization()}
     );
@@ -178,7 +178,7 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
+    render(
       <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
       {organization: TestStubs.Organization()}
     );
@@ -204,7 +204,7 @@ describe('GlobalSDKUpdateAlert', () => {
       body: promptResponse,
     });
 
-    mountWithTheme(
+    render(
       <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
       {organization: TestStubs.Organization()}
     );
@@ -227,7 +227,7 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
+    render(
       <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
       {organization: TestStubs.Organization()}
     );

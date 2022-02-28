@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ProjectUserFeedback from 'sentry/views/settings/project/projectUserFeedback';
 
@@ -22,7 +22,7 @@ describe('ProjectUserFeedback', function () {
   });
 
   it('can toggle sentry branding option', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectUserFeedback
         organization={org}
         project={project}

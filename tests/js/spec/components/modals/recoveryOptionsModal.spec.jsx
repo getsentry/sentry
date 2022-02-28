@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
 
@@ -14,7 +14,7 @@ describe('RecoveryOptionsModal', function () {
       method: 'GET',
       body: TestStubs.AllAuthenticators(),
     });
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <RecoveryOptionsModal
         Body={p => p.children}
         Header={p => p.children}
@@ -64,7 +64,7 @@ describe('RecoveryOptionsModal', function () {
       method: 'GET',
       body: [TestStubs.Authenticators().Totp(), TestStubs.Authenticators().Recovery()],
     });
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <RecoveryOptionsModal
         Body={p => p.children}
         Header={p => p.children}

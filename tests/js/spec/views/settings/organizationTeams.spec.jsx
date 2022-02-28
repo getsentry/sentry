@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -29,7 +29,7 @@ describe('OrganizationTeams', function () {
     });
 
     const createWrapper = props =>
-      mountWithTheme(
+      enzymeRender(
         <OrganizationTeams
           params={{orgId: organization.slug, projectId: project.slug}}
           routes={[]}
@@ -77,7 +77,7 @@ describe('OrganizationTeams', function () {
       },
     });
     const createWrapper = props =>
-      mountWithTheme(
+      enzymeRender(
         <OrganizationTeams
           params={{orgId: organization.slug, projectId: project.slug}}
           routes={[]}
@@ -130,7 +130,7 @@ describe('OrganizationTeams', function () {
     const requestList = [accessRequest, TestStubs.AccessRequest({id: '4', requester})];
 
     const createWrapper = props =>
-      mountWithTheme(
+      enzymeRender(
         <OrganizationTeams
           params={{orgId: organization.slug, projectId: project.slug}}
           routes={[]}

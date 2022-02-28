@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
@@ -99,7 +99,7 @@ describe('TagExplorer', function () {
       transactionName,
     } = initialize(projects, {});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TagExplorer
         api={api}
         location={location}
@@ -131,7 +131,7 @@ describe('TagExplorer', function () {
       project: '123',
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TagExplorer
         api={api}
         location={location}
@@ -176,7 +176,7 @@ describe('TagExplorer', function () {
       []
     );
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TagExplorer
         api={api}
         location={location}
@@ -215,7 +215,7 @@ describe('TagExplorer', function () {
       {}
     );
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TagExplorer
         api={api}
         location={location}
@@ -254,7 +254,7 @@ describe('TagExplorer', function () {
       transactionName,
     } = initialize(projects, {});
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <TagExplorer
         api={api}
         location={location}

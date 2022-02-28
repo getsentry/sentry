@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import LazyLoad from 'sentry/components/lazyLoad';
 
@@ -6,7 +6,7 @@ describe('LazyLoad', function () {
   it('renders with a loading indicator when promise is not resolved yet', function () {
     const promise = new Promise(() => {});
     const getComponent = () => promise;
-    const wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
+    const wrapper = enzymeRender(<LazyLoad component={getComponent} />);
 
     // Should be loading
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
@@ -18,7 +18,7 @@ describe('LazyLoad', function () {
       res = resolve;
     });
     const getComponent = () => promise;
-    const wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
+    const wrapper = enzymeRender(<LazyLoad component={getComponent} />);
 
     // Should be loading
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
@@ -46,7 +46,7 @@ describe('LazyLoad', function () {
     let wrapper;
 
     try {
-      wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
+      wrapper = enzymeRender(<LazyLoad component={getComponent} />);
     } catch (err) {
       // ignore
     }
@@ -64,7 +64,7 @@ describe('LazyLoad', function () {
 
   it('refetches when component changes', async function () {
     const getComponent = jest.fn(() => new Promise());
-    const wrapper = mountWithTheme(<LazyLoad component={getComponent} />);
+    const wrapper = enzymeRender(<LazyLoad component={getComponent} />);
 
     // Should be loading
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -42,7 +42,7 @@ describe('Project Ownership', function () {
 
   describe('without codeowners', function () {
     it('renders', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
@@ -62,7 +62,7 @@ describe('Project Ownership', function () {
         access: ['org:integrations'],
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
@@ -79,7 +79,7 @@ describe('Project Ownership', function () {
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
@@ -94,7 +94,7 @@ describe('Project Ownership', function () {
     it('render request to add if no permissions', function () {
       org = TestStubs.Organization({features: ['integrations-codeowners'], access: []});
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import SuggestProjectCTA from 'sentry/components/suggestProjectCTA';
@@ -30,7 +30,7 @@ function generateWrapperAndSetMocks(inputProps, mobileEventResp, promptResp) {
     }),
     ...inputProps,
   };
-  return mountWithTheme(<SuggestProjectCTA {...props} />);
+  return enzymeRender(<SuggestProjectCTA {...props} />);
 }
 
 describe('SuggestProjectCTA', function () {

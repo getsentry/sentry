@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
@@ -49,7 +49,7 @@ describe('OrganizationMemberRow', function () {
   beforeEach(function () {});
 
   it('does not have 2fa warning if user has 2fa', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMemberRow
         {...defaultProps}
         member={{
@@ -66,7 +66,7 @@ describe('OrganizationMemberRow', function () {
   });
 
   it('has 2fa warning if user does not have 2fa enabled', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationMemberRow
         {...defaultProps}
         member={{
@@ -92,7 +92,7 @@ describe('OrganizationMemberRow', function () {
     };
 
     it('has "Invited" status, no "Resend Invite"', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMemberRow
           {...props}
           member={{
@@ -107,18 +107,18 @@ describe('OrganizationMemberRow', function () {
     });
 
     it('has "Resend Invite" button only if `canAddMembers` is true', function () {
-      const wrapper = mountWithTheme(<OrganizationMemberRow {...props} canAddMembers />);
+      const wrapper = enzymeRender(<OrganizationMemberRow {...props} canAddMembers />);
 
       expect(wrapper.find('[data-test-id="member-role"]').text()).toBe('Invited Member');
       expect(wrapper.find(resendButton).prop('disabled')).toBe(false);
     });
 
     it('has the right inviting states', function () {
-      let wrapper = mountWithTheme(<OrganizationMemberRow {...props} canAddMembers />);
+      let wrapper = enzymeRender(<OrganizationMemberRow {...props} canAddMembers />);
 
       expect(wrapper.find(resendButton).exists()).toBe(true);
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <OrganizationMemberRow {...props} canAddMembers status="loading" />
       );
 
@@ -127,7 +127,7 @@ describe('OrganizationMemberRow', function () {
       // No Resend Invite button
       expect(wrapper.find(resendButton).exists()).toBe(false);
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <OrganizationMemberRow {...props} canAddMembers status="success" />
       );
 
@@ -141,7 +141,7 @@ describe('OrganizationMemberRow', function () {
 
   describe('Expired user', function () {
     it('has "Expired" status', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMemberRow
           {...defaultProps}
           canAddMembers
@@ -168,7 +168,7 @@ describe('OrganizationMemberRow', function () {
     };
 
     it('shows "Invited" status if user has not registered and not linked', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMemberRow
           {...props}
           canAddMembers
@@ -184,7 +184,7 @@ describe('OrganizationMemberRow', function () {
     });
 
     it('shows "missing SSO link" message if user is registered and needs link', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMemberRow
           {...props}
           member={{
@@ -198,7 +198,7 @@ describe('OrganizationMemberRow', function () {
     });
 
     it('has "Resend SSO link" button only if `canAddMembers` is true and no link', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMemberRow
           {...props}
           canAddMembers
@@ -212,7 +212,7 @@ describe('OrganizationMemberRow', function () {
     });
 
     it('has 2fa warning if user is linked does not have 2fa enabled', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMemberRow
           {...defaultProps}
           member={{
@@ -243,14 +243,14 @@ describe('OrganizationMemberRow', function () {
     };
 
     it('has button to leave organization and no button to remove', function () {
-      const wrapper = mountWithTheme(<OrganizationMemberRow {...props} memberCanLeave />);
+      const wrapper = enzymeRender(<OrganizationMemberRow {...props} memberCanLeave />);
 
       expect(wrapper.find(leaveButton).exists()).toBe(true);
       expect(wrapper.find(removeButton).exists()).toBe(false);
     });
 
     it('has disabled button to leave organization and no button to remove when member can not leave', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMemberRow {...props} memberCanLeave={false} />
       );
 
@@ -265,19 +265,19 @@ describe('OrganizationMemberRow', function () {
     };
 
     it('does not have Leave button', function () {
-      const wrapper = mountWithTheme(<OrganizationMemberRow {...props} memberCanLeave />);
+      const wrapper = enzymeRender(<OrganizationMemberRow {...props} memberCanLeave />);
 
       expect(wrapper.find(leaveButton).exists()).toBe(false);
     });
 
     it('has Remove disabled button when `canRemoveMembers` is false', function () {
-      const wrapper = mountWithTheme(<OrganizationMemberRow {...props} />);
+      const wrapper = enzymeRender(<OrganizationMemberRow {...props} />);
 
       expect(wrapper.find(removeButton).prop('disabled')).toBe(true);
     });
 
     it('has Remove button when `canRemoveMembers` is true', function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationMemberRow {...props} canRemoveMembers />
       );
 

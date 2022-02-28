@@ -1,4 +1,4 @@
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
@@ -35,7 +35,7 @@ describe('MetricsRequest', () => {
   });
 
   it('makes request and passes correct render props', async () => {
-    mountWithTheme(<MetricsRequest {...props}>{childrenMock}</MetricsRequest>);
+    render(<MetricsRequest {...props}>{childrenMock}</MetricsRequest>);
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
@@ -83,7 +83,7 @@ describe('MetricsRequest', () => {
   });
 
   it('does not make request if isDisabled', () => {
-    mountWithTheme(
+    render(
       <MetricsRequest {...props} isDisabled>
         {childrenMock}
       </MetricsRequest>
@@ -106,7 +106,7 @@ describe('MetricsRequest', () => {
   });
 
   it('refetches when props change', () => {
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <MetricsRequest {...props}>{childrenMock}</MetricsRequest>
     );
 
@@ -128,7 +128,7 @@ describe('MetricsRequest', () => {
   });
 
   it('does not refetch when ignored props change', () => {
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <MetricsRequest {...props}>{childrenMock}</MetricsRequest>
     );
 
@@ -139,7 +139,7 @@ describe('MetricsRequest', () => {
   });
 
   it('make two requests if includePrevious is enabled', async () => {
-    mountWithTheme(
+    render(
       <MetricsRequest {...props} includePrevious>
         {childrenMock}
       </MetricsRequest>
@@ -211,7 +211,7 @@ describe('MetricsRequest', () => {
   });
 
   it('make one request with absolute date', () => {
-    mountWithTheme(
+    render(
       <MetricsRequest
         {...props}
         statsPeriod=""
@@ -258,7 +258,7 @@ describe('MetricsRequest', () => {
   });
 
   it('includes series data', () => {
-    mountWithTheme(
+    render(
       <MetricsRequest {...props} includeSeriesData includePrevious>
         {childrenMock}
       </MetricsRequest>

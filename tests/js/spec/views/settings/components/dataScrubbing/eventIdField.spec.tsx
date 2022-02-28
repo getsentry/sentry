@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import theme from 'sentry/utils/theme';
 import EventIdField from 'sentry/views/settings/components/dataScrubbing/modals/form/eventIdField';
@@ -14,7 +14,7 @@ function renderComponent({
   value = eventIdValue,
   status,
 }: Omit<EventId, 'value'> & Partial<Pick<EventId, 'value'>>) {
-  return mountWithTheme(
+  return enzymeRender(
     <EventIdField onUpdateEventId={handleUpdateEventId} eventId={{value, status}} />
   );
 }

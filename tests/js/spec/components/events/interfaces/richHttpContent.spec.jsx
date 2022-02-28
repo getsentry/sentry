@@ -1,4 +1,4 @@
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {enzymeRender, shallow} from 'sentry-test/enzyme';
 
 import RichHttpContent from 'sentry/components/events/interfaces/richHttpContent/richHttpContent';
 
@@ -17,7 +17,7 @@ describe('RichHttpContent', function () {
         env: {},
         inferredContentType: null,
       };
-      const wrapper = mountWithTheme(<RichHttpContent data={data} />);
+      const wrapper = enzymeRender(<RichHttpContent data={data} />);
       expect(
         wrapper.find('[data-test-id="rich-http-content-body-section-pre"]')
       ).toBeTruthy();
@@ -32,7 +32,7 @@ describe('RichHttpContent', function () {
         env: {},
         inferredContentType: 'application/x-www-form-urlencoded',
       };
-      const wrapper = mountWithTheme(<RichHttpContent data={data} />);
+      const wrapper = enzymeRender(<RichHttpContent data={data} />);
       expect(
         wrapper.find('[data-test-id="rich-http-content-body-key-value-list"]')
       ).toBeTruthy();
@@ -47,7 +47,7 @@ describe('RichHttpContent', function () {
         env: {},
         inferredContentType: 'application/json',
       };
-      const wrapper = mountWithTheme(<RichHttpContent data={data} />);
+      const wrapper = enzymeRender(<RichHttpContent data={data} />);
       expect(
         wrapper.find('[data-test-id="rich-http-content-body-context-data"]')
       ).toBeTruthy();
@@ -75,7 +75,7 @@ describe('RichHttpContent', function () {
         env: {},
       };
 
-      expect(() => mountWithTheme(<RichHttpContent data={data} />)).not.toThrow();
+      expect(() => enzymeRender(<RichHttpContent data={data} />)).not.toThrow();
     });
   });
 });

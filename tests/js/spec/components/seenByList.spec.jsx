@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SeenByList from 'sentry/components/seenByList';
 import ConfigStore from 'sentry/stores/configStore';
@@ -9,12 +9,12 @@ describe('SeenByList', function () {
   });
 
   it('should return null if seenBy is falsy', function () {
-    const {container} = mountWithTheme(<SeenByList />);
+    const {container} = render(<SeenByList />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('should return a list of each user that saw', function () {
-    mountWithTheme(
+    render(
       <SeenByList
         seenBy={[
           {id: '1', email: 'jane@example.com'},
@@ -32,7 +32,7 @@ describe('SeenByList', function () {
       .spyOn(ConfigStore, 'get')
       .mockImplementation(() => ({id: '1', email: 'jane@example.com'}));
 
-    mountWithTheme(
+    render(
       <SeenByList
         seenBy={[
           {id: '1', email: 'jane@example.com'},

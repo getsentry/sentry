@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
@@ -9,7 +9,7 @@ describe('ApiApplications', function () {
   const {router, routerContext} = initializeOrg();
 
   const createWrapper = props => {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ApiApplications {...props} router={router} />,
       routerContext
     );

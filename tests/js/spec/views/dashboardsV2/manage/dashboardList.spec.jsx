@@ -1,7 +1,7 @@
 import {act} from 'react-dom/test-utils';
 
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {triggerPress} from 'sentry-test/utils';
 
@@ -114,7 +114,7 @@ describe('Dashboards > DashboardList', function () {
   });
 
   it('renders an empty list', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DashboardList
         organization={organization}
         dashboards={[]}
@@ -129,7 +129,7 @@ describe('Dashboards > DashboardList', function () {
   });
 
   it('renders dashboard list', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
@@ -142,7 +142,7 @@ describe('Dashboards > DashboardList', function () {
   });
 
   it('returns landing page url for dashboards', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
@@ -156,7 +156,7 @@ describe('Dashboards > DashboardList', function () {
   });
 
   it('persists global selection headers', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
@@ -171,7 +171,7 @@ describe('Dashboards > DashboardList', function () {
   });
 
   it('can delete dashboards', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DashboardList
         organization={organization}
         dashboards={dashboards}
@@ -211,7 +211,7 @@ describe('Dashboards > DashboardList', function () {
         widgetDisplay: [],
       }),
     ];
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DashboardList
         organization={organization}
         dashboards={singleDashboard}
@@ -236,7 +236,7 @@ describe('Dashboards > DashboardList', function () {
   });
 
   it('can duplicate dashboards', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <DashboardList
         organization={organization}
         dashboards={dashboards}

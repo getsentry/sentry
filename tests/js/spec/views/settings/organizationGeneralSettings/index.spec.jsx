@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +24,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "early adopter"', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
         organization={organization}
@@ -48,7 +48,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new slug', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
         organization={organization}
@@ -94,7 +94,7 @@ describe('OrganizationGeneralSettings', function () {
     ({organization, routerContext} = initializeOrg({
       organization: TestStubs.Organization({access: ['org:read']}),
     }));
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationGeneralSettings
         routes={[]}
         params={{orgId: organization.slug}}
@@ -113,7 +113,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('does not have remove organization button', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
         organization={TestStubs.Organization({
@@ -131,7 +131,7 @@ describe('OrganizationGeneralSettings', function () {
   it('can remove organization when org admin', async function () {
     act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
         organization={TestStubs.Organization({access: ['org:admin']})}
@@ -171,7 +171,7 @@ describe('OrganizationGeneralSettings', function () {
       body: TestStubs.AuthProvider(),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationGeneralSettings params={{orgId: organization.slug}} />,
       TestStubs.routerContext([{organization}])
     );

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {t} from 'sentry/locale';
@@ -156,7 +156,7 @@ describe('Performance GridEditable Table', function () {
       },
       initialData.router.location
     );
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventsTable
         eventView={eventView}
         organization={organization}
@@ -205,7 +205,7 @@ describe('Performance GridEditable Table', function () {
       },
       initialData.router.location
     );
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EventsTable
         eventView={eventView}
         organization={organization}

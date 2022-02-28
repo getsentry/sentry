@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import SettingsBreadcrumbStore from 'sentry/stores/settingsBreadcrumbStore';
 import SettingsBreadcrumb from 'sentry/views/settings/components/settingsBreadcrumb';
@@ -13,7 +13,7 @@ describe('BreadcrumbTitle', function () {
   ];
 
   it('renders', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <div>
         <SettingsBreadcrumb routes={routes} />;
         <BreadcrumbTitle routes={routes} title="Last Title" />
@@ -27,8 +27,8 @@ describe('BreadcrumbTitle', function () {
 
   it('cleans up routes', async function () {
     const upOneRoutes = routes.slice(0, -1);
-    const breadcrumbs = mountWithTheme(<SettingsBreadcrumb routes={routes} />);
-    mountWithTheme(
+    const breadcrumbs = enzymeRender(<SettingsBreadcrumb routes={routes} />);
+    enzymeRender(
       <div>
         <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
         <BreadcrumbTitle routes={routes} title="Last Title" />

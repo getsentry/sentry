@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
@@ -46,7 +46,7 @@ describe('ProjectPluginDetails', function () {
       },
     });
 
-    component = mountWithTheme(
+    component = enzymeRender(
       <ProjectPluginDetailsContainer
         organization={org}
         project={project}
@@ -67,7 +67,7 @@ describe('ProjectPluginDetails', function () {
 
   it('resets plugin', function () {
     // Test component instead of container so that we can access state
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectPluginDetails
         organization={org}
         project={project}

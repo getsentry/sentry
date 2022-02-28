@@ -1,7 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  mountWithTheme as reactMountWithTheme,
+  enzymeRender as reactMountWithTheme,
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
@@ -19,7 +19,7 @@ describe('WidgetQueryFields', function () {
 
     beforeEach(() => {
       // TODO change this to react testing library
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <WidgetQueryFields
           widgetType={WidgetType.DISCOVER}
           displayType={DisplayType.TOP_N}

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ContextSummary from 'sentry/components/events/contextSummary';
 import ContextSummaryGPU from 'sentry/components/events/contextSummary/contextSummaryGPU';
@@ -53,7 +53,7 @@ describe('ContextSummary', function () {
         contexts: {},
       };
 
-      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      const wrapper = enzymeRender(<ContextSummary event={event} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -64,7 +64,7 @@ describe('ContextSummary', function () {
         contexts: {},
       };
 
-      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      const wrapper = enzymeRender(<ContextSummary event={event} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -78,7 +78,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      const wrapper = enzymeRender(<ContextSummary event={event} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -91,7 +91,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      const wrapper = enzymeRender(<ContextSummary event={event} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -107,7 +107,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      const wrapper = enzymeRender(<ContextSummary event={event} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -123,7 +123,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      const wrapper = enzymeRender(<ContextSummary event={event} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -138,7 +138,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      const wrapper = enzymeRender(<ContextSummary event={event} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -154,7 +154,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      const wrapper = enzymeRender(<ContextSummary event={event} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -169,7 +169,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const wrapper = mountWithTheme(<ContextSummary event={event} />);
+      const wrapper = enzymeRender(<ContextSummary event={event} />);
       expect(wrapper).toSnapshot();
     });
   });
@@ -186,7 +186,7 @@ describe('OsSummary', function () {
         name: 'Mac OS X',
       };
 
-      const wrapper = mountWithTheme(<ContextSummaryOS data={os} />);
+      const wrapper = enzymeRender(<ContextSummaryOS data={os} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -198,7 +198,7 @@ describe('OsSummary', function () {
         name: 'Mac OS X',
       };
 
-      const wrapper = mountWithTheme(<ContextSummaryOS data={os} />);
+      const wrapper = enzymeRender(<ContextSummaryOS data={os} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -209,7 +209,7 @@ describe('OsSummary', function () {
         name: 'Mac OS X',
       };
 
-      const wrapper = mountWithTheme(<ContextSummaryOS data={os} />);
+      const wrapper = enzymeRender(<ContextSummaryOS data={os} />);
       expect(wrapper).toSnapshot();
     });
   });
@@ -224,7 +224,7 @@ describe('GpuSummary', function () {
         version: 'OpenGL ES 3.2 v1.r22p0-01rel0.f294e54ceb2cb2d81039204fa4b0402e',
       };
 
-      const wrapper = mountWithTheme(<ContextSummaryGPU data={gpu} />);
+      const wrapper = enzymeRender(<ContextSummaryGPU data={gpu} />);
       expect(wrapper).toSnapshot();
     });
 
@@ -234,7 +234,7 @@ describe('GpuSummary', function () {
         name: 'Apple A8 GPU',
       };
 
-      const wrapper = mountWithTheme(<ContextSummaryGPU data={gpu} />);
+      const wrapper = enzymeRender(<ContextSummaryGPU data={gpu} />);
       expect(wrapper).toSnapshot();
     });
   });
@@ -252,7 +252,7 @@ describe('UserSummary', function () {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper1 = mountWithTheme(<ContextSummaryUser data={user1} />);
+      const wrapper1 = enzymeRender(<ContextSummaryUser data={user1} />);
       expect(wrapper1.find('[data-test-id="user-title"]').render().text()).toEqual(
         user1.email
       );
@@ -265,7 +265,7 @@ describe('UserSummary', function () {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper2 = mountWithTheme(<ContextSummaryUser data={user2} />);
+      const wrapper2 = enzymeRender(<ContextSummaryUser data={user2} />);
       expect(wrapper2.find('[data-test-id="user-title"]').render().text()).toEqual(
         user2.ip_address
       );
@@ -277,7 +277,7 @@ describe('UserSummary', function () {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper3 = mountWithTheme(<ContextSummaryUser data={user3} />);
+      const wrapper3 = enzymeRender(<ContextSummaryUser data={user3} />);
       expect(wrapper3.find('[data-test-id="user-title"]').render().text()).toEqual(
         user3.id
       );
@@ -288,7 +288,7 @@ describe('UserSummary', function () {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper4 = mountWithTheme(<ContextSummaryUser data={user4} />);
+      const wrapper4 = enzymeRender(<ContextSummaryUser data={user4} />);
       expect(wrapper4.find('[data-test-id="user-title"]').render().text()).toEqual(
         user4.username
       );
@@ -300,7 +300,7 @@ describe('UserSummary', function () {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper = mountWithTheme(<ContextSummaryUser data={user} />);
+      const wrapper = enzymeRender(<ContextSummaryUser data={user} />);
       expect(wrapper.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -312,7 +312,7 @@ describe('UserSummary', function () {
         email: FILTER_MASK,
       };
 
-      const wrapper1 = mountWithTheme(<ContextSummaryUser data={user1} />);
+      const wrapper1 = enzymeRender(<ContextSummaryUser data={user1} />);
       expect(wrapper1.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper1.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -327,7 +327,7 @@ describe('UserSummary', function () {
         id: FILTER_MASK,
       };
 
-      const wrapper2 = mountWithTheme(<ContextSummaryUser data={user2} />);
+      const wrapper2 = enzymeRender(<ContextSummaryUser data={user2} />);
       expect(wrapper2.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper2.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -337,7 +337,7 @@ describe('UserSummary', function () {
         username: FILTER_MASK,
       };
 
-      const wrapper3 = mountWithTheme(<ContextSummaryUser data={user3} />);
+      const wrapper3 = enzymeRender(<ContextSummaryUser data={user3} />);
       expect(wrapper3.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper3.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -353,7 +353,7 @@ describe('UserSummary', function () {
         name: FILTER_MASK,
       };
 
-      const wrapper1 = mountWithTheme(<ContextSummaryUser data={user1} />);
+      const wrapper1 = enzymeRender(<ContextSummaryUser data={user1} />);
       expect(wrapper1.find('LetterAvatar').text()).toEqual('?');
 
       const user2 = {
@@ -361,7 +361,7 @@ describe('UserSummary', function () {
         email: FILTER_MASK,
       };
 
-      const wrapper2 = mountWithTheme(<ContextSummaryUser data={user2} />);
+      const wrapper2 = enzymeRender(<ContextSummaryUser data={user2} />);
       expect(wrapper2.find('LetterAvatar').text()).toEqual('?');
 
       const user3 = {
@@ -369,7 +369,7 @@ describe('UserSummary', function () {
         username: FILTER_MASK,
       };
 
-      const wrapper3 = mountWithTheme(<ContextSummaryUser data={user3} />);
+      const wrapper3 = enzymeRender(<ContextSummaryUser data={user3} />);
       expect(wrapper3.find('LetterAvatar').text()).toEqual('?');
     });
   });

@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 
 describe('RangeSlider', function () {
   it('changes value / has right label', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <RangeSlider name="test" value={5} min={0} max={10} onChange={() => {}} />
     );
     expect(wrapper.find('Label').text()).toBe('5');
@@ -13,7 +13,7 @@ describe('RangeSlider', function () {
   });
 
   it('can use formatLabel', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <RangeSlider
         name="test"
         value={5}
@@ -35,7 +35,7 @@ describe('RangeSlider', function () {
 
   it('calls onChange', function () {
     const onChange = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <RangeSlider name="test" value={5} min={0} max={10} onChange={onChange} />
     );
     expect(onChange).not.toHaveBeenCalled();
@@ -45,7 +45,7 @@ describe('RangeSlider', function () {
 
   it('can provide a list of allowedValues', function () {
     const onChange = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <RangeSlider
         name="test"
         value={1000}
@@ -68,7 +68,7 @@ describe('RangeSlider', function () {
 
   it('handles invalid values', function () {
     const onChange = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <RangeSlider
         name="test"
         value={1000}

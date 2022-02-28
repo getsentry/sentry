@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
@@ -13,7 +13,7 @@ describe('FormField + model', function () {
   });
 
   it('renders with Form', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <Form model={model}>
         <TextField name="fieldName" />
       </Form>
@@ -22,7 +22,7 @@ describe('FormField + model', function () {
   });
 
   it('sets initial data in model', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" />
       </Form>
@@ -32,7 +32,7 @@ describe('FormField + model', function () {
   });
 
   it('has `defaultValue` from field', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" />
       </Form>
@@ -43,7 +43,7 @@ describe('FormField + model', function () {
   });
 
   it('does not use `defaultValue` when there is initial data', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" defaultValue="foo" />
       </Form>
@@ -54,7 +54,7 @@ describe('FormField + model', function () {
   });
 
   it('transforms `defaultValue` from field with `setValue`', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" setValue={v => `${v}${v}`} />
       </Form>
@@ -65,7 +65,7 @@ describe('FormField + model', function () {
   });
 
   it('sets field descriptor in model', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
       </Form>
@@ -75,7 +75,7 @@ describe('FormField + model', function () {
   });
 
   it('removes field descriptor in model on unmount', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
       </Form>

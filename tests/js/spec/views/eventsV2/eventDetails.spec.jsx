@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -112,7 +112,7 @@ describe('EventsV2 > EventDetails', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedEventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
@@ -124,7 +124,7 @@ describe('EventsV2 > EventDetails', function () {
   });
 
   it('renders a 404', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedEventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
@@ -136,7 +136,7 @@ describe('EventsV2 > EventDetails', function () {
   });
 
   it('renders a chart in grouped view', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedEventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
@@ -159,7 +159,7 @@ describe('EventsV2 > EventDetails', function () {
       method: 'GET',
       body: {},
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedEventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
@@ -181,7 +181,7 @@ describe('EventsV2 > EventDetails', function () {
         },
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedEventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
@@ -245,7 +245,7 @@ describe('EventsV2 > EventDetails', function () {
         },
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedEventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByQuery, selectByValue} from 'sentry-test/select-new';
 
 import {Form, SelectAsyncField} from 'sentry/components/deprecatedforms';
@@ -20,7 +20,7 @@ describe('SelectAsyncField', function () {
   });
 
   it('supports autocomplete arguments from an integration', async function () {
-    const wrapper = mountWithTheme(<SelectAsyncField url="/foo/bar/" name="fieldName" />);
+    const wrapper = enzymeRender(<SelectAsyncField url="/foo/bar/" name="fieldName" />);
     await selectByQuery(wrapper, 'baz', {control: true});
 
     expect(api).toHaveBeenCalled();
@@ -39,7 +39,7 @@ describe('SelectAsyncField', function () {
 
   it('with Form context', async function () {
     const submitMock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Form onSubmit={submitMock}>
         <SelectAsyncField url="/foo/bar/" name="fieldName" />
       </Form>,

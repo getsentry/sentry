@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 
@@ -32,7 +32,7 @@ describe('StacktraceLink', function () {
       url: '/prompts-activity/',
       body: {},
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <StacktraceLink
         frame={frame}
         event={event}
@@ -57,7 +57,7 @@ describe('StacktraceLink', function () {
       url: '/prompts-activity/',
       body: {},
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <StacktraceLink
         frame={frame}
         event={event}
@@ -79,7 +79,7 @@ describe('StacktraceLink', function () {
       query: {file: frame.filename, commitId: 'master', platform},
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <StacktraceLink
         frame={frame}
         event={event}
@@ -104,7 +104,7 @@ describe('StacktraceLink', function () {
         attemptedUrl: 'https://something.io/blah',
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <StacktraceLink
         frame={frame}
         event={event}
@@ -131,7 +131,7 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <StacktraceLink
         frame={frame}
         event={event}
@@ -156,7 +156,7 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <StacktraceLink
         frame={frame}
         event={event}

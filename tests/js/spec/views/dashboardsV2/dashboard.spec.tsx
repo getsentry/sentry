@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
@@ -46,7 +46,7 @@ describe('Dashboards > Dashboard', () => {
   });
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
@@ -70,7 +70,7 @@ describe('Dashboards > Dashboard', () => {
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
@@ -95,7 +95,7 @@ describe('Dashboards > Dashboard', () => {
 
   it('displays widgets with drag handle when in edit mode', () => {
     const dashboardWithOneWidget = {...mockDashboard, widgets: [newWidget]};
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Dashboard
         paramDashboardId="1"
         dashboard={dashboardWithOneWidget}

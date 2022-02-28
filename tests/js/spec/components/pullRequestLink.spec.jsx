@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import PullRequestLink from 'sentry/components/pullRequestLink';
 
@@ -9,7 +9,7 @@ describe('PullRequestLink', function () {
       repository,
       externalUrl: null,
     });
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
@@ -24,7 +24,7 @@ describe('PullRequestLink', function () {
       },
     });
     const pullRequest = TestStubs.PullRequest({repository});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
@@ -43,7 +43,7 @@ describe('PullRequestLink', function () {
       },
     });
     const pullRequest = TestStubs.PullRequest({repository});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
@@ -62,7 +62,7 @@ describe('PullRequestLink', function () {
       },
     });
     const pullRequest = TestStubs.PullRequest({repository});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
@@ -81,7 +81,7 @@ describe('PullRequestLink', function () {
       },
     });
     const pullRequest = TestStubs.PullRequest({repository});
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 

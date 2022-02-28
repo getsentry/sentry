@@ -1,5 +1,5 @@
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByLabel} from 'sentry-test/select-new';
@@ -24,7 +24,7 @@ describe('IssueListActions', function () {
 
         SelectedGroupStore.records = {};
         SelectedGroupStore.add(['1', '2', '3']);
-        wrapper = mountWithTheme(
+        wrapper = enzymeRender(
           <IssueListActions
             api={new MockApiClient()}
             allResultsVisible={false}
@@ -93,7 +93,7 @@ describe('IssueListActions', function () {
       beforeAll(function () {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add(['1', '2', '3']);
-        wrapper = mountWithTheme(
+        wrapper = enzymeRender(
           <IssueListActions
             api={new MockApiClient()}
             allResultsVisible={false}
@@ -160,7 +160,7 @@ describe('IssueListActions', function () {
       beforeAll(function () {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add(['1', '2', '3']);
-        wrapper = mountWithTheme(
+        wrapper = enzymeRender(
           <IssueListActions
             api={new MockApiClient()}
             allResultsVisible
@@ -266,7 +266,7 @@ describe('IssueListActions', function () {
   describe('actionSelectedGroups()', function () {
     beforeEach(function () {
       jest.spyOn(SelectedGroupStore, 'deselectAll');
-      actionsWrapper = mountWithTheme(
+      actionsWrapper = enzymeRender(
         <IssueListActions
           api={new MockApiClient()}
           query=""
@@ -331,7 +331,7 @@ describe('IssueListActions', function () {
         .spyOn(SelectedGroupStore, 'getSelectedIds')
         .mockImplementation(() => new Set(['1', '2', '3']));
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <IssueListActions
           api={new MockApiClient()}
           query=""
@@ -375,7 +375,7 @@ describe('IssueListActions', function () {
       SelectedGroupStore.records = {};
       const organization = TestStubs.Organization();
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <IssueListActions
           api={new MockApiClient()}
           query=""

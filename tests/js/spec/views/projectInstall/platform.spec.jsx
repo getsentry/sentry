@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
@@ -28,7 +28,7 @@ describe('ProjectInstallPlatform', function () {
         body: {},
       });
 
-      mountWithTheme(
+      enzymeRender(
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );
@@ -51,7 +51,7 @@ describe('ProjectInstallPlatform', function () {
         statusCode: 404,
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );
@@ -77,7 +77,7 @@ describe('ProjectInstallPlatform', function () {
         body: {html: '<h1>Documentation here</h1>'},
       });
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );

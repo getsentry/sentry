@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {t} from 'sentry/locale';
@@ -32,7 +32,7 @@ describe('EventsV2 > ResultsChart', function () {
   });
 
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ResultsChart
         router={TestStubs.router()}
         organization={organization}
@@ -63,7 +63,7 @@ describe('EventsV2 > ResultsChart', function () {
   });
 
   it('does not display a chart if no y axis is selected', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ResultsChart
         router={TestStubs.router()}
         organization={organization}
@@ -85,7 +85,7 @@ describe('EventsV2 > ResultsChart', function () {
 
   it('disables other y-axis options when not in default, daily, previous period, or bar display mode', async function () {
     eventView.display = DisplayModes.WORLDMAP;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ResultsChart
         router={TestStubs.router()}
         organization={organization}
@@ -115,7 +115,7 @@ describe('EventsV2 > ResultsChart', function () {
       {field: 'count_unique(user)'},
       {field: 'equation|count() + 2'},
     ];
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ResultsChart
         router={TestStubs.router()}
         organization={organization}

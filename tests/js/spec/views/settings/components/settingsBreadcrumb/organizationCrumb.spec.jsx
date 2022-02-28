@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import OrganizationCrumb from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
@@ -25,7 +25,7 @@ describe('OrganizationCrumb', function () {
   };
 
   const createWrapper = props =>
-    mountWithTheme(
+    enzymeRender(
       <OrganizationCrumb
         organizations={organizations}
         organization={organization}

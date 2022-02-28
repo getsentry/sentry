@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import GlobalModal from 'sentry/components/globalModal';
 import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
@@ -41,7 +41,7 @@ describe('SentryAppExternalIssueActions', () => {
 
   describe('without an external issue linked', () => {
     beforeEach(() => {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <Fragment>
           <GlobalModal />
           <SentryAppExternalIssueActions
@@ -168,7 +168,7 @@ describe('SentryAppExternalIssueActions', () => {
 
   describe('with an external issue linked', () => {
     beforeEach(() => {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryAppExternalIssueActions
           group={group}
           sentryAppComponent={component}

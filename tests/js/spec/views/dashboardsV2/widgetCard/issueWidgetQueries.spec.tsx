@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
@@ -55,7 +55,7 @@ describe('IssueWidgetQueries', function () {
       widgetType: WidgetType.ISSUE,
     };
 
-    mountWithTheme(
+    render(
       <IssueWidgetQueries
         api={api}
         organization={organization}

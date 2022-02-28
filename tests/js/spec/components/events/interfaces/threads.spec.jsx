@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import Threads from 'sentry/components/events/interfaces/threads';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -50,7 +50,7 @@ describe('Threads', () => {
       ],
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationContext.Provider value={organization}>
         <Threads
           type={type}
@@ -71,7 +71,7 @@ describe('Threads', () => {
   });
 
   it('Display no frame', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationContext.Provider value={organization}>
         <Threads
           type={type}
@@ -104,7 +104,7 @@ describe('Threads', () => {
     const threadsEntry = entries[1];
 
     it('Displays the exception stacktrace', () => {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationContext.Provider value={organization}>
           <Threads
             type={threadsEntry.type}
@@ -121,7 +121,7 @@ describe('Threads', () => {
     });
 
     it('Displays the the active thread stacktrace', () => {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationContext.Provider value={organization}>
           <Threads
             type={threadsEntry.type}

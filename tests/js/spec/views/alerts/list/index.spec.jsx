@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   within,
@@ -21,7 +21,7 @@ describe('IncidentsList', function () {
   const projects2 = ['c', 'd'];
 
   const createWrapper = (props = {}) => {
-    return mountWithTheme(
+    return render(
       <IncidentsList
         params={{orgId: organization.slug}}
         location={{query: {}, search: ''}}

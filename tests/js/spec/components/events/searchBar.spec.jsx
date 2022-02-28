@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import SearchBar from 'sentry/components/events/searchBar';
@@ -80,7 +80,7 @@ describe('Events > SearchBar', function () {
       },
     });
     props.organization = initializationObj.organization;
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'fcp');
 
@@ -96,7 +96,7 @@ describe('Events > SearchBar', function () {
   it('autocompletes release semver queries', async function () {
     const initializationObj = initializeOrg();
     props.organization = initializationObj.organization;
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'release.');
 
@@ -110,7 +110,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('autocompletes has suggestions correctly', async function () {
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'has:');
 
@@ -128,7 +128,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('searches and selects an event field value', async function () {
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'gpu:');
 
@@ -155,7 +155,7 @@ describe('Events > SearchBar', function () {
   it('if `useFormWrapper` is false, pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async function () {
     const onBlur = jest.fn();
     const onSearch = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <SearchBar {...props} useFormWrapper={false} onSearch={onSearch} onBlur={onBlur} />,
       options
     );
@@ -185,7 +185,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('filters dropdown to accomodate for num characters left in query', async function () {
-    const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={5} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} maxQueryLength={5} />, options);
     await tick();
     await wrapper.update();
     wrapper.setState;
@@ -202,7 +202,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('returns zero dropdown suggestions if out of characters', async function () {
-    const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={2} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} maxQueryLength={2} />, options);
     await tick();
     await wrapper.update();
     wrapper.setState;
@@ -219,13 +219,13 @@ describe('Events > SearchBar', function () {
   });
 
   it('sets maxLength property', async function () {
-    const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={10} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} maxQueryLength={10} />, options);
     await tick();
     expect(wrapper.find('textarea').prop('maxLength')).toBe(10);
   });
 
   it('does not requery for event field values if query does not change', async function () {
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
 
@@ -242,7 +242,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('removes highlight when query is empty', async function () {
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
 
@@ -262,7 +262,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('ignores negation ("!") at the beginning of search term', async function () {
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
 
@@ -279,7 +279,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('ignores wildcard ("*") at the beginning of tag value query', async function () {
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
 
@@ -303,7 +303,7 @@ describe('Events > SearchBar', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
 
@@ -326,7 +326,7 @@ describe('Events > SearchBar', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    const wrapper = enzymeRender(<SearchBar {...props} />, options);
     await tick();
     await wrapper.update();
 

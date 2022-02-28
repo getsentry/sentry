@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import TagStore from 'sentry/stores/tagStore';
@@ -72,7 +72,7 @@ describe('IssueListSearchBar', function () {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = enzymeRender(<IssueListSearchBar {...props} />, routerContext);
       mockCursorPosition(searchBar, 5);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
@@ -96,7 +96,7 @@ describe('IssueListSearchBar', function () {
         onSearch: jest.fn(),
       };
 
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = enzymeRender(<IssueListSearchBar {...props} />, routerContext);
       mockCursorPosition(searchBar, 5);
       clickInput(searchBar);
       expect(searchBar.state.searchTerm).toEqual();
@@ -119,7 +119,7 @@ describe('IssueListSearchBar', function () {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = enzymeRender(<IssueListSearchBar {...props} />, routerContext);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(loader).not.toHaveBeenCalled();
@@ -147,7 +147,7 @@ describe('IssueListSearchBar', function () {
         tagValueLoader: loader,
         supportedTags,
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = enzymeRender(<IssueListSearchBar {...props} />, routerContext);
       mockCursorPosition(searchBar, 5);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
@@ -181,7 +181,7 @@ describe('IssueListSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const wrapper = enzymeRender(<IssueListSearchBar {...props} />, routerContext);
 
       wrapper.find('textarea').simulate('focus');
       wrapper.find('textarea').simulate('change', {target: {value: 'is:'}});
@@ -210,7 +210,7 @@ describe('IssueListSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const wrapper = enzymeRender(<IssueListSearchBar {...props} />, routerContext);
 
       wrapper.find('textarea').simulate('change', {target: {value: 'is:'}});
       await tick();
@@ -269,7 +269,7 @@ describe('IssueListSearchBar', function () {
         supportedTags,
         organization,
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = enzymeRender(<IssueListSearchBar {...props} />, routerContext);
 
       expect(searchBar.find('ActionButton[data-test-id="pin-icon"]')).toHaveLength(1);
     });
@@ -282,7 +282,7 @@ describe('IssueListSearchBar', function () {
         supportedTags,
         organization,
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = enzymeRender(<IssueListSearchBar {...props} />, routerContext);
       searchBar.find('ActionButton[data-test-id="pin-icon"]').simulate('click');
 
       expect(pinSearch).toHaveBeenLastCalledWith(
@@ -306,7 +306,7 @@ describe('IssueListSearchBar', function () {
         organization,
         savedSearch: {id: '1', isPinned: true, query: 'url:"fu"'},
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = enzymeRender(<IssueListSearchBar {...props} />, routerContext);
 
       searchBar.find('ActionButton[aria-label="Unpin this search"]').simulate('click');
 

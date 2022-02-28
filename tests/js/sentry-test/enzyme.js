@@ -11,7 +11,7 @@ import {lightTheme} from 'sentry/utils/theme';
  * As we are migrating our tests to React Testing Library,
  * please avoid using `sentry-test/enzyme/mountWithTheme` and use `sentry-test/reactTestingLibrary/mountWithTheme` instead.
  */
-export function mountWithTheme(tree, opts) {
+export function enzymeRender(tree, opts) {
   const WrappingThemeProvider = props => (
     <CacheProvider value={cache}>
       <ThemeProvider theme={lightTheme}>{props.children}</ThemeProvider>

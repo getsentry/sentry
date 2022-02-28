@@ -1,16 +1,16 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import OrganizationAuthList from 'sentry/views/settings/organizationAuth/organizationAuthList';
 
 describe('OrganizationAuthList', function () {
   it('renders with no providers', function () {
-    const wrapper = mountWithTheme(<OrganizationAuthList providerList={[]} />);
+    const wrapper = enzymeRender(<OrganizationAuthList providerList={[]} />);
 
     expect(wrapper).toSnapshot();
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}
@@ -22,7 +22,7 @@ describe('OrganizationAuthList', function () {
   });
 
   it('renders for members', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}
@@ -49,7 +49,7 @@ describe('OrganizationAuthList', function () {
         {organization: TestStubs.Organization({...require2fa, ...withSSO})},
       ]);
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
@@ -66,7 +66,7 @@ describe('OrganizationAuthList', function () {
         {organization: TestStubs.Organization({...require2fa, ...withSAML})},
       ]);
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
@@ -83,7 +83,7 @@ describe('OrganizationAuthList', function () {
         {organization: TestStubs.Organization({...require2fa})},
       ]);
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
@@ -100,7 +100,7 @@ describe('OrganizationAuthList', function () {
         {organization: TestStubs.Organization({...withSSO})},
       ]);
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
@@ -117,7 +117,7 @@ describe('OrganizationAuthList', function () {
         {organization: TestStubs.Organization({...withSAML})},
       ]);
 
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}

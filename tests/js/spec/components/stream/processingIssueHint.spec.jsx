@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ProcessingIssueHint from 'sentry/components/stream/processingIssueHint';
 
@@ -22,7 +22,7 @@ describe('ProcessingIssueHint', function () {
   describe('numIssues state', function () {
     beforeEach(() => {
       issue.numIssues = 9;
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ProcessingIssueHint issue={issue} orgId={orgId} projectId={projectId} />
       );
     });
@@ -49,7 +49,7 @@ describe('ProcessingIssueHint', function () {
   describe('issuesProcessing state', function () {
     beforeEach(() => {
       issue.issuesProcessing = 9;
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ProcessingIssueHint issue={issue} orgId={orgId} projectId={projectId} />
       );
     });
@@ -73,7 +73,7 @@ describe('ProcessingIssueHint', function () {
   describe('resolvableIssues state', function () {
     beforeEach(() => {
       issue.resolveableIssues = 9;
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ProcessingIssueHint issue={issue} orgId={orgId} projectId={projectId} />
       );
     });
@@ -100,7 +100,7 @@ describe('ProcessingIssueHint', function () {
   describe('showProject state', function () {
     beforeEach(() => {
       issue.numIssues = 9;
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <ProcessingIssueHint
           showProject
           issue={issue}

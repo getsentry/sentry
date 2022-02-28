@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import IssueListHeader from 'sentry/views/issueList/header';
@@ -53,7 +53,7 @@ describe('IssueListHeader', () => {
   });
 
   it('renders active tab with count when query matches inbox', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
@@ -68,7 +68,7 @@ describe('IssueListHeader', () => {
 
   it('renders reprocessing tab', () => {
     organization.features = ['reprocessing-v2'];
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         query=""
@@ -89,7 +89,7 @@ describe('IssueListHeader', () => {
   });
 
   it("renders all tabs inactive when query doesn't match", () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         query=""
@@ -102,7 +102,7 @@ describe('IssueListHeader', () => {
   });
 
   it('renders all tabs with counts', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         query=""
@@ -119,7 +119,7 @@ describe('IssueListHeader', () => {
   });
 
   it('renders limited counts for tabs and exact for selected', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         query=""
@@ -136,7 +136,7 @@ describe('IssueListHeader', () => {
   });
 
   it('transitions to new query on tab click', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -159,7 +159,7 @@ describe('IssueListHeader', () => {
   });
 
   it('removes inbox sort for non-inbox tabs', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -189,7 +189,7 @@ describe('IssueListHeader', () => {
   });
 
   it('changes sort for inbox tab', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -215,7 +215,7 @@ describe('IssueListHeader', () => {
   });
 
   it('tracks clicks on inbox tab', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         query={Query.UNRESOLVED}
@@ -232,7 +232,7 @@ describe('IssueListHeader', () => {
   });
 
   it('ignores clicks on inbox tab when already on inbox tab', () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         query={Query.FOR_REVIEW}
@@ -247,7 +247,7 @@ describe('IssueListHeader', () => {
   });
 
   it('should indicate when query is a custom search and display count', async () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -263,7 +263,7 @@ describe('IssueListHeader', () => {
 
   it('should display saved search name and count', async () => {
     const query = 'saved search query';
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -286,7 +286,7 @@ describe('IssueListHeader', () => {
   });
 
   it('lists saved searches in dropdown', async () => {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {Client} from 'sentry/api';
@@ -34,7 +34,7 @@ describe('Sentry Application Details', function () {
         body: [],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-public/'}} />,
         TestStubs.routerContext([{organization: org}])
       );
@@ -122,7 +122,7 @@ describe('Sentry Application Details', function () {
 
   describe('Creating a new internal Sentry App', () => {
     beforeEach(() => {
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-internal/'}} />,
         TestStubs.routerContext([{organization: org}])
       );
@@ -155,7 +155,7 @@ describe('Sentry Application Details', function () {
         body: [],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext([{organization: org}])
       );
@@ -203,7 +203,7 @@ describe('Sentry Application Details', function () {
         body: [token],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext([{organization: org}])
       );
@@ -250,7 +250,7 @@ describe('Sentry Application Details', function () {
         body: [token],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext([{organization: org}])
       );
@@ -284,7 +284,7 @@ describe('Sentry Application Details', function () {
         body: [token],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext([{organization: org}])
       );
@@ -354,7 +354,7 @@ describe('Sentry Application Details', function () {
         body: [],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext([{organization: org}])
       );
@@ -436,7 +436,7 @@ describe('Sentry Application Details', function () {
         body: [],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext([{organization: org}])
       );

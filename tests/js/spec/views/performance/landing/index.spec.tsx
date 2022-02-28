@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -94,7 +94,7 @@ describe('Performance > Landing > Index', function () {
   it('renders basic UI elements', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -108,7 +108,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -133,7 +133,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -145,7 +145,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.BACKEND},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -157,7 +157,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -170,7 +170,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -184,7 +184,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.ALL},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -226,7 +226,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD, abc: '123'},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -252,7 +252,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -280,7 +280,7 @@ describe('Performance > Landing > Index', function () {
       project: 99 as any,
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = enzymeRender(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 

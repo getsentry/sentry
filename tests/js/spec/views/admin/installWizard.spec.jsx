@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ConfigStore from 'sentry/stores/configStore';
 import InstallWizard from 'sentry/views/admin/installWizard';
@@ -15,7 +15,7 @@ describe('InstallWizard', function () {
   beforeEach(function () {});
 
   it('renders', function () {
-    const wrapper = mountWithTheme(<InstallWizard onConfigured={jest.fn()} />);
+    const wrapper = enzymeRender(<InstallWizard onConfigured={jest.fn()} />);
     expect(wrapper).toSnapshot();
   });
 
@@ -36,7 +36,7 @@ describe('InstallWizard', function () {
         },
       }),
     });
-    const wrapper = mountWithTheme(<InstallWizard onConfigured={jest.fn()} />);
+    const wrapper = enzymeRender(<InstallWizard onConfigured={jest.fn()} />);
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="false"]').prop('checked')
@@ -64,7 +64,7 @@ describe('InstallWizard', function () {
         },
       }),
     });
-    const wrapper = mountWithTheme(<InstallWizard onConfigured={jest.fn()} />);
+    const wrapper = enzymeRender(<InstallWizard onConfigured={jest.fn()} />);
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="false"]').prop('checked')

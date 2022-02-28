@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 
@@ -13,7 +13,7 @@ describe('SentryAppDetailsModal', function () {
   let sentryAppInteractionRequest;
 
   function mount() {
-    return mountWithTheme(
+    return enzymeRender(
       <SentryAppDetailsModal
         sentryApp={sentryApp}
         organization={org}

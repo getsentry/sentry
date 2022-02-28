@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 
@@ -104,7 +104,7 @@ describe('SentryAppDetailedView', function () {
         body: {},
         method: 'DELETE',
       });
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryAppDetailedView
           params={{integrationSlug: 'clickup', orgId: org.slug}}
           location={{query: {}}}
@@ -216,7 +216,7 @@ describe('SentryAppDetailedView', function () {
         [`/organizations/${org.slug}/sentry-app-installations/`, []],
       ]);
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryAppDetailedView
           params={{integrationSlug: 'my-headband-washer-289499', orgId: org.slug}}
           location={{query: {}}}
@@ -302,7 +302,7 @@ describe('SentryAppDetailedView', function () {
         method: 'POST',
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryAppDetailedView
           params={{integrationSlug: 'la-croix-monitor', orgId: org.slug}}
           location={{query: {}}}
@@ -389,7 +389,7 @@ describe('SentryAppDetailedView', function () {
         method: 'POST',
       });
 
-      wrapper = mountWithTheme(
+      wrapper = enzymeRender(
         <SentryAppDetailedView
           params={{integrationSlug: 'go-to-google', orgId: org.slug}}
           location={{query: {}}}

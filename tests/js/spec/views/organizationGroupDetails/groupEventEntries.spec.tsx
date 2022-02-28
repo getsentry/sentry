@@ -1,6 +1,6 @@
 import {act} from 'react-dom/test-utils';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Error} from 'sentry/components/events/errors';
@@ -13,7 +13,7 @@ const {organization, project} = initializeOrg();
 const api = new MockApiClient();
 
 async function renderComponent(event: Event, errors?: Array<Error>) {
-  const wrapper = mountWithTheme(
+  const wrapper = enzymeRender(
     <OrganizationContext.Provider value={organization}>
       <EventEntries
         organization={organization}

@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {enzymeRender, shallow} from 'sentry-test/enzyme';
 
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
@@ -50,7 +50,7 @@ describe('groupEvents', function () {
   });
 
   it('renders', function () {
-    const component = mountWithTheme(
+    const component = enzymeRender(
       <OrganizationGroupEvents
         api={new MockApiClient()}
         group={TestStubs.Group()}

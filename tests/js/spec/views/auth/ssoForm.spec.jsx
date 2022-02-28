@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import SsoForm from 'sentry/views/auth/ssoForm';
 
@@ -23,7 +23,7 @@ describe('SsoForm', function () {
       serverHostname: 'testserver',
     };
 
-    const wrapper = mountWithTheme(<SsoForm api={api} authConfig={authConfig} />);
+    const wrapper = enzymeRender(<SsoForm api={api} authConfig={authConfig} />);
 
     expect(wrapper.find('.help-block').text()).toBe(
       'Your ID is the slug after the hostname. e.g. testserver/acme is acme.'
@@ -42,7 +42,7 @@ describe('SsoForm', function () {
 
     const authConfig = {};
 
-    const wrapper = mountWithTheme(<SsoForm api={api} authConfig={authConfig} />);
+    const wrapper = enzymeRender(<SsoForm api={api} authConfig={authConfig} />);
     doSso(wrapper, mockRequest);
 
     await tick();
@@ -62,7 +62,7 @@ describe('SsoForm', function () {
     });
 
     const authConfig = {};
-    const wrapper = mountWithTheme(<SsoForm api={api} authConfig={authConfig} />);
+    const wrapper = enzymeRender(<SsoForm api={api} authConfig={authConfig} />);
 
     doSso(wrapper, mockRequest);
 

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 import GroupEventDetailsContainer from 'sentry/views/organizationGroupDetails/groupEventDetails';
@@ -20,7 +20,7 @@ describe('groupEventDetailsContainer', () => {
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
     });
-    const wrapper = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
+    const wrapper = enzymeRender(<GroupEventDetailsContainer organization={org} />);
     // should be in loading state
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     await tick();
@@ -30,8 +30,8 @@ describe('groupEventDetailsContainer', () => {
     expect(wrapper.find('LoadingIndicator').exists()).toBe(false);
     expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');
 
-    // remountWithThemeing will not rerender
-    const wrapper2 = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
+    // reenzymeRendering will not rerender
+    const wrapper2 = enzymeRender(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper2.find('LoadingIndicator').exists()).toBe(false);
     expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');
     expect(environmentsCall).toHaveBeenCalledTimes(1);
@@ -42,7 +42,7 @@ describe('groupEventDetailsContainer', () => {
       url: `/organizations/${org.slug}/environments/`,
       statusCode: 400,
     });
-    const wrapper = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
+    const wrapper = enzymeRender(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     await tick();
     await tick();
@@ -57,7 +57,7 @@ describe('groupEventDetailsContainer', () => {
       url: `/organizations/${org.slug}/environments/`,
       body: null,
     });
-    const wrapper = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
+    const wrapper = enzymeRender(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     await tick();
     await tick();
@@ -77,7 +77,7 @@ describe('groupEventDetailsContainer', () => {
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
     });
-    const wrapper = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
+    const wrapper = enzymeRender(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     wrapper.unmount();
     expect(unsubscribeMock).toHaveBeenCalled();

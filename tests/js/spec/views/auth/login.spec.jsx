@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import Login from 'sentry/views/auth/login';
 
@@ -13,7 +13,7 @@ describe('Login', function () {
       body: {},
     });
 
-    const wrapper = mountWithTheme(<Login />);
+    const wrapper = enzymeRender(<Login />);
 
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
   });
@@ -24,7 +24,7 @@ describe('Login', function () {
       statusCode: 500,
     });
 
-    const wrapper = mountWithTheme(<Login />);
+    const wrapper = enzymeRender(<Login />);
 
     await tick();
     wrapper.update();
@@ -39,7 +39,7 @@ describe('Login', function () {
       body: {canRegister: false},
     });
 
-    const wrapper = mountWithTheme(<Login />);
+    const wrapper = enzymeRender(<Login />);
 
     expect(wrapper.find('AuthNavTabs a').filter({children: 'Register'}).exists()).toBe(
       false
@@ -52,7 +52,7 @@ describe('Login', function () {
       body: {canRegister: true},
     });
 
-    const wrapper = mountWithTheme(<Login />);
+    const wrapper = enzymeRender(<Login />);
 
     await tick();
     wrapper.update();
@@ -68,7 +68,7 @@ describe('Login', function () {
       body: {canRegister: true},
     });
 
-    const wrapper = mountWithTheme(<Login />);
+    const wrapper = enzymeRender(<Login />);
 
     await tick();
     wrapper.update();

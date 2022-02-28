@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import IntegrationRow from 'sentry/views/organizationIntegrations/integrationRow';
@@ -12,7 +12,7 @@ describe('IntegrationRow', function () {
 
   describe('SentryApp', function () {
     it('is an internal SentryApp', async function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <IntegrationRow
           organization={org}
           type="sentryApp"
@@ -38,7 +38,7 @@ describe('IntegrationRow', function () {
     });
 
     it('is a published SentryApp', async function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <IntegrationRow
           organization={org}
           type="sentryApp"
@@ -61,7 +61,7 @@ describe('IntegrationRow', function () {
   });
   describe('First Party Integration', function () {
     it('has been installed (1 configuration)', async function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <IntegrationRow
           organization={org}
           type="firstParty"
@@ -84,7 +84,7 @@ describe('IntegrationRow', function () {
     });
 
     it('has been installed (3 configurations)', async function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <IntegrationRow
           organization={org}
           type="firstParty"
@@ -107,7 +107,7 @@ describe('IntegrationRow', function () {
     });
 
     it('has not been installed', async function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <IntegrationRow
           organization={org}
           type="firstParty"
@@ -131,7 +131,7 @@ describe('IntegrationRow', function () {
   });
   describe('Plugin', function () {
     it('has been installed (1 project)', async function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <IntegrationRow
           organization={org}
           type="plugin"
@@ -154,7 +154,7 @@ describe('IntegrationRow', function () {
     });
 
     it('has been installed (3 projects)', async function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <IntegrationRow
           organization={org}
           type="plugin"
@@ -177,7 +177,7 @@ describe('IntegrationRow', function () {
     });
 
     it('has not been installed', async function () {
-      const wrapper = mountWithTheme(
+      const wrapper = enzymeRender(
         <IntegrationRow
           organization={org}
           type="plugin"

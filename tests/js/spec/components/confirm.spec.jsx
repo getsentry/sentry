@@ -1,4 +1,4 @@
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {enzymeRender, shallow} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import Confirm from 'sentry/components/confirm';
@@ -17,7 +17,7 @@ describe('Confirm', function () {
 
   it('renders custom confirm button & callbacks work', async function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Confirm
         message="Are you sure?"
         onConfirm={mock}
@@ -42,7 +42,7 @@ describe('Confirm', function () {
   });
   it('renders custom cancel button & callbacks work', async function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Confirm
         message="Are you sure?"
         onCancel={mock}
@@ -82,7 +82,7 @@ describe('Confirm', function () {
 
   it('clicks Confirm in modal and calls `onConfirm` callback', async function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
       </Confirm>

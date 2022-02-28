@@ -1,6 +1,6 @@
 import * as qs from 'query-string';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import AwsLambdaCloudformation from 'sentry/views/integrationPipeline/awsLambdaCloudformation';
@@ -13,7 +13,7 @@ describe('AwsLambdaCloudformation', () => {
     window.location.assign = windowAssignMock;
     window.localStorage.setItem('AWS_EXTERNAL_ID', 'my-id');
 
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <AwsLambdaCloudformation
         baseCloudformationUrl="https://console.aws.amazon.com/cloudformation/home#/stacks/create/review"
         templateUrl="https://example.com/file.json"

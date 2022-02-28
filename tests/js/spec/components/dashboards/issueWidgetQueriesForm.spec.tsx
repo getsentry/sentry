@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -82,7 +82,7 @@ describe('IssueWidgetQueriesForm', function () {
       },
     };
 
-    mountWithTheme(
+    render(
       <IssueWidgetQueriesForm
         api={api}
         organization={organization}

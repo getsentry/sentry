@@ -1,4 +1,4 @@
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {enzymeRender, shallow} from 'sentry-test/enzyme';
 
 import MemberBadge from 'sentry/components/idBadge/memberBadge';
 
@@ -9,7 +9,7 @@ describe('MemberBadge', function () {
   });
 
   it('renders with link when member and orgId are supplied', function () {
-    const wrapper = mountWithTheme(<MemberBadge member={member} orgId="orgId" />);
+    const wrapper = enzymeRender(<MemberBadge member={member} orgId="orgId" />);
 
     expect(wrapper.find('StyledName').prop('children')).toBe('Foo Bar');
     expect(wrapper.find('StyledEmail').prop('children')).toBe('foo@example.com');
@@ -18,7 +18,7 @@ describe('MemberBadge', function () {
   });
 
   it('does not use a link when useLink = false', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <MemberBadge member={member} useLink={false} orgId="orgId" />
     );
 
@@ -26,7 +26,7 @@ describe('MemberBadge', function () {
   });
 
   it('does not use a link when orgId = null', function () {
-    const wrapper = mountWithTheme(<MemberBadge member={member} useLink />);
+    const wrapper = enzymeRender(<MemberBadge member={member} useLink />);
 
     expect(wrapper.find('StyledName Link')).toHaveLength(0);
   });
@@ -73,13 +73,13 @@ describe('MemberBadge', function () {
   });
 
   it('can hide email address', function () {
-    const wrapper = mountWithTheme(<MemberBadge member={member} hideEmail />);
+    const wrapper = enzymeRender(<MemberBadge member={member} hideEmail />);
 
     expect(wrapper.find('StyledEmail')).toHaveLength(0);
   });
 
   it('renders when a member without a user to passed to member', function () {
-    const wrapper = mountWithTheme(<MemberBadge member={{...member, user: null}} />);
+    const wrapper = enzymeRender(<MemberBadge member={{...member, user: null}} />);
 
     expect(wrapper.find('StyledName').prop('children')).toBe('Sentry 1 Name');
     expect(wrapper.find('StyledAvatar')).toHaveLength(1);

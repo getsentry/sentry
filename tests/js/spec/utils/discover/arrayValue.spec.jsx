@@ -1,10 +1,10 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 
 describe('Discover > ArrayValue', function () {
   it('renders an expand link', function () {
-    mountWithTheme(<ArrayValue value={['one', 'two', 'three']} />);
+    render(<ArrayValue value={['one', 'two', 'three']} />);
 
     // Should have a button
     const button = screen.getByRole('button');
@@ -15,7 +15,7 @@ describe('Discover > ArrayValue', function () {
   });
 
   it('renders all elements when expanded', function () {
-    mountWithTheme(<ArrayValue value={['one', 'two', 'three']} />);
+    render(<ArrayValue value={['one', 'two', 'three']} />);
 
     // Should have a button
     let button = screen.getByRole('button');
@@ -32,14 +32,14 @@ describe('Discover > ArrayValue', function () {
   });
 
   it('hides toggle on 1 element', function () {
-    mountWithTheme(<ArrayValue value={['one']} />);
+    render(<ArrayValue value={['one']} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.getByText('one')).toBeInTheDocument();
   });
 
   it('hides toggle on 0 elements', function () {
-    mountWithTheme(<ArrayValue value={[]} />);
+    render(<ArrayValue value={[]} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });

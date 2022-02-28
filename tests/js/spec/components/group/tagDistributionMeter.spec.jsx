@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 
@@ -11,7 +11,7 @@ describe('TagDistributionMeter', function () {
   beforeEach(function () {
     organization = TestStubs.Organization();
 
-    element = mountWithTheme(
+    element = enzymeRender(
       <GroupTagDistributionMeter
         key="element"
         tag="browser"
@@ -23,7 +23,7 @@ describe('TagDistributionMeter', function () {
       />
     );
 
-    emptyElement = mountWithTheme(
+    emptyElement = enzymeRender(
       <GroupTagDistributionMeter
         key="emptyElement"
         tag="browser"

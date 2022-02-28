@@ -1,4 +1,4 @@
-import {cleanup, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventDetails from 'sentry/views/performance/transactionDetails';
@@ -19,7 +19,7 @@ describe('EventDetails', () => {
     const event = TestStubs.Event();
     const routerContext = TestStubs.routerContext([]);
 
-    mountWithTheme(
+    render(
       <EventDetails
         organization={organization}
         params={{orgId: organization.slug, eventSlug: `${project.slug}:${event.id}`}}
@@ -39,7 +39,7 @@ describe('EventDetails', () => {
     const event = TestStubs.Event();
     const routerContext = TestStubs.routerContext([]);
 
-    mountWithTheme(
+    render(
       <EventDetails
         organization={organization}
         params={{orgId: organization.slug, eventSlug: `${project.slug}:${event.id}`}}

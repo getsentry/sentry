@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {FormState, GenericField} from 'sentry/components/deprecatedforms';
 
 describe('GenericField', function () {
   it('renders text as TextInput', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <GenericField
         formState={FormState.READY}
         config={{
@@ -18,7 +18,7 @@ describe('GenericField', function () {
   });
 
   it('renders text with choices as SelectCreatableField', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <GenericField
         formState={FormState.READY}
         config={{

@@ -1,5 +1,5 @@
 import {createListeners} from 'sentry-test/createListeners';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import EditableText from 'sentry/components/editableText';
@@ -7,7 +7,7 @@ import EditableText from 'sentry/components/editableText';
 const currentValue = 'foo';
 
 function renderedComponent(onChange: () => void, newValue = 'bar', maxLength?: number) {
-  const wrapper = mountWithTheme(
+  const wrapper = enzymeRender(
     <EditableText value={currentValue} onChange={onChange} maxLength={maxLength} />
   );
 
@@ -102,7 +102,7 @@ describe('EditableText', function () {
   it('displays a disabled value', function () {
     const handleChange = jest.fn();
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <EditableText value={currentValue} onChange={handleChange} isDisabled />
     );
 

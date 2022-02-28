@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'sentry/utils/discover/eventView';
@@ -119,7 +119,7 @@ describe('Transaction Summary Content', function () {
     } = initialize(project, {});
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         location={location}
         organization={organization}
@@ -165,7 +165,7 @@ describe('Transaction Summary Content', function () {
     } = initialize(project, {}, ['performance-chart-interpolation']);
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <WrappedComponent
         location={location}
         organization={organization}

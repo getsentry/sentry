@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
@@ -34,7 +34,7 @@ describe('TwoFactorRequired', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
@@ -45,7 +45,7 @@ describe('TwoFactorRequired', function () {
   });
 
   it('does not render when 2FA is disabled and no pendingInvite cookie', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
@@ -61,7 +61,7 @@ describe('TwoFactorRequired', function () {
       body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
@@ -87,7 +87,7 @@ describe('TwoFactorRequired', function () {
       body: TestStubs.Organizations({require2FA: true}),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
@@ -105,7 +105,7 @@ describe('TwoFactorRequired', function () {
       body: TestStubs.Organizations({require2FA: true}),
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,

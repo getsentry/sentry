@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import DebugImageDetails, {
@@ -8,7 +8,7 @@ import {getFileName} from 'sentry/components/events/interfaces/debugMeta-v2/util
 import GlobalModal from 'sentry/components/globalModal';
 
 describe('Debug Meta - Image Details Candidates', function () {
-  let wrapper: ReturnType<typeof mountWithTheme>;
+  let wrapper: ReturnType<typeof enzymeRender>;
   const projSlug = 'foo';
   const organization = TestStubs.Organization();
   const event = TestStubs.Event();
@@ -30,7 +30,7 @@ describe('Debug Meta - Image Details Candidates', function () {
       body: [],
     });
 
-    wrapper = mountWithTheme(<GlobalModal />);
+    wrapper = enzymeRender(<GlobalModal />);
 
     openModal(
       modalProps => (

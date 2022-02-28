@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ProjectPluginRow from 'sentry/views/settings/projectPlugins/projectPluginRow';
 
@@ -11,7 +11,7 @@ describe('ProjectPluginRow', function () {
   const routerContext = TestStubs.routerContext([{organization: org, project}]);
 
   it('renders', function () {
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectPluginRow {...params} {...plugin} project={project} />,
       routerContext
     );
@@ -21,7 +21,7 @@ describe('ProjectPluginRow', function () {
 
   it('calls `onChange` when clicked', function () {
     const onChange = jest.fn();
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
       routerContext
     );
@@ -33,7 +33,7 @@ describe('ProjectPluginRow', function () {
 
   it('can not enable/disable or configure plugin without `project:write`', function () {
     const onChange = jest.fn();
-    wrapper = mountWithTheme(
+    wrapper = enzymeRender(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );

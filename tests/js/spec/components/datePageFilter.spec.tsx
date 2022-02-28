@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -31,7 +31,7 @@ describe('DatePageFilter', function () {
   );
 
   it('can change period', async function () {
-    mountWithTheme(<DatePageFilter />, {
+    render(<DatePageFilter />, {
       context: routerContext,
       organization,
     });
@@ -61,7 +61,7 @@ describe('DatePageFilter', function () {
   });
 
   it('can pin datetime', async function () {
-    mountWithTheme(<DatePageFilter />, {
+    render(<DatePageFilter />, {
       context: routerContext,
       organization,
     });

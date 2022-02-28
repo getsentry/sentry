@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import ConfirmDelete from 'sentry/components/confirmDelete';
@@ -6,7 +6,7 @@ import ConfirmDelete from 'sentry/components/confirmDelete';
 describe('ConfirmDelete', function () {
   it('renders', async function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>
@@ -21,7 +21,7 @@ describe('ConfirmDelete', function () {
 
   it('confirm button is disabled and bypass prop is false when modal opens', async function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>
@@ -37,7 +37,7 @@ describe('ConfirmDelete', function () {
 
   it('confirm button stays disabled with non-matching input', async function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>
@@ -52,7 +52,7 @@ describe('ConfirmDelete', function () {
 
   it('confirm button is enabled when confirm input matches', async function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import AcceptProjectTransfer from 'sentry/views/acceptProjectTransfer';
 
@@ -26,7 +26,7 @@ describe('AcceptProjectTransfer', function () {
   });
 
   it('renders', function () {
-    mountWithTheme(
+    enzymeRender(
       <AcceptProjectTransfer
         location={{
           pathname: 'endpoint',
@@ -39,7 +39,7 @@ describe('AcceptProjectTransfer', function () {
   });
 
   it('submits', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <AcceptProjectTransfer
         location={{
           pathname: 'endpoint',

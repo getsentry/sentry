@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import CrashContent from 'sentry/components/events/interfaces/crashContent';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
@@ -12,7 +12,7 @@ describe('CrashContent', function () {
   const proxiedExc = withMeta(exc);
 
   it('renders with meta data', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <OrganizationContext.Provider value={organization}>
         <CrashContent
           projectId="sentry"

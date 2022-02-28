@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
@@ -64,7 +64,7 @@ describe('TraceLiteQuery', function () {
   });
 
   it('fetches data on mount and passes the event id', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QuickTraceQuery
         event={event}
         api={api}
@@ -83,7 +83,7 @@ describe('TraceLiteQuery', function () {
   });
 
   it('doesnt fetches meta when not needed', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QuickTraceQuery
         withMeta={false}
         event={event}
@@ -104,7 +104,7 @@ describe('TraceLiteQuery', function () {
   });
 
   it('uses lite results when it cannot find current event in full results', async function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QuickTraceQuery
         withMeta={false}
         event={event}
@@ -141,7 +141,7 @@ describe('TraceLiteQuery', function () {
       },
     });
     event.contexts.trace.trace_id = `0${traceId}`;
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <QuickTraceQuery
         withMeta={false}
         event={event}

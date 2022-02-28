@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ModalActions from 'sentry/actions/modalActions';
 import ConfigStore from 'sentry/stores/configStore';
@@ -24,7 +24,7 @@ const organization = TestStubs.Organization({
 });
 
 function renderComponent(event?: Event) {
-  return mountWithTheme(
+  return enzymeRender(
     <GroupActions
       group={group}
       project={project}

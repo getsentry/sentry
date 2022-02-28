@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enzymeRender} from 'sentry-test/enzyme';
 
 import ProjectSelector from 'sentry/components/organizations/projectSelector';
 
@@ -40,7 +40,7 @@ describe('ProjectSelector', function () {
   };
 
   it('should show empty message with no projects button, when no projects, and has no "project:write" access', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSelector
         {...props}
         multiProjects={[]}
@@ -61,7 +61,7 @@ describe('ProjectSelector', function () {
   });
 
   it('should show empty message and create project button, when no projects and has "project:write" access', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSelector
         {...props}
         multiProjects={[]}
@@ -82,14 +82,14 @@ describe('ProjectSelector', function () {
   });
 
   it('lists projects and has filter', function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
+    const wrapper = enzymeRender(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 
   it('can filter projects by project name', function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
+    const wrapper = enzymeRender(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'TEST'}});
@@ -100,7 +100,7 @@ describe('ProjectSelector', function () {
   });
 
   it('does not close dropdown when input is clicked', async function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
+    const wrapper = enzymeRender(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('click');
@@ -110,7 +110,7 @@ describe('ProjectSelector', function () {
   });
 
   it('closes dropdown when project is selected', function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
+    const wrapper = enzymeRender(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     // Select first project
@@ -120,7 +120,7 @@ describe('ProjectSelector', function () {
 
   it('calls callback when project is selected', function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSelector {...props} onSelect={mock} />,
       routerContext
     );
@@ -137,7 +137,7 @@ describe('ProjectSelector', function () {
   });
 
   it('shows empty filter message when filtering has no results', function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
+    const wrapper = enzymeRender(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'Foo'}});
@@ -147,7 +147,7 @@ describe('ProjectSelector', function () {
   it('does not call `onSelect` when using multi select', function () {
     const mock = jest.fn();
     const onMultiSelectMock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSelector
         {...props}
         multi
@@ -170,7 +170,7 @@ describe('ProjectSelector', function () {
     const project = TestStubs.Project();
     const multiProjectProps = {...props, multiProjects: [project]};
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSelector {...multiProjectProps} />,
       routerContext
     );
@@ -188,7 +188,7 @@ describe('ProjectSelector', function () {
       nonMemberProjects: [nonMemberProject],
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSelector {...multiProjectProps} />,
       routerContext
     );
@@ -210,7 +210,7 @@ describe('ProjectSelector', function () {
       selectedProjects: [],
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSelector {...multiProjectProps} />,
       routerContext
     );
@@ -280,7 +280,7 @@ describe('ProjectSelector', function () {
       ],
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSelector {...multiProjectProps} />,
       routerContext
     );
@@ -344,7 +344,7 @@ describe('ProjectSelector', function () {
       selectedProjects: [projectCSelected, projectDSelectedBookmarked],
     };
 
-    const wrapper = mountWithTheme(
+    const wrapper = enzymeRender(
       <ProjectSelector {...multiProjectProps} />,
       routerContext
     );
