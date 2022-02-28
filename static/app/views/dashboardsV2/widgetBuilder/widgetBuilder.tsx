@@ -946,9 +946,11 @@ const BuildSteps = styled(List)`
 `;
 
 const Body = styled(Layout.Body)`
-  gap: 0 !important;
-  padding: 0 !important;
   grid-template-rows: 1fr;
+  && {
+    gap: 0;
+    padding: 0;
+  }
 `;
 
 const Main = styled(Layout.Main)`
