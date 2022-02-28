@@ -20,7 +20,7 @@ from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.types import SCIMMeta, SerializedAvatarFields
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
         ExternalActorResponse,
         OrganizationSerializerResponse,
         ProjectSerializerResponse,
+        SCIMMeta,
     )
 
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
