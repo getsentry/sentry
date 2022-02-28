@@ -54,11 +54,13 @@ function makeAllTheProviders({context, organization}: ProviderOptions) {
 }
 
 /**
- * Migrating from enzyme? Pass context via the options object
- * Before
- * mountWithTheme(<Something />, routerContext);
- * After
- * mountWithTheme(<Something />, {context: routerContext});
+ * Migrating from enzyme?
+ * As a rule of thumb, try avoiding unnecessary context and just mount your component.
+ * If it works, then congratulations, you dont need anything else.
+ * mountWithTheme(<TestedComponent />);
+ *
+ * If your component requires routerContext or organization to render, you can pass it via context options argument.
+ * mountWithTheme(<TestedComponent />, {context: routerContext, organization});
  */
 function mountWithTheme(ui: React.ReactElement, options?: Options) {
   const {context, organization, ...otherOptions} = options ?? {};
