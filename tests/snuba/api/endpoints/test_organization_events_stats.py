@@ -902,6 +902,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
     endpoint = "sentry-api-0-organization-events-stats"
+    METRIC_STRINGS = ["foo_transaction"]
 
     def setUp(self):
         super().setUp()
@@ -949,6 +950,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
+            assert response.data["mep"]
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -975,7 +977,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 2
-            print(data)
+            assert response.data["mep"]
 
             assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
@@ -1002,6 +1004,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
+            assert response.data["mep"]
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -1030,6 +1033,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
+            assert response.data["mep"]
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -1057,6 +1061,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 6
+        assert response.data["mep"]
         assert [attrs for time, attrs in response.data["data"]] == [
             [{"count": 0.5}],
             [{"count": 0.5}],
@@ -1086,7 +1091,9 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         lcp = response.data["p75(measurements.lcp)"]
         duration = response.data["p75(transaction.duration)"]
         assert len(duration["data"]) == 6
+        assert duration["mep"]
         assert len(lcp["data"]) == 6
+        assert lcp["mep"]
         for item in duration["data"]:
             assert item[1][0]["count"] == 111
         for item in lcp["data"]:
@@ -1120,7 +1127,36 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             },
         )
         assert response.status_code == 200, response.content
+        assert response.data["mep"]
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 1}]]
+
+    def test_non_mep_query_fallsback(self):
+        def get_mep(query):
+            response = self.do_request(
+                data={
+                    "project": self.project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "query": query,
+                    "yAxis": ["epm()"],
+                    "referrer": self.referrer,
+                },
+            )
+            assert response.status_code == 200, response.content
+            return response.data["mep"]
+
+        assert get_mep(""), "empty query"
+        assert get_mep("event.type:transaction"), "event type transaction"
+        assert not get_mep("event.type:error"), "event type error"
+        assert not get_mep("transaction.duration:<15min"), "outlier filter"
+        assert get_mep("epm():>0.01"), "throughput filter"
+        assert not get_mep(
+            "event.type:transaction OR event.type:error"
+        ), "boolean with non-mep filter"
+        assert get_mep(
+            "event.type:transaction OR transaction:foo_transaction"
+        ), "boolean with mep filter"
 
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):

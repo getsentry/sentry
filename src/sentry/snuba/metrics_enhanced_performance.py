@@ -50,8 +50,9 @@ def timeseries_query(
                 if zerofill_results
                 else result["data"]
             )
-            # TODO: include meta in the response
-            return SnubaTSResult({"data": result["data"]}, params["start"], params["end"], rollup)
+            return SnubaTSResult(
+                {"data": result["data"], "mep": True}, params["start"], params["end"], rollup
+            )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
             raise error
