@@ -3,7 +3,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import DropdownAutoCompleteMenu from 'sentry/components/dropdownAutoComplete/menu';
 
 describe('DropdownAutoCompleteMenu', function () {
-  const routerContext = TestStubs.routerContext();
   const items = [
     {
       value: 'apple',
@@ -22,8 +21,7 @@ describe('DropdownAutoCompleteMenu', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu isOpen items={items}>
         {() => 'Click Me!'}
-      </DropdownAutoCompleteMenu>,
-      routerContext
+      </DropdownAutoCompleteMenu>
     );
     expect(wrapper).toSnapshot();
   });
@@ -51,8 +49,7 @@ describe('DropdownAutoCompleteMenu', function () {
         ]}
       >
         {() => 'Click Me!'}
-      </DropdownAutoCompleteMenu>,
-      routerContext
+      </DropdownAutoCompleteMenu>
     );
     expect(wrapper).toSnapshot();
   });
@@ -83,8 +80,7 @@ describe('DropdownAutoCompleteMenu', function () {
         onSelect={mock}
       >
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-      </DropdownAutoCompleteMenu>,
-      routerContext
+      </DropdownAutoCompleteMenu>
     );
 
     wrapper.find('AutoCompleteItem').last().simulate('click');
@@ -106,8 +102,7 @@ describe('DropdownAutoCompleteMenu', function () {
         isOpen
       >
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-      </DropdownAutoCompleteMenu>,
-      routerContext
+      </DropdownAutoCompleteMenu>
     );
 
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
@@ -121,8 +116,7 @@ describe('DropdownAutoCompleteMenu', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu isOpen items={items} emptyMessage="No items!">
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-      </DropdownAutoCompleteMenu>,
-      routerContext
+      </DropdownAutoCompleteMenu>
     );
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});
@@ -139,8 +133,7 @@ describe('DropdownAutoCompleteMenu', function () {
         noResultsMessage="No search results"
       >
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-      </DropdownAutoCompleteMenu>,
-      routerContext
+      </DropdownAutoCompleteMenu>
     );
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});
@@ -151,8 +144,7 @@ describe('DropdownAutoCompleteMenu', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu isOpen items={items} hideInput>
         {() => 'Click Me!'}
-      </DropdownAutoCompleteMenu>,
-      routerContext
+      </DropdownAutoCompleteMenu>
     );
 
     expect(wrapper.find('StyledInput')).toHaveLength(0);
@@ -162,8 +154,7 @@ describe('DropdownAutoCompleteMenu', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu isOpen items={items} filterValue="Apple">
         {() => 'Click Me!'}
-      </DropdownAutoCompleteMenu>,
-      routerContext
+      </DropdownAutoCompleteMenu>
     );
     wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});
     expect(wrapper.find('EmptyMessage')).toHaveLength(0);

@@ -3,23 +3,18 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
 describe('UserFeedbackEmpty', function () {
-  const routerContext = TestStubs.routerContext();
   const project = TestStubs.Project({id: '1'});
   const projectWithReports = TestStubs.Project({id: '2', hasUserReports: true});
   const projectWithoutReports = TestStubs.Project({id: '3'});
   const organization = TestStubs.Organization();
 
   it('renders empty', function () {
-    mountWithTheme(
-      <UserFeedbackEmpty projects={[]} organization={organization} />,
-      routerContext
-    );
+    mountWithTheme(<UserFeedbackEmpty projects={[]} organization={organization} />);
   });
 
   it('renders landing for project with no user feedback', function () {
     const wrapper = mountWithTheme(
-      <UserFeedbackEmpty projects={[project]} organization={organization} />,
-      routerContext
+      <UserFeedbackEmpty projects={[project]} organization={organization} />
     );
 
     expect(wrapper.find('OnboardingPanel').exists()).toBe(true);
@@ -27,8 +22,7 @@ describe('UserFeedbackEmpty', function () {
 
   it('renders warning for project with any user feedback', function () {
     const wrapper = mountWithTheme(
-      <UserFeedbackEmpty projects={[projectWithReports]} organization={organization} />,
-      routerContext
+      <UserFeedbackEmpty projects={[projectWithReports]} organization={organization} />
     );
 
     expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
@@ -39,8 +33,7 @@ describe('UserFeedbackEmpty', function () {
       <UserFeedbackEmpty
         projects={[project, projectWithReports]}
         organization={organization}
-      />,
-      routerContext
+      />
     );
 
     expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
@@ -52,8 +45,7 @@ describe('UserFeedbackEmpty', function () {
         projects={[project, projectWithReports]}
         organization={organization}
         projectIds={[projectWithReports.id]}
-      />,
-      routerContext
+      />
     );
 
     expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
@@ -65,8 +57,7 @@ describe('UserFeedbackEmpty', function () {
         projects={[project, projectWithReports]}
         organization={organization}
         projectIds={[project.id]}
-      />,
-      routerContext
+      />
     );
 
     expect(wrapper.find('OnboardingPanel').exists()).toBe(true);
@@ -78,8 +69,7 @@ describe('UserFeedbackEmpty', function () {
         projects={[project, projectWithReports]}
         organization={organization}
         projectIds={[project.id, projectWithReports.id]}
-      />,
-      routerContext
+      />
     );
 
     expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
@@ -91,8 +81,7 @@ describe('UserFeedbackEmpty', function () {
         projects={[project, projectWithoutReports]}
         organization={organization}
         projectIds={[project.id, projectWithoutReports.id]}
-      />,
-      routerContext
+      />
     );
 
     expect(wrapper.find('UserFeedbackEmpty').exists()).toBe(true);

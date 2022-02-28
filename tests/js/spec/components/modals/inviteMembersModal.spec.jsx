@@ -41,8 +41,7 @@ describe('InviteMembersModal', function () {
 
   it('renders', async function () {
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={org} />
     );
 
     // Starts with one invite row
@@ -57,8 +56,7 @@ describe('InviteMembersModal', function () {
   it('renders without organization.access', async function () {
     const organization = TestStubs.Organization({access: undefined});
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={organization} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={organization} />
     );
 
     expect(wrapper.find('StyledInviteRow').exists()).toBe(true);
@@ -66,8 +64,7 @@ describe('InviteMembersModal', function () {
 
   it('can add a second row', async function () {
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={org} />
     );
 
     expect(wrapper.find('StyledInviteRow')).toHaveLength(1);
@@ -77,8 +74,7 @@ describe('InviteMembersModal', function () {
 
   it('errors on duplicate emails', async function () {
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={org} />
     );
 
     wrapper.find('AddButton').simulate('click');
@@ -103,8 +99,7 @@ describe('InviteMembersModal', function () {
 
   it('indicates the total invites on the invite button', function () {
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={org} />
     );
 
     wrapper
@@ -123,8 +118,7 @@ describe('InviteMembersModal', function () {
     const close = jest.fn();
 
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} closeModal={close} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={org} closeModal={close} />
     );
 
     wrapper.find('Button[data-test-id="cancel"]').simulate('click');
@@ -138,8 +132,7 @@ describe('InviteMembersModal', function () {
     });
 
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={org} />
     );
 
     wrapper.find('AddButton').simulate('click');
@@ -212,8 +205,7 @@ describe('InviteMembersModal', function () {
     });
 
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={org} />
     );
 
     const inviteRowProps = wrapper.find('StyledInviteRow').first().props();
@@ -245,8 +237,7 @@ describe('InviteMembersModal', function () {
     const initialData = [{emails: new Set([initialEmail])}];
 
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />
     );
 
     expect(wrapper.find('MultiValue').first().text().includes(initialEmail)).toBe(true);
@@ -278,8 +269,7 @@ describe('InviteMembersModal', function () {
     ];
 
     const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />,
-      TestStubs.routerContext()
+      <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />
     );
 
     expect(
@@ -317,8 +307,7 @@ describe('InviteMembersModal', function () {
   describe('member invite request mode', function () {
     it('has adjusted wording', function () {
       const wrapper = mountWithTheme(
-        <InviteMembersModal {...modalProps} organization={noWriteOrg} />,
-        TestStubs.routerContext()
+        <InviteMembersModal {...modalProps} organization={noWriteOrg} />
       );
 
       expect(wrapper.find('Button[data-test-id="send-invites"]').text()).toBe(
@@ -335,8 +324,7 @@ describe('InviteMembersModal', function () {
       });
 
       const wrapper = mountWithTheme(
-        <InviteMembersModal {...modalProps} organization={noWriteOrg} />,
-        TestStubs.routerContext()
+        <InviteMembersModal {...modalProps} organization={noWriteOrg} />
       );
 
       const inviteRowProps = wrapper.find('StyledInviteRow').first().props();

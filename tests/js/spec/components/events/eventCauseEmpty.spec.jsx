@@ -9,7 +9,7 @@ jest.mock('sentry/utils/analytics');
 
 describe('EventCauseEmpty', function () {
   let putMock;
-  const routerContext = TestStubs.routerContext();
+
   const organization = TestStubs.Organization();
   const project = TestStubs.Project({
     platform: 'javascript',
@@ -39,8 +39,7 @@ describe('EventCauseEmpty', function () {
 
   it('renders', async function () {
     const wrapper = mountWithTheme(
-      <EventCauseEmpty event={event} organization={organization} project={project} />,
-      routerContext
+      <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
     await tick();
@@ -68,8 +67,7 @@ describe('EventCauseEmpty', function () {
       eventID: 'ABCDEFABCDEFABCDEFABCDEFABCDEFAB',
     };
     const wrapper = mountWithTheme(
-      <EventCauseEmpty event={newEvent} organization={organization} project={project} />,
-      routerContext
+      <EventCauseEmpty event={newEvent} organization={organization} project={project} />
     );
 
     await tick();
@@ -81,8 +79,7 @@ describe('EventCauseEmpty', function () {
 
   it('can be snoozed', async function () {
     const wrapper = mountWithTheme(
-      <EventCauseEmpty event={event} organization={organization} project={project} />,
-      routerContext
+      <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
     await tick();
@@ -127,8 +124,7 @@ describe('EventCauseEmpty', function () {
     });
 
     const wrapper = mountWithTheme(
-      <EventCauseEmpty event={event} organization={organization} project={project} />,
-      routerContext
+      <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
     await tick();
@@ -147,8 +143,7 @@ describe('EventCauseEmpty', function () {
     });
 
     const wrapper = mountWithTheme(
-      <EventCauseEmpty event={event} organization={organization} project={project} />,
-      routerContext
+      <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
     await tick();
@@ -159,8 +154,7 @@ describe('EventCauseEmpty', function () {
 
   it('can be dismissed', async function () {
     const wrapper = mountWithTheme(
-      <EventCauseEmpty event={event} organization={organization} project={project} />,
-      routerContext
+      <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
     await tick();
@@ -203,8 +197,7 @@ describe('EventCauseEmpty', function () {
     });
 
     const wrapper = mountWithTheme(
-      <EventCauseEmpty event={event} organization={organization} project={project} />,
-      routerContext
+      <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
     await tick();
@@ -215,8 +208,7 @@ describe('EventCauseEmpty', function () {
 
   it('can capture analytics on docs click', async function () {
     const wrapper = mountWithTheme(
-      <EventCauseEmpty event={event} organization={organization} project={project} />,
-      routerContext
+      <EventCauseEmpty event={event} organization={organization} project={project} />
     );
 
     await tick();
