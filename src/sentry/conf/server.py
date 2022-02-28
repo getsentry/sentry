@@ -1094,8 +1094,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Return unhandled information on the issue level
-    "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules
     "organizations:issue-percent-filters": True,
     # Enable the new images loaded design and features
