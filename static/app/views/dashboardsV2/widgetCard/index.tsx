@@ -281,4 +281,5 @@ const OpenWidgetViewerButton = styled(IconExpand)`
   margin: auto;
   margin-left: ${space(0.5)};
   height: ${p => p.theme.fontSizeMedium};
+  min-width: ${p => p.theme.fontSizeMedium};
 `;

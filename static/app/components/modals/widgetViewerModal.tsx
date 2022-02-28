@@ -8,6 +8,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -145,7 +146,9 @@ function WidgetViewerModal(props: Props) {
   return (
     <React.Fragment>
       <StyledHeader closeButton>
-        <h4>{widget.title}</h4>
+        <h4>
+          <Truncate value={widget.title} maxLength={120} />
+        </h4>
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
