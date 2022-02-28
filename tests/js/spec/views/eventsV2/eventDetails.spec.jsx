@@ -89,6 +89,8 @@ describe('EventsV2 > EventDetails', function () {
           [1234561700, [1]],
           [1234561800, [1]],
         ],
+        start: 1000,
+        end: 2000,
       },
     });
     MockApiClient.addMockResponse({

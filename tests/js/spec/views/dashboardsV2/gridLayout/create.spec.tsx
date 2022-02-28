@@ -44,7 +44,7 @@ describe('Dashboards > Create', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
+        body: {data: [], start: 1000, end: 2000},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/widgets/',
