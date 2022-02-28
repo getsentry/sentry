@@ -282,7 +282,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     scrubIPAddresses: bool
     scrapeJavaScript: bool
     allowJoinRequests: bool
-    relayPiiConfig: str
+    relayPiiConfig: Optional[str]
     apdexThreshold: int
     trustedRelays: Any  # TODO
     access: frozenset[str]
@@ -385,8 +385,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "apdexThreshold": int(
                     obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
                 ),
-            }  # type: ignore
-            # see https://github.com/python/mypy/issues/6462
+            }
         )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
