@@ -18,7 +18,7 @@ class JiraIssueUpdatedWebhook(JiraEndpointBase):
         if isinstance(exc, ApiError):
             response_option = handle_jira_api_error(exc, " to get email")
             if response_option:
-                return self.get_response(response_option)
+                return self.respond(response_option)
 
         return super().handle_exception(request, exc)
 
