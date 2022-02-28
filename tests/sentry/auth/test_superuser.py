@@ -150,8 +150,8 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user, method="PUT")
         request._body = json.dumps(
             {
-                "categoryOfSUAccess": "Edit organization settings",
-                "reasonForSU": "Edit organization settings",
+                "superuserAccessCategory": "Edit organization settings",
+                "superuserReason": "Edit organization settings",
             }
         )
 
@@ -161,8 +161,9 @@ class SuperuserTestCase(TestCase):
         assert logger.info.call_count == 2
 
         logger.info.assert_any_call(
-            "su_access.give_su_access",
+            "superuser.superuser_access",
             extra={
+                "superuser_session_id": superuser.token,
                 "user_id": 10,
                 "user_email": "test@sentry.io",
                 "su_access_category": "Edit organization settings",

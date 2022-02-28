@@ -41,7 +41,7 @@ COOKIE_PATH = getattr(settings, "SUPERUSER_COOKIE_PATH", settings.SESSION_COOKIE
 COOKIE_HTTPONLY = getattr(settings, "SUPERUSER_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(minutes=15))
+MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
 
 # the maximum time the session can stay alive without making another request
 IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15))
@@ -61,20 +61,14 @@ def is_active_superuser(request):
 
 
 class SuperuserAccessSerializer(serializers.Serializer):
-    categoryOfSUAccess = serializers.CharField()
-    reasonForSU = serializers.CharField(min_length=4, max_length=128)
+    superuserAccessCategory = serializers.CharField()
+    superuserReason = serializers.CharField(min_length=4, max_length=128)
 
 
 class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
     org_id = ORG_ID
-
-    def _remove_su_access_from_session(self, request):
-        if request.session.get("su_access"):
-            del request.session["su_access"]
-        if request.session.get("su_orgs_accessed"):
-            del request.session["su_orgs_accessed"]
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
@@ -90,15 +84,12 @@ class Superuser:
     def is_active(self):
         # if we've been logged out
         if not self.request.user.is_authenticated:
-            self._remove_su_access_from_session(self.request)
             return False
         # if superuser status was changed
         if not self.request.user.is_superuser:
-            self._remove_su_access_from_session(self.request)
             return False
         # if the user has changed
         if str(self.request.user.id) != self.uid:
-            self._remove_su_access_from_session(self.request)
             return False
         return self._is_active
 
@@ -292,38 +283,34 @@ class Superuser:
         if current_datetime is None:
             current_datetime = timezone.now()
 
+        token = get_random_string(12)
+
         if request.method == "PUT":
-            try:
-                # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
-                su_access_json = json.loads(request.body)
-                su_access_info = SuperuserAccessSerializer(data=su_access_json)
+            # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
+            su_access_json = json.loads(request.body)
+            su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
-                if not su_access_info.is_valid():
-                    raise serializers.ValidationError(su_access_info.errors)
+            if not su_access_info.is_valid():
+                raise serializers.ValidationError(su_access_info.errors)
 
-                logger.info(
-                    "superuser.superuser_access",
-                    extra={
-                        "user_id": request.user.id,
-                        "user_email": request.user.email,
-                        "su_access_category": su_access_info.validated_data["categoryOfSUAccess"],
-                        "reason_for_su": su_access_info.validated_data["reasonForSU"],
-                    },
-                )
-
-                request.session["su_access"] = {
-                    "su_access_category": su_access_info.validated_data["categoryOfSUAccess"],
-                    "reason_for_su": su_access_info.validated_data["reasonForSU"],
-                }
-            except json.JSONDecodeError as err:
-                raise err
+            logger.info(
+                "superuser.superuser_access",
+                extra={
+                    "superuser_session_id": token,
+                    "user_id": request.user.id,
+                    "user_email": request.user.email,
+                    "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
+                    "reason_for_su": su_access_info.validated_data["superuserReason"],
+                },
+            )
 
         self._set_logged_in(
             expires=current_datetime + MAX_AGE,
-            token=get_random_string(12),
+            token=token,
             user=user,
             current_datetime=current_datetime,
         )
+
         logger.info(
             "superuser.logged-in",
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
