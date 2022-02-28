@@ -32,6 +32,14 @@ const Container = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   cursor: pointer;
+  padding: calc(${space(2)} - 1px);
+  border: 1px solid transparent;
+  border-radius: ${p => p.theme.borderRadius};
+  transition: border-color 0.3s ease;
+
+  &:hover {
+    border-color: ${p => p.theme.gray100};
+  }
 `;
 
 const Information = styled('div')`
