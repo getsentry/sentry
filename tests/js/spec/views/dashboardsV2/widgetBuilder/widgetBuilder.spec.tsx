@@ -418,32 +418,46 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  // it('can add additional fields', async function () {
-  //   let widget = undefined;
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     onAddWidget: data => (widget = data),
-  //   });
+  it('can add additional fields', async function () {
+    const handleSave = jest.fn();
 
-  //   // Select Line chart display
-  //   selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+    renderTestComponent({onSave: handleSave});
 
-  //   // Click the add button
-  //   const add = wrapper.find('button[aria-label="Add Overlay"]');
-  //   add.simulate('click');
-  //   wrapper.update();
+    userEvent.click(await screen.findByText('Table'));
 
-  //   // Should be another field input.
-  //   expect(wrapper.find('QueryField')).toHaveLength(2);
+    // Select Line chart display
+    userEvent.click(screen.getByText('Line Chart'));
 
-  //   selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
+    // Click the add button
+    userEvent.click(screen.getByRole('button', {name: 'Add Overlay'}));
 
-  //   await clickSubmit(wrapper);
+    // Should be another field input.
+    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
 
-  //   expect(widget.queries).toHaveLength(1);
-  //   expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
-  //   wrapper.unmount();
-  // });
+    userEvent.click(screen.getByText('(Required)'));
+    userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
+
+    userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          title: 'Custom Widget',
+          displayType: 'line',
+          interval: '5m',
+          widgetType: 'discover',
+          queries: [
+            {
+              conditions: '',
+              fields: ['count()', 'count_unique(user)'],
+              orderby: '',
+              name: '',
+            },
+          ],
+        }),
+      ]);
+    });
+  });
 
   // it('can add equation fields', async function () {
   //   let widget = undefined;
