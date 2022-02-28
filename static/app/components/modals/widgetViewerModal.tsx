@@ -9,7 +9,6 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import Tooltip from 'sentry/components/tooltip';
-import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -147,11 +146,9 @@ function WidgetViewerModal(props: Props) {
   return (
     <React.Fragment>
       <StyledHeader closeButton>
-        <h4>
-          <Tooltip title={widget.title} showOnlyOnOverflow>
-            <Truncate value={widget.title} maxLength={120} />
-          </Tooltip>
-        </h4>
+        <Tooltip title={widget.title} showOnlyOnOverflow>
+          <WidgetTitle>{widget.title}</WidgetTitle>
+        </Tooltip>
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
@@ -207,6 +204,12 @@ const TableContainer = styled('div')<{height: number}>`
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
   box-shadow: none;
+`;
+
+const WidgetTitle = styled('h4')`
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));
