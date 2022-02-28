@@ -37,12 +37,14 @@ export default function OverwriteWidgetModal({
 
   return (
     <React.Fragment>
-      <Header>
+      <Header closeButton>
         <h4>{t('Overwrite Widget')}</h4>
       </Header>
       <Body>
         {MODAL_DESCRIPTION}
-        <Card widget={widget} iconColor={iconColor} disableHoverAnimation />
+        <CardWrapper>
+          <Card widget={widget} iconColor={iconColor} />
+        </CardWrapper>
       </Body>
       <Footer>
         <Actions>
@@ -60,6 +62,10 @@ export const modalCss = css`
   width: 100%;
   max-width: 700px;
   margin: 70px auto;
+`;
+
+const CardWrapper = styled('div')`
+  padding: ${space(3)} 0;
 `;
 
 const Actions = styled(ButtonBar)`

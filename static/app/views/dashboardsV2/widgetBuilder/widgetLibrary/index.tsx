@@ -19,6 +19,16 @@ type Props = {
 export function WidgetLibrary({onWidgetSelect}: Props) {
   const theme = useTheme();
 
+  function getLibrarySelectionHandler(widget, iconColor) {
+    return function handleWidgetSelect() {
+      openWidgetLibraryOverwriteModal({
+        onConfirm: () => onWidgetSelect(widget),
+        widget,
+        iconColor,
+      });
+    };
+  }
+
   return (
     <React.Fragment>
       <Header>{t('Widget Library')}</Header>
@@ -28,18 +38,12 @@ export function WidgetLibrary({onWidgetSelect}: Props) {
             index
           ];
           return (
-            <Card
+            <CardHoverWrapper
               key={widget.title}
-              widget={widget}
-              iconColor={iconColor}
-              onClick={() => {
-                openWidgetLibraryOverwriteModal({
-                  onConfirm: () => onWidgetSelect(widget),
-                  widget,
-                  iconColor,
-                });
-              }}
-            />
+              onClick={getLibrarySelectionHandler(widget, iconColor)}
+            >
+              <Card widget={widget} iconColor={iconColor} />
+            </CardHoverWrapper>
           );
         })}
       </WidgetLibraryWrapper>
@@ -54,4 +58,15 @@ const WidgetLibraryWrapper = styled('div')`
 
 const Header = styled('h5')`
   margin-left: ${space(2)};
+`;
+
+const CardHoverWrapper = styled('div')`
+  padding: calc(${space(2)} - 1px);
+  border: 1px solid transparent;
+  border-radius: ${p => p.theme.borderRadius};
+  transition: border-color 0.3s ease;
+  cursor: pointer;
+  &:hover {
+    border-color: ${p => p.theme.gray100};
+  }
 `;
