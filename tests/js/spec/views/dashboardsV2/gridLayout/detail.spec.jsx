@@ -77,7 +77,7 @@ describe('Dashboards > Detail', function () {
     it('assigns unique IDs to all widgets so grid keys are unique', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
+        body: TestStubs.EventsStats({start: 1000, end: 2000}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',

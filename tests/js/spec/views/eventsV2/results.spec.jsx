@@ -48,7 +48,7 @@ describe('EventsV2 > Results', function () {
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {data: [[123, []]]},
+      body: TestStubs.EventsStats({start: 1000, end: 2000}),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',

@@ -30,6 +30,8 @@ discover_total_period = {
             [1616173500, [{"count": 13}]],
             [1616173800, [{"count": 11}]],
         ],
+        "start": 1616168400,
+        "end": 1616173800,
     },
 }
 
@@ -64,6 +66,8 @@ discover_total_daily = {
             [1616976000, [{"count": 16842851}]],
             [1617062400, [{"count": 12959057}]],
         ],
+        "start": 1616168400,
+        "end": 1616173800,
     },
 }
 
@@ -276,6 +280,8 @@ discover_empty = {
     "seriesName": "Discover empty",
     "stats": {
         "data": [],
+        "start": 1616168400,
+        "end": 1616173800,
     },
 }
 
