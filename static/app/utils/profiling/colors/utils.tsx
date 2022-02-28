@@ -1,6 +1,5 @@
+import {ColorChannels, FlamegraphTheme, LCH} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
-
-import {ColorChannels, FlamegraphTheme, LCH} from './../flamegraph/FlamegraphTheme';
 
 const uniqueBy = <T,>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array<T> => {
   const cb = typeof predicate === 'function' ? predicate : (o: T) => o[predicate];

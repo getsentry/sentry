@@ -554,16 +554,16 @@
   {%if report.key_errors|length > 0 %}
   <div id="key-errors">
     {% with report.key_errors as errors %}
-    <h4>Key Errors</h4>
+    <h4>Issues with the Most Errors</h4>
     {% for a in errors %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
       <div style="width: 65%;">
         {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
-        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% absolute_uri issue_detail %}">{{a.group.message}}</a>
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px; height: 24px;" href="{% absolute_uri issue_detail %}">{{a.group.message}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
-      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto;">{{a.status}}</span>
+      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
     </div>
     {% endfor %}
     {% endwith %}

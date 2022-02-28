@@ -20,8 +20,7 @@ function generateWrappedComponent(organization, eventView) {
       projects={[TestStubs.Project()]}
       onIncompatibleQuery={onIncompatibleQueryMock}
       onSuccess={onSuccessMock}
-    />,
-    TestStubs.routerContext()
+    />
   );
 }
 

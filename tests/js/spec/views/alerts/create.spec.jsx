@@ -126,7 +126,7 @@ describe('ProjectAlertsCreate', function () {
   });
 
   const createWrapper = (props = {}, location = {}) => {
-    const {organization, project, routerContext, router} = initializeOrg(props);
+    const {organization, project, router} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = mountWithTheme(
@@ -144,7 +144,7 @@ describe('ProjectAlertsCreate', function () {
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
-      {context: routerContext, organization}
+      {organization}
     );
     mockRouterPush(wrapper, router);
 
