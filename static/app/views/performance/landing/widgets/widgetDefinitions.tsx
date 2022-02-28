@@ -157,7 +157,7 @@ export const WIDGET_DEFINITIONS: ({
   },
   [PerformanceWidgetSetting.APDEX_AREA]: {
     title: t('Apdex'),
-    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
     fields: ['apdex()'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[4],
@@ -218,7 +218,7 @@ export const WIDGET_DEFINITIONS: ({
   },
   [PerformanceWidgetSetting.USER_MISERY_AREA]: {
     title: t('User Misery'),
-    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY_NEW),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
     fields: [`user_misery()`],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[0],
