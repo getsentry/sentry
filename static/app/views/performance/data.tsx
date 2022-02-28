@@ -32,7 +32,6 @@ export const COLUMN_TITLES = [
 ];
 
 export enum PERFORMANCE_TERM {
-  APDEX = 'apdex',
   TPM = 'tpm',
   THROUGHPUT = 'throughput',
   FAILURE_RATE = 'failureRate',
@@ -44,7 +43,6 @@ export enum PERFORMANCE_TERM {
   FCP = 'fcp',
   FID = 'fid',
   CLS = 'cls',
-  USER_MISERY = 'userMisery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
   USER_MISERY_NEW = 'userMiseryNew',
@@ -226,7 +224,7 @@ export function getBackendAxisOptions(organization: Organization): AxisOption[] 
       isRightDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
       value: 'apdex()',
       label: t('Apdex'),
       field: 'apdex()',
@@ -318,10 +316,6 @@ export function getMobileAxisOptions(organization: Organization): AxisOption[] {
 type TermFormatter = (organization: Organization) => string;
 
 export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
-  apdex: () =>
-    t(
-      'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
-    ),
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
   throughput: () =>
     t('Throughput is the number of recorded transaction events per minute.'),
@@ -344,11 +338,6 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   cls: () =>
     t(
       'Cumulative layout shift (CLS) is a web vital measuring unexpected visual shifting a user experiences.'
-    ),
-  userMisery: organization =>
-    t(
-      "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
-      organization.apdexThreshold
     ),
   statusBreakdown: () =>
     t(

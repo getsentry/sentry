@@ -218,7 +218,7 @@ export const WIDGET_DEFINITIONS: ({
   },
   [PerformanceWidgetSetting.USER_MISERY_AREA]: {
     title: t('User Misery'),
-    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY_NEW),
     fields: [`user_misery()`],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[0],

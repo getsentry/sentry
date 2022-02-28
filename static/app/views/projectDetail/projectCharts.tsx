@@ -153,7 +153,7 @@ class ProjectCharts extends Component<Props, State> {
           !hasTransactions,
         tooltip:
           hasPerformance && hasTransactions
-            ? getTermHelp(organization, PERFORMANCE_TERM.APDEX)
+            ? getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)
             : noPerformanceTooltip,
       },
       {
