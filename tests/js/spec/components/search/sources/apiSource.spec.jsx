@@ -84,8 +84,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     expect(orgsMock).toHaveBeenCalled();
@@ -101,8 +100,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="test-">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -147,8 +145,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="1234567890123456789012345678901">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -194,8 +191,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     expect(orgsMock).toHaveBeenCalled();
@@ -209,8 +205,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} organization={org} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -297,8 +292,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -340,8 +334,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -369,8 +362,7 @@ describe('ApiSource', function () {
       wrapper = mountWithTheme(
         <ApiSource params={{orgId: org.slug}} query="">
           {mock}
-        </ApiSource>,
-        TestStubs.routerContext()
+        </ApiSource>
       );
     });
 
