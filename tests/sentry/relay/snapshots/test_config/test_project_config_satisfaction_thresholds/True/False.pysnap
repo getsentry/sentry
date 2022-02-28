@@ -1,0 +1,14 @@
+---
+created: '2022-02-28T12:11:47.237003Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+null:
+  metric: duration
+  threshold: 300.0
+bar:
+  metric: lcp
+  threshold: 600
+foo:
+  metric: duration
+  threshold: 400

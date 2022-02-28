@@ -1,0 +1,8 @@
+---
+created: '2022-02-28T12:11:47.139764Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+null:
+  metric: lcp
+  threshold: 500
