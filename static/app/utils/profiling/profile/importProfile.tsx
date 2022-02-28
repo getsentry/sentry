@@ -34,15 +34,40 @@ function importSingleProfile(
   throw new Error('Unrecognized trace format');
 }
 
-export function importProfile(input: Profiling.Schema, traceID: string): ProfileGroup {
-  const frameIndex = createFrameIndex(input.shared.frames);
+function importJSSelfProfile(
+  input: JSSelfProfiling.Trace,
+  traceID: string
+): ProfileGroup {
+  const frameIndex = createFrameIndex(input.frames);
 
   return {
     traceID,
-    name: input.name,
-    activeProfileIndex: input.activeProfileIndex ?? 0,
-    profiles: input.profiles.map(profile => importSingleProfile(profile, frameIndex)),
+    name: traceID,
+    activeProfileIndex: 0,
+    profiles: [importSingleProfile(input, frameIndex)],
   };
+}
+
+export function importProfile(
+  input: Profiling.Schema | JSSelfProfiling.Trace,
+  traceID: string
+): ProfileGroup {
+  if (isJSProfile(input)) {
+    return importJSSelfProfile(input, traceID);
+  }
+
+  if (isSchema(input)) {
+    const frameIndex = createFrameIndex(input.shared.frames);
+
+    return {
+      traceID,
+      name: input.name,
+      activeProfileIndex: input.activeProfileIndex ?? 0,
+      profiles: input.profiles.map(profile => importSingleProfile(profile, frameIndex)),
+    };
+  }
+
+  throw new Error('Unsupported trace format');
 }
 
 function readFileAsString(file: File): Promise<string> {
@@ -76,16 +101,11 @@ export async function importDroppedProfile(file: File): Promise<ProfileGroup> {
         }
 
         if (isSchema(json)) {
-          return importProfile(json, '');
+          return importProfile(json, file.name);
         }
 
         if (isJSProfile(json)) {
-          return {
-            name: 'JS Self Profiling',
-            activeProfileIndex: 0,
-            traceID: '',
-            profiles: [JSSelfProfile.FromProfile(json, createFrameIndex(json.frames))],
-          };
+          return importJSSelfProfile(json, file.name);
         }
 
         throw new Error('Unsupported JSON format');

@@ -1,6 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 

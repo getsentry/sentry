@@ -15,12 +15,17 @@ export function createFrameIndex(
 ): FrameIndex {
   if (trace) {
     return (frames as JSSelfProfiling.Frame[]).reduce((acc, frame, index) => {
-      acc[index] = new Frame({
-        key: index,
-        resource:
-          frame.resourceId !== undefined ? trace.resources[frame.resourceId] : undefined,
-        ...frame,
-      });
+      acc[index] = new Frame(
+        {
+          key: index,
+          resource:
+            frame.resourceId !== undefined
+              ? trace.resources[frame.resourceId]
+              : undefined,
+          ...frame,
+        },
+        'web'
+      );
       return acc;
     }, {});
   }

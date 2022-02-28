@@ -1,6 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {FlamegraphTheme} from '../flamegraph/FlamegraphTheme';
+import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, measureText, Rect} from '../gl/utils';
 
 export function getIntervalTimeAtX(configToPhysicalSpace: mat3, x: number): number {

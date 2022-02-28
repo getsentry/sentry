@@ -4,7 +4,7 @@ import {
   FlamegraphPreferences,
   FlamegraphPreferencesAction,
   FlamegraphPreferencesContext,
-} from './FlamegraphPreferencesProvider';
+} from './flamegraphPreferencesProvider';
 
 export function useFlamegraphPreferences(): [
   FlamegraphPreferences,

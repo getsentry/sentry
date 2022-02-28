@@ -6,7 +6,7 @@ import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/FlamegraphPreferencesProvider';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphPreferencesProvider';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 
 interface FlamegraphOptionsMenuProps {
