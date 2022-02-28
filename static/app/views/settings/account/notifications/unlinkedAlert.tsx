@@ -11,7 +11,7 @@ type Props = {
 };
 
 class UnlinkedAlert extends Component<Props> {
-  render = () => {
+  render() {
     const {organizations} = this.props;
     return (
       <StyledAlert type="warning" icon={<IconWarning />}>
@@ -25,7 +25,7 @@ class UnlinkedAlert extends Component<Props> {
         </ul>
       </StyledAlert>
     );
-  };
+  }
 }
 const StyledAlert = styled(Alert)`
   margin: 20px 0px;

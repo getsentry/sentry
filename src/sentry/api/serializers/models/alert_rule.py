@@ -61,7 +61,9 @@ class AlertRuleSerializer(Serializer):
                 if install:
                     action["_sentry_app_component"] = install.get("sentry_app_component")
                     action["_sentry_app_installation"] = install.get("sentry_app_installation")
-
+                    action["sentryAppInstallationUuid"] = install.get(
+                        "sentry_app_installation"
+                    ).get("uuid")
             alert_rule_triggers.append(serialized)
 
         alert_rule_projects = AlertRule.objects.filter(

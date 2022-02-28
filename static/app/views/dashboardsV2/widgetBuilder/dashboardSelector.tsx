@@ -17,7 +17,7 @@ interface Props {
 
 export function DashboardSelector({dashboards, disabled, onChange, error}: Props) {
   return (
-    <Field inline={false} flexibleControlStateSize stacked error={error} required>
+    <Field inline={false} flexibleControlStateSize stacked error={error}>
       <SelectControl
         menuPlacement="auto"
         name="dashboard"

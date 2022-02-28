@@ -19,7 +19,7 @@ type Props = RouteComponentProps<{orgId: string; templateId?: string}, {}> & {
 };
 
 function CreateDashboard(props: Props) {
-  const {organization, location} = props;
+  const {location} = props;
   const {templateId} = props.params;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
   function renderDisabled() {
@@ -41,7 +41,7 @@ function CreateDashboard(props: Props) {
     if (constructedWidget) {
       browserHistory.replace(location.pathname);
     }
-  }, [organization.slug]);
+  }, [location.pathname]);
   return (
     <Feature
       features={['dashboards-edit']}

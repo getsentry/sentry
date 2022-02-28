@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
@@ -19,10 +20,8 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         :auth: required
         """
         # Serialize Alert Rule
-        serialized_rule = serialize(
-            alert_rule,
-            request.user,
-        )
+        serialized_rule = serialize(alert_rule, request.user, DetailedAlertRuleSerializer())
+
         # Prepare AlertRuleTriggerActions that are SentryApp components
 
         for trigger in serialized_rule.get("triggers", []):
