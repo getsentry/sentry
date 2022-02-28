@@ -532,9 +532,6 @@ describe('Dashboards > WidgetCard', function () {
     );
 
     userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
-    expect(openWidgetViewerModal).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({widget})
-    );
+    expect(openWidgetViewerModal).toHaveBeenCalledWith(expect.objectContaining({widget}));
   });
 });
