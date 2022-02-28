@@ -327,8 +327,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       });
     }
 
-    const measurements = {...WebVital, ...MobileVital};
-    const eventOmitTags = dataset === 'events' ? Object.values(measurements) : [];
+    const transactionTags = [
+      'transaction',
+      'transaction.duration',
+      'transaction.op',
+      'transaction.status',
+    ];
+    const measurementTags = Object.values({...WebVital, ...MobileVital});
+    const eventOmitTags =
+      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
     const formElemBaseStyle = {
       padding: `${space(0.5)}`,
