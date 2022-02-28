@@ -864,12 +864,17 @@ function WidgetBuilder({
                     description={t(
                       "Choose which dashboard you'd like to add this query to. It will appear as a widget."
                     )}
+                    required
                   >
                     <DashboardSelector
                       error={state.errors?.dashboard}
                       dashboards={state.dashboards}
                       onChange={selectedDashboard =>
-                        setState({...state, selectedDashboard})
+                        setState({
+                          ...state,
+                          selectedDashboard,
+                          errors: {...state.errors, dashboard: undefined},
+                        })
                       }
                       disabled={state.loading}
                     />
