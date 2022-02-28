@@ -7,7 +7,6 @@ describe('Hook', function () {
   const Wrapper = function Wrapper(props) {
     return <div data-test-id="wrapper" {...props} />;
   };
-  const context = TestStubs.routerContext();
 
   beforeEach(function () {
     HookStore.add('footer', ({organization} = {}) => (
@@ -26,8 +25,7 @@ describe('Hook', function () {
     mountWithTheme(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
-      </div>,
-      {context}
+      </div>
     );
 
     expect(HookStore.hooks.footer).toHaveLength(1);
@@ -40,8 +38,7 @@ describe('Hook', function () {
       <div>
         <Hook name="invalid-hook" organization={TestStubs.Organization()} />
         invalid
-      </div>,
-      {context}
+      </div>
     );
 
     expect(screen.queryByText('org-slug')).not.toBeInTheDocument();
@@ -52,8 +49,7 @@ describe('Hook', function () {
     mountWithTheme(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
-      </div>,
-      {context}
+      </div>
     );
 
     expect(screen.getByTestId('wrapper')).toBeInTheDocument();
@@ -75,8 +71,7 @@ describe('Hook', function () {
         <Hook name="footer" organization={TestStubs.Organization()}>
           {({hooks}) => hooks.map((hook, i) => <Wrapper key={i}>{hook}</Wrapper>)}
         </Hook>
-      </div>,
-      {context}
+      </div>
     );
 
     HookStore.add('footer', () => (

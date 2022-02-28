@@ -389,6 +389,7 @@ function SummaryContent({
           totals={totalValues}
           eventView={eventView}
           isMetricsData={isMetricsData}
+          transactionName={transactionName}
         />
         <SidebarSpacer />
         <Tags

@@ -226,7 +226,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
        * Sometimes, there can be matches that don't include any
        * indices. These matches are often noise, so exclude them.
        */
-      .filter(({matches}) => matches.length)
+      .filter(({matches}) => matches?.length)
       .map(({item}) => item.transaction.event_id);
 
     /**
