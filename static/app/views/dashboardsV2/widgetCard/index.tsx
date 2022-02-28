@@ -1,6 +1,6 @@
 import * as React from 'react';
 import LazyLoad from 'react-lazyload';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -143,6 +143,7 @@ class WidgetCard extends React.Component<Props> {
       noLazyLoad,
       location,
       showWidgetViewerButton,
+      router,
     } = this.props;
     return (
       <ErrorBoundary
@@ -158,7 +159,7 @@ class WidgetCard extends React.Component<Props> {
                 aria-label={t('Open Widget Viewer')}
                 onClick={() => {
                   if (widget.id) {
-                    browserHistory.push({
+                    router.push({
                       pathname: `${location.pathname}widget/${widget.id}/`,
                       query: location.query,
                     });
