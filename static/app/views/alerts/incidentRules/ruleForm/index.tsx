@@ -738,9 +738,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         comparisonType={comparisonType}
         dataset={dataset}
         disabled={!hasAccess || !canEdit}
+        onComparisonDeltaChange={value =>
+          this.handleFieldChange('comparisonDelta', value)
+        }
         onComparisonTypeChange={this.handleComparisonTypeChange}
         organization={organization}
         hasAlertWizardV3={hasAlertWizardV3}
+        comparisonDelta={comparisonDelta}
       />
     );
 

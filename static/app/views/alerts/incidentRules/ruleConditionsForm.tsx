@@ -211,31 +211,38 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             inline={false}
             flexibleControlStateSize
           />
-          <Feature features={['organizations:change-alerts']} organization={organization}>
-            {comparisonType === AlertRuleComparisonType.CHANGE && (
-              <ComparisonContainer>
-                {t(' compared to ')}
-                <SelectControl
-                  name="comparisonDelta"
-                  styles={{
-                    container: (provided: {[x: string]: string | number | boolean}) => ({
-                      ...provided,
-                      marginLeft: space(1),
-                    }),
-                    control: (provided: {[x: string]: string | number | boolean}) => ({
-                      ...provided,
-                      minWidth: 500,
-                      maxWidth: 1000,
-                    }),
-                  }}
-                  value={comparisonDelta}
-                  onChange={({value}) => onComparisonDeltaChange(value)}
-                  options={COMPARISON_DELTA_OPTIONS}
-                  required={comparisonType === AlertRuleComparisonType.CHANGE}
-                />
-              </ComparisonContainer>
-            )}
-          </Feature>
+          {!hasAlertWizardV3 && (
+            <Feature
+              features={['organizations:change-alerts']}
+              organization={organization}
+            >
+              {comparisonType === AlertRuleComparisonType.CHANGE && (
+                <ComparisonContainer>
+                  {t(' compared to ')}
+                  <SelectControl
+                    name="comparisonDelta"
+                    styles={{
+                      container: (provided: {
+                        [x: string]: string | number | boolean;
+                      }) => ({
+                        ...provided,
+                        marginLeft: space(1),
+                      }),
+                      control: (provided: {[x: string]: string | number | boolean}) => ({
+                        ...provided,
+                        minWidth: 500,
+                        maxWidth: 1000,
+                      }),
+                    }}
+                    value={comparisonDelta}
+                    onChange={({value}) => onComparisonDeltaChange(value)}
+                    options={COMPARISON_DELTA_OPTIONS}
+                    required={comparisonType === AlertRuleComparisonType.CHANGE}
+                  />
+                </ComparisonContainer>
+              )}
+            </Feature>
+          )}
         </FormRow>
       </Fragment>
     );
