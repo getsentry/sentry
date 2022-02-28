@@ -93,7 +93,12 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                   </Alert>
                 )}
                 <ProfilingScatterChart
-                  {...dateSelection}
+                  datetime={{
+                    period: dateSelection.statsPeriod ?? null,
+                    start: dateSelection.start ?? null,
+                    end: dateSelection.end ?? null,
+                    utc: defined(dateSelection.utc) ? dateSelection.utc === 'true' : null,
+                  }}
                   traces={traces}
                   isLoading={requestState === 'loading'}
                 />
