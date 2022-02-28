@@ -2,7 +2,7 @@ import React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {closeModal, ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
@@ -26,6 +26,7 @@ export default function OverwriteWidgetModal({
   Header,
   Body,
   Footer,
+  closeModal,
   onConfirm,
   widget,
   iconColor,

@@ -42,13 +42,14 @@ describe('widget builder overwrite modal', () => {
       queries: [],
     };
     const mockOnConfirm = jest.fn();
+    const mockCloseModal = jest.fn();
     mountWithTheme(
       <OverwriteWidgetModal
         Header={stubEl}
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={mockCloseModal}
         iconColor="white"
         widget={widget}
         onConfirm={mockOnConfirm}
@@ -57,5 +58,8 @@ describe('widget builder overwrite modal', () => {
 
     userEvent.click(screen.getByText('Confirm'));
     expect(mockOnConfirm).toHaveBeenCalled();
+
+    // Modal should close after confirming
+    expect(mockCloseModal).toHaveBeenCalled();
   });
 });
