@@ -23,6 +23,7 @@ from sentry.signals import (
     integration_issue_created,
     integration_issue_linked,
     issue_assigned,
+    issue_commented,
     issue_deleted,
     issue_ignored,
     issue_mark_reviewed,
@@ -171,6 +172,26 @@ def record_issue_assigned(project, group, user, **kwargs):
         default_user_id = project.organization.get_default_owner().id
     analytics.record(
         "issue.assigned",
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+    )
+
+
+@issue_commented.connect(weak=False)
+def record_issue_commented(project, group, user, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id, feature_slug="commented", complete=True
+    )
+
+    if user and user.is_authenticated:
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+    analytics.record(
+        "issue.commented",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,

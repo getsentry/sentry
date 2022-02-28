@@ -1,10 +1,12 @@
 from sentry.models import GroupAssignee, SentryAppInstallation
-from sentry.signals import issue_assigned, issue_ignored, issue_resolved
+from sentry.signals import issue_assigned, issue_commented, issue_ignored, issue_resolved
 from sentry.tasks.sentry_apps import workflow_notification
 
 
 @issue_assigned.connect(weak=False)
 def send_issue_assigned_webhook(project, group, user, **kwargs):
+
+    print("here in the issue assigned receiver")
     assignee = GroupAssignee.objects.get(group_id=group.id).assigned_actor()
 
     actor = assignee.resolve()
@@ -19,6 +21,12 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
         data["assignee"]["email"] = actor.email
 
     send_workflow_webhooks(org, group, user, "issue.assigned", data=data)
+
+
+@issue_commented.connect(weak=False)
+def send_issue_commented_webhook(project, user, group, data, **kwargs):
+    print("in issue commented receiver")
+    send_workflow_webhooks(project.organization, group, user, "comment.created", data=data)
 
 
 @issue_resolved.connect(weak=False)
@@ -41,8 +49,10 @@ def send_issue_ignored_webhook(project, user, group_list, **kwargs):
 def send_workflow_webhooks(organization, issue, user, event, data=None):
     data = data or {}
 
+    print("in send_workflow_webhooks: ", event)
+
     for install in installations_to_notify(organization, event):
-        workflow_notification.delay(
+        workflow_notification(
             installation_id=install.id,
             issue_id=issue.id,
             type=event.split(".")[-1],

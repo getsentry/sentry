@@ -11,6 +11,7 @@ from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
 from sentry.models import Activity, GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.signals import issue_commented
 from sentry.types.activity import ActivityType
 from sentry.utils.functional import extract_lazy_object
 
@@ -76,4 +77,11 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
         self.create_external_comment(request, group, activity)
+        issue_commented.send_robust(
+            project=group.project,
+            user=request.user,
+            group=group,
+            activity_data=data,
+            sender="post",
+        )
         return Response(serialize(activity, request.user), status=201)

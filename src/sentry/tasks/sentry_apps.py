@@ -10,6 +10,7 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
 from sentry.models import (
+    Activity,
     Group,
     Organization,
     Project,
@@ -22,6 +23,7 @@ from sentry.models import (
 from sentry.models.integrations.sentry_app import VALID_EVENTS, track_response_code
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
@@ -45,7 +47,7 @@ RETRY_OPTIONS = {
 # Hook events to match what we externally call these primitives.
 RESOURCE_RENAMES = {"Group": "issue"}
 
-TYPES = {"Group": Group, "Error": Event}
+TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
 
 
 def _webhook_event_data(event, group_id, project_id):
@@ -65,6 +67,17 @@ def _webhook_event_data(event, group_id, project_id):
             "sentry-organization-event-detail", args=[organization.slug, group_id, event.event_id]
         )
     )
+    print("group id: ", group_id)
+    group = Group.objects.get(id=group_id)
+    # group = Group.objects.get(id=1016) # idk why but I'm getting passed the wrong group ID
+    # filter by project too?
+
+    comments = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
+
+    if comments:
+        print("~~~~~~~~~~")
+        print(comments[0])
+        event_context["comment"] = comments[0]  # this is the most recent one
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
@@ -116,6 +129,7 @@ def send_alert_event(
         return
 
     event_context = _webhook_event_data(event, group.id, project.id)
+    print("hello I am here in send_alert_event")
 
     data = {"event": event_context, "triggered_rule": rule}
 
@@ -144,15 +158,20 @@ def send_alert_event(
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
     # The class is serialized as a string when enqueueing the class.
     model = TYPES[sender]
+    print("model", model)
     # The Event model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
     if issubclass(model, Event):
+        print("here in 1")
         if not kwargs.get("instance"):
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
             return
-
         name = sender.lower()
+    elif issubclass(model, Activity):
+        print("here in 2")
+        name = sender.lower()
+        print("name: ", name)
     else:
         # Some resources are named differently than their model. eg. Group vs Issue.
         # Looks up the human name for the model. Defaults to the model name.
@@ -165,7 +184,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
     try:
-        if issubclass(model, Event):
+        if issubclass(model, Event) or issubclass(model, Activity):
             # XXX:(Meredith): Passing through the entire event was an intentional choice
             # to avoid having to query NodeStore again for data we had previously in
             # post_process. While this is not ideal, changing this will most likely involve
@@ -179,13 +198,15 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         return retryer.retry(exc=e)
 
     event = f"{name}.{action}"
+    print("event: ", event)
 
     if event not in VALID_EVENTS:
+        print("invalid")
         return
 
     org = None
 
-    if isinstance(instance, Group) or isinstance(instance, Event):
+    if isinstance(instance, Group) or isinstance(instance, Event) or isinstance(instance, Activity):
         org = Organization.objects.get_from_cache(
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
@@ -196,20 +217,23 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             "sentry_app"
         ),
     )
+    print("installations: ", installations)
 
     for installation in installations:
         data = {}
         if isinstance(instance, Event):
             data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
+            print("hello I am here in _process_resource_change")
         else:
             data[name] = serialize(instance)
 
         # Trigger a new task for each webhook
-        send_resource_change_webhook.delay(installation_id=installation.id, event=event, data=data)
+        print("about to drop the hottest webhook")
+        send_resource_change_webhook(installation_id=installation.id, event=event, data=data)
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
-@retry(**RETRY_OPTIONS)
+# @retry(**RETRY_OPTIONS)
 def process_resource_change_bound(self, action, sender, instance_id, *args, **kwargs):
     _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
 
@@ -239,6 +263,7 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
+    print("here I am in workflow_notification: ", type)
     extra = {"installation_id": installation_id, "issue_id": issue_id}
 
     try:
@@ -281,6 +306,8 @@ def send_resource_change_webhook(installation_id, event, data, *args, **kwargs):
             extra={"installation_id": installation_id, "event": event},
         )
         return
+
+    print("here I am in send_resource_change_webhook", event)
 
     send_webhooks(installation, event, data=data)
 
@@ -349,6 +376,8 @@ def send_webhooks(installation, event, **kwargs):
 
     if not project_limited:
         resource, action = event.split(".")
+
+        print("action: ", action)
 
         kwargs["resource"] = resource
         kwargs["action"] = action
