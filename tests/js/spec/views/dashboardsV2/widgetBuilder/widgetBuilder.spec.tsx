@@ -153,6 +153,11 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/event.type/values/',
+      body: [{count: 2, name: 'Nvidia 1080ti'}],
+    });
   });
 
   afterEach(function () {
@@ -425,10 +430,10 @@ describe('WidgetBuilder', function () {
 
     userEvent.click(await screen.findByText('Table'));
 
-    // Select Line chart display
+    // Select line chart display
     userEvent.click(screen.getByText('Line Chart'));
 
-    // Click the add button
+    // Click the add overlay button
     userEvent.click(screen.getByRole('button', {name: 'Add Overlay'}));
 
     // Should be another field input.
@@ -457,103 +462,115 @@ describe('WidgetBuilder', function () {
         }),
       ]);
     });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  // it('can add equation fields', async function () {
-  //   let widget = undefined;
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     onAddWidget: data => (widget = data),
-  //   });
+  it('can add equation fields', async function () {
+    const handleSave = jest.fn();
 
-  //   // Select Line chart display
-  //   selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+    renderTestComponent({onSave: handleSave});
 
-  //   // Click the add button
-  //   const add = wrapper.find('button[aria-label="Add an Equation"]');
-  //   add.simulate('click');
-  //   wrapper.update();
+    userEvent.click(await screen.findByText('Table'));
 
-  //   // Should be another field input.
-  //   expect(wrapper.find('QueryField')).toHaveLength(2);
+    // Select line chart display
+    userEvent.click(screen.getByText('Line Chart'));
 
-  //   expect(wrapper.find('ArithmeticInput')).toHaveLength(1);
+    // Click the add an equation button
+    userEvent.click(screen.getByRole('button', {name: 'Add an Equation'}));
 
-  //   wrapper
-  //     .find('QueryFieldWrapper input[name="arithmetic"]')
-  //     .simulate('change', {target: {value: 'count() + 100'}})
-  //     .simulate('blur');
+    // Should be another field input.
+    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
 
-  //   wrapper.update();
+    expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
 
-  //   await clickSubmit(wrapper);
+    userEvent.type(screen.getByPlaceholderText('Equation'), 'count() + 100');
 
-  //   expect(widget.queries).toHaveLength(1);
-  //   expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
-  //   wrapper.unmount();
-  // });
+    userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
 
-  // it('additional fields get added to new seach filters', async function () {
-  //   MockApiClient.addMockResponse({
-  //     url: '/organizations/org-slug/recent-searches/',
-  //     method: 'POST',
-  //     body: [],
-  //   });
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          title: 'Custom Widget',
+          displayType: 'line',
+          interval: '5m',
+          widgetType: 'discover',
+          queries: [
+            {
+              name: '',
+              fields: ['count()', 'equation|count() + 100'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+        }),
+      ]);
+    });
 
-  //   let widget = undefined;
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     onAddWidget: data => (widget = data),
-  //   });
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
 
-  //   // Select Line chart display
-  //   selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+  it('additional fields get added to new seach filters', async function () {
+    const handleSave = jest.fn();
 
-  //   // Click the add button
-  //   const add = wrapper.find('button[aria-label="Add Overlay"]');
-  //   add.simulate('click');
-  //   wrapper.update();
+    renderTestComponent({onSave: handleSave});
 
-  //   // Should be another field input.
-  //   expect(wrapper.find('QueryField')).toHaveLength(2);
+    userEvent.click(await screen.findByText('Table'));
 
-  //   selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
+    // Select line chart display
+    userEvent.click(screen.getByText('Line Chart'));
 
-  //   await clickSubmit(wrapper);
+    // Click the add overlay button
+    userEvent.click(screen.getByRole('button', {name: 'Add Overlay'}));
 
-  //   expect(widget.queries).toHaveLength(1);
-  //   expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    // Should be another field input.
+    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
 
-  //   // Add another search filter
-  //   const addQuery = wrapper.find('button[aria-label="Add Query"]');
-  //   addQuery.simulate('click');
-  //   wrapper.update();
-  //   // Set second query search conditions
-  //   const secondSearchBar = wrapper.find('SearchConditionsWrapper StyledSearchBar').at(1);
-  //   await setSearchConditions(secondSearchBar, 'event.type:error');
+    userEvent.click(screen.getByText('(Required)'));
+    userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
 
-  //   // Set second query legend alias
-  //   wrapper
-  //     .find('SearchConditionsWrapper input[placeholder="Legend Alias"]')
-  //     .at(1)
-  //     .simulate('change', {target: {value: 'Errors'}});
+    // Add another search filter
+    userEvent.click(screen.getByRole('button', {name: 'Add query'}));
 
-  //   // Save widget
-  //   await clickSubmit(wrapper);
+    // Set second query search conditions
+    userEvent.type(
+      screen.getAllByLabelText('Search events')[1],
+      'event.type:error{enter}'
+    );
 
-  //   expect(widget.queries[0]).toMatchObject({
-  //     name: '',
-  //     conditions: '',
-  //     fields: ['count()', 'p95(transaction.duration)'],
-  //   });
-  //   expect(widget.queries[1]).toMatchObject({
-  //     name: 'Errors',
-  //     conditions: 'event.type:error',
-  //     fields: ['count()', 'p95(transaction.duration)'],
-  //   });
+    // Set second query legend alias
+    userEvent.type(screen.getAllByPlaceholderText('Legend Alias')[1], 'Errors');
 
-  //   wrapper.unmount();
-  // });
+    // Save widget
+    userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          title: 'Custom Widget',
+          displayType: 'line',
+          interval: '5m',
+          widgetType: 'discover',
+          queries: [
+            {
+              name: '',
+              fields: ['count()', 'count_unique(user)'],
+              conditions: 'event.type:error',
+              orderby: '',
+            },
+            {
+              name: 'Errors',
+              fields: ['count()', 'count_unique(user)'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
 
   // it('can add and delete additional queries', async function () {
   //   MockApiClient.addMockResponse({
@@ -1287,15 +1304,15 @@ describe('WidgetBuilder', function () {
 
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
-      const onSave = jest.fn();
+      const handleSave = jest.fn();
 
-      renderTestComponent({onSave});
+      renderTestComponent({onSave: handleSave});
 
       userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
 
       await waitFor(() => {
-        expect(onSave).toHaveBeenCalledWith([
+        expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
             title: 'Custom Widget',
             displayType: 'table',
@@ -1313,7 +1330,7 @@ describe('WidgetBuilder', function () {
         ]);
       });
 
-      expect(onSave).toHaveBeenCalledTimes(1);
+      expect(handleSave).toHaveBeenCalledTimes(1);
     });
 
     it('render issues data set disabled', async function () {

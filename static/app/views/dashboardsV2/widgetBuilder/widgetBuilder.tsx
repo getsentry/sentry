@@ -416,8 +416,6 @@ function WidgetBuilder({
       return;
     }
 
-    console.log('HEREE', widgetData.queries);
-
     if (!!widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
       const updateIndex = nextWidgetList.indexOf(widgetToBeUpdated);
