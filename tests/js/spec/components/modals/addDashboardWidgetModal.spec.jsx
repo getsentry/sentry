@@ -13,7 +13,10 @@ import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new'
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
+import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
+import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import TagStore from 'sentry/stores/tagStore';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import * as types from 'sentry/views/dashboardsV2/types';
 
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -115,16 +118,45 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'browser.name', key: 'browser.name'},
     {name: 'custom-field', key: 'custom-field'},
   ];
+  const metricsTags = [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}];
+  const metricsMeta = [
+    {
+      name: 'sentry.sessions.session',
+      type: 'counter',
+      operations: ['sum'],
+      unit: null,
+    },
+    {
+      name: 'sentry.sessions.session.error',
+      type: 'set',
+      operations: ['count_unique'],
+      unit: null,
+    },
+    {
+      name: 'sentry.sessions.user',
+      type: 'set',
+      operations: ['count_unique'],
+      unit: null,
+    },
+    {
+      name: 'not.on.allow.list',
+      type: 'set',
+      operations: ['count_unique'],
+      unit: null,
+    },
+  ];
   const dashboard = TestStubs.Dashboard([], {
     id: '1',
     title: 'Test Dashboard',
     widgetDisplay: ['area'],
   });
 
-  let eventsStatsMock, metricsTagsMock;
+  let eventsStatsMock, metricsDataMock;
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
+    MetricsTagStore.onLoadTagsSuccess(metricsTags);
+    MetricsMetaStore.onLoadSuccess(metricsMeta);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
@@ -155,9 +187,14 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: '/organizations/org-slug/issues/',
       body: [],
     });
-    metricsTagsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/tags/',
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
+    });
+    metricsDataMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_USER}),
     });
   });
 
@@ -1187,7 +1224,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      expect(metricsTagsMock).not.toHaveBeenCalled();
+      expect(metricsDataMock).not.toHaveBeenCalled();
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
       expect(
@@ -1196,7 +1233,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
-      // Hide without the dashboard-metrics feature flag
+      // Hide without the dashboards-metrics feature flag
       expect(screen.queryByText('Metrics (Release Health)')).not.toBeInTheDocument();
       wrapper.unmount();
     });
@@ -1274,6 +1311,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
+      await tick();
+
       const metricsDataset = screen.getByLabelText('Metrics (Release Health)');
       expect(metricsDataset).not.toBeChecked();
       await act(async () =>
@@ -1288,13 +1327,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       wrapper.unmount();
     });
 
-    it('retrieves tags when modal is opened', async function () {
+    it('displays metrics tags', async function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
         'dashboards-metrics',
       ];
-      mountModalWithRtl({
+      const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
@@ -1302,8 +1341,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
-
       await act(async () =>
         userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
       );
@@ -1313,12 +1350,19 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('sum(…)'));
       expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+
       expect(screen.getByText('release')).toBeInTheDocument();
       expect(screen.getByText('environment')).toBeInTheDocument();
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('sentry.sessions.user'));
+      // Ensure METRICS_FIELDS_ALLOW_LIST is honoured
+      expect(screen.queryByText('not.on.allow.list')).not.toBeInTheDocument();
+
+      wrapper.unmount();
     });
 
     it('displays the correct options for area chart', async function () {
@@ -1327,7 +1371,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
-      mountModalWithRtl({
+      const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
@@ -1335,8 +1379,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
-
       await act(async () =>
         userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
       );
@@ -1352,6 +1394,43 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+      wrapper.unmount();
+    });
+
+    it('makes the appropriate metrics call', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+      const wrapper = mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      await act(async () =>
+        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
+      );
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(metricsDataMock).toHaveBeenCalledWith(
+        `/organizations/org-slug/metrics/data/`,
+        expect.objectContaining({
+          query: {
+            environment: [],
+            field: ['sum(sentry.sessions.session)'],
+            interval: '30m',
+            project: [],
+            statsPeriod: '14d',
+          },
+        })
+      );
+
+      wrapper.unmount();
     });
   });
 });

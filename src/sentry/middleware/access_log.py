@@ -51,9 +51,7 @@ def _create_api_access_log(
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
-
-        request_access = getattr(request, "access", None)
-        org_id = getattr(request_access, "organization_id", None)
+        org_id = getattr(getattr(request, "organization", None), "id", None)
 
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
@@ -65,6 +63,7 @@ def _create_api_access_log(
             user_id=str(user_id),
             is_app=str(is_app),
             token_type=str(_get_token_name(request_auth)),
+            is_frontend_request=str(bool(getattr(request, "COOKIES", {}))),
             organization_id=str(org_id),
             auth_id=str(auth_id),
             path=str(request.path),

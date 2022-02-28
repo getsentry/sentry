@@ -1,52 +1,37 @@
-import * as React from 'react';
-
-import {FlamegraphZoomView} from 'sentry/components/profiling/FlamegraphZoomView';
-import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/FlamegraphZoomViewMinimap';
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {Flamegraph} from 'sentry/components/profiling/flamegraph';
+import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
+import {FlamegraphPreferencesProvider} from 'sentry/utils/profiling/flamegraph/flamegraphPreferencesProvider';
+import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
-
-const trace = require('./EventedTrace.json');
 
 export default {
   title: 'Components/Profiling/FlamegraphZoomView',
 };
 
+const eventedProfiles = importProfile(require('./EventedTrace.json'));
+
 export const EventedTrace = () => {
-  const canvasPoolManager = new CanvasPoolManager();
-
-  const profiles = importProfile(trace);
-  const flamegraph = new Flamegraph(profiles.profiles[0]);
-
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: `100vh`,
-        overflow: 'hidden',
-        overscrollBehavior: 'contain',
-      }}
-    >
-      <div style={{height: 100, position: 'relative'}}>
-        <FlamegraphZoomViewMinimap
-          flamegraph={flamegraph}
-          highlightRecursion={false}
-          colorCoding="by symbol name"
-          canvasPoolManager={canvasPoolManager}
-          flamegraphTheme={LightFlamegraphTheme}
-        />
-      </div>
-      <div style={{position: 'relative', flex: '1 1 0%'}}>
-        <FlamegraphZoomView
-          flamegraph={flamegraph}
-          highlightRecursion={false}
-          colorCoding="by symbol name"
-          canvasPoolManager={canvasPoolManager}
-          flamegraphTheme={LightFlamegraphTheme}
-        />
-      </div>
-    </div>
+    <FlamegraphPreferencesProvider>
+      <FlamegraphThemeProvider>
+        <FullScreenFlamegraphContainer>
+          <Flamegraph profiles={eventedProfiles} />
+        </FullScreenFlamegraphContainer>
+      </FlamegraphThemeProvider>
+    </FlamegraphPreferencesProvider>
+  );
+};
+
+const jsSelfProfile = importProfile(require('./JSSelfProfilingTrace.json'));
+
+export const JSSelfProfiling = () => {
+  return (
+    <FlamegraphPreferencesProvider>
+      <FlamegraphThemeProvider>
+        <FullScreenFlamegraphContainer>
+          {jsSelfProfile ? <Flamegraph profiles={jsSelfProfile} /> : null}
+        </FullScreenFlamegraphContainer>
+      </FlamegraphThemeProvider>
+    </FlamegraphPreferencesProvider>
   );
 };

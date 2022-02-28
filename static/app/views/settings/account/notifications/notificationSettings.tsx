@@ -2,6 +2,10 @@ import {Fragment} from 'react';
 
 import AlertLink from 'sentry/components/alertLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import FormModel from 'sentry/components/forms/model';
+import {FieldObject} from 'sentry/components/forms/type';
 import Link from 'sentry/components/links/link';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,7 +18,6 @@ import {
   NotificationSettingsObject,
   SELF_NOTIFICATION_SETTINGS_TYPES,
 } from 'sentry/views/settings/account/notifications/constants';
-import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
 import {
   decideDefault,
@@ -23,10 +26,6 @@ import {
   isSufficientlyComplex,
   mergeNotificationSettings,
 } from 'sentry/views/settings/account/notifications/utils';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import FormModel from 'sentry/views/settings/components/forms/model';
-import {FieldObject} from 'sentry/views/settings/components/forms/type';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -185,8 +184,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title="Notifications" />
-        <TextBlock>Personal notifications sent via email or an integration.</TextBlock>
-        <FeedbackAlert />
+        <TextBlock>Personal notifications sent by email or an integration.</TextBlock>
         <Form
           model={this.model}
           saveOnBlur

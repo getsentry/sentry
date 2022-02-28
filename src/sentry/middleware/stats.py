@@ -67,7 +67,13 @@ class RequestTimingMiddleware(MiddlewareMixin):
             return
 
         tags = request._metric_tags if hasattr(request, "_metric_tags") else {}
-        tags.update({"method": request.method, "status_code": status_code})
+        tags.update(
+            {
+                "method": request.method,
+                "status_code": status_code,
+                "ui_request": bool(getattr(request, "COOKIES", {})),
+            }
+        )
 
         metrics.incr("view.response", instance=request._view_path, tags=tags, skip_internal=False)
 

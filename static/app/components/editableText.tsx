@@ -3,13 +3,13 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Input from 'sentry/components/forms/controls/input';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import useKeypress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
   onChange: (value: string) => void;
@@ -17,6 +17,7 @@ type Props = {
   autoSelect?: boolean;
   errorMessage?: React.ReactNode;
   isDisabled?: boolean;
+  maxLength?: number;
   name?: string;
   successMessage?: React.ReactNode;
 };
@@ -27,6 +28,7 @@ function EditableText({
   name,
   errorMessage,
   successMessage,
+  maxLength,
   isDisabled = false,
   autoSelect = false,
 }: Props) {
@@ -151,6 +153,7 @@ function EditableText({
             value={inputValue}
             onChange={handleInputChange}
             onFocus={event => autoSelect && event.target.select()}
+            maxLength={maxLength}
           />
           <InputLabel>{inputValue}</InputLabel>
         </InputWrapper>

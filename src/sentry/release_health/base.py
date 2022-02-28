@@ -189,7 +189,7 @@ ProjectReleaseSessionStats = Tuple[
 ]
 
 
-class ReleaseHealthBackend(Service):  # type: ignore
+class ReleaseHealthBackend(Service):
     """Abstraction layer for all release health related queries"""
 
     __all__ = (
@@ -312,7 +312,9 @@ class ReleaseHealthBackend(Service):  # type: ignore
         raise NotImplementedError()
 
     def check_has_health_data(
-        self, projects_list: Sequence[ProjectOrRelease]
+        self,
+        projects_list: Sequence[ProjectOrRelease],
+        now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
         """
         Function that returns a set of all project_ids or (project, release) if they have health data
@@ -345,6 +347,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
         stat: Optional[Literal["users", "sessions"]] = None,
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         """Checks quickly for which of the given project releases we have
         health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -360,12 +363,14 @@ class ReleaseHealthBackend(Service):  # type: ignore
         release: ReleaseName,
         start: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[CrashFreeBreakdown]:
         """Get stats about crash free sessions and stats for the last 1, 2, 7, 14 and 30 days"""
 
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
         """
         Returns a sequence of tuples (ProjectId, ReleaseName) with the
@@ -374,7 +379,9 @@ class ReleaseHealthBackend(Service):  # type: ignore
         raise NotImplementedError()
 
     def get_oldest_health_data_for_releases(
-        self, project_releases: Sequence[ProjectRelease]
+        self,
+        project_releases: Sequence[ProjectRelease],
+        now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, str]:
         """Returns the oldest health data we have observed in a release
         in 90 days.  This is used for backfilling.
@@ -442,6 +449,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         scope: str,
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[str]] = None,
+        now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
         """Given some project IDs returns adoption rates that should be updated
         on the postgres tables.

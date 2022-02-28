@@ -4,7 +4,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
 
 jest.mock('sentry/utils/localStorage');
@@ -13,8 +12,20 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 }));
 
 describe('TeamStatsIssues', () => {
-  const project1 = TestStubs.Project({id: '2', name: 'js', slug: 'js'});
-  const project2 = TestStubs.Project({id: '3', name: 'py', slug: 'py'});
+  const env1 = 'prod';
+  const env2 = 'dev';
+  const project1 = TestStubs.Project({
+    id: '2',
+    name: 'js',
+    slug: 'js',
+    environments: [env1, env2],
+  });
+  const project2 = TestStubs.Project({
+    id: '3',
+    name: 'py',
+    slug: 'py',
+    environments: [env1, env2],
+  });
   const team1 = TestStubs.Team({
     id: '2',
     slug: 'frontend',
@@ -111,6 +122,7 @@ describe('TeamStatsIssues', () => {
   function createWrapper() {
     const teams = [team1, team2, team3];
     const projects = [project1, project2];
+    ProjectsStore.loadInitialData(projects);
     const organization = TestStubs.Organization({
       teams,
       projects,
@@ -118,14 +130,10 @@ describe('TeamStatsIssues', () => {
     const context = TestStubs.routerContext([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
-    return mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <TeamStatsIssues router={mockRouter} location={{}} />
-      </OrganizationContext.Provider>,
-      {
-        context,
-      }
-    );
+    return mountWithTheme(<TeamStatsIssues router={mockRouter} location={{}} />, {
+      context,
+      organization,
+    });
   }
 
   it('defaults to first team', () => {
@@ -149,6 +157,17 @@ describe('TeamStatsIssues', () => {
       'teamInsightsSelectedTeamId:org-slug',
       team1.id
     );
+  });
+
+  it('can filter by environment', () => {
+    createWrapper();
+
+    // For some reason the "Environment:" is rendered via css :before
+    expect(screen.getByText('All')).toBeInTheDocument();
+    userEvent.type(screen.getByText('All'), '{mouseDown}');
+    expect(screen.getByText(env1)).toBeInTheDocument();
+    userEvent.click(screen.getByText(env1));
+    expect(mockRouter.push).toHaveBeenCalledWith({query: {environment: 'prod'}});
   });
 
   it('superusers can switch to any team', () => {

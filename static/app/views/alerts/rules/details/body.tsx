@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -35,7 +36,6 @@ import {
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import Timeline from 'sentry/views/alerts/rules/details/timeline';
 
-import AlertBadge from '../../alertBadge';
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
@@ -211,7 +211,7 @@ export default class DetailsBody extends React.Component<Props> {
         </SidebarGroup>
 
         <SidebarGroup>
-          <Heading>{t('Thresholds and Actions')}</Heading>
+          <Heading>{t('Thresholds')}</Heading>
           {typeof criticalTrigger?.alertThreshold === 'number' &&
             this.renderTrigger(
               criticalTrigger.label,
@@ -352,10 +352,12 @@ export default class DetailsBody extends React.Component<Props> {
                         <Heading noMargin>{t('Display')}</Heading>
                         <ChartControls>
                           <DropdownControl
-                            label={getDynamicText({
-                              fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
-                              value: timePeriod.display,
-                            })}
+                            label={
+                              getDynamicText({
+                                fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
+                                value: timePeriod.display,
+                              }) ?? '' // we should never get here because timePeriod.display is typed as always defined
+                            }
                           >
                             {TIME_OPTIONS.map(({label, value}) => (
                               <DropdownItem

@@ -1,3 +1,5 @@
+export type MetricsColumnType = 'set' | 'counter' | 'duration';
+
 export type MetricsApiResponse = {
   end: string;
   groups: {
@@ -9,6 +11,8 @@ export type MetricsApiResponse = {
   query: string;
   start: string;
 };
+
+export type MetricTagCollection = Record<string, MetricTag>;
 
 export type MetricTag = {
   key: string;
@@ -22,7 +26,10 @@ export type MetricTagValue = {
 export type MetricMeta = {
   name: string;
   operations: string[];
+  type: MetricsColumnType;
 };
+
+export type MetricsMetaCollection = Record<string, MetricMeta>;
 
 export type MetricQuery = {
   aggregation?: string;

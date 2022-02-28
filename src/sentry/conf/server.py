@@ -15,7 +15,6 @@ from urllib.parse import urlparse
 from django.conf.global_settings import *  # NOQA
 
 import sentry
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -927,17 +926,17 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:alert-rule-ui-component": False,
+    # Enable issue alert status page
+    "organizations:alert-rule-status-page": False,
+    # Alert wizard redesign version 3
+    "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
-    # Enable explicit use of AND and OR in search.
-    "organizations:boolean-search": False,
     # Enable the linked event feature in the issue details breadcrumb.
     "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
-    # Enable unfurling charts using the Chartcuterie service
-    "organizations:chart-unfurls": False,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -947,8 +946,6 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable inline preview of attachments.
-    "organizations:event-attachments-viewer": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
     # Enable Dynamic Sampling errors in the org settings
@@ -957,14 +954,10 @@ SENTRY_FEATURES = {
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
-    # Enable the events stream interface.
-    "organizations:events": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable discover top events queries with other & higher options
-    "organizations:discover-top-events": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -987,8 +980,6 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable improved syntax highlighting + autocomplete on unified search
-    "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1006,10 +997,11 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
     "organizations:metrics-performance-ui": False,
-    # True if the metrics backend should be checked against the sessions backend
+    # True if release-health related queries should be run against both
+    # backends (sessions and metrics dataset)
     "organizations:release-health-check-metrics": False,
-    # Enable metric aggregate in metric alert rule builder
-    "organizations:metric-alert-builder-aggregate": False,
+    # True if differences between the metrics and sessions backend should be reported
+    "organizations:release-health-check-metrics-report": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1051,8 +1043,6 @@ SENTRY_FEATURES = {
     "organizations:issues-in-dashboards": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
-    # Enable navigation features between Discover and Dashboards
-    "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1061,25 +1051,23 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable removing issue from issue list if action taken.
+    "organizations:issue-list-removal-action": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable logging for select organizations
-    "organizations:pagerduty-metric-alert-resolve-logging": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
-    # Enable landing improvements for performance
-    "organizations:performance-landing-widgets": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable mobile vitals
-    "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
+    # Enable histogram view in span details
+    "organizations:performance-span-histogram-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1097,8 +1085,6 @@ SENTRY_FEATURES = {
     "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
-    # Enable sorting+filtering by semantic version of a release
-    "organizations:semver": True,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
     # Enable basic SSO functionality, providing configurable single sign on
@@ -1116,8 +1102,6 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
-    # Store release bundles as zip files instead of single files
-    "organizations:release-archives": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
@@ -1363,15 +1347,6 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_ENABLED = True
 SENTRY_RATELIMITER_OPTIONS = {}
-# These values were determined from analysis on one week of api access logs
-SENTRY_RATELIMITER_DEFAULT_IP = 620
-SENTRY_RATELIMITER_DEFAULT_USER = 620
-SENTRY_RATELIMITER_DEFAULT_ORG = 620
-SENTRY_RATELIMITER_DEFAULTS = {
-    RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),
-    RateLimitCategory.USER: RateLimit(SENTRY_RATELIMITER_DEFAULT_USER, 1),
-    RateLimitCategory.ORGANIZATION: RateLimit(SENTRY_RATELIMITER_DEFAULT_ORG, 1),
-}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -2528,3 +2503,12 @@ ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
 # Note: The docs have this backwards. We set this to False here so that we always add check
 # constraints instead of setting the column to not null.
 ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
+
+ANOMALY_DETECTION_URL = "127.0.0.1:9091"
+ANOMALY_DETECTION_TIMEOUT = 30
+
+# This is the URL to the profiling service
+SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
+
+SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.base.RuleHistoryBackend"
+SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}

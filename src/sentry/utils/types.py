@@ -1,3 +1,5 @@
+from typing import Callable
+
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
@@ -167,12 +169,11 @@ _type_mapping = {
     tuple: Sequence,
     list: Sequence,
 }
-try:
-    _type_mapping[long] = Int  # noqa: B311
-except NameError:  # long was removed in Python 3
-    pass
 
 
 def type_from_value(value):
     """Fetch Type based on a primitive value"""
     return _type_mapping[type(value)]
+
+
+AnyCallable = Callable[..., Any]

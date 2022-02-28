@@ -5,6 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
+import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -25,7 +26,6 @@ import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRul
 import TicketRuleModal from 'sentry/views/alerts/issueRuleEditor/ticketRuleModal';
 import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 export type FormField = {
   // The rest is configuration for the form field

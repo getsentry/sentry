@@ -15,24 +15,30 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
+import Input from 'sentry/components/forms/controls/input';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import Field from 'sentry/components/forms/field';
+import FieldLabel from 'sentry/components/forms/field/fieldLabel';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DateString,
-  MetricTag,
+  MetricsMetaCollection,
+  MetricTagCollection,
   Organization,
   PageFilters,
   SelectValue,
   TagCollection,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
+import withMetricsMeta from 'sentry/utils/withMetricsMeta';
+import withMetricsTags from 'sentry/utils/withMetricsTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
@@ -47,22 +53,16 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {
-  mapErrors,
-  normalizeQueries,
-} from 'sentry/views/dashboardsV2/widgetBuilder/eventWidget/utils';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {
+  DEFAULT_METRICS_FIELDS,
   generateMetricsWidgetFieldOptions,
-  METRICS_FIELDS,
+  METRICS_FIELDS_ALLOW_LIST,
 } from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {mapErrors, normalizeQueries} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
-import Field from 'sentry/views/settings/components/forms/field';
-import FieldLabel from 'sentry/views/settings/components/forms/field/fieldLabel';
 
 import Option from '../forms/selectOption';
 import Tooltip from '../tooltip';
@@ -91,6 +91,8 @@ export type DashboardWidgetModalOptions = {
 type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
+    metricsMeta: MetricsMetaCollection;
+    metricsTags: MetricTagCollection;
     organization: Organization;
     selection: PageFilters;
     tags: TagCollection;
@@ -105,7 +107,6 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   loading: boolean;
-  metricTags: MetricTag[];
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
@@ -162,7 +163,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         errors: undefined,
         loading: !!this.omitDashboardProp,
         dashboards: [],
-        metricTags: [],
         userHasModified: false,
         widgetType: WidgetType.DISCOVER,
       };
@@ -177,7 +177,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       errors: undefined,
       loading: false,
       dashboards: [],
-      metricTags: [],
       userHasModified: false,
       widgetType: widget.widgetType ?? WidgetType.DISCOVER,
     };
@@ -186,9 +185,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   componentDidMount() {
     if (this.omitDashboardProp) {
       this.fetchDashboards();
-    }
-    if (this.props.organization.features.includes('dashboards-metrics')) {
-      this.fetchMetricsTags();
     }
   }
 
@@ -524,29 +520,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState({loading: false});
   }
 
-  async fetchMetricsTags() {
-    const {api, organization, selection} = this.props;
-    const promise: Promise<MetricTag[]> = api.requestPromise(
-      `/organizations/${organization.slug}/metrics/tags/`,
-      {
-        query: {
-          project: !selection.projects.length ? undefined : selection.projects,
-        },
-      }
-    );
-
-    try {
-      const metricTags = await promise;
-      this.setState({
-        metricTags,
-      });
-    } catch (error) {
-      const errorResponse = error?.responseJSON ?? t('Unable to fetch metric tags');
-      addErrorMessage(errorResponse);
-      handleXhrErrorResponse(errorResponse)(error);
-    }
-  }
-
   handleDashboardChange(option: SelectValue<string>) {
     this.setState({selectedDashboard: option});
   }
@@ -605,7 +578,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
 
   renderWidgetQueryForm() {
-    const {organization, selection, tags, start, end, statsPeriod} = this.props;
+    const {
+      organization,
+      selection,
+      tags,
+      metricsTags,
+      metricsMeta,
+      start,
+      end,
+      statsPeriod,
+    } = this.props;
     const state = this.state;
     const errors = state.errors;
 
@@ -617,10 +599,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
 
+    const filteredMeta = Object.values(metricsMeta).filter(field =>
+      METRICS_FIELDS_ALLOW_LIST.includes(field.name)
+    );
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      METRICS_FIELDS,
-      Object.values(state.metricTags).map(({key}) => key)
+      filteredMeta.length ? filteredMeta : DEFAULT_METRICS_FIELDS,
+      Object.values(metricsTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
@@ -665,28 +650,48 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
       case WidgetType.METRICS:
         return (
-          <WidgetQueriesForm
-            organization={organization}
-            selection={querySelection}
-            displayType={state.displayType}
-            widgetType={state.widgetType}
-            queries={state.queries}
-            errors={errors?.queries}
-            fieldOptions={metricsWidgetFieldOptions}
-            onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
-              this.handleQueryChange(widgetQuery, queryIndex)
-            }
-            canAddSearchConditions={this.canAddSearchConditions()}
-            handleAddSearchConditions={this.handleAddSearchConditions}
-            handleDeleteQuery={this.handleQueryRemove}
-          />
+          <React.Fragment>
+            <WidgetQueriesForm
+              organization={organization}
+              selection={querySelection}
+              displayType={state.displayType}
+              widgetType={state.widgetType}
+              queries={state.queries}
+              errors={errors?.queries}
+              fieldOptions={metricsWidgetFieldOptions}
+              onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
+                this.handleQueryChange(widgetQuery, queryIndex)
+              }
+              canAddSearchConditions={this.canAddSearchConditions()}
+              handleAddSearchConditions={this.handleAddSearchConditions}
+              handleDeleteQuery={this.handleQueryRemove}
+            />
+            <WidgetCard
+              organization={organization}
+              selection={querySelection}
+              widget={this.state}
+              isEditing={false}
+              onDelete={() => undefined}
+              onEdit={() => undefined}
+              onDuplicate={() => undefined}
+              widgetLimitReached={false}
+              renderErrorMessage={errorMessage =>
+                typeof errorMessage === 'string' && (
+                  <PanelAlert type="error">{errorMessage}</PanelAlert>
+                )
+              }
+              isSorting={false}
+              currentWidgetDragging={false}
+              noLazyLoad
+            />
+          </React.Fragment>
         );
 
       case WidgetType.DISCOVER:
       default:
         return (
           <React.Fragment>
-            <Measurements organization={organization}>
+            <Measurements>
               {({measurements}) => {
                 const measurementKeys = Object.values(measurements).map(({key}) => key);
                 const amendedFieldOptions = fieldOptions(measurementKeys);
@@ -908,4 +913,6 @@ const StyledFieldLabel = styled(FieldLabel)`
   display: inline-flex;
 `;
 
-export default withApi(withPageFilters(withTags(AddDashboardWidgetModal)));
+export default withApi(
+  withPageFilters(withTags(withMetricsMeta(withMetricsTags(AddDashboardWidgetModal))))
+);

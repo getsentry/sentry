@@ -10,6 +10,7 @@ import Count from 'sentry/components/count';
 import DropdownLink from 'sentry/components/dropdownLink';
 import Duration from 'sentry/components/duration';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -31,7 +32,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-import {RadioLineItem} from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';

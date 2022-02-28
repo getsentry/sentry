@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Form from 'sentry/views/settings/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 describe('PermissionsObserver', () => {
@@ -13,8 +13,7 @@ describe('PermissionsObserver', () => {
           scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
           events={['issue']}
         />
-      </Form>,
-      TestStubs.routerContext()
+      </Form>
     );
   });
 

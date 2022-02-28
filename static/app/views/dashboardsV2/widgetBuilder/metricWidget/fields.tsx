@@ -1,16 +1,21 @@
-import {SelectValue} from 'sentry/types';
+import {MetricMeta, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-export type MetricsColumnType = 'set' | 'counter' | 'duration';
+export const METRICS_FIELDS_ALLOW_LIST: string[] = [
+  SessionMetric.SENTRY_SESSIONS_SESSION,
+  SessionMetric.SENTRY_SESSIONS_SESSION_DURATION,
+  SessionMetric.SENTRY_SESSIONS_USER,
+];
 
-export const METRICS_FIELDS: Readonly<Partial<Record<SessionMetric, MetricsColumnType>>> =
+export const DEFAULT_METRICS_FIELDS: MetricMeta[] = [
   {
-    [SessionMetric.SENTRY_SESSIONS_SESSION]: 'counter',
-    [SessionMetric.SENTRY_SESSIONS_SESSION_ERROR]: 'set',
-    [SessionMetric.SENTRY_SESSIONS_USER]: 'set',
-  };
+    name: SessionMetric.SENTRY_SESSIONS_SESSION,
+    operations: ['sum'],
+    type: 'counter',
+  },
+];
 
 export const METRICS_AGGREGATIONS = {
   count_unique: {
@@ -42,12 +47,12 @@ export const METRICS_AGGREGATIONS = {
 };
 
 export function generateMetricsWidgetFieldOptions(
-  fields: Record<string, MetricsColumnType> = METRICS_FIELDS,
+  fields: MetricMeta[] = DEFAULT_METRICS_FIELDS,
   tagKeys?: string[]
 ) {
   const aggregations = METRICS_AGGREGATIONS;
-  const fieldKeys = Object.keys(fields).sort();
   const functions = Object.keys(aggregations);
+  fields.sort((x, y) => x.name.localeCompare(y.name));
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
   // Index items by prefixed keys as custom tags can overlap both fields and
@@ -69,14 +74,14 @@ export function generateMetricsWidgetFieldOptions(
     };
   });
 
-  fieldKeys.forEach(field => {
-    fieldOptions[`field:${field}`] = {
-      label: field,
+  fields.forEach(field => {
+    fieldOptions[`field:${field.name}`] = {
+      label: field.name,
       value: {
         kind: FieldValueKind.METRICS,
         meta: {
-          name: field,
-          dataType: fields[field],
+          name: field.name,
+          dataType: field.type,
         },
       },
     };

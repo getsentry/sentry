@@ -47,9 +47,17 @@ def remove_surrogates(value):
 
 
 def clean_bad_params(params):
+    # Support dictionary of parameters for %(key)s placeholders
+    # in raw SQL queries.
+    if isinstance(params, dict):
+        for key, param in params.items():
+            if isinstance(param, (str, bytes)):
+                params[key] = remove_null(remove_surrogates(param))
+        return params
+
     params = list(params)
     for idx, param in enumerate(params):
-        if isinstance(param, ((str,), bytes)):
+        if isinstance(param, (str, bytes)):
             params[idx] = remove_null(remove_surrogates(param))
     return params
 

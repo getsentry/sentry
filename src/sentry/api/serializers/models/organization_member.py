@@ -1,10 +1,12 @@
 from collections import defaultdict
-from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set
+from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set, cast
 
 from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.external_actor import ExternalActorResponse
+from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.models import (
     ExternalActor,
     OrganizationMember,
@@ -14,7 +16,6 @@ from sentry.models import (
     User,
 )
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_USER
-from sentry.utils.json import JSONData
 
 
 def get_serialized_users_by_id(users_set: Set[User], user: User) -> Mapping[str, User]:
@@ -49,6 +50,32 @@ def get_organization_id(organization_members: Sequence[OrganizationMember]) -> i
     if len(organization_ids) != 1:
         raise Exception("Cannot determine organization")
     return int(organization_ids.pop())
+
+
+# have to use alternative TypedDict syntax because of dashes/colons in names
+_OrganizationMemberFlags = TypedDict(
+    "_OrganizationMemberFlags",
+    {"sso:linked": bool, "sso:invalid": bool, "member-limit:restricted": bool},
+)
+
+
+class OrganizationMemberResponseOptional(TypedDict, total=False):
+    externalUsers: List[ExternalActorResponse]
+
+
+class OrganizationMemberResponse(OrganizationMemberResponseOptional):
+    id: str
+    email: str
+    name: str
+    user: UserSerializerResponse
+    role: str  # TODO: literal/enum
+    roleName: str  # TODO: literal/enum
+    pending: bool
+    expired: str
+    flags: _OrganizationMemberFlags
+    dateCreated: str
+    inviteStatus: str
+    inviterName: Optional[str]
 
 
 @register(OrganizationMember)
@@ -99,8 +126,8 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
 
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
-        d = {
+    ) -> OrganizationMemberResponse:
+        d: OrganizationMemberResponse = {
             "id": str(obj.id),
             "email": obj.get_email(),
             "name": obj.user.get_display_name() if obj.user else obj.get_email(),
@@ -125,6 +152,10 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         return d
 
 
+class OrganizationMemberWithTeamsResponse(OrganizationMemberResponse):
+    teams: List[str]
+
+
 class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
     def get_attrs(
         self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
@@ -143,10 +174,14 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
 
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
-        d = super().serialize(obj, attrs, user)
+    ) -> OrganizationMemberWithTeamsResponse:
+        d = cast(OrganizationMemberWithTeamsResponse, super().serialize(obj, attrs, user))
         d["teams"] = attrs.get("teams", [])
         return d
+
+
+class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
+    projects: List[str]
 
 
 class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
@@ -188,8 +223,9 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
 
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
-        d = super().serialize(obj, attrs, user)
+    ) -> OrganizationMemberWithProjectsResponse:
+        d = cast(OrganizationMemberWithProjectsResponse, super().serialize(obj, attrs, user))
+
         d["projects"] = attrs.get("projects", [])
         return d
 
@@ -205,29 +241,28 @@ class SCIMEmail(TypedDict):
     type: str
 
 
+class OrganizationMemberSCIMSerializerOptional(TypedDict, total=False):
+    """Sentry doesn't use this field but is expected by SCIM"""
+
+    active: bool
+
+
 class SCIMMeta(TypedDict):
     resourceType: str
 
 
-class OrganizationMemberSCIMSerializerRequired(TypedDict):
+class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):
+    """
+    Conforming to the SCIM RFC, this represents a Sentry Org Member
+    as a SCIM user object.
+    """
+
     schemas: List[str]
     id: str
     userName: str
     name: SCIMName
     emails: List[SCIMEmail]
     meta: SCIMMeta
-
-
-class OrganizationMemberSCIMSerializerResponse(
-    OrganizationMemberSCIMSerializerRequired, total=False
-):
-    """
-    Conforming to the SCIM RFC, this represents a Sentry Org Member
-    as a SCIM user object.
-    """
-
-    active: bool
-    """Sentry doesn't use this field but is expected by SCIM"""
 
 
 class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore

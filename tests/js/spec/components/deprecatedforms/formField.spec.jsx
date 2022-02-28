@@ -1,13 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Form from 'sentry/views/settings/components/forms/form';
-import FormModel from 'sentry/views/settings/components/forms/model';
-import TextField from 'sentry/views/settings/components/forms/textField';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
+import TextField from 'sentry/components/forms/textField';
 
 describe('FormField + model', function () {
   let model;
   let wrapper;
-  const routerContext = TestStubs.routerContext();
 
   beforeEach(function () {
     model = new FormModel();
@@ -17,8 +16,7 @@ describe('FormField + model', function () {
     wrapper = mountWithTheme(
       <Form model={model}>
         <TextField name="fieldName" />
-      </Form>,
-      routerContext
+      </Form>
     );
     expect(wrapper).toSnapshot();
   });
@@ -27,8 +25,7 @@ describe('FormField + model', function () {
     wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" />
-      </Form>,
-      routerContext
+      </Form>
     );
 
     expect(model.initialData.fieldName).toBe('test');
@@ -38,8 +35,7 @@ describe('FormField + model', function () {
     wrapper = mountWithTheme(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" />
-      </Form>,
-      routerContext
+      </Form>
     );
 
     expect(model.initialData.fieldName).toBe('foo');
@@ -50,8 +46,7 @@ describe('FormField + model', function () {
     wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" defaultValue="foo" />
-      </Form>,
-      routerContext
+      </Form>
     );
 
     expect(model.initialData.fieldName).toBe('test');
@@ -62,8 +57,7 @@ describe('FormField + model', function () {
     wrapper = mountWithTheme(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" setValue={v => `${v}${v}`} />
-      </Form>,
-      routerContext
+      </Form>
     );
 
     expect(model.initialData.fieldName).toBe('foofoo');
@@ -74,8 +68,7 @@ describe('FormField + model', function () {
     wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
-      </Form>,
-      routerContext
+      </Form>
     );
 
     expect(model.getDescriptor('fieldName', 'required')).toBe(true);
@@ -85,8 +78,7 @@ describe('FormField + model', function () {
     wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
-      </Form>,
-      routerContext
+      </Form>
     );
     expect(model.fieldDescriptor.has('fieldName')).toBe(true);
 

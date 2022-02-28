@@ -16,6 +16,7 @@ import isEqual from 'lodash/isEqual';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -27,10 +28,10 @@ import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import {DataSet} from './widgetBuilder/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
+  assignTempId,
   calculateColumnDepths,
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
@@ -137,14 +138,20 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization} = this.props;
+    const {isEditing, organization, api} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
+    }
+
+    if (organization.features.includes('dashboards-metrics')) {
+      fetchMetricsFields(api, organization.slug);
+      fetchMetricsTags(api, organization.slug);
     }
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
     }
+
     this.addNewWidget();
 
     // Get member list data for issue widgets
@@ -251,7 +258,7 @@ class Dashboard extends Component<Props, State> {
         pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
         query: {
           ...location.query,
-          dataSet: DataSet.EVENTS,
+          source: DashboardWidgetSource.DASHBOARDS,
         },
       });
       return;
@@ -261,7 +268,7 @@ class Dashboard extends Component<Props, State> {
       pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       query: {
         ...location.query,
-        dataSet: DataSet.EVENTS,
+        source: DashboardWidgetSource.DASHBOARDS,
       },
     });
   };
@@ -306,16 +313,17 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
 
-    const widgetCopy = cloneDeep(widget);
-    widgetCopy.id = undefined;
-    widgetCopy.tempId = undefined;
+    const widgetCopy = cloneDeep(
+      assignTempId({...widget, id: undefined, tempId: undefined})
+    );
 
     let nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
     nextList = generateWidgetsAfterCompaction(nextList);
 
+    onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
@@ -341,7 +349,7 @@ class Dashboard extends Component<Props, State> {
           pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
           query: {
             ...location.query,
-            dataSet: DataSet.EVENTS,
+            source: DashboardWidgetSource.DASHBOARDS,
           },
         });
         return;
@@ -351,7 +359,7 @@ class Dashboard extends Component<Props, State> {
         pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
         query: {
           ...location.query,
-          dataSet: DataSet.EVENTS,
+          source: DashboardWidgetSource.DASHBOARDS,
         },
       });
     }
@@ -519,10 +527,16 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue widgets if the user does not have the feature flag
-    if (!organization.features.includes('issues-in-dashboards')) {
-      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
-    }
+    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    widgets = widgets.filter(({widgetType}) => {
+      if (widgetType === WidgetType.ISSUE) {
+        return organization.features.includes('issues-in-dashboards');
+      }
+      if (widgetType === WidgetType.METRICS) {
+        return organization.features.includes('dashboards-metrics');
+      }
+      return true;
+    });
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
@@ -572,10 +586,16 @@ class Dashboard extends Component<Props, State> {
   renderDndDashboard = () => {
     const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue widgets if the user does not have the feature flag
-    if (!organization.features.includes('issues-in-dashboards')) {
-      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
-    }
+    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    widgets = widgets.filter(({widgetType}) => {
+      if (widgetType === WidgetType.ISSUE) {
+        return organization.features.includes('issues-in-dashboards');
+      }
+      if (widgetType === WidgetType.METRICS) {
+        return organization.features.includes('dashboards-metrics');
+      }
+      return true;
+    });
 
     const items = this.getWidgetIds();
 

@@ -5,13 +5,14 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconExpand, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -34,9 +35,6 @@ type Props = WithRouterProps & {
   isEditing: boolean;
   isSorting: boolean;
   location: Location;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onEdit: () => void;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -46,16 +44,27 @@ type Props = WithRouterProps & {
   isMobile?: boolean;
   isPreview?: boolean;
   noLazyLoad?: boolean;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onEdit?: () => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
+  showWidgetViewerButton?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
-      this.props;
+    const {
+      onEdit,
+      onDelete,
+      onDuplicate,
+      draggableProps,
+      hideToolbar,
+      isEditing,
+      isMobile,
+    } = this.props;
 
     if (!isEditing) {
       return null;
@@ -76,6 +85,9 @@ class WidgetCard extends React.Component<Props> {
           )}
           <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
+          </IconClick>
+          <IconClick aria-label={t('Duplicate Widget')} onClick={onDuplicate}>
+            <IconCopy color="textColor" />
           </IconClick>
           <IconClick data-test-id="widget-delete" onClick={onDelete}>
             <IconDelete color="textColor" />
@@ -129,6 +141,8 @@ class WidgetCard extends React.Component<Props> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
+      showWidgetViewerButton,
+      onEdit,
     } = this.props;
     return (
       <ErrorBoundary
@@ -139,6 +153,17 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
+            {showWidgetViewerButton && (
+              <OpenWidgetViewerButton
+                onClick={() => {
+                  openWidgetViewerModal({
+                    organization,
+                    widget,
+                    onEdit,
+                  });
+                }}
+              />
+            )}
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
@@ -247,4 +272,13 @@ const WidgetHeader = styled('div')`
   width: 100%;
   display: flex;
   justify-content: space-between;
+`;
+
+const OpenWidgetViewerButton = styled(IconExpand)`
+  &:hover {
+    cursor: pointer;
+  }
+  margin: auto;
+  margin-left: ${space(0.5)};
+  height: ${p => p.theme.fontSizeMedium};
 `;

@@ -13,6 +13,8 @@ import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
@@ -29,8 +31,6 @@ import {getEventTypeFilter} from 'sentry/views/alerts/incidentRules/utils/getEve
 import hasThresholdValue from 'sentry/views/alerts/incidentRules/utils/hasThresholdValue';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormModel from 'sentry/views/settings/components/forms/model';
 
 import {addOrUpdateRule} from '../actions';
 import {
@@ -84,9 +84,7 @@ type State = {
   projects: Project[];
   query: string;
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
-
   thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
-
   thresholdType: UnsavedIncidentRule['thresholdType'];
   timeWindow: number;
   triggerErrors: Map<number, {[fieldName: string]: string}>;
@@ -497,7 +495,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
           thresholdPeriod,
-          comparisonDelta,
+          comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
         },
@@ -697,6 +695,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const canEdit =
       isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
 
+    const hasAlertWizardV3 =
+      Boolean(isCustomMetric) && organization.features.includes('alert-wizard-v3');
+
     const triggerForm = (hasAccess: boolean) => (
       <Triggers
         disabled={!hasAccess || !canEdit}
@@ -712,6 +713,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         organization={organization}
         ruleId={ruleId}
         availableActions={this.state.availableActions}
+        hasAlertWizardV3={hasAlertWizardV3}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
         onThresholdPeriodChange={this.handleThresholdPeriodChange}
@@ -720,7 +722,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
 
     const ruleNameOwnerForm = (hasAccess: boolean) => (
-      <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
+      <RuleNameOwnerForm
+        disabled={!hasAccess || !canEdit}
+        project={project}
+        hasAlertWizardV3={hasAlertWizardV3}
+      />
     );
 
     return (
@@ -775,6 +781,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 onFilterSearch={this.handleFilterUpdate}
                 allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                 alertType={isCustomMetric ? 'custom' : alertType}
+                hasAlertWizardV3={hasAlertWizardV3}
                 dataset={dataset}
                 timeWindow={timeWindow}
                 comparisonType={comparisonType}
@@ -787,7 +794,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               />
               <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
               {triggerForm(hasAccess)}
-              <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
               {ruleNameOwnerForm(hasAccess)}
             </List>
           </Form>

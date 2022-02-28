@@ -6,7 +6,7 @@ import {Location} from 'history';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SearchBar from 'sentry/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageHeading from 'sentry/components/pageHeading';
@@ -35,7 +35,7 @@ import {
   getDefaultDisplayForPlatform,
   getLandingDisplayFromParam,
   handleLandingDisplayChange,
-  LANDING_V3_DISPLAYS,
+  LANDING_DISPLAYS,
   LandingDisplayField,
 } from './utils';
 
@@ -101,10 +101,6 @@ export function PerformanceLanding(props: Props) {
 
   const showOnboarding = shouldShowOnboarding;
 
-  const shownLandingDisplays = LANDING_V3_DISPLAYS.filter(
-    ({isShown}) => !isShown || isShown(organization)
-  );
-
   const ViewComponent = fieldToViewMap[landingDisplay.field];
 
   return (
@@ -129,7 +125,7 @@ export function PerformanceLanding(props: Props) {
         </Layout.HeaderActions>
 
         <Layout.HeaderNavTabs>
-          {shownLandingDisplays.map(({label, field}) => (
+          {LANDING_DISPLAYS.map(({label, field}) => (
             <li key={label} className={landingDisplay.field === field ? 'active' : ''}>
               <a
                 href="#"

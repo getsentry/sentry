@@ -107,6 +107,99 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="duration",
                 ),
+                fields.MetricsFunction(
+                    "count_unique",
+                    required_args=[fields.FunctionArg("column")],
+                    calculated_args=[resolve_metric_id],
+                    snql_set=lambda args, alias: Function(
+                        "uniqCombinedIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "epm",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            Function(
+                                "countMergeIf",
+                                [
+                                    Column("count"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            Function("divide", [args["interval"], 60]),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "eps",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            Function(
+                                "countMergeIf",
+                                [
+                                    Column("count"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            args["interval"],
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "failure_count",
+                    snql_distribution=self._resolve_failure_count,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "failure_rate",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            self._resolve_failure_count(args),
+                            Function(
+                                "countMergeIf",
+                                [
+                                    Column("count"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -124,6 +217,39 @@ class MetricsDatasetConfig(DatasetConfig):
             return None
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
+
+    def _resolve_failure_count(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        statuses = [indexer.resolve(status) for status in constants.NON_FAILURE_STATUS]
+        return Function(
+            "countMergeIf",
+            [
+                Column("count"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric("transaction.duration"),
+                            ],
+                        ),
+                        Function(
+                            "notIn",
+                            [
+                                self.builder.column("transaction.status"),
+                                list(status for status in statuses if status is not None),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
 
     def _resolve_percentile(
         self,

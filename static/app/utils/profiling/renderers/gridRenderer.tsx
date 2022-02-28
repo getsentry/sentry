@@ -1,10 +1,10 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {FlamegraphTheme} from '../flamegraph/FlamegraphTheme';
+import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, measureText, Rect} from '../gl/utils';
 
 export function getIntervalTimeAtX(configToPhysicalSpace: mat3, x: number): number {
-  const logicalToPhysical = mat3.fromScaling(
+  const logicalToPhysicalSpace = mat3.fromScaling(
     mat3.create(),
     vec2.fromValues(window.devicePixelRatio ?? 1, window.devicePixelRatio ?? 1)
   );
@@ -12,8 +12,8 @@ export function getIntervalTimeAtX(configToPhysicalSpace: mat3, x: number): numb
 
   const logicalToConfigSpace = mat3.multiply(
     mat3.create(),
-    logicalToPhysical,
-    physicalToConfigSpace
+    physicalToConfigSpace,
+    logicalToPhysicalSpace
   );
 
   const vector =
@@ -32,6 +32,7 @@ export function computeInterval(configView: Rect, configToPhysicalSpace: mat3): 
   // Compute x at 200 and subtract left, so we have the interval
   const targetInterval =
     getIntervalTimeAtX(configToPhysicalSpace, target) - configView.left;
+
   const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
 
   let interval = minInterval;
@@ -43,7 +44,6 @@ export function computeInterval(configView: Rect, configToPhysicalSpace: mat3): 
   }
 
   const intervals: number[] = [];
-
   let x = Math.ceil(configView.left / interval) * interval;
 
   while (x <= configView.right) {
@@ -84,7 +84,7 @@ class GridRenderer {
     }`;
     context.textBaseline = 'top';
 
-    const LINE_WIDTH = 1 * window.devicePixelRatio;
+    const LINE_WIDTH = 1;
 
     // Draw the background of the top timeline
     context.fillStyle = this.theme.COLORS.GRID_FRAME_BACKGROUND_COLOR;

@@ -79,6 +79,10 @@ describe('Performance > Web Vitals', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -133,6 +137,12 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+  });
+
+  afterEach(() => {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
   });
 
   it('render no access without feature', async function () {
@@ -340,6 +350,58 @@ describe('Performance > Web Vitals', function () {
           }, {})
         ),
       });
+    });
+
+    it('renders an info alert when missing web vitals data', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-vitals/',
+        body: {
+          'measurements.fp': {poor: 1, meh: 2, good: 3, total: 6, p75: 4567},
+          'measurements.fcp': {poor: 1, meh: 2, good: 3, total: 6, p75: 1456},
+        },
+      });
+
+      const {organization, router, routerContext} = initialize({
+        query: {
+          lcpStart: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('Alert')).toHaveLength(1);
+    });
+
+    it('does not render an info alert when data from all web vitals is present', async function () {
+      const {organization, router, routerContext} = initialize({
+        query: {
+          lcpStart: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('Alert')).toHaveLength(0);
     });
   });
 });
