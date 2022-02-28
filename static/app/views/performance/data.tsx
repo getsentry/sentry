@@ -18,6 +18,8 @@ import {
 } from './vitalDetail/utils';
 
 export const DEFAULT_STATS_PERIOD = '24h';
+export const DEFAULT_PROJECT_THRESHOLD_METRIC = 'duration';
+export const DEFAULT_PROJECT_THRESHOLD = 300;
 
 export const COLUMN_TITLES = [
   'transaction',
@@ -345,10 +347,10 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'Cumulative layout shift (CLS) is a web vital measuring unexpected visual shifting a user experiences.'
     ),
-  userMisery: organization =>
+  userMisery: () =>
     t(
       "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
-      organization.apdexThreshold
+      DEFAULT_PROJECT_THRESHOLD_METRIC
     ),
   statusBreakdown: () =>
     t(
