@@ -460,12 +460,9 @@ class SnubaQueryBuilder:
             orderby=self._build_orderby(query_definition, entity),
         )
 
-        if totals_query.orderby is None:
-            series_query = totals_query.set_groupby(
-                (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
-            )
-        else:
-            series_query = None
+        series_query = totals_query.set_groupby(
+            (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+        )
 
         return {
             "totals": totals_query,

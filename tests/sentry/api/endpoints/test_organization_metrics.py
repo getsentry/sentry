@@ -3,6 +3,7 @@ from typing import Optional
 from unittest import mock
 
 from django.urls import reverse
+from freezegun import freeze_time
 
 from sentry.models import ApiToken
 from sentry.sentry_metrics import indexer
@@ -248,10 +249,13 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
         ]
         for (expected_transaction, expected_count), group in zip(expected, groups):
             # With orderBy, you only get totals:
-            assert "series" not in group
             assert group["by"] == {"transaction": expected_transaction}
-            totals = group["totals"]
-            assert totals == {"count(sentry.transactions.measurements.lcp)": expected_count}
+            assert group["series"] == {
+                "count(sentry.transactions.measurements.lcp)": [expected_count]
+            }
+            assert group["totals"] == {
+                "count(sentry.transactions.measurements.lcp)": expected_count
+            }
 
     @with_feature(FEATURE_FLAG)
     def test_orderby_percentile(self):
@@ -298,10 +302,11 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
         ]
         for (expected_tag_value, expected_count), group in zip(expected, groups):
             # With orderBy, you only get totals:
-            assert "series" not in group
             assert group["by"] == {"tag1": expected_tag_value}
-            totals = group["totals"]
-            assert totals == {"p50(sentry.transactions.measurements.lcp)": expected_count}
+            assert group["totals"] == {"p50(sentry.transactions.measurements.lcp)": expected_count}
+            assert group["series"] == {
+                "p50(sentry.transactions.measurements.lcp)": [expected_count]
+            }
 
     @with_feature(FEATURE_FLAG)
     def test_orderby_percentile_with_pagination(self):
@@ -502,12 +507,14 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
             expected, groups
         ):
             # With orderBy, you only get totals:
-            assert "series" not in group
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
-            totals = group["totals"]
-            assert totals == {
+            assert group["totals"] == {
                 "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
                 "p50(sentry.transactions.measurements.fcp)": expected_fcp_count,
+            }
+            assert group["series"] == {
+                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count],
+                "p50(sentry.transactions.measurements.fcp)": [expected_fcp_count],
             }
 
     @with_feature(FEATURE_FLAG)
@@ -579,14 +586,17 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
         ]
         for (expected_tag_value, expected_lcp_count, users), group in zip(expected, groups):
             # With orderBy, you only get totals:
-            assert "series" not in group
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
-            totals = group["totals"]
-            assert totals == {
+            assert group["totals"] == {
                 "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
                 "count_unique(sentry.transactions.user)": users,
             }
+            assert group["series"] == {
+                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count],
+                "count_unique(sentry.transactions.user)": [users],
+            }
 
+    @freeze_time("2018-12-11 03:21:34")
     @with_feature(FEATURE_FLAG)
     def test_orderby_percentile_with_many_fields_multiple_entities_with_paginator(self):
         """
@@ -616,25 +626,31 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
             ],
             entity="metrics_distributions",
         )
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": indexer.record("sentry.transactions.user"),
-                    "timestamp": int(time.time()),
-                    "tags": {tag: value},
-                    "type": "s",
-                    "value": numbers,
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (transaction_id, transaction_1, list(range(1))),
-                    (transaction_id, transaction_2, list(range(5))),
-                )
-            ],
-            entity="metrics_sets",
-        )
+        user_metric = indexer.record("sentry.transactions.user")
+        user_ts = time.time()
+        for ts, ranges in [
+            (int(user_ts), [range(4, 5), range(6, 11)]),
+            (int(user_ts // 60 - 15) * 60, [range(3), range(6)]),
+        ]:
+            self._send_buckets(
+                [
+                    {
+                        "org_id": self.organization.id,
+                        "project_id": self.project.id,
+                        "metric_id": user_metric,
+                        "timestamp": ts,
+                        "tags": {tag: value},
+                        "type": "s",
+                        "value": numbers,
+                        "retention_days": 90,
+                    }
+                    for tag, value, numbers in (
+                        (transaction_id, transaction_1, list(ranges[0])),
+                        (transaction_id, transaction_2, list(ranges[1])),
+                    )
+                ],
+                entity="metrics_sets",
+            )
 
         request_args = {
             "field": [
@@ -642,7 +658,7 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
                 "count_unique(sentry.transactions.user)",
             ],
             "statsPeriod": "1h",
-            "interval": "1h",
+            "interval": "10m",
             "datasource": "snuba",
             "groupBy": ["project_id", "transaction"],
             "orderBy": "p50(sentry.transactions.measurements.lcp)",
@@ -654,8 +670,12 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
         assert len(groups) == 1
         assert groups[0]["by"]["transaction"] == "/bar/"
         assert groups[0]["totals"] == {
-            "count_unique(sentry.transactions.user)": 5,
+            "count_unique(sentry.transactions.user)": 11,
             "p50(sentry.transactions.measurements.lcp)": 5.0,
+        }
+        assert groups[0]["series"] == {
+            "p50(sentry.transactions.measurements.lcp)": [None, None, None, None, None, 5.0],
+            "count_unique(sentry.transactions.user)": [0, 0, 0, 6, 0, 5],
         }
 
         request_args["cursor"] = Cursor(0, 1)
@@ -665,8 +685,12 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
         assert len(groups) == 1
         assert groups[0]["by"]["transaction"] == "/foo/"
         assert groups[0]["totals"] == {
-            "count_unique(sentry.transactions.user)": 1,
+            "count_unique(sentry.transactions.user)": 4,
             "p50(sentry.transactions.measurements.lcp)": 11.0,
+        }
+        assert groups[0]["series"] == {
+            "p50(sentry.transactions.measurements.lcp)": [None, None, None, None, None, 11.0],
+            "count_unique(sentry.transactions.user)": [0, 0, 0, 3, 0, 1],
         }
 
     @with_feature(FEATURE_FLAG)
@@ -719,10 +743,13 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
         ]
         for (expected_tag_value, expected_lcp_count, users), group in zip(expected, groups):
             # With orderBy, you only get totals:
-            assert "series" not in group
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
-            totals = group["totals"]
-            assert totals == {"p50(sentry.transactions.measurements.lcp)": expected_lcp_count}
+            assert group["totals"] == {
+                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count
+            }
+            assert group["series"] == {
+                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count]
+            }
 
     @with_feature(FEATURE_FLAG)
     def test_groupby_project(self):
