@@ -10,6 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -574,17 +575,7 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it.only('can add and delete additional queries', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/event.type/values/',
-      body: [{count: 2, name: 'Nvidia 1080ti'}],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-      method: 'POST',
-      body: [],
-    });
-
+  it('can add and delete additional queries', async function () {
     const handleSave = jest.fn();
 
     renderTestComponent({onSave: handleSave});
@@ -656,37 +647,24 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  // it('can respond to validation feedback', async function () {
-  //   MockApiClient.addMockResponse({
-  //     url: '/organizations/org-slug/dashboards/widgets/',
-  //     method: 'POST',
-  //     statusCode: 400,
-  //     body: {
-  //       title: ['This field is required'],
-  //       queries: [{conditions: ['Invalid value']}],
-  //     },
-  //   });
+  it('can respond to validation feedback', async function () {
+    jest.spyOn(indicators, 'addErrorMessage');
 
-  //   let widget = undefined;
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     onAddWidget: data => (widget = data),
-  //   });
+    renderTestComponent();
 
-  //   await clickSubmit(wrapper);
-  //   await wrapper.update();
+    userEvent.click(await screen.findByText('Table'));
 
-  //   // API request should fail and not add widget.
-  //   expect(widget).toBeUndefined();
+    const customWidgetLabels = await screen.findAllByText('Custom Widget');
+    // EditableText and chart title
+    expect(customWidgetLabels).toHaveLength(2);
 
-  //   const errors = wrapper.find('FieldErrorReason');
-  //   expect(errors).toHaveLength(2);
+    userEvent.click(customWidgetLabels[0]);
+    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
 
-  //   // Nested object error should display
-  //   const conditionError = wrapper.find('WidgetQueriesForm FieldErrorReason');
-  //   expect(conditionError).toHaveLength(1);
-  //   wrapper.unmount();
-  // });
+    userEvent.keyboard('{enter}');
+
+    expect(indicators.addErrorMessage).toHaveBeenCalledWith('Widget title is required');
+  });
 
   it('can edit a widget', async function () {
     const widget: Widget = {
@@ -1231,23 +1209,6 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Sort by')).toBeInTheDocument();
     expect(screen.getByText('count_unique(user) desc')).toBeInTheDocument();
   });
-
-  // it('submits custom widget correctly', async function () {
-  //   const onAddLibraryWidgetMock = jest.fn();
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     dashboard,
-  //     onAddLibraryWidget: onAddLibraryWidgetMock,
-  //     source: types.DashboardWidgetSource.LIBRARY,
-  //   });
-
-  //   const input = wrapper.find('Input[name="title"] input');
-  //   input.simulate('change', {target: {value: 'All Events'}});
-
-  //   await clickSubmit(wrapper);
-  //   expect(onAddLibraryWidgetMock).toHaveBeenCalledTimes(1);
-  //   wrapper.unmount();
-  // });
 
   it('limits TopN display to one query when switching from another visualization', async () => {
     renderTestComponent();
