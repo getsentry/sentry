@@ -2,14 +2,13 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import ExternalLink, {ExternalLinkProps} from 'sentry/components/links/externalLink';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -42,12 +41,12 @@ const flexCenter = css`
   align-items: center;
 `;
 
-type Props = {
+interface SettingsIndexProps extends RouteComponentProps<{}, {}> {
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-class SettingsIndex extends React.Component<Props> {
-  componentDidUpdate(prevProps: Props) {
+class SettingsIndex extends React.Component<SettingsIndexProps> {
+  componentDidUpdate(prevProps: SettingsIndexProps) {
     const {organization} = this.props;
     if (prevProps.organization === organization) {
       return;
@@ -72,10 +71,9 @@ class SettingsIndex extends React.Component<Props> {
     const organizationSettingsUrl =
       (organization && `/settings/${organization.slug}/`) || '';
 
-    const supportLinkProps = {
-      isSelfHosted,
+    const supportLinkProps: SupportLinkExternalProps = {
+      isSelfHosted: true,
       href: LINKS.FORUM,
-      to: `${organizationSettingsUrl}support`,
     };
     const supportText = isSelfHosted ? t('Community Forums') : t('Contact Support');
 
@@ -307,7 +305,7 @@ const HomeIcon = styled('div')<{color?: string}>`
   margin-bottom: 20px;
 `;
 
-const HomeLink = styled(Link)`
+const HomeLink = styled(Link)<LinkProps>`
   color: ${p => p.theme.purple300};
 
   &:hover {
@@ -315,21 +313,20 @@ const HomeLink = styled(Link)`
   }
 `;
 
-const HomeLinkIcon = styled(HomeLink)`
+const HomeLinkIcon = styled(HomeLink)<LinkProps>`
   overflow: hidden;
   width: 100%;
   ${flexCenter};
 `;
 
-type CenterableProps = {
+interface ExternalHomeLinkProps extends ExternalLinkProps {
   isCentered?: boolean;
-};
+}
 
-const ExternalHomeLink = styled(
-  (props: CenterableProps & React.ComponentPropsWithRef<typeof ExternalLink>) => (
-    <ExternalLink {...omit(props, 'isCentered')} />
-  )
-)<CenterableProps>`
+const ExternalHomeLink = styled((props: ExternalHomeLinkProps) => {
+  const {isCentered: _isCentered, ...rest} = props;
+  return <ExternalLink {...rest} />;
+})<ExternalHomeLinkProps>`
   color: ${p => p.theme.purple300};
 
   &:hover {
@@ -339,27 +336,32 @@ const ExternalHomeLink = styled(
   ${p => p.isCentered && flexCenter};
 `;
 
-type SupportLinkProps<T extends boolean> = {
+interface SupportLinkExternalProps extends ExternalHomeLinkProps {
   href: string;
-  isSelfHosted: T;
-  to: string;
+  isSelfHosted: true;
   isCentered?: boolean;
-} & React.ComponentPropsWithoutRef<
-  T extends true ? typeof ExternalLink : typeof HomeLink
->;
+  to?: never;
+}
+interface SupportLinkInternalProps extends Omit<LinkProps, 'ref'> {
+  isSelfHosted: false;
+  to: string;
+  href?: never;
+  isCentered?: boolean;
+}
 
-const SupportLinkComponent = <T extends boolean>({
+function SupportLinkComponent({
   isCentered,
   isSelfHosted,
   href,
   to,
   ...props
-}: SupportLinkProps<T>) =>
-  isSelfHosted ? (
-    <ExternalHomeLink isCentered={isCentered} href={href} {...props} />
-  ) : (
-    <HomeLink to={to} {...props} />
-  );
+}: SupportLinkExternalProps | SupportLinkInternalProps) {
+  if (isSelfHosted) {
+    return <ExternalHomeLink isCentered={isCentered} href={href} {...props} />;
+  }
+
+  return <HomeLink to={to ?? ''} {...props} />;
+}
 
 const AvatarContainer = styled('div')`
   margin-bottom: 20px;
