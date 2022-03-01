@@ -64,7 +64,7 @@ class SelectAsyncField extends React.Component<
       // Then at the defaultOptions passed in props...
       options?.find(({value}) => value === propsValue) ??
       // Then at the latest value selected in the form
-      latestSelection
+      (latestSelection as GeneralSelectValue)
     );
   }
 
