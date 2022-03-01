@@ -573,7 +573,7 @@
   {%if report.key_transactions|length > 0 %}
   <div id="key-transactions">
     {% with report.key_transactions as transactions %}
-    <h4>Largest response changes</h4>
+    <h4>Largest duration changes</h4>
     {% for a in transactions %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
