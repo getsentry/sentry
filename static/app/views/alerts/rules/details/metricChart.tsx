@@ -760,7 +760,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       <SessionsRequest
         api={api}
         organization={organization}
-        project={[Number(project.id)]}
+        project={project.id ? [Number(project.id)] : []}
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
@@ -798,7 +798,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         organization={organization}
         query={query}
         environment={environment ? [environment] : undefined}
-        project={[Number(project.id)]}
+        project={project.id ? [Number(project.id)] : []}
         interval={interval}
         comparisonDelta={rule.comparisonDelta ? rule.comparisonDelta * 60 : undefined}
         start={viableStartDate}
