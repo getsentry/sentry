@@ -53,14 +53,15 @@ class Replays extends AsyncView<Props, State> {
       fields: ['eventID', 'timestamp'],
       orderby: '',
       projects: [2],
-      range: '30d',
+      range: '24h',
       query: 'event.type:error', // future: change to replay event
       // environment: '',
       // start,
       // end,
     });
     const apiPayload = eventView.getEventsAPIPayload(location);
-    apiPayload.referrer = 'api.performance.durationpercentilechart';
+
+    // apiPayload.referrer = 'api.performance.durationpercentilechart';
 
     return [
       ['eventData', `/organizations/${organization.slug}/eventsv2/`, {query: apiPayload}],

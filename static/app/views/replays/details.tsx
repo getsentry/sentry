@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
+import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Panel} from 'sentry/components/panels';
 import TagsTable from 'sentry/components/tagsTable';
 import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
@@ -81,12 +81,13 @@ class ReplayDetails extends AsyncView<Props, State> {
 
   renderBody() {
     const {event} = this.state;
-
+    const orgSlug = this.props.params.orgId;
     if (!event) {
       return <NotFound />;
     }
 
     const eventView = this.getEventView();
+    const projectSlug = event.projectSlug || event['project.name']; // seems janky
 
     return (
       <Fragment>
@@ -100,7 +101,7 @@ class ReplayDetails extends AsyncView<Props, State> {
 
         <Layout.Body>
           <Layout.Main>
-            <Panel style={{paddingBottom: 0}}>lol</Panel>
+            <RRWebIntegration event={event} orgId={orgSlug} projectId={projectSlug} />
           </Layout.Main>
           <Layout.Side>
             <TagsTable

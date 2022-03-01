@@ -1,10 +1,5 @@
-import styled from '@emotion/styled';
-
 import AsyncComponent from 'sentry/components/asyncComponent';
-import EventDataSection from 'sentry/components/events/eventDataSection';
 import LazyLoad from 'sentry/components/lazyLoad';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
@@ -46,19 +41,12 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
     const {orgId, projectId, event} = this.props;
 
     return (
-      <StyledEventDataSection type="context-replay" title={t('Replay')}>
-        <LazyLoad
-          component={() => import('./rrwebReplayer')}
-          url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
-        />
-      </StyledEventDataSection>
+      <LazyLoad
+        component={() => import('./rrwebReplayer')}
+        url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
+      />
     );
   }
 }
-
-const StyledEventDataSection = styled(EventDataSection)`
-  overflow: hidden;
-  margin-bottom: ${space(3)};
-`;
 
 export default RRWebIntegration;

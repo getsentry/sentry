@@ -437,7 +437,9 @@ const EventEntries = memo(
           />
         )}
         {!isShare && hasEventAttachmentsFeature && (
-          <RRWebIntegration event={event} orgId={orgSlug} projectId={projectSlug} />
+          <StyledEventDataSection type="context-replay" title={t('Replay')}>
+            <RRWebIntegration event={event} orgId={orgSlug} projectId={projectSlug} />
+          </StyledEventDataSection>
         )}
       </div>
     );
