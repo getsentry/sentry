@@ -19,7 +19,6 @@ from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
     ALERTS_MEMBER_WRITE_DEFAULT,
-    APDEX_THRESHOLD_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -283,7 +282,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     scrapeJavaScript: bool
     allowJoinRequests: bool
     relayPiiConfig: Optional[str]
-    apdexThreshold: int
     trustedRelays: Any  # TODO
     access: frozenset[str]
     pendingAccessRequests: int
@@ -382,9 +380,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
-                "apdexThreshold": int(
-                    obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
-                ),
             }
         )
 
