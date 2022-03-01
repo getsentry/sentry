@@ -36,7 +36,7 @@ describe('AlertRuleDetails', () => {
           {...props}
         />
       </RuleDetailsContainer>,
-      {organization}
+      {context: context.routerContext, organization}
     );
   };
 
