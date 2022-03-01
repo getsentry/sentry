@@ -27,9 +27,7 @@ import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 
 type MappedValue = string | number;
 
-interface RenderProps<P extends {}>
-  extends Omit<InputFieldProps<P>, 'type'>,
-    ProjectMapperType {
+interface RenderProps extends Omit<InputFieldProps<{}>, 'type'>, ProjectMapperType {
   model: FormModel;
 }
 
@@ -48,7 +46,7 @@ const getIcon = (iconType: string) => {
   }
 };
 
-export class RenderField<P extends {}> extends Component<RenderProps<P>, State> {
+export class RenderField extends Component<RenderProps, State> {
   state: State = {selectedSentryProjectId: null, selectedMappedValue: null};
 
   render() {
@@ -300,7 +298,7 @@ export class RenderField<P extends {}> extends Component<RenderProps<P>, State> 
   }
 }
 
-function ProjectMapperField<P extends {}>(props: InputFieldProps<P>) {
+function ProjectMapperField(props: InputFieldProps<{}>) {
   return (
     <StyledInputField
       {...props}
@@ -308,7 +306,7 @@ function ProjectMapperField<P extends {}>(props: InputFieldProps<P>) {
       inline={false}
       stacked={false}
       hideControlState
-      field={(renderProps: RenderProps<P>) => <RenderField {...renderProps} />}
+      field={(renderProps: RenderProps) => <RenderField {...renderProps} />}
     />
   );
 }

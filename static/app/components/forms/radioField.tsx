@@ -5,11 +5,11 @@ import InputField, {InputFieldProps, onEvent} from 'sentry/components/forms/inpu
 
 type RadioGroupProps = React.ComponentProps<typeof RadioGroup>;
 
-interface RadioFieldProps<P extends {}>
-  extends Omit<InputFieldProps<P>, 'type'>,
+interface RadioFieldProps
+  extends Omit<InputFieldProps<{}>, 'type'>,
     Pick<RadioGroupProps, 'choices' | 'orientInline'> {}
 
-class RadioField<P extends {}> extends React.Component<RadioFieldProps<P>> {
+class RadioField extends React.Component<RadioFieldProps> {
   onChange = (
     id: string,
     onChange: onEvent,

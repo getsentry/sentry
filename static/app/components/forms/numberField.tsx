@@ -1,7 +1,5 @@
 import InputField, {InputFieldProps} from './inputField';
 
-export default function NumberField<P extends {}>(
-  props: Omit<InputFieldProps<P>, 'type'>
-) {
+export default function NumberField(props: Omit<InputFieldProps<{}>, 'type'>) {
   return <InputField {...props} type="number" />;
 }
