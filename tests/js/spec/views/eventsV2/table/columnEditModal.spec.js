@@ -26,7 +26,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view'],
-      apdexThreshold: 400,
     },
   });
   const tagKeys = ['browser.name', 'custom-field', 'user'];
@@ -231,7 +230,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       // Parameter select should display and use the default value.
       const field = wrapper.find('QueryField input[name="refinement"]');
-      expect(field.props().value).toBe('400');
+      expect(field.props().value).toBe('300');
 
       // Trigger a blur and make sure the column is not wrong.
       field.simulate('blur');
@@ -239,7 +238,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '400', undefined, undefined]},
+        {kind: 'function', function: ['apdex', '300', undefined, undefined]},
       ]);
     });
 
@@ -248,7 +247,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       // Parameter select should display and use the default value.
       const field = wrapper.find('QueryField input[name="refinement"]');
-      expect(field.props().value).toBe('400');
+      expect(field.props().value).toBe('300');
       expect(field.prop('placeholder')).toBe(undefined);
 
       // Trigger a blur and make sure the column is not wrong.
@@ -263,7 +262,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '400', undefined, undefined]},
+        {kind: 'function', function: ['apdex', '300', undefined, undefined]},
       ]);
     });
 
@@ -292,7 +291,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_miserable', 'user', '400', undefined]},
+        {kind: 'function', function: ['count_miserable', 'user', '300', undefined]},
       ]);
     });
 
