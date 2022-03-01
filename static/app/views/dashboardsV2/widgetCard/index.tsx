@@ -145,6 +145,7 @@ class WidgetCard extends React.Component<Props> {
       showWidgetViewerButton,
       router,
       isEditing,
+      onEdit,
     } = this.props;
     return (
       <ErrorBoundary
@@ -168,6 +169,7 @@ class WidgetCard extends React.Component<Props> {
                     openWidgetViewerModal({
                       organization,
                       widget,
+                      onEdit,
                     });
                   }
                 }}

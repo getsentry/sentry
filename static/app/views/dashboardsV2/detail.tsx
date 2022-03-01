@@ -1,6 +1,7 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -123,6 +124,19 @@ class DashboardDetail extends Component<Props, State> {
             router.push({
               pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
               query: location.query,
+            });
+          },
+          onEdit: () => {
+            openAddDashboardWidgetModal({
+              organization,
+              widget,
+              onUpdateWidget: (nextWidget: Widget) => {
+                const updateIndex = dashboard.widgets.indexOf(widget);
+                const nextWidgetsList = cloneDeep(dashboard.widgets);
+                nextWidgetsList[updateIndex] = nextWidget;
+                this.handleUpdateWidgetList(nextWidgetsList);
+              },
+              source: DashboardWidgetSource.DASHBOARDS,
             });
           },
         });

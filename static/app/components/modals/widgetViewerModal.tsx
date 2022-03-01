@@ -48,7 +48,17 @@ const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 
 function WidgetViewerModal(props: Props) {
-  const {organization, widget, selection, location, Footer, Body, Header, onEdit} = props;
+  const {
+    organization,
+    widget,
+    selection,
+    location,
+    Footer,
+    Body,
+    Header,
+    closeModal,
+    onEdit,
+  } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const renderWidgetViewer = () => {
     const api = useApi();
@@ -202,9 +212,17 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={onEdit}>
-            {t('Edit Widget')}
-          </Button>
+          {onEdit && (
+            <Button
+              type="button"
+              onClick={() => {
+                closeModal();
+                onEdit();
+              }}
+            >
+              {t('Edit Widget')}
+            </Button>
+          )}
           <Button to={path} priority="primary" type="button">
             {openLabel}
           </Button>
