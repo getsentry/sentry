@@ -10,7 +10,7 @@ import styled from '@emotion/styled';
 
 import {PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
-import {IconSwitch} from 'sentry/icons';
+import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
@@ -138,7 +138,7 @@ function Breadcrumbs({
               displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
             }
           >
-            <StyledIconSwitch size="xs" />
+            <IconSwitch size="xs" />
           </Tooltip>
 
           {t('Time')}
@@ -233,7 +233,8 @@ const Time = styled('div')`
   cursor: pointer;
 `;
 
-const StyledIconSwitch = styled(IconSwitch)`
+const IconSwitch = styled(IconSort)`
+  transform: rotate(90deg);
   transition: 0.15s color;
   :hover {
     color: ${p => p.theme.gray300};

@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {
   IconFire,
   IconFix,
@@ -5,9 +7,9 @@ import {
   IconLocation,
   IconMobile,
   IconRefresh,
+  IconSort,
   IconSpan,
   IconStack,
-  IconSwitch,
   IconTerminal,
   IconUser,
   IconWarning,
@@ -32,7 +34,7 @@ function Icon({type}: Props) {
     case BreadcrumbType.ERROR:
       return <IconFire size="xs" />;
     case BreadcrumbType.HTTP:
-      return <IconSwitch size="xs" />;
+      return <IconHttp size="xs" />;
     case BreadcrumbType.WARNING:
       return <IconWarning size="xs" />;
     case BreadcrumbType.QUERY:
@@ -47,5 +49,9 @@ function Icon({type}: Props) {
       return <IconTerminal size="xs" />;
   }
 }
+
+const IconHttp = styled(IconSort)`
+  transform: rotate(90deg);
+`;
 
 export default Icon;
