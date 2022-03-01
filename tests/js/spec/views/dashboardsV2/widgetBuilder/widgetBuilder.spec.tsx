@@ -770,71 +770,74 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  // it('renders column inputs for table widgets', async function () {
-  //   MockApiClient.addMockResponse({
-  //     url: '/organizations/org-slug/eventsv2/',
-  //     method: 'GET',
-  //     statusCode: 200,
-  //     body: {
-  //       meta: {},
-  //       data: [],
-  //     },
-  //   });
+  it('renders column inputs for table widgets', async function () {
+    const widget: Widget = {
+      id: '0',
+      title: 'sdk usage',
+      interval: '5m',
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['sdk.name', 'count()'],
+          orderby: '',
+        },
+      ],
+    };
 
-  //   let widget = {
-  //     id: '9',
-  //     title: 'sdk usage',
-  //     interval: '5m',
-  //     displayType: 'table',
-  //     queries: [
-  //       {
-  //         id: '9',
-  //         name: 'errors',
-  //         conditions: 'event.type:error',
-  //         fields: ['sdk.name', 'count()'],
-  //         orderby: '',
-  //       },
-  //     ],
-  //   };
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     widget,
-  //     onAddWidget: jest.fn(),
-  //     onUpdateWidget: data => {
-  //       widget = data;
-  //     },
-  //   });
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
 
-  //   // Should be in edit 'mode'
-  //   const heading = wrapper.find('h4').first();
-  //   expect(heading.text()).toContain('Edit');
+    const handleSave = jest.fn();
 
-  //   // Should set widget data up.
-  //   const title = wrapper.find('Input[name="title"]');
-  //   expect(title.props().value).toEqual(widget.title);
-  //   expect(wrapper.find('input[name="displayType"]').props().value).toEqual(
-  //     widget.displayType
-  //   );
-  //   expect(wrapper.find('WidgetQueriesForm')).toHaveLength(1);
-  //   // Should have an orderby select
-  //   expect(wrapper.find('WidgetQueriesForm SelectControl[name="orderby"]')).toHaveLength(
-  //     1
-  //   );
+    renderTestComponent({dashboard, widget, onSave: handleSave});
 
-  //   // Add a column, and choose a value,
-  //   wrapper.find('button[aria-label="Add a Column"]').simulate('click');
-  //   await wrapper.update();
+    // Should be in edit 'mode'
+    expect(await screen.findByText('Update Widget')).toBeInTheDocument();
 
-  //   selectByLabel(wrapper, 'trace', {name: 'field', at: 2, control: true});
-  //   await wrapper.update();
+    // Should set widget data up.
+    expect(screen.getByRole('heading', {name: widget.title})).toBeInTheDocument();
+    expect(screen.getByText('Table')).toBeInTheDocument();
+    expect(screen.getByLabelText('Search events')).toBeInTheDocument();
 
-  //   await clickSubmit(wrapper);
+    // Should have an orderby select
+    expect(screen.getByText('Sort by')).toBeInTheDocument();
 
-  //   // A new field should be added.
-  //   expect(widget.queries[0].fields).toHaveLength(3);
-  //   expect(widget.queries[0].fields[2]).toEqual('trace');
-  //   wrapper.unmount();
-  // });
+    // Add a column, and choose a value,
+    userEvent.click(screen.getByLabelText('Add a Column'));
+    userEvent.click(screen.getByText('(Required)'));
+    userEvent.type(screen.getByText('(Required)'), 'trace{enter}');
+
+    // Save widget
+    userEvent.click(screen.getByLabelText('Update Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          title: 'sdk usage',
+          displayType: 'table',
+          interval: '5m',
+          queries: [
+            {
+              name: 'errors',
+              conditions: 'event.type:error',
+              fields: ['sdk.name', 'count()', 'trace'],
+              orderby: '',
+            },
+          ],
+          widgetType: 'discover',
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
 
   // it('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
   //   let widget = undefined;

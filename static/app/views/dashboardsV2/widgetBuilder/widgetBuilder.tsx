@@ -555,7 +555,7 @@ function WidgetBuilder({
     });
   }
 
-  if (isEditing && widgetIndex > dashboard.widgets.length) {
+  if (isEditing && widgetIndex >= dashboard.widgets.length) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
