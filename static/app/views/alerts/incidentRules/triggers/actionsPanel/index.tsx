@@ -293,6 +293,8 @@ class ActionsPanel extends PureComponent<Props> {
         </PerformActionsListItem>
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
+          const actionDisabled =
+            triggers[triggerIndex].actions[actionIdx]?.disabled || disabled;
           return (
             <div key={action.id ?? action.unsavedId}>
               <RuleRowContainer>
@@ -347,6 +349,7 @@ class ActionsPanel extends PureComponent<Props> {
                       <Button
                         icon={<IconSettings />}
                         type="button"
+                        disabled={actionDisabled}
                         onClick={() => {
                           openModal(
                             deps => (
