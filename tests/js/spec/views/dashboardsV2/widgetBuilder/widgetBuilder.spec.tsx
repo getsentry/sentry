@@ -97,7 +97,7 @@ describe('WidgetBuilder', function () {
         dashboard={dashboard}
         onSave={jest.fn()}
         widget={widget}
-        params={{orgId: organization.slug, widgetId: Number(widget.id)}}
+        params={{orgId: organization.slug, widgetIndex: 0}}
       />,
       {
         context: routerContext,
