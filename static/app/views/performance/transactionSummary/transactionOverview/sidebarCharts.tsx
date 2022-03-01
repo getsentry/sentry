@@ -100,7 +100,7 @@ function SidebarCharts({
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)}
+            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
             size="sm"
           />
         </ChartTitle>

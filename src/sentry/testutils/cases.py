@@ -1098,7 +1098,11 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         "metrics_sets": "s",
         "metrics_counters": "c",
     }
-    ENTITY_MAP = {"transaction.duration": "metrics_distributions", "user": "metrics_sets"}
+    ENTITY_MAP = {
+        "transaction.duration": "metrics_distributions",
+        "measurements.lcp": "metrics_distributions",
+        "user": "metrics_sets",
+    }
     METRIC_STRINGS = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
 

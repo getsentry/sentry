@@ -141,8 +141,9 @@ class WidgetCard extends React.Component<Props> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
+      location,
       showWidgetViewerButton,
-      onEdit,
+      router,
       isEditing,
     } = this.props;
     return (
@@ -156,12 +157,19 @@ class WidgetCard extends React.Component<Props> {
             </Tooltip>
             {showWidgetViewerButton && !isEditing && (
               <OpenWidgetViewerButton
+                aria-label={t('Open Widget Viewer')}
                 onClick={() => {
-                  openWidgetViewerModal({
-                    organization,
-                    widget,
-                    onEdit,
-                  });
+                  if (widget.id) {
+                    router.push({
+                      pathname: `${location.pathname}widget/${widget.id}/`,
+                      query: location.query,
+                    });
+                  } else {
+                    openWidgetViewerModal({
+                      organization,
+                      widget,
+                    });
+                  }
                 }}
               />
             )}
