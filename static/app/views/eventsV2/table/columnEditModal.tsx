@@ -85,7 +85,7 @@ class ColumnEditModal extends Component<Props, State> {
                   <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
                 ),
                 tagFieldLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/#event-properties" />
+                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
                 ),
               }
             )}
