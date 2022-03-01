@@ -297,7 +297,6 @@ class FromRequestTest(TestCase):
         assert result.has_permission("test.permission")
 
         assert result.role == "admin"
-        assert result.is_active
         assert result.has_global_access
 
         assert result.teams == frozenset({team})
@@ -368,7 +367,6 @@ class FromSentryAppTest(TestCase):
     def test_has_access(self):
         request = self.make_request(user=self.proxy_user)
         result = access.from_request(request, self.org)
-        assert result.is_active
         assert result.has_global_access
         assert result.has_team_access(self.team)
         assert result.teams == frozenset({self.team})
@@ -447,7 +445,6 @@ class FromSentryAppTest(TestCase):
 class DefaultAccessTest(TestCase):
     def test_no_access(self):
         result = access.DEFAULT
-        assert not result.is_active
         assert result.sso_is_valid
         assert not result.scopes
         assert not result.has_team_access(Mock())

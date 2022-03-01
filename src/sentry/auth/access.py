@@ -85,7 +85,6 @@ class Access(abc.ABC):
     # would be based on the same scopes as API access so there's clarity in
     # what things mean
 
-    is_active: bool = False
     sso_is_valid: bool = False
     requires_sso: bool = False
 
@@ -115,8 +114,6 @@ class Access(abc.ABC):
 
         >>> access.has_permission('broadcasts.admin')
         """
-        if not self.is_active:
-            return False
         return permission in self.permissions
 
     def has_scope(self, scope: str) -> bool:
@@ -125,8 +122,6 @@ class Access(abc.ABC):
 
         >>> access.has_project('org:read')
         """
-        if not self.is_active:
-            return False
         return scope in self.scopes
 
     def has_team(self, team: Team) -> bool:
@@ -172,8 +167,6 @@ class Access(abc.ABC):
 
         >>> access.has_project_membership(project)
         """
-        if not self.is_active:
-            return False
         return project in self.projects
 
     def has_project_scope(self, project: Project, scope: str) -> bool:
@@ -201,7 +194,6 @@ class OrganizationMemberAccess(Access):
         )
 
         super().__init__(
-            is_active=True,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
             has_global_access=has_global_access,
@@ -228,14 +220,14 @@ class OrganizationMemberAccess(Access):
         return projects
 
     def has_team_access(self, team: Team) -> bool:
-        if not self.is_active or team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.VISIBLE:
             return False
         if self.has_global_access and self._member.organization.id == team.organization_id:
             return True
         return team in self.teams
 
     def has_project_access(self, project: Project) -> bool:
-        if not self.is_active or project.status != ProjectStatus.VISIBLE:
+        if project.status != ProjectStatus.VISIBLE:
             return False
         if self.has_global_access and self._member.organization.id == project.organization_id:
             return True
@@ -246,12 +238,7 @@ class OrganizationGlobalAccess(Access):
     def __init__(self, organization: Organization, scopes: Iterable[str], **kwargs):
         self._organization = organization
 
-        super().__init__(
-            is_active=True,
-            has_global_access=True,
-            scopes=frozenset(scopes),
-            **kwargs,
-        )
+        super().__init__(has_global_access=True, scopes=frozenset(scopes), **kwargs)
 
     @cached_property
     def teams(self) -> FrozenSet[Team]:
@@ -293,7 +280,7 @@ class OrganizationlessAccess(Access):
 
 class SystemAccess(Access):
     def __init__(self) -> None:
-        super().__init__(is_active=True)
+        super().__init__()
 
     @property
     def teams(self) -> FrozenSet[Team]:
@@ -391,7 +378,6 @@ def from_user(
 
     def organizationless():
         return OrganizationlessAccess(
-            is_active=True,
             permissions=get_permissions_for_user(user.id) if is_superuser else frozenset(),
         )
 
