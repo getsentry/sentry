@@ -109,7 +109,7 @@ class GroupMetadataResponseOptional(TypedDict, total=False):
     function: str
 
 
-class GroupMetadataResponse(GroupMetadataResponseOptional, total=False):
+class GroupMetadataResponse(GroupMetadataResponseOptional):
     value: str
     display_title_with_tree_label: bool
 
