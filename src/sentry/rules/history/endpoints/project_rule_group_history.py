@@ -57,7 +57,7 @@ class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
             OpenApiExample(
                 "Successful response",
                 value={},
-                status_codes="200",
+                status_codes=["200"],
             )
         ],
     )
