@@ -114,6 +114,10 @@ function Menu({
     placement,
     containerPadding,
     isOpen: true,
+    // useOverlayPosition's algorithm doesn't work well for submenus on viewport
+    // scroll. Changing the boundary element (document.body by default) seems to
+    // fix this.
+    boundaryElement: document.querySelector<HTMLElement>('.app') ?? undefined,
   });
 
   // Store whether this menu/submenu is the current focused one, which in a
