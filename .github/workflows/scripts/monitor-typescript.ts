@@ -3,6 +3,7 @@
 // eslint-disable-next-line
 import * as fs from 'fs';
 import * as Sentry from '@sentry/node';
+import '@sentry/tracing';
 
 Sentry.init({
   // jest project under Sentry organization (dev productivity team)
