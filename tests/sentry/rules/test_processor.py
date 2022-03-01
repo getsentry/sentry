@@ -7,7 +7,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.models import GroupRuleStatus, GroupStatus, Rule, RuleFireHistory
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
@@ -54,10 +54,12 @@ class RuleProcessorTest(TestCase):
         assert len(futures) == 1
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
+        assert RuleFireHistory.objects.filter(rule=self.rule, group=self.event.group).count() == 1
 
         # should not apply twice due to default frequency
         results = list(rp.apply())
         assert len(results) == 0
+        assert RuleFireHistory.objects.filter(rule=self.rule, group=self.event.group).count() == 1
 
         # now ensure that moving the last update backwards
         # in time causes the rule to trigger again
@@ -67,6 +69,7 @@ class RuleProcessorTest(TestCase):
 
         results = list(rp.apply())
         assert len(results) == 1
+        assert RuleFireHistory.objects.filter(rule=self.rule, group=self.event.group).count() == 2
 
     def test_ignored_issue(self):
         self.event.group.status = GroupStatus.IGNORED

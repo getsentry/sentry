@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 
-from sentry.rules.history.base import RuleHistoryBackend  # NOQA
+from sentry.rules.history.base import RuleHistoryBackend
 from sentry.utils.services import LazyServiceWrapper
 
 LazyServiceWrapper(
