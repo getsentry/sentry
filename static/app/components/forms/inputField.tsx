@@ -1,13 +1,13 @@
 import * as React from 'react';
 import omit from 'lodash/omit';
 
-import Input from 'sentry/components/forms/controls/input';
+import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 
 export interface InputFieldProps<P>
   extends Omit<FormFieldProps<P>, 'children'>,
     Omit<
-      React.ComponentPropsWithoutRef<'input'>,
+      InputProps,
       | 'value'
       | 'placeholder'
       | 'disabled'
