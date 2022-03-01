@@ -7,6 +7,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -1064,54 +1065,44 @@ describe('WidgetBuilder', function () {
   //   wrapper.unmount();
   // });
 
-  // it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
-  //   let widget = undefined;
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     onAddWidget: data => (widget = data),
-  //   });
-  //   // No delete button as there is only one field.
-  //   expect(wrapper.find('IconDelete')).toHaveLength(0);
+  it.only('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+    renderTestComponent();
 
-  //   // Select Big Number display
-  //   selectByLabel(wrapper, 'Big Number', {name: 'displayType', at: 0, control: true});
-  //   expect(getDisplayType(wrapper).props().value).toEqual('big_number');
+    // No delete button as there is only one field.
+    expect(screen.queryByRole('button', {name: 'Remove query'})).not.toBeInTheDocument();
 
-  //   // Choose any()
-  //   selectByLabel(wrapper, 'any(\u2026)', {
-  //     name: 'field',
-  //     at: 0,
-  //     control: true,
-  //   });
+    // Select Big Number display
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Big Number'));
 
-  //   selectByLabel(wrapper, 'id', {
-  //     name: 'parameter',
-  //     at: 0,
-  //     control: true,
-  //   });
+    // // Choose any()
+    userEvent.click(screen.getByText('count()'));
+    userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
+    userEvent.click(screen.getByText('transaction.duration'));
+    userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
 
-  //   // Select Line chart display
-  //   selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
-  //   expect(getDisplayType(wrapper).props().value).toEqual('line');
+    // Select Line chart display
+    userEvent.click(screen.getByText('Big Number'));
+    userEvent.click(screen.getByText('Bar Chart'));
 
-  //   // Expect event.type field to be converted to count()
-  //   const fieldColumn = wrapper.find('input[name="field"]');
-  //   expect(fieldColumn.length).toEqual(1);
-  //   expect(fieldColumn.props().value).toMatchObject({
-  //     kind: 'function',
-  //     meta: {
-  //       name: 'count',
-  //       parameters: [],
-  //     },
-  //   });
+    // Expect event.type field to be converted to count()
+    // const fieldColumn = wrapper.find('input[name="field"]');
+    // expect(fieldColumn.length).toEqual(1);
+    // expect(fieldColumn.props().value).toMatchObject({
+    //   kind: 'function',
+    //   meta: {
+    //     name: 'count',
+    //     parameters: [],
+    //   },
+    // });
 
-  //   await clickSubmit(wrapper);
+    // await clickSubmit(wrapper);
 
-  //   expect(widget.displayType).toEqual('line');
-  //   expect(widget.queries).toHaveLength(1);
-  //   expect(widget.queries[0].fields).toEqual(['count()']);
-  //   wrapper.unmount();
-  // });
+    // expect(widget.displayType).toEqual('line');
+    // expect(widget.queries).toHaveLength(1);
+    // expect(widget.queries[0].fields).toEqual(['count()']);
+    // wrapper.unmount();
+  });
 
   it('should automatically add columns for top n widget charts', async function () {
     const defaultWidgetQuery = {
@@ -1185,31 +1176,31 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Bar Chart')).toBeInTheDocument();
   });
 
-  // it('correctly defaults fields and orderby when in Top N display', async function () {
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     onAddWidget: () => undefined,
-  //     onUpdateWidget: () => undefined,
-  //     source: types.DashboardWidgetSource.DISCOVERV2,
-  //     displayType: types.DisplayType.TOP_N,
-  //     defaultWidgetQuery: {
-  //       fields: ['title', 'count()', 'count_unique(user)'],
-  //       orderby: '-count_unique_user',
-  //     },
-  //     defaultTableColumns: ['title', 'count()'],
-  //   });
+  it('correctly defaults fields and orderby when in Top N display', async function () {
+    const defaultWidgetQuery = {
+      fields: ['title', 'count()', 'count_unique(user)'],
+      orderby: '-count_unique_user',
+    };
 
-  //   expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('top_n');
-  //   expect(wrapper.find('WidgetQueriesForm').props().queries[0].fields).toEqual([
-  //     'title',
-  //     'count()',
-  //     'count_unique(user)',
-  //   ]);
-  //   expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(
-  //     '-count_unique_user'
-  //   );
-  //   wrapper.unmount();
-  // });
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        displayType: DisplayType.TOP_N,
+        defaultTableColumns: ['title', 'count()'],
+      },
+    });
+
+    userEvent.click(await screen.findByText('Top 5 Events'));
+
+    expect(screen.getByText('count()')).toBeInTheDocument();
+    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+    expect(screen.getByText('user')).toBeInTheDocument();
+
+    // Sort by
+    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    expect(screen.getByText('count_unique(user) desc')).toBeInTheDocument();
+  });
 
   // it('submits custom widget correctly', async function () {
   //   const onAddLibraryWidgetMock = jest.fn();
@@ -1226,63 +1217,6 @@ describe('WidgetBuilder', function () {
   //   await clickSubmit(wrapper);
   //   expect(onAddLibraryWidgetMock).toHaveBeenCalledTimes(1);
   //   wrapper.unmount();
-  // });
-
-  // it('renders the tab button bar from widget library', async function () {
-  //   const onAddLibraryWidgetMock = jest.fn();
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     dashboard,
-  //     onAddLibraryWidget: onAddLibraryWidgetMock,
-  //     source: types.DashboardWidgetSource.LIBRARY,
-  //   });
-
-  //   expect(wrapper.find('LibraryButton')).toHaveLength(1);
-  //   expect(wrapper.find('CustomButton')).toHaveLength(1);
-  //   wrapper.find('LibraryButton button').simulate('click');
-  //   expect(openDashboardWidgetLibraryModal).toHaveBeenCalledTimes(1);
-  //   wrapper.unmount();
-  // });
-
-  // it('sets widgetType to discover', async function () {
-  //   const onSave = jest.fn();
-
-  //   const {organization, router, routerContext} = initializeOrg({
-  //     ...initializeOrg(),
-  //     organization: {
-  //       features: ['new-widget-builder-experience', 'dashboards-edit', 'global-views'],
-  //     },
-  //     router: {
-  //       location: {
-  //         query: {
-  //           source: DashboardWidgetSource.DISCOVERV2,
-  //         },
-  //       },
-  //     },
-  //   });
-
-  //   mountWithTheme(
-  //     <WidgetBuilder
-  //       route={{}}
-  //       router={router}
-  //       routes={router.routes}
-  //       routeParams={router.params}
-  //       location={router.location}
-  //       dashboard={untitledDashboard}
-  //       onSave={onSave}
-  //       params={{orgId: organization.slug}}
-  //     />,
-  //     {
-  //       context: routerContext,
-  //       organization,
-  //     }
-  //   );
-
-  //   userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
-
-  //   expect(onSave).toHaveBeenCalledWith(
-  //     expect.objectContaining({widgetType: 'discover'})
-  //   );
   // });
 
   it('limits TopN display to one query when switching from another visualization', async () => {
