@@ -529,18 +529,6 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
 
 
-@run.command("ingest-metrics-consumer")
-@log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
-@batching_kafka_options("ingest-metrics-consumer")
-@configuration
-def metrics_consumer(**options):
-
-    from sentry.sentry_metrics.indexer.indexer_consumer import get_metrics_consumer
-
-    get_metrics_consumer(**options).run()
-
-
 @run.command("ingest-metrics-consumer-2")
 @log_options()
 @click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
