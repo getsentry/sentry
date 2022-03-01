@@ -68,17 +68,17 @@ describe('AlertRuleDetails', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('displays alert rule with list of issues', () => {
+  it('displays alert rule with list of issues', async () => {
     createWrapper();
-    expect(screen.getByText('My alert rule')).toBeInTheDocument();
+    expect(await screen.findByText('My alert rule')).toBeInTheDocument();
     expect(screen.getByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
   });
 
-  it('should allow paginating results', () => {
+  it('should allow paginating results', async () => {
     createWrapper();
 
-    expect(screen.getByLabelText('Next')).toBeEnabled();
+    expect(await screen.findByLabelText('Next')).toBeEnabled();
     userEvent.click(screen.getByLabelText('Next'));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -89,10 +89,10 @@ describe('AlertRuleDetails', () => {
     });
   });
 
-  it('should reset pagination cursor on date change', () => {
+  it('should reset pagination cursor on date change', async () => {
     createWrapper();
 
-    expect(screen.getByText('Last 14 days')).toBeInTheDocument();
+    expect(await screen.findByText('Last 14 days')).toBeInTheDocument();
     userEvent.click(screen.getByText('Last 14 days'));
     userEvent.click(screen.getByText('Last 24 hours'));
 
