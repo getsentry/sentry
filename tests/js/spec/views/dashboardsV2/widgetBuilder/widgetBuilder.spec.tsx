@@ -920,7 +920,7 @@ describe('WidgetBuilder', function () {
       });
     });
 
-    it('redirects corretly when choosing an existing dashboard', async function () {
+    it('redirects correctly when choosing an existing dashboard', async function () {
       const {router} = renderTestComponent({
         query: {source: DashboardWidgetSource.DISCOVERV2},
       });
