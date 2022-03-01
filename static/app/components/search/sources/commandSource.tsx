@@ -1,12 +1,11 @@
 import * as React from 'react';
 import {PlainRoute} from 'react-router';
-import type Fuse from 'fuse.js';
 
 import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
 import {ChildProps, ResultItem} from './types';
 

@@ -1,4 +1,4 @@
-import type Fuse from 'fuse.js';
+import {Fuse} from 'sentry/utils/fuzzySearch';
 
 /**
  * A result item that sources create.

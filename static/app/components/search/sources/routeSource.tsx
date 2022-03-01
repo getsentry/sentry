@@ -1,10 +1,9 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
-import type Fuse from 'fuse.js';
 import flattenDepth from 'lodash/flattenDepth';
 
 import {Organization, Project} from 'sentry/types';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import accountSettingsNavigation from 'sentry/views/settings/account/navigationConfiguration';
