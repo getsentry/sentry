@@ -3,7 +3,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Client} from 'sentry/api';
 import CollapsePanel from 'sentry/components/collapsePanel';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -15,10 +14,7 @@ import {IconShow} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {
-  AlertRuleThresholdType,
-  IncidentRule,
-} from 'sentry/views/alerts/incidentRules/types';
+import {AlertRuleThresholdType} from 'sentry/views/alerts/incidentRules/types';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -40,16 +36,12 @@ export function getTriggerName(value: string | null) {
 }
 
 type Props = {
-  api: Client;
   organization: Organization;
   incidents?: Incident[];
-  rule?: IncidentRule;
 };
 
-class MetricHistory extends React.Component<Props> {
-  renderActivity(incident) {
-    const {organization} = this.props;
-
+function MetricHistory({organization, incidents}: Props) {
+  const renderActivity = incident => {
     const activities = incident!.activities!.filter(
       activity => activity.type === IncidentActivityType.STATUS_CHANGE
     );
@@ -127,50 +119,46 @@ class MetricHistory extends React.Component<Props> {
         <StyledDateTime date={incident.dateCreated} />
       </ErrorBoundary>
     );
-  }
+  };
 
-  render() {
-    const {incidents} = this.props;
-
-    return (
-      <CollapsePanel
-        items={incidents!.length}
-        collapseCount={COLLAPSE_COUNT}
-        buttonTitle={tn(
-          'Hidden Alert',
-          'Hidden Alerts',
-          incidents!.length - COLLAPSE_COUNT
-        )}
-      >
-        {({isExpanded, showMoreButton}) => (
-          <React.Fragment>
-            <StyledPanelTable
-              headers={[
-                t('Alert'),
-                t('Reason'),
-                t('Duration'),
-                t('Seen By'),
-                t('Date Triggered'),
-              ]}
-              isEmpty={!incidents!.length}
-              emptyMessage={t('No alerts triggered during this time.')}
-              expanded={incidents!.length < COLLAPSE_COUNT || isExpanded}
-            >
-              {incidents!.map((incident, idx) => {
-                if (idx >= COLLAPSE_COUNT && !isExpanded) {
-                  return null;
-                }
-                return this.renderActivity(incident);
-              })}
-            </StyledPanelTable>
-            {incidents!.length > COLLAPSE_COUNT && (
-              <ShowMoreButton expanded={isExpanded}>{showMoreButton}</ShowMoreButton>
-            )}
-          </React.Fragment>
-        )}
-      </CollapsePanel>
-    );
-  }
+  return (
+    <CollapsePanel
+      items={incidents!.length}
+      collapseCount={COLLAPSE_COUNT}
+      buttonTitle={tn(
+        'Hidden Alert',
+        'Hidden Alerts',
+        incidents!.length - COLLAPSE_COUNT
+      )}
+    >
+      {({isExpanded, showMoreButton}) => (
+        <React.Fragment>
+          <StyledPanelTable
+            headers={[
+              t('Alert'),
+              t('Reason'),
+              t('Duration'),
+              t('Seen By'),
+              t('Date Triggered'),
+            ]}
+            isEmpty={!incidents!.length}
+            emptyMessage={t('No alerts triggered during this time.')}
+            expanded={incidents!.length < COLLAPSE_COUNT || isExpanded}
+          >
+            {incidents!.map((incident, idx) => {
+              if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                return null;
+              }
+              return renderActivity(incident);
+            })}
+          </StyledPanelTable>
+          {incidents!.length > COLLAPSE_COUNT && (
+            <ShowMoreButton expanded={isExpanded}>{showMoreButton}</ShowMoreButton>
+          )}
+        </React.Fragment>
+      )}
+    </CollapsePanel>
+  );
 }
 
 export default MetricHistory;
