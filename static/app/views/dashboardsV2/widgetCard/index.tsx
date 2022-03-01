@@ -144,6 +144,7 @@ class WidgetCard extends React.Component<Props> {
       location,
       showWidgetViewerButton,
       router,
+      isEditing,
     } = this.props;
     return (
       <ErrorBoundary
@@ -154,7 +155,7 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
-            {showWidgetViewerButton && (
+            {showWidgetViewerButton && !isEditing && (
               <OpenWidgetViewerButton
                 aria-label={t('Open Widget Viewer')}
                 onClick={() => {

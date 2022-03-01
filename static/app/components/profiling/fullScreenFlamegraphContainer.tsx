@@ -6,4 +6,5 @@ export const FullScreenFlamegraphContainer = styled('div')`
   height: 100vh;
   overflow: hidden;
   overscroll-behavior: contain;
+  position: relative;
 `;
