@@ -755,7 +755,7 @@ describe('WidgetBuilder', function () {
   //   expect(await screen.findByText('Table')).toBeInTheDocument();
 
   //   // No delete button as there is only one field.
-  //   expect(screen.queryAllByLabelText('Remove column')).toHaveLength(0);
+  //   expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
 
   //   // Add field column
   //   userEvent.click(screen.getByLabelText('Add a Column'));
@@ -782,91 +782,67 @@ describe('WidgetBuilder', function () {
   //   expect(screen.queryAllByLabelText('Remove column')).toHaveLength(0);
   // });
 
-  // it('should filter out non-aggregate fields when switching from table to chart', async function () {
-  //  let widget = undefined;
-  //  const wrapper = mountModal({
-  //   initialData,
-  //   onAddWidget: data => (widget = data),
-  //  });
-  //  // No delete button as there is only one field.
-  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
-  //  // Select Table display
-  //  selectByLabel(wrapper, 'Table', {name: 'displayType', at: 0, control: true});
-  //  expect(getDisplayType(wrapper).props().value).toEqual('table');
-  //  // Click the add button
-  //  const add = wrapper.find('button[aria-label="Add a Column"]');
-  //  add.simulate('click');
-  //  wrapper.update();
-  //  // Add columns
-  //  selectByLabel(wrapper, 'event.type', {name: 'field', at: 0, control: true});
-  //  let fieldColumn = wrapper.find('input[name="field"]').at(0);
-  //  expect(fieldColumn.props().value).toEqual({
-  //   kind: 'field',
-  //   meta: {dataType: 'string', name: 'event.type'},
-  //  });
-  //  selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
-  //  fieldColumn = wrapper.find('input[name="field"]').at(1);
-  //  expect(fieldColumn.props().value).toMatchObject({
-  //   kind: 'function',
-  //   meta: {
-  //    name: 'p95',
-  //    parameters: [{defaultValue: 'transaction.duration', kind: 'column'}],
-  //   },
-  //  });
-  //  // Select Line chart display
-  //  selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
-  //  expect(getDisplayType(wrapper).props().value).toEqual('line');
-  //  // Expect event.type field to be converted to count()
-  //  fieldColumn = wrapper.find('input[name="field"]');
-  //  expect(fieldColumn.length).toEqual(1);
-  //  expect(fieldColumn.props().value).toMatchObject({
-  //   kind: 'function',
-  //   meta: {
-  //    name: 'p95',
-  //    parameters: [{defaultValue: 'transaction.duration', kind: 'column'}],
-  //   },
-  //  });
-  //  await clickSubmit(wrapper);
-  //  expect(widget.queries).toHaveLength(1);
-  //  expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
-  //  wrapper.unmount();
+  /**
+   * Same problem as the one before
+   */
+  // it.only('should filter out non-aggregate fields when switching from table to chart', async function () {
+  //   renderTestComponent();
+
+  //   expect(await screen.findByText('Table')).toBeInTheDocument();
+
+  //   // No delete button as there is only one field.
+  //   expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+
+  //   // Add field column
+  //   userEvent.click(screen.getByLabelText('Add a Column'));
+  //   userEvent.click(screen.getByText('(Required)'));
+  //   userEvent.type(screen.getByText('(Required)'), 'event.type{enter}');
+
+  //   const removeColumnButtons = screen.queryAllByLabelText('Remove column');
+  //   expect(removeColumnButtons).toHaveLength(2);
+
+  //   // Add columns
+  //   userEvent.type(screen.getByText('count()'), 'event.type{enter}');
+
+  //   userEvent.click(screen.getByLabelText('Add a Column'));
+  //   userEvent.click(screen.getByText('(Required)'));
+  //   userEvent.type(screen.getByText('(Required)'), 'p95{enter}');
+
+  //   // Select Line chart display
+  //   userEvent.click(screen.getByText('Table'));
+  //   userEvent.click(screen.getByText('Line Chart'));
+
+  //   // Expect event.type field to be dropped
+  //   expect(screen.queryByText('event.type')).not.toBeInTheDocument();
+  //   expect(screen.getByText('p95(…)')).toBeInTheDocument();
+
+  //   // No delete button as there is only one field.
+  //   expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
   // });
 
-  // it('should filter non-legal y-axis choices for timeseries widget charts', async function () {
-  //  let widget = undefined;
-  //  const wrapper = mountModal({
-  //   initialData,
-  //   onAddWidget: data => (widget = data),
-  //  });
-  //  // Select Line chart display
-  //  selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
-  //  // No delete button as there is only one field.
-  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
-  //  selectByLabel(wrapper, 'any(\u2026)', {
-  //   name: 'field',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  // Expect user.display to not be an available parameter option for any()
-  //  // for line (timeseries) widget charts
-  //  const option = getOptionByLabel(wrapper, 'user.display', {
-  //   name: 'parameter',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  expect(option.exists()).toEqual(false);
-  //  // Be able to choose a numeric-like option for any()
-  //  selectByLabel(wrapper, 'measurements.lcp', {
-  //   name: 'parameter',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  await clickSubmit(wrapper);
-  //  expect(widget.displayType).toEqual('line');
-  //  expect(widget.queries).toHaveLength(1);
-  //  expect(widget.queries[0].fields).toEqual(['any(measurements.lcp)']);
-  //  wrapper.unmount();
-  // });
+  it('should filter non-legal y-axis choices for timeseries widget charts', async function () {
+    renderTestComponent();
+
+    expect(await screen.findByText('Table')).toBeInTheDocument();
+
+    // Select Line chart display
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+    userEvent.type(screen.getByText('count()'), 'any{enter}');
+
+    // Expect user.display to not be an available parameter option for any()
+    // for line (timeseries) widget charts
+    userEvent.type(screen.getByText('transaction.duration'), 'user.display');
+    expect(screen.getByText('No options')).toBeInTheDocument();
+
+    // Be able to choose a numeric-like option for any()
+    userEvent.keyboard('{escape}');
+    userEvent.type(screen.getByText('transaction.duration'), 'measurements.lcp{enter}');
+    expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
+  });
 
   // it('should not filter y-axis choices for big number widget charts', async function () {
   //  let widget = undefined;
