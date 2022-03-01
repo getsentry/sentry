@@ -22,7 +22,7 @@ const MODAL_DESCRIPTION = t(
   "You've already started building this widget and will lose unsaved changes. Are you sure you want to overwrite this widget with the template values?"
 );
 
-export default function OverwriteWidgetModal({
+function OverwriteWidgetModal({
   Header,
   Body,
   Footer,
@@ -58,6 +58,8 @@ export default function OverwriteWidgetModal({
     </React.Fragment>
   );
 }
+
+export default OverwriteWidgetModal;
 
 export const modalCss = css`
   width: 100%;
