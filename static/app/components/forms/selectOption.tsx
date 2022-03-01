@@ -8,7 +8,7 @@ import {defined} from 'sentry/utils';
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
 function SelectOption(props: Props) {
-  const {label, data, selectProps, isMulti, isSelected, isFocused} = props;
+  const {label, data, selectProps, isMulti, isSelected, isFocused, isDisabled} = props;
   const {showDividers, verticallyCenterCheckWrap} = selectProps;
   const {
     details,
@@ -20,7 +20,7 @@ function SelectOption(props: Props) {
 
   return (
     <selectComponents.Option {...props} className="select-option">
-      <InnerWrap isFocused={isFocused}>
+      <InnerWrap isFocused={isFocused} isDisabled={isDisabled}>
         <Indent isMulti={isMulti} centerCheckWrap={verticallyCenterCheckWrap}>
           <CheckWrap isMulti={isMulti} isSelected={isSelected}>
             {isSelected && (
@@ -58,13 +58,14 @@ function SelectOption(props: Props) {
 
 export default SelectOption;
 
-const InnerWrap = styled('div')<{isFocused: boolean}>`
+const InnerWrap = styled('div')<{isDisabled: boolean; isFocused: boolean}>`
   display: flex;
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
 
   ${p => p.isFocused && `background: ${p.theme.hover};`}
+  ${p => p.isDisabled && `cursor: not-allowed;`}
 `;
 
 const Indent = styled('div')<{centerCheckWrap?: boolean; isMulti?: boolean}>`
