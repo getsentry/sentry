@@ -1,7 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from '../flamegraph';
-import {FlamegraphTheme} from '../flamegraph/FlamegraphTheme';
+import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
 import {Frame} from '../frame';
 import {

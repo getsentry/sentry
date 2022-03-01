@@ -22,8 +22,7 @@ describe('RecoveryOptionsModal', function () {
         authenticatorName="Authenticator App"
         closeModal={closeModal}
         onClose={onClose}
-      />,
-      TestStubs.routerContext()
+      />
     );
   });
 
@@ -73,8 +72,7 @@ describe('RecoveryOptionsModal', function () {
         authenticatorName="Authenticator App"
         closeModal={closeModal}
         onClose={onClose}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const mockId = TestStubs.Authenticators().Recovery().authId;
     expect(

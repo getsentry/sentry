@@ -5,9 +5,9 @@ import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
-import {ChildProps, Result} from './types';
+import {ChildProps, ResultItem} from './types';
 
 type Action = {
   action: () => void;
@@ -79,11 +79,11 @@ type Props = {
   /**
    * fuse.js options
    */
-  searchOptions?: Fuse.FuseOptions<Action>;
+  searchOptions?: Fuse.IFuseOptions<Action>;
 };
 
 type State = {
-  fuzzy: null | Fuse<Action, Fuse.FuseOptions<Action>>;
+  fuzzy: null | Fuse<Action>;
 };
 
 /**
@@ -115,24 +115,23 @@ class CommandSource extends React.Component<Props, State> {
 
   render() {
     const {searchMap, query, isSuperuser, children} = this.props;
+    const {fuzzy} = this.state;
 
-    let results: Result[] = [];
-    if (this.state.fuzzy) {
-      const rawResults = this.state.fuzzy.search<Action, true, true>(query);
-      results = rawResults
+    const results =
+      fuzzy
+        ?.search(query)
         .filter(({item}) => !item.requiresSuperuser || isSuperuser)
-        .map<Result>(value => {
+        .map(value => {
           const {item, ...rest} = value;
           return {
             item: {
               ...item,
               sourceType: 'command',
               resultType: 'command',
-            },
+            } as ResultItem,
             ...rest,
           };
-        });
-    }
+        }) ?? [];
 
     return children({
       isLoading: searchMap === null,
@@ -146,6 +145,5 @@ const CommandSourceWithFeature = (props: Omit<Props, 'isSuperuser'>) => (
     {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
   </Access>
 );
-
 export default CommandSourceWithFeature;
 export {CommandSource};

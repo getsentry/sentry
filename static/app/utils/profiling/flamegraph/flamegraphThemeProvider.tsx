@@ -13,7 +13,7 @@ import {
   DarkFlamegraphTheme,
   FlamegraphTheme,
   LightFlamegraphTheme,
-} from './FlamegraphTheme';
+} from './flamegraphTheme';
 import {useFlamegraphPreferences} from './useFlamegraphPreferences';
 
 export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);

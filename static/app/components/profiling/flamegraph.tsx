@@ -1,17 +1,17 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {FlamegraphOptionsMenu} from 'sentry/components/profiling/FlamegraphOptionsMenu';
-import {FlamegraphSearch} from 'sentry/components/profiling/FlamegraphSearch';
-import {FlamegraphToolbar} from 'sentry/components/profiling/FlamegraphToolbar';
-import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/FlamegraphViewSelectMenu';
-import {FlamegraphZoomView} from 'sentry/components/profiling/FlamegraphZoomView';
-import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/FlamegraphZoomViewMinimap';
-import {ProfileDragDropImport} from 'sentry/components/profiling/ProfileDragDropImport';
-import {ThreadMenuSelector} from 'sentry/components/profiling/ThreadSelector';
+import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraphOptionsMenu';
+import {FlamegraphSearch} from 'sentry/components/profiling/flamegraphSearch';
+import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraphToolbar';
+import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraphViewSelectMenu';
+import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraphZoomView';
+import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraphZoomViewMinimap';
+import {ProfileDragDropImport} from 'sentry/components/profiling/profileDragDropImport';
+import {ThreadMenuSelector} from 'sentry/components/profiling/threadSelector';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -26,26 +26,34 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
 
   const [flamegraph, setFlamegraph] = useState(
-    new FlamegraphModel(props.profiles.profiles[0], 0, {
-      inverted: view === 'bottom up',
-      leftHeavy: sorting === 'left heavy',
-    })
+    new FlamegraphModel(
+      props.profiles.profiles[props.profiles.activeProfileIndex],
+      props.profiles.activeProfileIndex,
+      {
+        inverted: view === 'bottom up',
+        leftHeavy: sorting === 'left heavy',
+      }
+    )
   );
 
   const onImport = useCallback(
-    profile => {
+    (profile: ProfileGroup) => {
       setFlamegraph(
-        new FlamegraphModel(profile.profiles[0], 0, {
-          inverted: view === 'bottom up',
-          leftHeavy: sorting === 'left heavy',
-        })
+        new FlamegraphModel(
+          profile.profiles[profile.activeProfileIndex],
+          profile.activeProfileIndex,
+          {
+            inverted: view === 'bottom up',
+            leftHeavy: sorting === 'left heavy',
+          }
+        )
       );
     },
     [props.profiles, view, sorting]
   );
 
   const onProfileIndexChange = useCallback(
-    index => {
+    (index: number) => {
       setFlamegraph(
         new FlamegraphModel(props.profiles.profiles[index], index, {
           inverted: view === 'bottom up',
@@ -58,10 +66,14 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
 
   useEffect(() => {
     setFlamegraph(
-      new FlamegraphModel(props.profiles.profiles[0], 0, {
-        inverted: view === 'bottom up',
-        leftHeavy: sorting === 'left heavy',
-      })
+      new FlamegraphModel(
+        props.profiles.profiles[flamegraph.profileIndex],
+        flamegraph.profileIndex,
+        {
+          inverted: view === 'bottom up',
+          leftHeavy: sorting === 'left heavy',
+        }
+      )
     );
   }, [props.profiles, view, sorting]);
 

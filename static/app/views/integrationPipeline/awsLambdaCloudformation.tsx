@@ -183,7 +183,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     });
   };
 
-  render = () => {
+  render() {
     const {initialStepNumber} = this.props;
     const {
       accountNumber,
@@ -276,7 +276,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
         />
       </React.Fragment>
     );
-  };
+  }
 }
 
 const StyledList = styled(List)`

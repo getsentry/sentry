@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+from django.conf import settings
 from exam import fixture
 
 from sentry.api.serializers import serialize
@@ -22,7 +23,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         serializer = AlertRuleSerializer(
             context={
                 "organization": self.organization,
-                "access": OrganizationGlobalAccess(self.organization),
+                "access": OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES),
                 "user": self.user,
             },
             data=data,
