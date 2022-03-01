@@ -26,10 +26,19 @@ export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): s
 // - query strings
 // - search UI
 export function normalizeSearchConditions(query: string): MutableSearch {
-  const filterParams = new MutableSearch(query);
+  const filterParams = normalizeSearchConditionsWithTransactionName(query);
 
   // no need to include transaction as its already in the query params
   filterParams.removeFilter('transaction');
+
+  return filterParams;
+}
+
+// normalizes search conditions by removing any redundant search conditions, but retains any transaction name
+export function normalizeSearchConditionsWithTransactionName(
+  query: string
+): MutableSearch {
+  const filterParams = new MutableSearch(query);
 
   // remove any event.type queries since it is implied to apply to only transactions
   filterParams.removeFilter('event.type');
