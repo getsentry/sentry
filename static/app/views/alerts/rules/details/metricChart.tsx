@@ -31,9 +31,10 @@ import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, DateString, Organization, Project} from 'sentry/types';
+import {DateString, Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   getCrashFreeRateSeries,
@@ -67,7 +68,7 @@ type Props = WithRouterProps & {
   interval: string;
   orgId: string;
   organization: Organization;
-  projects: Project[] | AvatarProject[];
+  project: Project;
   query: string;
   rule: IncidentRule;
   timePeriod: TimePeriodType;
@@ -275,10 +276,10 @@ class MetricChart extends React.PureComponent<Props, State> {
     criticalDuration: number,
     warningDuration: number
   ) {
-    const {rule, orgId, projects, timePeriod, query} = this.props;
+    const {rule, orgId, project, timePeriod, query} = this.props;
     const ctaOpts = {
       orgSlug: orgId,
-      projects: projects as Project[],
+      projects: [project],
       rule,
       eventType: query,
       start: timePeriod.start,
@@ -539,7 +540,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         ''
     );
 
-    const queryFilter = filter?.join(' ');
+    const queryFilter = filter?.join(' ') + t(' over ') + getDuration(timeWindow * 60);
 
     const percentOfWidth =
       width >= 1151
@@ -739,7 +740,7 @@ class MetricChart extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {api, rule, organization, timePeriod, projects, interval, query} = this.props;
+    const {api, rule, organization, timePeriod, project, interval, query} = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
     // If the chart duration isn't as long as the rollup duration the events-stats
@@ -759,7 +760,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       <SessionsRequest
         api={api}
         organization={organization}
-        project={projects.filter(p => p.id).map(p => Number(p.id))}
+        project={[Number(project.id)]}
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
@@ -797,9 +798,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         organization={organization}
         query={query}
         environment={environment ? [environment] : undefined}
-        project={(projects as Project[])
-          .filter(p => p && p.slug)
-          .map(project => Number(project.id))}
+        project={[Number(project.id)]}
         interval={interval}
         comparisonDelta={rule.comparisonDelta ? rule.comparisonDelta * 60 : undefined}
         start={viableStartDate}
