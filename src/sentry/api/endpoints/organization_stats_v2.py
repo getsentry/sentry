@@ -64,7 +64,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         help_text=(
             "can pass multiple groupBy parameters to group by multiple, e.g. `groupBy=project&groupBy=outcome` to group by multiple dimensions. "
             "Note that grouping by project can cause missing rows if the number of projects / interval is large. "
-            "If you have a large number of projects, we reccomend filtering and querying by them individually."
+            "If you have a large number of projects, we recommend filtering and querying by them individually."
         ),
     )
 
