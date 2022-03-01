@@ -275,7 +275,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             Condition(Column("tags[6]", entity=None), Op.IN, [10]),
         ],
         orderby=[OrderBy(Column("sum"), Direction.DESC)],
-        limit=Limit(3),
+        limit=Limit(6480),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
