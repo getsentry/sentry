@@ -328,6 +328,30 @@ class FromRequestTest(TestCase):
         assert result.projects == frozenset({project})
         assert result.has_project_access(project)
 
+    def test_superuser_with_team_membership(self):
+        org = self.create_organization()
+        AuthProvider.objects.create(organization=org)
+
+        member_team = self.create_team(organization=org)
+        member_project = self.create_project(organization=org, teams=[member_team])
+        non_member_team = self.create_team(organization=org)
+        non_member_project = self.create_project(organization=org, teams=[non_member_team])
+
+        user = self.create_user(is_superuser=True)
+        self.create_member(user=user, organization=org, role="admin", teams=[member_team])
+
+        request = self.make_request(user=user, is_superuser=True)
+        result = access.from_request(request, org)
+
+        assert result.teams == frozenset({member_team, non_member_team})
+        assert result.has_team_access(member_team)
+        assert result.has_team_access(non_member_team)
+        assert result.projects == frozenset({member_project, non_member_project})
+        assert result.has_project_access(member_project)
+        assert result.has_project_access(non_member_project)
+        assert result.has_project_membership(member_project)
+        assert not result.has_project_membership(non_member_project)
+
 
 class FromSentryAppTest(TestCase):
     def setUp(self):
