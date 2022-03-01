@@ -7,7 +7,11 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-const Container = styled('div')<{orientInline?: boolean}>`
+interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
+  orientInline?: boolean;
+}
+
+const Container = styled('div')<ContainerProps>`
   display: grid;
   gap: ${p => space(p.orientInline ? 3 : 1)};
   grid-auto-flow: ${p => (p.orientInline ? 'column' : 'row')};
@@ -15,7 +19,7 @@ const Container = styled('div')<{orientInline?: boolean}>`
   grid-auto-columns: max-content;
 `;
 
-export interface RadioGroupProps<C extends string> {
+interface BaseRadioGroupProps<C extends string> {
   /**
    * An array of [id, name, description]
    */
@@ -34,8 +38,9 @@ export interface RadioGroupProps<C extends string> {
   orientInline?: boolean;
 }
 
-type Props<C extends string> = RadioGroupProps<C> &
-  Omit<React.ComponentPropsWithoutRef<typeof Container>, keyof RadioGroupProps<C>>;
+interface RadioGroupProps<C extends string>
+  extends BaseRadioGroupProps<C>,
+    Omit<ContainerProps, 'onChange'> {}
 
 const RadioGroup = <C extends string>({
   value,
@@ -46,7 +51,7 @@ const RadioGroup = <C extends string>({
   onChange,
   orientInline,
   ...props
-}: Props<C>) => (
+}: RadioGroupProps<C>) => (
   <Container
     orientInline={orientInline}
     {...props}
