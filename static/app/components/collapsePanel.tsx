@@ -5,7 +5,6 @@ import {IconChevron, IconList} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-/** The number of elements to display before collapsing */
 export const COLLAPSE_COUNT = 5;
 
 type ChildRenderProps = {
@@ -16,17 +15,23 @@ type ChildRenderProps = {
 type Props = {
   children: (props: ChildRenderProps) => JSX.Element;
   items: number;
+  buttonTitle?: string;
+  collapseCount?: number;
 };
 
 /**
- * Used to expand results for team insights.
+ * Used to expand results.
  *
  * Our collapsible component was not used because we want our
  * expand button to be outside the list of children
  *
- * This component is not yet generic to use elsewhere. Like the hardcoded COLLAPSE_COUNT
  */
-function CollapsePanel({items, children}: Props) {
+function CollapsePanel({
+  items,
+  children,
+  buttonTitle,
+  collapseCount = COLLAPSE_COUNT,
+}: Props) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   function expandResults() {
     setIsExpanded(true);
@@ -35,8 +40,13 @@ function CollapsePanel({items, children}: Props) {
   return children({
     isExpanded,
     showMoreButton:
-      isExpanded || items <= COLLAPSE_COUNT ? null : (
-        <ShowMoreButton items={items} onClick={expandResults} />
+      isExpanded || items <= collapseCount ? null : (
+        <ShowMoreButton
+          items={items}
+          buttonTitle={buttonTitle}
+          collapseCount={collapseCount}
+          onClick={expandResults}
+        />
       ),
   });
 }
@@ -44,14 +54,21 @@ function CollapsePanel({items, children}: Props) {
 type ShowMoreButtonProps = {
   items: number;
   onClick: () => void;
+  buttonTitle?: string;
+  collapseCount?: number;
 };
 
-function ShowMoreButton({items, onClick}: ShowMoreButtonProps) {
+function ShowMoreButton({
+  items,
+  buttonTitle = 'More',
+  collapseCount = COLLAPSE_COUNT,
+  onClick,
+}: ShowMoreButtonProps) {
   return (
     <ShowMore onClick={onClick} role="button" data-test-id="collapse-show-more">
       <ShowMoreText>
         <StyledIconList color="gray300" />
-        {tct('Show [count] More', {count: items - COLLAPSE_COUNT})}
+        {tct('Show [count] [buttonTitle]', {count: items - collapseCount, buttonTitle})}
       </ShowMoreText>
 
       <IconChevron color="gray300" direction="down" />
