@@ -48,12 +48,12 @@ function OverwriteWidgetModal({
         </CardWrapper>
       </Body>
       <Footer>
-        <Actions>
+        <ButtonBar gap={1.5}>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" onClick={handleConfirm}>
             {t('Confirm')}
           </Button>
-        </Actions>
+        </ButtonBar>
       </Footer>
     </React.Fragment>
   );
@@ -69,8 +69,4 @@ export const modalCss = css`
 
 const CardWrapper = styled('div')`
   padding: ${space(3)} 0;
-`;
-
-const Actions = styled(ButtonBar)`
-  gap: ${space(1.5)};
 `;

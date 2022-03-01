@@ -28,9 +28,9 @@ describe('widget builder overwrite modal', () => {
       />
     );
 
-    expect(screen.getByText('Overwrite Widget')).toBeVisible();
-    expect(screen.getByText('Test title')).toBeVisible();
-    expect(screen.getByText('Test description')).toBeVisible();
+    expect(screen.getByText('Overwrite Widget')).toBeInTheDocument();
+    expect(screen.getByText('Test title')).toBeInTheDocument();
+    expect(screen.getByText('Test description')).toBeInTheDocument();
   });
 
   it('calls the confirm handler and closes the modal when confirmed', () => {
