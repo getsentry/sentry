@@ -58,6 +58,7 @@ type RouteParams = {
   orgId: string;
   dashboardId?: string;
   widgetId?: number;
+  widgetIndex?: number;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
@@ -112,7 +113,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    if (location.pathname.match(/\/widget\/\w*\/$/)) {
+    if (location.pathname.match(/\/widget\/\w*\/$/) && !this.isWidgetBuilderRouter) {
       const widget =
         defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
       if (widget) {
@@ -177,13 +178,13 @@ class DashboardDetail extends Component<Props, State> {
 
   get isWidgetBuilderRouter() {
     const {location, params, organization} = this.props;
-    const {dashboardId, widgetId} = params;
+    const {dashboardId, widgetIndex} = params;
 
     const widgetBuilderRoutes = [
       `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-      `/organizations/${organization.slug}/dashboards/new/widget/${widgetId}/edit/`,
-      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetId}/edit/`,
+      `/organizations/${organization.slug}/dashboards/new/widget/${widgetIndex}/edit/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
     ];
 
     return widgetBuilderRoutes.includes(location.pathname);
