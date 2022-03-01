@@ -563,6 +563,14 @@ def build_key_transactions(interval, project):
                 [Function("minus", [Column("p50LastWeek"), Column("p50")])],
                 "trend_difference",
             ),
+            Function(
+                "divide",
+                [
+                    Column("countTotal"),
+                    60 * 24 * 7 * 2,  # Total number of minutes in a two weeks period
+                ],
+                "tpm",  # Transaction per minute
+            ),
         ],
         where=[
             Condition(Column("timestamp"), Op.GTE, start - timedelta(days=7)),
@@ -574,6 +582,7 @@ def build_key_transactions(interval, project):
         ],
         having=[
             Condition(Column("trend_difference"), Op.GT, 0.0),
+            Condition(Column("tpm"), Op.GT, 0.01),
         ],
         groupby=[Column("transaction")],
         orderby=[OrderBy(Column("trend_difference"), Direction.DESC)],
