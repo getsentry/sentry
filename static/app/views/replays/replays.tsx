@@ -22,6 +22,7 @@ import {Replay} from './types';
 type Props = AsyncView['props'] &
   WithRouterProps<{orgId: string}> & {
     organization: Organization;
+    statsPeriod?: string | undefined; // revisit i'm sure i'm doing statsperiod wrong
   };
 
 type State = AsyncView['state'] & {
@@ -39,7 +40,7 @@ class Replays extends AsyncView<Props, State> {
       // query,
       // start,
       // end,
-      // statsPeriod,
+      statsPeriod,
       // environment,
       // project,
       // fields,
@@ -53,7 +54,7 @@ class Replays extends AsyncView<Props, State> {
       fields: ['eventID', 'timestamp'],
       orderby: '',
       projects: [2],
-      range: '24h',
+      range: statsPeriod,
       query: 'event.type:error', // future: change to replay event
       // environment: '',
       // start,
@@ -93,7 +94,6 @@ class Replays extends AsyncView<Props, State> {
     return (
       <PageFiltersContainer
         showEnvironmentSelector={false}
-        showDateSelector={false}
         resetParamsOnChange={['cursor']}
       >
         <PageContent>
