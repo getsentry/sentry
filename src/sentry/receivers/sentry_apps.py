@@ -5,8 +5,6 @@ from sentry.tasks.sentry_apps import workflow_notification
 
 @issue_assigned.connect(weak=False)
 def send_issue_assigned_webhook(project, group, user, **kwargs):
-
-    print("here in the issue assigned receiver")
     assignee = GroupAssignee.objects.get(group_id=group.id).assigned_actor()
 
     actor = assignee.resolve()
@@ -25,7 +23,7 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
 
 @issue_commented.connect(weak=False)
 def send_issue_commented_webhook(project, user, group, data, **kwargs):
-    print("in issue commented receiver")
+    # TODO: (CEO): don't hardcode "created", it could be updated or deleted
     send_workflow_webhooks(project.organization, group, user, "comment.created", data=data)
 
 

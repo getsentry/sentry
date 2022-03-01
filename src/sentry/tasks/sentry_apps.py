@@ -67,17 +67,6 @@ def _webhook_event_data(event, group_id, project_id):
             "sentry-organization-event-detail", args=[organization.slug, group_id, event.event_id]
         )
     )
-    print("group id: ", group_id)
-    group = Group.objects.get(id=group_id)
-    # group = Group.objects.get(id=1016) # idk why but I'm getting passed the wrong group ID
-    # filter by project too?
-
-    comments = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
-
-    if comments:
-        print("~~~~~~~~~~")
-        print(comments[0])
-        event_context["comment"] = comments[0]  # this is the most recent one
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
@@ -287,8 +276,19 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     except User.DoesNotExist:
         logger.info("workflow_notification.missing_user", extra=extra)
 
+    print("group id: ", issue_id)
+    # filter by project too?
+    comments = Activity.objects.filter(group=issue, type=ActivityType.NOTE.value)
+
+    if comments:
+        print("~~~~~~~~~~")
+        print(comments[0])
+        # event_context["comment"] = comments[0]  # this is the most recent one
+
     data = kwargs.get("data", {})
+    print("data before issue: ", data)
     data.update({"issue": serialize(issue)})
+
 
     send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
 

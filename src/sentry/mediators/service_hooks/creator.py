@@ -11,7 +11,6 @@ def expand_events(rolled_up_events):
     Convert a list of rolled up events ('issue', etc) into a list of raw event
     types ('issue.created', etc.)
     """
-    print("rolled up events: ", rolled_up_events)
     return set(
         chain.from_iterable([EVENT_EXPANSION.get(event, [event]) for event in rolled_up_events])
     )
@@ -22,7 +21,6 @@ def consolidate_events(raw_events):
     Consolidate a list of raw event types ('issue.created', etc) into a list of
     rolled up events ('issue', etc).
     """
-    print("raw_events: ", raw_events)
     return {
         name
         for (name, rolled_up_events) in EVENT_EXPANSION.items()

@@ -152,29 +152,3 @@ class Activity(Model):
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)
-
-
-# def process_resource_change(instance, **kwargs):
-#     print("in process_resource_change in activity")
-#     if instance.type == ActivityType.NOTE.value:
-#         from sentry.tasks.sentry_apps import process_resource_change_bound
-
-#         action = (
-#             "created" if kwargs.get("created") else "deleted" if kwargs.get("deleted") else "edited"
-#         )
-#         print("action: ", action)
-#         process_resource_change_bound.delay(
-#             action=action, sender="Comment", instance_id=instance.id, instance=instance
-#         )
-
-
-# post_save.connect(
-#     lambda instance, **kwargs: process_resource_change(instance, **kwargs),
-#     sender=Activity,
-#     weak=False,
-# )
-# post_delete.connect(
-#     lambda instance, **kwargs: process_resource_change(instance, deleted=True, **kwargs),
-#     sender=Activity,
-#     weak=False,
-# )
