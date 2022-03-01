@@ -50,13 +50,22 @@ class TestPreparerIssueLink(TestCase):
 
         self.preparer.call()
 
-        assert call(install=self.install, project=self.project, uri="/sentry/foo") in run.mock_calls
-
         assert (
-            call(install=self.install, project=self.project, uri="/sentry/beep") in run.mock_calls
+            call(install=self.install, project=self.project, uri="/sentry/foo", dependent_data=None)
+            in run.mock_calls
         )
 
-        assert call(install=self.install, project=self.project, uri="/sentry/bar") in run.mock_calls
+        assert (
+            call(
+                install=self.install, project=self.project, uri="/sentry/beep", dependent_data=None
+            )
+            in run.mock_calls
+        )
+
+        assert (
+            call(install=self.install, project=self.project, uri="/sentry/bar", dependent_data=None)
+            in run.mock_calls
+        )
 
         assert (
             not call(install=self.install, project=self.project, uri="/sentry/baz")
