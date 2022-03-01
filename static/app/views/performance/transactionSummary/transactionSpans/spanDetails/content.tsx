@@ -190,10 +190,10 @@ function SpanDetailsHeader(props: HeaderProps) {
     <ContentHeader>
       <HeaderInfo data-test-id="header-operation-name">
         <SectionHeading>{t('Span Operation')}</SectionHeading>
+        <SectionSubtext data-test-id="operation-name">{spanSlug.op}</SectionSubtext>
         <SectionBody>
           <SpanLabelContainer>{description ?? emptyValue}</SpanLabelContainer>
         </SectionBody>
-        <SectionSubtext data-test-id="operation-name">{spanSlug.op}</SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-percentiles">
         <SectionHeading>{t('Exclusive Time Percentiles')}</SectionHeading>
