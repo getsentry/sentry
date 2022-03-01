@@ -223,7 +223,7 @@ class FormModel {
     return fieldState[key];
   }
 
-  getValue(id: string): string | number | boolean {
+  getValue(id: string) {
     return this.fields.get(id) ?? '';
   }
 
