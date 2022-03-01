@@ -71,7 +71,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                     action.get("settings"),
                 )
 
-                action["formFields"] = component.schema.get("settings", {})
+                action["formFields"] = component.get("schema", {}).get("settings", {})
 
                 # Delete meta fields
                 del action["_sentry_app_installation"]
