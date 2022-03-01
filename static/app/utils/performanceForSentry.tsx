@@ -116,7 +116,7 @@ export const VisuallyCompleteWithData = ({
             `${id}-vcsd-end`
           );
           num.current = num.current++;
-          const [measureEntry] = performance.getEntriesByName(measureName);
+          const measureEntry = [...performance.getEntriesByName(measureName)].pop();
           if (!measureEntry) {
             return;
           }
