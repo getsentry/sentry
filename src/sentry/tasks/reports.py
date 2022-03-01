@@ -521,66 +521,76 @@ def build_key_errors(interval, project):
 def build_key_transactions(interval, project):
     start, stop = interval
 
-    # Take the 3 most frequently occuring transactions
+    # Take the 3 most changed transactions
     query = Query(
-        dataset=Dataset.Transactions.value,
-        match=Entity("transactions"),
+        dataset=Dataset.Discover.value,
+        match=Entity("discover"),
         select=[
-            Column("transaction_name"),
-            Function("count", []),
+            Column("transaction"),
+            Function("count", [], "countTotal"),
+            Function(
+                "quantileIf(0.50)",
+                [
+                    Column("duration"),
+                    Function("lessOrEquals", [start, Column("timestamp")]),
+                ],
+                "p50LastWeek",
+            ),
+            Function(
+                "quantileIf(0.50)",
+                [
+                    Column("duration"),
+                    Function("greater", [start, Column("timestamp")]),
+                ],
+                "p50",
+            ),
+            Function(
+                "countIf",
+                [
+                    Function("lessOrEquals", [start, Column("timestamp")]),
+                ],
+                "countLastWeek",
+            ),
+            Function(
+                "countIf",
+                [
+                    Function("greater", [start, Column("timestamp")]),
+                ],
+                "count",
+            ),
+            Function(
+                "abs",
+                [Function("minus", [Column("p50LastWeek"), Column("p50")])],
+                "trend_difference",
+            ),
         ],
         where=[
-            Condition(Column("finish_ts"), Op.GTE, start),
-            Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
+            Condition(Column("timestamp"), Op.GTE, start - timedelta(days=7)),
+            Condition(Column("timestamp"), Op.LT, stop + timedelta(days=1)),
             Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(Column("duration"), Op.GT, 0.0),
+            Condition(Column("duration"), Op.LT, 900000.0),
+            Condition(Column("type"), Op.EQ, "transaction"),
         ],
-        groupby=[Column("transaction_name")],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        having=[
+            Condition(Column("trend_difference"), Op.GT, 0.0),
+        ],
+        groupby=[Column("transaction")],
+        orderby=[OrderBy(Column("trend_difference"), Direction.DESC)],
         limit=Limit(3),
     )
     query_result = raw_snql_query(query, referrer="reports.key_transactions")
-    key_errors = query_result["data"]
-
-    transaction_names = map(lambda p: p["transaction_name"], key_errors)
-
-    def query_p95(interval):
-        start, stop = interval
-        query = Query(
-            dataset=Dataset.Transactions.value,
-            match=Entity("transactions"),
-            select=[
-                Column("transaction_name"),
-                Function("quantile(0.95)", [Column("duration")], "p95"),
-            ],
-            where=[
-                Condition(Column("finish_ts"), Op.GTE, start),
-                Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
-                Condition(Column("transaction_name"), Op.IN, transaction_names),
-                Condition(Column("project_id"), Op.EQ, project.id),
-            ],
-            groupby=[Column("transaction_name")],
-        )
-        return raw_snql_query(query, referrer="reports.key_transactions.p95")
-
-    query_result = query_p95((start, stop))
-    this_week_p95 = {}
-    for point in query_result["data"]:
-        this_week_p95[point["transaction_name"]] = point["p95"]
-
-    query_result = query_p95((start - timedelta(days=7), stop - timedelta(days=7)))
-    last_week_p95 = {}
-    for point in query_result["data"]:
-        last_week_p95[point["transaction_name"]] = point["p95"]
+    key_transactions = query_result["data"]
 
     return [
         (
-            e["transaction_name"],
-            e["count()"],
+            e["transaction"],
+            e["countTotal"],
             project.id,
-            this_week_p95.get(e["transaction_name"], None),
-            last_week_p95.get(e["transaction_name"], None),
+            e["p50"],
+            e["p50LastWeek"],
         )
-        for e in key_errors
+        for e in key_transactions
     ]
 
 
