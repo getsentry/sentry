@@ -17,7 +17,7 @@ type RenderProps = {
   indicator: React.ReactNode;
 };
 
-interface FirstEventIndicatorProps extends Omit<EventWaiterProps, 'children'> {
+interface FirstEventIndicatorProps extends Omit<EventWaiterProps, 'children' | 'api'> {
   children: (props: RenderProps) => React.ReactNode;
 }
 
@@ -49,7 +49,7 @@ const FirstEventIndicator = ({children, ...props}: FirstEventIndicatorProps) => 
   </EventWaiter>
 );
 
-interface IndicatorProps extends Omit<EventWaiterProps, 'children'> {
+interface IndicatorProps extends Omit<EventWaiterProps, 'children' | 'api'> {
   firstIssue: Group | null | true;
 }
 
