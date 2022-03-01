@@ -35,6 +35,7 @@ function mountModal({initialData: {organization, routerContext}, widget}) {
         closeModal={() => undefined}
         organization={organization}
         widget={widget}
+        onEdit={() => undefined}
       />
     </div>,
     {
