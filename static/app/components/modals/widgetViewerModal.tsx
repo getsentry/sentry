@@ -7,7 +7,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -15,12 +16,19 @@ import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
+  eventViewFromWidget,
   getFieldsFromEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
+import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
+
+import {
+  renderGridBodyCell,
+  renderGridHeaderCell,
+} from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
   organization: Organization;
@@ -35,30 +43,15 @@ type Props = ModalRenderProps &
     selection: PageFilters;
   };
 
-const TABLE_ITEM_LIMIT = 30;
-const FULL_TABLE_HEIGHT = 600;
-const HALF_TABLE_HEIGHT = 300;
+const FULL_TABLE_ITEM_LIMIT = 20;
+const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 
 function WidgetViewerModal(props: Props) {
+  const {organization, widget, selection, location, Footer, Body, Header, onEdit} = props;
+  const isTableWidget = widget.displayType === DisplayType.TABLE;
   const renderWidgetViewer = () => {
-    const {organization, selection, widget, location} = props;
     const api = useApi();
-    switch (widget.displayType) {
-      case DisplayType.TABLE:
-        return (
-          <TableContainer height={FULL_TABLE_HEIGHT}>
-            <WidgetCardChartContainer
-              api={api}
-              organization={organization}
-              selection={selection}
-              widget={widget}
-              tableItemLimit={TABLE_ITEM_LIMIT}
-            />
-          </TableContainer>
-        );
-      default:
-    }
 
     // Create Table widget
     const tableWidget = {...cloneDeep(widget), displayType: DisplayType.TABLE};
@@ -71,56 +64,113 @@ function WidgetViewerModal(props: Props) {
     ) {
       fields.unshift(GEO_COUNTRY_CODE);
     }
-
-    // Updates fields by adding any individual terms from equation fields as a column
-    const equationFields = getFieldsFromEquations(fields);
-    equationFields.forEach(term => {
-      if (Array.isArray(fields) && !fields.includes(term)) {
-        fields.unshift(term);
-      }
-    });
+    if (!isTableWidget) {
+      // Updates fields by adding any individual terms from equation fields as a column
+      const equationFields = getFieldsFromEquations(fields);
+      equationFields.forEach(term => {
+        if (Array.isArray(fields) && !fields.includes(term)) {
+          fields.unshift(term);
+        }
+      });
+    }
+    const eventView = eventViewFromWidget(
+      tableWidget.title,
+      tableWidget.queries[0],
+      selection,
+      tableWidget.displayType
+    );
+    const columnOrder = eventView.getColumns();
+    const columnSortBy = eventView.getSorts();
     return (
       <React.Fragment>
-        <Container>
-          <WidgetCardChartContainer
-            api={api}
-            organization={organization}
-            selection={selection}
-            widget={widget}
-          />
-        </Container>
-        <TableContainer height={HALF_TABLE_HEIGHT}>
-          <WidgetQueries
-            api={api}
-            organization={organization}
-            widget={tableWidget}
-            selection={selection}
-            limit={TABLE_ITEM_LIMIT}
-          >
-            {({tableResults, loading}) => {
-              return (
-                <StyledSimpleTableChart
-                  location={location}
-                  title=""
-                  fields={tableWidget.queries[0].fields}
-                  loading={loading}
-                  metadata={tableResults?.[0]?.meta}
-                  data={tableResults?.[0]?.data}
-                  organization={organization}
-                  topResultsIndicators={
-                    widget.displayType === DisplayType.TOP_N ? 5 : undefined
-                  }
-                  stickyHeaders
-                />
-              );
-            }}
-          </WidgetQueries>
+        {widget.displayType !== DisplayType.TABLE && (
+          <Container>
+            <WidgetCardChartContainer
+              api={api}
+              organization={organization}
+              selection={selection}
+              widget={widget}
+            />
+          </Container>
+        )}
+        <TableContainer>
+          {widget.widgetType === WidgetType.ISSUE ? (
+            <IssueWidgetQueries
+              api={api}
+              organization={organization}
+              widget={tableWidget}
+              selection={selection}
+              limit={
+                widget.displayType === DisplayType.TABLE
+                  ? FULL_TABLE_ITEM_LIMIT
+                  : HALF_TABLE_ITEM_LIMIT
+              }
+            >
+              {({transformedResults, loading}) => {
+                return (
+                  <GridEditable
+                    isLoading={loading}
+                    data={transformedResults}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      renderHeadCell: renderGridHeaderCell({
+                        ...props,
+                      }) as (
+                        column: GridColumnOrder,
+                        columnIndex: number
+                      ) => React.ReactNode,
+                      renderBodyCell: renderGridBodyCell({
+                        ...props,
+                      }),
+                    }}
+                    location={location}
+                  />
+                );
+              }}
+            </IssueWidgetQueries>
+          ) : (
+            <WidgetQueries
+              api={api}
+              organization={organization}
+              widget={tableWidget}
+              selection={selection}
+              limit={
+                widget.displayType === DisplayType.TABLE
+                  ? FULL_TABLE_ITEM_LIMIT
+                  : HALF_TABLE_ITEM_LIMIT
+              }
+            >
+              {({tableResults, loading}) => {
+                return (
+                  <GridEditable
+                    isLoading={loading}
+                    data={tableResults?.[0]?.data ?? []}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      renderHeadCell: renderGridHeaderCell({
+                        ...props,
+                        tableData: tableResults?.[0],
+                      }) as (
+                        column: GridColumnOrder,
+                        columnIndex: number
+                      ) => React.ReactNode,
+                      renderBodyCell: renderGridBodyCell({
+                        ...props,
+                        tableData: tableResults?.[0],
+                      }),
+                    }}
+                    location={location}
+                  />
+                );
+              }}
+            </WidgetQueries>
+          )}
         </TableContainer>
       </React.Fragment>
     );
   };
-
-  const {Footer, Body, Header, widget, onEdit, selection, organization} = props;
 
   const StyledHeader = styled(Header)`
     ${headerCss}
@@ -145,7 +195,9 @@ function WidgetViewerModal(props: Props) {
   return (
     <React.Fragment>
       <StyledHeader closeButton>
-        <h4>{widget.title}</h4>
+        <Tooltip title={widget.title} showOnlyOnOverflow>
+          <WidgetTitle>{widget.title}</WidgetTitle>
+        </Tooltip>
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
@@ -165,7 +217,6 @@ function WidgetViewerModal(props: Props) {
 export const modalCss = css`
   width: 100%;
   max-width: 1400px;
-  margin: 70px auto;
 `;
 
 const headerCss = css`
@@ -186,21 +237,23 @@ const Container = styled('div')`
 `;
 
 // Table Container allows Table display to work around parent padding and fill full modal width
-const TableContainer = styled('div')<{height: number}>`
-  height: ${p => p.height}px;
-  width: calc(100% + 60px);
+const TableContainer = styled('div')`
   max-width: 1400px;
   position: relative;
-  left: -${space(4)};
-
+  margin: ${space(4)} 0;
   & > div {
-    max-height: ${p => p.height}px;
     margin: 0;
+  }
+
+  & td:first-child {
+    padding: ${space(1)} ${space(2)};
   }
 `;
 
-const StyledSimpleTableChart = styled(SimpleTableChart)`
-  box-shadow: none;
+const WidgetTitle = styled('h4')`
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));

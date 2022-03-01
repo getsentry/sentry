@@ -1,6 +1,7 @@
 import * as React from 'react';
-import type Fuse from 'fuse.js';
 import flatten from 'lodash/flatten';
+
+import {Fuse} from 'sentry/utils/fuzzySearch';
 
 import {Result} from './types';
 
