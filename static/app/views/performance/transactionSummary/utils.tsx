@@ -22,11 +22,19 @@ export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): s
   return `/organizations/${orgSlug}/performance/summary/`;
 }
 
-function cleanTransactionSummaryFilter(query: string): string {
+// normalizes search conditions by removing any redundant search conditions before presenting them in:
+// - query strings
+// - search UI
+export function normalizeSearchConditions(query: string): MutableSearch {
   const filterParams = new MutableSearch(query);
+
+  // no need to include transaction as its already in the query params
   filterParams.removeFilter('transaction');
+
+  // remove any event.type queries since it is implied to apply to only transactions
   filterParams.removeFilter('event.type');
-  return filterParams.formatString();
+
+  return filterParams;
 }
 
 export function transactionSummaryRouteWithQuery({
@@ -58,7 +66,7 @@ export function transactionSummaryRouteWithQuery({
 
   let searchFilter: typeof query.query;
   if (typeof query.query === 'string') {
-    searchFilter = cleanTransactionSummaryFilter(query.query);
+    searchFilter = normalizeSearchConditions(query.query).formatString();
   } else {
     searchFilter = query.query;
   }
