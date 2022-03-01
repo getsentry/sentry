@@ -39,7 +39,6 @@ const Header = styled('div')`
 `;
 
 const Heading = styled('h5')`
-  font-weight: 500;
   margin-bottom: 0;
   color: ${p => p.theme.gray500};
 `;

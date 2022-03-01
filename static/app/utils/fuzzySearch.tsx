@@ -1,6 +1,14 @@
 import type Fuse from 'fuse.js';
 
-import {DEFAULT_FUSE_OPTIONS} from 'sentry/constants';
+// See http://fusejs.io/ for more information
+export const DEFAULT_FUSE_OPTIONS: Fuse.IFuseOptions<any> = {
+  includeScore: true,
+  includeMatches: true,
+  threshold: 0.4,
+  location: 0,
+  distance: 75,
+  minMatchCharLength: 2,
+};
 
 export async function createFuzzySearch<
   T = string,
@@ -18,3 +26,6 @@ export async function createFuzzySearch<
     ...options,
   });
 }
+
+// re-export fuse type to make it easier to use
+export type {Fuse};
