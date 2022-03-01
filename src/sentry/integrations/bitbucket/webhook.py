@@ -123,7 +123,7 @@ class BitbucketWebhookEndpoint(View):
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
-            logger.error(
+            logger.info(
                 f"{PROVIDER_NAME}.webhook.invalid-organization",
                 extra={"organization_id": organization_id},
             )
