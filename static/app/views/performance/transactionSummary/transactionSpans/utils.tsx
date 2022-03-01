@@ -237,3 +237,7 @@ export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
     'sumArray(spans_exclusive_time)',
   ],
 };
+
+export function getExclusiveTimeDisplayedValue(value: string): string {
+  return value.replace('exclusive', 'self');
+}

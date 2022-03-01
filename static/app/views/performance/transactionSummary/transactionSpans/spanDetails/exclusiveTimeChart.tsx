@@ -24,6 +24,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 
+import {getExclusiveTimeDisplayedValue} from '../utils';
+
 type Props = WithRouterProps & {
   eventView: EventView;
   location: Location;
@@ -68,9 +70,6 @@ export default function ExclusiveTimeChart(props: Props) {
     };
     browserHistory.push(to);
   };
-
-  const getExclusiveTimeDisplayedValue = (value: string) =>
-    value.replace('exclusive', 'self');
 
   return (
     <Fragment>
@@ -155,7 +154,6 @@ export default function ExclusiveTimeChart(props: Props) {
                 right: 10,
                 top: 5,
                 selected: getSeriesSelection(location),
-                formatter: getExclusiveTimeDisplayedValue,
               };
 
               const formattedResults = results?.map(result => ({
