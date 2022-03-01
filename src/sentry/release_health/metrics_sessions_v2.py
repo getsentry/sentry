@@ -710,18 +710,18 @@ def run_sessions_query(
         }
     )
 
-    groups_as_list = []
+    groups_as_list: List[SessionsQueryGroup] = []
     if len(data_points) == 0:
         for status in get_args(_SessionStatus):
-            group = {}
-            group["by"] = {"session.status": status}
-            group["totals"] = {}
-            group["series"] = {}
+            query_group = {}
+            query_group["by"] = {"session.status": status}
+            query_group["totals"] = {}
+            query_group["series"] = {}
             for field in query_clone.fields:
                 default_value = default_for(field)
-                group["totals"][field] = default_value
-                group["series"][field] = [default_value for _ in range(len(intervals))]
-            groups_as_list.append(group)
+                query_group["totals"][field] = default_value
+                query_group["series"][field] = [default_value for _ in range(len(intervals))]
+            groups_as_list.append(cast(SessionsQueryGroup, query_group))
     else:
         for key in data_points.keys():
             try:
@@ -745,7 +745,7 @@ def run_sessions_query(
                     by["session.status"] = status_value.session_status  # !
 
                 group_key: GroupKey = tuple(sorted(by.items()))
-                group = groups[group_key]
+                group: Group = groups[group_key]
 
                 value = status_value.value
                 if value is not None:
@@ -757,7 +757,7 @@ def run_sessions_query(
                     index = timestamp_index[key.bucketed_time]
                     group["series"][output_field.get_name()][index] = value
 
-        groups_as_list: List[SessionsQueryGroup] = [
+        groups_as_list: List[SessionsQueryGroup] = [  # type: ignore
             {
                 "by": dict(by),
                 "totals": group["totals"],
