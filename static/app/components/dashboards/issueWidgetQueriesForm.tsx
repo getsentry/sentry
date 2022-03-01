@@ -10,7 +10,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {
+  explodeField,
+  generateFieldAsString,
+  isAggregateFieldOrEquation,
+} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -128,6 +132,12 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
             const fieldStrings = fields.map(field => generateFieldAsString(field));
             const newQuery = cloneDeep(query);
             newQuery.fields = fieldStrings;
+
+            const aggregateFields = fieldStrings.filter(isAggregateFieldOrEquation);
+            newQuery.aggregates = aggregateFields;
+            newQuery.columns = fieldStrings.filter(
+              field => !!!aggregateFields.includes(field)
+            );
             onChange(newQuery);
           }}
         />
