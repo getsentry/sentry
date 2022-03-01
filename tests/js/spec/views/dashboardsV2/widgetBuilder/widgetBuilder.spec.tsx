@@ -745,37 +745,41 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
-  // it('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
-  //  let widget = undefined;
-  //  const wrapper = mountModal({
-  //   initialData,
-  //   onAddWidget: data => (widget = data),
-  //  });
-  //  // No delete button as there is only one field.
-  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
-  //  // Select Table display
-  //  selectByLabel(wrapper, 'Table', {name: 'displayType', at: 0, control: true});
-  //  expect(getDisplayType(wrapper).props().value).toEqual('table');
-  //  // Add field column
-  //  selectByLabel(wrapper, 'event.type', {name: 'field', at: 0, control: true});
-  //  let fieldColumn = wrapper.find('input[name="field"]');
-  //  expect(fieldColumn.props().value).toEqual({
-  //   kind: 'field',
-  //   meta: {dataType: 'string', name: 'event.type'},
-  //  });
-  //  // Select Line chart display
-  //  selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
-  //  expect(getDisplayType(wrapper).props().value).toEqual('line');
-  //  // Expect event.type field to be converted to count()
-  //  fieldColumn = wrapper.find('input[name="field"]');
-  //  expect(fieldColumn.props().value).toEqual({
-  //   kind: 'function',
-  //   meta: {name: 'count', parameters: []},
-  //  });
-  //  await clickSubmit(wrapper);
-  //  expect(widget.queries).toHaveLength(1);
-  //  expect(widget.queries[0].fields).toEqual(['count()']);
-  //  wrapper.unmount();
+  /**
+   * This test isn't passing because it's complaining there's a field that goes from
+   * uncontrolled to controlled.
+   */
+  // it.only('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
+  //   renderTestComponent();
+
+  //   expect(await screen.findByText('Table')).toBeInTheDocument();
+
+  //   // No delete button as there is only one field.
+  //   expect(screen.queryAllByLabelText('Remove column')).toHaveLength(0);
+
+  //   // Add field column
+  //   userEvent.click(screen.getByLabelText('Add a Column'));
+  //   userEvent.click(screen.getByText('(Required)'));
+  //   userEvent.type(screen.getByText('(Required)'), 'event.type{enter}');
+
+  //   const removeColumnButtons = screen.queryAllByLabelText('Remove column');
+  //   expect(removeColumnButtons).toHaveLength(2);
+
+  // Remove the default count() column
+  // userEvent.click(removeColumnButtons[0]);
+  // expect(screen.queryByText('count()')).not.toBeInTheDocument();
+  // expect(screen.getByText('event.type')).toBeInTheDocument();
+
+  //   // Select Line chart display
+  //   userEvent.click(screen.getByText('Table'));
+  //   userEvent.click(screen.getByText('Line Chart'));
+
+  //   // Expect event.type field to be converted to count()
+  //   expect(screen.queryByText('event.type')).not.toBeInTheDocument();
+  //   expect(screen.getByText('count()')).toBeInTheDocument();
+
+  //   // No delete button as there is only one field.
+  //   expect(screen.queryAllByLabelText('Remove column')).toHaveLength(0);
   // });
 
   // it('should filter out non-aggregate fields when switching from table to chart', async function () {
