@@ -20,7 +20,10 @@ import {constructWidgetFromQuery} from './utils';
 
 const ALLOWED_PARAMS = ['start', 'end', 'utc', 'period', 'project', 'environment'];
 
-type Props = RouteComponentProps<{dashboardId: string; orgId: string}, {}> & {
+type Props = RouteComponentProps<
+  {dashboardId: string; orgId: string; widgetId?: number},
+  {}
+> & {
   children: React.ReactNode;
   organization: Organization;
 };

@@ -502,4 +502,36 @@ describe('Dashboards > WidgetCard', function () {
 
     expect(MetricsWidgetQueries).toHaveBeenCalledTimes(1);
   });
+
+  it('opens the widget viewer modal when a widget has no id', async () => {
+    const openWidgetViewerModal = jest.spyOn(modal, 'openWidgetViewerModal');
+    const widget: Widget = {
+      title: 'Widget',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.DISCOVER,
+      queries: [],
+    };
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        showWidgetViewerButton
+      />
+    );
+
+    userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
+    expect(openWidgetViewerModal).toHaveBeenCalledWith(expect.objectContaining({widget}));
+  });
 });

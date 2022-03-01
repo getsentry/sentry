@@ -277,9 +277,16 @@ export async function openDashboardWidgetLibraryModal(
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
-export async function openWidgetViewerModal(options: WidgetViewerModalOptions) {
+export async function openWidgetViewerModal({
+  onClose,
+  ...options
+}: WidgetViewerModalOptions & {onClose?: () => void}) {
   const mod = await import('sentry/components/modals/widgetViewerModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    backdrop: 'static',
+    modalCss,
+    onClose,
+  });
 }
