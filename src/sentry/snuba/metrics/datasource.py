@@ -365,12 +365,9 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
                     # Set the limit of the second query to be the provided limits multiplied by
                     # the number of the metrics requested in the query in this specific entity
-                    secondary_query_limit = query.limit * len(snuba_query.select)
-                    # In a series query, we also need to factor in the len of the intervals array
-                    if key == "series":
-                        secondary_query_limit *= len(intervals)
-
-                    snuba_query = snuba_query.set_limit(secondary_query_limit)
+                    snuba_query = snuba_query.set_limit(
+                        snuba_query.limit.limit * len(snuba_query.select)
+                    )
                     snuba_query = snuba_query.set_offset(0)
 
                     snuba_query_res = raw_snql_query(
