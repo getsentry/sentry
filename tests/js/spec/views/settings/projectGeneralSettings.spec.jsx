@@ -83,8 +83,7 @@ describe('projectGeneralSettings', function () {
 
   it('renders form fields', function () {
     wrapper = mountWithTheme(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('project-slug');
@@ -123,8 +122,7 @@ describe('projectGeneralSettings', function () {
     });
 
     wrapper = mountWithTheme(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     const removeBtn = wrapper.find('.ref-remove-project').first();
@@ -150,8 +148,7 @@ describe('projectGeneralSettings', function () {
     });
 
     wrapper = mountWithTheme(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     const removeBtn = wrapper.find('.ref-transfer-project').first();
@@ -191,8 +188,7 @@ describe('projectGeneralSettings', function () {
     });
 
     wrapper = mountWithTheme(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     const removeBtn = wrapper.find('.ref-transfer-project').first();

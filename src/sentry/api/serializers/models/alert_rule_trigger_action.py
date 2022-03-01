@@ -39,7 +39,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
         """
         return action.target_identifier if action.type == action.Type.SLACK.value else None
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
         result = {

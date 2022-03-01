@@ -65,8 +65,9 @@ function GlobalSelectionLink(props: Props) {
     queryStringObject = {...queryStringObject, ...to.query};
   }
 
+  const queryString = qs.stringify(queryStringObject);
   const url =
-    (typeof to === 'string' ? to : to.pathname) + '?' + qs.stringify(queryStringObject);
+    (typeof to === 'string' ? to : to.pathname) + (queryString ? `?${queryString}` : '');
 
   return <a {...props} href={url} />;
 }

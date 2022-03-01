@@ -62,7 +62,7 @@ describe('ContextPickerModal', function () {
       url: `/organizations/${org2.slug}/projects/`,
       body: [],
     });
-    const wrapper = mountWithTheme(getComponent(), TestStubs.routerContext());
+    const wrapper = mountWithTheme(getComponent());
 
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/');
     await tick();
@@ -84,8 +84,7 @@ describe('ContextPickerModal', function () {
         needOrg: true,
         needProject: true,
         nextPath: '/test/:orgId/path/:projectId/',
-      }),
-      TestStubs.routerContext()
+      })
     );
 
     expect(fetchProjectsForOrg).toHaveBeenCalled();
@@ -102,7 +101,7 @@ describe('ContextPickerModal', function () {
 
   it('selects an org and calls `onFinish` with URL with organization slug', async function () {
     OrganizationsStore.load([org]);
-    const wrapper = mountWithTheme(getComponent({}), TestStubs.routerContext());
+    const wrapper = mountWithTheme(getComponent({}));
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
@@ -199,8 +198,7 @@ describe('ContextPickerModal', function () {
         needProject: true,
         nextPath: '/test/:orgId/path/:projectId/',
         organizations,
-      }),
-      TestStubs.routerContext()
+      })
     );
 
     await tick();
@@ -277,8 +275,7 @@ describe('ContextPickerModal', function () {
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
         configUrl,
-      }),
-      TestStubs.routerContext()
+      })
     );
 
     expect(fetchGithubConfigs).toHaveBeenCalled();
@@ -318,8 +315,7 @@ describe('ContextPickerModal', function () {
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
         configUrl,
-      }),
-      TestStubs.routerContext()
+      })
     );
 
     expect(fetchGithubConfigs).toHaveBeenCalled();
@@ -356,8 +352,7 @@ describe('ContextPickerModal', function () {
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
         configUrl,
-      }),
-      TestStubs.routerContext()
+      })
     );
 
     expect(fetchGithubConfigs).toHaveBeenCalled();

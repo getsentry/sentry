@@ -39,8 +39,7 @@ describe('Project Ownership Input', function () {
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const submit = wrapper.find('SaveButton button');
@@ -67,8 +66,7 @@ describe('Project Ownership Input', function () {
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     // Set a path, as path is selected bu default.
