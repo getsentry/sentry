@@ -414,12 +414,7 @@ export default class DetailsBody extends React.Component<Props> {
                   />
                   <DetailWrapper>
                     <ActivityWrapper>
-                      <MetricHistory
-                        api={api}
-                        organization={organization}
-                        rule={rule}
-                        incidents={incidents}
-                      />
+                      <MetricHistory organization={organization} incidents={incidents} />
                       {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                         <RelatedIssues
                           organization={organization}
