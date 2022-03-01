@@ -1181,21 +1181,21 @@ def build_key_errors_ctx(key_events, organization):
         group_id_to_group[group.id] = group
 
     status_to_color = {
-        GroupHistoryStatus.UNRESOLVED: "rgba(245, 176, 0, 0.55)",
-        GroupHistoryStatus.RESOLVED: "rgba(43, 161, 133, 0.55)",
-        GroupHistoryStatus.SET_RESOLVED_IN_RELEASE: "rgba(43, 161, 133, 0.55)",
-        GroupHistoryStatus.SET_RESOLVED_IN_COMMIT: "rgba(43, 161, 133, 0.55)",
-        GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST: "rgba(43, 161, 133, 0.55)",
-        GroupHistoryStatus.AUTO_RESOLVED: "rgba(43, 161, 133, 0.55)",
+        GroupHistoryStatus.UNRESOLVED: "#FAD473",
+        GroupHistoryStatus.RESOLVED: "#8ACBBC",
+        GroupHistoryStatus.SET_RESOLVED_IN_RELEASE: "#8ACBBC",
+        GroupHistoryStatus.SET_RESOLVED_IN_COMMIT: "#8ACBBC",
+        GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST: "#8ACBBC",
+        GroupHistoryStatus.AUTO_RESOLVED: "#8ACBBC",
         GroupHistoryStatus.IGNORED: "#DBD6E1",
-        GroupHistoryStatus.UNIGNORED: "rgba(245, 176, 0, 0.55)",
-        GroupHistoryStatus.ASSIGNED: "rgba(245, 84, 89, 0.5)",
-        GroupHistoryStatus.UNASSIGNED: "rgba(245, 176, 0, 0.55)",
-        GroupHistoryStatus.REGRESSED: "rgba(245, 84, 89, 0.5)",
+        GroupHistoryStatus.UNIGNORED: "#FAD473",
+        GroupHistoryStatus.ASSIGNED: "#FAAAAC",
+        GroupHistoryStatus.UNASSIGNED: "#FAD473",
+        GroupHistoryStatus.REGRESSED: "#FAAAAC",
         GroupHistoryStatus.DELETED: "#DBD6E1",
         GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
-        GroupHistoryStatus.REVIEWED: "rgba(245, 176, 0, 0.55)",
-        GroupHistoryStatus.NEW: "rgba(245, 176, 0, 0.55)",
+        GroupHistoryStatus.REVIEWED: "#FAD473",
+        GroupHistoryStatus.NEW: "#FAD473",
     }
 
     return [
