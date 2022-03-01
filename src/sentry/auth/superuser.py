@@ -154,11 +154,13 @@ class Superuser:
                     extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 )
             return
+        # don't want to spam the logs since superuser session is not activated on log in
         elif not data:
-            logger.warning(
-                "superuser.missing-session-data",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
-            )
+            if getattr(self, "token", None):
+                logger.warning(
+                    "superuser.missing-session-data",
+                    extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
+                )
             return
 
         session_token = data.get("tok")
@@ -304,24 +306,22 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if request.method == "PUT":
-            # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
-            su_access_json = json.loads(request.body)
-            su_access_info = SuperuserAccessSerializer(data=su_access_json)
+        su_access_json = json.loads(request.body)
+        su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
-            if not su_access_info.is_valid():
-                raise serializers.ValidationError(su_access_info.errors)
+        if not su_access_info.is_valid():
+            raise serializers.ValidationError(su_access_info.errors)
 
-            logger.info(
-                "superuser.superuser_access",
-                extra={
-                    "superuser_session_id": token,
-                    "user_id": request.user.id,
-                    "user_email": request.user.email,
-                    "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
-                    "reason_for_su": su_access_info.validated_data["superuserReason"],
-                },
-            )
+        logger.info(
+            "superuser.superuser_access",
+            extra={
+                "superuser_session_id": token,
+                "user_id": request.user.id,
+                "user_email": request.user.email,
+                "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
+                "reason_for_su": su_access_info.validated_data["superuserReason"],
+            },
+        )
 
         self._set_logged_in(
             expires=current_datetime + MAX_AGE,

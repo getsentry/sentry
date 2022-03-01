@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+// import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import InputField from 'sentry/components/forms/inputField';
 import SelectField from 'sentry/components/forms/selectField';
@@ -94,13 +94,70 @@ class SudoModal extends React.Component<Props, State> {
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>
-          <TextBlock>{t('You will need to reauthenticate to continue.')}</TextBlock>
+          {/* <TextBlock>{t('You will need to reauthenticate to continue.')}</TextBlock>
+          <StyledSelectField
+            name="superuserAccessCategory"
+            label={t('Catergory of Superuser Access')}
+            options={placeholderForSUCategories.map(SUCategory => ({
+              value: SUCategory.value,
+              label: SUCategory.name,
+            }))}
+            placeholder={t('Select Catergory')}
+            inline={false}
+            flexibleControlStateSize
+            required
+          />
+          <StyledInputField
+            type="text"
+            inline={false}
+            label={t('Reason for Superuser')}
+            name="superuserReason"
+            flexibleControlStateSize
+            required
+          />
           <Button
             priority="primary"
             href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
           >
             {t('Continue')}
-          </Button>
+          </Button> */}
+          <StyledTextBlock>
+            {superuser
+              ? t(
+                  'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
+                )
+              : t('You will need to reauthenticate to continue')}
+          </StyledTextBlock>
+          <Form
+            apiMethod="PUT"
+            apiEndpoint="/auth/"
+            submitLabel={t('Re-authenticate')}
+            onSubmitSuccess={this.handleSuccess}
+            onSubmitError={this.handleError}
+            resetOnError
+          >
+            {/* only show the 2 below if they are superusers */}
+            <StyledSelectField
+              name="superuserAccessCategory"
+              label={t('Catergory of Superuser Access')}
+              options={placeholderForSUCategories.map(SUCategory => ({
+                value: SUCategory.value,
+                label: SUCategory.name,
+              }))}
+              placeholder={t('Select Catergory')}
+              inline={false}
+              flexibleControlStateSize
+              required
+            />
+            <StyledInputField
+              type="text"
+              inline={false}
+              label={t('Reason for Superuser')}
+              name="superuserReason"
+              flexibleControlStateSize
+              required
+            />
+          </Form>
         </React.Fragment>
       );
     }
