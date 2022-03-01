@@ -28,8 +28,6 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         Get context required to show a login page. Registration is handled elsewhere.
         """
         if request.user.is_authenticated:
-            # if the user is a superuser, but not 'superuser authenticated' we
-            # allow them to re-authenticate to gain superuser status
             return self.respond_authenticated(request)
 
         next_uri = self.get_next_uri(request)
