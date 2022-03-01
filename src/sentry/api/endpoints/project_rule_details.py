@@ -15,6 +15,8 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     RuleStatus,
+    SentryAppComponent,
+    SentryAppInstallation,
     Team,
     User,
 )
@@ -50,9 +52,32 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        data = serialize(rule, request.user)
 
-        return Response(data)
+        # Serialize Rule object
+        serialized_rule = serialize(
+            rule,
+            request.user,
+        )
+
+        # Prepare Rule Actions that are SentryApp components using the meta fields
+        for action in serialized_rule.get("actions", []):
+            if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
+
+                component = SentryAppInstallation(
+                    **action.get("_sentry_app_installation", {})
+                ).prepare_ui_component(
+                    SentryAppComponent(**action.get("_sentry_app_component")),
+                    project,
+                    action.get("settings"),
+                )
+
+                action["formFields"] = component.schema.get("settings", {})
+
+                # Delete meta fields
+                del action["_sentry_app_installation"]
+                del action["_sentry_app_component"]
+
+        return Response(serialized_rule)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request: Request, project, rule) -> Response:

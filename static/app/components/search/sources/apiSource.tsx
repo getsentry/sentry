@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
-import type Fuse from 'fuse.js';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
@@ -20,7 +19,7 @@ import {
   Team,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
 import withLatestContext from 'sentry/utils/withLatestContext';
 
