@@ -755,6 +755,18 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         relative_hours = math.ceil((query.end - datetime.now(timezone.utc)).total_seconds() / 3600)
         set_tag("run_sessions_query.rel_end", f"{relative_hours}h")
 
+        project_ids = query.filter_keys.get("project_id")
+        if project_ids and len(project_ids) == 1:
+            project_id = project_ids[0]
+            set_tag("run_sessions_query.project_id", str(project_id))
+            try:
+                project = Project.objects.get_from_cache(id=project_id)
+                assert org_id == project.organization_id
+            except (Project.DoesNotExist, AssertionError):
+                pass
+            else:
+                set_tag("run_sessions_query.platform", project.platform)
+
         def index_by(d: Mapping[Any, Any]) -> Any:
             return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
 
