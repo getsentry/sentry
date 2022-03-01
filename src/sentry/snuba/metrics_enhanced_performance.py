@@ -51,7 +51,10 @@ def timeseries_query(
                 else result["data"]
             )
             return SnubaTSResult(
-                {"data": result["data"], "mep": True}, params["start"], params["end"], rollup
+                {"data": result["data"], "isMetricsData": True},
+                params["start"],
+                params["end"],
+                rollup,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
