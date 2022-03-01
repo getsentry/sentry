@@ -220,8 +220,8 @@ describe('WidgetBuilder', function () {
     expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
 
     // Header - Actions
-    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Add Widget'})).toBeInTheDocument();
+    expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add Widget')).toBeInTheDocument();
 
     // Content - Step 1
     expect(
@@ -386,7 +386,7 @@ describe('WidgetBuilder', function () {
     expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
 
     // No delete button as there is only one query.
-    expect(screen.queryByRole('button', {name: 'Remove query'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
 
     const countFields = screen.getAllByText('count()');
     expect(countFields).toHaveLength(2);
@@ -434,7 +434,7 @@ describe('WidgetBuilder', function () {
     userEvent.click(screen.getByText('Line Chart'));
 
     // Click the add overlay button
-    userEvent.click(screen.getByRole('button', {name: 'Add Overlay'}));
+    userEvent.click(screen.getByLabelText('Add Overlay'));
 
     // Should be another field input.
     expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
@@ -442,7 +442,7 @@ describe('WidgetBuilder', function () {
     userEvent.click(screen.getByText('(Required)'));
     userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
 
-    userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
+    userEvent.click(screen.getByLabelText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -477,7 +477,7 @@ describe('WidgetBuilder', function () {
     userEvent.click(screen.getByText('Line Chart'));
 
     // Click the add an equation button
-    userEvent.click(screen.getByRole('button', {name: 'Add an Equation'}));
+    userEvent.click(screen.getByLabelText('Add an Equation'));
 
     // Should be another field input.
     expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
@@ -486,7 +486,7 @@ describe('WidgetBuilder', function () {
 
     userEvent.type(screen.getByPlaceholderText('Equation'), 'count() + 100');
 
-    userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
+    userEvent.click(screen.getByLabelText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -521,7 +521,7 @@ describe('WidgetBuilder', function () {
     userEvent.click(screen.getByText('Line Chart'));
 
     // Click the add overlay button
-    userEvent.click(screen.getByRole('button', {name: 'Add Overlay'}));
+    userEvent.click(screen.getByLabelText('Add Overlay'));
 
     // Should be another field input.
     expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
@@ -530,7 +530,7 @@ describe('WidgetBuilder', function () {
     userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
 
     // Add another search filter
-    userEvent.click(screen.getByRole('button', {name: 'Add query'}));
+    userEvent.click(screen.getByLabelText('Add query'));
 
     // Set second query search conditions
     userEvent.type(
@@ -542,7 +542,7 @@ describe('WidgetBuilder', function () {
     userEvent.type(screen.getAllByPlaceholderText('Legend Alias')[1], 'Errors');
 
     // Save widget
-    userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
+    userEvent.click(screen.getByLabelText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -593,13 +593,13 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Top 5 Events')).toBeInTheDocument();
 
     // No delete button as there is only one field.
-    expect(screen.queryByRole('button', {name: 'Remove query'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
 
     // Restricting to a single query
-    expect(screen.queryByRole('button', {name: 'Add query'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add query')).not.toBeInTheDocument();
 
     // // Restricting to a single y-axis
-    expect(screen.queryByRole('button', {name: 'Add Overlay'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
 
     expect(screen.getByText('Choose your y-axis')).toBeInTheDocument();
 
@@ -649,8 +649,8 @@ describe('WidgetBuilder', function () {
 
     userEvent.click(await screen.findByText('Table'));
     userEvent.click(screen.getByText('Bar Chart'));
-    userEvent.click(screen.getByRole('button', {name: 'Add query'}));
-    userEvent.click(screen.getByRole('button', {name: 'Add query'}));
+    userEvent.click(screen.getByLabelText('Add query'));
+    userEvent.click(screen.getByLabelText('Add query'));
     expect(
       screen.getAllByPlaceholderText('Search for events, users, tags, and more')
     ).toHaveLength(3);
@@ -668,7 +668,7 @@ describe('WidgetBuilder', function () {
       renderTestComponent({onSave: handleSave});
 
       userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
-      userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
+      userEvent.click(screen.getByLabelText('Add Widget'));
 
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
@@ -720,21 +720,17 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('issue')).toBeInTheDocument();
       expect(screen.getByText('assignee')).toBeInTheDocument();
       expect(screen.getByText('title')).toBeInTheDocument();
-      expect(screen.getAllByRole('button', {name: 'Remove column'})).toHaveLength(2);
-      expect(screen.getAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(3);
+      expect(screen.getAllByLabelText('Remove column')).toHaveLength(2);
+      expect(screen.getAllByLabelText('Drag to reorder')).toHaveLength(3);
 
-      userEvent.click(screen.getAllByRole('button', {name: 'Remove column'})[1]);
-      userEvent.click(screen.getAllByRole('button', {name: 'Remove column'})[0]);
+      userEvent.click(screen.getAllByLabelText('Remove column')[1]);
+      userEvent.click(screen.getAllByLabelText('Remove column')[0]);
 
       expect(screen.getByText('issue')).toBeInTheDocument();
       expect(screen.queryByText('assignee')).not.toBeInTheDocument();
       expect(screen.queryByText('title')).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Remove column'})
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Drag to reorder'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
     });
   });
 
