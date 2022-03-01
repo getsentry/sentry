@@ -590,6 +590,7 @@ class QueryField extends React.Component<Props> {
             value={fieldValue.field}
             onUpdate={this.handleEquationChange}
             options={otherColumns}
+            placeholder={t('Equation')}
           />
           {error ? (
             <ArithmeticError title={error}>

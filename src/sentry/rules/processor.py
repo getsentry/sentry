@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.models import GroupRuleStatus, Rule
-from sentry.rules import EventState, rules
+from sentry.rules import EventState, history, rules
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -209,6 +209,8 @@ class RuleProcessor:
                 organization_id=rule.project.organization.id,
                 rule_id=rule.id,
             )
+
+        history.record(rule, self.group)
 
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
