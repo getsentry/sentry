@@ -455,7 +455,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
 
     userEvent.click(screen.getByText('(Required)'));
-    userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
+    userEvent.click(screen.getByText('count_unique(…)'));
 
     // Add another search filter
     userEvent.click(screen.getByLabelText('Add query'));
@@ -468,6 +468,7 @@ describe('WidgetBuilder', function () {
 
     // Set second query legend alias
     userEvent.paste(screen.getAllByPlaceholderText('Legend Alias')[1], 'Errors');
+    userEvent.keyboard('{enter}');
 
     // Save widget
     userEvent.click(screen.getByLabelText('Add Widget'));
