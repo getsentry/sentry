@@ -19,7 +19,7 @@ import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
@@ -33,24 +33,17 @@ import {generateFlamegraphRoute} from '../routes';
 import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
 
 interface ProfilingScatterChartProps extends WithRouterProps {
+  datetime: PageFilters['datetime'];
   isLoading: boolean;
-  location: Location;
   traces: Trace[];
-  end?: string;
-  start?: string;
-  statsPeriod?: string | null;
-  utc?: string;
 }
 
 function ProfilingScatterChart({
   router,
   location,
-  traces,
+  datetime,
   isLoading,
-  start,
-  end,
-  statsPeriod,
-  utc,
+  traces,
 }: ProfilingScatterChartProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -112,10 +105,10 @@ function ProfilingScatterChart({
       <ChartContainer>
         <ChartZoom
           router={router}
-          period={statsPeriod}
-          start={start}
-          end={end}
-          utc={utc === 'true'}
+          period={datetime.period}
+          start={datetime.start}
+          end={datetime.end}
+          utc={datetime.utc}
         >
           {zoomRenderProps => {
             return (
