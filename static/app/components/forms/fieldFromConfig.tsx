@@ -36,8 +36,9 @@ interface FieldFromConfigProps {
   stacked?: boolean;
 }
 
-function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null {
-  const {field, ...otherProps} = props;
+export default class FieldFromConfig extends Component<FieldFromConfigProps> {
+  render() {
+    const {field, ...otherProps} = this.props;
 
   const componentProps = {
     ...otherProps,

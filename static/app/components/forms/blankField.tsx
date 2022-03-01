@@ -7,8 +7,10 @@ import Field, {FieldProps} from 'sentry/components/forms/field';
  * class, this doesn't have any fields of its own and is just meant to make
  * forms more flexible.
  */
-function BlankField(props: FieldProps) {
-  return <Field {...props} />;
+export default class BlankField extends React.Component<FieldProps> {
+  render() {
+    return <Field {...this.props} />;
+  }
 }
 
 export default BlankField;
