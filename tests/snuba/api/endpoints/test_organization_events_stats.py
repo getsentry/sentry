@@ -950,7 +950,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-            assert response.data["mep"]
+            assert response.data["isMetricsData"]
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -977,7 +977,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 2
-            assert response.data["mep"]
+            assert response.data["isMetricsData"]
 
             assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
@@ -1004,7 +1004,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-            assert response.data["mep"]
+            assert response.data["isMetricsData"]
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -1033,7 +1033,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-            assert response.data["mep"]
+            assert response.data["isMetricsData"]
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -1061,7 +1061,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 6
-        assert response.data["mep"]
+        assert response.data["isMetricsData"]
         assert [attrs for time, attrs in response.data["data"]] == [
             [{"count": 0.5}],
             [{"count": 0.5}],
@@ -1091,9 +1091,9 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         lcp = response.data["p75(measurements.lcp)"]
         duration = response.data["p75(transaction.duration)"]
         assert len(duration["data"]) == 6
-        assert duration["mep"]
+        assert duration["isMetricsData"]
         assert len(lcp["data"]) == 6
-        assert lcp["mep"]
+        assert lcp["isMetricsData"]
         for item in duration["data"]:
             assert item[1][0]["count"] == 111
         for item in lcp["data"]:
@@ -1127,7 +1127,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             },
         )
         assert response.status_code == 200, response.content
-        assert response.data["mep"]
+        assert response.data["isMetricsData"]
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 1}]]
 
     def test_non_mep_query_fallsback(self):
@@ -1144,7 +1144,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 },
             )
             assert response.status_code == 200, response.content
-            return response.data["mep"]
+            return response.data["isMetricsData"]
 
         assert get_mep(""), "empty query"
         assert get_mep("event.type:transaction"), "event type transaction"
