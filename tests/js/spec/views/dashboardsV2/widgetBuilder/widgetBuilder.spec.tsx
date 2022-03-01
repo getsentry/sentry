@@ -338,7 +338,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getAllByText('Unique Users')).toHaveLength(2);
   });
 
-  it.only('can add query conditions', async function () {
+  it('can add query conditions', async function () {
     const {router} = renderTestComponent({
       query: {source: DashboardWidgetSource.DISCOVERV2},
     });
