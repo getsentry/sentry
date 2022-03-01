@@ -330,17 +330,15 @@ describe('WidgetBuilder', function () {
 
     userEvent.click(customWidgetLabels[0]);
     userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
-    userEvent.type(
-      screen.getByRole('textbox', {name: 'Widget title'}),
-      'Unique Users{enter}'
-    );
+    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'Unique Users');
+    userEvent.keyboard('{enter}');
 
     expect(screen.queryByText('Custom Widget')).not.toBeInTheDocument();
 
     expect(screen.getAllByText('Unique Users')).toHaveLength(2);
   });
 
-  it('can add query conditions', async function () {
+  it.only('can add query conditions', async function () {
     const {router} = renderTestComponent({
       query: {source: DashboardWidgetSource.DISCOVERV2},
     });
@@ -484,7 +482,7 @@ describe('WidgetBuilder', function () {
 
     expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
 
-    userEvent.type(screen.getByPlaceholderText('Equation'), 'count() + 100');
+    userEvent.paste(screen.getByPlaceholderText('Equation'), 'count() + 100');
 
     userEvent.click(screen.getByLabelText('Add Widget'));
 
@@ -534,12 +532,12 @@ describe('WidgetBuilder', function () {
 
     // Set second query search conditions
     userEvent.type(
-      screen.getAllByLabelText('Search events')[1],
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1],
       'event.type:error{enter}'
     );
 
     // Set second query legend alias
-    userEvent.type(screen.getAllByPlaceholderText('Legend Alias')[1], 'Errors');
+    userEvent.paste(screen.getAllByPlaceholderText('Legend Alias')[1], 'Errors');
 
     // Save widget
     userEvent.click(screen.getByLabelText('Add Widget'));
@@ -555,13 +553,13 @@ describe('WidgetBuilder', function () {
             {
               name: '',
               fields: ['count()', 'count_unique(user)'],
-              conditions: 'event.type:error',
+              conditions: '',
               orderby: '',
             },
             {
               name: 'Errors',
               fields: ['count()', 'count_unique(user)'],
-              conditions: '',
+              conditions: 'event.type:error',
               orderby: '',
             },
           ],
