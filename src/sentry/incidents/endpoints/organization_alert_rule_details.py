@@ -23,24 +23,34 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         serialized_rule = serialize(alert_rule, request.user, DetailedAlertRuleSerializer())
 
         # Prepare AlertRuleTriggerActions that are SentryApp components
-
+        errors = []
         for trigger in serialized_rule.get("triggers", []):
             for action in trigger.get("actions", []):
                 if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-
-                    component = SentryAppInstallation(
+                    installation = SentryAppInstallation(
                         **action.get("_sentry_app_installation", {})
-                    ).prepare_ui_component(
+                    )
+                    component = installation.prepare_ui_component(
                         SentryAppComponent(**action.get("_sentry_app_component")),
                         None,
                         action.get("settings"),
                     )
+                    if component is None:
+                        errors.append(
+                            {
+                                "detail": f"Could not fetch details from {installation.sentry_app.name}"
+                            }
+                        )
+                        action["disabled"] = True
+                        continue
 
                     action["formFields"] = component.schema.get("settings", {})
 
                     # Delete meta fields
                     del action["_sentry_app_installation"]
                     del action["_sentry_app_component"]
+
+        serialized_rule["errors"] = errors
 
         return Response(serialized_rule)
 
