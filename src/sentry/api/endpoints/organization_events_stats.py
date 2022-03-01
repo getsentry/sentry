@@ -10,7 +10,7 @@ from sentry import features
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models import Organization
-from sentry.snuba import discover
+from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.utils.snuba import SnubaTSResult
 
 METRICS_ENHANCE_REFERRERS: Set[str] = {
@@ -73,16 +73,26 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+        feature_names = [
+            "organizations:performance-chart-interpolation",
+            "organizations:discover-use-snql",
+            "organizations:performance-use-metrics",
+        ]
         batch_features = features.batch_has(
-            [
-                "organizations:performance-chart-interpolation",
-                "organizations:discover-use-snql",
-                "organizations:performance-use-metrics",
-            ],
+            feature_names,
             organization=organization,
             actor=request.user,
         )
-        return batch_features.get(f"organization:{organization.id}", {}) if batch_features else {}
+        return (
+            batch_features.get(f"organization:{organization.id}", {})
+            if batch_features is not None
+            else {
+                feature_name: features.has(
+                    feature_name, organization=organization, actor=request.user
+                )
+                for feature_name in feature_names
+            }
+        )
 
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
@@ -118,7 +128,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             referrer = request.GET.get("referrer")
             referrer = (
                 referrer
-                if referrer in ALLOWED_EVENTS_STATS_REFERRERS
+                if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCE_REFERRERS)
                 else "api.organization-event-stats"
             )
             batch_features = self.get_features(organization, request)
@@ -130,11 +140,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 "organizations:performance-use-metrics", False
             )
 
-            metrics_enhanced = (
-                referrer in METRICS_ENHANCE_REFERRERS
-                and performance_use_metrics
-                and request.GET.get("metricsEnhanced") == "1"
-            )
+            metrics_enhanced = referrer in METRICS_ENHANCE_REFERRERS and performance_use_metrics
             sentry_sdk.set_tag("performance.use_metrics", metrics_enhanced)
 
         def get_event_stats(
@@ -162,7 +168,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     include_other=True,
                     use_snql=discover_snql,
                 )
-            return discover.timeseries_query(
+            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
+            return dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
                 params=params,
