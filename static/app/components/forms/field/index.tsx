@@ -19,89 +19,90 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 
 import FieldQuestion from './fieldQuestion';
 
-type InheritedFieldWrapperProps = Pick<
-  React.ComponentProps<typeof FieldWrapper>,
-  'inline' | 'stacked' | 'highlighted' | 'hasControlState'
->;
+interface InheritedFieldWrapperProps
+  extends Pick<
+    React.ComponentProps<typeof FieldWrapper>,
+    'inline' | 'stacked' | 'highlighted' | 'hasControlState'
+  > {}
 
-type InheritedFieldControlProps = Omit<
-  React.ComponentProps<typeof FieldControl>,
-  'children' | 'disabled' | 'className' | 'help' | 'errorState'
->;
+interface InheritedFieldControlProps
+  extends Omit<
+    React.ComponentProps<typeof FieldControl>,
+    'children' | 'disabled' | 'className' | 'help' | 'errorState'
+  > {}
 
-type InheritedControlStateProps = Omit<
-  React.ComponentProps<typeof ControlState>,
-  'children' | 'error'
->;
+interface InheritedControlStateProps
+  extends Omit<React.ComponentProps<typeof ControlState>, 'children' | 'error'> {}
 
-type Props = InheritedFieldControlProps &
-  InheritedFieldWrapperProps &
-  InheritedControlStateProps & {
-    // TODO(TS): Do we need this?
-    /**
-     * The control to render. May be given a function to render with resolved
-     * props.
-     */
-    children?: React.ReactNode | ((props: ChildRenderProps) => React.ReactNode);
-    /**
-     * The classname of the field
-     */
-    className?: string;
-    /**
-     * The classname of the field control
-     */
-    controlClassName?: string;
-    /**
-     * Should field be disabled?
-     */
-    disabled?: boolean | ((props: Props) => boolean);
-    /**
-     * Error message to display for the field
-     */
-    error?: string;
-    /**
-     * Help or description of the field
-     */
-    help?: React.ReactNode | React.ReactElement | ((props: Props) => React.ReactNode);
-    /**
-     * Should the label be rendered for the field?
-     */
-    hideLabel?: boolean;
-    /**
-     * The control's `id` property
-     */
-    id?: string;
-    /**
-     * User-facing field name
-     */
-    label?: React.ReactNode;
-    /**
-     * Show "required" indicator
-     */
-    required?: boolean;
-    /**
-     * Displays the help element in the tooltip
-     */
-    showHelpInTooltip?: boolean;
-    /**
-     * Additional inline styles for the field
-     */
-    style?: React.CSSProperties;
-    validate?: Function;
-    /**
-     * Should field be visible
-     */
-    visible?: boolean | ((props: Props) => boolean);
-  };
+export interface FieldProps
+  extends InheritedFieldControlProps,
+    InheritedFieldWrapperProps,
+    InheritedControlStateProps {
+  // TODO(TS): Do we need this?
+  /**
+   * The control to render. May be given a function to render with resolved
+   * props.
+   */
+  children?: React.ReactNode | ((props: ChildRenderProps) => React.ReactNode);
+  /**
+   * The classname of the field
+   */
+  className?: string;
+  /**
+   * The classname of the field control
+   */
+  controlClassName?: string;
+  /**
+   * Should field be disabled?
+   */
+  disabled?: boolean | ((props: FieldProps) => boolean);
+  /**
+   * Error message to display for the field
+   */
+  error?: string;
+  /**
+   * Help or description of the field
+   */
+  help?: React.ReactNode | React.ReactElement | ((props: FieldProps) => React.ReactNode);
+  /**
+   * Should the label be rendered for the field?
+   */
+  hideLabel?: boolean;
+  /**
+   * The control's `id` property
+   */
+  id?: string;
+  /**
+   * User-facing field name
+   */
+  label?: React.ReactNode;
+  /**
+   * Show "required" indicator
+   */
+  required?: boolean;
+  /**
+   * Displays the help element in the tooltip
+   */
+  showHelpInTooltip?: boolean;
+  /**
+   * Additional inline styles for the field
+   */
+  style?: React.CSSProperties;
+  validate?: Function;
+  /**
+   * Should field be visible
+   */
+  visible?: boolean | ((props: FieldProps) => boolean);
+}
 
-type ChildRenderProps = Omit<Props, 'className' | 'disabled'> & {
+interface ChildRenderProps extends Omit<FieldProps, 'className' | 'disabled'> {
   controlState: React.ReactNode;
   errorState: React.ReactNode | null;
   help: React.ReactNode;
   disabled?: boolean;
-};
+}
 
-class Field extends React.Component<Props> {
+class Field extends React.Component<FieldProps> {
   static defaultProps = {
     alignRight: false,
     inline: true,

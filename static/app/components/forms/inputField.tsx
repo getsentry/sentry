@@ -2,23 +2,34 @@ import * as React from 'react';
 import omit from 'lodash/omit';
 
 import Input from 'sentry/components/forms/controls/input';
-import FormField from 'sentry/components/forms/formField';
+import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 
-type Props = {
+export interface InputFieldProps<P>
+  extends Omit<FormFieldProps<P>, 'children'>,
+    Omit<
+      React.ComponentPropsWithoutRef<'input'>,
+      | 'value'
+      | 'placeholder'
+      | 'disabled'
+      | 'onBlur'
+      | 'onKeyDown'
+      | 'onChange'
+      | 'children'
+      | 'name'
+      | 'defaultValue'
+    > {
   // TODO(ts) Add base types for this. Each input field
   // has different props, but we could use have a base type that contains
   // the common properties.
   field?: (props) => React.ReactNode;
   value?: any;
-} & Omit<FormField['props'], 'children'> &
-  Omit<
-    React.ComponentPropsWithoutRef<'input'>,
-    'value' | 'placeholder' | 'disabled' | 'onBlur' | 'onKeyDown' | 'onChange'
-  >;
+}
 
 export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
-export default class InputField extends React.Component<Props> {
+export default class InputField<P extends {} = {}> extends React.Component<
+  InputFieldProps<P>
+> {
   static defaultProps = {
     field: ({
       onChange,
@@ -40,11 +51,11 @@ export default class InputField extends React.Component<Props> {
   };
 
   render() {
-    const {className, field} = this.props;
-
     return (
-      <FormField className={className} {...this.props}>
-        {formFieldProps => field && field(omit(formFieldProps, 'children'))}
+      <FormField className={this.props.className} {...this.props}>
+        {formFieldProps =>
+          this.props.field && this.props.field(omit(formFieldProps, 'children'))
+        }
       </FormField>
     );
   }

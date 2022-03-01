@@ -1,7 +1,7 @@
-import InputField from './inputField';
+import InputField, {InputFieldProps} from './inputField';
 
-type Props = InputField['props'];
-
-export default function EmailField(props: Omit<Props, 'type'>) {
+export default function EmailField<P extends {} = {}>(
+  props: Omit<InputFieldProps<P>, 'type'>
+) {
   return <InputField {...props} type="email" />;
 }

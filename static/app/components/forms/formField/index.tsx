@@ -5,7 +5,7 @@ import {Observer} from 'mobx-react';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Field from 'sentry/components/forms/field';
+import Field, {FieldProps} from 'sentry/components/forms/field';
 import FieldControl from 'sentry/components/forms/field/fieldControl';
 import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
 import FormContext from 'sentry/components/forms/formContext';
@@ -39,33 +39,44 @@ const getValueFromEvent = (valueOrEvent?: FieldValue | MouseEvent, e?: MouseEven
  *
  * This uses mobx's observation of the models observable fields.
  */
-const propsToObserver = ['help', 'inline', 'highlighted', 'visible', 'disabled'] as const;
 
-type PropToObserve = typeof propsToObserver[number];
+const propsToObserve = ['disabled', 'help', 'highlighted', 'inline', 'visible'] as const;
 
-type ObservedPropValue = Field['props'][PropToObserve];
+interface FormFieldPropModel<P> extends FormFieldProps<P> {
+  model: FormModel;
+}
 
-type ObservedFn<P, T extends ObservedPropValue> = (
-  props: Props<P> & {model: FormModel}
-) => T;
+type ObservedFn<P, T> = (props: FormFieldPropModel<P>) => T;
+type ObservedFnOrValue<P, T> = T | ObservedFn<P, T>;
 
-type ObservedFnOrValue<P, T extends ObservedPropValue> = T | ObservedFn<P, T>;
+type ObservedPropResolver = [
+  typeof propsToObserve[number],
+  () => ResolvedObservableProps[typeof propsToObserve[number]]
+];
 
 /**
  * Construct the type for properties that may be given observed functions
  */
-type ObservableProps<P> = {
-  [T in PropToObserve]?: ObservedFnOrValue<P, Field['props'][T]>;
-};
+interface ObservableProps<P> {
+  disabled?: ObservedFnOrValue<P, FieldProps['disabled']>;
+  help?: ObservedFnOrValue<P, FieldProps['help']>;
+  highlighted?: ObservedFnOrValue<P, FieldProps['highlighted']>;
+  inline?: ObservedFnOrValue<P, FieldProps['inline']>;
+  visible?: ObservedFnOrValue<P, FieldProps['visible']>;
+}
 
 /**
  * The same ObservableProps, once they have been resolved
  */
-type ResolvedObservableProps = {
-  [T in PropToObserve]?: Field['props'][T];
-};
+interface ResolvedObservableProps {
+  disabled?: FieldProps['disabled'];
+  help?: FieldProps['help'];
+  highlighted?: FieldProps['highlighted'];
+  inline?: FieldProps['inline'];
+  visible?: FieldProps['visible'];
+}
 
-type BaseProps<P> = {
+interface BaseProps<P> {
   /**
    * Used to render the actual control
    */
@@ -122,15 +133,18 @@ type BaseProps<P> = {
    * Transform input when a value is set to the model.
    */
   transformInput?: (value: any) => any; // used in prettyFormString
-};
+}
 
-type Props<P> = BaseProps<P> & ObservableProps<P> & Omit<Field['props'], PropToObserve>;
+export interface FormFieldProps<P>
+  extends BaseProps<P>,
+    ObservableProps<P>,
+    Omit<FieldProps, keyof ResolvedObservableProps | 'children'> {}
 
 /**
  * ResolvedProps do NOT include props which may be given functions that are
  * reacted on. Resolved props are used inside of makeField.
  */
-type ResolvedProps<P> = BaseProps<P> & Field['props'];
+type ResolvedProps<P> = BaseProps<P> & FieldProps;
 
 type PassthroughProps<P> = Omit<
   ResolvedProps<P>,
@@ -146,7 +160,7 @@ type PassthroughProps<P> = Omit<
   | 'defaultValue'
 >;
 
-class FormField<P extends {} = {}> extends React.Component<Props<P>> {
+class FormField<P extends {} = {}> extends React.Component<FormFieldProps<P>> {
   static defaultProps = {
     hideErrorMessage: false,
     flexibleControlStateSize: false,
@@ -417,12 +431,7 @@ class FormField<P extends {} = {}> extends React.Component<Props<P>> {
       );
     };
 
-    type ObservedPropResolver = [
-      PropToObserve,
-      () => ResolvedObservableProps[PropToObserve]
-    ];
-
-    const observedProps = propsToObserver
+    const observedProps = propsToObserve
       .filter(p => typeof this.props[p] === 'function')
       .map<ObservedPropResolver>(p => [
         p,
