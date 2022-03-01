@@ -46,7 +46,6 @@ describe('AlertRuleDetails', () => {
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
       body: rule,
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       body: [TestStubs.Group()],
@@ -55,6 +54,10 @@ describe('AlertRuleDetails', () => {
           '<https://sentry.io/api/0/organizations/org-slug/issues/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
           '<https://sentry.io/api/0/organizations/org-slug/issues/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [project],
     });
 
     act(() => ProjectsStore.loadInitialData([project]));
