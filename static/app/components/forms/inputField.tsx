@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import Input, {InputProps} from 'sentry/components/forms/controls/input';
+import Input from 'sentry/components/forms/controls/input';
 import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 
-export interface InputFieldProps
-  extends Omit<FormFieldProps, 'children'>,
+export interface InputFieldProps<P>
+  extends Omit<FormFieldProps<P>, 'children'>,
     Omit<
-      InputProps,
+      React.ComponentPropsWithoutRef<'input'>,
       | 'value'
       | 'placeholder'
       | 'disabled'
@@ -26,35 +26,38 @@ export interface InputFieldProps
 
 export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
-function defaultField({
-  onChange,
-  onBlur,
-  onKeyDown,
-  ...rest
-}: {
-  onBlur: onEvent;
-  onChange: onEvent;
-  onKeyDown: onEvent;
-}) {
-  return (
-    <Input
-      onBlur={e => onBlur(e.target.value, e)}
-      onKeyDown={e => onKeyDown((e.target as any).value, e)}
-      onChange={e => onChange(e.target.value, e)}
-      {...rest}
-    />
-  );
-}
+export default class InputField<P extends {} = {}> extends React.Component<
+  InputFieldProps<P>
+> {
+  static defaultProps = {
+    field: ({
+      onChange,
+      onBlur,
+      onKeyDown,
+      ...props
+    }: {
+      onBlur: onEvent;
+      onChange: onEvent;
+      onKeyDown: onEvent;
+    }) => (
+      <Input
+        {...props}
+        onBlur={e => onBlur(e.target.value, e)}
+        onKeyDown={e => onKeyDown((e.target as any).value, e)}
+        onChange={e => onChange(e.target.value, e)}
+      />
+    ),
+  };
 
-function InputField(props: InputFieldProps) {
-  return (
-    <FormField className={props.className} {...props}>
-      {formFieldProps => {
-        const {children: _children, ...otherFieldProps} = formFieldProps;
-        return props.field ? props.field(otherFieldProps) : defaultField(otherFieldProps);
-      }}
-    </FormField>
-  );
+  render() {
+    return (
+      <FormField className={this.props.className} {...this.props}>
+        {formFieldProps =>
+          this.props.field && this.props.field(omit(formFieldProps, 'children'))
+        }
+      </FormField>
+    );
+  }
 }
 
 export default InputField;
