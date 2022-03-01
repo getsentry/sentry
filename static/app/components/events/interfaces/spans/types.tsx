@@ -104,6 +104,13 @@ export type EnhancedProcessedSpanType =
       span: SpanType;
       treeDepth: number;
       type: 'span_group_chain';
+    } & SpanGroupProps)
+  | ({
+      continuingTreeDepths: Array<TreeDepthType>;
+      siblingCount: number;
+      span: SpanType;
+      treeDepth: number;
+      type: 'span_group_sibling';
     } & SpanGroupProps);
 
 export type SpanEntry = {
