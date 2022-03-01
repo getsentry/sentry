@@ -8,13 +8,16 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {
   DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
+import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
 function renderTestComponent({
@@ -43,7 +46,7 @@ function renderTestComponent({
       location: {
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
-          ...(query ?? {}),
+          ...query,
         },
       },
     },
@@ -69,7 +72,7 @@ function renderTestComponent({
       widget={widget}
       params={{
         orgId: organization.slug,
-        widgetIndex: widget ? Number(widget.id) : undefined,
+        widgetIndex: widget ? 0 : undefined,
       }}
     />,
     {
@@ -97,6 +100,8 @@ describe('WidgetBuilder', function () {
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
   };
+
+  let eventsStatsMock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -147,7 +152,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
+    eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
@@ -242,79 +247,6 @@ describe('WidgetBuilder', function () {
 
     // Content - Step 5
     expect(screen.getByRole('heading', {name: 'Sort by'})).toBeInTheDocument();
-  });
-
-  it('redirects correctly when creating a new dashboard', async function () {
-    const {router} = renderTestComponent({
-      query: {source: DashboardWidgetSource.DISCOVERV2},
-    });
-
-    expect(await screen.findByText('Choose your dashboard')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Choose which dashboard you'd like to add this query to. It will appear as a widget."
-      )
-    ).toBeInTheDocument();
-
-    userEvent.click(screen.getByText('Select a dashboard'));
-    userEvent.click(screen.getByText('+ Create New Dashboard'));
-    userEvent.click(screen.getByText('Add Widget'));
-
-    await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboards/new/',
-          query: {
-            displayType: 'table',
-            interval: '5m',
-            title: 'Custom Widget',
-            queryNames: [''],
-            queryConditions: [''],
-            queryFields: ['count()'],
-            queryOrderby: '',
-            start: null,
-            end: null,
-            period: '24h',
-            utc: false,
-            project: [],
-            environment: [],
-          },
-        })
-      );
-    });
-  });
-
-  it('redirects correctly when choosing an existing dashboard', async function () {
-    const {router} = renderTestComponent({
-      query: {source: DashboardWidgetSource.DISCOVERV2},
-    });
-
-    userEvent.click(await screen.findByText('Select a dashboard'));
-    userEvent.click(screen.getByText('Test Dashboard'));
-    userEvent.click(screen.getByText('Add Widget'));
-
-    await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboard/2/',
-          query: {
-            displayType: 'table',
-            interval: '5m',
-            title: 'Custom Widget',
-            queryNames: [''],
-            queryConditions: [''],
-            queryFields: ['count()'],
-            queryOrderby: '',
-            start: null,
-            end: null,
-            period: '24h',
-            utc: false,
-            project: [],
-            environment: [],
-          },
-        })
-      );
-    });
   });
 
   it('can update the title', async function () {
@@ -506,7 +438,199 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it('should automatically add columns for top n widget charts', async function () {
+  it('can respond to validation feedback', async function () {
+    jest.spyOn(indicators, 'addErrorMessage');
+
+    renderTestComponent();
+
+    userEvent.click(await screen.findByText('Table'));
+
+    const customWidgetLabels = await screen.findAllByText('Custom Widget');
+    // EditableText and chart title
+    expect(customWidgetLabels).toHaveLength(2);
+
+    userEvent.click(customWidgetLabels[0]);
+    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+
+    userEvent.keyboard('{enter}');
+
+    expect(indicators.addErrorMessage).toHaveBeenCalledWith('Widget title is required');
+  });
+
+  it('can edit a widget', async function () {
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          orderby: '',
+        },
+        {
+          name: 'csp',
+          conditions: 'event.type:csp',
+          fields: ['count()', 'count_unique(id)'],
+          orderby: '',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const handleSave = jest.fn();
+
+    renderTestComponent({onSave: handleSave, dashboard, widget});
+
+    await screen.findByText('Line Chart');
+
+    // Should be in edit 'mode'
+    expect(await screen.findByText('Update Widget')).toBeInTheDocument();
+
+    // Should set widget data up.
+    expect(screen.getByText('Update Widget')).toBeInTheDocument();
+
+    // Filters
+    expect(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')
+    ).toHaveLength(2);
+    expect(screen.getByText('event.type:csp')).toBeInTheDocument();
+    expect(screen.getByText('event.type:error')).toBeInTheDocument();
+
+    // Y-axis
+    expect(screen.getAllByRole('button', {name: 'Remove query'})).toHaveLength(2);
+    expect(screen.getByText('count()')).toBeInTheDocument();
+    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+    expect(screen.getByText('id')).toBeInTheDocument();
+
+    // Expect events-stats endpoint to be called for each search conditions with
+    // the same y-axis parameters
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:error',
+          yAxis: ['count()', 'count_unique(id)'],
+        }),
+      })
+    );
+
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:csp',
+          yAxis: ['count()', 'count_unique(id)'],
+        }),
+      })
+    );
+
+    const customWidgetLabels = await screen.findAllByText(widget.title);
+    // EditableText and chart title
+    expect(customWidgetLabels).toHaveLength(2);
+    userEvent.click(customWidgetLabels[0]);
+
+    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    userEvent.type(
+      screen.getByRole('textbox', {name: 'Widget title'}),
+      'New Title{enter}'
+    );
+
+    userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          ...widget,
+          title: 'New Title',
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders column inputs for table widgets', async function () {
+    const widget: Widget = {
+      id: '0',
+      title: 'sdk usage',
+      interval: '5m',
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['sdk.name', 'count()'],
+          orderby: '',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const handleSave = jest.fn();
+
+    renderTestComponent({dashboard, widget, onSave: handleSave});
+
+    // Should be in edit 'mode'
+    expect(await screen.findByText('Update Widget')).toBeInTheDocument();
+
+    // Should set widget data up.
+    expect(screen.getByRole('heading', {name: widget.title})).toBeInTheDocument();
+    expect(screen.getByText('Table')).toBeInTheDocument();
+    expect(screen.getByLabelText('Search events')).toBeInTheDocument();
+
+    // Should have an orderby select
+    expect(screen.getByText('Sort by')).toBeInTheDocument();
+
+    // Add a column, and choose a value,
+    userEvent.click(screen.getByLabelText('Add a Column'));
+    userEvent.click(screen.getByText('(Required)'));
+    userEvent.type(screen.getByText('(Required)'), 'trace{enter}');
+
+    // Save widget
+    userEvent.click(screen.getByLabelText('Update Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          title: 'sdk usage',
+          displayType: 'table',
+          interval: '5m',
+          queries: [
+            {
+              name: 'errors',
+              conditions: 'event.type:error',
+              fields: ['sdk.name', 'count()', 'trace'],
+              orderby: '',
+            },
+          ],
+          widgetType: 'discover',
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('should automatically add columns for top n widget charts according to the URL params', async function () {
     const defaultWidgetQuery = {
       name: '',
       fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
@@ -578,6 +702,32 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Bar Chart')).toBeInTheDocument();
   });
 
+  it('correctly defaults fields and orderby when in Top N display', async function () {
+    const defaultWidgetQuery = {
+      fields: ['title', 'count()', 'count_unique(user)'],
+      orderby: '-count_unique_user',
+    };
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        displayType: DisplayType.TOP_N,
+        defaultTableColumns: ['title', 'count()'],
+      },
+    });
+
+    userEvent.click(await screen.findByText('Top 5 Events'));
+
+    expect(screen.getByText('count()')).toBeInTheDocument();
+    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+    expect(screen.getByText('user')).toBeInTheDocument();
+
+    // Sort by
+    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    expect(screen.getByText('count_unique(user) desc')).toBeInTheDocument();
+  });
+
   it('limits TopN display to one query when switching from another visualization', async () => {
     renderTestComponent();
 
@@ -593,6 +743,81 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
+  });
+
+  describe('Widget creation coming from other verticals', function () {
+    it('redirects correctly when creating a new dashboard', async function () {
+      const {router} = renderTestComponent({
+        query: {source: DashboardWidgetSource.DISCOVERV2},
+      });
+
+      expect(await screen.findByText('Choose your dashboard')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Choose which dashboard you'd like to add this query to. It will appear as a widget."
+        )
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Select a dashboard'));
+      userEvent.click(screen.getByText('+ Create New Dashboard'));
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/dashboards/new/',
+            query: {
+              displayType: 'table',
+              interval: '5m',
+              title: 'Custom Widget',
+              queryNames: [''],
+              queryConditions: [''],
+              queryFields: ['count()'],
+              queryOrderby: '',
+              start: null,
+              end: null,
+              period: '24h',
+              utc: false,
+              project: [],
+              environment: [],
+            },
+          })
+        );
+      });
+    });
+
+    it('redirects correctly when choosing an existing dashboard', async function () {
+      const {router} = renderTestComponent({
+        query: {source: DashboardWidgetSource.DISCOVERV2},
+      });
+
+      userEvent.click(await screen.findByText('Select a dashboard'));
+      userEvent.click(screen.getByText('Test Dashboard'));
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/dashboard/2/',
+            query: {
+              displayType: 'table',
+              interval: '5m',
+              title: 'Custom Widget',
+              queryNames: [''],
+              queryConditions: [''],
+              queryFields: ['count()'],
+              queryOrderby: '',
+              start: null,
+              end: null,
+              period: '24h',
+              utc: false,
+              project: [],
+              environment: [],
+            },
+          })
+        );
+      });
+    });
   });
 
   describe('Issue Widgets', function () {
@@ -673,5 +898,31 @@ describe('WidgetBuilder', function () {
       renderTestComponent();
       expect(await screen.findByText('Widget Library')).toBeInTheDocument();
     });
+  });
+
+  it('disables dashboards with max widgets', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        {...untitledDashboard, widgetDisplay: []},
+        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
+      ],
+    });
+
+    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+      },
+    });
+
+    userEvent.click(await screen.findByText('Select a dashboard'));
+    userEvent.hover(screen.getByText('Test Dashboard'));
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
+      )
+    ).toBeInTheDocument();
   });
 });

@@ -8,7 +8,7 @@ from pytz import UTC
 
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
-from sentry.constants import APDEX_THRESHOLD_DEFAULT, RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
@@ -144,11 +144,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert len(response.data["onboardingTasks"]) == 1
         assert response.data["onboardingTasks"][0]["task"] == "create_project"
 
-    def test_apdex_threshold_default(self):
-        response = self.get_success_response(self.organization.slug)
-
-        assert response.data["apdexThreshold"] == APDEX_THRESHOLD_DEFAULT
-
     def test_trusted_relays_info(self):
         AuditLogEntry.objects.filter(organization=self.organization).delete()
 
@@ -241,7 +236,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "apdexThreshold": 450,
         }
 
         # needed to set require2FA
@@ -272,7 +266,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
-        assert options.get("sentry:apdex_threshold") == 450
 
         # log created
         log = AuditLogEntry.objects.get(organization=org)
@@ -295,7 +288,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
-        assert "to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
 
     def test_setting_trusted_relays_forbidden(self):
         data = {
