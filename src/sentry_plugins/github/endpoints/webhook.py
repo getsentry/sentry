@@ -393,7 +393,7 @@ class GithubWebhookBase(View):
         try:
             method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
         except (KeyError, IndexError):
-            logger.error(
+            logger.info(
                 "github.webhook.missing-signature", extra=self.get_logging_data(organization)
             )
             return HttpResponse(status=400)
