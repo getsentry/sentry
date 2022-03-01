@@ -74,7 +74,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
             "the `sum(quantity)` field is bytes for attachments, and all others the 'event' count for those types of events.\n\n"
             "`sum(times_seen)` sums the number of times an event has been seen. "
             "For 'normal' event types, this will be equal to `sum(quantity)` for now. "
-            "For sessions, quantity will sum the total number of events seen in a session, while times_seen will be the unique number of sessions. "
+            "For sessions, quantity will sum the total number of events seen in a session, while `times_seen` will be the unique number of sessions. "
             "and for attachments, times_seen will be the total number of attachments, while quantity will be the total sum of attachment bytes."
         ),
     )
