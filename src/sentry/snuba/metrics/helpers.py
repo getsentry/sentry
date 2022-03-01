@@ -368,38 +368,6 @@ AVAILABLE_OPERATIONS = {
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
-
-_BASE_TAGS = {
-    "environment": [
-        "production",
-        "staging",
-    ],
-    "release": [],
-}
-
-_SESSION_TAGS = dict(
-    _BASE_TAGS,
-    **{
-        "session.status": [
-            "abnormal",
-            "crashed",
-            "errored",
-            "healthy",
-        ],
-    },
-)
-
-_TRANSACTION_TAGS = dict(
-    _BASE_TAGS,
-    transaction=["/foo/:orgId/", "/bar/:orgId/"],
-)
-
-_MEASUREMENT_TAGS = dict(
-    _TRANSACTION_TAGS,
-    measurement_rating=["good", "meh", "poor"],
-)
-
-
 ALLOWED_GROUPBY_COLUMNS = ("project_id",)
 
 
