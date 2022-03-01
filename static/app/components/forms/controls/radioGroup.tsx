@@ -19,7 +19,7 @@ const Container = styled('div')<ContainerProps>`
   grid-auto-columns: max-content;
 `;
 
-export interface RadioGroupProps<C extends string> {
+interface BaseRadioGroupProps<C extends string> {
   /**
    * An array of [id, name, description]
    */
@@ -38,7 +38,7 @@ export interface RadioGroupProps<C extends string> {
   orientInline?: boolean;
 }
 
-export interface RadioGroupProps<C extends string>
+interface RadioGroupProps<C extends string>
   extends BaseRadioGroupProps<C>,
     Omit<ContainerProps, 'onChange'> {}
 
