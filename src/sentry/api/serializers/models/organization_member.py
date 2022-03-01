@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set, cast
 
 from typing_extensions import TypedDict
@@ -73,7 +74,7 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     pending: bool
     expired: str
     flags: _OrganizationMemberFlags
-    dateCreated: str
+    dateCreated: datetime
     inviteStatus: str
     inviterName: Optional[str]
 

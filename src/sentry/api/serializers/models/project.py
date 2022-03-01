@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, List, MutableMapping, Optional, Sequence
 
 import sentry_sdk
@@ -157,8 +157,8 @@ class ProjectSerializerResponse(TypedDict):
     isPublic: bool
     isBookmarked: bool
     color: str
-    dateCreated: str
-    firstEvent: str
+    dateCreated: datetime
+    firstEvent: datetime
     firstTransactionEvent: bool
     hasSessions: bool
     features: List[str]

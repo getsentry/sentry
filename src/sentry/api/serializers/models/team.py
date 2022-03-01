@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     AbstractSet,
@@ -109,7 +110,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     id: str
     slug: str
     name: str
-    dateCreated: str
+    dateCreated: datetime
     isMember: bool
     hasAccess: bool
     isPending: bool
