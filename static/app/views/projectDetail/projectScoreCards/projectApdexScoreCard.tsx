@@ -116,7 +116,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   get cardHelp() {
     const {organization} = this.props;
-    const baseHelp = getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW);
+    const baseHelp = getTermHelp(organization, PERFORMANCE_TERM.APDEX);
 
     if (this.trend) {
       return baseHelp + t(' This shows how it has changed since the last period.');
