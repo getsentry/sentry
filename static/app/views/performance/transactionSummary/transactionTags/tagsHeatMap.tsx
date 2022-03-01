@@ -16,6 +16,7 @@ import {Content} from 'sentry/components/dropdownControl';
 import DropdownMenu from 'sentry/components/dropdownMenu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
@@ -36,7 +37,7 @@ import {TableData as TagTableData} from 'sentry/utils/performance/segmentExplore
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {getPerformanceDuration, PerformanceDuration} from '../../utils';
+import {getPerformanceDuration} from '../../utils';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
 import {generateTransactionLink} from '../utils';
 

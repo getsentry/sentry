@@ -5,6 +5,7 @@ import {Location} from 'history';
 import {SectionHeading as _SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -22,7 +23,6 @@ import SuspectSpansQuery, {
 import {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
-import {PerformanceDuration} from '../../../utils';
 import Tab from '../../tabs';
 import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';

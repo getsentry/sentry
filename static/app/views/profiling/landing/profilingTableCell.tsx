@@ -1,6 +1,6 @@
 import DateTime from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
 import Link from 'sentry/components/links/link';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -64,7 +64,7 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
     case 'trace_duration_ms':
       return (
         <NumberContainer>
-          <Duration seconds={value / 1000} abbreviation />
+          <PerformanceDuration milliseconds={value} abbreviation />
         </NumberContainer>
       );
     default:
