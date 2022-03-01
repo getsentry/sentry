@@ -24,12 +24,12 @@ function FilterBar({location, hasStatusFilters, onChangeSearch, onChangeFilter}:
 
   return (
     <Wrapper>
-     <TeamFilter
-       showStatus={hasStatusFilters}
-       selectedTeams={selectedTeams}
-       selectedStatus={selectedStatus}
-       handleChangeFilter={onChangeFilter}
-     />
+      <TeamFilter
+        showStatus={hasStatusFilters}
+        selectedTeams={selectedTeams}
+        selectedStatus={selectedStatus}
+        handleChangeFilter={onChangeFilter}
+      />
       <SearchBar
         placeholder={t('Search by name')}
         query={location.query?.name}
