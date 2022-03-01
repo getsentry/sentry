@@ -444,7 +444,6 @@ function WidgetBuilder({
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
-    console.log({selectedDashboard: state.selectedDashboard});
     if (notDashboardsOrigin) {
       // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
       if (
@@ -556,7 +555,7 @@ function WidgetBuilder({
     });
   }
 
-  if (isEditing && widgetIndex >= dashboard.widgets.length) {
+  if (isEditing && widgetIndex > dashboard.widgets.length) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>

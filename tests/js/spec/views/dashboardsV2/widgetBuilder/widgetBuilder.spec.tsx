@@ -7,7 +7,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -46,7 +45,7 @@ function renderTestComponent({
       location: {
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
-          ...(query ?? {}),
+          ...query,
         },
       },
     },
@@ -101,6 +100,8 @@ describe('WidgetBuilder', function () {
     widgets: [],
   };
 
+  let eventsStatsMock: jest.Mock | undefined;
+
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -150,7 +151,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
+    eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
@@ -573,84 +574,87 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  // it('can add and delete additional queries', async function () {
-  //   MockApiClient.addMockResponse({
-  //     url: '/organizations/org-slug/tags/event.type/values/',
-  //     body: [{count: 2, name: 'Nvidia 1080ti'}],
-  //   });
-  //   MockApiClient.addMockResponse({
-  //     url: '/organizations/org-slug/recent-searches/',
-  //     method: 'POST',
-  //     body: [],
-  //   });
+  it.only('can add and delete additional queries', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/event.type/values/',
+      body: [{count: 2, name: 'Nvidia 1080ti'}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
 
-  //   let widget = undefined;
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     onAddWidget: data => (widget = data),
-  //   });
+    const handleSave = jest.fn();
 
-  //   // Select Line chart display
-  //   selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+    renderTestComponent({onSave: handleSave});
 
-  //   // Set first query search conditions
-  //   await setSearchConditions(
-  //     wrapper.find('SearchConditionsWrapper StyledSearchBar'),
-  //     'event.type:transaction'
-  //   );
+    userEvent.click(await screen.findByText('Table'));
 
-  //   // Set first query legend alias
-  //   wrapper
-  //     .find('SearchConditionsWrapper input[placeholder="Legend Alias"]')
-  //     .simulate('change', {target: {value: 'Transactions'}});
+    // Select line chart display
+    userEvent.click(screen.getByText('Line Chart'));
 
-  //   // Click the "Add Query" button twice
-  //   const addQuery = wrapper.find('button[aria-label="Add Query"]');
-  //   addQuery.simulate('click');
-  //   wrapper.update();
-  //   addQuery.simulate('click');
-  //   wrapper.update();
+    // Set first query search conditions
+    userEvent.type(
+      screen.getByPlaceholderText('Search for events, users, tags, and more'),
+      'event.type:transaction{enter}'
+    );
 
-  //   // Expect three search bars
-  //   expect(wrapper.find('StyledSearchBar')).toHaveLength(3);
+    // Set first query legend alias
+    userEvent.type(screen.getByPlaceholderText('Legend Alias'), 'Transactions{enter}');
 
-  //   // Expect "Add Query" button to be hidden since we're limited to at most 3 search conditions
-  //   expect(wrapper.find('button[aria-label="Add Query"]')).toHaveLength(0);
+    // Click the "Add Query" button twice
+    userEvent.click(screen.getByLabelText('Add query'));
+    userEvent.click(screen.getByLabelText('Add query'));
 
-  //   // Delete second query
-  //   expect(wrapper.find('button[aria-label="Remove query"]')).toHaveLength(3);
-  //   wrapper.find('button[aria-label="Remove query"]').at(1).simulate('click');
-  //   wrapper.update();
+    // Expect "Add Query" button to be hidden since we're limited to at most 3 search conditions
+    expect(screen.queryByLabelText('Add query')).not.toBeInTheDocument();
 
-  //   // Expect "Add Query" button to be shown again
-  //   expect(wrapper.find('button[aria-label="Add Query"]')).toHaveLength(1);
+    // Delete second query
+    userEvent.click(screen.getAllByLabelText('Remove query')[1]);
 
-  //   // Set second query search conditions
-  //   const secondSearchBar = wrapper.find('SearchConditionsWrapper StyledSearchBar').at(1);
-  //   await setSearchConditions(secondSearchBar, 'event.type:error');
+    // Expect "Add Query" button to be shown again
+    expect(screen.getByLabelText('Add query')).toBeInTheDocument();
 
-  //   // Set second query legend alias
-  //   wrapper
-  //     .find('SearchConditionsWrapper input[placeholder="Legend Alias"]')
-  //     .at(1)
-  //     .simulate('change', {target: {value: 'Errors'}});
+    // Set second query search conditions
+    userEvent.type(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1],
+      'event.type:error{enter}'
+    );
 
-  //   // Save widget
-  //   await clickSubmit(wrapper);
+    // Set second query legend alias
+    userEvent.type(screen.getAllByPlaceholderText('Legend Alias')[1], 'Errors{enter}');
 
-  //   expect(widget.queries).toHaveLength(2);
-  //   expect(widget.queries[0]).toMatchObject({
-  //     name: 'Transactions',
-  //     conditions: 'event.type:transaction',
-  //     fields: ['count()'],
-  //   });
-  //   expect(widget.queries[1]).toMatchObject({
-  //     name: 'Errors',
-  //     conditions: 'event.type:error',
-  //     fields: ['count()'],
-  //   });
-  //   wrapper.unmount();
-  // });
+    // Save widget
+    userEvent.click(screen.getByLabelText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          title: 'Custom Widget',
+          displayType: 'line',
+          interval: '5m',
+          widgetType: 'discover',
+          queries: [
+            {
+              fields: ['count()'],
+              conditions: 'event.type:transaction',
+              name: 'Transactions',
+              orderby: '',
+            },
+            {
+              fields: ['count()'],
+              conditions: 'event.type:error',
+              name: 'Errors',
+              orderby: '',
+            },
+          ],
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
 
   // it('can respond to validation feedback', async function () {
   //   MockApiClient.addMockResponse({
@@ -684,83 +688,109 @@ describe('WidgetBuilder', function () {
   //   wrapper.unmount();
   // });
 
-  // it('can edit a widget', async function () {
-  //   let widget = {
-  //     id: '9',
-  //     title: 'Errors over time',
-  //     interval: '5m',
-  //     displayType: 'line',
-  //     queries: [
-  //       {
-  //         id: '9',
-  //         name: 'errors',
-  //         conditions: 'event.type:error',
-  //         fields: ['count()', 'count_unique(id)'],
-  //       },
-  //       {
-  //         id: '9',
-  //         name: 'csp',
-  //         conditions: 'event.type:csp',
-  //         fields: ['count()', 'count_unique(id)'],
-  //       },
-  //     ],
-  //   };
-  //   const onAdd = jest.fn();
-  //   const wrapper = mountModal({
-  //     initialData,
-  //     widget,
-  //     onAddWidget: onAdd,
-  //     onUpdateWidget: data => {
-  //       widget = data;
-  //     },
-  //   });
+  it('can edit a widget', async function () {
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          orderby: '',
+        },
+        {
+          name: 'csp',
+          conditions: 'event.type:csp',
+          fields: ['count()', 'count_unique(id)'],
+          orderby: '',
+        },
+      ],
+    };
 
-  //   // Should be in edit 'mode'
-  //   const heading = wrapper.find('h4');
-  //   expect(heading.text()).toContain('Edit');
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
 
-  //   // Should set widget data up.
-  //   const title = wrapper.find('Input[name="title"]');
-  //   expect(title.props().value).toEqual(widget.title);
-  //   expect(wrapper.find('input[name="displayType"]').props().value).toEqual(
-  //     widget.displayType
-  //   );
-  //   expect(wrapper.find('WidgetQueriesForm')).toHaveLength(1);
-  //   expect(wrapper.find('StyledSearchBar')).toHaveLength(2);
-  //   expect(wrapper.find('QueryField')).toHaveLength(2);
+    const handleSave = jest.fn();
 
-  //   // Expect events-stats endpoint to be called for each search conditions with
-  //   // the same y-axis parameters
-  //   expect(eventsStatsMock).toHaveBeenNthCalledWith(
-  //     1,
-  //     '/organizations/org-slug/events-stats/',
-  //     expect.objectContaining({
-  //       query: expect.objectContaining({
-  //         query: 'event.type:error',
-  //         yAxis: ['count()', 'count_unique(id)'],
-  //       }),
-  //     })
-  //   );
-  //   expect(eventsStatsMock).toHaveBeenNthCalledWith(
-  //     2,
-  //     '/organizations/org-slug/events-stats/',
-  //     expect.objectContaining({
-  //       query: expect.objectContaining({
-  //         query: 'event.type:csp',
-  //         yAxis: ['count()', 'count_unique(id)'],
-  //       }),
-  //     })
-  //   );
+    renderTestComponent({onSave: handleSave, dashboard, widget});
 
-  //   title.simulate('change', {target: {value: 'New title'}});
-  //   await clickSubmit(wrapper);
+    await screen.findByText('Line Chart');
 
-  //   expect(onAdd).not.toHaveBeenCalled();
-  //   expect(widget.title).toEqual('New title');
+    // Should be in edit 'mode'
+    expect(await screen.findByText('Update Widget')).toBeInTheDocument();
 
-  //   expect(eventsStatsMock).toHaveBeenCalledTimes(2);
-  //   wrapper.unmount();
-  // });
+    // Should set widget data up.
+    expect(screen.getByText('Update Widget')).toBeInTheDocument();
+
+    // Filters
+    expect(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')
+    ).toHaveLength(2);
+    expect(screen.getByText('event.type:csp')).toBeInTheDocument();
+    expect(screen.getByText('event.type:error')).toBeInTheDocument();
+
+    // Y-axis
+    expect(screen.getAllByRole('button', {name: 'Remove query'})).toHaveLength(2);
+    expect(screen.getByText('count()')).toBeInTheDocument();
+    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+    expect(screen.getByText('id')).toBeInTheDocument();
+
+    // Expect events-stats endpoint to be called for each search conditions with
+    // the same y-axis parameters
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:error',
+          yAxis: ['count()', 'count_unique(id)'],
+        }),
+      })
+    );
+
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:csp',
+          yAxis: ['count()', 'count_unique(id)'],
+        }),
+      })
+    );
+
+    const customWidgetLabels = await screen.findAllByText(widget.title);
+    // EditableText and chart title
+    expect(customWidgetLabels).toHaveLength(2);
+    userEvent.click(customWidgetLabels[0]);
+
+    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    userEvent.type(
+      screen.getByRole('textbox', {name: 'Widget title'}),
+      'New Title{enter}'
+    );
+
+    userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          ...widget,
+          title: 'New Title',
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
 
   // it('renders column inputs for table widgets', async function () {
   //   MockApiClient.addMockResponse({
@@ -1065,44 +1095,44 @@ describe('WidgetBuilder', function () {
   //   wrapper.unmount();
   // });
 
-  it.only('should filter y-axis choices by output type when switching from big number to line chart', async function () {
-    renderTestComponent();
+  // it.only('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+  //   renderTestComponent();
 
-    // No delete button as there is only one field.
-    expect(screen.queryByRole('button', {name: 'Remove query'})).not.toBeInTheDocument();
+  //   // No delete button as there is only one field.
+  //   expect(screen.queryByRole('button', {name: 'Remove query'})).not.toBeInTheDocument();
 
-    // Select Big Number display
-    userEvent.click(await screen.findByText('Table'));
-    userEvent.click(screen.getByText('Big Number'));
+  //   // Select Big Number display
+  //   userEvent.click(await screen.findByText('Table'));
+  //   userEvent.click(screen.getByText('Big Number'));
 
-    // // Choose any()
-    userEvent.click(screen.getByText('count()'));
-    userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
-    userEvent.click(screen.getByText('transaction.duration'));
-    userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
+  //   // // Choose any()
+  //   userEvent.click(screen.getByText('count()'));
+  //   userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
+  //   userEvent.click(screen.getByText('transaction.duration'));
+  //   userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
 
-    // Select Line chart display
-    userEvent.click(screen.getByText('Big Number'));
-    userEvent.click(screen.getByText('Bar Chart'));
+  //   // Select Line chart display
+  //   userEvent.click(screen.getByText('Big Number'));
+  //   userEvent.click(screen.getByText('Bar Chart'));
 
-    // Expect event.type field to be converted to count()
-    // const fieldColumn = wrapper.find('input[name="field"]');
-    // expect(fieldColumn.length).toEqual(1);
-    // expect(fieldColumn.props().value).toMatchObject({
-    //   kind: 'function',
-    //   meta: {
-    //     name: 'count',
-    //     parameters: [],
-    //   },
-    // });
+  //   // Expect event.type field to be converted to count()
+  //   // const fieldColumn = wrapper.find('input[name="field"]');
+  //   // expect(fieldColumn.length).toEqual(1);
+  //   // expect(fieldColumn.props().value).toMatchObject({
+  //   //   kind: 'function',
+  //   //   meta: {
+  //   //     name: 'count',
+  //   //     parameters: [],
+  //   //   },
+  //   // });
 
-    // await clickSubmit(wrapper);
+  //   // await clickSubmit(wrapper);
 
-    // expect(widget.displayType).toEqual('line');
-    // expect(widget.queries).toHaveLength(1);
-    // expect(widget.queries[0].fields).toEqual(['count()']);
-    // wrapper.unmount();
-  });
+  //   // expect(widget.displayType).toEqual('line');
+  //   // expect(widget.queries).toHaveLength(1);
+  //   // expect(widget.queries[0].fields).toEqual(['count()']);
+  //   // wrapper.unmount();
+  // });
 
   it('should automatically add columns for top n widget charts', async function () {
     const defaultWidgetQuery = {
@@ -1340,7 +1370,9 @@ describe('WidgetBuilder', function () {
     userEvent.click(await screen.findByText('Select a dashboard'));
     userEvent.hover(screen.getByText('Test Dashboard'));
     expect(
-      screen.getByText(textWithMarkupMatcher('Max widgets (1) per dashboard reached.'))
+      await screen.findByText(
+        textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
+      )
     ).toBeInTheDocument();
   });
 });
