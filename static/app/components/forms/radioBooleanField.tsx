@@ -1,11 +1,11 @@
 import omit from 'lodash/omit';
 
 import RadioBoolean from './controls/radioBoolean';
-import InputField from './inputField';
+import InputField, {InputFieldProps} from './inputField';
 
-type Props = Omit<InputField['props'], 'field'>;
-
-export default function RadioBooleanField(props: Props) {
+export default function RadioBooleanField<P extends {}>(
+  props: Omit<InputFieldProps<P>, 'field'>
+) {
   return (
     <InputField
       {...props}

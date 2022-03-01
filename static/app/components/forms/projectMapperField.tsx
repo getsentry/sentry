@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import InputField from 'sentry/components/forms/inputField';
+import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import FormModel from 'sentry/components/forms/model';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {ProjectMapperType} from 'sentry/components/forms/type';
@@ -27,8 +27,11 @@ import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 
 type MappedValue = string | number;
 
-type Props = InputField['props'];
-type RenderProps = Props & ProjectMapperType & {model: FormModel};
+interface RenderProps<P extends {}>
+  extends Omit<InputFieldProps<P>, 'type'>,
+    ProjectMapperType {
+  model: FormModel;
+}
 
 type State = {
   selectedMappedValue: MappedValue | null;
@@ -45,7 +48,7 @@ const getIcon = (iconType: string) => {
   }
 };
 
-export class RenderField extends Component<RenderProps, State> {
+export class RenderField<P extends {}> extends Component<RenderProps<P>, State> {
   state: State = {selectedSentryProjectId: null, selectedMappedValue: null};
 
   render() {
@@ -297,16 +300,18 @@ export class RenderField extends Component<RenderProps, State> {
   }
 }
 
-const ProjectMapperField = (props: Props) => (
-  <StyledInputField
-    {...props}
-    resetOnError
-    inline={false}
-    stacked={false}
-    hideControlState
-    field={(renderProps: RenderProps) => <RenderField {...renderProps} />}
-  />
-);
+function ProjectMapperField<P extends {}>(props: InputFieldProps<P>) {
+  return (
+    <StyledInputField
+      {...props}
+      resetOnError
+      inline={false}
+      stacked={false}
+      hideControlState
+      field={(renderProps: RenderProps<P>) => <RenderField {...renderProps} />}
+    />
+  );
+}
 
 export default ProjectMapperField;
 

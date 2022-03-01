@@ -130,7 +130,7 @@ type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
     value?: Pick<RangeSliderProps, 'value'>;
   };
 
-export type TableType = {
+export interface TableType {
   /**
    * A list of column keys for the table, in the order that you want
    * the columns to appear - order doesn't matter in columnLabels
@@ -146,7 +146,7 @@ export type TableType = {
    */
   confirmDeleteMessage?: string;
   // TODO(TS): Should we have addButtonText and allowEmpty here as well?
-};
+}
 
 // maps a sentry project to another field
 export type ProjectMapperType = {

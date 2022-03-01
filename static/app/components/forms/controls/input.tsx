@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {inputStyles} from 'sentry/styles/input';
 
 export interface InputProps
-  extends React.HTMLAttributes<HTMLInputElement>,
+  extends React.InputHTMLAttributes<HTMLInputElement>,
     Omit<Parameters<typeof inputStyles>[0], 'theme'> {
   type?: React.HTMLInputTypeAttribute;
 }

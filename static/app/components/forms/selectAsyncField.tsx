@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import InputField from 'sentry/components/forms/inputField';
-import SelectAsyncControl, {Result} from 'sentry/components/forms/selectAsyncControl';
-
+import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
+import SelectAsyncControl, {
+  Result,
+  SelectAsyncControlProps,
+} from 'sentry/components/forms/selectAsyncControl';
 // projects can be passed as a direct prop as well
-type Props = Omit<InputField['props'], 'highlighted' | 'visible' | 'required'>;
 import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 
-export type SelectAsyncFieldProps = React.ComponentPropsWithoutRef<
-  typeof SelectAsyncControl
-> &
-  Props;
+export interface SelectAsyncFieldProps
+  extends Omit<InputFieldProps<{}>, 'highlighted' | 'visible' | 'required' | 'value'>,
+    SelectAsyncControlProps {}
 
 type SelectAsyncFieldState = {
   results: Result[];
@@ -20,7 +20,7 @@ class SelectAsyncField extends React.Component<
   SelectAsyncFieldProps,
   SelectAsyncFieldState
 > {
-  state = {
+  state: SelectAsyncFieldState = {
     results: [],
     latestSelection: undefined,
   };
@@ -30,8 +30,8 @@ class SelectAsyncField extends React.Component<
   // need to map the option object to the value
   // this is essentially the same code from ./selectField handleChange()
   handleChange = (
-    onBlur: Props['onBlur'],
-    onChange: Props['onChange'],
+    onBlur: SelectAsyncFieldProps['onBlur'],
+    onChange: SelectAsyncFieldProps['onChange'],
     optionObj: GeneralSelectValue,
     event: React.MouseEvent
   ) => {

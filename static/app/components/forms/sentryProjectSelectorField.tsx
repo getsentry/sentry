@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {components} from 'react-select';
 
-import InputField from 'sentry/components/forms/inputField';
+import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
@@ -13,20 +13,23 @@ const defaultProps = {
 };
 
 // projects can be passed as a direct prop as well
-type Props = {projects?: Project[]} & InputField['props'];
+interface RenderFieldProps extends InputFieldProps<{}> {
+  projects?: Project[];
+}
 
-type RenderProps = {
+interface RenderProps
+  extends Omit<Partial<Readonly<typeof defaultProps>>, 'placeholder'>,
+    RenderFieldProps {
   projects: Project[]; // can't use AvatarProject since we need the ID
-} & Omit<Partial<Readonly<typeof defaultProps>>, 'placeholder'> &
-  Props;
+}
 
 class RenderField extends React.Component<RenderProps> {
   static defaultProps = defaultProps;
 
   // need to map the option object to the value
   handleChange = (
-    onBlur: Props['onBlur'],
-    onChange: Props['onChange'],
+    onBlur: RenderFieldProps['onBlur'],
+    onChange: RenderFieldProps['onChange'],
     optionObj: {value: any},
     event: React.MouseEvent
   ) => {
@@ -91,7 +94,7 @@ class RenderField extends React.Component<RenderProps> {
   }
 }
 
-const SentryProjectSelectorField = (props: Props) => (
+const SentryProjectSelectorField = (props: RenderFieldProps) => (
   <InputField
     {...props}
     field={(renderProps: RenderProps) => <RenderField {...renderProps} />}

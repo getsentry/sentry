@@ -1,21 +1,38 @@
 import * as React from 'react';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import InputField, {onEvent} from 'sentry/components/forms/inputField';
+import InputField, {InputFieldProps, onEvent} from 'sentry/components/forms/inputField';
 
-type DefaultProps = {
+interface DefaultProps {
   formatMessageValue?: false | Function;
-};
+}
 
-type DisabledFunction = (props: Omit<Props, 'formatMessageValue'>) => boolean;
+type DisabledFunction = (
+  props: Omit<RangeFieldProps<{}>, 'formatMessageValue'>
+) => boolean;
 type PlaceholderFunction = (props: any) => React.ReactNode;
 
-type Props = DefaultProps &
-  Omit<React.ComponentProps<typeof RangeSlider>, 'value' | 'disabled' | 'placeholder'> &
-  Omit<InputField['props'], 'disabled' | 'field'> & {
-    disabled?: boolean | DisabledFunction;
-    placeholder?: string | PlaceholderFunction;
-  };
+interface RangeFieldProps<P extends {}>
+  extends DefaultProps,
+    Omit<
+      React.ComponentProps<typeof RangeSlider>,
+      'value' | 'disabled' | 'placeholder' | 'css'
+    >,
+    Omit<
+      InputFieldProps<P>,
+      | 'disabled'
+      | 'field'
+      | 'step'
+      | 'onChange'
+      | 'max'
+      | 'min'
+      | 'onBlur'
+      | 'css'
+      | 'formatMessageValue'
+    > {
+  disabled?: boolean | DisabledFunction;
+  placeholder?: string | PlaceholderFunction;
+}
 
 function onChange(
   fieldOnChange: onEvent,
@@ -25,19 +42,19 @@ function onChange(
   fieldOnChange(value, e);
 }
 
-function defaultFormatMessageValue(value, props: Props) {
+function defaultFormatMessageValue(value, props: RangeFieldProps<{}>) {
   return (typeof props.formatLabel === 'function' && props.formatLabel(value)) || value;
 }
 
-export default function RangeField({
+export default function RangeField<P extends {}>({
   formatMessageValue = defaultFormatMessageValue,
   disabled,
   ...otherProps
-}: Props) {
+}: RangeFieldProps<P>) {
   const resolvedDisabled =
     typeof disabled === 'function' ? disabled(otherProps) : disabled;
 
-  const props: InputField['props'] = {
+  const props = {
     ...otherProps,
     disabled: resolvedDisabled,
     formatMessageValue,
