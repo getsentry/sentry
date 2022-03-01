@@ -33,14 +33,6 @@ class AuthConfigEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["nextUri"] == "/auth/login/sentry/"
 
-    def test_superuser_is_not_redirected(self):
-        user = self.create_user("foo@example.com", is_superuser=True)
-        self.login_as(user)
-        response = self.client.get(self.path)
-
-        assert response.status_code == 200
-        assert "nextUri" not in response.data
-
     def test_unauthenticated(self):
         response = self.client.get(self.path)
 
