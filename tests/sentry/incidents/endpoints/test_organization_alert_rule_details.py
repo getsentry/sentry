@@ -1,12 +1,19 @@
 from copy import deepcopy
 
+import responses
 from django.conf import settings
 from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
-from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleStatus,
+    AlertRuleTriggerAction,
+    Incident,
+    IncidentStatus,
+)
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase
@@ -90,6 +97,58 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
             resp = self.get_valid_response(self.organization.slug, self.alert_rule.id)
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
+
+    @responses.activate
+    def test_with_unresponsive_sentryapp(self):
+        self.superuser = self.create_user("admin@localhost", is_superuser=True)
+        self.login_as(user=self.superuser)
+        self.create_team(organization=self.organization, members=[self.superuser])
+
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.superuser
+        )
+        self.rule = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(self.rule, "hi", 1000)
+        print(trigger)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_identifier=self.sentry_app.id,
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=self.sentry_app,
+            sentry_app_config=[
+                {"name": "title", "value": "An alert"},
+                {"summary": "Something happened here..."},
+                {"name": "points", "value": "3"},
+                {"name": "assignee", "value": "Nisanthan"},
+            ],
+        )
+
+        responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, self.rule.id)
+
+        assert len(responses.calls) == 1
+
+        # Returns errors while fetching
+        assert len(resp.data["errors"]) == 1
+        assert resp.data["errors"][0] == {
+            "detail": "Could not fetch details from Super Awesome App"
+        }
+
+        # Disables the SentryApp
+        assert (
+            resp.data["triggers"][0]["actions"][0]["sentryAppInstallationUuid"]
+            == self.installation.uuid
+        )
+        assert resp.data["triggers"][0]["actions"][0]["disabled"] is True
 
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):

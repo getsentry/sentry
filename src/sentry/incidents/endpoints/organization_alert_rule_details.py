@@ -50,7 +50,8 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                     del action["_sentry_app_installation"]
                     del action["_sentry_app_component"]
 
-        serialized_rule["errors"] = errors
+        if len(errors):
+            serialized_rule["errors"] = errors
 
         return Response(serialized_rule)
 

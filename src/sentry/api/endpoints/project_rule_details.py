@@ -63,7 +63,6 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-                # print(action)
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
                 component = installation.prepare_ui_component(
                     SentryAppComponent(**action.get("_sentry_app_component")),
@@ -83,7 +82,8 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
 
-        serialized_rule["errors"] = errors
+        if len(errors):
+            serialized_rule["errors"] = errors
 
         return Response(serialized_rule)
 
