@@ -13,7 +13,7 @@ const defaultProps = {
 };
 
 // projects can be passed as a direct prop as well
-export interface RenderFieldProps extends InputFieldProps {
+interface RenderFieldProps extends InputFieldProps<{}> {
   projects?: Project[];
 }
 

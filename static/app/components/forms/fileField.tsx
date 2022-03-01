@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 import Input from 'sentry/components/forms/controls/input';
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 
-interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'> {
+interface FileFieldProps<P> extends Omit<InputFieldProps<P>, 'type' | 'accept'> {
   accept?: string[];
   // TODO(dcramer): multiple is native to the file input type, but not yet supported
   // mulitiple?: boolean;
@@ -18,7 +18,7 @@ interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'> {
 // Until that is done though if you try to submit the form while this is uploading
 // you will just submit the form without the field.
 
-export default function FileField({accept, ...props}: FileFieldProps) {
+export default function FileField<P extends {}>({accept, ...props}: FileFieldProps<P>) {
   const [isUploading, setUploading] = useState(false);
 
   const handleFile = (onChange, e) => {

@@ -7,17 +7,19 @@ interface DefaultProps {
   formatMessageValue?: false | Function;
 }
 
-type DisabledFunction = (props: Omit<RangeFieldProps, 'formatMessageValue'>) => boolean;
+type DisabledFunction = (
+  props: Omit<RangeFieldProps<{}>, 'formatMessageValue'>
+) => boolean;
 type PlaceholderFunction = (props: any) => React.ReactNode;
 
-export interface RangeFieldProps
+interface RangeFieldProps<P extends {}>
   extends DefaultProps,
     Omit<
       React.ComponentProps<typeof RangeSlider>,
       'value' | 'disabled' | 'placeholder' | 'css'
     >,
     Omit<
-      InputFieldProps,
+      InputFieldProps<P>,
       | 'disabled'
       | 'field'
       | 'step'
@@ -40,19 +42,19 @@ function onChange(
   fieldOnChange(value, e);
 }
 
-function defaultFormatMessageValue(value, props: RangeFieldProps) {
+function defaultFormatMessageValue(value, props: RangeFieldProps<{}>) {
   return (typeof props.formatLabel === 'function' && props.formatLabel(value)) || value;
 }
 
-export default function RangeField({
+export default function RangeField<P extends {}>({
   formatMessageValue = defaultFormatMessageValue,
   disabled,
   ...otherProps
-}: RangeFieldProps) {
+}: RangeFieldProps<P>) {
   const resolvedDisabled =
     typeof disabled === 'function' ? disabled(otherProps) : disabled;
 
-  const props: InputFieldProps = {
+  const props = {
     ...otherProps,
     disabled: resolvedDisabled,
     formatMessageValue,
