@@ -2,6 +2,7 @@ import * as React from 'react';
 
 export interface ExternalLinkProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'target'> {
+  disabled?: boolean;
   openInNewTab?: boolean;
 }
 
