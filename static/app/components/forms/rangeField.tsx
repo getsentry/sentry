@@ -10,14 +10,14 @@ interface DefaultProps {
 type DisabledFunction = (props: Omit<RangeFieldProps, 'formatMessageValue'>) => boolean;
 type PlaceholderFunction = (props: any) => React.ReactNode;
 
-interface RangeFieldProps
+export interface RangeFieldProps
   extends DefaultProps,
     Omit<
       React.ComponentProps<typeof RangeSlider>,
       'value' | 'disabled' | 'placeholder' | 'css'
     >,
     Omit<
-      InputFieldProps<{}>,
+      InputFieldProps,
       | 'disabled'
       | 'field'
       | 'step'

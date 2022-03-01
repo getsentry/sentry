@@ -19,7 +19,7 @@ const Container = styled('div')<ContainerProps>`
   grid-auto-columns: max-content;
 `;
 
-interface BaseRadioGroupProps<C extends string> {
+export interface RadioGroupProps<C extends string> {
   /**
    * An array of [id, name, description]
    */

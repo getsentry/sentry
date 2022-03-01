@@ -27,18 +27,18 @@ import FieldQuestion from './fieldQuestion';
 
 interface InheritedFieldWrapperProps
   extends Pick<
-    React.ComponentProps<typeof FieldWrapper>,
+    FieldWrapperProps,
     'inline' | 'stacked' | 'highlighted' | 'hasControlState'
   > {}
 
 interface InheritedFieldControlProps
   extends Omit<
-    React.ComponentProps<typeof FieldControl>,
+    FieldControlProps,
     'children' | 'disabled' | 'className' | 'help' | 'errorState'
   > {}
 
 interface InheritedControlStateProps
-  extends Omit<React.ComponentProps<typeof ControlState>, 'children' | 'error'> {}
+  extends Omit<ControlStateProps, 'children' | 'error'> {}
 
 export interface FieldProps
   extends InheritedFieldControlProps,

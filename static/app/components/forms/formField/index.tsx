@@ -42,11 +42,11 @@ const getValueFromEvent = (valueOrEvent?: FieldValue | MouseEvent, e?: MouseEven
 
 const propsToObserve = ['disabled', 'help', 'highlighted', 'inline', 'visible'] as const;
 
-interface FormFieldPropModel<P> extends FormFieldProps<P> {
+interface FormFieldPropModel extends FormFieldProps {
   model: FormModel;
 }
 
-type ObservedFn<P, T> = (props: FormFieldPropModel<P>) => T;
+type ObservedFn<_P, T> = (props: FormFieldPropModel) => T;
 type ObservedFnOrValue<P, T> = T | ObservedFn<P, T>;
 
 type ObservedPropResolver = [
@@ -57,12 +57,12 @@ type ObservedPropResolver = [
 /**
  * Construct the type for properties that may be given observed functions
  */
-interface ObservableProps<P> {
-  disabled?: ObservedFnOrValue<P, FieldProps['disabled']>;
-  help?: ObservedFnOrValue<P, FieldProps['help']>;
-  highlighted?: ObservedFnOrValue<P, FieldProps['highlighted']>;
-  inline?: ObservedFnOrValue<P, FieldProps['inline']>;
-  visible?: ObservedFnOrValue<P, FieldProps['visible']>;
+interface ObservableProps {
+  disabled?: ObservedFnOrValue<{}, FieldProps['disabled']>;
+  help?: ObservedFnOrValue<{}, FieldProps['help']>;
+  highlighted?: ObservedFnOrValue<{}, FieldProps['highlighted']>;
+  inline?: ObservedFnOrValue<{}, FieldProps['inline']>;
+  visible?: ObservedFnOrValue<{}, FieldProps['visible']>;
 }
 
 /**
@@ -76,7 +76,7 @@ interface ResolvedObservableProps {
   visible?: FieldProps['visible'];
 }
 
-interface BaseProps<P> {
+interface BaseProps {
   /**
    * Used to render the actual control
    */
@@ -135,16 +135,16 @@ interface BaseProps<P> {
   transformInput?: (value: any) => any; // used in prettyFormString
 }
 
-export interface FormFieldProps<P>
-  extends BaseProps<P>,
-    ObservableProps<P>,
+export interface FormFieldProps
+  extends BaseProps,
+    ObservableProps,
     Omit<FieldProps, keyof ResolvedObservableProps | 'children'> {}
 
 /**
  * ResolvedProps do NOT include props which may be given functions that are
  * reacted on. Resolved props are used inside of makeField.
  */
-type ResolvedProps<P> = BaseProps<P> & FieldProps;
+type ResolvedProps = BaseProps & FieldProps;
 
 type PassthroughProps = Omit<
   ResolvedProps,
@@ -160,7 +160,7 @@ type PassthroughProps = Omit<
   | 'defaultValue'
 >;
 
-class FormField<P extends {} = {}> extends React.Component<FormFieldProps<P>> {
+class FormField extends React.Component<FormFieldProps> {
   static defaultProps = {
     hideErrorMessage: false,
     flexibleControlStateSize: false,

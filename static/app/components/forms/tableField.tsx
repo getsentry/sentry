@@ -31,12 +31,9 @@ const DEFAULT_PROPS: DefaultProps = {
   allowEmpty: false,
 };
 
-interface RenderProps
-  extends InputFieldProps<{}>,
-    DefaultProps,
-    Omit<TableType, 'type'> {}
+interface RenderProps extends InputFieldProps, DefaultProps, Omit<TableType, 'type'> {}
 
-export default class TableField extends React.Component<InputFieldProps<{}>> {
+export default class TableField extends React.Component<InputFieldProps> {
   static defaultProps = DEFAULT_PROPS;
 
   hasValue = value => defined(value) && !objectIsEmpty(value);

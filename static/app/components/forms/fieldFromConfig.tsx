@@ -31,14 +31,14 @@ interface FieldFromConfigProps {
   getData?: (data) => any;
   highlighted?: boolean;
   inline?: boolean;
+  name?: string;
   noOptionsMessage?: () => string;
   onBlur?: (value, event) => void;
   stacked?: boolean;
 }
 
-export default class FieldFromConfig extends Component<FieldFromConfigProps> {
-  render() {
-    const {field, ...otherProps} = this.props;
+function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null {
+  const {field, ...otherProps} = props;
 
   const componentProps = {
     ...otherProps,
@@ -64,7 +64,7 @@ export default class FieldFromConfig extends Component<FieldFromConfigProps> {
     case 'string':
     case 'text':
     case 'url':
-      if (componentProps.multiline) {
+      if (props.field.multiline) {
         return <TextareaField {...(componentProps as TextareaFieldProps)} />;
       }
       return <TextField {...componentProps} />;
@@ -79,7 +79,7 @@ export default class FieldFromConfig extends Component<FieldFromConfigProps> {
     case 'choice_mapper':
       return <ChoiceMapperField {...(componentProps as ChoiceMapperFieldProps)} />;
     case 'radio':
-      if (Array.isArray(componentProps.choices)) {
+      if (Array.isArray(props.field.choices)) {
         return <RadioField {...(componentProps as RadioFieldProps)} />;
       }
       throw new Error('Invalid `choices` type. Use an array of options');
