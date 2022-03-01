@@ -139,12 +139,12 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   count_miserable: {
-    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
+    getFieldOverrides({parameter}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
       }
       return {
-        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+        defaultValue: parameter.defaultValue,
       };
     },
     parameters: [
@@ -374,11 +374,6 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   apdex: {
-    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      return {
-        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-      };
-    },
     parameters: [
       {
         kind: 'value',
@@ -392,11 +387,6 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   user_misery: {
-    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      return {
-        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-      };
-    },
     parameters: [
       {
         kind: 'value',
@@ -440,7 +430,6 @@ export type AggregationOutputType = Extract<
 export type PlotType = 'bar' | 'line' | 'area';
 
 type DefaultValueInputs = {
-  organization: Organization;
   parameter: AggregateParameter;
 };
 

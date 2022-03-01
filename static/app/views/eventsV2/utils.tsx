@@ -461,7 +461,7 @@ export function generateFieldOptions({
       }
       return {
         ...param,
-        ...overrides({parameter: param, organization}),
+        ...overrides({parameter: param}),
       };
     });
 
