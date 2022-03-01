@@ -101,9 +101,10 @@ type BaseField = {
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
 
-type CustomType = {type: 'custom'} & {
-  Component: (arg: BaseField) => React.ReactNode;
-};
+export interface CustomType {
+  Component: (arg: BaseField) => React.ReactElement;
+  type: 'custom';
+}
 
 type InputType = {type: 'string' | 'secret'} & {
   autoComplete?: string;

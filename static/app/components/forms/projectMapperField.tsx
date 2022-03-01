@@ -27,7 +27,7 @@ import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 
 type MappedValue = string | number;
 
-interface RenderProps extends Omit<InputFieldProps<{}>, 'type'>, ProjectMapperType {
+interface RenderProps extends Omit<InputFieldProps, 'type'>, ProjectMapperType {
   model: FormModel;
 }
 
@@ -298,7 +298,7 @@ export class RenderField extends Component<RenderProps, State> {
   }
 }
 
-function ProjectMapperField(props: InputFieldProps<{}>) {
+function ProjectMapperField(props: InputFieldProps) {
   return (
     <StyledInputField
       {...props}

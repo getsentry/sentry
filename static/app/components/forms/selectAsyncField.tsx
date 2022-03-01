@@ -9,7 +9,7 @@ import SelectAsyncControl, {
 import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 
 export interface SelectAsyncFieldProps
-  extends Omit<InputFieldProps<{}>, 'highlighted' | 'visible' | 'required' | 'value'>,
+  extends Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,
     SelectAsyncControlProps {}
 
 type SelectAsyncFieldState = {

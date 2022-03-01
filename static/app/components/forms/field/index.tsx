@@ -7,32 +7,38 @@
 
 import * as React from 'react';
 
-import ControlState from 'sentry/components/forms/field/controlState';
-import FieldControl from 'sentry/components/forms/field/fieldControl';
+import ControlState, {
+  ControlStateProps,
+} from 'sentry/components/forms/field/controlState';
+import FieldControl, {
+  FieldControlProps,
+} from 'sentry/components/forms/field/fieldControl';
 import FieldDescription from 'sentry/components/forms/field/fieldDescription';
 import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import FieldLabel from 'sentry/components/forms/field/fieldLabel';
 import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import FieldWrapper from 'sentry/components/forms/field/fieldWrapper';
+import FieldWrapper, {
+  FieldWrapperProps,
+} from 'sentry/components/forms/field/fieldWrapper';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 
 import FieldQuestion from './fieldQuestion';
 
 interface InheritedFieldWrapperProps
   extends Pick<
-    React.ComponentProps<typeof FieldWrapper>,
+    FieldWrapperProps,
     'inline' | 'stacked' | 'highlighted' | 'hasControlState'
   > {}
 
 interface InheritedFieldControlProps
   extends Omit<
-    React.ComponentProps<typeof FieldControl>,
+    FieldControlProps,
     'children' | 'disabled' | 'className' | 'help' | 'errorState'
   > {}
 
 interface InheritedControlStateProps
-  extends Omit<React.ComponentProps<typeof ControlState>, 'children' | 'error'> {}
+  extends Omit<ControlStateProps, 'children' | 'error'> {}
 
 export interface FieldProps
   extends InheritedFieldControlProps,

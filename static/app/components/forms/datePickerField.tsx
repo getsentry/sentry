@@ -12,7 +12,7 @@ import space from 'sentry/styles/space';
 
 import InputField, {InputFieldProps, onEvent} from './inputField';
 
-interface DatePickerFieldProps extends Omit<InputFieldProps<{}>, 'field'> {}
+interface DatePickerFieldProps extends Omit<InputFieldProps, 'field'> {}
 
 function handleChangeDate(
   onChange: onEvent,

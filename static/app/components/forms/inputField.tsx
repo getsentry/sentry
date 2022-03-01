@@ -4,8 +4,8 @@ import omit from 'lodash/omit';
 import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 
-export interface InputFieldProps<P>
-  extends Omit<FormFieldProps<P>, 'children'>,
+export interface InputFieldProps
+  extends Omit<FormFieldProps, 'children'>,
     Omit<
       InputProps,
       | 'value'
@@ -27,36 +27,36 @@ export interface InputFieldProps<P>
 
 export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
-export default class InputField<P extends {} = {}> extends React.Component<
-  InputFieldProps<P>
-> {
-  static defaultProps = {
-    field: ({
-      onChange,
-      onBlur,
-      onKeyDown,
-      ...props
-    }: {
-      onBlur: onEvent;
-      onChange: onEvent;
-      onKeyDown: onEvent;
-    }) => (
+function InputField(props: InputFieldProps) {
+  function defaultField({
+    onChange,
+    onBlur,
+    onKeyDown,
+    ...rest
+  }: {
+    onBlur: onEvent;
+    onChange: onEvent;
+    onKeyDown: onEvent;
+  }) {
+    return (
       <Input
-        {...props}
+        {...rest}
         onBlur={e => onBlur(e.target.value, e)}
         onKeyDown={e => onKeyDown((e.target as any).value, e)}
         onChange={e => onChange(e.target.value, e)}
       />
-    ),
-  };
-
-  render() {
-    return (
-      <FormField className={this.props.className} {...this.props}>
-        {formFieldProps =>
-          this.props.field && this.props.field(omit(formFieldProps, 'children'))
-        }
-      </FormField>
     );
   }
+
+  return (
+    <FormField className={props.className} {...props}>
+      {formFieldProps =>
+        props.field
+          ? props.field(omit(formFieldProps, 'children'))
+          : defaultField(formFieldProps)
+      }
+    </FormField>
+  );
 }
+
+export default InputField;

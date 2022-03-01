@@ -1,5 +1,6 @@
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 
-export default function TextField(props: Omit<InputFieldProps<{}>, 'type'>) {
+export interface TextFieldProps extends Omit<InputFieldProps, 'type'> {}
+export default function TextField(props) {
   return <InputField {...props} type="text" />;
 }
