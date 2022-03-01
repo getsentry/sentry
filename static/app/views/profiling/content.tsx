@@ -7,7 +7,6 @@ import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -53,7 +52,6 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
   const [traces, setTraces] = useState<Trace[]>([]);
   const [pageLinks, setPageLinks] = useState<string | null>(null);
   const organization = useOrganization();
-  const dateSelection = normalizeDateTimeParams(location.query);
   const cursor = decodeScalar(location.query.cursor);
 
   const api = useApi();
@@ -93,7 +91,14 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                   </Alert>
                 )}
                 <ProfilingScatterChart
-                  {...dateSelection}
+                  datetime={
+                    selection?.datetime ?? {
+                      start: null,
+                      end: null,
+                      period: null,
+                      utc: null,
+                    }
+                  }
                   traces={traces}
                   isLoading={requestState === 'loading'}
                 />
