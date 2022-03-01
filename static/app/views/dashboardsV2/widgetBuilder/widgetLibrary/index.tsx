@@ -20,7 +20,7 @@ export function WidgetLibrary({onWidgetSelect}: Props) {
 
   return (
     <React.Fragment>
-      <h5>{t('Widget Library')}</h5>
+      <Header>{t('Widget Library')}</Header>
       <WidgetLibraryWrapper>
         {DEFAULT_WIDGETS.map((widget, index) => (
           <Card
@@ -38,5 +38,8 @@ export function WidgetLibrary({onWidgetSelect}: Props) {
 const WidgetLibraryWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+`;
+
+const Header = styled('h5')`
+  margin-left: ${space(2)};
 `;

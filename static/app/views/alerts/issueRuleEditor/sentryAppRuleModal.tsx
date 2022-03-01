@@ -34,7 +34,7 @@ const SentryAppRuleModal = ({
       <SentryAppExternalForm
         sentryAppInstallationUuid={sentryAppInstallationUuid}
         appName={appName}
-        config={config}
+        config={resetValues?.formFields || config}
         element="alert-rule-action"
         action="create"
         onSubmitSuccess={(...params) => {
