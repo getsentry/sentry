@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Mapping, Sequence
 
 from django.db.models import Count
@@ -7,7 +8,6 @@ from django.db.models import Count
 from sentry.api.paginator import OffsetPaginator
 from sentry.models import Group, RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend
-from sentry.testutils.helpers import datetime
 
 if TYPE_CHECKING:
     from sentry.models import Rule
