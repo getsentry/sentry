@@ -914,6 +914,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "SERVERS": [{"url": "https://sentry.io/"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
+        "SORT_OPERATION_PARAMETERS": False,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
