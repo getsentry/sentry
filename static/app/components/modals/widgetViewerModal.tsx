@@ -9,6 +9,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -49,7 +50,17 @@ const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 
 function WidgetViewerModal(props: Props) {
-  const {Footer, Body, Header, widget, onEdit, organization, selection, location} = props;
+  const {
+    organization,
+    widget,
+    selection,
+    location,
+    Footer,
+    Body,
+    Header,
+    closeModal,
+    onEdit,
+  } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(
     cloneDeep(selection)
@@ -211,14 +222,24 @@ function WidgetViewerModal(props: Props) {
   return (
     <React.Fragment>
       <StyledHeader closeButton>
-        <h4>{widget.title}</h4>
+        <Tooltip title={widget.title} showOnlyOnOverflow>
+          <WidgetTitle>{widget.title}</WidgetTitle>
+        </Tooltip>
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={onEdit}>
-            {t('Edit Widget')}
-          </Button>
+          {onEdit && (
+            <Button
+              type="button"
+              onClick={() => {
+                closeModal();
+                onEdit();
+              }}
+            >
+              {t('Edit Widget')}
+            </Button>
+          )}
           <Button to={path} priority="primary" type="button">
             {openLabel}
           </Button>
@@ -262,6 +283,12 @@ const TableContainer = styled('div')`
   & td:first-child {
     padding: ${space(1)} ${space(2)};
   }
+`;
+
+const WidgetTitle = styled('h4')`
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));

@@ -38,7 +38,6 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   figure out solution for field descriptions
 #   support deprecated fields via extension
 #   map TypedDicts in schema registry
-#   add a case for datetime types
 
 
 def get_type_hints(hint, **kwargs):
