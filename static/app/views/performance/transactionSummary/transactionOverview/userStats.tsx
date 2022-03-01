@@ -108,7 +108,7 @@ function UserStats({
         {t('User Misery')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY_NEW)}
+          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
           size="sm"
         />
       </SectionHeading>

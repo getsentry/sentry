@@ -32,7 +32,6 @@ export const COLUMN_TITLES = [
 ];
 
 export enum PERFORMANCE_TERM {
-  APDEX = 'apdex',
   TPM = 'tpm',
   THROUGHPUT = 'throughput',
   FAILURE_RATE = 'failureRate',
@@ -44,11 +43,10 @@ export enum PERFORMANCE_TERM {
   FCP = 'fcp',
   FID = 'fid',
   CLS = 'cls',
-  USER_MISERY = 'userMisery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
-  USER_MISERY_NEW = 'userMiseryNew',
-  APDEX_NEW = 'apdexNew',
+  USER_MISERY = 'userMisery',
+  APDEX = 'apdex',
   APP_START_COLD = 'appStartCold',
   APP_START_WARM = 'appStartWarm',
   SLOW_FRAMES = 'slowFrames',
@@ -66,7 +64,7 @@ export type TooltipOption = SelectValue<string> & {
 export function getAxisOptions(organization: Organization): TooltipOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       value: 'apdex()',
       label: t('Apdex'),
     },
@@ -318,10 +316,6 @@ export function getMobileAxisOptions(organization: Organization): AxisOption[] {
 type TermFormatter = (organization: Organization) => string;
 
 export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
-  apdex: () =>
-    t(
-      'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
-    ),
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
   throughput: () =>
     t('Throughput is the number of recorded transaction events per minute.'),
@@ -345,11 +339,6 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'Cumulative layout shift (CLS) is a web vital measuring unexpected visual shifting a user experiences.'
     ),
-  userMisery: organization =>
-    t(
-      "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
-      organization.apdexThreshold
-    ),
   statusBreakdown: () =>
     t(
       'The breakdown of transaction statuses. This may indicate what type of failure it is.'
@@ -358,11 +347,11 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'Distribution buckets counts of transactions at specifics times for your current date range'
     ),
-  userMiseryNew: () =>
+  userMisery: () =>
     t(
       "User Misery is a score that represents the number of unique users who have experienced load times 4x the project's configured threshold. Adjust project threshold in project performance settings."
     ),
-  apdexNew: () =>
+  apdex: () =>
     t(
       'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to project performance settings.'
     ),
