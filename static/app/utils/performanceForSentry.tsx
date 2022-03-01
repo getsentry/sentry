@@ -121,14 +121,17 @@ export const VisuallyCompleteWithData = ({
             return;
           }
 
-          // Adjust to be relative to transaction.startTimestamp
-          const entryStartSeconds =
-            browserPerformanceTimeOrigin / 1000 + measureEntry.startTime / 1000;
-          const time = (entryStartSeconds - transaction.startTimestamp) * 1000;
-
           transaction.registerBeforeFinishCallback(t => {
+            if (!browserPerformanceTimeOrigin) {
+              return;
+            }
             // Should be called after performance entries finish callback.
             const lcp = t._measurements.lcp?.value;
+
+            // Adjust to be relative to transaction.startTimestamp
+            const entryStartSeconds =
+              browserPerformanceTimeOrigin / 1000 + measureEntry.startTime / 1000;
+            const time = (entryStartSeconds - transaction.startTimestamp) * 1000;
 
             const newMeasurements = {
               ...t._measurements,
