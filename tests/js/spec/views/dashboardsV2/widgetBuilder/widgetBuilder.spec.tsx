@@ -880,7 +880,7 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Widget creation coming from other verticals', function () {
-    it('redirects corretly when creating a new dashboard', async function () {
+    it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
         query: {source: DashboardWidgetSource.DISCOVERV2},
       });
