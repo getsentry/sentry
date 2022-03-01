@@ -745,6 +745,240 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
+  // it('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
+  //  let widget = undefined;
+  //  const wrapper = mountModal({
+  //   initialData,
+  //   onAddWidget: data => (widget = data),
+  //  });
+  //  // No delete button as there is only one field.
+  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
+  //  // Select Table display
+  //  selectByLabel(wrapper, 'Table', {name: 'displayType', at: 0, control: true});
+  //  expect(getDisplayType(wrapper).props().value).toEqual('table');
+  //  // Add field column
+  //  selectByLabel(wrapper, 'event.type', {name: 'field', at: 0, control: true});
+  //  let fieldColumn = wrapper.find('input[name="field"]');
+  //  expect(fieldColumn.props().value).toEqual({
+  //   kind: 'field',
+  //   meta: {dataType: 'string', name: 'event.type'},
+  //  });
+  //  // Select Line chart display
+  //  selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+  //  expect(getDisplayType(wrapper).props().value).toEqual('line');
+  //  // Expect event.type field to be converted to count()
+  //  fieldColumn = wrapper.find('input[name="field"]');
+  //  expect(fieldColumn.props().value).toEqual({
+  //   kind: 'function',
+  //   meta: {name: 'count', parameters: []},
+  //  });
+  //  await clickSubmit(wrapper);
+  //  expect(widget.queries).toHaveLength(1);
+  //  expect(widget.queries[0].fields).toEqual(['count()']);
+  //  wrapper.unmount();
+  // });
+
+  // it('should filter out non-aggregate fields when switching from table to chart', async function () {
+  //  let widget = undefined;
+  //  const wrapper = mountModal({
+  //   initialData,
+  //   onAddWidget: data => (widget = data),
+  //  });
+  //  // No delete button as there is only one field.
+  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
+  //  // Select Table display
+  //  selectByLabel(wrapper, 'Table', {name: 'displayType', at: 0, control: true});
+  //  expect(getDisplayType(wrapper).props().value).toEqual('table');
+  //  // Click the add button
+  //  const add = wrapper.find('button[aria-label="Add a Column"]');
+  //  add.simulate('click');
+  //  wrapper.update();
+  //  // Add columns
+  //  selectByLabel(wrapper, 'event.type', {name: 'field', at: 0, control: true});
+  //  let fieldColumn = wrapper.find('input[name="field"]').at(0);
+  //  expect(fieldColumn.props().value).toEqual({
+  //   kind: 'field',
+  //   meta: {dataType: 'string', name: 'event.type'},
+  //  });
+  //  selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
+  //  fieldColumn = wrapper.find('input[name="field"]').at(1);
+  //  expect(fieldColumn.props().value).toMatchObject({
+  //   kind: 'function',
+  //   meta: {
+  //    name: 'p95',
+  //    parameters: [{defaultValue: 'transaction.duration', kind: 'column'}],
+  //   },
+  //  });
+  //  // Select Line chart display
+  //  selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+  //  expect(getDisplayType(wrapper).props().value).toEqual('line');
+  //  // Expect event.type field to be converted to count()
+  //  fieldColumn = wrapper.find('input[name="field"]');
+  //  expect(fieldColumn.length).toEqual(1);
+  //  expect(fieldColumn.props().value).toMatchObject({
+  //   kind: 'function',
+  //   meta: {
+  //    name: 'p95',
+  //    parameters: [{defaultValue: 'transaction.duration', kind: 'column'}],
+  //   },
+  //  });
+  //  await clickSubmit(wrapper);
+  //  expect(widget.queries).toHaveLength(1);
+  //  expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+  //  wrapper.unmount();
+  // });
+
+  // it('should filter non-legal y-axis choices for timeseries widget charts', async function () {
+  //  let widget = undefined;
+  //  const wrapper = mountModal({
+  //   initialData,
+  //   onAddWidget: data => (widget = data),
+  //  });
+  //  // Select Line chart display
+  //  selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+  //  // No delete button as there is only one field.
+  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
+  //  selectByLabel(wrapper, 'any(\u2026)', {
+  //   name: 'field',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  // Expect user.display to not be an available parameter option for any()
+  //  // for line (timeseries) widget charts
+  //  const option = getOptionByLabel(wrapper, 'user.display', {
+  //   name: 'parameter',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  expect(option.exists()).toEqual(false);
+  //  // Be able to choose a numeric-like option for any()
+  //  selectByLabel(wrapper, 'measurements.lcp', {
+  //   name: 'parameter',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  await clickSubmit(wrapper);
+  //  expect(widget.displayType).toEqual('line');
+  //  expect(widget.queries).toHaveLength(1);
+  //  expect(widget.queries[0].fields).toEqual(['any(measurements.lcp)']);
+  //  wrapper.unmount();
+  // });
+
+  // it('should not filter y-axis choices for big number widget charts', async function () {
+  //  let widget = undefined;
+  //  const wrapper = mountModal({
+  //   initialData,
+  //   onAddWidget: data => (widget = data),
+  //  });
+  //  // No delete button as there is only one field.
+  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
+  //  // Select Big number display
+  //  selectByLabel(wrapper, 'Big Number', {name: 'displayType', at: 0, control: true});
+  //  expect(getDisplayType(wrapper).props().value).toEqual('big_number');
+  //  selectByLabel(wrapper, 'count_unique(\u2026)', {
+  //   name: 'field',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  // Be able to choose a non numeric-like option for count_unique()
+  //  selectByLabel(wrapper, 'user.display', {
+  //   name: 'parameter',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  await clickSubmit(wrapper);
+  //  expect(widget.displayType).toEqual('big_number');
+  //  expect(widget.queries).toHaveLength(1);
+  //  expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
+  //  wrapper.unmount();
+  // });
+
+  // it('should filter y-axis choices for world map widget charts', async function () {
+  //  let widget = undefined;
+  //  const wrapper = mountModal({
+  //   initialData,
+  //   onAddWidget: data => (widget = data),
+  //  });
+  //  // No delete button as there is only one field.
+  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
+  //  // Select World Map display
+  //  selectByLabel(wrapper, 'World Map', {name: 'displayType', at: 0, control: true});
+  //  expect(getDisplayType(wrapper).props().value).toEqual('world_map');
+  //  // Choose any()
+  //  selectByLabel(wrapper, 'any(\u2026)', {
+  //   name: 'field',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  // user.display should be filtered out for any()
+  //  const option = getOptionByLabel(wrapper, 'user.display', {
+  //   name: 'parameter',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  expect(option.exists()).toEqual(false);
+  //  selectByLabel(wrapper, 'measurements.lcp', {
+  //   name: 'parameter',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  // Choose count_unique()
+  //  selectByLabel(wrapper, 'count_unique(\u2026)', {
+  //   name: 'field',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  // user.display not should be filtered out for count_unique()
+  //  selectByLabel(wrapper, 'user.display', {
+  //   name: 'parameter',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  // Be able to choose a numeric-like option
+  //  selectByLabel(wrapper, 'measurements.lcp', {
+  //   name: 'parameter',
+  //   at: 0,
+  //   control: true,
+  //  });
+  //  await clickSubmit(wrapper);
+  //  expect(widget.displayType).toEqual('world_map');
+  //  expect(widget.queries).toHaveLength(1);
+  //  expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
+  //  wrapper.unmount();
+  // });
+
+  // it.only('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+  //  renderTestComponent();
+  //  // No delete button as there is only one field.
+  //  expect(screen.queryByRole('button', {name: 'Remove query'})).not.toBeInTheDocument();
+  //  // Select Big Number display
+  //  userEvent.click(await screen.findByText('Table'));
+  //  userEvent.click(screen.getByText('Big Number'));
+  //  // // Choose any()
+  //  userEvent.click(screen.getByText('count()'));
+  //  userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
+  //  userEvent.click(screen.getByText('transaction.duration'));
+  //  userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
+  //  // Select Line chart display
+  //  userEvent.click(screen.getByText('Big Number'));
+  //  userEvent.click(screen.getByText('Bar Chart'));
+  //  // Expect event.type field to be converted to count()
+  //  // const fieldColumn = wrapper.find('input[name="field"]');
+  //  // expect(fieldColumn.length).toEqual(1);
+  //  // expect(fieldColumn.props().value).toMatchObject({
+  //  //  kind: 'function',
+  //  //  meta: {
+  //  //   name: 'count',
+  //  //   parameters: [],
+  //  //  },
+  //  // });
+  //  // await clickSubmit(wrapper);
+  //  // expect(widget.displayType).toEqual('line');
+  //  // expect(widget.queries).toHaveLength(1);
+  //  // expect(widget.queries[0].fields).toEqual(['count()']);
+  //  // wrapper.unmount();
+  // });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
