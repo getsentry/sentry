@@ -1,6 +1,7 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -9,8 +10,11 @@ import {
   deleteDashboard,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  openAddDashboardWidgetModal,
+  openWidgetViewerModal,
+} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -87,16 +91,64 @@ class DashboardDetail extends Component<Props, State> {
     this.checkStateRoute();
     router.setRouteLeaveHook(route, this.onRouteLeave);
     window.addEventListener('beforeunload', this.onUnload);
+    this.checkIfShouldMountWidgetViewerModal();
   }
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.location.pathname !== this.props.location.pathname) {
       this.checkStateRoute();
     }
+    this.checkIfShouldMountWidgetViewerModal();
   }
 
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onUnload);
+  }
+
+  checkIfShouldMountWidgetViewerModal() {
+    const {
+      params: {widgetId},
+      organization,
+      dashboard,
+      location,
+      router,
+    } = this.props;
+    if (location.pathname.match(/\/widget\/\w*\/$/)) {
+      const widget =
+        defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
+      if (widget) {
+        openWidgetViewerModal({
+          organization,
+          widget,
+          onClose: () => {
+            router.push({
+              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+              query: location.query,
+            });
+          },
+          onEdit: () => {
+            openAddDashboardWidgetModal({
+              organization,
+              widget,
+              onUpdateWidget: (nextWidget: Widget) => {
+                const updateIndex = dashboard.widgets.indexOf(widget);
+                const nextWidgetsList = cloneDeep(dashboard.widgets);
+                nextWidgetsList[updateIndex] = nextWidget;
+                this.handleUpdateWidgetList(nextWidgetsList);
+              },
+              source: DashboardWidgetSource.DASHBOARDS,
+            });
+          },
+        });
+      } else {
+        // Replace the URL if the widget isn't found and raise an error in toast
+        router.replace({
+          pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+          query: location.query,
+        });
+        addErrorMessage(t('Widget not found'));
+      }
+    }
   }
 
   checkStateRoute() {
