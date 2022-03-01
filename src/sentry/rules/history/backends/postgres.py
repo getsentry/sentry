@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Mapping, Sequence
 
 from django.db.models import Count
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from sentry.utils.cursors import Cursor, CursorResult
 
 
-def convert_results(results: Sequence[RuleFireHistory]) -> Sequence[RuleGroupHistory]:
+def convert_results(results: Sequence[Mapping[str, int]]) -> Sequence[RuleGroupHistory]:
     group_lookup = {g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])}
     return [RuleGroupHistory(group_lookup[r["group"]], r["count"]) for r in results]
 
