@@ -103,8 +103,7 @@ export interface ChoiceMapperFieldProps
 export default class ChoiceMapper extends React.Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
-  hasValue = (value: ChoiceMapperFieldProps['value']) =>
-    defined(value) && !objectIsEmpty(value);
+  hasValue = (value: InputFieldProps['value']) => defined(value) && !objectIsEmpty(value);
 
   renderField = (props: ChoiceMapperFieldProps) => {
     const {
