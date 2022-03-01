@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -5,21 +6,25 @@ import {revertToPinnedFilters} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  onClose: () => void;
-  organization: Organization;
   router: InjectedRouter;
 };
 
-export default function DesyncedFilterAlert({router, organization, onClose}: Props) {
+export default function DesyncedFilterAlert({router}: Props) {
+  const {desyncedFilters} = useLegacyStore(PageFiltersStore);
+  const organization = useOrganization();
+  const [hideAlert, setHideAlert] = useState<boolean>(false);
+
   const onRevertClick = () => {
     revertToPinnedFilters(organization.slug, router);
   };
 
-  return (
+  return desyncedFilters.size > 0 && !hideAlert ? (
     <Alert type="info" icon={<IconInfo size="md" />} system>
       <AlertWrapper>
         <AlertText>
@@ -30,11 +35,11 @@ export default function DesyncedFilterAlert({router, organization, onClose}: Pro
         <AlertActions>
           <RevertText onClick={onRevertClick}>{t('Revert')}</RevertText>
           <Divider>|</Divider>
-          <IconClose color="purple300" onClick={onClose} />
+          <IconClose color="purple300" onClick={() => setHideAlert(true)} />
         </AlertActions>
       </AlertWrapper>
     </Alert>
-  );
+  ) : null;
 }
 
 const AlertWrapper = styled('div')`
