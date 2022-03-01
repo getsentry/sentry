@@ -14,10 +14,13 @@ from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.superuser import Superuser, is_active_superuser
-from sentry.models import Authenticator, Organization
+from sentry.models import Authenticator, AuthIdentity, Organization
 from sentry.utils import auth, json
 from sentry.utils.auth import initiate_login
 from sentry.utils.functional import extract_lazy_object
+
+# from datetime import timedelta, timezone
+
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -100,8 +103,17 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         validator = AuthVerifyValidator(data=request.data)
+        has_auth_identity = False
         if not validator.is_valid():
-            return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            auth_identity = AuthIdentity.objects.get(user_id=request.user.id)
+            if not auth_identity or not request.user.is_superuser:
+                return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            has_auth_identity = True
+            # # TODO do we need to check if last sso verification was x amount of time?
+            # valid_session = timedelta(minutes=15)
+            # if timezone.now() - auth_identity.last_verified > valid_session:
+            #     # TODO Redirect to sso login
 
         authenticated = False
         # See if we have a u2f challenge/response
@@ -131,6 +143,9 @@ class AuthIndexEndpoint(Endpoint):
                 )
                 pass
 
+        # if the user is a superuser and has an authidentity, they are authenticated
+        elif has_auth_identity and request.user.is_superuser:
+            authenticated = True
         # attempt password authentication
         else:
             authenticated = request.user.check_password(validator.validated_data["password"])
@@ -142,6 +157,9 @@ class AuthIndexEndpoint(Endpoint):
         try:
             # Must use the httprequest object instead of request
             auth.login(request._request, request.user)
+
+            # only give superuser access when going through superuser modal
+            request.superuser.set_logged_in(request.user)
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
