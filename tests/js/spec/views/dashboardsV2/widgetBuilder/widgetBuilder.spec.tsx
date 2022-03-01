@@ -438,69 +438,6 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it('additional fields get added to new seach filters', async function () {
-    const handleSave = jest.fn();
-
-    renderTestComponent({onSave: handleSave});
-
-    userEvent.click(await screen.findByText('Table'));
-
-    // Select line chart display
-    userEvent.click(screen.getByText('Line Chart'));
-
-    // Click the add overlay button
-    userEvent.click(screen.getByLabelText('Add Overlay'));
-
-    // Should be another field input.
-    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
-
-    userEvent.click(screen.getByText('(Required)'));
-    userEvent.click(screen.getByText('count_unique(…)'));
-
-    // Add another search filter
-    userEvent.click(screen.getByLabelText('Add query'));
-
-    // Set second query search conditions
-    userEvent.type(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1],
-      'event.type:error{enter}'
-    );
-
-    // Set second query legend alias
-    userEvent.paste(screen.getAllByPlaceholderText('Legend Alias')[1], 'Errors');
-    userEvent.keyboard('{enter}');
-
-    // Save widget
-    userEvent.click(screen.getByLabelText('Add Widget'));
-
-    await waitFor(() => {
-      expect(handleSave).toHaveBeenCalledWith([
-        expect.objectContaining({
-          title: 'Custom Widget',
-          displayType: 'line',
-          interval: '5m',
-          widgetType: 'discover',
-          queries: [
-            {
-              name: '',
-              fields: ['count()', 'count_unique(user)'],
-              conditions: '',
-              orderby: '',
-            },
-            {
-              name: 'Errors',
-              fields: ['count()', 'count_unique(user)'],
-              conditions: 'event.type:error',
-              orderby: '',
-            },
-          ],
-        }),
-      ]);
-    });
-
-    expect(handleSave).toHaveBeenCalledTimes(1);
-  });
-
   it('can add and delete additional queries', async function () {
     const handleSave = jest.fn();
 
