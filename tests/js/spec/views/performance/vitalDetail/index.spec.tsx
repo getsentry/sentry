@@ -83,7 +83,7 @@ describe('Performance > VitalDetail', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {data: [[123, []]], start: 1000, end: 2000},
+      body: {data: [[123, []]]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/user.email/values/',

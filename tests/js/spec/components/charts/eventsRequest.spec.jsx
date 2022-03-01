@@ -33,6 +33,8 @@ describe('EventsRequest', function () {
       doEventsRequest.mockImplementation(() =>
         Promise.resolve({
           data: [[new Date(), [COUNT_OBJ]]],
+          start: 1000,
+          end: 2000,
         })
       );
       wrapper = mountWithTheme(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
@@ -128,6 +130,8 @@ describe('EventsRequest', function () {
             ],
             [new Date(), [COUNT_OBJ]],
           ],
+          start: 1000,
+          end: 2000,
         })
       );
       wrapper = mountWithTheme(
@@ -214,6 +218,8 @@ describe('EventsRequest', function () {
               ],
               [new Date(), [COUNT_OBJ]],
             ],
+            start: 1000,
+            end: 2000,
           },
           'failure_count()': {
             data: [
@@ -285,6 +291,8 @@ describe('EventsRequest', function () {
       doEventsRequest.mockImplementation(() =>
         Promise.resolve({
           data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
+          start: 1000,
+          end: 2000,
         })
       );
 
@@ -324,6 +332,8 @@ describe('EventsRequest', function () {
       doEventsRequest.mockImplementation(() =>
         Promise.resolve({
           data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
+          start: 1000,
+          end: 2000,
         })
       );
 
@@ -378,6 +388,8 @@ describe('EventsRequest', function () {
             ],
             [new Date(), [COUNT_OBJ]],
           ],
+          start: 1000,
+          end: 2000,
         })
       );
 
