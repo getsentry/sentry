@@ -72,7 +72,7 @@ function renderTestComponent({
       widget={widget}
       params={{
         orgId: organization.slug,
-        widgetIndex: widget ? Number(widget.id) : undefined,
+        widgetIndex: widget ? 0 : undefined,
       }}
     />,
     {
@@ -247,79 +247,6 @@ describe('WidgetBuilder', function () {
 
     // Content - Step 5
     expect(screen.getByRole('heading', {name: 'Sort by'})).toBeInTheDocument();
-  });
-
-  it('redirects correctly when creating a new dashboard', async function () {
-    const {router} = renderTestComponent({
-      query: {source: DashboardWidgetSource.DISCOVERV2},
-    });
-
-    expect(await screen.findByText('Choose your dashboard')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Choose which dashboard you'd like to add this query to. It will appear as a widget."
-      )
-    ).toBeInTheDocument();
-
-    userEvent.click(screen.getByText('Select a dashboard'));
-    userEvent.click(screen.getByText('+ Create New Dashboard'));
-    userEvent.click(screen.getByText('Add Widget'));
-
-    await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboards/new/',
-          query: {
-            displayType: 'table',
-            interval: '5m',
-            title: 'Custom Widget',
-            queryNames: [''],
-            queryConditions: [''],
-            queryFields: ['count()'],
-            queryOrderby: '',
-            start: null,
-            end: null,
-            period: '24h',
-            utc: false,
-            project: [],
-            environment: [],
-          },
-        })
-      );
-    });
-  });
-
-  it('redirects correctly when choosing an existing dashboard', async function () {
-    const {router} = renderTestComponent({
-      query: {source: DashboardWidgetSource.DISCOVERV2},
-    });
-
-    userEvent.click(await screen.findByText('Select a dashboard'));
-    userEvent.click(screen.getByText('Test Dashboard'));
-    userEvent.click(screen.getByText('Add Widget'));
-
-    await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboard/2/',
-          query: {
-            displayType: 'table',
-            interval: '5m',
-            title: 'Custom Widget',
-            queryNames: [''],
-            queryConditions: [''],
-            queryFields: ['count()'],
-            queryOrderby: '',
-            start: null,
-            end: null,
-            period: '24h',
-            utc: false,
-            project: [],
-            environment: [],
-          },
-        })
-      );
-    });
   });
 
   it('can update the title', async function () {
@@ -839,7 +766,7 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it('should automatically add columns for top n widget charts', async function () {
+  it('should automatically add columns for top n widget charts according to the URL params', async function () {
     const defaultWidgetQuery = {
       name: '',
       fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
@@ -952,6 +879,81 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
+  });
+
+  describe('Widget creation coming from other verticals', function () {
+    it('redirects corretly when creating a new dashboard', async function () {
+      const {router} = renderTestComponent({
+        query: {source: DashboardWidgetSource.DISCOVERV2},
+      });
+
+      expect(await screen.findByText('Choose your dashboard')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Choose which dashboard you'd like to add this query to. It will appear as a widget."
+        )
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Select a dashboard'));
+      userEvent.click(screen.getByText('+ Create New Dashboard'));
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/dashboards/new/',
+            query: {
+              displayType: 'table',
+              interval: '5m',
+              title: 'Custom Widget',
+              queryNames: [''],
+              queryConditions: [''],
+              queryFields: ['count()'],
+              queryOrderby: '',
+              start: null,
+              end: null,
+              period: '24h',
+              utc: false,
+              project: [],
+              environment: [],
+            },
+          })
+        );
+      });
+    });
+
+    it('redirects corretly when choosing an existing dashboard', async function () {
+      const {router} = renderTestComponent({
+        query: {source: DashboardWidgetSource.DISCOVERV2},
+      });
+
+      userEvent.click(await screen.findByText('Select a dashboard'));
+      userEvent.click(screen.getByText('Test Dashboard'));
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/dashboard/2/',
+            query: {
+              displayType: 'table',
+              interval: '5m',
+              title: 'Custom Widget',
+              queryNames: [''],
+              queryConditions: [''],
+              queryFields: ['count()'],
+              queryOrderby: '',
+              start: null,
+              end: null,
+              period: '24h',
+              utc: false,
+              project: [],
+              environment: [],
+            },
+          })
+        );
+      });
+    });
   });
 
   describe('Issue Widgets', function () {
