@@ -28,6 +28,7 @@ import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cell
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {TagValue} from '../transactionOverview/tagExplorer';
+import {normalizeSearchConditions} from '../utils';
 
 import {
   TAGS_TABLE_COLUMN_ORDER,
@@ -132,9 +133,7 @@ export class TagValueTable extends Component<Props, State> {
       const {eventView, location, organization} = this.props;
       trackTagPageInteraction(organization);
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 

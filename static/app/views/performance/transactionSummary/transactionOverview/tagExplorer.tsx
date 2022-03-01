@@ -40,6 +40,7 @@ import {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import {tagsRouteWithQuery} from '../transactionTags/utils';
+import {normalizeSearchConditions} from '../utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
@@ -303,10 +304,7 @@ class _TagExplorer extends React.Component<Props> {
         organization_id: parseInt(organization.id, 10),
       });
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
