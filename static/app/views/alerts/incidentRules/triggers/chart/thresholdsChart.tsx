@@ -329,21 +329,6 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       })
     );
 
-    // Disable all lines by default but the 1st one
-    const selected: Record<string, boolean> = dataWithoutRecentBucket.reduce(
-      (acc, {seriesName}, index) => {
-        acc[seriesName] = index === 0;
-        return acc;
-      },
-      {}
-    );
-    const legend = {
-      right: 10,
-      top: 0,
-      selected,
-      data: data.map(d => ({name: d.seriesName})),
-    };
-
     const chartOptions = {
       tooltip: {
         // use the main aggregate for all series (main, min, max, avg, comparison)
@@ -432,7 +417,6 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
         {...chartOptions}
-        legend={legend}
         graphic={Graphic({
           elements: flatten(
             triggers.map((trigger: Trigger) => [

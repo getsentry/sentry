@@ -18,7 +18,6 @@ describe('Organization Developer Settings', function () {
       'org:write',
     ],
   });
-  const routerContext = TestStubs.routerContext();
 
   const publishButtonSelector = 'button[aria-label="Publish"]';
   const deleteButtonSelector = 'button[aria-label="Delete"]';
@@ -34,8 +33,7 @@ describe('Organization Developer Settings', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
     );
 
     it('displays empty state', () => {
@@ -57,7 +55,7 @@ describe('Organization Developer Settings', function () {
 
       wrapper = mountWithTheme(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-        routerContext
+        {organization: org}
       );
     });
 
@@ -130,8 +128,7 @@ describe('Organization Developer Settings', function () {
       wrapper = mountWithTheme(
         <App>
           <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
-        </App>,
-        routerContext
+        </App>
       );
 
       expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(false);
@@ -186,8 +183,7 @@ describe('Organization Developer Settings', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
     );
 
     it('shows the published status', () => {
@@ -212,8 +208,7 @@ describe('Organization Developer Settings', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
     );
 
     it('public integration list is empty', () => {

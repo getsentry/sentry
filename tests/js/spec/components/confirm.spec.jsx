@@ -9,8 +9,7 @@ describe('Confirm', function () {
     const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>,
-      TestStubs.routerContext()
+      </Confirm>
     );
 
     expect(wrapper).toSnapshot();
@@ -29,8 +28,7 @@ describe('Confirm', function () {
         )}
       >
         <button data-test-id="trigger-btn">Confirm?</button>
-      </Confirm>,
-      TestStubs.routerContext()
+      </Confirm>
     );
     wrapper.find('button[data-test-id="trigger-btn"]').simulate('click');
     const modal = await mountGlobalModal();
@@ -55,8 +53,7 @@ describe('Confirm', function () {
         )}
       >
         <button data-test-id="trigger-btn">Confirm?</button>
-      </Confirm>,
-      TestStubs.routerContext()
+      </Confirm>
     );
     wrapper.find('button[data-test-id="trigger-btn"]').simulate('click');
     const modal = await mountGlobalModal();
@@ -73,8 +70,7 @@ describe('Confirm', function () {
     const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>,
-      TestStubs.routerContext()
+      </Confirm>
     );
 
     wrapper.find('button').simulate('click');
@@ -89,8 +85,7 @@ describe('Confirm', function () {
     const wrapper = mountWithTheme(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>,
-      TestStubs.routerContext()
+      </Confirm>
     );
 
     expect(mock).not.toHaveBeenCalled();
@@ -115,8 +110,7 @@ describe('Confirm', function () {
     const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock} stopPropagation>
         <button>Confirm?</button>
-      </Confirm>,
-      TestStubs.routerContext()
+      </Confirm>
     );
 
     expect(mock).not.toHaveBeenCalled();
