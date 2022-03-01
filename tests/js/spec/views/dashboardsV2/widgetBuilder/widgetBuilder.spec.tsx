@@ -1333,7 +1333,7 @@ describe('WidgetBuilder', function () {
       expect(handleSave).toHaveBeenCalledTimes(1);
     });
 
-    it('render issues data set disabled', async function () {
+    it('render issues data set disabled when the display type is not set to table', async function () {
       renderTestComponent({
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
