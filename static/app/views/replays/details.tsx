@@ -2,12 +2,14 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TagsTable from 'sentry/components/tagsTable';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
@@ -94,6 +96,15 @@ class ReplayDetails extends AsyncView<Props, State> {
         <Fragment>
           <Layout.Header>
             <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    to: `/organizations/${orgSlug}/replays/`,
+                    label: t('Replays'),
+                  },
+                  {label: t('Replay Details')}, // TODO: put replay ID or something here
+                ]}
+              />
               <EventHeader event={event} />
             </Layout.HeaderContent>
           </Layout.Header>
