@@ -24,7 +24,7 @@ jest.mock('echarts-for-react/lib/core', () => {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-function mountModal({initialData, widget}) {
+function mountModal({initialData: {organization, routerContext}, widget}) {
   return mountWithTheme(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
@@ -33,10 +33,14 @@ function mountModal({initialData, widget}) {
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
         closeModal={() => undefined}
-        organization={initialData.organization}
+        organization={organization}
         widget={widget}
       />
-    </div>
+    </div>,
+    {
+      context: routerContext,
+      organization,
+    }
   );
 }
 
@@ -46,7 +50,9 @@ describe('Modals -> WidgetViewerModal', function () {
       features: ['discover-query', 'widget-viewer-modal'],
       apdexThreshold: 400,
     },
-    router: {},
+    router: {
+      location: {query: {}},
+    },
     project: 1,
     projects: [],
   });
