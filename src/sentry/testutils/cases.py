@@ -203,6 +203,12 @@ class BaseTestCase(Fixtures, Exam):
         request.superuser = Superuser(request)
         if is_superuser:
             # XXX: this is gross, but its a one off and apis change only once in a great while
+            request._body = json.dumps(
+                {
+                    "superuserAccessCategory": "Edit organization settings",
+                    "superuserReason": "Edit organization settings",
+                }
+            )
             request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
         request.successful_authenticator = None
@@ -1104,11 +1110,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         "metrics_sets": "s",
         "metrics_counters": "c",
     }
-    ENTITY_MAP = {
-        "transaction.duration": "metrics_distributions",
-        "measurements.lcp": "metrics_distributions",
-        "user": "metrics_sets",
-    }
+    ENTITY_MAP = {"transaction.duration": "metrics_distributions", "user": "metrics_sets"}
     METRIC_STRINGS = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
 
@@ -1380,10 +1382,6 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["conditions"] == widget_data_source.conditions
         if "orderby" in data:
             assert data["orderby"] == widget_data_source.orderby
-        if "aggregates" in data:
-            assert data["aggregates"] == widget_data_source.aggregates
-        if "columns" in data:
-            assert data["columns"] == widget_data_source.columns
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")

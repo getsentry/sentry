@@ -310,28 +310,32 @@ class Superuser:
         if not su_access_info.is_valid():
             raise serializers.ValidationError(su_access_info.errors)
 
-        logger.info(
-            "superuser.superuser_access",
-            extra={
-                "superuser_session_id": token,
-                "user_id": request.user.id,
-                "user_email": request.user.email,
-                "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
-                "reason_for_su": su_access_info.validated_data["superuserReason"],
-            },
-        )
+        try:
+            logger.info(
+                "superuser.superuser_access",
+                extra={
+                    "superuser_session_id": token,
+                    "user_id": request.user.id,
+                    "user_email": request.user.email,
+                    "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
+                    "reason_for_su": su_access_info.validated_data["superuserReason"],
+                },
+            )
 
-        self._set_logged_in(
-            expires=current_datetime + MAX_AGE,
-            token=token,
-            user=user,
-            current_datetime=current_datetime,
-        )
+            self._set_logged_in(
+                expires=current_datetime + MAX_AGE,
+                token=token,
+                user=user,
+                current_datetime=current_datetime,
+            )
 
-        logger.info(
-            "superuser.logged-in",
-            extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
-        )
+            logger.info(
+                "superuser.logged-in",
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
+            )
+
+        except AttributeError:
+            logger.error("superuser.superuser_access.missing_user_info")
 
     def set_logged_out(self):
         """
