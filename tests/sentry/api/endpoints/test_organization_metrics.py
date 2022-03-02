@@ -403,53 +403,6 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
         assert len(groups) == 1
 
     @with_feature(FEATURE_FLAG)
-    def test_orderby_percentile_with_many_fields_non_transactions_supported_fields(self):
-        """
-        Test that contains a field in the `select` that is not performance related should return
-        a 400
-        """
-        response = self.get_response(
-            self.organization.slug,
-            field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "sum(sentry.sessions.session)",
-            ],
-            statsPeriod="1h",
-            interval="1h",
-            groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
-        )
-        assert response.status_code == 400
-        assert (
-            response.json()["detail"]
-            == "Multi-field select order by queries is not supported for metric "
-            "sentry.sessions.session"
-        )
-
-    @with_feature(FEATURE_FLAG)
-    def test_orderby_percentile_with_many_fields_transactions_unsupported_fields(self):
-        """
-        Test that contains a field in the `select` that is performance related but currently
-        not supported should return a 400
-        """
-        response = self.get_response(
-            self.organization.slug,
-            field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "sum(user_misery)",
-            ],
-            statsPeriod="1h",
-            interval="1h",
-            groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
-        )
-        assert response.status_code == 400
-        assert (
-            response.json()["detail"]
-            == "Multi-field select order by queries is not supported for metric user_misery"
-        )
-
-    @with_feature(FEATURE_FLAG)
     def test_orderby_percentile_with_many_fields_one_entity_no_data(self):
         """
         Test that ensures that when metrics data is available then an empty response is returned

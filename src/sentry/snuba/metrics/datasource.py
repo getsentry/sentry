@@ -263,24 +263,16 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     intervals = list(get_intervals(query))
 
     if query.orderby is not None and len(query.fields) > 1:
+        # ToDo(ahmed): Re-examine the known limitation that since we make two queries,
+        #  where we use the results of the first query to filter down the results of the second
+        #  query, so if the field used to order by has no values for certain transactions for
+        #  example in the case of the performance table, we might end up showing less
+        #  transactions than there actually are if we choose to order by it. We are limited by
+        #  the rows available for the field used in the orderBy.
+
         # Multi-field select with order by functionality. Currently only supports the
         # performance table.
         original_query_fields = copy(query.fields)
-
-        # This check is necessary as we only support this multi-field select with one field
-        # order by functionality only for the performance table. The reason behind this is
-        # that since we make two queries, where we use the results of the first query to
-        # filter down the results of the second query, if the field used to order by has no
-        # values for certain transactions, we might end up showing less transactions than
-        # there actually are if we choose to order by it. However, we are certain that this
-        # won't happen with the performance table because all the metrics in the table are
-        # always extracted from transactions.
-        for _, field_name in list(original_query_fields.values()):
-            if not (field_name.startswith("sentry.transactions")):
-                raise InvalidParams(
-                    f"Multi-field select order by queries is not supported "
-                    f"for metric {field_name}"
-                )
 
         # The initial query has to contain only one field which is the same as the order by
         # field
