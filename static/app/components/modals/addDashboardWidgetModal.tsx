@@ -33,6 +33,7 @@ import {
   TagCollection,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
@@ -118,6 +119,8 @@ type State = {
 const newDiscoverQuery = {
   name: '',
   fields: ['count()'],
+  colums: [],
+  aggregates: ['count()'],
   conditions: '',
   orderby: '',
 };
@@ -125,6 +128,8 @@ const newDiscoverQuery = {
 const newIssueQuery = {
   name: '',
   fields: ['issue', 'assignee', 'title'] as string[],
+  colums: ['issue', 'assignee', 'title'],
+  aggregates: [],
   conditions: '',
   orderby: '',
 };
@@ -132,6 +137,8 @@ const newIssueQuery = {
 const newMetricsQuery = {
   name: '',
   fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+  colums: [],
+  aggregates: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
   conditions: '',
   orderby: '',
 };
@@ -153,13 +160,17 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultWidgetQuery, defaultTitle, displayType} = props;
+    const {widget, defaultTitle, displayType} = props;
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
         displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
-        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newDiscoverQuery}],
+        queries: [
+          this.defaultWidgetQueries
+            ? {...this.defaultWidgetQueries}
+            : {...newDiscoverQuery},
+        ],
         errors: undefined,
         loading: !!this.omitDashboardProp,
         dashboards: [],
@@ -186,6 +197,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (this.omitDashboardProp) {
       this.fetchDashboards();
     }
+  }
+
+  get defaultWidgetQueries() {
+    const {defaultWidgetQuery} = this.props;
+    if (defaultWidgetQuery) {
+      const {columns, aggregates} = getColumnsAndAggregates(defaultWidgetQuery.fields);
+      defaultWidgetQuery.aggregates = aggregates;
+      defaultWidgetQuery.columns = columns;
+    }
+    return defaultWidgetQuery;
   }
 
   get omitDashboardProp() {
@@ -385,11 +406,21 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
               query.fields = [...defaultTableColumns];
+              const {columns, aggregates} = getColumnsAndAggregates([
+                ...defaultTableColumns,
+              ]);
+              query.aggregates = aggregates;
+              query.columns = columns;
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
               query.fields = [...defaultWidgetQuery.fields];
+              const {columns, aggregates} = getColumnsAndAggregates([
+                ...defaultWidgetQuery.fields,
+              ]);
+              query.aggregates = aggregates;
+              query.columns = columns;
               query.orderby = defaultWidgetQuery.orderby;
             });
           }
