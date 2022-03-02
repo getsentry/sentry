@@ -53,8 +53,8 @@ type Props = WithRouterProps & {
     summary: string;
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
-  pinned?: boolean;
   detached?: boolean;
+  pinned?: boolean;
 } & DefaultProps;
 
 type State = {
