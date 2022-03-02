@@ -161,14 +161,13 @@ class Access(abc.ABC):
         """
         return all([self.has_project_access(project) for project in projects])
 
-    @abc.abstractmethod
     def has_project_membership(self, project: Project) -> bool:
         """
         Return bool representing if a user has explicit membership for the given project.
 
         >>> access.has_project_membership(project)
         """
-        raise NotImplementedError
+        return project in self.projects
 
     def has_project_scope(self, project: Project, scope: str) -> bool:
         """
@@ -232,22 +231,12 @@ class OrganizationMemberAccess(Access):
             return False
         if self.has_global_access and self._member.organization.id == project.organization_id:
             return True
-        return self.has_project_membership(project)
-
-    def has_project_membership(self, project: Project) -> bool:
         return project in self.projects
 
 
 class OrganizationGlobalAccess(Access):
-    def __init__(
-        self,
-        organization: Organization,
-        scopes: Iterable[str],
-        member: Optional[OrganizationMember] = None,
-        **kwargs,
-    ):
+    def __init__(self, organization: Organization, scopes: Iterable[str], **kwargs):
         self._organization = organization
-        self._member = member
 
         super().__init__(has_global_access=True, scopes=frozenset(scopes), **kwargs)
 
@@ -259,6 +248,8 @@ class OrganizationGlobalAccess(Access):
 
     @cached_property
     def projects(self) -> FrozenSet[Project]:
+        # TODO: Ensure correct behavior by has_project_membership
+
         return frozenset(
             Project.objects.filter(organization=self._organization, status=ProjectStatus.VISIBLE)
         )
@@ -271,17 +262,6 @@ class OrganizationGlobalAccess(Access):
             project.organization_id == self._organization.id
             and project.status == ProjectStatus.VISIBLE
         )
-
-    @cached_property
-    def _member_delegate(self) -> Optional[OrganizationMemberAccess]:
-        if self._member is None:
-            return None
-        return OrganizationMemberAccess(self._member, self.scopes, self.permissions)
-
-    def has_project_membership(self, project: Project) -> bool:
-        if self._member_delegate is None:
-            return False
-        return self._member_delegate.has_project_membership(project)
 
 
 class OrganizationlessAccess(Access):
@@ -297,9 +277,6 @@ class OrganizationlessAccess(Access):
         return False
 
     def has_project_access(self, project: Project) -> bool:
-        return False
-
-    def has_project_membership(self, project: Project) -> bool:
         return False
 
 
@@ -330,7 +307,7 @@ class SystemAccess(Access):
         return True
 
     def has_project_membership(self, project: Project) -> bool:
-        return False
+        return True
 
 
 class NoAccess(OrganizationlessAccess):
@@ -352,9 +329,7 @@ def from_request(
         return _from_sentry_app(request.user, organization=organization)
 
     if is_superuser:
-        member = None
         role = None
-
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
         try:
@@ -367,7 +342,6 @@ def from_request(
 
         return OrganizationGlobalAccess(
             organization=organization,
-            member=member,
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
