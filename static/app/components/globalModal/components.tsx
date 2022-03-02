@@ -1,5 +1,5 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
+import styled, {CreateStyledComponent} from '@emotion/styled';
 
 import Button, {ButtonPropsWithAriaLabel} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -60,7 +60,7 @@ const ModalFooter = styled('footer')`
   margin: ${space(3)} -${space(4)} -${space(4)};
 `;
 
-interface ClosableHeaderProps extends React.HTMLAttributes<HTMLHeadingElement> {
+interface ClosableHeaderProps extends CreateStyledComponent<HTMLHeadingElement> {
   /**
    * Show a close button in the header
    */
