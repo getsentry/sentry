@@ -807,7 +807,8 @@ describe('WidgetBuilder', function () {
     expect(removeColumnButtons).toHaveLength(2);
 
     // Add columns
-    userEvent.type(screen.getByText('count()'), 'event.type{enter}');
+    userEvent.click(screen.getByText('count()'));
+    userEvent.type(screen.getAllByText('count()')[0], 'event.type{enter}');
 
     userEvent.click(screen.getByLabelText('Add a Column'));
     userEvent.click(screen.getByText('(Required)'));
@@ -837,16 +838,22 @@ describe('WidgetBuilder', function () {
     // No delete button as there is only one field.
     expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
 
-    userEvent.type(screen.getByText('count()'), 'any{enter}');
+    userEvent.click(screen.getByText('count()'));
+    userEvent.type(screen.getAllByText('count()')[0], 'any{enter}');
 
     // Expect user.display to not be an available parameter option for any()
     // for line (timeseries) widget charts
-    userEvent.type(screen.getByText('transaction.duration'), 'user.display');
+    userEvent.click(screen.getByText('transaction.duration'));
+    userEvent.type(screen.getAllByText('transaction.duration')[0], 'user.display');
     expect(screen.getByText('No options')).toBeInTheDocument();
 
     // Be able to choose a numeric-like option for any()
     userEvent.keyboard('{escape}');
-    userEvent.type(screen.getByText('transaction.duration'), 'measurements.lcp{enter}');
+    userEvent.click(screen.getByText('transaction.duration'));
+    userEvent.type(
+      screen.getAllByText('transaction.duration')[0],
+      'measurements.lcp{enter}'
+    );
     expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
   });
 
@@ -863,10 +870,12 @@ describe('WidgetBuilder', function () {
     userEvent.click(screen.getByText('Table'));
     userEvent.click(screen.getByText('Big Number'));
 
-    userEvent.type(screen.getByText('count()'), 'count_unique{enter}');
+    userEvent.click(screen.getByText('count()'));
+    userEvent.type(screen.getAllByText('count()')[0], 'count_unique{enter}');
 
     // Be able to choose a non numeric-like option for count_unique()
-    userEvent.type(screen.getByText('user'), 'user.display{enter}');
+    userEvent.click(screen.getByText('user'));
+    userEvent.type(screen.getAllByText('user')[0], 'user.display{enter}');
 
     // Save widget
     userEvent.click(screen.getByLabelText('Add Widget'));
