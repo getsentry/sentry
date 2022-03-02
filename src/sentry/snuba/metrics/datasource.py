@@ -263,6 +263,12 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     intervals = list(get_intervals(query))
     results = {}
 
+    if not query.groupby:
+        # When there is no groupBy columns specified, we don't want to go through running an
+        # initial query first to get the groups because there are no groups, and it becomes just
+        # one group which is basically identical to eliminating the orderBy altogether
+        query.orderby = None
+
     if query.orderby is not None:
         # ToDo(ahmed): Re-examine the known limitation that since we make two queries,
         #  where we use the results of the first query to filter down the results of the second
@@ -353,6 +359,10 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
                     # Adds the conditions obtained from the previous query
                     for condition_key, condition_value in ordered_tag_conditions.items():
+                        if not condition_key or not condition_value:
+                            # Safeguard to prevent adding empty conditions to the where clause
+                            continue
+
                         lhs_condition = (
                             Function("tuple", [Column(col) for col in condition_key])
                             if isinstance(condition_key, tuple)

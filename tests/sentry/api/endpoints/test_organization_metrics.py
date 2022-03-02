@@ -723,6 +723,34 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
         assert len(response.data["groups"]) == 1
 
     @with_feature(FEATURE_FLAG)
+    def test_one_field_orderby_with_no_groupby_returns_one_row(self):
+        # Create time series [1, 2, 3, 4] for every release:
+        for minute in range(4):
+            for _ in range(minute + 1):
+                # One for each release
+                for release in ("foo", "bar", "baz"):
+                    self.store_session(
+                        self.build_session(
+                            project_id=self.project.id,
+                            started=(time.time() // 60 - 3 + minute) * 60,
+                            release=release,
+                        )
+                    )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["sum(sentry.sessions.session)", "count_unique(sentry.sessions.session.user)"],
+            statsPeriod="4m",
+            interval="1m",
+            orderBy="-sum(sentry.sessions.session)",
+            per_page=1,  # limit to a single page
+        )
+
+        for group in response.data["groups"]:
+            assert group["series"]["sum(sentry.sessions.session)"] == [3, 6, 9, 12]
+
+        assert len(response.data["groups"]) == 1
+
+    @with_feature(FEATURE_FLAG)
     def test_orderby_percentile_with_many_fields_multiple_entities_with_missing_data(self):
         """
         Test that ensures when transactions table has null values for some fields (i.e. fields
