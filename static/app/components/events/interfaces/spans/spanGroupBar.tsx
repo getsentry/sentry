@@ -167,7 +167,9 @@ class SpanGroupBar extends React.Component<Props> {
           }}
         >
           <Count
-            value={groupType === GroupType.CHILDREN ? spanGrouping.length : siblingCount!}
+            value={
+              groupType === GroupType.DESCENDANTS ? spanGrouping.length : siblingCount!
+            }
           />
         </TreeToggle>
       </TreeToggleContainer>
