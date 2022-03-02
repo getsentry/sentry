@@ -62,9 +62,7 @@ function WidgetViewerModal(props: Props) {
     onEdit,
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
-  const [modalSelection, setModalSelection] = React.useState<PageFilters>(
-    cloneDeep(selection)
-  );
+  const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
 
   const renderWidgetViewer = () => {
     const api = useApi();
