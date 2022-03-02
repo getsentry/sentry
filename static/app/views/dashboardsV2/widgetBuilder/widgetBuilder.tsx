@@ -232,12 +232,6 @@ function WidgetBuilder({
   const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
 
   useEffect(() => {
-    if (!notDashboardsOrigin) {
-      defaultFields();
-    }
-  }, [state.displayType]);
-
-  useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
@@ -266,22 +260,33 @@ function WidgetBuilder({
     query: {...location.query},
   };
 
-  function defaultFields() {
+  function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const normalized = normalizeQueries(prevState.displayType, prevState.queries);
+      const normalized = normalizeQueries(newDisplayType, prevState.queries);
 
-      if (prevState.displayType === DisplayType.TOP_N) {
+      if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
+      }
+
+      if (
+        prevState.displayType === DisplayType.TABLE &&
+        widgetToBeUpdated?.widgetType &&
+        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES
+      ) {
+        // World Map display type only supports Events Dataset
+        // so set state to default events query.
+        set(newState, 'queries', normalizeQueries(newDisplayType, [{...QUERIES.events}]));
+        set(newState, 'dataSet', DataSet.EVENTS);
+        return {...newState, errors: undefined};
       }
 
       if (!prevState.userHasModified) {
         // If the Widget is an issue widget,
         if (
-          prevState.displayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType &&
-          WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES
+          newDisplayType === DisplayType.TABLE &&
+          widgetToBeUpdated?.widgetType === WidgetType.ISSUE
         ) {
           set(newState, 'queries', widgetToBeUpdated.queries);
           set(newState, 'dataSet', DataSet.ISSUES);
@@ -292,11 +297,11 @@ function WidgetBuilder({
         if (defaultWidgetQuery && defaultTableColumns) {
           // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
           // This is so the widget can reflect the same columns as the table in Discover without requiring additional user input
-          if (prevState.displayType === DisplayType.TABLE) {
+          if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
               query.fields = [...defaultTableColumns];
             });
-          } else if (prevState.displayType === displayType) {
+          } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
               query.fields = [...defaultWidgetQuery.fields];
@@ -304,6 +309,10 @@ function WidgetBuilder({
             });
           }
         }
+      }
+
+      if (prevState.dataSet === DataSet.ISSUES) {
+        set(newState, 'dataSet', DataSet.EVENTS);
       }
 
       set(newState, 'queries', normalized);
@@ -323,7 +332,15 @@ function WidgetBuilder({
       organization,
     });
 
-    setState({...state, [field]: value, userHasModified: true});
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+      set(newState, field, value);
+      return {...newState, errors: undefined};
+    });
+
+    if (field === 'displayType' && value !== state.displayType) {
+      updateFieldsAccordingToDisplayType(value as DisplayType);
+    }
   }
 
   function handleDataSetChange(newDataSet: string) {
