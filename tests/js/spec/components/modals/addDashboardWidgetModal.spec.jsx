@@ -308,6 +308,25 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
+  it('updates widget aggregate', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 0, control: true});
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual(['p95(transaction.duration)']);
+    wrapper.unmount();
+  });
+
   it('can add additional fields', async function () {
     let widget = undefined;
     const wrapper = mountModal({
@@ -332,6 +351,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual([
+      'count()',
+      'p95(transaction.duration)',
+    ]);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -366,6 +390,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
+    expect(widget.queries[0].aggregates).toEqual(['count()', 'equation|count() + 100']);
     wrapper.unmount();
   });
 
@@ -399,6 +424,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual([
+      'count()',
+      'p95(transaction.duration)',
+    ]);
 
     // Add another search filter
     const addQuery = wrapper.find('button[aria-label="Add Query"]');
@@ -421,11 +450,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       name: '',
       conditions: '',
       fields: ['count()', 'p95(transaction.duration)'],
+      aggregates: ['count()', 'p95(transaction.duration)'],
     });
     expect(widget.queries[1]).toMatchObject({
       name: 'Errors',
       conditions: 'event.type:error',
       fields: ['count()', 'p95(transaction.duration)'],
+      aggregates: ['count()', 'p95(transaction.duration)'],
     });
 
     wrapper.unmount();
@@ -682,7 +713,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     // A new field should be added.
     expect(widget.queries[0].fields).toHaveLength(3);
-    expect(widget.queries[0].fields[2]).toEqual('trace');
+    expect(widget.queries[0].fields).toEqual(['sdk.name', 'count()', 'trace']);
+    expect(widget.queries[0].aggregates).toEqual(['count()']);
+    expect(widget.queries[0].columns).toEqual(['sdk.name', 'trace']);
     wrapper.unmount();
   });
 
@@ -780,6 +813,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -822,6 +857,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['any(measurements.lcp)']);
+    expect(widget.queries[0].aggregates).toEqual(['any(measurements.lcp)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -856,6 +893,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('big_number');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
+    expect(widget.queries[0].aggregates).toEqual(['count_unique(user.display)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -919,6 +958,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('world_map');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
+    expect(widget.queries[0].aggregates).toEqual(['count_unique(measurements.lcp)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -968,6 +1009,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()']);
+    expect(widget.queries[0].aggregates).toEqual(['count()']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -1183,6 +1226,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
               fields: ['issue', 'assignee', 'title'],
               name: '',
               orderby: '',
+              aggregates: [],
+              columns: ['issue', 'assignee', 'title'],
             },
           ],
           title: '',

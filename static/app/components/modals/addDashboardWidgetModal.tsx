@@ -116,28 +116,28 @@ type State = {
   selectedDashboard?: SelectValue<string>;
 };
 
-const newDiscoverQuery = {
+const newDiscoverQuery: WidgetQuery = {
   name: '',
   fields: ['count()'],
-  colums: [],
+  columns: [],
   aggregates: ['count()'],
   conditions: '',
   orderby: '',
 };
 
-const newIssueQuery = {
+const newIssueQuery: WidgetQuery = {
   name: '',
   fields: ['issue', 'assignee', 'title'] as string[],
-  colums: ['issue', 'assignee', 'title'],
+  columns: ['issue', 'assignee', 'title'],
   aggregates: [],
   conditions: '',
   orderby: '',
 };
 
-const newMetricsQuery = {
+const newMetricsQuery: WidgetQuery = {
   name: '',
   fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
-  colums: [],
+  columns: [],
   aggregates: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
   conditions: '',
   orderby: '',
@@ -482,6 +482,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       const query = cloneDeep(newDiscoverQuery);
       query.fields = this.state.queries[0].fields;
+      query.aggregates = this.state.queries[0].aggregates;
+      query.columns = this.state.queries[0].columns;
       newState.queries.push(query);
 
       return newState;
