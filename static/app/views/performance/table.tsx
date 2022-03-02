@@ -23,7 +23,6 @@ import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
@@ -31,7 +30,10 @@ import TransactionThresholdModal, {
   modalCss,
   TransactionThresholdMetric,
 } from './transactionSummary/transactionThresholdModal';
-import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
+import {
+  normalizeSearchConditionsWithTransactionName,
+  transactionSummaryRouteWithQuery,
+} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
 
 export function getProjectID(
@@ -125,10 +127,9 @@ class _Table extends React.Component<Props, State> {
         return;
       }
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditionsWithTransactionName(
+        eventView.query
+      );
 
       updateQuery(searchConditions, action, column, value);
 

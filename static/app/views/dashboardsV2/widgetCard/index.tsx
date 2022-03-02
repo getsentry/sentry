@@ -7,13 +7,12 @@ import {Location} from 'history';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconOpen} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconExpand, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -50,6 +49,7 @@ type Props = WithRouterProps & {
   onEdit?: () => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
+  showWidgetViewerButton?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -141,6 +141,11 @@ class WidgetCard extends React.Component<Props> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
+      location,
+      showWidgetViewerButton,
+      router,
+      isEditing,
+      onEdit,
     } = this.props;
     return (
       <ErrorBoundary
@@ -151,19 +156,25 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
-            <Feature
-              organization={organization}
-              features={['organizations:widget-viewer-modal']}
-            >
+            {showWidgetViewerButton && !isEditing && (
               <OpenWidgetViewerButton
+                aria-label={t('Open Widget Viewer')}
                 onClick={() => {
-                  openWidgetViewerModal({
-                    organization,
-                    widget,
-                  });
+                  if (widget.id) {
+                    router.push({
+                      pathname: `${location.pathname}widget/${widget.id}/`,
+                      query: location.query,
+                    });
+                  } else {
+                    openWidgetViewerModal({
+                      organization,
+                      widget,
+                      onEdit,
+                    });
+                  }
                 }}
               />
-            </Feature>
+            )}
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
@@ -274,11 +285,12 @@ const WidgetHeader = styled('div')`
   justify-content: space-between;
 `;
 
-const OpenWidgetViewerButton = styled(IconOpen)`
+const OpenWidgetViewerButton = styled(IconExpand)`
   &:hover {
     cursor: pointer;
   }
   margin: auto;
   margin-left: ${space(0.5)};
   height: ${p => p.theme.fontSizeMedium};
+  min-width: ${p => p.theme.fontSizeMedium};
 `;

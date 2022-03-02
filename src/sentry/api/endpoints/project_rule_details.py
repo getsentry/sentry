@@ -2,44 +2,26 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import trigger_alert_rule_action_creators
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import (
     AuditLogEntryEvent,
-    Rule,
     RuleActivity,
     RuleActivityType,
     RuleStatus,
+    SentryAppComponent,
+    SentryAppInstallation,
     Team,
     User,
 )
 from sentry.web.decorators import transaction_start
 
 
-class ProjectRuleDetailsEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectAlertRulePermission,)
-
-    def convert_args(self, request: Request, rule_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, *args, **kwargs)
-        project = kwargs["project"]
-
-        if not rule_id.isdigit():
-            raise ResourceDoesNotExist
-
-        try:
-            kwargs["rule"] = Rule.objects.get(
-                project=project, id=rule_id, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
-            )
-        except Rule.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        return args, kwargs
-
+class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request: Request, project, rule) -> Response:
         """
@@ -50,9 +32,32 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        data = serialize(rule, request.user)
 
-        return Response(data)
+        # Serialize Rule object
+        serialized_rule = serialize(
+            rule,
+            request.user,
+        )
+
+        # Prepare Rule Actions that are SentryApp components using the meta fields
+        for action in serialized_rule.get("actions", []):
+            if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
+
+                component = SentryAppInstallation(
+                    **action.get("_sentry_app_installation", {})
+                ).prepare_ui_component(
+                    SentryAppComponent(**action.get("_sentry_app_component")),
+                    project,
+                    action.get("settings"),
+                )
+
+                action["formFields"] = component.schema.get("settings", {})
+
+                # Delete meta fields
+                del action["_sentry_app_installation"]
+                del action["_sentry_app_component"]
+
+        return Response(serialized_rule)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request: Request, project, rule) -> Response:

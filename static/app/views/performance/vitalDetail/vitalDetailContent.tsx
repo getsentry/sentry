@@ -7,16 +7,17 @@ import omit from 'lodash/omit';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {IconCheckmark, IconChevron, IconClose} from 'sentry/icons';
+import {IconCheckmark, IconClose} from 'sentry/icons';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -40,6 +41,7 @@ import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
 import {
+  vitalAbbreviations,
   vitalDescription,
   vitalMap,
   vitalSupportedBrowsers,
@@ -126,6 +128,7 @@ class VitalDetailContent extends Component<Props, State> {
         projects={projects}
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={() => {}}
+        aria-label={t('Create Alert')}
         referrer="performance"
       />
     );
@@ -140,36 +143,44 @@ class VitalDetailContent extends Component<Props, State> {
       return null;
     }
 
-    const previousDisabled = position === 0;
-    const nextDisabled = position === FRONTEND_VITALS.length - 1;
-
-    const switchVital = newVitalName => {
-      return () => {
-        browserHistory.push({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            vitalName: newVitalName,
+    const items: MenuItemProps[] = FRONTEND_VITALS.reduce(
+      (acc: MenuItemProps[], newVitalName) => {
+        const itemProps = {
+          key: newVitalName,
+          label: vitalAbbreviations[newVitalName],
+          onAction: function switchWebVital() {
+            browserHistory.push({
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                vitalName: newVitalName,
+                cursor: undefined,
+              },
+            });
           },
-        });
-      };
-    };
+        };
+
+        if (vitalName === newVitalName) {
+          acc.unshift(itemProps);
+        } else {
+          acc.push(itemProps);
+        }
+
+        return acc;
+      },
+      []
+    );
 
     return (
-      <ButtonBar merged>
-        <Button
-          icon={<IconChevron direction="left" size="sm" />}
-          aria-label={t('Previous')}
-          disabled={previousDisabled}
-          onClick={switchVital(FRONTEND_VITALS[position - 1])}
-        />
-        <Button
-          icon={<IconChevron direction="right" size="sm" />}
-          aria-label={t('Next')}
-          disabled={nextDisabled}
-          onClick={switchVital(FRONTEND_VITALS[position + 1])}
-        />
-      </ButtonBar>
+      <DropdownMenuControlV2
+        items={items}
+        triggerLabel={vitalAbbreviations[vitalName]}
+        triggerProps={{
+          'aria-label': `Web Vitals: ${vitalAbbreviations[vitalName]}`,
+          prefix: t('Web Vitals'),
+        }}
+        placement="bottom left"
+      />
     );
   }
 
@@ -362,10 +373,10 @@ class VitalDetailContent extends Component<Props, State> {
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <MetricsSwitch onSwitch={() => this.handleSearch('')} />
+              {this.renderVitalSwitcher()}
               <Feature organization={organization} features={['incidents']}>
                 {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
               </Feature>
-              {this.renderVitalSwitcher()}
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>

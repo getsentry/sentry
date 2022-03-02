@@ -1041,7 +1041,11 @@ class GetSnubaQueryArgsTest(TestCase):
             "user.display:bill@example.com", {"organization_id": self.organization.id}
         )
         assert _filter.conditions == [
-            [["coalesce", ["user.email", "user.username", "user.ip"]], "=", "bill@example.com"]
+            [
+                ["coalesce", ["user.email", "user.username", "user.id", "user.ip"]],
+                "=",
+                "bill@example.com",
+            ]
         ]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
@@ -1052,7 +1056,10 @@ class GetSnubaQueryArgsTest(TestCase):
             [
                 [
                     "match",
-                    [["coalesce", ["user.email", "user.username", "user.ip"]], "'(?i)^jill.*$'"],
+                    [
+                        ["coalesce", ["user.email", "user.username", "user.id", "user.ip"]],
+                        "'(?i)^jill.*$'",
+                    ],
                 ],
                 "=",
                 1,
@@ -1064,7 +1071,11 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_has_user_display(self):
         _filter = get_filter("has:user.display", {"organization_id": self.organization.id})
         assert _filter.conditions == [
-            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "!=", 1]
+            [
+                ["isNull", [["coalesce", ["user.email", "user.username", "user.id", "user.ip"]]]],
+                "!=",
+                1,
+            ]
         ]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
@@ -1072,7 +1083,11 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_not_has_user_display(self):
         _filter = get_filter("!has:user.display", {"organization_id": self.organization.id})
         assert _filter.conditions == [
-            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "=", 1]
+            [
+                ["isNull", [["coalesce", ["user.email", "user.username", "user.id", "user.ip"]]]],
+                "=",
+                1,
+            ]
         ]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []

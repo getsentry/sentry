@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import responses
 
 from sentry.utils.compat import zip
@@ -22,6 +24,7 @@ __all__ = (
     "OrganizationDashboardWidgetTestCase",
     "SCIMTestCase",
     "SCIMAzureTestCase",
+    "MetricsEnhancedPerformanceTestCase",
 )
 
 import hashlib
@@ -31,6 +34,7 @@ import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Dict, List, Optional
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -55,6 +59,7 @@ from django.utils.functional import cached_property
 from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
+from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -96,7 +101,9 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
+from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
@@ -1082,6 +1089,74 @@ class SessionMetricsTestCase(SnubaTestCase):
                 data=json.dumps(buckets),
             ).status_code
             == 200
+        )
+
+
+class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
+    TYPE_MAP = {
+        "metrics_distributions": "d",
+        "metrics_sets": "s",
+        "metrics_counters": "c",
+    }
+    ENTITY_MAP = {
+        "transaction.duration": "metrics_distributions",
+        "measurements.lcp": "metrics_distributions",
+        "user": "metrics_sets",
+    }
+    METRIC_STRINGS = []
+    DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
+
+    def setUp(self):
+        super().setUp()
+        self._index_metric_strings()
+
+    def _index_metric_strings(self):
+        PGStringIndexer().bulk_record(
+            strings=[
+                "transaction",
+                "transaction.status",
+                *self.METRIC_STRINGS,
+                *list(SPAN_STATUS_NAME_TO_CODE.keys()),
+                *list(METRICS_MAP.values()),
+            ]
+        )
+
+    def store_metric(
+        self,
+        value: List[int] | int,
+        metric: str = "transaction.duration",
+        tags: Optional[Dict[str, str]] = None,
+        timestamp: Optional[datetime] = None,
+    ):
+        internal_metric = METRICS_MAP[metric]
+        entity = self.ENTITY_MAP[metric]
+        if tags is None:
+            tags = {}
+        else:
+            tags = {indexer.resolve(key): indexer.resolve(value) for key, value in tags.items()}
+
+        if timestamp is None:
+            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
+        else:
+            metric_timestamp = timestamp.timestamp()
+
+        if not isinstance(value, list):
+            value = [value]
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.resolve(internal_metric),
+                    "timestamp": metric_timestamp,
+                    "tags": tags,
+                    "type": self.TYPE_MAP[entity],
+                    "value": value,
+                    "retention_days": 90,
+                }
+            ],
+            entity=entity,
         )
 
 

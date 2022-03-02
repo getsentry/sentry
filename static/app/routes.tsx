@@ -970,7 +970,7 @@ function buildRoutes() {
         component={SafeLazyLoad}
       >
         <Route
-          path="widget/:widgetId/edit/"
+          path="widget/:widgetIndex/edit/"
           componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
@@ -995,13 +995,18 @@ function buildRoutes() {
         component={SafeLazyLoad}
       >
         <Route
-          path="widget/:widgetId/edit/"
+          path="widget/:widgetIndex/edit/"
           componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
         <Route
           path="widget/new/"
           componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
+          component={SafeLazyLoad}
+        />
+        <Route
+          path="widget/:widgetId/"
+          componentPromise={() => import('sentry/views/dashboardsV2/view')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -1835,6 +1840,11 @@ function buildRoutes() {
       <IndexRoute
         componentPromise={() => import('sentry/views/profiling/content')}
         component={SafeLazyLoad}
+      />
+      <Route
+        path="flamegraph/:projectId/:eventId"
+        component={SafeLazyLoad}
+        componentPromise={() => import('sentry/views/profiling/flamegraph')}
       />
     </Route>
   );

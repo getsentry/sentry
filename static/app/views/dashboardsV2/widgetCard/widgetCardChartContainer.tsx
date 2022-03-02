@@ -11,6 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {EChartDataZoomHandler} from 'sentry/types/echarts';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 
@@ -35,6 +36,7 @@ type Props = WithRouterProps & {
   selection: PageFilters;
   widget: Widget;
   isMobile?: boolean;
+  onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   tableItemLimit?: number;
   windowWidth?: number;
@@ -51,6 +53,7 @@ function WidgetCardChartContainer({
   renderErrorMessage,
   tableItemLimit,
   windowWidth,
+  onZoom,
 }: Props) {
   function issueTableResultComponent({
     loading,
@@ -69,6 +72,7 @@ function WidgetCardChartContainer({
       // Align height to other charts.
       return <LoadingPlaceholder height="200px" />;
     }
+
     return (
       <StyledSimpleTableChart
         location={location}
@@ -175,6 +179,7 @@ function WidgetCardChartContainer({
                 organization={organization}
                 isMobile={isMobile}
                 windowWidth={windowWidth}
+                onZoom={onZoom}
               />
             </React.Fragment>
           );

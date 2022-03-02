@@ -21,8 +21,7 @@ describe('NoProjectMessage', function () {
     delete organization.projects;
     act(() => ProjectsStore.loadInitialData([project1, project2]));
     const wrapper = mountWithTheme(
-      <NoProjectMessage organization={organization}>{null}</NoProjectMessage>,
-      TestStubs.routerContext()
+      <NoProjectMessage organization={organization}>{null}</NoProjectMessage>
     );
     expect(wrapper.prop('children')).toBe(null);
     expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
@@ -30,10 +29,7 @@ describe('NoProjectMessage', function () {
 
   it('shows "Create Project" button when there are no projects', function () {
     act(() => ProjectsStore.loadInitialData([]));
-    const wrapper = mountWithTheme(
-      <NoProjectMessage organization={org} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<NoProjectMessage organization={org} />);
     expect(
       wrapper.find('Button[to="/organizations/org-slug/projects/new/"]')
     ).toHaveLength(1);
@@ -42,8 +38,7 @@ describe('NoProjectMessage', function () {
   it('"Create Project" is disabled when no access to `project:write`', function () {
     act(() => ProjectsStore.loadInitialData([]));
     const wrapper = mountWithTheme(
-      <NoProjectMessage organization={TestStubs.Organization({access: []})} />,
-      TestStubs.routerContext()
+      <NoProjectMessage organization={TestStubs.Organization({access: []})} />
     );
     expect(
       wrapper.find('Button[to="/organizations/org-slug/projects/new/"]').prop('disabled')
@@ -51,27 +46,20 @@ describe('NoProjectMessage', function () {
   });
 
   it('has no "Join a Team" button when projects are missing', function () {
-    const wrapper = mountWithTheme(
-      <NoProjectMessage organization={org} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<NoProjectMessage organization={org} />);
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(0);
   });
 
   it('has a "Join a Team" button when no projects but org has projects', function () {
     act(() => ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]));
-    const wrapper = mountWithTheme(
-      <NoProjectMessage organization={org} />,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<NoProjectMessage organization={org} />);
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(1);
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function () {
     act(() => ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]));
     const wrapper = mountWithTheme(
-      <NoProjectMessage organization={{...org, access: []}} />,
-      TestStubs.routerContext()
+      <NoProjectMessage organization={{...org, access: []}} />
     );
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]').prop('disabled')).toBe(
       true
@@ -88,8 +76,7 @@ describe('NoProjectMessage', function () {
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} superuserNeedsToBeProjectMember>
         {null}
-      </NoProjectMessage>,
-      TestStubs.routerContext()
+      </NoProjectMessage>
     );
     expect(wrapper.find('HelpMessage')).toHaveLength(1);
   });
@@ -116,8 +103,7 @@ describe('NoProjectMessage', function () {
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={organization}>
         <MockComponent />
-      </NoProjectMessage>,
-      TestStubs.routerContext()
+      </NoProjectMessage>
     );
 
     // verify MockComponent is mounted once

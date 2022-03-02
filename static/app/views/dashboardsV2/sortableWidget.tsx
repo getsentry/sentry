@@ -77,6 +77,7 @@ function SortableWidget(props: Props) {
     currentWidgetDragging,
     showContextMenu: true,
     isPreview,
+    showWidgetViewerButton: organization.features.includes('widget-viewer-modal'),
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {

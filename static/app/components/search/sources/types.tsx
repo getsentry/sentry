@@ -1,6 +1,4 @@
-import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
-
-type MarkedText = ReturnType<typeof parseHtmlMarks>;
+import {Fuse} from 'sentry/utils/fuzzySearch';
 
 /**
  * A result item that sources create.
@@ -72,11 +70,7 @@ export type ResultItem = {
 /**
  * Result with the source item and any highlighted text fragments that matched.
  */
-export type Result = {
-  item: ResultItem;
-  score: number;
-  matches?: MarkedText[];
-};
+export type Result = Fuse.FuseResult<ResultItem>;
 
 /**
  * Common type send to child function

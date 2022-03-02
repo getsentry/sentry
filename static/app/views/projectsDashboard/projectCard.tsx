@@ -27,9 +27,7 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import MissingReleasesButtons, {
-  MissingReleaseButtonBar,
-} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
   displayCrashFreePercent,
@@ -332,14 +330,6 @@ const FooterWrapper = styled('div')`
     box-shadow: none;
     font-size: ${p => p.theme.fontSizeMedium};
     padding: 0;
-  }
-  ${MissingReleaseButtonBar} {
-    a {
-      background-color: ${p => p.theme.background};
-      border: 1px solid ${p => p.theme.border};
-      border-radius: ${p => p.theme.borderRadius};
-      color: ${p => p.theme.gray500};
-    }
   }
 `;
 

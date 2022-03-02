@@ -20,8 +20,7 @@ describe('ResolveActions', function () {
           hasRelease={false}
           orgSlug="org-1"
           projectSlug="proj-1"
-        />,
-        TestStubs.routerContext()
+        />
       );
       button = component.find('ResolveButton').first();
     });
@@ -48,8 +47,7 @@ describe('ResolveActions', function () {
           hasRelease={false}
           orgSlug="org-1"
           projectSlug="proj-1"
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -82,8 +80,7 @@ describe('ResolveActions', function () {
           orgSlug="org-1"
           projectSlug="proj-1"
           isResolved
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -111,8 +108,7 @@ describe('ResolveActions', function () {
           projectSlug="proj-1"
           isResolved
           isAutoResolved
-        />,
-        TestStubs.routerContext()
+        />
       );
 
       component.find('button[aria-label="Unresolve"]').simulate('click');
@@ -130,8 +126,7 @@ describe('ResolveActions', function () {
           hasRelease={false}
           orgSlug="org-1"
           projectSlug="proj-1"
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -163,8 +158,7 @@ describe('ResolveActions', function () {
             shouldConfirm
             confirmMessage="Are you sure???"
           />
-        </Fragment>,
-        TestStubs.routerContext()
+        </Fragment>
       );
     });
 
@@ -203,8 +197,7 @@ describe('ResolveActions', function () {
           projectSlug="project-slug"
           onUpdate={onUpdate}
         />
-      </Fragment>,
-      TestStubs.routerContext()
+      </Fragment>
     );
 
     await selectDropdownMenuItem({

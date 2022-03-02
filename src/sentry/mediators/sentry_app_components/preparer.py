@@ -10,6 +10,7 @@ class Preparer(Mediator):
     component = Param("sentry.models.SentryAppComponent")
     install = Param("sentry.models.SentryAppInstallation")
     project = Param("sentry.models.Project", required=False, default=None)
+    values = Param(dict, required=False, default=[])
 
     def call(self):
         if self.component.type == "issue-link":
@@ -63,12 +64,28 @@ class Preparer(Mediator):
             self._prepare_field(field)
 
     def _prepare_field(self, field):
+        if "depends_on" in field:
+            dependant_data_list = list(
+                filter(lambda val: val["name"] in field.get("depends_on", []), self.values)
+            )
+            if len(dependant_data_list) != len(field.get("depends_on")):
+                return field.update({"choices": []})
+
+            dependant_data = {x["name"]: x["value"] for x in dependant_data_list}
+
+            return self._get_select_choices(field, dependant_data)
+
+        return self._get_select_choices(field)
+
+    def _get_select_choices(self, field, dependant_data=None):
         if "options" in field:
-            field.update({"choices": field["options"]})
+            return field.update({"choices": field["options"]})
 
         if "uri" in field:
             if not field.get("skip_load_on_open"):
-                field.update(self._request(field["uri"]))
+                return field.update(self._request(field["uri"], dependent_data=dependant_data))
 
-    def _request(self, uri):
-        return SelectRequester.run(install=self.install, project=self.project, uri=uri)
+    def _request(self, uri, dependent_data=None):
+        return SelectRequester.run(
+            install=self.install, project=self.project, uri=uri, dependent_data=dependent_data
+        )

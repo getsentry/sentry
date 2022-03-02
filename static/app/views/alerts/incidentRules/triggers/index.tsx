@@ -23,6 +23,7 @@ type Props = {
   currentProject: string;
   disabled: boolean;
   errors: Map<number, {[fieldName: string]: string}>;
+  hasAlertWizardV3: boolean;
   onChange: (
     triggers: Trigger[],
     triggerIndex?: number,
@@ -104,6 +105,7 @@ class Triggers extends Component<Props> {
       thresholdPeriod,
       comparisonType,
       resolveThreshold,
+      hasAlertWizardV3,
       onThresholdTypeChange,
       onResolveThresholdChange,
       onThresholdPeriodChange,
@@ -125,6 +127,7 @@ class Triggers extends Component<Props> {
               thresholdType={thresholdType}
               thresholdPeriod={thresholdPeriod}
               comparisonType={comparisonType}
+              hasAlertWizardV3={hasAlertWizardV3}
               onChange={this.handleChangeTrigger}
               onThresholdTypeChange={onThresholdTypeChange}
               onResolveThresholdChange={onResolveThresholdChange}

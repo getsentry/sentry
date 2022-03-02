@@ -598,6 +598,11 @@ def query_example_transactions(
         [
             Condition(Function("has", [builder.column("spans_op"), span.op]), Op.EQ, 1),
             Condition(Function("has", [builder.column("spans_group"), span.group]), Op.EQ, 1),
+            Condition(
+                builder.resolve_span_function("count", span, "count_span_time"),
+                Op.GT,
+                0,
+            ),
         ]
     )
 
@@ -709,7 +714,7 @@ def get_exclusive_time_windows(span: ExampleSpan, spans: List[Any]) -> List[Time
         [
             TimeWindow(start=child["start_timestamp"], end=child["timestamp"])
             for child in spans
-            if child["parent_span_id"] == span.id
+            if child.get("parent_span_id") == span.id
         ]
     )
     return remove_time_windows(

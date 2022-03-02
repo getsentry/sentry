@@ -14,8 +14,6 @@ describe('GuideAnchor', function () {
     },
   ];
 
-  const routerContext = TestStubs.routerContext();
-
   beforeEach(function () {
     ConfigStore.config = {
       user: {
@@ -24,8 +22,8 @@ describe('GuideAnchor', function () {
       },
     };
 
-    wrapper = mountWithTheme(<GuideAnchor target="issue_title" />, routerContext);
-    wrapper2 = mountWithTheme(<GuideAnchor target="exception" />, routerContext);
+    wrapper = mountWithTheme(<GuideAnchor target="issue_title" />);
+    wrapper2 = mountWithTheme(<GuideAnchor target="exception" />);
   });
 
   afterEach(function () {
@@ -118,8 +116,7 @@ describe('GuideAnchor', function () {
     const wrapper3 = mountWithTheme(
       <GuideAnchorWrapper disabled target="exception">
         <div data-test-id="child-div" />
-      </GuideAnchorWrapper>,
-      routerContext
+      </GuideAnchorWrapper>
     );
 
     GuideActions.fetchSucceeded(serverGuide);
