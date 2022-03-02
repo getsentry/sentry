@@ -787,6 +787,17 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         should_compare = lambda _: _coerce_utc(query.start) > self.metrics_start
 
+        if should_compare:
+            # Ingestion delays in metrics are higher than in sessions, producing
+            # indeterministic metrics vs sessions comparisons. Excluding the full
+            # last hour removes the differences ingestion delays cause,
+            # producing deterministic comparisons.
+            #
+            # Comparisons are only visible if deltas are computed first. There's
+            # no need of excluding time if deltas aren't computed.
+            query.end = query.end.replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
+            set_tag("run_sessions_query.exclude_time", "1h")
+
         organization = self._org_from_id(org_id)
         return self._dispatch_call(  # type: ignore
             "run_sessions_query",
