@@ -52,7 +52,7 @@ export default function RangeField({
   const resolvedDisabled =
     typeof disabled === 'function' ? disabled(otherProps) : disabled;
 
-  const props = {
+  const props: InputFieldProps = {
     ...otherProps,
     disabled: resolvedDisabled,
     formatMessageValue,

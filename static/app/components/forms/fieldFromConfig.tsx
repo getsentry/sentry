@@ -63,7 +63,7 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
     case 'string':
     case 'text':
     case 'url':
-      if (props.field.multiline) {
+      if (componentProps.multiline) {
         return <TextareaField {...(componentProps as TextareaFieldProps)} />;
       }
       return <TextField {...componentProps} />;
@@ -78,7 +78,7 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
     case 'choice_mapper':
       return <ChoiceMapperField {...(componentProps as ChoiceMapperFieldProps)} />;
     case 'radio':
-      if (Array.isArray(props.field.choices)) {
+      if (Array.isArray(componentProps.choices)) {
         return <RadioField {...(componentProps as RadioFieldProps)} />;
       }
       throw new Error('Invalid `choices` type. Use an array of options');
