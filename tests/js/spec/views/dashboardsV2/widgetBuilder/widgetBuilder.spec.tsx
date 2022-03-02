@@ -750,42 +750,38 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
-  /**
-   * This test isn't passing because it's complaining there's a field that goes from
-   * uncontrolled to controlled.
-   */
-  // it.only('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
-  //   renderTestComponent();
+  it('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
+    renderTestComponent();
 
-  //   expect(await screen.findByText('Table')).toBeInTheDocument();
+    expect(await screen.findByText('Table')).toBeInTheDocument();
 
-  //   // No delete button as there is only one field.
-  //   expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
 
-  //   // Add field column
-  //   userEvent.click(screen.getByLabelText('Add a Column'));
-  //   userEvent.click(screen.getByText('(Required)'));
-  //   userEvent.type(screen.getByText('(Required)'), 'event.type{enter}');
+    // Add field column
+    userEvent.click(screen.getByLabelText('Add a Column'));
+    userEvent.click(screen.getByText('(Required)'));
+    userEvent.type(screen.getByText('(Required)'), 'event.type{enter}');
 
-  //   const removeColumnButtons = screen.queryAllByLabelText('Remove column');
-  //   expect(removeColumnButtons).toHaveLength(2);
+    const removeColumnButtons = screen.queryAllByLabelText('Remove column');
+    expect(removeColumnButtons).toHaveLength(2);
 
-  // Remove the default count() column
-  // userEvent.click(removeColumnButtons[0]);
-  // expect(screen.queryByText('count()')).not.toBeInTheDocument();
-  // expect(screen.getByText('event.type')).toBeInTheDocument();
+    // Remove the default count() column
+    userEvent.click(removeColumnButtons[0]);
+    expect(screen.queryByText('count()')).not.toBeInTheDocument();
+    expect(screen.getByText('event.type')).toBeInTheDocument();
 
-  //   // Select Line chart display
-  //   userEvent.click(screen.getByText('Table'));
-  //   userEvent.click(screen.getByText('Line Chart'));
+    // Select Line chart display
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
 
-  //   // Expect event.type field to be converted to count()
-  //   expect(screen.queryByText('event.type')).not.toBeInTheDocument();
-  //   expect(screen.getByText('count()')).toBeInTheDocument();
+    // Expect event.type field to be converted to count()
+    expect(screen.queryByText('event.type')).not.toBeInTheDocument();
+    expect(screen.getByText('count()')).toBeInTheDocument();
 
-  //   // No delete button as there is only one field.
-  //   expect(screen.queryAllByLabelText('Remove column')).toHaveLength(0);
-  // });
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+  });
 
   /**
    * Same problem as the one before
@@ -941,45 +937,48 @@ describe('WidgetBuilder', function () {
   //   expect(handleSave).toHaveBeenCalledTimes(1);
   // });
 
-  /**
-   * TODO: This is also failing due to the uncontrolled -> controlled input error
-   */
-  // it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
-  //   renderTestComponent();
+  it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+    const handleSave = jest.fn();
+    renderTestComponent({onSave: handleSave});
 
-  //   // No delete button as there is only one field.
-  //   expect(screen.queryByRole('button', {name: 'Remove query'})).not.toBeInTheDocument();
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
 
-  //   // Select Big Number display
-  //   userEvent.click(await screen.findByText('Table'));
-  //   userEvent.click(screen.getByText('Big Number'));
+    // Select Big Number display
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Big Number'));
 
-  //   // // Choose any()
-  //   userEvent.click(screen.getByText('count()'));
-  //   userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
-  //   userEvent.click(screen.getByText('transaction.duration'));
-  //   userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
+    // Choose any()
+    userEvent.click(screen.getByText('count()'));
+    userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
+    userEvent.click(screen.getByText('transaction.duration'));
+    userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
 
-  //   // Select Line chart display
-  //   userEvent.click(screen.getByText('Big Number'));
-  //   userEvent.click(screen.getByText('Bar Chart'));
+    // Select Line chart display
+    userEvent.click(screen.getByText('Big Number'));
+    userEvent.click(screen.getByText('Line Chart'));
 
-  //   //  // Expect event.type field to be converted to count()
-  //   //  // const fieldColumn = wrapper.find('input[name="field"]');
-  //   //  // expect(fieldColumn.length).toEqual(1);
-  //   //  // expect(fieldColumn.props().value).toMatchObject({
-  //   //  //  kind: 'function',
-  //   //  //  meta: {
-  //   //  //   name: 'count',
-  //   //  //   parameters: [],
-  //   //  //  },
-  //   //  // });
-  //   //  // await clickSubmit(wrapper);
-  //   //  // expect(widget.displayType).toEqual('line');
-  //   //  // expect(widget.queries).toHaveLength(1);
-  //   //  // expect(widget.queries[0].fields).toEqual(['count()']);
-  //   //  // wrapper.unmount();
-  // });
+    // Expect any(...) field to be converted to count()
+    expect(screen.getByText('count()')).toBeInTheDocument();
+
+    // Save widget
+    userEvent.click(screen.getByLabelText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          displayType: 'line',
+          queries: [
+            expect.objectContaining({
+              fields: ['count()'],
+            }),
+          ],
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
 
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
