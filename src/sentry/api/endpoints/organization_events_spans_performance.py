@@ -714,7 +714,7 @@ def get_exclusive_time_windows(span: ExampleSpan, spans: List[Any]) -> List[Time
         [
             TimeWindow(start=child["start_timestamp"], end=child["timestamp"])
             for child in spans
-            if child["parent_span_id"] == span.id
+            if child.get("parent_span_id") == span.id
         ]
     )
     return remove_time_windows(
