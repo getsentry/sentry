@@ -1,15 +1,14 @@
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {pinFilter, updateDateTime} from 'sentry/actionCreators/pageFilters';
-import Button from 'sentry/components/button';
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DropdownButton from 'sentry/components/dropdownButton';
+import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
-import {IconCalendar, IconPin} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconCalendar} from 'sentry/icons';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
@@ -27,11 +26,9 @@ type Props = Omit<
 };
 
 function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
-  const {selection, pinnedFilters} = useLegacyStore(PageFiltersStore);
+  const {selection} = useLegacyStore(PageFiltersStore);
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
-
-  const isDatePinned = pinnedFilters.has('datetime');
 
   const handleUpdate = (timePeriodUpdate: ChangeData) => {
     const {relative, ...startEndUtc} = timePeriodUpdate;
@@ -41,10 +38,6 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
     };
 
     updateDateTime(newTimePeriod, router, {save: true, resetParams: resetParamsOnChange});
-  };
-
-  const handlePinClick = () => {
-    pinFilter('datetime', !isDatePinned);
   };
 
   const customDropdownButton = ({getActorProps, isOpen}) => {
@@ -83,14 +76,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
         detached
         {...props}
       />
-      <PinButton
-        aria-pressed={isDatePinned}
-        aria-label={t('Pin')}
-        onClick={handlePinClick}
-        size="zero"
-        icon={<IconPin size="xs" isSolid={isDatePinned} />}
-        borderless
-      />
+      <PageFilterPinButton size="zero" filter="datetime" />
     </DateSelectorContainer>
   );
 }
@@ -129,12 +115,6 @@ const DropdownTitle = styled('div')`
   overflow: hidden;
   align-items: center;
   flex: 1;
-`;
-
-const PinButton = styled(Button)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  background: transparent;
 `;
 
 export default withRouter(DatePageFilter);

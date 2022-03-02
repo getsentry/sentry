@@ -2,10 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {IconAdd, IconPin} from 'sentry/icons';
+import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -60,7 +60,6 @@ type Props = {
    * recover
    */
   paginated?: boolean;
-  pinned?: boolean;
   /**
    * Represents if a search is taking place
    */
@@ -87,7 +86,6 @@ const ProjectSelector = ({
   onMultiSelect,
   multi = false,
   selectedProjects = [],
-  pinned,
   ...props
 }: Props) => {
   const getProjects = () => {
@@ -165,10 +163,6 @@ const ProjectSelector = ({
     ];
   };
 
-  const handlePinClick = () => {
-    pinFilter('projects', !pinned);
-  };
-
   const hasProjects = !!projects?.length || !!nonMemberProjects?.length;
   const newProjectUrl = `/organizations/${organization.slug}/projects/new/`;
   const hasProjectWrite = organization.access.includes('project:write');
@@ -209,15 +203,7 @@ const ProjectSelector = ({
           >
             {hasPageFilters ? '' : t('Project')}
           </AddButton>
-          {hasPageFilters && (
-            <PinButton
-              aria-pressed={pinned}
-              aria-label={t('Pin')}
-              onClick={handlePinClick}
-              size="xsmall"
-              icon={<IconPin size="xs" isSolid={pinned} />}
-            />
-          )}
+          {hasPageFilters && <PageFilterPinButton size="xsmall" filter="projects" />}
         </InputActions>
       }
       menuFooter={renderProps => {
@@ -258,14 +244,6 @@ const Label = styled('div')`
 `;
 
 const AddButton = styled(Button)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  :hover {
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const PinButton = styled(Button)`
   display: block;
   color: ${p => p.theme.gray300};
   :hover {
