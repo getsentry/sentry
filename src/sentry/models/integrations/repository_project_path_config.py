@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models.signals import post_save
 
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
-from sentry.tasks.code_owners import update_code_owners_schema
+from sentry.tasks.codeowners import update_code_owners_schema
 
 
 class RepositoryProjectPathConfig(DefaultFieldsModel):
