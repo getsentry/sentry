@@ -38,7 +38,7 @@ interface BaseRadioGroupProps<C extends string> {
   orientInline?: boolean;
 }
 
-interface RadioGroupProps<C extends string>
+export interface RadioGroupProps<C extends string>
   extends BaseRadioGroupProps<C>,
     Omit<ContainerProps, 'onChange'> {}
 
