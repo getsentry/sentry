@@ -1,6 +1,7 @@
 from sentry.api.bases.project import ProjectPermission
 from sentry.models import ApiKey
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class ProjectPermissionBase(TestCase):
@@ -14,6 +15,12 @@ class ProjectPermissionBase(TestCase):
         perm = ProjectPermission()
         request = self.make_request(user=user, auth=auth, method=method)
         if is_superuser:
+            request._body = json.dumps(
+                {
+                    "superuserAccessCategory": "Edit organization settings",
+                    "superuserReason": "Edit organization settings",
+                }
+            )
             request.superuser.set_logged_in(request.user)
         return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
 
@@ -25,6 +32,7 @@ class ProjectPermissionTest(ProjectPermissionBase):
 
     def test_superuser(self):
         user = self.create_user(is_superuser=True)
+        self.login_as(user=user, superuser=True)
         assert self.has_object_perm("GET", self.project, user=user, is_superuser=True)
 
     def test_member_for_project_read(self):
@@ -157,6 +165,7 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
 
     def test_superuser(self):
         user = self.create_user(is_superuser=True)
+        self.login_as(user=user, superuser=True)
         assert self.has_object_perm("GET", self.project, user=user, is_superuser=True)
 
     def test_member_for_project_read(self):

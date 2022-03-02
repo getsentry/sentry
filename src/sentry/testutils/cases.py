@@ -203,6 +203,12 @@ class BaseTestCase(Fixtures, Exam):
         request.superuser = Superuser(request)
         if is_superuser:
             # XXX: this is gross, but its a one off and apis change only once in a great while
+            request._body = json.dumps(
+                {
+                    "superuserAccessCategory": "Edit organization settings",
+                    "superuserReason": "Edit organization settings",
+                }
+            )
             request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
         request.successful_authenticator = None
