@@ -22,6 +22,7 @@ import {
 } from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   DateString,
   Environment,
@@ -533,4 +534,30 @@ function getNewQueryParams(
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
 
   return Object.fromEntries(paramEntries) as PageFilterQuery;
+}
+
+export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {
+  const {selection, desyncedFilters} = PageFiltersStore.getState();
+  const storedFilterState = getPageFilterStorage(orgSlug)?.state;
+
+  if (!storedFilterState) {
+    return;
+  }
+
+  const newParams = {
+    project: desyncedFilters.has('projects')
+      ? storedFilterState.project
+      : selection.projects,
+    environment: desyncedFilters.has('environments')
+      ? storedFilterState.environment
+      : selection.environments,
+    ...(desyncedFilters.has('datetime')
+      ? pick(storedFilterState, DATE_TIME_KEYS)
+      : selection.datetime),
+  };
+
+  updateParams(newParams, router, {
+    keepCursor: true,
+  });
+  updateDesyncedUrlState(router);
 }

@@ -914,6 +914,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "SERVERS": [{"url": "https://sentry.io/"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
+        "SORT_OPERATION_PARAMETERS": False,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
@@ -1094,8 +1095,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable workaround for migrating IdP instances
-    "organizations:sso-migration": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
@@ -2508,5 +2507,5 @@ ANOMALY_DETECTION_TIMEOUT = 30
 # This is the URL to the profiling service
 SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 
-SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.base.RuleHistoryBackend"
+SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
