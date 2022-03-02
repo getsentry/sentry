@@ -58,7 +58,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
     end = serializers.DateTimeField(
         help_text="This defines the end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
-        "Use along with `end` instead of `statsPeriod`.",
+        "Use along with `start` instead of `statsPeriod`.",
         required=False,
     )
 
