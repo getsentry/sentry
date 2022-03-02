@@ -137,6 +137,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         assert len(responses.calls) == 1
 
+        assert resp.status_code == 200
         # Returns errors while fetching
         assert len(resp.data["errors"]) == 1
         assert resp.data["errors"][0] == {

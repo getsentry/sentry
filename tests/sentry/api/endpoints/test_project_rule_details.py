@@ -201,6 +201,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
         assert len(responses.calls) == 1
 
+        assert response.status_code == 200
         # Returns errors while fetching
         assert len(response.data["errors"]) == 1
         assert response.data["errors"][0] == {
