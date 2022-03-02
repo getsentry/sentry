@@ -23,7 +23,6 @@ from sentry.models import (
 from sentry.models.integrations.sentry_app import VALID_EVENTS, track_response_code
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
-from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
@@ -202,13 +201,11 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         data = {}
         if isinstance(instance, Event):
             data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
-            print("hello I am here in _process_resource_change")
         else:
             data[name] = serialize(instance)
 
         # Trigger a new task for each webhook
-        print("about to drop the hottest webhook")
-        # TODO put back .delay
+        # TODO(CEO): put back .delay when not developing
         send_resource_change_webhook(installation_id=installation.id, event=event, data=data)
 
 
@@ -243,9 +240,31 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
-    print("here I am in workflow_notification: ", type)
-    extra = {"installation_id": installation_id, "issue_id": issue_id}
 
+    install, issue, user = get_webhook_data(installation_id, issue_id, user_id)
+
+    data = kwargs.get("data", {})
+    data.update({"issue": serialize(issue)})
+    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+
+
+@instrumented_task(name="sentry.tasks.sentry_apps.build_comment_webhook", **TASK_OPTIONS)
+@retry(**RETRY_OPTIONS)
+def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwargs):
+    install, _, user = get_webhook_data(installation_id, issue_id, user_id)
+    data = kwargs.get("data", {})
+    payload = {
+        "comment_id": data.id,
+        "group_id": data.group.id,
+        "project_id": data.project.id,
+        "timestamp": data.datetime,
+        "comment": data.data["text"],
+    }
+    send_webhooks(installation=install, event=type, data=payload, actor=user)
+
+
+def get_webhook_data(installation_id, issue_id, user_id):
+    extra = {"installation_id": installation_id, "issue_id": issue_id}
     try:
         install = SentryAppInstallation.objects.get(
             id=installation_id, status=SentryAppInstallationStatus.INSTALLED
@@ -267,26 +286,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     except User.DoesNotExist:
         logger.info("workflow_notification.missing_user", extra=extra)
 
-    print("group id: ", issue_id)
-    comments = Activity.objects.filter(
-        group=issue, project=issue.project, type=ActivityType.NOTE.value
-    )
-
-    if comments:
-        print("~~~~~~~~~~")
-        print(comments[0])
-
-    # TODO: add comment data to payload
-    # potentially make a totally different payload (in another function?) for comments stuff
-    # omitting issue data - just comment.created, the comment, timestamp, issue id, comment ID?
-    # comment.updated - new comment, timestamp, issue id, comment ID?
-    # comment.deleted - timestamp, issue id, comment ID?
-
-    data = kwargs.get("data", {})
-    print("data before issue: ", data)
-    data.update({"issue": serialize(issue)})
-
-    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+    return (install, issue, user)
 
 
 @instrumented_task("sentry.tasks.send_process_resource_change_webhook", **TASK_OPTIONS)
@@ -302,8 +302,6 @@ def send_resource_change_webhook(installation_id, event, data, *args, **kwargs):
             extra={"installation_id": installation_id, "event": event},
         )
         return
-
-    print("here I am in send_resource_change_webhook", event)
 
     send_webhooks(installation, event, data=data)
 
@@ -372,8 +370,6 @@ def send_webhooks(installation, event, **kwargs):
 
     if not project_limited:
         resource, action = event.split(".")
-
-        print("action: ", action)
 
         kwargs["resource"] = resource
         kwargs["action"] = action

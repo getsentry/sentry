@@ -7,7 +7,7 @@ from sentry.signals import (
     issue_ignored,
     issue_resolved,
 )
-from sentry.tasks.sentry_apps import workflow_notification
+from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
 
 
 @issue_assigned.connect(weak=False)
@@ -56,23 +56,30 @@ def send_comment_updated_webhook(project, user, group, data, **kwargs):
 
 
 @comment_deleted.connect(weak=False)
-def send_comment_deleted_webhook(project, user, group, data=None, **kwargs):
+def send_comment_deleted_webhook(project, user, group, data, **kwargs):
     send_workflow_webhooks(project.organization, group, user, "comment.deleted", data=data)
 
 
 def send_workflow_webhooks(organization, issue, user, event, data=None):
     data = data or {}
 
-    print("in send_workflow_webhooks: ", event)
-
     for install in installations_to_notify(organization, event):
-        workflow_notification(
-            installation_id=install.id,
-            issue_id=issue.id,
-            type=event.split(".")[-1],
-            user_id=(user.id if user else None),
-            data=data,
-        )
+        if event.startswith("comment"):
+            build_comment_webhook(
+                installation_id=install.id,
+                issue_id=issue.id,
+                type=event,
+                user_id=(user.id if user else None),
+                data=data,
+            )
+        else:
+            workflow_notification(
+                installation_id=install.id,
+                issue_id=issue.id,
+                type=event.split(".")[-1],
+                user_id=(user.id if user else None),
+                data=data,
+            )
 
 
 def installations_to_notify(organization, event):

@@ -12,9 +12,6 @@ from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,
     alert_rule_created,
-    comment_created,
-    comment_deleted,
-    comment_updated,
     data_scrubber_enabled,
     deploy_created,
     event_processed,
@@ -174,66 +171,6 @@ def record_issue_assigned(project, group, user, **kwargs):
         default_user_id = project.organization.get_default_owner().id
     analytics.record(
         "issue.assigned",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
-    )
-
-
-@comment_created.connect(weak=False)
-def record_comment_created(project, group, user, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="comment_created", complete=True
-    )
-
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = project.organization.get_default_owner().id
-    analytics.record(
-        "comment.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
-    )
-
-
-@comment_updated.connect(weak=False)
-def record_comment_updated(project, group, user, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="comment_updated", complete=True
-    )
-
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = project.organization.get_default_owner().id
-    analytics.record(
-        "comment.updated",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
-    )
-
-
-@comment_deleted.connect(weak=False)
-def record_comment_deleted(project, group, user, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="comment_deleted", complete=True
-    )
-
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = project.organization.get_default_owner().id
-    analytics.record(
-        "comment.deleted",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,

@@ -77,11 +77,12 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
         self.create_external_comment(request, group, activity)
+
         comment_created.send_robust(
             project=group.project,
             user=request.user,
             group=group,
-            activity_data=data,
+            data=activity,
             sender="post",
         )
         return Response(serialize(activity, request.user), status=201)

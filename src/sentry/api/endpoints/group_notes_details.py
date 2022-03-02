@@ -27,14 +27,14 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
 
-        note.delete()
         comment_deleted.send_robust(
             project=group.project,
             user=request.user,
             group=group,
-            activity_data=note,
+            data=note,
             sender="post",
         )
+        note.delete()
 
         return Response(status=204)
 
@@ -69,7 +69,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 project=group.project,
                 user=request.user,
                 group=group,
-                activity_data=request.data,
+                data=note,
                 sender="post",
             )
             return Response(serialize(note, request.user), status=200)

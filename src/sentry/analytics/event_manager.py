@@ -17,7 +17,6 @@ class EventManager:
             self._event_types[event_type] = event_cls
 
     def get(self, type: str) -> Type[Event]:
-        print("event types: ", self._event_types)
         return self._event_types[type]
 
 
