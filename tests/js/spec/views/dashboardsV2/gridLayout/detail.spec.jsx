@@ -1,5 +1,6 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {
   act,
   mountWithTheme as rtlMountWithTheme,
@@ -11,6 +12,7 @@ import {
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {constructGridItemKey} from 'sentry/views/dashboardsV2/layoutUtils';
+import {DashboardWidgetSource} from 'sentry/views/dashboardsV2/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -651,6 +653,43 @@ describe('Dashboards > Detail', function () {
         expect.objectContaining({
           pathname: '/organizations/org-slug/dashboard/1/',
           query: {},
+        })
+      );
+    });
+
+    it('opens the edit widget modal when clicking the edit button', async () => {
+      const widget = TestStubs.Widget(
+        [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+        {
+          title: 'First Widget',
+          interval: '1d',
+          id: '1',
+          layout: null,
+        }
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
+      });
+
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/123/'}}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      await mountGlobalModal();
+
+      userEvent.click(screen.getByRole('button', {name: 'Edit Widget'}));
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget,
+          organization: initialData.organization,
+          source: DashboardWidgetSource.DASHBOARDS,
         })
       );
     });
