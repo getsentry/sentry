@@ -30,7 +30,10 @@ export async function openWidgetBuilderOverwriteModal(
 export function WidgetLibrary({bypassOverwriteModal, onWidgetSelect}: Props) {
   const theme = useTheme();
 
-  function getLibrarySelectionHandler(widget, iconColor) {
+  function getLibrarySelectionHandler(
+    widget: OverwriteWidgetModalProps['widget'],
+    iconColor: OverwriteWidgetModalProps['iconColor']
+  ) {
     return function handleWidgetSelect() {
       if (bypassOverwriteModal) {
         onWidgetSelect(widget);
