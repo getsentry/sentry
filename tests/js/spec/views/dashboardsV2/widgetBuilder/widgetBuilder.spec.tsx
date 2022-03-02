@@ -831,6 +831,7 @@ describe('WidgetBuilder', function () {
 
     // No delete button as there is only one field.
     expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+
     userEvent.type(screen.getByText('count()'), 'any{enter}');
 
     // Expect user.display to not be an available parameter option for any()
@@ -844,34 +845,42 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
   });
 
-  // it('should not filter y-axis choices for big number widget charts', async function () {
-  //  let widget = undefined;
-  //  const wrapper = mountModal({
-  //   initialData,
-  //   onAddWidget: data => (widget = data),
-  //  });
-  //  // No delete button as there is only one field.
-  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
-  //  // Select Big number display
-  //  selectByLabel(wrapper, 'Big Number', {name: 'displayType', at: 0, control: true});
-  //  expect(getDisplayType(wrapper).props().value).toEqual('big_number');
-  //  selectByLabel(wrapper, 'count_unique(\u2026)', {
-  //   name: 'field',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  // Be able to choose a non numeric-like option for count_unique()
-  //  selectByLabel(wrapper, 'user.display', {
-  //   name: 'parameter',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  await clickSubmit(wrapper);
-  //  expect(widget.displayType).toEqual('big_number');
-  //  expect(widget.queries).toHaveLength(1);
-  //  expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
-  //  wrapper.unmount();
-  // });
+  it('should not filter y-axis choices for big number widget charts', async function () {
+    const handleSave = jest.fn();
+    renderTestComponent({onSave: handleSave});
+
+    expect(await screen.findByText('Table')).toBeInTheDocument();
+
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+
+    // Select Big number display
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(screen.getByText('Big Number'));
+
+    userEvent.type(screen.getByText('count()'), 'count_unique{enter}');
+
+    // Be able to choose a non numeric-like option for count_unique()
+    userEvent.type(screen.getByText('user'), 'user.display{enter}');
+
+    // Save widget
+    userEvent.click(screen.getByLabelText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          displayType: 'big_number',
+          queries: [
+            expect.objectContaining({
+              fields: ['count_unique(user.display)'],
+            }),
+          ],
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
 
   // it('should filter y-axis choices for world map widget charts', async function () {
   //  let widget = undefined;
