@@ -31,7 +31,6 @@ interface FieldFromConfigProps {
   getData?: (data) => any;
   highlighted?: boolean;
   inline?: boolean;
-  name?: string;
   noOptionsMessage?: () => string;
   onBlur?: (value, event) => void;
   stacked?: boolean;

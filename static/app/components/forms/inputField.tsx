@@ -26,34 +26,33 @@ export interface InputFieldProps
 
 export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
-function InputField(props: InputFieldProps) {
-  function defaultField({
-    onChange,
-    onBlur,
-    onKeyDown,
-    ...rest
-  }: {
-    onBlur: onEvent;
-    onChange: onEvent;
-    onKeyDown: onEvent;
-  }) {
-    return (
-      <Input
-        {...rest}
-        onBlur={e => onBlur(e.target.value, e)}
-        onKeyDown={e => onKeyDown((e.target as any).value, e)}
-        onChange={e => onChange(e.target.value, e)}
-      />
-    );
-  }
+function defaultField({
+  onChange,
+  onBlur,
+  onKeyDown,
+  ...rest
+}: {
+  onBlur: onEvent;
+  onChange: onEvent;
+  onKeyDown: onEvent;
+}) {
+  return (
+    <Input
+      onBlur={e => onBlur(e.target.value, e)}
+      onKeyDown={e => onKeyDown((e.target as any).value, e)}
+      onChange={e => onChange(e.target.value, e)}
+      {...rest}
+    />
+  );
+}
 
+function InputField(props: InputFieldProps) {
   return (
     <FormField className={props.className} {...props}>
-      {formFieldProps =>
-        props.field
-          ? props.field(omit(formFieldProps, 'children'))
-          : defaultField(formFieldProps)
-      }
+      {formFieldProps => {
+        const {children: _children, ...otherFieldProps} = formFieldProps;
+        return props.field ? props.field(otherFieldProps) : defaultField(otherFieldProps);
+      }}
     </FormField>
   );
 }
