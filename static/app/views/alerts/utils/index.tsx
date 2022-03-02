@@ -7,7 +7,6 @@ import {IssueAlertRule} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {PRESET_AGGREGATES} from 'sentry/views/alerts/incidentRules/presets';
 import {
   Dataset,
   Datasource,
@@ -80,16 +79,6 @@ export function updateStatus(
       status,
     },
   });
-}
-
-export function getIncidentMetricPreset(incident: Incident) {
-  const alertRule = incident?.alertRule;
-  const aggregate = alertRule?.aggregate ?? '';
-  const dataset = alertRule?.dataset ?? Dataset.ERRORS;
-
-  return PRESET_AGGREGATES.find(
-    p => p.validDataset.includes(dataset) && p.match.test(aggregate)
-  );
 }
 
 /**
