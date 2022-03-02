@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from sentry.utils.cursors import Cursor, CursorResult
 
 
-@dataclass
+@dataclass(frozen=True)
 class RuleGroupHistory:
     group: Group
     count: int
