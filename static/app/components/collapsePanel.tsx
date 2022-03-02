@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconChevron, IconList} from 'sentry/icons';
@@ -17,6 +18,7 @@ type Props = {
   items: number;
   buttonTitle?: string;
   collapseCount?: number;
+  disableBorder?: boolean;
 };
 
 /**
@@ -31,6 +33,7 @@ function CollapsePanel({
   children,
   buttonTitle,
   collapseCount = COLLAPSE_COUNT,
+  disableBorder = true,
 }: Props) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   function expandResults() {
@@ -45,6 +48,7 @@ function CollapsePanel({
           items={items}
           buttonTitle={buttonTitle}
           collapseCount={collapseCount}
+          disableBorder={disableBorder}
           onClick={expandResults}
         />
       ),
@@ -56,16 +60,23 @@ type ShowMoreButtonProps = {
   onClick: () => void;
   buttonTitle?: string;
   collapseCount?: number;
+  disableBorder?: boolean;
 };
 
 function ShowMoreButton({
   items,
   buttonTitle = 'More',
   collapseCount = COLLAPSE_COUNT,
+  disableBorder = true,
   onClick,
 }: ShowMoreButtonProps) {
   return (
-    <ShowMore onClick={onClick} role="button" data-test-id="collapse-show-more">
+    <ShowMore
+      onClick={onClick}
+      role="button"
+      data-test-id="collapse-show-more"
+      disableBorder={disableBorder}
+    >
       <ShowMoreText>
         <StyledIconList color="gray300" />
         {tct('Show [count] [buttonTitle]', {count: items - collapseCount, buttonTitle})}
@@ -78,7 +89,7 @@ function ShowMoreButton({
 
 export default CollapsePanel;
 
-const ShowMore = styled('div')`
+const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(2)};
@@ -86,6 +97,17 @@ const ShowMore = styled('div')`
   color: ${p => p.theme.subText};
   cursor: pointer;
   border-top: 1px solid ${p => p.theme.border};
+
+  ${p =>
+    !p.disableBorder &&
+    css`
+      border-left: 1px solid ${p.theme.border};
+      border-right: 1px solid ${p.theme.border};
+      border-bottom: 1px solid ${p.theme.border};
+      border-bottom-left-radius: ${p.theme.borderRadius};
+      border-bottom-right-radius: ${p.theme.borderRadius};
+      margin-bottom: ${space(2)};
+    `}
 `;
 
 const StyledIconList = styled(IconList)`
