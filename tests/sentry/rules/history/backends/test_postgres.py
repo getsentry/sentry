@@ -128,3 +128,42 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
                 RuleGroupHistory(self.group, count=1),
             ],
         )
+
+
+@freeze_time()
+class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
+    def test(self):
+        rule = Rule.objects.create(project=self.event.project)
+        rule_2 = Rule.objects.create(project=self.event.project)
+        history = []
+
+        for i in range(3):
+            for _ in range(i + 1):
+                history.append(
+                    RuleFireHistory(
+                        project=rule.project,
+                        rule=rule,
+                        group=self.group,
+                        date_added=before_now(hours=i + 1),
+                    )
+                )
+
+        for i in range(2):
+            history.append(
+                RuleFireHistory(
+                    project=rule_2.project,
+                    rule=rule_2,
+                    group=self.group,
+                    date_added=before_now(hours=i + 1),
+                )
+            )
+
+        RuleFireHistory.objects.bulk_create(history)
+
+        results = self.backend.fetch_rule_hourly_stats(rule, before_now(hours=24), before_now())
+        assert len(results) == 24
+        assert [r.count for r in results[-5:]] == [0, 0, 3, 2, 1]
+
+        results = self.backend.fetch_rule_hourly_stats(rule_2, before_now(hours=24), before_now())
+        assert len(results) == 24
+        assert [r.count for r in results[-5:]] == [0, 0, 0, 1, 1]
