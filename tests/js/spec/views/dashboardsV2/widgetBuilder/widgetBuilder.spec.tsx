@@ -783,43 +783,47 @@ describe('WidgetBuilder', function () {
     expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
   });
 
-  /**
-   * Same problem as the one before
-   */
-  // it.only('should filter out non-aggregate fields when switching from table to chart', async function () {
-  //   renderTestComponent();
+  it('should filter out non-aggregate fields when switching from table to chart', async function () {
+    renderTestComponent({
+      orgFeatures: [
+        'performance-view',
+        'new-widget-builder-experience',
+        'dashboards-edit',
+        'global-views',
+      ],
+    });
 
-  //   expect(await screen.findByText('Table')).toBeInTheDocument();
+    expect(await screen.findByText('Table')).toBeInTheDocument();
 
-  //   // No delete button as there is only one field.
-  //   expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
 
-  //   // Add field column
-  //   userEvent.click(screen.getByLabelText('Add a Column'));
-  //   userEvent.click(screen.getByText('(Required)'));
-  //   userEvent.type(screen.getByText('(Required)'), 'event.type{enter}');
+    // Add field column
+    userEvent.click(screen.getByLabelText('Add a Column'));
+    userEvent.click(screen.getByText('(Required)'));
+    userEvent.type(screen.getByText('(Required)'), 'event.type{enter}');
 
-  //   const removeColumnButtons = screen.queryAllByLabelText('Remove column');
-  //   expect(removeColumnButtons).toHaveLength(2);
+    const removeColumnButtons = screen.queryAllByLabelText('Remove column');
+    expect(removeColumnButtons).toHaveLength(2);
 
-  //   // Add columns
-  //   userEvent.type(screen.getByText('count()'), 'event.type{enter}');
+    // Add columns
+    userEvent.type(screen.getByText('count()'), 'event.type{enter}');
 
-  //   userEvent.click(screen.getByLabelText('Add a Column'));
-  //   userEvent.click(screen.getByText('(Required)'));
-  //   userEvent.type(screen.getByText('(Required)'), 'p95{enter}');
+    userEvent.click(screen.getByLabelText('Add a Column'));
+    userEvent.click(screen.getByText('(Required)'));
+    userEvent.type(screen.getByText('(Required)'), 'p95{enter}');
 
-  //   // Select Line chart display
-  //   userEvent.click(screen.getByText('Table'));
-  //   userEvent.click(screen.getByText('Line Chart'));
+    // Select Line chart display
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
 
-  //   // Expect event.type field to be dropped
-  //   expect(screen.queryByText('event.type')).not.toBeInTheDocument();
-  //   expect(screen.getByText('p95(…)')).toBeInTheDocument();
+    // Expect event.type field to be dropped
+    expect(screen.queryByText('event.type')).not.toBeInTheDocument();
+    expect(await screen.findByText('p95(…)')).toBeInTheDocument();
 
-  //   // No delete button as there is only one field.
-  //   expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
-  // });
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+  });
 
   it('should filter non-legal y-axis choices for timeseries widget charts', async function () {
     renderTestComponent();
