@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.utils import InvalidParams as InvalidParamsApi
 from sentry.apidocs.constants import RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.decorators import public
 from sentry.apidocs.parameters import GLOBAL_PARAMS
@@ -38,6 +39,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
             "This defines the range of the time series, relative to now. "
             "The range is given in a `<number><unit>` format. "
             "For example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks."
+            "You must either provide a `statsPeriod`, or a `start` and `end`."
         ),
         required=False,
     )
@@ -50,11 +52,13 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         required=False,
     )
     start = serializers.DateTimeField(
-        help_text="This defines the start of the time series range as an explicit datetime.",
+        help_text="This defines the start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
+        "Use along with `end` instead of `statsPeriod`.",
         required=False,
     )
     end = serializers.DateTimeField(
-        help_text="This defines the end of the time series range as an explicit datetime.",
+        help_text="This defines the end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
+        "Use along with `end` instead of `statsPeriod`.",
         required=False,
     )
 
@@ -218,5 +222,5 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
             with super().handle_query_errors():
                 yield
-        except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:
+        except (InvalidField, NoProjects, InvalidParams, InvalidQuery, InvalidParamsApi) as error:
             raise ParseError(detail=str(error))
