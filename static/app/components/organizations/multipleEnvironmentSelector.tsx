@@ -4,9 +4,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
-import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
@@ -15,8 +13,9 @@ import Highlight from 'sentry/components/highlight';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
 import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
+import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconPin, IconWindow} from 'sentry/icons';
+import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -53,7 +52,6 @@ type Props = WithRouterProps & {
     summary: string;
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
-  pinned?: boolean;
 } & DefaultProps;
 
 type State = {
@@ -232,12 +230,8 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
     return uniq(environments);
   }
 
-  handlePinClick = () => {
-    pinFilter('environments', !this.props.pinned);
-  };
-
   render() {
-    const {value, loadingProjects, customDropdownButton, customLoadingIndicator, pinned} =
+    const {value, loadingProjects, customDropdownButton, customLoadingIndicator} =
       this.props;
     const environments = this.getEnvironments();
 
@@ -287,13 +281,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
             emptyHidesInput
             inputActions={
               hasNewPageFilters ? (
-                <PinButton
-                  aria-pressed={pinned}
-                  aria-label={t('Pin')}
-                  onClick={this.handlePinClick}
-                  size="xsmall"
-                  icon={<IconPin size="xs" isSolid={pinned} />}
-                />
+                <StyledPinButton size="xsmall" filter="environments" />
               ) : undefined
             }
             menuFooter={({actions}) =>
@@ -357,13 +345,8 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   min-width: 100%;
 `;
 
-const PinButton = styled(Button)`
-  display: block;
+const StyledPinButton = styled(PageFilterPinButton)`
   margin: 0 ${space(1)};
-  color: ${p => p.theme.gray300};
-  :hover {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 type EnvironmentSelectorItemProps = {
