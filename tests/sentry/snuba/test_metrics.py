@@ -256,7 +256,29 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
 
     counter_queries = snuba_queries.pop("metrics_counters")
     assert not snuba_queries
-    assert counter_queries["series"] is None  # No series because of orderBy
+    assert counter_queries["series"] == Query(
+        dataset="metrics",
+        match=Entity("metrics_counters"),
+        select=[Function("sum", [Column("value")], "sum")],
+        groupby=[
+            Column("metric_id"),
+            Column("tags[8]"),
+            Column("tags[2]"),
+            Column("bucketed_time"),
+        ],
+        where=[
+            Condition(Column("org_id"), Op.EQ, 1),
+            Condition(Column("project_id"), Op.IN, [1]),
+            Condition(Column("metric_id"), Op.IN, [9]),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
+        ],
+        orderby=[OrderBy(Column("sum"), Direction.DESC)],
+        limit=Limit(6480),
+        offset=Offset(0),
+        granularity=Granularity(query_definition.rollup),
+    )
 
     assert counter_queries["totals"] == Query(
         dataset="metrics",
