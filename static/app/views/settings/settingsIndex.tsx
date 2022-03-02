@@ -71,10 +71,18 @@ class SettingsIndex extends React.Component<SettingsIndexProps> {
     const organizationSettingsUrl =
       (organization && `/settings/${organization.slug}/`) || '';
 
-    const supportLinkProps: SupportLinkExternalProps = {
-      isSelfHosted: true,
-      href: LINKS.FORUM,
-    };
+    const supportLinkProps: SupportLinkExternalProps | SupportLinkInternalProps =
+      isSelfHosted
+        ? {
+            isSelfHosted: true,
+            isCentered: true,
+            href: LINKS.FORUM,
+          }
+        : {
+            isSelfHosted: false,
+            to: `${organizationSettingsUrl}support`,
+          };
+
     const supportText = isSelfHosted ? t('Community Forums') : t('Contact Support');
 
     return (
@@ -195,7 +203,7 @@ class SettingsIndex extends React.Component<SettingsIndexProps> {
 
             <GridPanel>
               <HomePanelHeader>
-                <SupportLinkComponent isCentered {...supportLinkProps}>
+                <SupportLinkComponent {...supportLinkProps}>
                   <HomeIcon color="purple300">
                     <IconSupport size="lg" />
                   </HomeIcon>
@@ -324,8 +332,7 @@ interface ExternalHomeLinkProps extends ExternalLinkProps {
 }
 
 const ExternalHomeLink = styled((props: ExternalHomeLinkProps) => {
-  const {isCentered: _isCentered, ...rest} = props;
-  return <ExternalLink {...rest} />;
+  return <ExternalLink {...props} />;
 })<ExternalHomeLinkProps>`
   color: ${p => p.theme.purple300};
 
@@ -340,27 +347,20 @@ interface SupportLinkExternalProps extends ExternalHomeLinkProps {
   href: string;
   isSelfHosted: true;
   isCentered?: boolean;
-  to?: never;
 }
 interface SupportLinkInternalProps extends Omit<LinkProps, 'ref'> {
   isSelfHosted: false;
   to: string;
-  href?: never;
-  isCentered?: boolean;
 }
 
-function SupportLinkComponent({
-  isCentered,
-  isSelfHosted,
-  href,
-  to,
-  ...props
-}: SupportLinkExternalProps | SupportLinkInternalProps) {
-  if (isSelfHosted) {
-    return <ExternalHomeLink isCentered={isCentered} href={href} {...props} />;
+function SupportLinkComponent(
+  props: SupportLinkExternalProps | SupportLinkInternalProps
+) {
+  if (props.isSelfHosted) {
+    return <ExternalHomeLink {...props} />;
   }
 
-  return <HomeLink to={to ?? ''} {...props} />;
+  return <HomeLink {...props} />;
 }
 
 const AvatarContainer = styled('div')`
