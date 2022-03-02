@@ -32,6 +32,7 @@ import {
   TagCollection,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   explodeField,
   generateFieldAsString,
@@ -133,7 +134,7 @@ type QueryData = {
   queryOrderby: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
@@ -144,7 +145,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   start?: DateString;
   statsPeriod?: string | null;
   widget?: Widget;
-};
+}
 
 type State = {
   dashboards: DashboardListItem[];
@@ -311,6 +312,20 @@ function WidgetBuilder({
     });
   }
 
+  function handleDisplayTypeOrTitleChange<
+    F extends keyof Pick<State, 'displayType' | 'title'>
+  >(field: F, value: State[F]) {
+    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.change', {
+      from: source,
+      field,
+      value,
+      widget_type: widgetType,
+      organization,
+    });
+
+    setState({...state, [field]: value, userHasModified: true});
+  }
+
   function handleDataSetChange(newDataSet: string) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
@@ -435,12 +450,19 @@ function WidgetBuilder({
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
+      trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.confirm', {
+        organization,
+      });
       return;
     }
 
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
+    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.confirm', {
+      organization,
+      data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+    });
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
@@ -596,7 +618,9 @@ function WidgetBuilder({
             dashboardTitle={dashboard.title}
             goBackLocation={previousLocation}
             isEditing={isEditing}
-            onChangeTitle={newTitle => setState({...state, title: newTitle})}
+            onChangeTitle={newTitle => {
+              handleDisplayTypeOrTitleChange('title', newTitle);
+            }}
             onSave={handleSave}
           />
           <Body>
@@ -612,7 +636,7 @@ function WidgetBuilder({
                     <DisplayTypeSelector
                       displayType={state.displayType}
                       onChange={(option: {label: string; value: DisplayType}) => {
-                        setState({...state, displayType: option.value});
+                        handleDisplayTypeOrTitleChange('displayType', option.value);
                       }}
                       error={state.errors?.displayType}
                     />

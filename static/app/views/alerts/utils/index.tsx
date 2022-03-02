@@ -240,3 +240,39 @@ export function alertDetailsLink(organization: Organization, incident: Incident)
       : incident.alertRule.id
   }/`;
 }
+
+/**
+ * Noramlizes a status string
+ */
+export function getQueryStatus(status: string | string[]): string[] {
+  if (Array.isArray(status)) {
+    return status;
+  }
+
+  if (status === '') {
+    return [];
+  }
+
+  return ['open', 'closed'].includes(status) ? [status] : [];
+}
+
+const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
+
+/**
+ * Noramlize a team slug from the query
+ */
+export function getTeamParams(team?: string | string[]): string[] {
+  if (team === undefined) {
+    return ALERT_LIST_QUERY_DEFAULT_TEAMS;
+  }
+
+  if (team === '') {
+    return [];
+  }
+
+  if (Array.isArray(team)) {
+    return team;
+  }
+
+  return [team];
+}
