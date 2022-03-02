@@ -13,7 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import {getTransactionName} from '../../../utils';
-import {NoAccess} from '../../pageLayout';
+import {NoAccess, redirectToPerformanceHomepage} from '../../pageLayout';
 import {
   generateSpansEventView,
   parseSpanSlug,
@@ -30,12 +30,14 @@ export default function SpanDetails(props: Props) {
   const transactionName = getTransactionName(location);
   const spanSlug = parseSpanSlug(params.spanSlug);
 
+  const organization = useOrganization();
+
   const projectId = decodeScalar(location.query.project);
   if (!defined(projectId) || !defined(transactionName) || !defined(spanSlug)) {
+    redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
-  const organization = useOrganization();
   const {projects} = useProjects();
 
   const project = projects.find(p => p.id === projectId);

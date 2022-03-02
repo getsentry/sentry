@@ -75,13 +75,7 @@ function PageLayout(props: Props) {
   const transactionName = getTransactionName(location);
 
   if (!defined(projectId) || !defined(transactionName)) {
-    // If there is no transaction name, redirect to the Performance landing page
-    browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/performance/`,
-      query: {
-        ...location.query,
-      },
-    });
+    redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
@@ -202,5 +196,18 @@ const StyledAlert = styled(Alert)`
   grid-column: 1/3;
   margin: 0;
 `;
+
+export function redirectToPerformanceHomepage(
+  organization: Organization,
+  location: Location
+) {
+  // If there is no transaction name, redirect to the Performance landing page
+  browserHistory.replace({
+    pathname: `/organizations/${organization.slug}/performance/`,
+    query: {
+      ...location.query,
+    },
+  });
+}
 
 export default PageLayout;
