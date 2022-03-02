@@ -12,10 +12,7 @@ import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/reg
 function frameSearch(
   query: string,
   frames: ReadonlyArray<FlamegraphFrame>,
-  index: Fuse<
-    FlamegraphFrame,
-    {includeMatches: true; keys: 'frame.name'[]; threshold: number}
-  >
+  index: Fuse<FlamegraphFrame>
 ): Record<string, FlamegraphFrame> {
   const results = {};
   if (isRegExpString(query)) {

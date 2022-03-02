@@ -1,11 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
+from django.utils.datastructures import MultiValueDict
+from freezegun import freeze_time
 
 from sentry.release_health import duplex
 from sentry.release_health.duplex import ComparatorType as Ct
-from sentry.release_health.duplex import DuplexReleaseHealthBackend, ListSet
+from sentry.release_health.duplex import (
+    DuplexReleaseHealthBackend,
+    FixedList,
+    ListSet,
+    get_sessionsv2_schema,
+)
+from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
 
 
 @pytest.mark.parametrize(
@@ -46,10 +54,9 @@ def test_compare_basic(sessions, metrics, final_result, are_equal):
 @pytest.mark.parametrize(
     "sessions,metrics,rollup,are_equal",
     [
-        ("2021-10-10T10:15", "2021-10-10T10:16", 3600, False),
+        ("2021-10-10T10:15", "2021-10-10T10:16", 3600, True),
         ("2021-10-10T10:15", "2021-10-10T10:16", 36, False),
-        (datetime(2021, 10, 10, 10, 15), datetime(2021, 10, 10, 10, 16), 3600, False),
-        (datetime(2021, 10, 10, 10, 15), datetime(2021, 10, 10, 10, 15), 3600, True),
+        (datetime(2021, 10, 10, 10, 15), datetime(2021, 10, 10, 10, 16), 3600, True),
         (datetime(2021, 10, 10, 10, 15), datetime(2021, 10, 10, 10, 16), 36, False),
         ("2021-10-10T10:15", "abc", 36, False),
     ],
@@ -63,15 +70,14 @@ def test_compare_datetime(sessions, metrics, rollup, are_equal):
     "sessions,metrics,are_equal",
     [
         (100, 110, False),
-        (100, 105, False),
-        (100, 96, False),
-        (100, 100, True),
+        (100, 105, True),
+        (100, 96, True),
         (None, None, True),
         (None, 1, False),
         (0, None, False),
-        (1, 3, False),
+        (1, 3, True),
         (1, 7, False),
-        (9, 11, False),
+        (9, 11, True),
         (9, 20, False),
     ],
 )
@@ -87,7 +93,6 @@ def test_compare_counters(sessions, metrics, are_equal):
         (100.0, 110.0, False),
         (100.0, 101.0, True),
         (100.0, 99.0, True),
-        (100.0, 100.0, True),
         (None, None, True),
         (None, 1, False),
         (0.0, None, False),
@@ -115,8 +120,7 @@ def test_compare_floats(use_quantiles, sessions, metrics, are_equal):
     "sessions,metrics,schema, are_equal",
     [
         (100, 110, Ct.Counter, False),
-        (100, 105, Ct.Counter, False),
-        (100, 100, Ct.Counter, True),
+        (100, 105, Ct.Counter, True),
         # no schema will compare as entity and fail
         (100, 105, None, False),
         # no schema will compare as entity and succeed
@@ -124,25 +128,21 @@ def test_compare_floats(use_quantiles, sessions, metrics, are_equal):
         (100, 100, Ct.Exact, True),
         (100, 101, Ct.Exact, False),
         (9.0, 9.05, Ct.Quantile, True),
-        (9.0, 9.0, Ct.Quantile, True),
         (9.0, 9.05, Ct.Ratio, True),
         (9.0, 9.1, Ct.Ratio, False),
-        (9.0, 9.0, Ct.Ratio, True),
         # no schema, no problem, will figure out float and compare as ratio
         (9.0, 9.05, None, True),
-        (9.0, 9.0, None, True),
-        ("2021-10-10T10:15", "2021-10-10T10:15:30", Ct.DateTime, False),
-        ("2021-10-10T10:15", "2021-10-10T10:15", Ct.DateTime, True),
+        ("2021-10-10T10:15", "2021-10-10T10:15:30", Ct.DateTime, True),
         # no schema will treat string as entity and fail
         ("2021-10-10T10:15", "2021-10-10T10:15:30", None, False),
         (
             datetime(2021, 10, 10, 10, 15, 0),
             datetime(2021, 10, 10, 10, 15, 30),
             Ct.DateTime,
-            False,
+            True,
         ),
         # no schema will still figure out to compare as datetime and succeed
-        (datetime(2021, 10, 10, 10, 15, 0), datetime(2021, 10, 10, 10, 15, 0), None, True),
+        (datetime(2021, 10, 10, 10, 15, 0), datetime(2021, 10, 10, 10, 15, 30), None, True),
     ],
 )
 def test_compare_scalars(sessions, metrics, schema, are_equal):
@@ -178,17 +178,10 @@ def test_compare_basic_sequence(sessions, metrics, final_result, are_equal):
         ([1, 2, 3], [1, 2, 4], [Ct.Exact], False),
         ([(1, 2), (2, 3), (3, 4)], [(1, 2), (2, 3), (3, 4)], [Ct.Exact], True),
         ([1, 2, 3], [1, 2], None, False),
-        ([1, 2, 3], [1, 2, 4], [Ct.Counter], False),
-        ([1, 2, 3], [1, 2, 3], [Ct.Counter], True),
+        ([1, 2, 3], [1, 2, 4], [Ct.Counter], True),
         (
             [datetime(2021, 10, 10, 12, 30, 10)],
             [datetime(2021, 10, 10, 12, 30, 20)],
-            [Ct.DateTime],
-            False,
-        ),
-        (
-            [datetime(2021, 10, 10, 12, 30, 10)],
-            [datetime(2021, 10, 10, 12, 30, 10)],
             [Ct.DateTime],
             True,
         ),
@@ -218,12 +211,6 @@ def test_compare_arrays(sessions, metrics, schema, are_equal):
             [{"a": (10, 1), "b": 1}, {"a": (50, 0), "b": 100}],
             [{"a": (100, -50), "b": 101}, {"a": (5, 6), "b": 2}],
             ListSet({"b": Ct.Counter}, lambda x: x["a"][0] + x["a"][1]),
-            False,
-        ),
-        (
-            [{"a": (10, 1), "b": 1}, {"a": (50, 0), "b": 100}],
-            [{"a": (100, -50), "b": 100}, {"a": (5, 6), "b": 1}],
-            ListSet({"b": Ct.Counter}, lambda x: x["a"][0] + x["a"][1]),
             True,
         ),
         (
@@ -242,14 +229,25 @@ def test_compare_list_set(sessions, metrics, schema, are_equal):
 @pytest.mark.parametrize(
     "sessions,metrics,schema, are_equal",
     [
+        ([1, 2], [1], FixedList([Ct.Exact, Ct.Exact]), False),
+        ([1, 2], [1, 2], FixedList([Ct.Exact, Ct.Exact]), True),
+        ([1, 2, 3], [1, 2, 4], FixedList([Ct.Exact, Ct.Exact, Ct.Ignore]), True),
+    ],
+)
+def test_compare_fixed_list(sessions, metrics, schema, are_equal):
+    result = duplex.compare_fixed_list(sessions, metrics, 60, "", schema)
+    assert (len(result) == 0) == are_equal
+
+
+@pytest.mark.parametrize(
+    "sessions,metrics,schema, are_equal",
+    [
         # compare as array of entities
         ((1, 2, 3), (1, 2, 3), None, True),
         ((1, 2), (1, 2), (Ct.Exact, Ct.Exact), True),
         ((1, 2), (1, 3), (Ct.Exact, Ct.Exact), False),
-        ((1, 2), (1, 3), (Ct.Exact, Ct.Counter), False),
-        ((1, 3), (1, 3), (Ct.Exact, Ct.Counter), True),
-        ([1, 2.1, 3], [1, 2.11, 4], (Ct.Exact, Ct.Ratio, Ct.Counter), False),
-        ([1, 2.1, 3], [1, 2.1, 3], (Ct.Exact, Ct.Ratio, Ct.Counter), True),
+        ((1, 2), (1, 3), (Ct.Exact, Ct.Counter), True),
+        ([1, 2.1, 3], [1, 2.11, 4], (Ct.Exact, Ct.Ratio, Ct.Counter), True),
         (((1, 2), (2, 3)), ((1, 2), (2, 3)), [Ct.Exact, Ct.Exact], True),
         ((1, 2, 3), (1, 2), None, False),
     ],
@@ -267,24 +265,18 @@ def test_compare_tuples(sessions, metrics, schema, are_equal):
         ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 2, "c": 3}, None, True),
         # match all as configured types
         ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 4}, {"*": Ct.Exact}, False),
-        ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 4}, {"*": Ct.Counter}, False),
+        ({"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 3, "c": 4}, {"*": Ct.Counter}, True),
         # match all unspecified as counters, and "c" as Exact
         (
             {"a": 1, "b": 2, "c": 3},
             {"a": 2, "b": 3, "c": 3},
-            {"*": Ct.Counter, "c": Ct.Exact},
-            False,
-        ),
-        (
-            {"a": 1, "b": 2, "c": 3},
-            {"a": 1, "b": 2, "c": 3},
             {"*": Ct.Counter, "c": Ct.Exact},
             True,
         ),
         # match subset of properties
         (
             {"a": 1, "b": 2, "c": 3},
-            {"a": 1, "b": 2, "c": 44},
+            {"a": 1, "b": 3, "c": 44},
             {"a": Ct.Exact, "b": Ct.Counter},
             True,
         ),
@@ -314,7 +306,7 @@ def test_compare_dicts(sessions, metrics, schema, are_equal):
                 "d": Ct.Exact,
                 "e": Ct.Counter,
             },
-            False,
+            True,
         ),
         # explicitly partial match
         (
@@ -323,7 +315,7 @@ def test_compare_dicts(sessions, metrics, schema, are_equal):
                 "b": Ct.Exact,
                 "c": [{"a": (Ct.Exact, Ct.Ratio, Ct.Counter)}],
             },
-            False,
+            True,
         ),
         # implicit matching matching counters as explicit entities should fail
         (
@@ -353,7 +345,7 @@ def test_compare_dicts(sessions, metrics, schema, are_equal):
                 "c": Ct.Ignore,
                 "*": Ct.Counter,
             },
-            False,
+            True,
         ),
         # implicitly match entities
         (
@@ -363,7 +355,7 @@ def test_compare_dicts(sessions, metrics, schema, are_equal):
                 "e": Ct.Counter,
                 "*": Ct.Exact,
             },
-            False,
+            True,
         ),
     ],
 )
@@ -518,3 +510,21 @@ def test_function_dispatch_is_working():
     duplex.sessions.get_current_and_previous_crash_free_rates.assert_called_with(*call_params)
     # check metrics backend were not called again (only one original call)
     assert duplex.metrics.get_current_and_previous_crash_free_rates.call_count == 1
+
+
+@freeze_time("2022-03-02 15:17")
+def test_get_sessionsv2_schema():
+    query = QueryDefinition(
+        query=MultiValueDict(
+            {
+                "statsPeriod": ["24h"],
+                "interval": ["1h"],
+                "field": ["sum(session)", "avg(session.duration)"],
+            }
+        ),
+        params={},
+        allowed_resolution=AllowedResolution.one_hour,
+    )
+    schema = get_sessionsv2_schema(datetime.now(timezone.utc), query)
+    assert schema["sum(session)"] == FixedList(22 * [Ct.Counter] + 2 * [Ct.Ignore])
+    assert schema["avg(session.duration)"] == FixedList(22 * [Ct.Quantile] + 2 * [Ct.Ignore])

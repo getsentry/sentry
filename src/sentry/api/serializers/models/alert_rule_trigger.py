@@ -23,7 +23,7 @@ class AlertRuleTriggerSerializer(Serializer):
         actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger__in=item_list).order_by(
             "id"
         )
-        serialized_actions = serialize(list(actions))
+        serialized_actions = serialize(list(actions), **kwargs)
         for trigger, serialized in zip(actions, serialized_actions):
             triggers_actions = result[triggers[trigger.alert_rule_trigger_id]].setdefault(
                 "actions", []
@@ -32,7 +32,7 @@ class AlertRuleTriggerSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "alertRuleId": str(obj.alert_rule_id),
@@ -58,7 +58,7 @@ class DetailedAlertRuleTriggerSerializer(AlertRuleTriggerSerializer):
             exclusions.append(project_slug)
         return result
 
-    def serialize(self, obj, attrs, user):
-        data = super().serialize(obj, attrs, user)
+    def serialize(self, obj, attrs, user, **kwargs):
+        data = super().serialize(obj, attrs, user, **kwargs)
         data["excludedProjects"] = sorted(attrs.get("excludedProjects", []))
         return data

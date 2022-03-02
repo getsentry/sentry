@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping
 
+import sentry_sdk
 from django.conf import settings
 from django.db import transaction
 from django.utils.encoding import force_text
@@ -18,8 +19,9 @@ def safe_execute(func, *args, **kwargs):
     expected_errors = kwargs.pop("expected_errors", None)
     try:
         if _with_transaction:
-            with transaction.atomic():
-                result = func(*args, **kwargs)
+            with sentry_sdk.start_span(op="db.safe_execute", description="transaction.atomic"):
+                with transaction.atomic():
+                    result = func(*args, **kwargs)
         else:
             result = func(*args, **kwargs)
     except Exception as e:

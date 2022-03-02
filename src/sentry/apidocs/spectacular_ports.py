@@ -5,7 +5,8 @@ import inspect
 import typing
 from collections import OrderedDict, defaultdict
 from enum import Enum
-from typing import Any, Literal, Union, get_type_hints
+from typing import Any, Literal, Union
+from typing import get_type_hints as _get_type_hints
 
 from drf_spectacular.drainage import get_override
 from drf_spectacular.plumbing import (
@@ -17,6 +18,8 @@ from drf_spectacular.plumbing import (
 )
 from drf_spectacular.types import OpenApiTypes
 from typing_extensions import _TypedDictMeta
+
+from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # Until we're on 3.9 we have to use the typing extention TypedDict as
 # we are unable to tell optional fields at run time via the regular 3.8
@@ -35,7 +38,15 @@ from typing_extensions import _TypedDictMeta
 #   figure out solution for field descriptions
 #   support deprecated fields via extension
 #   map TypedDicts in schema registry
-#   add a case for datetime types
+
+
+def get_type_hints(hint, **kwargs):
+    try:
+        return _get_type_hints(hint, **kwargs)
+    except NameError:
+        # try to resolve a circular import from TYPE_CHECKING imports
+        reload_module_with_type_checking_enabled(hint.__module__)
+        return _get_type_hints(hint, **kwargs)
 
 
 def _get_type_hint_origin(hint):

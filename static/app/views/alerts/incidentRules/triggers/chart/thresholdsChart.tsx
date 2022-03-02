@@ -9,6 +9,7 @@ import Graphic from 'sentry/components/charts/components/graphic';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -329,21 +330,6 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       })
     );
 
-    // Disable all lines by default but the 1st one
-    const selected: Record<string, boolean> = dataWithoutRecentBucket.reduce(
-      (acc, {seriesName}, index) => {
-        acc[seriesName] = index === 0;
-        return acc;
-      },
-      {}
-    );
-    const legend = {
-      right: 10,
-      top: 0,
-      selected,
-      data: data.map(d => ({name: d.seriesName})),
-    };
-
     const chartOptions = {
       tooltip: {
         // use the main aggregate for all series (main, min, max, avg, comparison)
@@ -428,11 +414,10 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         isGroupedByDate
         showTimeInTooltip
         minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-        period={period}
+        period={DEFAULT_STATS_PERIOD || period}
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
         {...chartOptions}
-        legend={legend}
         graphic={Graphic({
           elements: flatten(
             triggers.map((trigger: Trigger) => [

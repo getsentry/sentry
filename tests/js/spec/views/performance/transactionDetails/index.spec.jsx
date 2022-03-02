@@ -24,8 +24,7 @@ describe('EventDetails', () => {
         organization={organization}
         params={{orgId: organization.slug, eventSlug: `${project.slug}:${event.id}`}}
         location={routerContext.context.location}
-      />,
-      {context: routerContext}
+      />
     );
     expect(screen.getByText(alertText)).toBeInTheDocument();
   });
@@ -45,8 +44,7 @@ describe('EventDetails', () => {
         organization={organization}
         params={{orgId: organization.slug, eventSlug: `${project.slug}:${event.id}`}}
         location={routerContext.context.location}
-      />,
-      {context: routerContext}
+      />
     );
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();
   });
