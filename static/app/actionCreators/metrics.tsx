@@ -5,7 +5,6 @@ import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
 import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import {
   DateString,
@@ -120,8 +119,6 @@ export function fetchMetricsFields(
   orgSlug: Organization['slug'],
   projects?: number[]
 ): Promise<MetricMeta[]> {
-  MetricsMetaStore.reset();
-
   const promise: Promise<MetricMeta[]> = api.requestPromise(
     `/organizations/${orgSlug}/metrics/meta/`,
     {
