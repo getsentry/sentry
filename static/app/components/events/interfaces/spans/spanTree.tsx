@@ -10,7 +10,7 @@ import {Organization} from 'sentry/types';
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import SpanGroupBar from './spanGroupBar';
+import SpanGroupBar, {GroupType} from './spanGroupBar';
 import {
   EnhancedProcessedSpanType,
   EnhancedSpan,
@@ -216,6 +216,27 @@ class SpanTree extends React.Component<PropType> {
               spanNumber={spanNumber}
               spanGrouping={payload.spanGrouping as EnhancedSpan[]}
               toggleSpanGroup={payload.toggleSpanGroup as () => void}
+              groupType={GroupType.CHILDREN}
+            />
+          );
+          acc.spanNumber = spanNumber + 1;
+          return acc;
+        }
+
+        if (payload.type === 'span_group_sibling') {
+          acc.spanTree.push(
+            <SpanGroupBar
+              key={`${spanNumber}-span-group`}
+              event={waterfallModel.event}
+              span={span}
+              generateBounds={generateBounds}
+              treeDepth={treeDepth}
+              continuingTreeDepths={continuingTreeDepths}
+              spanNumber={spanNumber}
+              spanGrouping={payload.spanGrouping as EnhancedSpan[]}
+              toggleSpanGroup={payload.toggleSpanGroup as () => void}
+              siblingCount={payload.siblingCount}
+              groupType={GroupType.SIBLINGS}
             />
           );
           acc.spanNumber = spanNumber + 1;

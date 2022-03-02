@@ -331,10 +331,6 @@ class SpanTreeModel {
       groupedDescendants.push(descendantsSource);
     }
 
-    // [b]
-    // [[a, a, a, a], [b]]
-    // prevSpanModel = b
-
     const {descendants} = (hideSpanTree ? [] : groupedDescendants).reduce(
       (
         acc: {
@@ -385,16 +381,20 @@ class SpanTreeModel {
         }
 
         // NOTE: I am making the assumption here that grouped sibling spans will not have children.
-        // This may not be the case, this needs to be looked into later
+        // By making this assumption, I can immediately wrap the grouped spans here without having
+        // to recursively traverse them.
+
+        // This may not be the case, and needs to be looked into later
 
         const groupedSiblingsSpan: EnhancedProcessedSpanType = {
           type: 'span_group_sibling',
           span: this.span,
           treeDepth: treeDepth + 1,
           continuingTreeDepths,
-          spanGrouping,
+          spanGrouping: [wrappedSpan],
           siblingCount: group.length,
           showSpanGroup,
+          // TODO: Needs a separate implementation from nested children toggling
           toggleSpanGroup: () => {},
         };
 

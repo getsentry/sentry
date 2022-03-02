@@ -53,17 +53,24 @@ import {
   unwrapTreeDepth,
 } from './utils';
 
+export enum GroupType {
+  CHILDREN,
+  SIBLINGS,
+}
+
 const MARGIN_LEFT = 0;
 
 type Props = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  groupType: GroupType;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
   toggleSpanGroup: () => void;
   treeDepth: number;
+  siblingCount?: number;
 };
 
 class SpanGroupBar extends React.Component<Props> {
@@ -140,7 +147,8 @@ class SpanGroupBar extends React.Component<Props> {
   }
 
   renderGroupedSpansToggler() {
-    const {spanGrouping, treeDepth, toggleSpanGroup} = this.props;
+    const {spanGrouping, treeDepth, toggleSpanGroup, groupType, siblingCount} =
+      this.props;
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
@@ -158,7 +166,9 @@ class SpanGroupBar extends React.Component<Props> {
             toggleSpanGroup();
           }}
         >
-          <Count value={spanGrouping.length} />
+          <Count
+            value={groupType === GroupType.CHILDREN ? spanGrouping.length : siblingCount!}
+          />
         </TreeToggle>
       </TreeToggleContainer>
     );
