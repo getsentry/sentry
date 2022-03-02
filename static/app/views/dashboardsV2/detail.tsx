@@ -114,7 +114,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    if (location.pathname.match(/\/widget\/\w*\/$/) && !this.isWidgetBuilderRouter) {
+    if (location.pathname.match(/\/widget\/[0-9]+\/$/) && !this.isWidgetBuilderRouter) {
       const widget =
         defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
       if (widget) {
