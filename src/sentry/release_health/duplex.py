@@ -106,14 +106,16 @@ class FixedList:
     def __init__(self, child_schemas: List["Schema"]):
         self.child_schemas = child_schemas
 
-    def __eq__(self, other: "FixedList") -> bool:
-        return self.child_schemas == other.child_schemas
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, FixedList) and self.child_schemas == other.child_schemas
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"FixedList({self.child_schemas})"
 
 
-Schema = Union[ComparatorType, List[Any], Mapping[str, Any], Set[Any], ListSet, Tuple[Any, ...]]
+Schema = Union[
+    ComparatorType, List[Any], Mapping[str, Any], Set[Any], ListSet, FixedList, Tuple[Any, ...]
+]
 
 
 class ComparisonError:
@@ -583,7 +585,7 @@ def tag_delta(errors: List[ComparisonError], tags: Mapping[str, str]) -> None:
         set_tag("rh.duplex.rel_change", tag_value)
 
 
-def get_sessionsv2_schema(now: datetime, query: QueryDefinition):
+def get_sessionsv2_schema(now: datetime, query: QueryDefinition) -> Mapping[str, FixedList]:
     schema_for_totals = {
         "sum(session)": ComparatorType.Counter,
         "count_unique(user)": ComparatorType.Counter,
