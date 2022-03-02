@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 
@@ -89,7 +90,8 @@ function TargetedOnboardingWelcome({organization}: Props) {
                         source,
                       }
                     );
-                    window.location.replace(
+
+                    browserHistory.push(
                       `/onboarding/${organization.slug}/select-platform/`
                     );
                   }}
