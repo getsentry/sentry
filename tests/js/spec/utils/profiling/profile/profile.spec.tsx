@@ -61,6 +61,12 @@ stack top -> stack bottom`;
 };
 
 describe('Profile', () => {
+  it('Empty profile duration is not infinity', () => {
+    const profile = Profile.Empty();
+    expect(profile.duration).toEqual(100_000);
+    expect(profile.minFrameDuration).toEqual(100_000);
+  });
+
   it('forEach - iterates over a single sample', () => {
     const profile = new Profile(1000, 0, 1000, 'profile', 'ms');
 
