@@ -1,4 +1,3 @@
-import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -19,51 +18,40 @@ type Props = {
   organization: Organization;
 };
 
-class ThresholdTypeForm extends PureComponent<Props> {
-  render() {
-    const {
-      organization,
-      dataset,
-      disabled,
-      comparisonType,
-      onComparisonTypeChange,
-      hasAlertWizardV3,
-    } = this.props;
-
-    return (
-      <Fragment>
-        {dataset !== Dataset.SESSIONS && (
-          <Feature features={['organizations:change-alerts']} organization={organization}>
-            {!hasAlertWizardV3 && (
-              <StyledListItem>{t('Select threshold type')}</StyledListItem>
-            )}
-            <FormRow>
-              <RadioGroup
-                style={{flex: 1}}
-                disabled={disabled}
-                choices={[
-                  [
-                    AlertRuleComparisonType.COUNT,
-                    hasAlertWizardV3 ? 'Static: above or below {x}' : 'Count',
-                  ],
-                  [
-                    AlertRuleComparisonType.CHANGE,
-                    hasAlertWizardV3
-                      ? 'Percent Change: {x%} higher or lower compared to previous period'
-                      : 'Percent Change',
-                  ],
-                ]}
-                value={comparisonType}
-                label={t('Threshold Type')}
-                onChange={onComparisonTypeChange}
-              />
-            </FormRow>
-          </Feature>
-        )}
-      </Fragment>
-    );
-  }
-}
+const ThresholdTypeForm = ({
+  organization,
+  dataset,
+  disabled,
+  comparisonType,
+  onComparisonTypeChange,
+  hasAlertWizardV3,
+}: Props) =>
+  dataset === Dataset.SESSIONS ? null : (
+    <Feature features={['organizations:change-alerts']} organization={organization}>
+      {!hasAlertWizardV3 && <StyledListItem>{t('Select threshold type')}</StyledListItem>}
+      <FormRow>
+        <RadioGroup
+          style={{flex: 1}}
+          disabled={disabled}
+          choices={[
+            [
+              AlertRuleComparisonType.COUNT,
+              hasAlertWizardV3 ? 'Static: above or below {x}' : 'Count',
+            ],
+            [
+              AlertRuleComparisonType.CHANGE,
+              hasAlertWizardV3
+                ? 'Percent Change: {x%} higher or lower compared to previous period'
+                : 'Percent Change',
+            ],
+          ]}
+          value={comparisonType}
+          label={t('Threshold Type')}
+          onChange={onComparisonTypeChange}
+        />
+      </FormRow>
+    </Feature>
+  );
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(1)};
