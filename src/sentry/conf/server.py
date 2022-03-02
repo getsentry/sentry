@@ -1543,9 +1543,16 @@ SENTRY_ROLES = (
     {
         "id": "admin",
         "name": "Admin",
-        "desc": "Admin privileges on any teams of which they're a member. They can create new teams and projects, "
-        "as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). "
-        "Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
+        "desc": (
+            """
+            Admin privileges on any teams of which they're a member. They can
+            create new teams and projects, as well as remove teams and projects
+            on which they already hold membership (or all teams, if open
+            membership is enabled). Additionally, they can manage memberships of
+            teams that they are members of. They cannot invite members to the
+            organization.
+            """
+        ),
         "scopes": {
             "event:read",
             "event:write",
@@ -1593,8 +1600,13 @@ SENTRY_ROLES = (
     {
         "id": "owner",
         "name": "Owner",
-        "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete "
-        "projects and members, as well as make billing and plan changes.",
+        "desc": (
+            """
+            Unrestricted access to the organization, its data, and its settings.
+            Can add, modify, and delete projects and members, as well as make
+            billing and plan changes.
+            """
+        ),
         "is_global": True,
         "scopes": {
             "org:read",
@@ -1617,6 +1629,56 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+    },
+)
+
+SENTRY_TEAM_ROLES = (
+    {
+        "id": "contributor",
+        "name": "Contributor",
+        "desc": "Contributors can view and act on events, as well as view most other data within the team's projects.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            "alerts:write",
+        },
+    },
+    {
+        "id": "admin",
+        "name": "Team Admin",
+        "desc": (
+            # TODO: Editing pass
+            """
+            Admin privileges on the team. They can create and remove projects,
+            and can manage the team's memberships. They cannot invite members to
+            the organization.
+            """
+        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
+        "mapped_to": "admin",
     },
 )
 

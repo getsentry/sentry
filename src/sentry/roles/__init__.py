@@ -2,7 +2,9 @@ from django.conf import settings
 
 from .manager import RoleManager
 
-default_manager = RoleManager(settings.SENTRY_ROLES, settings.SENTRY_DEFAULT_ROLE)
+default_manager = RoleManager(
+    settings.SENTRY_ROLES, settings.SENTRY_TEAM_ROLES, settings.SENTRY_DEFAULT_ROLE
+)
 
 can_manage = default_manager.can_manage
 get = default_manager.get
