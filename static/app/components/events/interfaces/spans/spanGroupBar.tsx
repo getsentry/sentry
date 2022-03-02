@@ -54,7 +54,7 @@ import {
 } from './utils';
 
 export enum GroupType {
-  CHILDREN,
+  DESCENDANTS,
   SIBLINGS,
 }
 
