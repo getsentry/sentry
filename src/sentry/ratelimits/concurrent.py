@@ -28,7 +28,7 @@ def _bucket_start_time(bucket_number: int, window: int) -> int:
     return bucket_number * window
 
 
-class RedisRateLimiter(RateLimiter):
+class RedisRateLimiter:
     def __init__(self, **options: Any) -> None:
         cluster_key = getattr(settings, "SENTRY_RATE_LIMIT_REDIS_CLUSTER", "default")
         self.client = redis.redis_clusters.get(cluster_key)
@@ -97,8 +97,6 @@ class RedisRateLimiter(RateLimiter):
         rate limit window will start
         """
         request_time = time()
-        if window is None or window == 0:
-            window = self.window
         redis_key = self._construct_redis_key(key, project=project, window=window)
 
         expiration = window - int(request_time % window)
