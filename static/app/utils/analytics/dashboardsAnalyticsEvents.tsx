@@ -1,4 +1,4 @@
-// The add/Eedit widget modal is currently being ported to the widget builder full-page and
+// The add/edit widget modal is currently being ported to the widget builder full-page and
 // this will be removed once that is done.
 type DashboardsEventParametersAddWidgetModal = {
   'dashboards_views.add_widget_modal.change': {
