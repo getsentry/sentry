@@ -39,7 +39,6 @@ type Props = WithRouterProps & {
   forceProject?: MinimalProject | null;
   isGlobalSelectionReady?: boolean;
   lockedMessageSubject?: React.ReactNode;
-  pinned?: boolean;
   shouldForceProject?: boolean;
   showIssueStreamLink?: boolean;
   showProjectSettingsLink?: boolean;
@@ -208,7 +207,6 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       footerMessage,
       customDropdownButton,
       customLoadingIndicator,
-      pinned,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -295,7 +293,6 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 message={footerMessage}
               />
             )}
-            pinned={pinned}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
               if (customDropdownButton) {
