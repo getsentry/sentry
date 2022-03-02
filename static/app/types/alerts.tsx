@@ -50,7 +50,7 @@ export type IssueAlertRuleAction = Omit<
   dynamic_form_fields?: IssueConfigField[];
 } & {
   // These are the same values as the keys in `formFields` for a template
-  [key: string]: number | string | boolean;
+  [key: string]: any;
 };
 
 export type IssueAlertRuleCondition = Omit<
