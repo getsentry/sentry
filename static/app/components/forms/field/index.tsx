@@ -142,8 +142,9 @@ class Field extends React.Component<FieldProps> {
       style,
       showHelpInTooltip,
     } = otherProps;
-    const isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
+
     const isVisible = typeof visible === 'function' ? visible(this.props) : visible;
+    const isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     let Control: React.ReactNode;
 
     if (!isVisible) {

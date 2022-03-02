@@ -143,7 +143,7 @@ class FormModel {
    * Also resets snapshots
    */
   setInitialData(initialData?: Record<string, FieldValue>) {
-    this.fields.replace(initialData ?? ({} as Record<string, FieldValue>));
+    this.fields.replace(initialData || {});
     this.initialData = Object.fromEntries(this.fields.toJSON()) || {};
 
     this.snapshots = [new Map(this.fields.entries())];
@@ -224,7 +224,7 @@ class FormModel {
   }
 
   getValue(id: string) {
-    return this.fields.get(id) ?? '';
+    return this.fields.has(id) ? this.fields.get(id) : '';
   }
 
   getTransformedValue(id: string) {

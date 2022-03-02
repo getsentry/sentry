@@ -40,7 +40,9 @@ const getValueFromEvent = (valueOrEvent?: FieldValue | MouseEvent, e?: MouseEven
  * This uses mobx's observation of the models observable fields.
  */
 
-const propsToObserve = ['disabled', 'help', 'highlighted', 'inline', 'visible'] as const;
+// !!Warning!! - the order of these props matters, as they are checked in order that they appear.
+// One instance of a test that relies on this order is accountDetails.spec.tsx.
+const propsToObserve = ['help', 'highlighted', 'inline', 'visible', 'disabled'] as const;
 
 interface FormFieldPropModel extends FormFieldProps {
   model: FormModel;
