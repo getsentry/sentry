@@ -161,6 +161,11 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/tags/event.type/values/',
       body: [{count: 2, name: 'Nvidia 1080ti'}],
     });
+
+    // MockApiClient.addMockResponse({
+    //   url: '/organizations/org-slug/events-geo/',
+    //   body: {data: [], meta: {}},
+    // });
   });
 
   afterEach(function () {
@@ -656,7 +661,7 @@ describe('WidgetBuilder', function () {
     // Restricting to a single query
     expect(screen.queryByLabelText('Add query')).not.toBeInTheDocument();
 
-    // // Restricting to a single y-axis
+    // Restricting to a single y-axis
     expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
 
     expect(screen.getByText('Choose your y-axis')).toBeInTheDocument();
@@ -882,90 +887,98 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  // it('should filter y-axis choices for world map widget charts', async function () {
-  //  let widget = undefined;
-  //  const wrapper = mountModal({
-  //   initialData,
-  //   onAddWidget: data => (widget = data),
-  //  });
-  //  // No delete button as there is only one field.
-  //  expect(wrapper.find('IconDelete')).toHaveLength(0);
-  //  // Select World Map display
-  //  selectByLabel(wrapper, 'World Map', {name: 'displayType', at: 0, control: true});
-  //  expect(getDisplayType(wrapper).props().value).toEqual('world_map');
-  //  // Choose any()
-  //  selectByLabel(wrapper, 'any(\u2026)', {
-  //   name: 'field',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  // user.display should be filtered out for any()
-  //  const option = getOptionByLabel(wrapper, 'user.display', {
-  //   name: 'parameter',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  expect(option.exists()).toEqual(false);
-  //  selectByLabel(wrapper, 'measurements.lcp', {
-  //   name: 'parameter',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  // Choose count_unique()
-  //  selectByLabel(wrapper, 'count_unique(\u2026)', {
-  //   name: 'field',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  // user.display not should be filtered out for count_unique()
-  //  selectByLabel(wrapper, 'user.display', {
-  //   name: 'parameter',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  // Be able to choose a numeric-like option
-  //  selectByLabel(wrapper, 'measurements.lcp', {
-  //   name: 'parameter',
-  //   at: 0,
-  //   control: true,
-  //  });
-  //  await clickSubmit(wrapper);
-  //  expect(widget.displayType).toEqual('world_map');
-  //  expect(widget.queries).toHaveLength(1);
-  //  expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
-  //  wrapper.unmount();
+  /**
+   * UnhandledPromiseRejection appearing for this
+   */
+  // it.only('should filter y-axis choices for world map widget charts', async function () {
+  //   const handleSave = jest.fn();
+  //   renderTestComponent({onSave: handleSave});
+
+  //   expect(await screen.findByText('Table')).toBeInTheDocument();
+
+  //   // No delete button as there is only one field.
+  //   expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+
+  //   // Select World Map display
+  //   userEvent.click(screen.getByText('Table'));
+  //   userEvent.click(screen.getByText('World Map'));
+
+  //   // Choose any()
+  //   userEvent.type(screen.getByText('count()'), 'any{enter}');
+
+  //   // user.display should be filtered out for any()
+  //   userEvent.type(screen.getByText('transaction.duration'), 'user.display');
+  //   expect(screen.getByText('No options')).toBeInTheDocument();
+
+  //   userEvent.keyboard('{escape}');
+  //   userEvent.type(screen.getByText('transaction.duration'), 'measurements.lcp{enter}');
+  //   expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
+
+  //   // Choose count_unique()
+  //   userEvent.type(screen.getByText('any(…)'), 'count_unique{enter}');
+
+  //   // user.display not should be filtered out for count_unique()
+  //   userEvent.type(screen.getByText('user'), 'user.display{enter}');
+  //   expect(screen.getByText('user.display')).toBeInTheDocument();
+
+  //   // Be able to choose a numeric-like option
+  //   userEvent.type(screen.getByText('user.display'), 'measurements.lcp{enter}');
+
+  //   userEvent.click(screen.getByLabelText('Add Widget'));
+  //   await waitFor(() => {
+  //     expect(handleSave).toHaveBeenCalledWith([
+  //       expect.objectContaining({
+  //         displayType: 'big_number',
+  //         queries: [
+  //           expect.objectContaining({
+  //             fields: ['count_unique(measurements.lcp)'],
+  //           }),
+  //         ],
+  //       }),
+  //     ]);
+  //   });
+
+  //   expect(handleSave).toHaveBeenCalledTimes(1);
   // });
 
-  // it.only('should filter y-axis choices by output type when switching from big number to line chart', async function () {
-  //  renderTestComponent();
-  //  // No delete button as there is only one field.
-  //  expect(screen.queryByRole('button', {name: 'Remove query'})).not.toBeInTheDocument();
-  //  // Select Big Number display
-  //  userEvent.click(await screen.findByText('Table'));
-  //  userEvent.click(screen.getByText('Big Number'));
-  //  // // Choose any()
-  //  userEvent.click(screen.getByText('count()'));
-  //  userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
-  //  userEvent.click(screen.getByText('transaction.duration'));
-  //  userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
-  //  // Select Line chart display
-  //  userEvent.click(screen.getByText('Big Number'));
-  //  userEvent.click(screen.getByText('Bar Chart'));
-  //  // Expect event.type field to be converted to count()
-  //  // const fieldColumn = wrapper.find('input[name="field"]');
-  //  // expect(fieldColumn.length).toEqual(1);
-  //  // expect(fieldColumn.props().value).toMatchObject({
-  //  //  kind: 'function',
-  //  //  meta: {
-  //  //   name: 'count',
-  //  //   parameters: [],
-  //  //  },
-  //  // });
-  //  // await clickSubmit(wrapper);
-  //  // expect(widget.displayType).toEqual('line');
-  //  // expect(widget.queries).toHaveLength(1);
-  //  // expect(widget.queries[0].fields).toEqual(['count()']);
-  //  // wrapper.unmount();
+  /**
+   * TODO: This is also failing due to the uncontrolled -> controlled input error
+   */
+  // it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+  //   renderTestComponent();
+
+  //   // No delete button as there is only one field.
+  //   expect(screen.queryByRole('button', {name: 'Remove query'})).not.toBeInTheDocument();
+
+  //   // Select Big Number display
+  //   userEvent.click(await screen.findByText('Table'));
+  //   userEvent.click(screen.getByText('Big Number'));
+
+  //   // // Choose any()
+  //   userEvent.click(screen.getByText('count()'));
+  //   userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
+  //   userEvent.click(screen.getByText('transaction.duration'));
+  //   userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
+
+  //   // Select Line chart display
+  //   userEvent.click(screen.getByText('Big Number'));
+  //   userEvent.click(screen.getByText('Bar Chart'));
+
+  //   //  // Expect event.type field to be converted to count()
+  //   //  // const fieldColumn = wrapper.find('input[name="field"]');
+  //   //  // expect(fieldColumn.length).toEqual(1);
+  //   //  // expect(fieldColumn.props().value).toMatchObject({
+  //   //  //  kind: 'function',
+  //   //  //  meta: {
+  //   //  //   name: 'count',
+  //   //  //   parameters: [],
+  //   //  //  },
+  //   //  // });
+  //   //  // await clickSubmit(wrapper);
+  //   //  // expect(widget.displayType).toEqual('line');
+  //   //  // expect(widget.queries).toHaveLength(1);
+  //   //  // expect(widget.queries[0].fields).toEqual(['count()']);
+  //   //  // wrapper.unmount();
   // });
 
   describe('Widget creation coming from other verticals', function () {
