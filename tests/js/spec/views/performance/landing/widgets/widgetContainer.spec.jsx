@@ -1,7 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {TransactionMetric} from 'sentry/utils/metrics/fields';
+import {
+  PageErrorAlert,
+  PageErrorProvider,
+} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
@@ -213,6 +218,44 @@ describe('Performance > Widgets > WidgetContainer', function () {
           trendType: 'improved',
         }),
       })
+    );
+  });
+
+  it('Errors in widgets call PageError Provider', async function () {
+    const data = initializeData();
+
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      statusCode: 400,
+      body: {
+        detail: 'Request did not work :(',
+      },
+    });
+
+    wrapper = mountWithTheme(
+      <PageErrorProvider>
+        <PageErrorAlert />
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+        />
+      </PageErrorProvider>,
+      data.routerContext
+    );
+
+    // Provider update is after request promise.
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Transactions Per Minute'
+    );
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.find('div[data-test-id="page-error-alert"]').text()).toEqual(
+      'Request did not work :('
     );
   });
 
