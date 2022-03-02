@@ -65,7 +65,7 @@ def send_workflow_webhooks(organization, issue, user, event, data=None):
 
     for install in installations_to_notify(organization, event):
         if event.startswith("comment"):
-            build_comment_webhook(
+            build_comment_webhook.delay(
                 installation_id=install.id,
                 issue_id=issue.id,
                 type=event,
@@ -73,7 +73,7 @@ def send_workflow_webhooks(organization, issue, user, event, data=None):
                 data=data,
             )
         else:
-            workflow_notification(
+            workflow_notification.delay(
                 installation_id=install.id,
                 issue_id=issue.id,
                 type=event.split(".")[-1],

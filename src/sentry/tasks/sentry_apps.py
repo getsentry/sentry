@@ -205,8 +205,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             data[name] = serialize(instance)
 
         # Trigger a new task for each webhook
-        # TODO(CEO): put back .delay when not developing
-        send_resource_change_webhook(installation_id=installation.id, event=event, data=data)
+        send_resource_change_webhook.delay(installation_id=installation.id, event=event, data=data)
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
@@ -240,7 +239,6 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
-
     install, issue, user = get_webhook_data(installation_id, issue_id, user_id)
 
     data = kwargs.get("data", {})
