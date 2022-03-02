@@ -275,6 +275,56 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
 
+    def test_add_widget_with_aggregates_and_columns(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {"id": str(self.widget_2.id)},
+                {"id": str(self.widget_3.id)},
+                {"id": str(self.widget_4.id)},
+                {
+                    "title": "Error Counts by Country",
+                    "displayType": "world_map",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                },
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": [],
+                            "aggregates": ["count()"],
+                            "columns": ["project"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 6
+
+        last = list(widgets).pop()
+        self.assert_serialized_widget(data["widgets"][5], last)
+
+        queries = last.dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+
     def test_add_widget_missing_title(self):
         data = {
             "title": "First dashboard",
