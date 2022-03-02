@@ -11,6 +11,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -19,6 +20,8 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
+
+jest.mock('sentry/actionCreators/modal');
 
 function renderTestComponent({
   widget,
@@ -897,6 +900,27 @@ describe('WidgetBuilder', function () {
     it('renders', async function () {
       renderTestComponent();
       expect(await screen.findByText('Widget Library')).toBeInTheDocument();
+    });
+
+    it('only opens the modal when the query data is changed', async function () {
+      renderTestComponent();
+      await screen.findByText('Widget Library');
+
+      userEvent.click(screen.getByText('Duration Distribution'));
+
+      // Widget Library, Builder title, and Chart title
+      expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
+
+      // Confirm modal doesn't open because no changes were made
+      expect(openWidgetBuilderOverwriteModal).not.toHaveBeenCalled();
+
+      expect(await screen.findAllByLabelText('Remove this Y-Axis')).toHaveLength(3);
+      userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+      userEvent.click(screen.getByText('High Throughput Transactions'));
+
+      // Should not have overwritten widget data, and confirm modal should open
+      expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
+      expect(openWidgetBuilderOverwriteModal).toHaveBeenCalled();
     });
   });
 
