@@ -13,7 +13,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {
   explodeField,
   generateFieldAsString,
-  isAggregateFieldOrEquation,
+  getColumnsAndAggregates,
 } from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
@@ -132,12 +132,10 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
             const fieldStrings = fields.map(field => generateFieldAsString(field));
             const newQuery = cloneDeep(query);
             newQuery.fields = fieldStrings;
+            const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
+            newQuery.aggregates = aggregates;
+            newQuery.columns = columns;
 
-            const aggregateFields = fieldStrings.filter(isAggregateFieldOrEquation);
-            newQuery.aggregates = aggregateFields;
-            newQuery.columns = fieldStrings.filter(
-              field => !!!aggregateFields.includes(field)
-            );
             onChange(newQuery);
           }}
         />

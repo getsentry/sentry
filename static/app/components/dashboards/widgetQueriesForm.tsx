@@ -16,7 +16,7 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
-  isAggregateFieldOrEquation,
+  getColumnsAndAggregates,
   isEquation,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
@@ -231,11 +231,9 @@ class WidgetQueriesForm extends React.Component<Props> {
               );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
-              const aggregateFields = fieldStrings.filter(isAggregateFieldOrEquation);
-              newQuery.aggregates = aggregateFields;
-              newQuery.columns = fieldStrings.filter(
-                field => !!!aggregateFields.includes(field)
-              );
+              const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
+              newQuery.aggregates = aggregates;
+              newQuery.columns = columns;
               if (
                 !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
                 widgetQuery.orderby !== ''
