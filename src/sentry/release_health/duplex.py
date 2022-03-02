@@ -46,6 +46,7 @@ from sentry.release_health.base import (
 )
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
+from sentry.snuba.metrics.helpers import get_intervals
 from sentry.snuba.sessions import get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.metrics import incr, timer, timing
@@ -96,7 +97,25 @@ class ListSet:
             self.index_by = cast(Callable[[Any], Any], index_by)
 
 
-Schema = Union[ComparatorType, List[Any], Mapping[str, Any], Set[Any], ListSet, Tuple[Any, ...]]
+class FixedList:
+    """
+    List with a fixed number of elements, where each element has a separate
+    schema.
+    """
+
+    def __init__(self, child_schemas: List["Schema"]):
+        self.child_schemas = child_schemas
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, FixedList) and self.child_schemas == other.child_schemas
+
+    def __repr__(self) -> str:
+        return f"FixedList({self.child_schemas})"
+
+
+Schema = Union[
+    ComparatorType, List[Any], Mapping[str, Any], Set[Any], ListSet, FixedList, Tuple[Any, ...]
+]
 
 
 class ComparisonError:
@@ -474,6 +493,37 @@ def compare_list_set(
     )
 
 
+def compare_fixed_list(
+    sessions: ReleaseHealthResult,
+    metrics: ReleaseHealthResult,
+    rollup: int,
+    path: str,
+    schema: FixedList,
+) -> List[ComparisonError]:
+    errors = []
+    expected_length = len(schema.child_schemas)
+    if len(sessions) != expected_length:
+        errors.append(
+            ComparisonError(
+                f"Wrong number of elements in sessions list: expected {expected_length}, got {len(sessions)}"
+            )
+        )
+    if len(metrics) != expected_length:
+        errors.append(
+            ComparisonError(
+                f"Wrong number of elements in metrics list: expected {expected_length}, got {len(metrics)}"
+            )
+        )
+
+    for idx, (child_schema, session, metric) in enumerate(
+        zip(schema.child_schemas, sessions, metrics)
+    ):
+        elm_path = f"{path}[{idx}]"
+        errors += compare_results(session, metric, rollup, elm_path, child_schema)
+
+    return errors
+
+
 def compare_results(
     sessions: ReleaseHealthResult,
     metrics: ReleaseHealthResult,
@@ -505,6 +555,8 @@ def compare_results(
             return []
     elif isinstance(schema, ListSet):  # we only support ListSet in Schemas (not in the results)
         return compare_list_set(sessions, metrics, rollup, path, schema)
+    elif isinstance(schema, FixedList):
+        return compare_fixed_list(sessions, metrics, rollup, path, schema)
     elif isinstance(discriminator, tuple):
         assert schema is None or isinstance(schema, tuple)
         return compare_tuples(sessions, metrics, rollup, path, schema)
@@ -531,6 +583,36 @@ def tag_delta(errors: List[ComparisonError], tags: Mapping[str, str]) -> None:
             tag_value = f"-{tag_value}"
 
         set_tag("rh.duplex.rel_change", tag_value)
+
+
+def get_sessionsv2_schema(now: datetime, query: QueryDefinition) -> Mapping[str, FixedList]:
+    schema_for_totals = {
+        "sum(session)": ComparatorType.Counter,
+        "count_unique(user)": ComparatorType.Counter,
+        "avg(session.duration)": ComparatorType.Quantile,
+        "p50(session.duration)": ComparatorType.Quantile,
+        "p75(session.duration)": ComparatorType.Quantile,
+        "p90(session.duration)": ComparatorType.Quantile,
+        "p95(session.duration)": ComparatorType.Quantile,
+        "p99(session.duration)": ComparatorType.Quantile,
+        "max(session.duration)": ComparatorType.Quantile,
+    }
+
+    # Exclude recent timestamps from comparisons
+    start_of_hour = now.replace(minute=0, second=0, microsecond=0)
+    max_timestamp = start_of_hour - timedelta(hours=1)
+    return {
+        field: FixedList(
+            [
+                # Use exclusive range here, because with hourly buckets,
+                # timestamp 09:00 contains data for the range 09:00 - 10:00,
+                # And we want to still exclude that at 10:01
+                comparator if timestamp < max_timestamp else ComparatorType.Ignore
+                for timestamp in get_intervals(query)
+            ]
+        )
+        for field, comparator in schema_for_totals.items()
+    }
 
 
 class DuplexReleaseHealthBackend(ReleaseHealthBackend):
@@ -754,22 +836,13 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> SessionsQueryResult:
         rollup = query.rollup
 
-        schema_for_totals = {
-            "sum(session)": ComparatorType.Counter,
-            "count_unique(user)": ComparatorType.Counter,
-            "avg(session.duration)": ComparatorType.Quantile,
-            "p50(session.duration)": ComparatorType.Quantile,
-            "p75(session.duration)": ComparatorType.Quantile,
-            "p90(session.duration)": ComparatorType.Quantile,
-            "p95(session.duration)": ComparatorType.Quantile,
-            "p99(session.duration)": ComparatorType.Quantile,
-            "max(session.duration)": ComparatorType.Quantile,
-        }
-        schema_for_series = {field: [comparator] for field, comparator in schema_for_totals.items()}
+        now = datetime.now(timezone.utc)
+
+        schema_for_series = get_sessionsv2_schema(now, query)
 
         # Tag sentry event with relative end time, so we can see if live queries
         # cause greater deltas:
-        relative_hours = math.ceil((query.end - datetime.now(timezone.utc)).total_seconds() / 3600)
+        relative_hours = math.ceil((query.end - now).total_seconds() / 3600)
         set_tag("run_sessions_query.rel_end", f"{relative_hours}h")
 
         project_ids = query.filter_keys.get("project_id")
@@ -795,7 +868,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 schema={
                     "by": ComparatorType.Ignore,
                     "series": schema_for_series,
-                    "totals": schema_for_totals,
+                    "totals": ComparatorType.Ignore,
                 },
                 index_by=index_by,
             ),
