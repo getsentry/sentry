@@ -34,10 +34,9 @@ EVENT_EXPANSION = {
         "issue.resolved",
         "issue.ignored",
         "issue.assigned",
-        # "issue.commented",
     ],
     "error": ["error.created"],
-    "comment": ["comment.created", "comment.edited", "comment.deleted"],
+    "comment": ["comment.created", "comment.updated", "comment.deleted"],
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not

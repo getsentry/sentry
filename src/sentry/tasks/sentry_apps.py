@@ -277,18 +277,23 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
         logger.info("workflow_notification.missing_user", extra=extra)
 
     print("group id: ", issue_id)
-    # filter by project too?
-    comments = Activity.objects.filter(group=issue, type=ActivityType.NOTE.value)
+    comments = Activity.objects.filter(
+        group=issue, project=group.project, type=ActivityType.NOTE.value
+    )
 
     if comments:
         print("~~~~~~~~~~")
         print(comments[0])
-        # event_context["comment"] = comments[0]  # this is the most recent one
+
+    # TODO: add comment data to payload
+    # potentially make a totally different payload (in another function?) for comments stuff
+    # omitting issue data - just comment.created, the comment, timestamp, issue id, comment ID?
+    # comment.updated - new comment, timestamp, issue id, comment ID?
+    # comment.deleted - timestamp, issue id, comment ID?
 
     data = kwargs.get("data", {})
     print("data before issue: ", data)
     data.update({"issue": serialize(issue)})
-
 
     send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
 

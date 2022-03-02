@@ -1,5 +1,12 @@
 from sentry.models import GroupAssignee, SentryAppInstallation
-from sentry.signals import issue_assigned, issue_commented, issue_ignored, issue_resolved
+from sentry.signals import (
+    comment_created,
+    comment_deleted,
+    comment_updated,
+    issue_assigned,
+    issue_ignored,
+    issue_resolved,
+)
 from sentry.tasks.sentry_apps import workflow_notification
 
 
@@ -21,12 +28,6 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
     send_workflow_webhooks(org, group, user, "issue.assigned", data=data)
 
 
-@issue_commented.connect(weak=False)
-def send_issue_commented_webhook(project, user, group, data, **kwargs):
-    # TODO: (CEO): don't hardcode "created", it could be updated or deleted
-    send_workflow_webhooks(project.organization, group, user, "comment.created", data=data)
-
-
 @issue_resolved.connect(weak=False)
 def send_issue_resolved_webhook(organization_id, project, group, user, resolution_type, **kwargs):
     send_workflow_webhooks(
@@ -42,6 +43,21 @@ def send_issue_resolved_webhook(organization_id, project, group, user, resolutio
 def send_issue_ignored_webhook(project, user, group_list, **kwargs):
     for issue in group_list:
         send_workflow_webhooks(project.organization, issue, user, "issue.ignored")
+
+
+@comment_created.connect(weak=False)
+def send_comment_created_webhook(project, user, group, data, **kwargs):
+    send_workflow_webhooks(project.organization, group, user, "comment.created", data=data)
+
+
+@comment_updated.connect(weak=False)
+def send_comment_updated_webhook(project, user, group, data, **kwargs):
+    send_workflow_webhooks(project.organization, group, user, "comment.updated", data=data)
+
+
+@comment_deleted.connect(weak=False)
+def send_comment_deleted_webhook(project, user, group, data, **kwargs):
+    send_workflow_webhooks(project.organization, group, user, "comment.deleted", data=data)
 
 
 def send_workflow_webhooks(organization, issue, user, event, data=None):
