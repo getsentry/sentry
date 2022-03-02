@@ -118,7 +118,6 @@ def send_alert_event(
         return
 
     event_context = _webhook_event_data(event, group.id, project.id)
-    print("hello I am here in send_alert_event")
 
     data = {"event": event_context, "triggered_rule": rule}
 
@@ -147,20 +146,14 @@ def send_alert_event(
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
     # The class is serialized as a string when enqueueing the class.
     model = TYPES[sender]
-    print("model", model)
     # The Event model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
     if issubclass(model, Event):
-        print("here in 1")
         if not kwargs.get("instance"):
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
             return
         name = sender.lower()
-    elif issubclass(model, Activity):
-        print("here in 2")
-        name = sender.lower()
-        print("name: ", name)
     else:
         # Some resources are named differently than their model. eg. Group vs Issue.
         # Looks up the human name for the model. Defaults to the model name.
@@ -173,7 +166,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
     try:
-        if issubclass(model, Event) or issubclass(model, Activity):
+        if issubclass(model, Event):
             # XXX:(Meredith): Passing through the entire event was an intentional choice
             # to avoid having to query NodeStore again for data we had previously in
             # post_process. While this is not ideal, changing this will most likely involve
@@ -187,15 +180,13 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         return retryer.retry(exc=e)
 
     event = f"{name}.{action}"
-    print("event: ", event)
 
     if event not in VALID_EVENTS:
-        print("invalid")
         return
 
     org = None
 
-    if isinstance(instance, Group) or isinstance(instance, Event) or isinstance(instance, Activity):
+    if isinstance(instance, Group) or isinstance(instance, Event):
         org = Organization.objects.get_from_cache(
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
@@ -206,7 +197,6 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             "sentry_app"
         ),
     )
-    print("installations: ", installations)
 
     for installation in installations:
         data = {}
@@ -218,11 +208,12 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
         # Trigger a new task for each webhook
         print("about to drop the hottest webhook")
+        # TODO put back .delay
         send_resource_change_webhook(installation_id=installation.id, event=event, data=data)
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
-# @retry(**RETRY_OPTIONS)
+@retry(**RETRY_OPTIONS)
 def process_resource_change_bound(self, action, sender, instance_id, *args, **kwargs):
     _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
 
@@ -278,7 +269,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
 
     print("group id: ", issue_id)
     comments = Activity.objects.filter(
-        group=issue, project=group.project, type=ActivityType.NOTE.value
+        group=issue, project=issue.project, type=ActivityType.NOTE.value
     )
 
     if comments:

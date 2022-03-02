@@ -56,7 +56,7 @@ def send_comment_updated_webhook(project, user, group, data, **kwargs):
 
 
 @comment_deleted.connect(weak=False)
-def send_comment_deleted_webhook(project, user, group, data, **kwargs):
+def send_comment_deleted_webhook(project, user, group, data=None, **kwargs):
     send_workflow_webhooks(project.organization, group, user, "comment.deleted", data=data)
 
 

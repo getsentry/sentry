@@ -1,8 +1,8 @@
 from sentry import analytics
 
 
-class IssueCommentedEvent(analytics.Event):
-    type = "issue.commented"
+class CommentUpdatedEvent(analytics.Event):
+    type = "comment.updated"
 
     attributes = (
         analytics.Attribute("user_id", required=False),
@@ -12,4 +12,4 @@ class IssueCommentedEvent(analytics.Event):
     )
 
 
-analytics.register(IssueCommentedEvent)
+analytics.register(CommentUpdatedEvent)
