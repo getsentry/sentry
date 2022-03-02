@@ -22,6 +22,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {EChartDataZoomHandler} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -55,6 +56,7 @@ type WidgetCardChartProps = Pick<
   theme: Theme;
   widget: Widget;
   isMobile?: boolean;
+  onZoom?: EChartDataZoomHandler;
   windowWidth?: number;
 };
 
@@ -224,6 +226,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       loading,
       widget,
       organization,
+      onZoom,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -387,6 +390,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
                   value: this.chartComponent({
                     ...zoomRenderProps,
                     ...chartOptions,
+                    // Override default datazoom behaviour for updating Global Selection Header
+                    ...(onZoom ? {onDataZoom: onZoom} : {}),
                     legend,
                     series,
                   }),
