@@ -71,7 +71,7 @@ class Filter extends React.Component<Props> {
     } = {
       children: (
         <React.Fragment>
-          <IconFilter size="xs" />
+          <IconFilter />
           <FilterLabel>{t('Filter')}</FilterLabel>
         </React.Fragment>
       ),
