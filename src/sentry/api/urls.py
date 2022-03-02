@@ -142,14 +142,16 @@ from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
 from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
-from .endpoints.internal_beacon import InternalBeaconEndpoint
-from .endpoints.internal_environment import InternalEnvironmentEndpoint
-from .endpoints.internal_mail import InternalMailEndpoint
-from .endpoints.internal_packages import InternalPackagesEndpoint
-from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
-from .endpoints.internal_quotas import InternalQuotasEndpoint
-from .endpoints.internal_stats import InternalStatsEndpoint
-from .endpoints.internal_warnings import InternalWarningsEndpoint
+from .endpoints.internal import (
+    InternalBeaconEndpoint,
+    InternalEnvironmentEndpoint,
+    InternalMailEndpoint,
+    InternalPackagesEndpoint,
+    InternalQueueTasksEndpoint,
+    InternalQuotasEndpoint,
+    InternalStatsEndpoint,
+    InternalWarningsEndpoint,
+)
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_details import MonitorDetailsEndpoint
