@@ -96,7 +96,6 @@ class Superuser:
 
     @property
     def is_active(self):
-        # if accessing differnt org. Also can't use self.org_id as ORG_ID is None
         org = getattr(self.request, "organization", None)
         if org and org.id != self.org_id:
             return self._check_expired_on_org_change()
