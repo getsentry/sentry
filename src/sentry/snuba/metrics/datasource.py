@@ -263,7 +263,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     intervals = list(get_intervals(query))
     results = {}
 
-    if query.orderby is not None and len(query.fields) > 1:
+    if query.orderby is not None:
         # ToDo(ahmed): Re-examine the known limitation that since we make two queries,
         #  where we use the results of the first query to filter down the results of the second
         #  query, so if the field used to order by has no values for certain transactions for
@@ -343,13 +343,13 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                     # condition project_id cause it might be more relaxed than the project_id
                     # condition in the second query
                     where = []
-                    if "project_id" in groupby_tags:
-                        for condition in snuba_query.where:
-                            if not (
-                                isinstance(condition.lhs, Column)
-                                and condition.lhs.name == "project_id"
-                            ):
-                                where += [condition]
+                    for condition in snuba_query.where:
+                        if not (
+                            isinstance(condition.lhs, Column)
+                            and condition.lhs.name == "project_id"
+                            and "project_id" in groupby_tags
+                        ):
+                            where += [condition]
 
                     # Adds the conditions obtained from the previous query
                     for condition_key, condition_value in ordered_tag_conditions.items():
