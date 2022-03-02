@@ -189,7 +189,7 @@ def compare_datetime(
     elif isinstance(sessions, datetime):
         assert isinstance(metrics, datetime)
         dd = abs(sessions - metrics)
-    if dd != timedelta(seconds=0):
+    if dd > timedelta(seconds=rollup):
         return ComparisonError(
             f"field {path} failed to match datetimes sessions={sessions}, metrics={metrics}"
         )
@@ -222,11 +222,28 @@ def compare_counters(
         return ComparisonError(
             f"sessions ERROR, Invalid field {path} value = {sessions}, from sessions, only positive values are expected. "
         )
-    if sessions != metrics:
-        return ComparisonError(
-            f"fields with different values at {path} sessions={sessions}, metrics={metrics}",
-            (sessions, metrics),
-        )
+    if (sessions <= 10 and metrics > 10) or (metrics <= 10 and sessions > 10):
+        if abs(sessions - metrics) > 4:
+            return ComparisonError(
+                f"fields with different values at {path} sessions={sessions}, metrics={metrics}",
+                (sessions, metrics),
+            )
+        else:
+            return None
+    if metrics <= 10:
+        if abs(sessions - metrics) > 3:
+            return ComparisonError(
+                f"fields with different values at {path} sessions={sessions}, metrics={metrics}",
+                (sessions, metrics),
+            )
+        else:
+            return None
+    else:
+        if float(abs(sessions - metrics)) / metrics > 0.05:
+            return ComparisonError(
+                f"fields with different values at {path} sessions={sessions}, metrics={metrics}",
+                (sessions, metrics),
+            )
     return None
 
 
@@ -754,6 +771,18 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         # cause greater deltas:
         relative_hours = math.ceil((query.end - datetime.now(timezone.utc)).total_seconds() / 3600)
         set_tag("run_sessions_query.rel_end", f"{relative_hours}h")
+
+        project_ids = query.filter_keys.get("project_id")
+        if project_ids and len(project_ids) == 1:
+            project_id = project_ids[0]
+            set_tag("run_sessions_query.project_id", str(project_id))
+            try:
+                project = Project.objects.get_from_cache(id=project_id)
+                assert org_id == project.organization_id
+            except (Project.DoesNotExist, AssertionError):
+                pass
+            else:
+                set_tag("run_sessions_query.platform", project.platform)
 
         def index_by(d: Mapping[Any, Any]) -> Any:
             return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
