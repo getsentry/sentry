@@ -147,6 +147,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
       pinned={pinnedFilters.has('projects')}
+      detached
       {...otherProps}
     />
   );

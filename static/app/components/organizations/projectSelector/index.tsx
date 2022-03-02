@@ -36,6 +36,10 @@ type Props = {
    */
   selectedProjects: Array<Project>;
   /**
+   * Whether the menu should be detached from the actor
+   */
+  detached?: boolean;
+  /**
    * Allow selecting multiple projects
    */
   multi?: boolean;
@@ -72,6 +76,7 @@ const ProjectSelector = ({
   menuFooter,
   className,
   rootClassName,
+  detached,
   onClose,
   onFilterChange,
   onScroll,
@@ -172,6 +177,7 @@ const ProjectSelector = ({
   return (
     <DropdownAutoComplete
       blendCorner={false}
+      detached={detached}
       searchPlaceholder={t('Filter projects')}
       onSelect={handleSelect}
       onClose={onClose}

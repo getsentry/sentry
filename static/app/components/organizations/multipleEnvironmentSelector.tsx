@@ -54,6 +54,7 @@ type Props = WithRouterProps & {
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
   pinned?: boolean;
+  detached?: boolean;
 } & DefaultProps;
 
 type State = {
@@ -237,8 +238,14 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {value, loadingProjects, customDropdownButton, customLoadingIndicator, pinned} =
-      this.props;
+    const {
+      value,
+      loadingProjects,
+      customDropdownButton,
+      customLoadingIndicator,
+      pinned,
+      detached,
+    } = this.props;
     const environments = this.getEnvironments();
 
     const hasNewPageFilters =
@@ -271,6 +278,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
             allowActorToggle
             closeOnSelect
             blendCorner={false}
+            detached={detached}
             searchPlaceholder={t('Filter environments')}
             onSelect={this.handleSelect}
             onClose={this.handleClose}
@@ -351,10 +359,13 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   border: 1px solid ${p => p.theme.border};
   position: absolute;
   top: 100%;
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: ${p => p.theme.borderRadiusBottom};
-  margin-top: 0;
-  min-width: 100%;
+
+  ${p =>
+    !p.detached &&
+    `
+    margin-top: 0;
+    border-radius: ${p.theme.borderRadiusBottom};
+  `};
 `;
 
 const PinButton = styled(Button)`
