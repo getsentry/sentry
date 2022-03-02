@@ -44,7 +44,7 @@ export class Profile {
   }
 
   static Empty() {
-    return new Profile(100000, 0, 100000, '', 'milliseconds');
+    return new Profile(100000, 0, 100000, '', 'milliseconds').build();
   }
 
   forEach(

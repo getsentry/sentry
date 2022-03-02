@@ -460,12 +460,15 @@ class SnubaQueryBuilder:
             orderby=self._build_orderby(query_definition, entity),
         )
 
-        if totals_query.orderby is None:
-            series_query = totals_query.set_groupby(
-                (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
-            )
-        else:
-            series_query = None
+        series_query = totals_query.set_groupby(
+            (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+        )
+
+        # In a series query, we also need to factor in the len of the intervals array
+        series_limit = MAX_POINTS
+        if query_definition.limit:
+            series_limit = query_definition.limit * len(list(get_intervals(query_definition)))
+        series_query = series_query.set_limit(series_limit)
 
         return {
             "totals": totals_query,
