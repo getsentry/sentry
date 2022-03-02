@@ -58,7 +58,6 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     email: str
     name: str
     user: UserSerializerResponse
-    user: UserSerializerResponse
     role: str  # TODO: literal/enum
     roleName: str  # TODO: literal/enum
     pending: bool

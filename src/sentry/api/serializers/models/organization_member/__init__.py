@@ -1,8 +1,8 @@
 from .base import OrganizationMemberSerializer
 from .expand.projects import OrganizationMemberWithProjectsSerializer
 from .expand.teams import OrganizationMemberWithTeamsSerializer
-from .response import SCIMMeta
-from .scim import OrganizationMemberSCIMSerializer, OrganizationMemberSCIMSerializerResponse
+from .response import OrganizationMemberSCIMSerializerResponse, SCIMMeta
+from .scim import OrganizationMemberSCIMSerializer
 
 __all__ = (
     "OrganizationMemberSCIMSerializer",
