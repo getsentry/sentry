@@ -39,6 +39,7 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withApi from 'sentry/utils/withApi';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
@@ -203,6 +204,30 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
+  renderSpanSummaryButton() {
+    const {span, organization, location, event} = this.props;
+
+    if (isGapSpan(span) || !span.op || !span.hash) {
+      return null;
+    }
+
+    const transactionName = event.title;
+
+    const target = spanDetailsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      query: location.query,
+      spanSlug: {op: span.op, group: span.hash},
+      projectID: event.projectID,
+    });
+
+    return (
+      <StyledButton size="xsmall" to={target}>
+        {t('View Span Summary')}
+      </StyledButton>
+    );
+  }
+
   renderOrphanSpanMessage() {
     const {span} = this.props;
 
@@ -343,7 +368,9 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Trace ID" extra={this.renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              <Row title="Description">{span?.description ?? ''}</Row>
+              <Row title="Description" extra={this.renderSpanSummaryButton()}>
+                {span?.description ?? ''}
+              </Row>
               <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
                 {getDynamicText({
