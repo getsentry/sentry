@@ -338,6 +338,7 @@ export const icons: IconData[] = [
     groups: ['action'],
     keywords: [],
   },
+  {id: 'sort', groups: ['action'], keywords: []},
   {
     id: 'show',
     groups: ['action'],
@@ -455,7 +456,6 @@ export const icons: IconData[] = [
       ],
     },
   },
-  {id: 'switch', groups: ['action'], keywords: ['swap']},
   {
     id: 'toggle',
     groups: ['action'],
