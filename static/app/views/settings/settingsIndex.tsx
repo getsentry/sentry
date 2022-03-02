@@ -331,8 +331,7 @@ interface ExternalHomeLinkProps extends ExternalLinkProps {
 }
 
 const ExternalHomeLink = styled((props: ExternalHomeLinkProps) => {
-  const {isCentered: _isCentered, ...rest} = props;
-  return <ExternalLink {...rest} />;
+  return <ExternalLink {...props} />;
 })<ExternalHomeLinkProps>`
   color: ${p => p.theme.purple300};
 
