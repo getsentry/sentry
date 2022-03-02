@@ -48,6 +48,9 @@ def backfill_columns_aggregates(apps, schema_editor):
             else:
                 columns.append(field)
 
+        widget_query.columns = columns
+        widget_query.aggregates = aggregates
+
         widget_query.save()
 
 
