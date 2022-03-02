@@ -3,9 +3,9 @@ import {Fuse} from 'sentry/utils/fuzzySearch';
 export type GapSpanType = {
   isOrphan: boolean;
   start_timestamp: number;
+  // this is essentially end_timestamp
   timestamp: number;
   type: 'gap';
-  // this is essentially end_timestamp
   description?: string;
 };
 
