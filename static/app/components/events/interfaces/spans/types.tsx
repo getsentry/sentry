@@ -1,3 +1,5 @@
+import {Fuse} from 'sentry/utils/fuzzySearch';
+
 export type GapSpanType = {
   isOrphan: boolean;
   start_timestamp: number;
@@ -165,25 +167,9 @@ export type IndexedFusedSpan = {
   tagValues: string[];
 };
 
-export type FuseResult = {
-  item: IndexedFusedSpan;
-  score: number;
-};
-
 export type FilterSpans = {
-  results: FuseResult[];
+  results: Fuse.FuseResult<IndexedFusedSpan>[];
   spanIDs: Set<string>;
-};
-
-type FuseKey = 'indexed' | 'tagKeys' | 'tagValues' | 'dataKeys' | 'dataValues';
-
-export type SpanFuseOptions = {
-  distance: number;
-  includeMatches: false;
-  keys: FuseKey[];
-  location: number;
-  maxPatternLength: number;
-  threshold: number;
 };
 
 export type TraceBound = {

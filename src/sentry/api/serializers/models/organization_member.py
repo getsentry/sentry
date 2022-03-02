@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set, cast
 
 from typing_extensions import TypedDict
@@ -7,7 +8,6 @@ from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.external_actor import ExternalActorResponse
 from sentry.api.serializers.models.user import UserSerializerResponse
-from sentry.api.serializers.types import SCIMMeta
 from sentry.models import (
     ExternalActor,
     OrganizationMember,
@@ -74,7 +74,7 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     pending: bool
     expired: str
     flags: _OrganizationMemberFlags
-    dateCreated: str
+    dateCreated: datetime
     inviteStatus: str
     inviterName: Optional[str]
 
@@ -246,6 +246,10 @@ class OrganizationMemberSCIMSerializerOptional(TypedDict, total=False):
     """Sentry doesn't use this field but is expected by SCIM"""
 
     active: bool
+
+
+class SCIMMeta(TypedDict):
+    resourceType: str
 
 
 class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):

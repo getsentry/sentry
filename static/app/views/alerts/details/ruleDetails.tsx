@@ -113,6 +113,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
   }
 
   setStateOnUrl(nextState: {
+    cursor?: string;
     pageEnd?: DateString;
     pageStart?: DateString;
     pageStatsPeriod?: string | null;
@@ -146,6 +147,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         pageStart: parser(start).format(),
         pageEnd: parser(end).format(),
         pageUtc: utc ?? undefined,
+        cursor: undefined,
       });
     }
 
@@ -154,6 +156,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       pageStart: undefined,
       pageEnd: undefined,
       pageUtc: undefined,
+      cursor: undefined,
     });
   };
 
@@ -168,8 +171,9 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {params, organization, project} = this.props;
+    const {params, location, organization, project} = this.props;
     const {orgId, ruleId, projectId} = params;
+    const {cursor} = location.query;
     const {period, start, end, utc} = this.getDataDatetime();
     const {rule} = this.state;
 
@@ -216,6 +220,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               start={start ?? null}
               end={end ?? null}
               utc={utc ?? null}
+              cursor={cursor}
             />
           </Layout.Main>
           <Layout.Side>

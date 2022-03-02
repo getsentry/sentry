@@ -15,8 +15,7 @@ describe('EventsTable', function () {
         projectId="projectId"
         groupId="groupId"
         events={TestStubs.DetailedEvents()}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper).toSnapshot();
   });

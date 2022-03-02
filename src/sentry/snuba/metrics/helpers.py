@@ -368,38 +368,6 @@ AVAILABLE_OPERATIONS = {
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
-
-_BASE_TAGS = {
-    "environment": [
-        "production",
-        "staging",
-    ],
-    "release": [],
-}
-
-_SESSION_TAGS = dict(
-    _BASE_TAGS,
-    **{
-        "session.status": [
-            "abnormal",
-            "crashed",
-            "errored",
-            "healthy",
-        ],
-    },
-)
-
-_TRANSACTION_TAGS = dict(
-    _BASE_TAGS,
-    transaction=["/foo/:orgId/", "/bar/:orgId/"],
-)
-
-_MEASUREMENT_TAGS = dict(
-    _TRANSACTION_TAGS,
-    measurement_rating=["good", "meh", "poor"],
-)
-
-
 ALLOWED_GROUPBY_COLUMNS = ("project_id",)
 
 
@@ -492,12 +460,15 @@ class SnubaQueryBuilder:
             orderby=self._build_orderby(query_definition, entity),
         )
 
-        if totals_query.orderby is None:
-            series_query = totals_query.set_groupby(
-                (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
-            )
-        else:
-            series_query = None
+        series_query = totals_query.set_groupby(
+            (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+        )
+
+        # In a series query, we also need to factor in the len of the intervals array
+        series_limit = MAX_POINTS
+        if query_definition.limit:
+            series_limit = query_definition.limit * len(list(get_intervals(query_definition)))
+        series_query = series_query.set_limit(series_limit)
 
         return {
             "totals": totals_query,

@@ -27,8 +27,7 @@ describe('RedirectToProjectModal', function () {
         slug="new-slug"
         Header={p => p.children}
         Body={p => p.children}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     jest.advanceTimersByTime(4900);

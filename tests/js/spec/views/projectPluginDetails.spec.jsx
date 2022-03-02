@@ -6,8 +6,10 @@ import ProjectPluginDetailsContainer, {
 
 describe('ProjectPluginDetails', function () {
   let component;
-  const routerContext = TestStubs.routerContext();
-  const {organization, project} = routerContext.context;
+
+  const organization = TestStubs.Organization();
+  const project = TestStubs.Project();
+
   const org = organization;
   const plugins = TestStubs.Plugins();
   const plugin = TestStubs.Plugin();
@@ -50,8 +52,7 @@ describe('ProjectPluginDetails', function () {
         project={project}
         params={{orgId: org.slug, projectId: project.slug, pluginId: 'amazon-sqs'}}
         location={TestStubs.location()}
-      />,
-      routerContext
+      />
     );
   });
 
@@ -73,8 +74,7 @@ describe('ProjectPluginDetails', function () {
         plugins={TestStubs.Plugins()}
         params={{orgId: org.slug, projectId: project.slug, pluginId: 'amazon-sqs'}}
         location={TestStubs.location()}
-      />,
-      routerContext
+      />
     );
 
     const btn = wrapper.find('button').at(1);

@@ -1560,7 +1560,11 @@ class MetricsQueryBuilder(QueryBuilder):
         operator = search_filter.operator
         value = search_filter.value.value
 
-        lhs = self.resolve_column(name)
+        try:
+            lhs = self.resolve_column(name)
+        except InvalidSearchQuery:
+            raise IncompatibleMetricsQuery("Column was not recognized in the metrics dataset")
+
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
         if is_tag:
