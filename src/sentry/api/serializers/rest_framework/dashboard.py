@@ -115,12 +115,8 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         orderby = self._get_attr(data, "orderby", "")
         is_table = is_table_display_type(self.context.get("displayType"))
 
+        # TODO(dam): Use columns and aggregates for validation
         fields = self._get_attr(data, "fields", []).copy()
-        aggregates = self._get_attr(data, "aggregates", []).copy()
-        columns = self._get_attr(data, "columns", []).copy()
-        if aggregates or columns:
-            fields = aggregates + columns
-
         equations, fields = categorize_columns(fields)
 
         if equations is not None:
@@ -173,11 +169,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # Issue widget or Discover widget. Pass the error back to the
             # Widget serializer to decide if whether or not to raise this
             # error based on the Widget's type
-            if aggregates or columns:
-                data["discover_query_error"] = {"aggregates": f"Invalid aggregates: {err}"}
-                data["discover_query_error"] = {"columns": f"Invalid columns: {err}"}
-            else:
-                data["discover_query_error"] = {"fields": f"Invalid fields: {err}"}
+            data["discover_query_error"] = {"fields": f"Invalid fields: {err}"}
 
         return data
 
