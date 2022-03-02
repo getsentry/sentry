@@ -45,6 +45,10 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
+        """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
+        need to add them here since snuba has a FunctionMapper that will add it for us. Basically it turns expressions
+        like quantiles(0.9)(value) into quantilesMerge(0.9)(percentiles)
+        """
         resolve_metric_id = {
             "name": "metric_id",
             "fn": lambda args: self.resolve_metric(args["column"]),
