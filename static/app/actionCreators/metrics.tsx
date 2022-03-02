@@ -64,7 +64,7 @@ export const doMetricsRequest = (
       cursor,
       end,
       environment,
-      groupBy,
+      groupBy: groupBy?.filter(g => !!g),
       interval: interval || getInterval({start, end, period: statsPeriod}),
       query: query || undefined,
       per_page: limit,

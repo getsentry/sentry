@@ -80,10 +80,11 @@ describe('Metrics ActionCreator', function () {
     );
   });
 
-  it('ignores falsy fields', function () {
+  it('ignores falsy fields and groupBys', function () {
     doMetricsRequest(api, {
       ...options,
       field: [SessionMetric.SENTRY_SESSIONS_SESSION, ''],
+      groupBy: ['session.status', ''],
     });
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenLastCalledWith(
@@ -91,6 +92,7 @@ describe('Metrics ActionCreator', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           field: ['sentry.sessions.session'],
+          groupBy: ['session.status'],
         }),
       })
     );
