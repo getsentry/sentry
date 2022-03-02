@@ -138,7 +138,7 @@ function Breadcrumbs({
               displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
             }
           >
-            <IconSwitch size="xs" />
+            <StyledIconSort size="xs" rotated />
           </Tooltip>
 
           {t('Time')}
@@ -233,8 +233,7 @@ const Time = styled('div')`
   cursor: pointer;
 `;
 
-const IconSwitch = styled(IconSort)`
-  transform: rotate(90deg);
+const StyledIconSort = styled(IconSort)`
   transition: 0.15s color;
   :hover {
     color: ${p => p.theme.gray300};
