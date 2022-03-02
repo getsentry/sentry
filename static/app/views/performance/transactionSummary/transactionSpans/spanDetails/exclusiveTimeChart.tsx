@@ -24,6 +24,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 
+import {getExclusiveTimeDisplayedValue} from '../utils';
+
 type Props = WithRouterProps & {
   eventView: EventView;
   location: Location;
@@ -72,12 +74,12 @@ export default function ExclusiveTimeChart(props: Props) {
   return (
     <Fragment>
       <HeaderTitleLegend>
-        {t('Exclusive Time Breakdown')}
+        {t('Self Time Breakdown')}
         <QuestionTooltip
           size="sm"
           position="top"
           title={t(
-            'Exclusive Time Breakdown reflects the span exclusive time by percentile over time.'
+            'Self Time Breakdown reflects the span self time by percentile over time.'
           )}
         />
       </HeaderTitleLegend>
@@ -154,6 +156,11 @@ export default function ExclusiveTimeChart(props: Props) {
                 selected: getSeriesSelection(location),
               };
 
+              const formattedResults = results?.map(result => ({
+                ...result,
+                seriesName: getExclusiveTimeDisplayedValue(result.seriesName),
+              }));
+
               return (
                 <TransitionChart loading={loading} reloading={reloading}>
                   <TransparentLoadingMask visible={reloading} />
@@ -164,7 +171,7 @@ export default function ExclusiveTimeChart(props: Props) {
                         {...chartOptions}
                         legend={legend}
                         onLegendSelectChanged={handleLegendSelectChanged}
-                        series={results ?? []}
+                        series={formattedResults ?? []}
                       />
                     ),
                     fixed: <Placeholder height="200px" />,

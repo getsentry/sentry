@@ -228,27 +228,27 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   p50ExclusiveTime: {
     key: 'p50ExclusiveTime',
-    name: t('P50 Exclusive Time'),
+    name: t('P50 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   p75ExclusiveTime: {
     key: 'p75ExclusiveTime',
-    name: t('P75 Exclusive Time'),
+    name: t('P75 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   p95ExclusiveTime: {
     key: 'p95ExclusiveTime',
-    name: t('P95 Exclusive Time'),
+    name: t('P95 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   p99ExclusiveTime: {
     key: 'p99ExclusiveTime',
-    name: t('P99 Exclusive Time'),
+    name: t('P99 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   sumExclusiveTime: {
     key: 'sumExclusiveTime',
-    name: t('Total Exclusive Time'),
+    name: t('Total Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
 };

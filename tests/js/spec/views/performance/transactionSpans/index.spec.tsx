@@ -114,8 +114,8 @@ describe('Performance > Transaction Spans', function () {
       expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
       expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
-      expect(await within(grid).findByText('P75 Exclusive Time')).toBeInTheDocument();
-      expect(await within(grid).findByText('Total Exclusive Time')).toBeInTheDocument();
+      expect(await within(grid).findByText('P75 Self Time')).toBeInTheDocument();
+      expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
 
       // there should be a row for each of the spans
       expect(await within(grid).findByText('op1')).toBeInTheDocument();
@@ -127,10 +127,10 @@ describe('Performance > Transaction Spans', function () {
     });
 
     [
-      {sort: SpanSortPercentiles.P50_EXCLUSIVE_TIME, label: 'P50 Exclusive Time'},
-      {sort: SpanSortPercentiles.P75_EXCLUSIVE_TIME, label: 'P75 Exclusive Time'},
-      {sort: SpanSortPercentiles.P95_EXCLUSIVE_TIME, label: 'P95 Exclusive Time'},
-      {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'P99 Exclusive Time'},
+      {sort: SpanSortPercentiles.P50_EXCLUSIVE_TIME, label: 'P50 Self Time'},
+      {sort: SpanSortPercentiles.P75_EXCLUSIVE_TIME, label: 'P75 Self Time'},
+      {sort: SpanSortPercentiles.P95_EXCLUSIVE_TIME, label: 'P95 Self Time'},
+      {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'P99 Self Time'},
     ].forEach(({sort, label}) => {
       it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
@@ -145,7 +145,7 @@ describe('Performance > Transaction Spans', function () {
         expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
         expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
         expect(await within(grid).findByText(label)).toBeInTheDocument();
-        expect(await within(grid).findByText('Total Exclusive Time')).toBeInTheDocument();
+        expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
       });
     });
 
@@ -161,8 +161,8 @@ describe('Performance > Transaction Spans', function () {
       expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
       expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
-      expect(await within(grid).findByText('P75 Exclusive Time')).toBeInTheDocument();
-      expect(await within(grid).findByText('Total Exclusive Time')).toBeInTheDocument();
+      expect(await within(grid).findByText('P75 Self Time')).toBeInTheDocument();
+      expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
     });
 
     it('renders the right avg occurrence header', async function () {
@@ -177,8 +177,8 @@ describe('Performance > Transaction Spans', function () {
       expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
       expect(await within(grid).findByText('Average Occurrences')).toBeInTheDocument();
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
-      expect(await within(grid).findByText('P75 Exclusive Time')).toBeInTheDocument();
-      expect(await within(grid).findByText('Total Exclusive Time')).toBeInTheDocument();
+      expect(await within(grid).findByText('P75 Self Time')).toBeInTheDocument();
+      expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
     });
   });
 });
