@@ -189,7 +189,7 @@ def compare_datetime(
     elif isinstance(sessions, datetime):
         assert isinstance(metrics, datetime)
         dd = abs(sessions - metrics)
-    if dd != timedelta(seconds=0):
+    if dd > timedelta(seconds=rollup):
         return ComparisonError(
             f"field {path} failed to match datetimes sessions={sessions}, metrics={metrics}"
         )
@@ -222,11 +222,28 @@ def compare_counters(
         return ComparisonError(
             f"sessions ERROR, Invalid field {path} value = {sessions}, from sessions, only positive values are expected. "
         )
-    if sessions != metrics:
-        return ComparisonError(
-            f"fields with different values at {path} sessions={sessions}, metrics={metrics}",
-            (sessions, metrics),
-        )
+    if (sessions <= 10 and metrics > 10) or (metrics <= 10 and sessions > 10):
+        if abs(sessions - metrics) > 4:
+            return ComparisonError(
+                f"fields with different values at {path} sessions={sessions}, metrics={metrics}",
+                (sessions, metrics),
+            )
+        else:
+            return None
+    if metrics <= 10:
+        if abs(sessions - metrics) > 3:
+            return ComparisonError(
+                f"fields with different values at {path} sessions={sessions}, metrics={metrics}",
+                (sessions, metrics),
+            )
+        else:
+            return None
+    else:
+        if float(abs(sessions - metrics)) / metrics > 0.05:
+            return ComparisonError(
+                f"fields with different values at {path} sessions={sessions}, metrics={metrics}",
+                (sessions, metrics),
+            )
     return None
 
 
