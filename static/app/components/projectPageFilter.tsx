@@ -69,7 +69,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   );
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, pinnedFilters, isReady} = useLegacyStore(PageFiltersStore);
+  const {selection, isReady} = useLegacyStore(PageFiltersStore);
 
   useEffect(() => {
     if (!isEqual(selection.projects, currentSelectedProjects)) {
@@ -146,7 +146,6 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       onUpdate={handleUpdateProjects}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
-      pinned={pinnedFilters.has('projects')}
       {...otherProps}
     />
   );
