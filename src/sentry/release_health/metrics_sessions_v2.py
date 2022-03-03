@@ -710,18 +710,14 @@ def run_sessions_query(
         }
     )
 
-    groups_as_list: List[SessionsQueryGroup] = []
     if len(data_points) == 0:
-        for status in get_args(_SessionStatus):
-            query_group = {}
-            query_group["by"] = {"session.status": status}
-            query_group["totals"] = {}
-            query_group["series"] = {}
-            for field in query_clone.fields:
-                default_value = default_for(field)
-                query_group["totals"][field] = default_value
-                query_group["series"][field] = [default_value for _ in range(len(intervals))]
-            groups_as_list.append(cast(SessionsQueryGroup, query_group))
+        # We're only interested in `session.status` group-byes. The rest of the
+        # conditions require work (e.g. getting all environments) that we can't
+        # get without querying the DB.
+        if "session.status" in query_clone.raw_groupby:
+            for status in get_args(_SessionStatus):
+                gkey: GroupKey = (("session.status", status),)
+                groups[gkey]
     else:
         for key in data_points.keys():
             try:
@@ -757,14 +753,14 @@ def run_sessions_query(
                     index = timestamp_index[key.bucketed_time]
                     group["series"][output_field.get_name()][index] = value
 
-        groups_as_list: List[SessionsQueryGroup] = [  # type: ignore
-            {
-                "by": dict(by),
-                "totals": group["totals"],
-                "series": group["series"],
-            }
-            for by, group in groups.items()
-        ]
+    groups_as_list: List[SessionsQueryGroup] = [
+        {
+            "by": dict(by),
+            "totals": group["totals"],
+            "series": group["series"],
+        }
+        for by, group in groups.items()
+    ]
 
     def format_datetime(dt: datetime) -> str:
         return dt.isoformat().replace("+00:00", "Z")
