@@ -19,11 +19,11 @@ type Props = Omit<
   'organization' | 'start' | 'end' | 'utc' | 'relative' | 'onUpdate'
 > & {
   router: WithRouterProps['router'];
+  hidePin?: boolean;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
-  hidePin?: boolean;
 };
 
 function DatePageFilter({router, resetParamsOnChange, hidePin, ...props}: Props) {
