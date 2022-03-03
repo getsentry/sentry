@@ -23,9 +23,10 @@ type Props = Omit<
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  hidePin?: boolean;
 };
 
-function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
+function DatePageFilter({router, resetParamsOnChange, hidePin, ...props}: Props) {
   const {selection, desyncedFilters} = useLegacyStore(PageFiltersStore);
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
@@ -81,12 +82,16 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
         detached
         {...props}
       />
-      <PageFilterPinButton size="zero" filter="datetime" />
+      {!hidePin && <PageFilterPinButton size="zero" filter="datetime" />}
     </DateSelectorContainer>
   );
 }
 
 const DateSelectorContainer = styled('div')`
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: fit-content;
+  position: relative;
   display: grid;
   gap: ${space(1)};
   align-items: center;
@@ -116,4 +121,4 @@ const DropdownTitle = styled('div')`
   flex: 1;
 `;
 
-export default withRouter(DatePageFilter);
+export default withRouter<Props>(DatePageFilter);
