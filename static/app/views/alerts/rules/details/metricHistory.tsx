@@ -42,7 +42,7 @@ type MetricAlertActivityProps = {
 };
 
 function MetricAlertActivity({organization, incident}: MetricAlertActivityProps) {
-  const activities = incident.activities!.filter(
+  const activities = (incident.activities ?? []).filter(
     activity => activity.type === IncidentActivityType.STATUS_CHANGE
   );
   const criticalActivity = activities.filter(
