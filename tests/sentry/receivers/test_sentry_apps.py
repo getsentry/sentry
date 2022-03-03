@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import Commit, GroupAssignee, GroupLink, Release, Repository
+from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, Repository
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
 
@@ -197,4 +197,63 @@ class TestIssueAssigned(APITestCase):
                 # Excludes email address
                 "assignee": {"type": "user", "name": self.assignee.name, "id": self.assignee.id}
             },
+        )
+
+
+@patch("sentry.tasks.sentry_apps.build_comment_webhook.delay")
+class TestComments(APITestCase):
+    def setUp(self):
+        self.issue = self.create_group(project=self.project)
+        self.sentry_app = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["comment.updated", "comment.created", "comment.deleted"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        self.login_as(self.user)
+
+    def create_comment(self):
+        url = f"/api/0/issues/{self.issue.id}/notes/"
+        data = {"text": "hello world"}
+        self.client.post(url, data=data, format="json")
+        return Activity.objects.get(group=self.issue, project=self.project, type=Activity.NOTE)
+
+    def test_comment_created(self, delay):
+        note = self.create_comment()
+        assert faux(delay).called_with(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="comment.created",
+            user_id=self.user.id,
+            data=note,
+        )
+
+    def test_comment_updated(self, delay):
+        note = self.create_comment()
+        url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
+        data = {"text": "goodbye cruel world"}
+        self.client.put(url, data=data, format="json")
+        updated_note = Activity.objects.get(
+            group=self.issue, project=self.project, type=Activity.NOTE
+        )
+        assert faux(delay).called_with(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="comment.updated",
+            user_id=self.user.id,
+            data=updated_note,
+        )
+
+    def test_comment_deleted(self, delay):
+        note = self.create_comment()
+        url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
+        self.client.delete(url, format="json")
+
+        assert faux(delay).called_with(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="comment.deleted",
+            user_id=self.user.id,
+            data=note,
         )
