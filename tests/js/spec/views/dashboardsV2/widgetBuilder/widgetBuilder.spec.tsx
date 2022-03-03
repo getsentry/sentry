@@ -883,6 +883,31 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('disables dashboards with max widgets', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        {...untitledDashboard, widgetDisplay: []},
+        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
+      ],
+    });
+
+    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+      },
+    });
+
+    userEvent.click(await screen.findByText('Select a dashboard'));
+    userEvent.type(screen.getByText('Select a dashboard'), 'Test Dashboard{enter}');
+
+    // Dashboard wasn't selected because it has the max number of widgets
+    expect(screen.queryByText('Test Dashboard')).not.toBeInTheDocument();
+    expect(screen.getByText('Select a dashboard')).toBeInTheDocument();
+  });
+
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
       const handleSave = jest.fn();
@@ -961,31 +986,5 @@ describe('WidgetBuilder', function () {
       renderTestComponent();
       expect(await screen.findByText('Widget Library')).toBeInTheDocument();
     });
-  });
-
-  it('disables dashboards with max widgets', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [
-        {...untitledDashboard, widgetDisplay: []},
-        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
-      ],
-    });
-
-    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
-
-    renderTestComponent({
-      query: {
-        source: DashboardWidgetSource.DISCOVERV2,
-      },
-    });
-
-    userEvent.click(await screen.findByText('Select a dashboard'));
-    userEvent.hover(screen.getByText('Test Dashboard'));
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
-      )
-    ).toBeInTheDocument();
   });
 });
