@@ -7,6 +7,7 @@ import {Location} from 'history';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels';
@@ -26,7 +27,6 @@ import {Widget} from '../types';
 
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
-import Button from 'sentry/components/button';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
@@ -286,7 +286,7 @@ const WidgetHeader = styled('div')`
   padding: ${space(2)} ${space(3)} 0 ${space(3)};
   width: 100%;
   display: flex;
-align-items: center;
+  align-items: center;
   justify-content: space-between;
 `;
 
