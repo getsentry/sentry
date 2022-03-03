@@ -235,13 +235,17 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               projects={projects}
               triggerIndex={index}
               isCritical={isCritical}
-              fieldHelp={tct(
-                'The threshold[units] that will activate the [severity] status.',
-                {
-                  severity: isCritical ? t('critical') : t('warning'),
-                  units: thresholdUnits ? ` (${thresholdUnits})` : '',
-                }
-              )}
+              fieldHelp={
+                hasAlertWizardV3
+                  ? null
+                  : tct(
+                      'The threshold[units] that will activate the [severity] status.',
+                      {
+                        severity: isCritical ? t('critical') : t('warning'),
+                        units: thresholdUnits ? ` (${thresholdUnits})` : '',
+                      }
+                    )
+              }
               triggerLabel={
                 <React.Fragment>
                   <TriggerIndicator size={12} />
@@ -280,9 +284,13 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           projects={projects}
           triggerIndex={2}
           isCritical={false}
-          fieldHelp={tct('The threshold[units] that will activate the resolved status.', {
-            units: thresholdUnits ? ` (${thresholdUnits})` : '',
-          })}
+          fieldHelp={
+            hasAlertWizardV3
+              ? null
+              : tct('The threshold[units] that will activate the resolved status.', {
+                  units: thresholdUnits ? ` (${thresholdUnits})` : '',
+                })
+          }
           triggerLabel={
             <React.Fragment>
               <ResolvedIndicator size={12} />

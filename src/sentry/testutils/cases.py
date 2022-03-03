@@ -1374,6 +1374,10 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["conditions"] == widget_data_source.conditions
         if "orderby" in data:
             assert data["orderby"] == widget_data_source.orderby
+        if "aggregates" in data:
+            assert data["aggregates"] == widget_data_source.aggregates
+        if "columns" in data:
+            assert data["columns"] == widget_data_source.columns
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")

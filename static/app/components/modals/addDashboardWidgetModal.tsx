@@ -54,11 +54,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
-import {
-  DEFAULT_METRICS_FIELDS,
-  generateMetricsWidgetFieldOptions,
-  METRICS_FIELDS_ALLOW_LIST,
-} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import {mapErrors, normalizeQueries} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
@@ -599,12 +595,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
 
-    const filteredMeta = Object.values(metricsMeta).filter(field =>
-      METRICS_FIELDS_ALLOW_LIST.includes(field.name)
-    );
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      filteredMeta.length ? filteredMeta : DEFAULT_METRICS_FIELDS,
+      Object.values(metricsMeta),
       Object.values(metricsTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
