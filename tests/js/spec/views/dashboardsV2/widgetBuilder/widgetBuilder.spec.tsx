@@ -8,7 +8,6 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {
@@ -1094,12 +1093,11 @@ describe('WidgetBuilder', function () {
       });
 
       userEvent.click(await screen.findByText('Select a dashboard'));
-      userEvent.hover(screen.getByText('Test Dashboard'));
-      expect(
-        await screen.findByText(
-          textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
-        )
-      ).toBeInTheDocument();
+      userEvent.type(screen.getByText('Select a dashboard'), 'Test Dashboard{enter}');
+
+      // Dashboard wasn't selected because it has the max number of widgets
+      expect(screen.queryByText('Test Dashboard')).not.toBeInTheDocument();
+      expect(screen.getByText('Select a dashboard')).toBeInTheDocument();
     });
   });
 
