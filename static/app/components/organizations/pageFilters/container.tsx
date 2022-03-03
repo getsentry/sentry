@@ -90,11 +90,11 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   // Initializes GlobalSelectionHeader
   //
-  // Calls an actionCreator to load project/environment from local storage if possible,
-  // otherwise populate with defaults.
+  // Calls an actionCreator to load project/environment from local storage when
+  // pinned, otherwise populate with defaults.
   //
-  // This should only happen when the header is mounted
-  // e.g. when changing views or organizations.
+  // This should only happen when the header is mounted e.g. when changing
+  // views or organizations.
   useEffect(() => {
     // We can initialize before ProjectsStore is fully loaded if we don't need to
     // enforce single project.
