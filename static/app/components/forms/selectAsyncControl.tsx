@@ -16,7 +16,7 @@ export type Result = {
   value: string;
 };
 
-export type SelectAsyncControlProps = {
+export interface SelectAsyncControlProps {
   forwardedRef: React.Ref<ReactSelect<GeneralSelectValue>>;
   // TODO(ts): Improve data type
   onQuery: (query: string | undefined) => {};
@@ -24,7 +24,7 @@ export type SelectAsyncControlProps = {
   url: string;
   value: ControlProps['value'];
   defaultOptions?: boolean | GeneralSelectValue[];
-};
+}
 
 type State = {
   query?: string;
