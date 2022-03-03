@@ -204,7 +204,7 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
-  renderSpanSummaryButton() {
+  renderViewSimilarSpansButton() {
     const {span, organization, location, event} = this.props;
 
     if (isGapSpan(span) || !span.op || !span.hash) {
@@ -223,7 +223,7 @@ class SpanDetail extends React.Component<Props, State> {
 
     return (
       <StyledButton size="xsmall" to={target}>
-        {t('View Span Summary')}
+        {t('View Similar Spans')}
       </StyledButton>
     );
   }
@@ -368,7 +368,7 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Trace ID" extra={this.renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              <Row title="Description" extra={this.renderSpanSummaryButton()}>
+              <Row title="Description" extra={this.renderViewSimilarSpansButton()}>
                 {span?.description ?? ''}
               </Row>
               <Row title="Status">{span.status || ''}</Row>
