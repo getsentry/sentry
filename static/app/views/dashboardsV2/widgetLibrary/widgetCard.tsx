@@ -103,9 +103,9 @@ type PanelProps = {
 };
 
 const StyledPanel = styled(Panel)<PanelProps>`
-  margin-bottom: 0;
-  border: ${p => '1px solid ' + p.theme.border};
-  outline: ${p => (p.selected ? '2px solid' + p.theme.purple400 : undefined)};
+  border: ${p =>
+    p.selected ? `2px solid ${p.theme.active}` : `1px solid ${p.theme.border}`};
+  margin: ${p => (p.selected ? '-1px' : 0)};
   box-sizing: border-box;
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
   cursor: pointer;
