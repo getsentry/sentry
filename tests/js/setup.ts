@@ -267,3 +267,8 @@ Object.defineProperty(window, 'location', {
   configurable: true,
   writable: true,
 });
+
+beforeEach(() => {
+  // eslint-disable-next-line
+  console.log(expect.getState().currentTestName);
+});
