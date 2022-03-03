@@ -195,6 +195,7 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
+from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
@@ -1117,7 +1118,7 @@ urlpatterns = [
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-spans-histogram/$",
-                    OrganizationEventsHistogramEndpoint.as_view(),
+                    OrganizationEventsSpansHistogramEndpoint.as_view(),
                     name="sentry-api-0-organization-events-spans-histogram",
                 ),
                 url(

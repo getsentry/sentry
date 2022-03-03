@@ -12,21 +12,19 @@ DATA_FILTERS = ["all", "exclude_outliers"]
 
 
 class SpansHistogramSerializer(serializers.Serializer):
-    # TODO check if query needs to be a required parameter
+    span = serializers.CharField(required=True, allow_null=False)
     query = serializers.CharField(required=False)
-    span = serializers.CharField(requied=True, allow_null=False)
     numBuckets = serializers.IntegerField(min_value=1, max_value=100)
     precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
     min = serializers.FloatField(required=False)
     max = serializers.FloatField(required=False)
-    dataFilter = serializers.ChoiceField(choises=DATA_FILTERS, required=False)
+    dataFilter = serializers.ChoiceField(choices=DATA_FILTERS, required=False)
 
     def validate(self, data):
         if "min" in data and "max" in data and data["min"] > data["max"]:
             raise serializers.ValidationError("min cannot be greater than max.")
         return data
 
-    # should this Span be redefined here or is importing is ok?
     def validate_span(self, span: str) -> Span:
         try:
             return Span.from_str(span)
@@ -49,7 +47,7 @@ class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase)
         except NoProjects:
             return Response({})
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="spans histogram"):
+        with sentry_sdk.start_span(op="discover.endpoint", description="spans_histogram"):
             serializer = SpansHistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data
