@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import {t} from 'sentry/locale';
 import {
   aggregateOutputType,
+  getColumnsAndAggregates,
   isAggregateFieldOrEquation,
   isLegalYAxisType,
 } from 'sentry/utils/discover/fields';
@@ -112,6 +113,8 @@ export function normalizeQueries(
     return {
       ...query,
       fields: fields.length ? fields : ['count()'],
+      columns: [],
+      aggregates: fields.length ? fields : ['count()'],
     };
   });
 
@@ -140,9 +143,13 @@ export function normalizeQueries(
       }
     }
 
+    const {columns, aggregates} = getColumnsAndAggregates(referenceFields);
+
     queries = queries.map(query => {
       return {
         ...query,
+        columns,
+        aggregates,
         fields: referenceFields,
       };
     });
@@ -154,6 +161,7 @@ export function normalizeQueries(
       return {
         ...query,
         fields: query.fields.slice(0, 1),
+        aggregates: query.aggregates?.slice(0, 1),
       };
     });
   }

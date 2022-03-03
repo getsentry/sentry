@@ -1000,6 +1000,15 @@ export function getAggregateFields(fields: string[]): string[] {
   return fields.filter(field => isAggregateField(field) || isAggregateEquation(field));
 }
 
+export function getColumnsAndAggregates(fields: string[]): {
+  aggregates: string[];
+  columns: string[];
+} {
+  const aggregates = getAggregateFields(fields);
+  const columns = fields.filter(field => !!!aggregates.includes(field));
+  return {columns, aggregates};
+}
+
 /**
  * Convert a function string into type it will output.
  * This is useful when you need to format values in tooltips,

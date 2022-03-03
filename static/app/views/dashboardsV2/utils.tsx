@@ -15,7 +15,11 @@ import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
 import {Organization, PageFilters} from 'sentry/types';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {
+  getColumnsAndAggregates,
+  isEquation,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {
   DashboardDetails,
@@ -81,11 +85,14 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
       queryFields &&
       typeof query.queryOrderby === 'string'
     ) {
+      const {columns, aggregates} = getColumnsAndAggregates(queryFields);
       queryConditions.forEach((condition, index) => {
         queries.push({
           name: queryNames[index],
           conditions: condition,
           fields: queryFields,
+          columns,
+          aggregates,
           orderby: query.queryOrderby as string,
         });
       });

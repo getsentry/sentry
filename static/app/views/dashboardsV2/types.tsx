@@ -32,6 +32,8 @@ export type WidgetQuery = {
   fields: string[];
   name: string;
   orderby: string;
+  aggregates?: string[];
+  columns?: string[];
 };
 
 export type Widget = {
