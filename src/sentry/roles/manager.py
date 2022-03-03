@@ -19,7 +19,7 @@ class Role(abc.ABC):
     desc: str = ""
     scopes: Iterable[str] = ()
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert len(self.id) <= 32, "Role id must be no more than 32 characters"
 
         self.desc = _normalize_whitespace(self.desc)
@@ -39,7 +39,7 @@ class Role(abc.ABC):
 class OrganizationRole(Role):
     is_global: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.is_global = bool(self.is_global)
 
@@ -58,8 +58,8 @@ class RoleManager:
     ) -> None:
         self._org_roles: Dict[str, OrganizationRole] = OrderedDict()
         for idx, role_cfg in enumerate(org_config):
-            role = OrganizationRole(idx, **role_cfg)
-            self._org_roles[role.id] = role
+            org_role = OrganizationRole(idx, **role_cfg)
+            self._org_roles[org_role.id] = org_role
 
         self._choices = tuple((r.id, r.name) for r in self._org_roles.values())
 
@@ -72,8 +72,8 @@ class RoleManager:
 
         self._team_roles: Dict[str, TeamRole] = OrderedDict()
         for idx, role_cfg in enumerate(team_config):
-            role = TeamRole(idx, **role_cfg)
-            self._team_roles[role.id] = role
+            team_role = TeamRole(idx, **role_cfg)
+            self._team_roles[team_role.id] = team_role
 
         self._org_to_team_map = self._make_org_to_team_map()
 
