@@ -14,3 +14,5 @@ get_default = default_manager.get_default
 get_top_dog = default_manager.get_top_dog
 with_scope = default_manager.with_scope
 with_any_scope = default_manager.with_any_scope
+get_team_role = default_manager.get_team_role
+get_entry_role = default_manager.get_entry_role

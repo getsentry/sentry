@@ -47,7 +47,7 @@ class OrganizationRole(Role):
 
 @dataclass(frozen=True, eq=True)
 class TeamRole(Role):
-    mapped_to: Optional[str] = None
+    is_entry_role_for: Optional[str] = None
 
 
 class RoleManager:
@@ -76,19 +76,19 @@ class RoleManager:
             team_role = TeamRole.from_config(idx, **role_cfg)
             self._team_roles[team_role.id] = team_role
 
-        self._org_to_team_map = self._make_org_to_team_map()
+        self._entry_role_map = self._make_entry_role_map()
 
-    def _make_org_to_team_map(self) -> Dict[str, str]:
+    def _make_entry_role_map(self) -> Dict[str, str]:
         team_default = next(iter(self._team_roles.values()))
         team_top_dog = next(iter(reversed(self._team_roles.values())))
 
         def get_mapped_org_role(team_role: TeamRole) -> Optional[OrganizationRole]:
-            if team_role.mapped_to is None:
+            if team_role.is_entry_role_for is None:
                 return None
-            org_role = self._org_roles.get(team_role.mapped_to)
+            org_role = self._org_roles.get(team_role.is_entry_role_for)
             if org_role is None:
                 warnings.warn(
-                    f"Broken role mapping: {team_role.id}.mapped_to = {team_role.mapped_to}"
+                    f"Broken role mapping: {team_role.id}.is_entry_role_for = {team_role.is_entry_role_for}"
                 )
             return org_role
 
@@ -140,5 +140,5 @@ class RoleManager:
     def get_team_role(self, role: str) -> TeamRole:
         return self._team_roles[role]
 
-    def get_base_team_role(self, org_role: str) -> TeamRole:
-        return self.get_team_role(self._org_to_team_map[org_role])
+    def get_entry_role(self, org_role: str) -> TeamRole:
+        return self.get_team_role(self._entry_role_map[org_role])

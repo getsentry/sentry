@@ -6,8 +6,8 @@ from sentry.testutils import TestCase
 
 class RoleManagerTest(TestCase):
     @staticmethod
-    def _assert_mapping(manager: RoleManager, org_role: str, team_role: str) -> None:
-        assert manager.get_base_team_role(org_role).id == team_role
+    def _assert_entry_is(manager: RoleManager, org_role: str, team_role: str) -> None:
+        assert manager.get_entry_role(org_role).id == team_role
 
     def test_default_manager(self):
         assert default_manager.get_all()
@@ -18,10 +18,10 @@ class RoleManagerTest(TestCase):
         assert default_manager.can_manage("owner", "member")
         assert default_manager.can_manage("manager", "member")
 
-        self._assert_mapping(default_manager, "member", "contributor")
-        self._assert_mapping(default_manager, "admin", "admin")
-        self._assert_mapping(default_manager, "manager", "admin")
-        self._assert_mapping(default_manager, "owner", "admin")
+        self._assert_entry_is(default_manager, "member", "contributor")
+        self._assert_entry_is(default_manager, "admin", "admin")
+        self._assert_entry_is(default_manager, "manager", "admin")
+        self._assert_entry_is(default_manager, "owner", "admin")
 
     TEST_ORG_ROLES = [
         {"id": "peasant", "name": "Peasant"},
@@ -32,10 +32,10 @@ class RoleManagerTest(TestCase):
     ]
 
     TEST_TEAM_ROLES = [
-        {"id": "private", "name": "Private", "mapped_to": "peasant"},
-        {"id": "sergeant", "name": "Sergeant", "mapped_to": "earl"},
+        {"id": "private", "name": "Private", "is_entry_role_for": "peasant"},
+        {"id": "sergeant", "name": "Sergeant", "is_entry_role_for": "earl"},
         {"id": "lieutenant", "name": "Lieutenant"},
-        {"id": "captain", "name": "Captain", "mapped_to": "monarch"},
+        {"id": "captain", "name": "Captain", "is_entry_role_for": "monarch"},
     ]
 
     def test_priority(self):
@@ -54,77 +54,78 @@ class RoleManagerTest(TestCase):
     def test_mapping(self):
         manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
 
-        self._assert_mapping(manager, "monarch", "captain")
-        self._assert_mapping(manager, "duke", "sergeant")
-        self._assert_mapping(manager, "earl", "sergeant")
-        self._assert_mapping(manager, "baron", "private")
-        self._assert_mapping(manager, "peasant", "private")
+        self._assert_entry_is(manager, "monarch", "captain")
+        self._assert_entry_is(manager, "duke", "sergeant")
+        self._assert_entry_is(manager, "earl", "sergeant")
+        self._assert_entry_is(manager, "baron", "private")
+        self._assert_entry_is(manager, "peasant", "private")
 
     def test_team_default_mapping(self):
         # Check that RoleManager provides sensible defaults in case the team roles
         # don't specify any mappings
 
         team_roles = [
-            {k: v for (k, v) in role.items() if k != "mapped_to"} for role in self.TEST_TEAM_ROLES
+            {k: v for (k, v) in role.items() if k != "is_entry_role_for"}
+            for role in self.TEST_TEAM_ROLES
         ]
         manager = RoleManager(self.TEST_ORG_ROLES, team_roles)
 
-        self._assert_mapping(manager, "monarch", "captain")
-        self._assert_mapping(manager, "duke", "private")
-        self._assert_mapping(manager, "earl", "private")
-        self._assert_mapping(manager, "baron", "private")
-        self._assert_mapping(manager, "peasant", "private")
+        self._assert_entry_is(manager, "monarch", "captain")
+        self._assert_entry_is(manager, "duke", "private")
+        self._assert_entry_is(manager, "earl", "private")
+        self._assert_entry_is(manager, "baron", "private")
+        self._assert_entry_is(manager, "peasant", "private")
 
     def test_top_dog_accesses_all_team_roles(self):
         # Check that the org's top dog role has access to the top team role even if
         # it's explicitly mapped to a lower role
 
         team_roles = [
-            {"id": "private", "name": "Private", "mapped_to": "peasant"},
-            {"id": "sergeant", "name": "Sergeant", "mapped_to": "earl"},
-            {"id": "lieutenant", "name": "Lieutenant", "mapped_to": "monarch"},
+            {"id": "private", "name": "Private", "is_entry_role_for": "peasant"},
+            {"id": "sergeant", "name": "Sergeant", "is_entry_role_for": "earl"},
+            {"id": "lieutenant", "name": "Lieutenant", "is_entry_role_for": "monarch"},
             {"id": "captain", "name": "Captain"},
         ]
         manager = RoleManager(self.TEST_ORG_ROLES, team_roles)
 
-        self._assert_mapping(manager, "monarch", "captain")
-        self._assert_mapping(manager, "duke", "sergeant")
-        self._assert_mapping(manager, "earl", "sergeant")
-        self._assert_mapping(manager, "baron", "private")
-        self._assert_mapping(manager, "peasant", "private")
+        self._assert_entry_is(manager, "monarch", "captain")
+        self._assert_entry_is(manager, "duke", "sergeant")
+        self._assert_entry_is(manager, "earl", "sergeant")
+        self._assert_entry_is(manager, "baron", "private")
+        self._assert_entry_is(manager, "peasant", "private")
 
     def test_if_team_top_dog_is_not_org_top_dog(self):
         team_roles = [
-            {"id": "private", "name": "Private", "mapped_to": "peasant"},
-            {"id": "sergeant", "name": "Sergeant", "mapped_to": "earl"},
+            {"id": "private", "name": "Private", "is_entry_role_for": "peasant"},
+            {"id": "sergeant", "name": "Sergeant", "is_entry_role_for": "earl"},
             {"id": "lieutenant", "name": "Lieutenant"},
-            {"id": "captain", "name": "Captain", "mapped_to": "duke"},
+            {"id": "captain", "name": "Captain", "is_entry_role_for": "duke"},
         ]
         manager = RoleManager(self.TEST_ORG_ROLES, team_roles)
 
-        self._assert_mapping(manager, "monarch", "captain")
-        self._assert_mapping(manager, "duke", "captain")
-        self._assert_mapping(manager, "earl", "sergeant")
-        self._assert_mapping(manager, "baron", "private")
-        self._assert_mapping(manager, "peasant", "private")
+        self._assert_entry_is(manager, "monarch", "captain")
+        self._assert_entry_is(manager, "duke", "captain")
+        self._assert_entry_is(manager, "earl", "sergeant")
+        self._assert_entry_is(manager, "baron", "private")
+        self._assert_entry_is(manager, "peasant", "private")
 
     def test_handles_non_injective_mapping(self):
         # Check that RoleManager tolerates multiple team roles pointing at the same
         # org role and maps to the highest one
 
         team_roles = [
-            {"id": "private", "name": "Private", "mapped_to": "peasant"},
-            {"id": "sergeant", "name": "Sergeant", "mapped_to": "earl"},
-            {"id": "lieutenant", "name": "Lieutenant", "mapped_to": "earl"},
-            {"id": "captain", "name": "Captain", "mapped_to": "monarch"},
+            {"id": "private", "name": "Private", "is_entry_role_for": "peasant"},
+            {"id": "sergeant", "name": "Sergeant", "is_entry_role_for": "earl"},
+            {"id": "lieutenant", "name": "Lieutenant", "is_entry_role_for": "earl"},
+            {"id": "captain", "name": "Captain", "is_entry_role_for": "monarch"},
         ]
         manager = RoleManager(self.TEST_ORG_ROLES, team_roles)
 
-        self._assert_mapping(manager, "monarch", "captain")
-        self._assert_mapping(manager, "duke", "lieutenant")
-        self._assert_mapping(manager, "earl", "lieutenant")
-        self._assert_mapping(manager, "baron", "private")
-        self._assert_mapping(manager, "peasant", "private")
+        self._assert_entry_is(manager, "monarch", "captain")
+        self._assert_entry_is(manager, "duke", "lieutenant")
+        self._assert_entry_is(manager, "earl", "lieutenant")
+        self._assert_entry_is(manager, "baron", "private")
+        self._assert_entry_is(manager, "peasant", "private")
 
     @mock.patch("sentry.roles.manager.warnings")
     def test_team_mapping_to_legacy_roles(self, mock_warnings):
@@ -141,6 +142,6 @@ class RoleManagerTest(TestCase):
 
         assert mock_warnings.warn.called
 
-        self._assert_mapping(manager, "legate", "captain")
-        self._assert_mapping(manager, "centurion", "private")
-        self._assert_mapping(manager, "legionary", "private")
+        self._assert_entry_is(manager, "legate", "captain")
+        self._assert_entry_is(manager, "centurion", "private")
+        self._assert_entry_is(manager, "legionary", "private")

@@ -1678,7 +1678,7 @@ SENTRY_TEAM_ROLES = (
             "alerts:read",
             "alerts:write",
         },
-        "mapped_to": "admin",
+        "is_entry_role_for": "admin",
     },
 )
 
