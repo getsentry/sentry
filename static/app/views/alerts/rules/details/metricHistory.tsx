@@ -146,20 +146,21 @@ function MetricHistory({organization, incidents}: Props) {
             ]}
             isEmpty={!numOfIncidents}
             emptyMessage={t('No alerts triggered during this time.')}
-            expanded={numOfIncidents < COLLAPSE_COUNT || isExpanded}
+            expanded={numOfIncidents <= COLLAPSE_COUNT || isExpanded}
           >
-            {(incidents ?? []).map((incident, idx) => {
-              if (idx >= COLLAPSE_COUNT && !isExpanded) {
-                return null;
-              }
-              return (
-                <MetricAlertActivity
-                  key={idx}
-                  incident={incident}
-                  organization={organization}
-                />
-              );
-            })}
+            {incidents &&
+              incidents.map((incident, idx) => {
+                if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                  return null;
+                }
+                return (
+                  <MetricAlertActivity
+                    key={idx}
+                    incident={incident}
+                    organization={organization}
+                  />
+                );
+              })}
           </StyledPanelTable>
           {showMoreButton}
         </div>
