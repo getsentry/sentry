@@ -424,11 +424,6 @@ function generateGenericPerformanceEventView(
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
 
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
-
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.freeText.length > 0) {
@@ -504,11 +499,6 @@ function generateBackendPerformanceEventView(
 
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -596,11 +586,6 @@ function generateMobilePerformanceEventView(
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
 
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
-
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.freeText.length > 0) {
@@ -666,11 +651,6 @@ function generateFrontendPageloadPerformanceEventView(
 
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -738,11 +718,6 @@ function generateFrontendOtherPerformanceEventView(
 
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
