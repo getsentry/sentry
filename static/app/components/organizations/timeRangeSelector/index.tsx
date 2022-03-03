@@ -115,6 +115,11 @@ type Props = WithRouterProps & {
   defaultAbsolute?: {end?: Date; start?: Date};
 
   /**
+   * Whether the menu should be detached from the actor
+   */
+  detached?: boolean;
+
+  /**
    * Small info icon with tooltip hint text
    */
   hint?: string;
@@ -363,6 +368,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       relativeOptions,
       maxPickableDays,
       customDropdownButton,
+      detached,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -420,7 +426,11 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
             <TimeRangeRoot {...getRootProps()}>
               {dropdownButton}
               {isOpen && (
-                <Menu {...getMenuProps()} isAbsoluteSelected={isAbsoluteSelected}>
+                <Menu
+                  {...getMenuProps()}
+                  isAbsoluteSelected={isAbsoluteSelected}
+                  detached={detached}
+                >
                   <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
                     <SelectorItemsHook
                       handleSelectRelative={this.handleSelectRelative}
@@ -474,6 +484,7 @@ const StyledHeaderItem = styled(HeaderItem)`
 
 type MenuProps = {
   isAbsoluteSelected: boolean;
+  detached?: boolean;
 };
 
 const Menu = styled('div')<MenuProps>`
@@ -487,10 +498,20 @@ const Menu = styled('div')<MenuProps>`
   top: 100%;
   min-width: 100%;
   z-index: ${p => p.theme.zIndex.dropdown};
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: ${p => p.theme.borderRadiusBottom};
   font-size: 0.8em;
   overflow: hidden;
+
+  ${p =>
+    p.detached
+      ? `
+        border-radius: ${p.theme.borderRadius};
+        margin-top: ${space(1)};
+        box-shadow: ${p.theme.dropShadowHeavy};
+      `
+      : `
+        border-radius: ${p.theme.borderRadiusBottom};
+        box-shadow: ${p.theme.dropShadowLight};
+    `}
 `;
 
 const SelectorList = styled('div')<MenuProps>`

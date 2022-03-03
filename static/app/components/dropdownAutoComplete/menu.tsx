@@ -65,6 +65,11 @@ type Props = {
   'data-test-id'?: string;
 
   /**
+   * If true, the menu will be visually detached from actor.
+   */
+  detached?: boolean;
+
+  /**
    * passed down to the AutoComplete Component
    */
   disabled?: boolean;
@@ -181,6 +186,7 @@ const Menu = ({
   emptyMessage = t('No items'),
   searchPlaceholder = t('Filter search'),
   blendCorner = true,
+  detached = false,
   alignMenu = 'left',
   hideInput = false,
   busy = false,
@@ -295,6 +301,7 @@ const Menu = ({
               style={style}
               css={css}
               blendCorner={blendCorner}
+              detached={detached}
               alignMenu={alignMenu}
               menuWithArrow={menuWithArrow}
             >

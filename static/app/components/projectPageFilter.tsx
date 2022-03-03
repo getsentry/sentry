@@ -150,6 +150,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       onUpdate={handleUpdateProjects}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
+      detached
       {...otherProps}
     />
   );
