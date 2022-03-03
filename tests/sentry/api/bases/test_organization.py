@@ -20,6 +20,7 @@ from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class MockSuperUser:
@@ -37,6 +38,12 @@ class OrganizationPermissionBase(TestCase):
         perm = OrganizationPermission()
         request = self.make_request(user=user, auth=auth, method=method)
         if is_superuser:
+            request._body = json.dumps(
+                {
+                    "superuserAccessCategory": "Edit organization settings",
+                    "superuserReason": "Edit organization settings",
+                }
+            )
             request.superuser.set_logged_in(request.user)
         return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
 
@@ -52,6 +59,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
 
     def test_superuser(self):
         user = self.create_user(is_superuser=True)
+        self.login_as(user=user, superuser=True)
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
 
     def test_org_member(self):
@@ -85,6 +93,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
     def test_org_requires_2fa_with_superuser(self):
         self.org_require_2fa()
         user = self.create_user(is_superuser=True)
+        self.login_as(user=user, superuser=True)
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
 
     def test_org_requires_2fa_with_enrolled_user(self):
@@ -135,6 +144,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
     @mock.patch("sentry.api.utils.get_cached_organization_member")
     def test_member_limit_with_superuser(self, mock_get_org_member):
         user = self.create_user(is_superuser=True)
+        self.login_as(user=user, superuser=True)
         self.create_member(
             user=user,
             organization=self.org,
