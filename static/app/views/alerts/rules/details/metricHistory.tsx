@@ -125,16 +125,14 @@ type Props = {
 };
 
 function MetricHistory({organization, incidents}: Props) {
+  const numOfIncidents = (incidents ?? []).length;
+
   return (
     <CollapsePanel
       items={incidents!.length}
       collapseCount={COLLAPSE_COUNT}
       disableBorder={false}
-      buttonTitle={tn(
-        'Hidden Alert',
-        'Hidden Alerts',
-        incidents!.length - COLLAPSE_COUNT
-      )}
+      buttonTitle={tn('Hidden Alert', 'Hidden Alerts', numOfIncidents - COLLAPSE_COUNT)}
     >
       {({isExpanded, showMoreButton}) => (
         <div>
@@ -146,11 +144,11 @@ function MetricHistory({organization, incidents}: Props) {
               t('Seen By'),
               t('Date Triggered'),
             ]}
-            isEmpty={!incidents!.length}
+            isEmpty={!numOfIncidents}
             emptyMessage={t('No alerts triggered during this time.')}
-            expanded={incidents!.length < COLLAPSE_COUNT || isExpanded}
+            expanded={numOfIncidents < COLLAPSE_COUNT || isExpanded}
           >
-            {incidents!.map((incident, idx) => {
+            {(incidents ?? []).map((incident, idx) => {
               if (idx >= COLLAPSE_COUNT && !isExpanded) {
                 return null;
               }

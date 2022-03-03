@@ -26,20 +26,8 @@ function StatusIndicator({status, tooltipTitle}: Props) {
   }
 
   return (
-    <StatusLevel color={color}>
-      <BadgeTooltip title={tooltipTitle} />
-    </StatusLevel>
-  );
-}
-
-type BadgeTooltipProps = {
-  title?: string;
-};
-
-function BadgeTooltip({title}: BadgeTooltipProps) {
-  return (
-    <Tooltip title={title}>
-      <span />
+    <Tooltip title={tooltipTitle} skipWrapper>
+      <StatusLevel color={color} />
     </Tooltip>
   );
 }
