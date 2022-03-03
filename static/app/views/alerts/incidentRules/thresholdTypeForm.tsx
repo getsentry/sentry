@@ -49,7 +49,7 @@ const ThresholdTypeForm = ({
               hasAlertWizardV3 ? (
                 comparisonType === AlertRuleComparisonType.COUNT ? (
                   t('Percent Change: {x%} higher or lower compared to previous period')
-                ) : (// Prevent default to avoid dropdown menu closing on click
+                ) : (
                   // Prevent default to avoid dropdown menu closing on click
                   <ComparisonContainer onClick={e => e.preventDefault()}>
                     {t('Percent Change: {x%} higher or lower compared to')}
