@@ -129,7 +129,7 @@ function MetricHistory({organization, incidents}: Props) {
 
   return (
     <CollapsePanel
-      items={incidents!.length}
+      items={numOfIncidents}
       collapseCount={COLLAPSE_COUNT}
       disableBorder={false}
       buttonTitle={tn('Hidden Alert', 'Hidden Alerts', numOfIncidents - COLLAPSE_COUNT)}
