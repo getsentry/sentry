@@ -369,6 +369,31 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
+  it('metrics do not have equation', async function () {
+    mountModalWithRtl({
+      initialData,
+      widget: {
+        displayType: 'table',
+        widgetType: 'metrics',
+        queries: [
+          {
+            id: '9',
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['sdk.name', 'count()'],
+            orderby: '',
+          },
+        ],
+      },
+    });
+
+    // Select line chart display
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
+  });
+
   it('additional fields get added to new seach filters', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
