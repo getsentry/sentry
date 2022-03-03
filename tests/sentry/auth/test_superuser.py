@@ -49,6 +49,7 @@ class SuperuserTestCase(TestCase):
             user = self.create_user("foo@example.com", is_superuser=True)
         current_datetime = self.current_datetime
         request = self.make_request(user=user)
+        self.login_as(user=user, superuser=True)
         if cookie_token is not None:
             request.COOKIES[COOKIE_NAME] = signing.get_cookie_signer(
                 salt=COOKIE_NAME + COOKIE_SALT
