@@ -9,7 +9,7 @@ def _normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip())
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Role(abc.ABC):
     priority: int
     id: str
