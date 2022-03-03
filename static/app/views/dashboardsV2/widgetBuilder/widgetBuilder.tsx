@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -239,6 +239,16 @@ function WidgetBuilder({
 
   const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
 
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
@@ -449,6 +459,10 @@ function WidgetBuilder({
   }
 
   async function handleSave() {
+    if (!isMounted.current) {
+      return;
+    }
+
     const widgetData: Widget = assignTempId(currentWidget);
 
     if (widgetToBeUpdated) {
@@ -506,6 +520,10 @@ function WidgetBuilder({
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
+    if (!isMounted.current) {
+      return false;
+    }
+
     if (notDashboardsOrigin) {
       // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
       if (
