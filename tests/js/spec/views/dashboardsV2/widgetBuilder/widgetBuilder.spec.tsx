@@ -36,6 +36,7 @@ function renderTestComponent({
     ...initializeOrg(),
     organization: {
       features: orgFeatures ?? [
+        'performance-view',
         'new-widget-builder-experience',
         'dashboards-edit',
         'global-views',
@@ -948,6 +949,42 @@ describe('WidgetBuilder', function () {
     // Expect event.type field to be converted to count()
     expect(screen.queryByText('event.type')).not.toBeInTheDocument();
     expect(screen.getByText('count()')).toBeInTheDocument();
+
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+  });
+
+  it('should filter out non-aggregate fields when switching from table to chart', async function () {
+    renderTestComponent();
+
+    expect(await screen.findByText('Table')).toBeInTheDocument();
+
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+
+    // Add field column
+    userEvent.click(screen.getByLabelText('Add a Column'));
+    userEvent.click(screen.getByText('(Required)'));
+    userEvent.type(screen.getByText('(Required)'), 'event.type{enter}');
+
+    const removeColumnButtons = screen.queryAllByLabelText('Remove column');
+    expect(removeColumnButtons).toHaveLength(2);
+
+    // Add columns
+    userEvent.click(screen.getByText('count()'));
+    userEvent.type(screen.getAllByText('count()')[0], 'event.type{enter}');
+
+    userEvent.click(screen.getByLabelText('Add a Column'));
+    userEvent.click(screen.getByText('(Required)'));
+    userEvent.type(screen.getByText('(Required)'), 'p95{enter}');
+
+    // Select Line chart display
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    // Expect event.type field to be dropped
+    expect(screen.getByText('p95(…)')).toBeInTheDocument();
+    expect(screen.queryByText('event.type')).not.toBeInTheDocument();
 
     // No delete button as there is only one field.
     expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
