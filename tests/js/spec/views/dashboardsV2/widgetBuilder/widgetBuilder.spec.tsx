@@ -808,6 +808,80 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
+  it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+    const handleSave = jest.fn();
+    renderTestComponent({onSave: handleSave});
+
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
+
+    // Select Big Number display
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Big Number'));
+
+    // Choose any()
+    userEvent.click(screen.getByText('count()'));
+    userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
+    userEvent.click(screen.getByText('transaction.duration'));
+    userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
+
+    // Select Line chart display
+    userEvent.click(screen.getByText('Big Number'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    // Expect any(...) field to be converted to count()
+    expect(screen.getByText('count()')).toBeInTheDocument();
+
+    // Save widget
+    userEvent.click(screen.getByLabelText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          displayType: 'line',
+          queries: [
+            expect.objectContaining({
+              fields: ['count()'],
+            }),
+          ],
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('should filter non-legal y-axis choices for timeseries widget charts', async function () {
+    renderTestComponent();
+
+    expect(await screen.findByText('Table')).toBeInTheDocument();
+
+    // Select Line chart display
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+
+    userEvent.click(screen.getByText('count()'));
+    userEvent.type(screen.getAllByText('count()')[0], 'any{enter}');
+
+    // Expect user.display to not be an available parameter option for any()
+    // for line (timeseries) widget charts
+    userEvent.click(screen.getByText('transaction.duration'));
+    userEvent.type(screen.getAllByText('transaction.duration')[0], 'user.display');
+    expect(screen.getByText('No options')).toBeInTheDocument();
+
+    // Be able to choose a numeric-like option for any()
+    userEvent.keyboard('{escape}');
+    userEvent.click(screen.getByText('transaction.duration'));
+    userEvent.type(
+      screen.getAllByText('transaction.duration')[0],
+      'measurements.lcp{enter}'
+    );
+    expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
+  });
+
   it('should filter out non-aggregate fields when switching from table to chart', async function () {
     renderTestComponent();
 
