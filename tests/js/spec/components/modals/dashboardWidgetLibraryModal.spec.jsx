@@ -104,6 +104,8 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
           {
             conditions: 'event.type:error',
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             name: '',
             orderby: '',
           },
@@ -119,6 +121,8 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
           {
             conditions: 'event.type:transaction',
             fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             name: '',
             orderby: '-count',
           },
