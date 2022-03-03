@@ -417,7 +417,7 @@ class _TransactionThresholdConfig(TypedDict):
 
 def _get_satisfaction_thresholds(project: Project) -> _TransactionThresholdConfig:
     # Always start with the default threshold, so we do not have to maintain
-    # A separate default in Relay:
+    # A separate default in Relay
     project_threshold: _TransactionThreshold = {
         "metric": DEFAULT_THRESHOLD["metric"],
         "threshold": float(DEFAULT_THRESHOLD["threshold"]),
