@@ -92,11 +92,11 @@ function IssueListFilters({
         </ClassNames>
 
         {hasPageFilters ? (
-          <StyledPageFilterBar>
+          <PageFilterBar>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
             <DatePageFilter hidePin />
-          </StyledPageFilterBar>
+          </PageFilterBar>
         ) : (
           <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
             {hasIssuePercentDisplay && (
@@ -164,12 +164,6 @@ const SearchContainer = styled('div')<{
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  & > * {
-    max-width: 50%;
   }
 `;
 
