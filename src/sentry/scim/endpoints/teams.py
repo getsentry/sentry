@@ -202,7 +202,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
 
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
-    public = {"GET"}
+    public = {"GET", "PATCH"}
 
     def convert_args(self, request: Request, organization_slug, team_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug)
