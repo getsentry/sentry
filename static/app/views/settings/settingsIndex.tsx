@@ -75,7 +75,6 @@ class SettingsIndex extends React.Component<SettingsIndexProps> {
       isSelfHosted
         ? {
             isSelfHosted: true,
-            isCentered: true,
             href: LINKS.FORUM,
           }
         : {
