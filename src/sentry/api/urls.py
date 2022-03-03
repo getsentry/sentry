@@ -66,6 +66,9 @@ from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, Organiz
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 
+# issues endpoints are available both top level (by numerical ID) as well as coupled
+# to the organization (and queryable via short ID)
+from ..rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
@@ -462,8 +465,6 @@ from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.userroles_details import UserRoleDetailsEndpoint
 from .endpoints.userroles_index import UserRolesEndpoint
 
-# issues endpoints are available both top level (by numerical ID) as well as coupled
-# to the organization (and queryable via short ID)
 GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/$", GroupDetailsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/activities/$", GroupActivitiesEndpoint.as_view()),
@@ -1946,6 +1947,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",
                     ProjectRuleGroupHistoryIndexEndpoint.as_view(),
                     name="sentry-api-0-project-rule-group-history-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/stats/$",
+                    ProjectRuleStatsIndexEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-stats-index",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
