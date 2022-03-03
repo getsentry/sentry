@@ -229,6 +229,9 @@ def test_compare_list_set(sessions, metrics, schema, are_equal):
 @pytest.mark.parametrize(
     "sessions,metrics,schema, are_equal",
     [
+        (None, None, FixedList([Ct.Exact]), True),
+        (None, [1], FixedList([Ct.Exact]), False),
+        ([1], None, FixedList([Ct.Exact]), False),
         ([1, 2], [1], FixedList([Ct.Exact, Ct.Exact]), False),
         ([1, 2], [1, 2], FixedList([Ct.Exact, Ct.Exact]), True),
         ([1, 2, 3], [1, 2, 4], FixedList([Ct.Exact, Ct.Exact, Ct.Ignore]), True),
