@@ -15,6 +15,14 @@ from sentry.api.endpoints.auth_config import AuthConfigEndpoint
 from sentry.api.endpoints.auth_index import AuthIndexEndpoint
 from sentry.api.endpoints.auth_login import AuthLoginEndpoint
 from sentry.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
+from sentry.api.endpoints.avatar import (
+    DocIntegrationAvatarEndpoint,
+    OrganizationAvatarEndpoint,
+    ProjectAvatarEndpoint,
+    SentryAppAvatarEndpoint,
+    TeamAvatarEndpoint,
+    UserAvatarEndpoint,
+)
 from sentry.api.endpoints.broadcast_details import BroadcastDetailsEndpoint
 from sentry.api.endpoints.broadcast_index import BroadcastIndexEndpoint
 from sentry.api.endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
@@ -29,7 +37,6 @@ from sentry.api.endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
-from sentry.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
 from sentry.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
 from sentry.api.endpoints.doc_integrations import DocIntegrationsEndpoint
 from sentry.api.endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
@@ -75,14 +82,16 @@ from sentry.api.endpoints.grouping_level_new_issues import GroupingLevelNewIssue
 from sentry.api.endpoints.grouping_levels import GroupingLevelsEndpoint
 from sentry.api.endpoints.index import IndexEndpoint
 from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
-from sentry.api.endpoints.internal_beacon import InternalBeaconEndpoint
-from sentry.api.endpoints.internal_environment import InternalEnvironmentEndpoint
-from sentry.api.endpoints.internal_mail import InternalMailEndpoint
-from sentry.api.endpoints.internal_packages import InternalPackagesEndpoint
-from sentry.api.endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
-from sentry.api.endpoints.internal_quotas import InternalQuotasEndpoint
-from sentry.api.endpoints.internal_stats import InternalStatsEndpoint
-from sentry.api.endpoints.internal_warnings import InternalWarningsEndpoint
+from sentry.api.endpoints.internal import (
+    InternalBeaconEndpoint,
+    InternalEnvironmentEndpoint,
+    InternalMailEndpoint,
+    InternalPackagesEndpoint,
+    InternalQueueTasksEndpoint,
+    InternalQuotasEndpoint,
+    InternalStatsEndpoint,
+    InternalWarningsEndpoint,
+)
 from sentry.api.endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from sentry.api.endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from sentry.api.endpoints.monitor_details import MonitorDetailsEndpoint
@@ -101,7 +110,6 @@ from sentry.api.endpoints.organization_auth_provider_send_reminders import (
     OrganizationAuthProviderSendRemindersEndpoint,
 )
 from sentry.api.endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from sentry.api.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.api.endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
@@ -290,7 +298,6 @@ from sentry.api.endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
-from sentry.api.endpoints.project_avatar import ProjectAvatarEndpoint
 from sentry.api.endpoints.project_codeowners import ProjectCodeOwnersEndpoint
 from sentry.api.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from sentry.api.endpoints.project_codeowners_request import ProjectCodeOwnersRequestEndpoint
@@ -400,7 +407,6 @@ from sentry.api.endpoints.sentry_app import (
     SentryInternalAppTokenDetailsEndpoint,
     SentryInternalAppTokensEndpoint,
 )
-from sentry.api.endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
 from sentry.api.endpoints.setup_wizard import SetupWizard
 from sentry.api.endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from sentry.api.endpoints.system_health import SystemHealthEndpoint
@@ -410,7 +416,6 @@ from sentry.api.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredTotalsEndpoint,
 )
 from sentry.api.endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
-from sentry.api.endpoints.team_avatar import TeamAvatarEndpoint
 from sentry.api.endpoints.team_details import TeamDetailsEndpoint
 from sentry.api.endpoints.team_groups_old import TeamGroupsOldEndpoint
 from sentry.api.endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
@@ -453,7 +458,6 @@ from sentry.api.endpoints.user_roles import UserUserRolesEndpoint
 from sentry.api.endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from sentry.api.endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from sentry.api.endpoints.user_subscriptions import UserSubscriptionsEndpoint
-from sentry.api.endpoints.useravatar import UserAvatarEndpoint
 from sentry.api.endpoints.userroles_details import UserRoleDetailsEndpoint
 from sentry.api.endpoints.userroles_index import UserRolesEndpoint
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
@@ -530,6 +534,9 @@ from sentry.integrations.vsts.search import VstsSearchEndpoint
 from sentry.integrations.vsts.webhooks import WorkItemWebhook
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint
 from sentry.plugins.endpoints import PluginGroupEndpoint
+from sentry.rules.history.endpoints.project_rule_group_history import (
+    ProjectRuleGroupHistoryIndexEndpoint,
+)
 
 __PUBLIC_ENDPOINTS_FROM_JSON = {
     OrganizationIndexEndpoint,
@@ -924,6 +931,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     PluginGroupEndpoint,
     IssueGroupActionEndpoint,
     JiraServerIssueUpdatedWebhook,
+    ProjectRuleGroupHistoryIndexEndpoint,
 }
 
 
