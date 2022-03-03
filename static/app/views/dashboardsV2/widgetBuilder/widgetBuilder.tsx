@@ -133,7 +133,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
 type RouteParams = {
   orgId: string;
   dashboardId?: string;
-  widgetIndex?: number;
+  widgetIndex?: string;
 };
 
 type QueryData = {
@@ -449,6 +449,19 @@ function WidgetBuilder({
     }
   }
 
+  function handleDelete() {
+    if (!isEditing) {
+      return;
+    }
+
+    let nextWidgetList = [...dashboard.widgets];
+    nextWidgetList.splice(parseInt(widgetIndex, 10), 1);
+    nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
+
+    onSave(nextWidgetList);
+    router.push(previousLocation);
+  }
+
   async function handleSave() {
     const widgetData: Widget = assignTempId(currentWidget);
 
@@ -618,7 +631,7 @@ function WidgetBuilder({
     });
   }
 
-  if (isEditing && widgetIndex >= dashboard.widgets.length) {
+  if (isEditing && parseInt(widgetIndex, 10) >= dashboard.widgets.length) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
@@ -950,6 +963,7 @@ function WidgetBuilder({
                 goBackLocation={previousLocation}
                 isEditing={isEditing}
                 onSave={handleSave}
+                onDelete={handleDelete}
               />
             </MainWrapper>
             <Side>
