@@ -1,14 +1,10 @@
 type IconGroupName =
+  | 'product'
   | 'action'
   | 'navigation'
-  | 'content'
-  | 'file'
-  | 'issue'
+  | 'status'
   | 'chart'
-  | 'layout'
-  | 'media'
   | 'device'
-  | 'other'
   | 'logo';
 
 export type IconPropName = 'size' | 'direction' | 'isCircled' | 'isSolid' | 'type';
@@ -94,32 +90,24 @@ export const iconProps: IconProps = {
 
 export const iconGroups: IconGroup[] = [
   {
-    id: 'action',
-    label: 'Action',
+    id: 'product',
+    label: 'Product',
+  },
+  {
+    id: 'logo',
+    label: 'Logos',
   },
   {
     id: 'navigation',
     label: 'Navigation',
   },
   {
-    id: 'content',
-    label: 'Content',
+    id: 'status',
+    label: 'Status',
   },
   {
-    id: 'layout',
-    label: 'Layout',
-  },
-  {
-    id: 'issue',
-    label: 'Issue',
-  },
-  {
-    id: 'file',
-    label: 'File',
-  },
-  {
-    id: 'media',
-    label: 'Media',
+    id: 'action',
+    label: 'Action',
   },
   {
     id: 'chart',
@@ -128,14 +116,6 @@ export const iconGroups: IconGroup[] = [
   {
     id: 'device',
     label: 'Device',
-  },
-  {
-    id: 'other',
-    label: 'Other',
-  },
-  {
-    id: 'logo',
-    label: 'Logo',
   },
 ];
 
@@ -161,7 +141,7 @@ export const icons: IconData[] = [
   },
   {
     id: 'chevron',
-    groups: ['action', 'navigation'],
+    groups: ['navigation'],
     keywords: [
       'up',
       'down',
@@ -182,20 +162,20 @@ export const icons: IconData[] = [
     keywords: ['up', 'down', 'left', 'right', 'point', 'direct', 'move'],
     additionalProps: ['direction'],
   },
-  {id: 'upload', groups: ['action', 'file'], keywords: ['file', 'image', 'up']},
-  {id: 'download', groups: ['action', 'file'], keywords: ['file', 'image', 'down']},
-  {id: 'sync', groups: ['action', 'file'], keywords: ['swap']},
-  {id: 'menu', groups: ['layout'], keywords: ['navigate']},
-  {id: 'list', groups: ['layout'], keywords: ['item']},
-  {id: 'dashboard', groups: ['layout'], keywords: ['overview', 'group', 'organize']},
+  {id: 'upload', groups: ['action'], keywords: ['file', 'image', 'up']},
+  {id: 'download', groups: ['action'], keywords: ['file', 'image', 'down']},
+  {id: 'sync', groups: ['action'], keywords: ['swap']},
+  {id: 'menu', groups: ['action'], keywords: ['navigate']},
+  {id: 'list', groups: ['action'], keywords: ['item']},
+  {id: 'dashboard', groups: ['action'], keywords: ['overview', 'group', 'organize']},
   {
     id: 'upgrade',
-    groups: ['action', 'file'],
+    groups: ['action'],
     keywords: ['up'],
   },
   {
     id: 'open',
-    groups: ['action', 'file'],
+    groups: ['action'],
     keywords: ['link', 'hyperlink', 'external'],
   },
   {
@@ -205,7 +185,7 @@ export const icons: IconData[] = [
   },
   {
     id: 'refresh',
-    groups: ['action', 'navigation'],
+    groups: ['action'],
     keywords: ['reload', 'restart'],
   },
   {
@@ -228,22 +208,22 @@ export const icons: IconData[] = [
   },
   {
     id: 'play',
-    groups: ['media'],
+    groups: ['action'],
     keywords: ['video', 'audio', 'unpause'],
   },
   {
     id: 'pause',
-    groups: ['media'],
+    groups: ['action'],
     keywords: ['video', 'audio', 'stop'],
   },
   {
     id: 'previous',
-    groups: ['media'],
+    groups: ['action'],
     keywords: ['video', 'audio', 'back', 'return', 'rewind'],
   },
   {
     id: 'next',
-    groups: ['media'],
+    groups: ['action'],
     keywords: ['video', 'audio', 'skip', 'forward'],
   },
   {
@@ -254,12 +234,12 @@ export const icons: IconData[] = [
   },
   {
     id: 'stats',
-    groups: ['chart'],
+    groups: ['product', 'chart'],
     keywords: ['bar', 'graph'],
   },
   {
     id: 'file',
-    groups: ['file', 'content'],
+    groups: ['device'],
     keywords: ['document'],
   },
   {
@@ -269,98 +249,99 @@ export const icons: IconData[] = [
   },
   {
     id: 'copy',
-    groups: ['action', 'file', 'content'],
+    groups: ['action'],
     keywords: ['duplicate'],
   },
   {
     id: 'delete',
-    groups: ['action', 'content'],
+    groups: ['action'],
     keywords: ['trash', 'can', 'dumpster', 'remove', 'erase', 'clear'],
   },
   {
     id: 'docs',
-    groups: ['file'],
+    groups: ['action'],
     keywords: ['document'],
   },
   {
     id: 'print',
-    groups: ['action', 'file'],
+    groups: ['action', 'device'],
     keywords: [],
   },
   {
     id: 'project',
-    groups: ['issue'],
+    groups: ['product'],
     keywords: [],
   },
   {
     id: 'code',
-    groups: ['content'],
+    groups: ['device'],
     keywords: ['snippet'],
   },
   {
     id: 'markdown',
-    groups: ['content'],
+    groups: ['device'],
     keywords: ['code'],
   },
   {
     id: 'terminal',
-    groups: ['device', 'content'],
+    groups: ['device', 'device'],
     keywords: ['code', 'bash', 'command'],
   },
   {
     id: 'commit',
-    groups: ['content'],
+    groups: ['device'],
     keywords: ['git', 'github'],
   },
   {
     id: 'issues',
-    groups: ['content', 'issue'],
+    groups: ['product'],
     keywords: ['stack'],
   },
   {
     id: 'releases',
-    groups: ['content', 'issue'],
+    groups: ['product'],
     keywords: ['stack', 'versions'],
   },
   {
     id: 'stack',
-    groups: ['layout', 'content'],
+    groups: ['action'],
     keywords: ['group', 'combine', 'view'],
   },
   {
     id: 'span',
-    groups: ['content'],
+    groups: ['device'],
     keywords: ['performance', 'transaction'],
   },
   {
     id: 'link',
-    groups: ['action', 'content'],
+    groups: ['action', 'device'],
     keywords: ['hyperlink', 'anchor'],
   },
   {
     id: 'attachment',
-    groups: ['action', 'content'],
+    groups: ['device'],
     keywords: ['include', 'clip'],
   },
   {
     id: 'location',
-    groups: ['content'],
+    groups: ['action'],
     keywords: ['pin', 'position', 'map'],
     additionalProps: ['isSolid'],
   },
   {
     id: 'edit',
-    groups: ['action', 'content'],
+    groups: ['action'],
     keywords: ['pencil'],
   },
   {
     id: 'filter',
-    groups: ['action', 'content'],
+    groups: ['action'],
     keywords: [],
   },
+  {id: 'sort', groups: ['action'], keywords: []},
   {
     id: 'show',
-    groups: ['action', 'content'],
+    groups: ['action'],
     keywords: ['visible'],
   },
   {
@@ -370,42 +351,52 @@ export const icons: IconData[] = [
   },
   {
     id: 'grabbable',
-    groups: ['action', 'layout'],
+    groups: ['action'],
     keywords: ['move', 'arrange', 'organize', 'rank', 'switch'],
   },
   {
     id: 'ellipsis',
-    groups: ['action', 'layout'],
+    groups: ['action'],
     keywords: ['expand', 'open', 'more', 'hidden'],
   },
   {
     id: 'fire',
-    groups: ['issue'],
+    groups: ['status'],
     keywords: ['danger', 'severe', 'critical'],
   },
   {
     id: 'megaphone',
-    groups: ['other'],
+    groups: ['action'],
     keywords: ['speaker', 'announce'],
   },
   {
+    id: 'fatal',
+    groups: ['status'],
+    keywords: ['skull'],
+  },
+  {
     id: 'question',
-    groups: ['layout'],
+    groups: ['action'],
     keywords: ['info', 'about', 'information', 'ask', 'faq', 'q&a'],
   },
   {
     id: 'info',
-    groups: ['layout'],
+    groups: ['action'],
     keywords: ['more', 'about', 'information', 'ask', 'faq', 'q&a'],
   },
   {
     id: 'warning',
-    groups: ['issue'],
+    groups: ['status'],
     keywords: ['alert', 'notification'],
   },
   {
+    id: 'exclamation',
+    groups: ['status'],
+    keywords: ['alert', 'warning'],
+  },
+  {
     id: 'not',
-    groups: ['other'],
+    groups: ['status'],
     keywords: ['invalid', 'no', 'forbidden'],
   },
   {
@@ -425,32 +416,32 @@ export const icons: IconData[] = [
   },
   {
     id: 'user',
-    groups: ['content'],
+    groups: ['action'],
     keywords: ['person', 'portrait'],
   },
   {
     id: 'group',
-    groups: ['content'],
+    groups: ['action'],
     keywords: ['person', 'people'],
   },
   {
     id: 'chat',
-    groups: ['action', 'content'],
+    groups: ['action', 'action'],
     keywords: ['message', 'bubble'],
   },
   {
     id: 'support',
-    groups: ['content'],
+    groups: ['product'],
     keywords: ['microphone', 'help'],
   },
   {
     id: 'clock',
-    groups: ['content'],
+    groups: ['action'],
     keywords: ['time', 'watch'],
   },
   {
     id: 'calendar',
-    groups: ['content'],
+    groups: ['device'],
     keywords: ['time', 'date'],
   },
   {
@@ -465,7 +456,6 @@ export const icons: IconData[] = [
       ],
     },
   },
-  {id: 'switch', groups: ['action'], keywords: ['swap']},
   {
     id: 'toggle',
     groups: ['action'],
@@ -473,12 +463,12 @@ export const icons: IconData[] = [
   },
   {
     id: 'settings',
-    groups: ['content'],
+    groups: ['product'],
     keywords: ['preference'],
   },
   {
     id: 'mail',
-    groups: ['content'],
+    groups: ['device'],
     keywords: ['email'],
   },
   {
@@ -488,22 +478,22 @@ export const icons: IconData[] = [
   },
   {
     id: 'lab',
-    groups: ['content', 'other'],
+    groups: ['product'],
     keywords: ['experiment', 'test'],
   },
   {
     id: 'tag',
-    groups: ['content'],
+    groups: ['action'],
     keywords: ['price', 'category', 'group'],
   },
   {
     id: 'broadcast',
-    groups: ['action', 'content'],
+    groups: ['product'],
     keywords: ['stream'],
   },
   {
     id: 'telescope',
-    groups: ['other'],
+    groups: ['product'],
     keywords: [],
   },
   {
@@ -513,48 +503,48 @@ export const icons: IconData[] = [
   },
   {
     id: 'lightning',
-    groups: ['content'],
+    groups: ['product'],
     keywords: ['feature', 'new', 'fresh'],
     additionalProps: ['isSolid'],
   },
   {
     id: 'business',
-    groups: ['content'],
+    groups: ['product'],
     keywords: ['feature', 'promotion', 'fresh', 'new'],
   },
   {
     id: 'bell',
-    groups: ['content'],
+    groups: ['action'],
     keywords: ['alert', 'notification', 'ring'],
   },
   {
     id: 'siren',
-    groups: ['content'],
+    groups: ['product'],
     keywords: ['alert', 'important', 'warning'],
   },
   {
     id: 'anchor',
-    groups: ['other'],
+    groups: ['action'],
     keywords: [],
   },
   {
     id: 'circle',
-    groups: ['other'],
+    groups: ['status'],
     keywords: ['shape', 'round'],
   },
   {
     id: 'diamond',
-    groups: ['other'],
+    groups: ['status'],
     keywords: ['shape', 'alert', 'diamond'],
   },
   {
     id: 'flag',
-    groups: ['action'],
+    groups: ['status'],
     keywords: ['bookmark', 'mark', 'save', 'warning', 'message'],
   },
   {
     id: 'sound',
-    groups: ['content', 'action'],
+    groups: ['action'],
     keywords: ['audio'],
   },
   {
@@ -614,17 +604,17 @@ export const icons: IconData[] = [
   },
   {
     id: 'happy',
-    groups: ['content'],
+    groups: ['status'],
     keywords: ['good'],
   },
   {
     id: 'meh',
-    groups: ['content'],
+    groups: ['status'],
     keywords: ['meh'],
   },
   {
     id: 'sad',
-    groups: ['content'],
+    groups: ['status'],
     keywords: ['poor'],
   },
   {

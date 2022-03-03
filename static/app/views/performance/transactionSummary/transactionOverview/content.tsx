@@ -9,7 +9,6 @@ import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
 import SearchBar from 'sentry/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -27,7 +26,6 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
@@ -48,6 +46,7 @@ import Filter, {
 import {
   generateTraceLink,
   generateTransactionLink,
+  normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
 } from '../utils';
@@ -115,13 +114,7 @@ function SummaryContent({
 
   function handleCellAction(column: TableColumn<React.ReactText>) {
     return (action: Actions, value: React.ReactText) => {
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
-
-      // no need to include transaction as its already in the query params
-      searchConditions.removeFilter('transaction');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, column, value);
 
@@ -390,6 +383,7 @@ function SummaryContent({
           totals={totalValues}
           eventView={eventView}
           isMetricsData={isMetricsData}
+          transactionName={transactionName}
         />
         <SidebarSpacer />
         <Tags
@@ -487,15 +481,5 @@ const Search = styled('div')`
 const SearchBarContainer = styled('div')`
   flex-grow: 1;
 `;
-
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
-  }
-`;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 export default withProjects(SummaryContent);

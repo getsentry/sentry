@@ -10,10 +10,12 @@ import {t} from 'sentry/locale';
 import {MetricsApiResponse, OrganizationSummary, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {getAggregateFields} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
+import {transformMetricsResponseToTable} from 'sentry/utils/metrics/transformMetricsResponseToTable';
 
-import {DisplayType, Widget} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
 
 type Props = {
@@ -114,28 +116,56 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
 
   private _isMounted: boolean = false;
 
-  fetchTabularData(_queryFetchID: symbol) {
-    this.setState({loading: false, tableResults: []});
-    // TODO(dam): implement the rest
+  get limit() {
+    const {limit} = this.props;
+
+    switch (this.props.widget.displayType) {
+      case DisplayType.TOP_N:
+        return TOP_N;
+      case DisplayType.TABLE:
+        return limit ?? DEFAULT_TABLE_LIMIT;
+      case DisplayType.BIG_NUMBER:
+        return 1;
+      default:
+        return undefined;
+    }
   }
 
-  fetchTimeseriesData(queryFetchID: symbol) {
+  fetchData() {
     const {selection, api, organization, widget} = this.props;
-    this.setState({loading: false, timeseriesResults: [], rawResults: []});
+
+    if (widget.displayType === DisplayType.WORLD_MAP) {
+      this.setState({errorMessage: t('World Map is not supported by metrics.')});
+      return;
+    }
+
+    const queryFetchID = Symbol('queryFetchID');
+
+    this.setState({
+      loading: true,
+      errorMessage: undefined,
+      timeseriesResults: [],
+      rawResults: [],
+      tableResults: [],
+      queryFetchID,
+    });
     const {environments, projects, datetime} = selection;
     const {start, end, period} = datetime;
     const interval = getWidgetInterval(widget, {start, end, period});
+    const widgetQuery = widget.queries[0];
+    const fields = getAggregateFields(widgetQuery.fields);
+    const groupingColumns = widgetQuery.fields.filter(field => !!!fields.includes(field));
 
     const promises = widget.queries.map(query => {
       const requestData = {
-        field: query.fields,
+        field: fields,
         orgSlug: organization.slug,
         end,
         environment: environments,
-        // groupBy: query.groupBy // TODO(dam): add backend groupBy support
+        groupBy: groupingColumns.length ? groupingColumns : undefined, // TODO(dam): add backend groupBy support
         interval,
-        limit: widget.displayType === DisplayType.TOP_N ? TOP_N : undefined,
-        orderBy: query.orderby,
+        limit: this.limit,
+        orderBy: query.orderby || this.limit ? query.fields[0] : undefined,
         project: projects,
         query: query.conditions,
         start,
@@ -147,7 +177,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
     let completed = 0;
     promises.forEach(async (promise, requestIndex) => {
       try {
-        const rawResults = await promise;
+        const response = await promise;
         if (!this._isMounted) {
           return;
         }
@@ -157,9 +187,22 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
             return prevState;
           }
 
+          // Transform to fit the table format
+          if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
+            const tableData = transformMetricsResponseToTable(
+              response
+            ) as TableDataWithTitle; // Cast so we can add the title.
+            tableData.title = widget.queries[requestIndex]?.name ?? '';
+            return {
+              ...prevState,
+              tableResults: [...(prevState.tableResults ?? []), tableData],
+            };
+          }
+
+          // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           const transformedResult = transformMetricsResponseToSeries(
-            rawResults,
+            response,
             widget.queries[requestIndex].name
           );
 
@@ -174,7 +217,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
           });
 
           const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
-          rawResultsClone[requestIndex] = rawResults;
+          rawResultsClone[requestIndex] = response;
 
           return {
             ...prevState,
@@ -203,24 +246,6 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         });
       }
     });
-  }
-
-  fetchData() {
-    const {widget} = this.props;
-
-    if (widget.displayType === DisplayType.WORLD_MAP) {
-      this.setState({errorMessage: t('World Map is not supported by metrics.')});
-      return;
-    }
-
-    const queryFetchID = Symbol('queryFetchID');
-    this.setState({loading: true, errorMessage: undefined, queryFetchID});
-
-    if (['table', 'big_number'].includes(widget.displayType)) {
-      this.fetchTabularData(queryFetchID);
-    } else {
-      this.fetchTimeseriesData(queryFetchID);
-    }
   }
 
   render() {

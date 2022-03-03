@@ -35,6 +35,7 @@ from sentry.search.events.constants import (
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
+    NON_FAILURE_STATUS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
     PROJECT_ALIAS,
@@ -154,11 +155,10 @@ class DiscoverDatasetConfig(DatasetConfig):
                                 "notIn",
                                 [
                                     self.builder.column("transaction.status"),
-                                    (
-                                        SPAN_STATUS_NAME_TO_CODE["ok"],
-                                        SPAN_STATUS_NAME_TO_CODE["cancelled"],
-                                        SPAN_STATUS_NAME_TO_CODE["unknown"],
-                                    ),
+                                    [
+                                        SPAN_STATUS_NAME_TO_CODE[status]
+                                        for status in NON_FAILURE_STATUS
+                                    ],
                                 ],
                             )
                         ],
@@ -718,7 +718,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return Function("toStartOfDay", [self.builder.column("timestamp")], TIMESTAMP_TO_DAY_ALIAS)
 
     def _resolve_user_display_alias(self, _: str) -> SelectType:
-        columns = ["user.email", "user.username", "user.ip"]
+        columns = ["user.email", "user.username", "user.id", "user.ip"]
         return Function(
             "coalesce", [self.builder.column(column) for column in columns], USER_DISPLAY_ALIAS
         )

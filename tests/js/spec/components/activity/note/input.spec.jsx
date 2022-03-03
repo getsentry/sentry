@@ -4,8 +4,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import NoteInput from 'sentry/components/activity/note/input';
 
 describe('NoteInput', function () {
-  const routerContext = TestStubs.routerContext();
-
   describe('New item', function () {
     const props = {
       group: {project: {}, id: 'groupId'},
@@ -14,15 +12,12 @@ describe('NoteInput', function () {
     };
 
     it('renders', function () {
-      mountWithTheme(<NoteInput {...props} />, routerContext);
+      mountWithTheme(<NoteInput {...props} />);
     });
 
     it('submits when meta + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(
-        <NoteInput {...props} onCreate={onCreate} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
 
       const input = wrapper.find('textarea');
 
@@ -34,10 +29,7 @@ describe('NoteInput', function () {
 
     it('submits when ctrl + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(
-        <NoteInput {...props} onCreate={onCreate} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
 
       const input = wrapper.find('textarea');
 
@@ -49,10 +41,7 @@ describe('NoteInput', function () {
 
     it('does not submit when nothing is entered', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(
-        <NoteInput {...props} onCreate={onCreate} />,
-        routerContext
-      );
+      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
 
       const input = wrapper.find('textarea');
       input.simulate('keyDown', {key: 'Enter', metaKey: true});
@@ -62,8 +51,7 @@ describe('NoteInput', function () {
     it('handles errors', function () {
       const errorJSON = {detail: {message: '', code: 401, extra: ''}};
       const wrapper = mountWithTheme(
-        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />,
-        routerContext
+        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
       );
 
       const input = wrapper.find('textarea');
@@ -78,8 +66,7 @@ describe('NoteInput', function () {
     it('has a disabled submit button when no text is entered', function () {
       const errorJSON = {detail: {message: '', code: 401, extra: ''}};
       const wrapper = mountWithTheme(
-        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />,
-        routerContext
+        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
       );
 
       expect(wrapper.find('button[type="submit"]').prop('disabled')).toBe(true);
@@ -88,8 +75,7 @@ describe('NoteInput', function () {
     it('enables the submit button when text is entered', function () {
       const errorJSON = {detail: {message: '', code: 401, extra: ''}};
       const wrapper = mountWithTheme(
-        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />,
-        routerContext
+        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
       );
 
       changeReactMentionsInput(wrapper, 'something');
@@ -108,7 +94,7 @@ describe('NoteInput', function () {
     };
 
     const createWrapper = props =>
-      mountWithTheme(<NoteInput {...defaultProps} {...props} />, routerContext);
+      mountWithTheme(<NoteInput {...defaultProps} {...props} />);
 
     it('edits existing message', function () {
       const onUpdate = jest.fn();

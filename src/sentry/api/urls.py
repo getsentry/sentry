@@ -59,6 +59,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.rules.history.endpoints.project_rule_group_history import (
+    ProjectRuleGroupHistoryIndexEndpoint,
+)
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
@@ -74,6 +77,14 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
+from .endpoints.avatar import (
+    DocIntegrationAvatarEndpoint,
+    OrganizationAvatarEndpoint,
+    ProjectAvatarEndpoint,
+    SentryAppAvatarEndpoint,
+    TeamAvatarEndpoint,
+    UserAvatarEndpoint,
+)
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
@@ -87,7 +98,6 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
-from .endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
 from .endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
 from .endpoints.doc_integrations import DocIntegrationsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
@@ -132,14 +142,16 @@ from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
 from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
-from .endpoints.internal_beacon import InternalBeaconEndpoint
-from .endpoints.internal_environment import InternalEnvironmentEndpoint
-from .endpoints.internal_mail import InternalMailEndpoint
-from .endpoints.internal_packages import InternalPackagesEndpoint
-from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
-from .endpoints.internal_quotas import InternalQuotasEndpoint
-from .endpoints.internal_stats import InternalStatsEndpoint
-from .endpoints.internal_warnings import InternalWarningsEndpoint
+from .endpoints.internal import (
+    InternalBeaconEndpoint,
+    InternalEnvironmentEndpoint,
+    InternalMailEndpoint,
+    InternalPackagesEndpoint,
+    InternalQueueTasksEndpoint,
+    InternalQuotasEndpoint,
+    InternalStatsEndpoint,
+    InternalWarningsEndpoint,
+)
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_details import MonitorDetailsEndpoint
@@ -154,7 +166,6 @@ from .endpoints.organization_auth_provider_send_reminders import (
     OrganizationAuthProviderSendRemindersEndpoint,
 )
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
@@ -304,7 +315,6 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
-from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
 from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from .endpoints.project_codeowners_request import ProjectCodeOwnersRequestEndpoint
@@ -402,7 +412,6 @@ from .endpoints.sentry_app import (
     SentryInternalAppTokenDetailsEndpoint,
     SentryInternalAppTokensEndpoint,
 )
-from .endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
@@ -412,7 +421,6 @@ from .endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredTotalsEndpoint,
 )
 from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
-from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
@@ -451,7 +459,6 @@ from .endpoints.user_roles import UserUserRolesEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
-from .endpoints.useravatar import UserAvatarEndpoint
 from .endpoints.userroles_details import UserRoleDetailsEndpoint
 from .endpoints.userroles_index import UserRolesEndpoint
 
@@ -1934,6 +1941,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/$",
                     ProjectRuleDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-rule-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",
+                    ProjectRuleGroupHistoryIndexEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-group-history-index",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",

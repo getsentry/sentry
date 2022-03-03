@@ -35,88 +35,68 @@ type Props = {
   tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
 };
 
-class IssueListFilters extends React.Component<Props> {
-  render() {
-    const {
-      organization,
-      savedSearch,
-      query,
-      isSearchDisabled,
-      sort,
-      display,
-      selectedProjects,
+function IssueListFilters({
+  organization,
+  savedSearch,
+  query,
+  isSearchDisabled,
+  sort,
+  display,
+  selectedProjects,
+  onSidebarToggle,
+  onSearch,
+  onSortChange,
+  onDisplayChange,
+  tagValueLoader,
+  tags,
+}: Props) {
+  const isAssignedQuery = /\bassigned:/.test(query);
+  const hasIssuePercentDisplay = organization.features.includes('issue-percent-display');
+  const hasMultipleProjectsSelected =
+    !selectedProjects || selectedProjects.length !== 1 || selectedProjects[0] === -1;
+  const hasSessions =
+    !hasMultipleProjectsSelected &&
+    (ProjectsStore.getById(`${selectedProjects[0]}`)?.hasSessions ?? false);
+  const hasPageFilters = organization.features.includes('selection-filters-v2');
 
-      onSidebarToggle,
-      onSearch,
-      onSortChange,
-      onDisplayChange,
-      tagValueLoader,
-      tags,
-    } = this.props;
-    const isAssignedQuery = /\bassigned:/.test(query);
-    const hasIssuePercentDisplay = organization.features.includes(
-      'issue-percent-display'
-    );
-    const hasMultipleProjectsSelected =
-      !selectedProjects || selectedProjects.length !== 1 || selectedProjects[0] === -1;
-    const hasSessions =
-      !hasMultipleProjectsSelected &&
-      (ProjectsStore.getById(`${selectedProjects[0]}`)?.hasSessions ?? false);
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
-    return (
-      <FilterContainer>
-        <SearchContainer
-          hasPageFilters={hasPageFilters}
-          hasIssuePercentDisplay={hasIssuePercentDisplay}
-        >
-          <ClassNames>
-            {({css}) => (
-              <GuideAnchor
-                target="assigned_or_suggested_query"
-                disabled={!isAssignedQuery}
-                containerClassName={css`
-                  width: 100%;
-                `}
-              >
-                <IssueListSearchBar
-                  organization={organization}
-                  query={query || ''}
-                  sort={sort}
-                  onSearch={onSearch}
-                  disabled={isSearchDisabled}
-                  excludeEnvironment
-                  supportedTags={tags}
-                  tagValueLoader={tagValueLoader}
-                  savedSearch={savedSearch}
-                  onSidebarToggle={onSidebarToggle}
-                />
-              </GuideAnchor>
-            )}
-          </ClassNames>
-
-          {hasPageFilters ? (
-            <ProjectEnvironmentFilters>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-            </ProjectEnvironmentFilters>
-          ) : (
-            <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
-              {hasIssuePercentDisplay && (
-                <IssueListDisplayOptions
-                  onDisplayChange={onDisplayChange}
-                  display={display}
-                  hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-                  hasSessions={hasSessions}
-                />
-              )}
-              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-            </DropdownsWrapper>
+  return (
+    <FilterContainer>
+      <SearchContainer
+        hasPageFilters={hasPageFilters}
+        hasIssuePercentDisplay={hasIssuePercentDisplay}
+      >
+        <ClassNames>
+          {({css}) => (
+            <GuideAnchor
+              target="assigned_or_suggested_query"
+              disabled={!isAssignedQuery}
+              containerClassName={css`
+                width: 100%;
+              `}
+            >
+              <IssueListSearchBar
+                organization={organization}
+                query={query || ''}
+                sort={sort}
+                onSearch={onSearch}
+                disabled={isSearchDisabled}
+                excludeEnvironment
+                supportedTags={tags}
+                tagValueLoader={tagValueLoader}
+                savedSearch={savedSearch}
+                onSidebarToggle={onSidebarToggle}
+              />
+            </GuideAnchor>
           )}
-        </SearchContainer>
-        {hasPageFilters && (
-          <IssueListDropdownsWrapper>
-            <DatePageFilter />
+        </ClassNames>
+
+        {hasPageFilters ? (
+          <ProjectEnvironmentFilters>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+          </ProjectEnvironmentFilters>
+        ) : (
+          <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
             {hasIssuePercentDisplay && (
               <IssueListDisplayOptions
                 onDisplayChange={onDisplayChange}
@@ -126,11 +106,25 @@ class IssueListFilters extends React.Component<Props> {
               />
             )}
             <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-          </IssueListDropdownsWrapper>
+          </DropdownsWrapper>
         )}
-      </FilterContainer>
-    );
-  }
+      </SearchContainer>
+      {hasPageFilters && (
+        <IssueListDropdownsWrapper>
+          <DatePageFilter />
+          {hasIssuePercentDisplay && (
+            <IssueListDisplayOptions
+              onDisplayChange={onDisplayChange}
+              display={display}
+              hasMultipleProjectsSelected={hasMultipleProjectsSelected}
+              hasSessions={hasSessions}
+            />
+          )}
+          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+        </IssueListDropdownsWrapper>
+      )}
+    </FilterContainer>
+  );
 }
 
 const FilterContainer = styled('div')`

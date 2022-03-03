@@ -5,7 +5,7 @@
 /src/sentry/migrations/  @getsentry/owners-migrations
 
 # API Owners for unowned endpoints / serializers
-endpoints/                      @getsentry/owners-api
+/src/**/endpoints/              @getsentry/owners-api
 /src/sentry/api/                @getsentry/owners-api
 
 # Snuba
@@ -178,6 +178,7 @@ build-utils/        @getsentry/owners-js-build
 /static/app/types/jsSelfProfiling.d.ts                              @getsentry/profiling
 /static/app/types/profiling.d.ts                                    @getsentry/profiling
 /static/app/utils/profiling                                         @getsentry/profiling
+/static/app/views/profiling                                         @getsentry/profiling
 /tests/js/spec/utils/profiling                                      @getsentry/profiling
 /src/sentry/utils/profiling.py                                      @getsentry/profiling
 /src/sentry/api/endpoints/project_profiling_profile.py              @getsentry/profiling

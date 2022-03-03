@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -12,6 +12,7 @@ import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
@@ -25,6 +26,7 @@ import {defined} from 'sentry/utils';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import RuleNameOwnerForm from 'sentry/views/alerts/incidentRules/ruleNameOwnerForm';
+import ThresholdTypeForm from 'sentry/views/alerts/incidentRules/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/incidentRules/triggers';
 import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
@@ -84,9 +86,7 @@ type State = {
   projects: Project[];
   query: string;
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
-
   thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
-
   thresholdType: UnsavedIncidentRule['thresholdType'];
   timeWindow: number;
   triggerErrors: Map<number, {[fieldName: string]: string}>;
@@ -619,7 +619,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
   };
 
-  handleRuleSaveFailure = (msg: React.ReactNode) => {
+  handleRuleSaveFailure = (msg: ReactNode) => {
     addErrorMessage(msg);
     metric.endTransaction({name: 'saveAlertRule'});
   };
@@ -685,7 +685,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
             {dataset !== Dataset.SESSIONS && (
               <AlertInfo>
-                {aggregate} | event.type:{eventTypes?.join(',')}
+                <StyledCircleIndicator size={8} />
+                <Aggregate>{aggregate}</Aggregate>
+                event.type:{eventTypes?.join(',')}
               </AlertInfo>
             )}
           </ChartHeader>
@@ -696,6 +698,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const ownerId = rule.owner?.split(':')[1];
     const canEdit =
       isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
+
+    const hasAlertWizardV3 =
+      Boolean(isCustomMetric) && organization.features.includes('alert-wizard-v3');
 
     const triggerForm = (hasAccess: boolean) => (
       <Triggers
@@ -712,6 +717,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         organization={organization}
         ruleId={ruleId}
         availableActions={this.state.availableActions}
+        hasAlertWizardV3={hasAlertWizardV3}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
         onThresholdPeriodChange={this.handleThresholdPeriodChange}
@@ -720,7 +726,22 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
 
     const ruleNameOwnerForm = (hasAccess: boolean) => (
-      <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
+      <RuleNameOwnerForm
+        disabled={!hasAccess || !canEdit}
+        project={project}
+        hasAlertWizardV3={hasAlertWizardV3}
+      />
+    );
+
+    const thresholdTypeForm = (hasAccess: boolean) => (
+      <ThresholdTypeForm
+        comparisonType={comparisonType}
+        dataset={dataset}
+        disabled={!hasAccess || !canEdit}
+        onComparisonTypeChange={this.handleComparisonTypeChange}
+        organization={organization}
+        hasAlertWizardV3={hasAlertWizardV3}
+      />
     );
 
     return (
@@ -775,6 +796,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 onFilterSearch={this.handleFilterUpdate}
                 allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                 alertType={isCustomMetric ? 'custom' : alertType}
+                hasAlertWizardV3={hasAlertWizardV3}
                 dataset={dataset}
                 timeWindow={timeWindow}
                 comparisonType={comparisonType}
@@ -785,9 +807,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 }
                 onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               />
-              <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
+              {!hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
+              <AlertListItem>
+                {hasAlertWizardV3
+                  ? t('Set thresholds')
+                  : t('Set thresholds to trigger alert')}
+              </AlertListItem>
+              {hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
               {triggerForm(hasAccess)}
-              <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
               {ruleNameOwnerForm(hasAccess)}
             </List>
           </Form>
@@ -818,10 +845,20 @@ const AlertName = styled('div')`
 `;
 
 const AlertInfo = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.family};
   font-weight: normal;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
+`;
+
+const StyledCircleIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.formText};
+  height: ${space(1)};
+  margin-right: ${space(0.5)};
+`;
+
+const Aggregate = styled('span')`
+  margin-right: ${space(1)};
 `;
 
 export default RuleFormContainer;

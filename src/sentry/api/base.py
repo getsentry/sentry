@@ -22,7 +22,7 @@ from sentry import analytics, tsdb
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -105,9 +105,7 @@ class Endpoint(APIView):
     private: Optional[bool] = None
     public: Optional[HTTP_METHODS_SET] = None
 
-    # Default Rate Limit Values, override in subclass
-    # Should be of format: { <http function>: { <category>: RateLimit(limit, window) } }
-    rate_limits: Mapping[str, Mapping[RateLimitCategory | str, RateLimit]] = {}
+    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
     def build_cursor_link(self, request: Request, name, cursor):

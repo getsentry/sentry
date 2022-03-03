@@ -48,9 +48,11 @@ type Props = {
    * Map of fieldName -> errorMessage
    */
   error?: {[fieldName: string]: string};
+
+  hideControl?: boolean;
 };
 
-class TriggerForm extends React.PureComponent<Props> {
+class TriggerFormItem extends React.PureComponent<Props> {
   /**
    * Handler for threshold changes coming from slider or chart.
    * Needs to sync state with the form.
@@ -75,6 +77,7 @@ class TriggerForm extends React.PureComponent<Props> {
       isCritical,
       thresholdType,
       thresholdPeriod,
+      hideControl,
       comparisonType,
       fieldHelp,
       triggerLabel,
@@ -96,6 +99,7 @@ class TriggerForm extends React.PureComponent<Props> {
           type={trigger.label}
           thresholdType={thresholdType}
           thresholdPeriod={thresholdPeriod}
+          hideControl={hideControl}
           threshold={trigger.alertThreshold}
           comparisonType={comparisonType}
           placeholder={placeholder}
@@ -109,7 +113,7 @@ class TriggerForm extends React.PureComponent<Props> {
 }
 
 type TriggerFormContainerProps = Omit<
-  React.ComponentProps<typeof TriggerForm>,
+  React.ComponentProps<typeof TriggerFormItem>,
   | 'onChange'
   | 'isCritical'
   | 'error'
@@ -120,6 +124,7 @@ type TriggerFormContainerProps = Omit<
   | 'triggerLabel'
   | 'placeholder'
 > & {
+  hasAlertWizardV3: boolean;
   onChange: (triggerIndex: number, trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onResolveThresholdChange: (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
@@ -194,6 +199,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       aggregate,
       resolveThreshold,
       projects,
+      hasAlertWizardV3,
       onThresholdTypeChange,
       onThresholdPeriodChange,
     } = this.props;
@@ -213,7 +219,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           // eslint-disable-next-line no-use-before-define
           const TriggerIndicator = isCritical ? CriticalIndicator : WarningIndicator;
           return (
-            <TriggerForm
+            <TriggerFormItem
               key={index}
               api={api}
               config={config}
@@ -229,13 +235,17 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               projects={projects}
               triggerIndex={index}
               isCritical={isCritical}
-              fieldHelp={tct(
-                'The threshold[units] that will activate the [severity] status.',
-                {
-                  severity: isCritical ? t('critical') : t('warning'),
-                  units: thresholdUnits ? ` (${thresholdUnits})` : '',
-                }
-              )}
+              fieldHelp={
+                hasAlertWizardV3
+                  ? null
+                  : tct(
+                      'The threshold[units] that will activate the [severity] status.',
+                      {
+                        severity: isCritical ? t('critical') : t('warning'),
+                        units: thresholdUnits ? ` (${thresholdUnits})` : '',
+                      }
+                    )
+              }
               triggerLabel={
                 <React.Fragment>
                   <TriggerIndicator size={12} />
@@ -257,7 +267,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
             />
           );
         })}
-        <TriggerForm
+        <TriggerFormItem
           api={api}
           config={config}
           disabled={disabled}
@@ -266,6 +276,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           // Flip rule thresholdType to opposite
           thresholdPeriod={thresholdPeriod}
           thresholdType={+!thresholdType}
+          hideControl={hasAlertWizardV3}
           comparisonType={comparisonType}
           aggregate={aggregate}
           resolveThreshold={resolveThreshold}
@@ -273,9 +284,13 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           projects={projects}
           triggerIndex={2}
           isCritical={false}
-          fieldHelp={tct('The threshold[units] that will activate the resolved status.', {
-            units: thresholdUnits ? ` (${thresholdUnits})` : '',
-          })}
+          fieldHelp={
+            hasAlertWizardV3
+              ? null
+              : tct('The threshold[units] that will activate the resolved status.', {
+                  units: thresholdUnits ? ` (${thresholdUnits})` : '',
+                })
+          }
           triggerLabel={
             <React.Fragment>
               <ResolvedIndicator size={12} />

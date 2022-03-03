@@ -3,7 +3,15 @@ from unittest.mock import patch
 import responses
 from django.urls import reverse
 
-from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models import (
+    Environment,
+    Integration,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    RuleStatus,
+    SentryAppComponent,
+)
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
@@ -137,6 +145,72 @@ class ProjectRuleDetailsTest(APITestCase):
         assert response.data["conditions"][0]["id"] == conditions[0]["id"]
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
+
+    @responses.activate
+    def test_with_unresponsive_sentryapp(self):
+        self.login_as(user=self.user)
+
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        conditions = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
+        ]
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": self.installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"summary": "Something happened here..."},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Nisanthan"},
+                ],
+            }
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+
+        rule = Rule.objects.create(project=self.project, label="foo", data=data)
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "rule_id": rule.id,
+            },
+        )
+        responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
+
+        response = self.client.get(url, format="json")
+        assert len(responses.calls) == 1
+
+        assert response.status_code == 200
+        # Returns errors while fetching
+        assert len(response.data["errors"]) == 1
+        assert response.data["errors"][0] == {
+            "detail": "Could not fetch details from Super Awesome App"
+        }
+
+        # Disables the SentryApp
+        assert response.data["actions"][0]["sentryAppInstallationUuid"] == self.installation.uuid
+        assert response.data["actions"][0]["disabled"] is True
 
 
 class UpdateProjectRuleTest(APITestCase):
@@ -810,13 +884,17 @@ class UpdateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.create(project=project, label="my super cool rule")
 
-        self.create_sentry_app(
+        sentry_app = self.create_sentry_app(
             name="Pied Piper",
             organization=project.organization,
             schema={"elements": [self.create_alert_rule_action_schema()]},
         )
         install = self.create_sentry_app_installation(
             slug="pied-piper", organization=project.organization
+        )
+
+        sentry_app_component = SentryAppComponent.objects.get(
+            sentry_app=sentry_app, type="alert-rule-action"
         )
 
         actions = [
@@ -839,19 +917,21 @@ class UpdateProjectRuleTest(APITestCase):
                 "rule_id": rule.id,
             },
         )
-
-        response = self.client.put(
-            url,
-            data={
-                "name": "my super cool rule",
-                "actionMatch": "any",
-                "filterMatch": "any",
-                "actions": actions,
-                "conditions": [],
-                "filters": [],
-            },
-            format="json",
-        )
+        with patch(
+            "sentry.mediators.sentry_app_components.Preparer.run", return_value=sentry_app_component
+        ):
+            response = self.client.put(
+                url,
+                data={
+                    "name": "my super cool rule",
+                    "actionMatch": "any",
+                    "filterMatch": "any",
+                    "actions": actions,
+                    "conditions": [],
+                    "filters": [],
+                },
+                format="json",
+            )
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(rule.id)

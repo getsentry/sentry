@@ -29,7 +29,7 @@ import {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
@@ -77,7 +77,7 @@ type State = {
   searchInput: string;
   selectedCategory: string;
   extraApp?: SentryApp;
-  fuzzy?: Fuse<AppOrProviderOrPlugin, typeof fuseOptions>;
+  fuzzy?: Fuse<AppOrProviderOrPlugin>;
 };
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
