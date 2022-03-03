@@ -20,6 +20,10 @@ import {
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
+// Mock World Map because setState inside componentDidMount is
+// throwing UnhandledPromiseRejection
+jest.mock('sentry/components/charts/worldMapChart');
+
 function renderTestComponent({
   widget,
   dashboard,
@@ -743,6 +747,62 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
+  });
+
+  it('should filter y-axis choices for world map widget charts', async function () {
+    const handleSave = jest.fn();
+    renderTestComponent({onSave: handleSave});
+
+    expect(await screen.findByText('Table')).toBeInTheDocument();
+
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+
+    // Select World Map display
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(screen.getByText('World Map'));
+
+    // Choose any()
+    userEvent.type(screen.getByText('count()'), 'any{enter}');
+
+    // user.display should be filtered out for any()
+    userEvent.click(screen.getByText('transaction.duration'));
+    userEvent.type(screen.getAllByText('transaction.duration')[0], 'user.display');
+    expect(screen.getByText('No options')).toBeInTheDocument();
+
+    userEvent.keyboard('{escape}');
+    userEvent.click(screen.getByText('transaction.duration'));
+    userEvent.type(
+      screen.getAllByText('transaction.duration')[0],
+      'measurements.lcp{enter}'
+    );
+    expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
+
+    // Choose count_unique()
+    userEvent.type(screen.getByText('any(…)'), 'count_unique{enter}');
+
+    // user.display not should be filtered out for count_unique()
+    userEvent.type(screen.getByText('measurements.lcp'), 'user.display{enter}');
+    expect(screen.getByText('user.display')).toBeInTheDocument();
+
+    // Be able to choose a numeric-like option
+    userEvent.type(screen.getByText('user.display'), 'measurements.lcp{enter}');
+
+    userEvent.click(screen.getByLabelText('Add Widget'));
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          displayType: 'world_map',
+          queries: [
+            expect.objectContaining({
+              fields: ['count_unique(measurements.lcp)'],
+            }),
+          ],
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
   describe('Widget creation coming from other verticals', function () {
