@@ -382,7 +382,7 @@ describe('WidgetBuilder', function () {
             {
               conditions: '',
               fields: ['count()', 'count_unique(user)'],
-              aggregates: ['count()'],
+              aggregates: ['count()', 'count_unique(user)'],
               columns: [],
               orderby: '',
               name: '',
@@ -428,7 +428,7 @@ describe('WidgetBuilder', function () {
             {
               name: '',
               fields: ['count()', 'equation|count() + 100'],
-              aggregates: ['count()'],
+              aggregates: ['count()', 'equation|count() + 100'],
               columns: [],
               conditions: '',
               orderby: '',
@@ -487,7 +487,7 @@ describe('WidgetBuilder', function () {
             {
               name: '',
               fields: ['count()', 'count_unique(user)'],
-              aggregates: ['count()'],
+              aggregates: ['count()', 'count_unique(user)'],
               columns: [],
               conditions: '',
               orderby: '',
@@ -495,6 +495,8 @@ describe('WidgetBuilder', function () {
             {
               name: 'Errors',
               fields: ['count()', 'count_unique(user)'],
+              aggregates: ['count()', 'count_unique(user)'],
+              columns: [],
               conditions: 'event.type:error',
               orderby: '',
             },
@@ -691,6 +693,8 @@ describe('WidgetBuilder', function () {
               name: 'errors',
               conditions: 'event.type:error',
               fields: ['sdk.name', 'count()', 'trace'],
+              aggregates: ['count()'],
+              columns: ['sdk.name', 'trace'],
               orderby: '',
             },
           ],
@@ -1044,6 +1048,8 @@ describe('WidgetBuilder', function () {
               {
                 conditions: '',
                 fields: ['issue', 'assignee', 'title'],
+                columns: ['issue', 'assignee', 'title'],
+                aggregates: [],
                 name: '',
                 orderby: '',
               },

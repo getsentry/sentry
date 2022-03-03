@@ -177,9 +177,13 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
   if (!Object.keys(parsedQuery).length) {
     return undefined;
   }
+  const fields = parsedQuery.fields?.split(',') ?? [];
+  const {columns, aggregates} = getColumnsAndAggregates(fields);
 
   return {
     ...parsedQuery,
-    fields: parsedQuery.fields?.split(',') ?? [],
+    fields,
+    columns,
+    aggregates,
   } as WidgetQuery;
 }
