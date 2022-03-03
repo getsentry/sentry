@@ -172,14 +172,14 @@ class SuperuserTestCase(TestCase):
 
     def test_max_time_org_change_within_time(self):
         request = self.build_request()
-        request.organization = "not_our_org"
+        request.organization = self.create_organization(name="not_our_org")
         superuser = Superuser(request, allowed_ips=())
 
         assert superuser.is_active is True
 
     def test_max_time_org_change_time_expired(self):
         request = self.build_request()
-        request.organization = "not_our_org"
+        request.organization = self.create_organization(name="not_our_org")
         superuser = Superuser(request, allowed_ips=())
         superuser.expires = timezone.now()
 
