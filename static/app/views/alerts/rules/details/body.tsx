@@ -34,7 +34,7 @@ import {
   IncidentRule,
 } from 'sentry/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
-import Timeline from 'sentry/views/alerts/rules/details/timeline';
+import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
 
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
 
@@ -414,6 +414,7 @@ export default class DetailsBody extends React.Component<Props> {
                   />
                   <DetailWrapper>
                     <ActivityWrapper>
+                      <MetricHistory organization={organization} incidents={incidents} />
                       {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                         <RelatedIssues
                           organization={organization}
@@ -449,12 +450,6 @@ export default class DetailsBody extends React.Component<Props> {
                 </Layout.Main>
                 <Layout.Side>
                   {this.renderMetricStatus()}
-                  <Timeline
-                    api={api}
-                    organization={organization}
-                    rule={rule}
-                    incidents={incidents}
-                  />
                   {this.renderRuleDetails()}
                 </Layout.Side>
               </StyledLayoutBodyWrapper>
