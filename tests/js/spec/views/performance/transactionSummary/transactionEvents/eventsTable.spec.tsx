@@ -46,7 +46,7 @@ describe('Performance GridEditable Table', function () {
   let data;
   let transactionName;
   const query =
-    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
+    'event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
   beforeEach(function () {
     transactionName = 'transactionName';
     transactionsListTitles = [

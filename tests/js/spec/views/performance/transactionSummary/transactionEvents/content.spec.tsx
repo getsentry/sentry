@@ -50,7 +50,7 @@ describe('Performance Transaction Events Content', function () {
   let eventView;
   let initialData;
   const query =
-    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
+    'event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
   beforeEach(function () {
     transactionName = 'transactionName';
     fields = [

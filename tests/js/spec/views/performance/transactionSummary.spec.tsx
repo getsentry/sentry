@@ -345,7 +345,7 @@ describe('Performance > TransactionSummary', function () {
       project: TestStubs.Project({teams, platform: 'javascript'}),
       query: {
         query:
-          'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
+          'transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
       },
     });
 
