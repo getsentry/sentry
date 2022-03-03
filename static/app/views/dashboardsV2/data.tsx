@@ -260,8 +260,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['issue', 'count_unique(user)'],
-            aggregates: ['issue'],
-            columns: ['count_unique(user)'],
+            aggregates: ['count_unique(user)'],
+            columns: ['issue'],
             conditions: '',
             orderby: '-count_unique_user',
           },

@@ -81,7 +81,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
         name: '',
         conditions: '',
         fields: ['count_miserable(user,300)'],
-        aggregates: ['count_miserable(user,300'],
+        aggregates: ['count_miserable(user,300)'],
         columns: [],
         orderby: '',
       },
