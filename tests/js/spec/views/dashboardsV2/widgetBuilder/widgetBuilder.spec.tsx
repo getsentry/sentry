@@ -1087,10 +1087,10 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  describe('Widget Library', function () {
-    it('renders', async function () {
-      renderTestComponent();
-      expect(await screen.findByText('Widget Library')).toBeInTheDocument();
-    });
-  });
+  // describe('Widget Library', function () {
+  //   it('renders', async function () {
+  //     renderTestComponent();
+  //     expect(await screen.findByText('Widget Library')).toBeInTheDocument();
+  //   });
+  // });
 });
