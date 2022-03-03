@@ -24,7 +24,7 @@ from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.auth import SsoSession, mark_sso_complete
+from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
 
@@ -49,7 +49,6 @@ class SuperuserTestCase(TestCase):
             user = self.create_user("foo@example.com", is_superuser=True)
         current_datetime = self.current_datetime
         request = self.make_request(user=user)
-        self.login_as(user=user, superuser=True)
         if cookie_token is not None:
             request.COOKIES[COOKIE_NAME] = signing.get_cookie_signer(
                 salt=COOKIE_NAME + COOKIE_SALT
@@ -72,19 +71,10 @@ class SuperuserTestCase(TestCase):
     def test_ips(self):
         user = User(is_superuser=True)
         request = self.make_request(user=user)
-        request._body = json.dumps(
-            {
-                "superuserAccessCategory": "Edit organization settings",
-                "superuserReason": "Edit organization settings",
-            }
-        )
         request.META["REMOTE_ADDR"] = "10.0.0.1"
 
         # no ips = any host
         superuser = Superuser(request, allowed_ips=())
-        request.session[SsoSession.django_session_key(superuser.org_id)] = {
-            "ts": timezone.now().timestamp()
-        }
         superuser.set_logged_in(request.user)
         assert superuser.is_active is True
 
@@ -99,18 +89,9 @@ class SuperuserTestCase(TestCase):
     def test_sso(self):
         user = User(is_superuser=True)
         request = self.make_request(user=user)
-        request._body = json.dumps(
-            {
-                "superuserAccessCategory": "Edit organization settings",
-                "superuserReason": "Edit organization settings",
-            }
-        )
 
         # no ips = any host
         superuser = Superuser(request, org_id=None)
-        request.session[SsoSession.django_session_key(superuser.org_id)] = {
-            "ts": timezone.now().timestamp()
-        }
         superuser.set_logged_in(request.user)
         assert superuser.is_active is True
 
@@ -191,14 +172,14 @@ class SuperuserTestCase(TestCase):
 
     def test_max_time_org_change_within_time(self):
         request = self.build_request()
-        request.organization = self.create_organization(name="not_our_org")
+        request.organization = "not_our_org"
         superuser = Superuser(request, allowed_ips=())
 
         assert superuser.is_active is True
 
     def test_max_time_org_change_time_expired(self):
         request = self.build_request()
-        request.organization = self.create_organization(name="not_our_org")
+        request.organization = "not_our_org"
         superuser = Superuser(request, allowed_ips=())
         superuser.expires = timezone.now()
 
@@ -207,23 +188,13 @@ class SuperuserTestCase(TestCase):
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)
         request = self.make_request()
-        request._body = json.dumps(
-            {
-                "superuserAccessCategory": "Edit organization settings",
-                "superuserReason": "Edit organization settings",
-            }
-        )
         superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
-        request.session[SsoSession.django_session_key(superuser.org_id)] = {
-            "ts": timezone.now().timestamp()
-        }
         superuser.set_logged_in(user, current_datetime=self.current_datetime)
 
         # request.user wasn't set
         assert not superuser.is_active
 
         request.user = user
-        superuser.set_logged_in(user, current_datetime=self.current_datetime)
         assert superuser.is_active
 
         data = request.session.get(SESSION_KEY)
