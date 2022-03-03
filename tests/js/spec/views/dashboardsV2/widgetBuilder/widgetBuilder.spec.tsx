@@ -2,6 +2,7 @@ import React from 'react';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {
   mountWithTheme,
   screen,
@@ -753,6 +754,55 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
+  });
+
+  it('deletes the widget when the modal is confirmed', async () => {
+    const handleSave = jest.fn();
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+        {
+          name: 'csp',
+          conditions: 'event.type:csp',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    renderTestComponent({onSave: handleSave, dashboard, widget});
+
+    userEvent.click(await screen.findByText('Delete'));
+
+    await mountGlobalModal();
+    userEvent.click(await screen.findByText('Confirm'));
+
+    await waitFor(() => {
+      // The only widget was deleted
+      expect(handleSave).toHaveBeenCalledWith([]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
   describe('Widget creation coming from other verticals', function () {
