@@ -1,7 +1,7 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
@@ -12,6 +12,12 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
     return <div style={{...style, background: 'green'}}>echarts mock</div>;
+  });
+});
+
+jest.mock('sentry/components/tooltip', () => {
+  return jest.fn(props => {
+    return <div>{props.children}</div>;
   });
 });
 
@@ -39,16 +45,19 @@ function mountModal({initialData: {organization, routerContext}, widget}) {
 }
 
 describe('Modals -> WidgetViewerModal', function () {
-  const initialData = initializeOrg({
-    organization: {
-      features: ['discover-query', 'widget-viewer-modal'],
-      apdexThreshold: 400,
-    },
-    router: {
-      location: {query: {}},
-    },
-    project: 1,
-    projects: [],
+  let initialData;
+  beforeEach(() => {
+    initialData = initializeOrg({
+      organization: {
+        features: ['discover-query', 'widget-viewer-modal'],
+        apdexThreshold: 400,
+      },
+      router: {
+        location: {query: {}},
+      },
+      project: 1,
+      projects: [],
+    });
   });
 
   afterEach(() => {
@@ -150,7 +159,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Discover TopN Chart Widget', function () {
-    let container;
+    let container, rerender, eventsStatsMock, eventsMock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['error.type', 'count()'],
@@ -166,11 +175,11 @@ describe('Modals -> WidgetViewerModal', function () {
     };
 
     beforeEach(function () {
-      MockApiClient.addMockResponse({
+      eventsStatsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: {},
       });
-      MockApiClient.addMockResponse({
+      eventsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
         body: {
           data: [
@@ -205,11 +214,52 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      container = mountModal({initialData, widget: mockWidget}).container;
+      const modal = mountModal({initialData, widget: mockWidget});
+      container = modal.container;
+      rerender = modal.rerender;
     });
 
     it('renders Discover topn chart widget viewer', function () {
       expect(container).toSnapshot();
+    });
+
+    it('sorts table when a sortable column header is clicked', function () {
+      userEvent.click(screen.getByText('count()'));
+      expect(initialData.router.push).toHaveBeenCalledWith({
+        query: {modalSort: ['-count']},
+      });
+      // Need to manually set the new router location and rerender to simulate the sortable column click
+      initialData.router.location.query = {modalSort: ['-count']};
+      rerender(
+        <div style={{padding: space(4)}}>
+          <WidgetViewerModal
+            Header={stubEl}
+            Footer={stubEl as ModalRenderProps['Footer']}
+            Body={stubEl as ModalRenderProps['Body']}
+            CloseButton={stubEl}
+            closeModal={() => undefined}
+            organization={initialData.organization}
+            widget={mockWidget}
+            onEdit={() => undefined}
+          />
+        </div>,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({sort: ['-count']}),
+        })
+      );
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({orderby: '-count'}),
+        })
+      );
     });
   });
 
