@@ -1,5 +1,4 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import FormSearchStore from 'sentry/stores/formSearchStore';
@@ -64,8 +63,9 @@ describe('SettingsSearch', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />);
+
     // renders input
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
@@ -81,7 +81,10 @@ describe('SettingsSearch', function () {
       context: routerContext,
     });
 
-    userEvent.type(screen.getByPlaceholderText('Search'), 'bil{enter}');
+    const input = screen.getByPlaceholderText('Search');
+    userEvent.type(input, 'bil');
+
+    await tick();
 
     expect(orgsMock.mock.calls).toEqual([
       [
@@ -100,9 +103,17 @@ describe('SettingsSearch', function () {
       ],
     ]);
 
-    userEvent.click(
-      await screen.findByText(textWithMarkupMatcher('billy-org Dashboard'))
-    );
+    const results = screen.getAllByTestId('badge-display-name');
+
+    const firstResult = results
+      .filter(e => e.textContent === 'billy-org Dashboard')
+      .pop();
+
+    expect(firstResult).toBeDefined();
+
+    if (firstResult) {
+      userEvent.click(firstResult);
+    }
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });
