@@ -96,7 +96,7 @@ const ThresholdTypeForm = ({
           ]}
           value={comparisonType}
           label={t('Threshold Type')}
-          onChange={onComparisonTypeChange}
+          onChange={value => onComparisonTypeChange(value as AlertRuleComparisonType)}
         />
       </FormRow>
     </Feature>

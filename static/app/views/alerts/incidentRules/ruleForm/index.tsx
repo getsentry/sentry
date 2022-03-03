@@ -805,7 +805,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 timeWindow={timeWindow}
                 comparisonType={comparisonType}
                 comparisonDelta={comparisonDelta}
-                onComparisonTypeChange={this.handleComparisonTypeChange}
                 onComparisonDeltaChange={value =>
                   this.handleFieldChange('comparisonDelta', value)
                 }

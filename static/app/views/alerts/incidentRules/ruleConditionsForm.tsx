@@ -55,7 +55,6 @@ type Props = {
   disabled: boolean;
   hasAlertWizardV3: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
   onFilterSearch: (query: string) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
