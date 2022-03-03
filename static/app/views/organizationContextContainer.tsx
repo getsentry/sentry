@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {createContext} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -28,6 +27,8 @@ import RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
+import {OrganizationContext} from './organizationContext';
+
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   api: Client;
   includeSidebar: boolean;
@@ -50,8 +51,6 @@ type State = {
   errorType?: string | null;
   hooks?: React.ReactNode[];
 };
-
-const OrganizationContext = createContext<Organization | null>(null);
 
 class OrganizationContextContainer extends React.Component<Props, State> {
   static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
