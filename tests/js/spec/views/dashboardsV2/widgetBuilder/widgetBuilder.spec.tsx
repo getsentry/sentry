@@ -914,7 +914,7 @@ describe('WidgetBuilder', function () {
       // Confirm modal doesn't open because no changes were made
       expect(openWidgetBuilderOverwriteModal).not.toHaveBeenCalled();
 
-      expect(await screen.findAllByLabelText('Remove this Y-Axis')).toHaveLength(3);
+      expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(3);
       userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
       userEvent.click(screen.getByText('High Throughput Transactions'));
 
