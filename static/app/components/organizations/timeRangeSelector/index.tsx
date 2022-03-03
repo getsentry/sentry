@@ -101,6 +101,11 @@ type Props = WithRouterProps & {
   utc: boolean | null;
 
   /**
+   * Aligns dropdown menu to left or right of button
+   */
+  alignDropdown?: 'left' | 'right';
+
+  /**
    * Optionally render a custom dropdown button, instead of the default
    * <HeaderItem />
    */
@@ -369,6 +374,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       maxPickableDays,
       customDropdownButton,
       detached,
+      alignDropdown,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -430,6 +436,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                   {...getMenuProps()}
                   isAbsoluteSelected={isAbsoluteSelected}
                   detached={detached}
+                  alignDropdown={alignDropdown}
                 >
                   <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
                     <SelectorItemsHook
@@ -484,12 +491,21 @@ const StyledHeaderItem = styled(HeaderItem)`
 
 type MenuProps = {
   isAbsoluteSelected: boolean;
-  detached?: boolean;
+  alignDropdown?: Props['alignDropdown'];
+  detached?: Props['detached'];
 };
 
 const Menu = styled('div')<MenuProps>`
-  ${p => !p.isAbsoluteSelected && 'left: -1px'};
-  ${p => p.isAbsoluteSelected && 'right: -1px'};
+  ${p =>
+    p.alignDropdown
+      ? `
+    ${p.alignDropdown === 'left' && 'left: -1px'};
+    ${p.alignDropdown === 'right' && 'right: -1px'};
+  `
+      : `
+    ${!p.isAbsoluteSelected && 'left: -1px'};
+    ${p.isAbsoluteSelected && 'right: -1px'};
+  `}
 
   display: flex;
   background: ${p => p.theme.background};
