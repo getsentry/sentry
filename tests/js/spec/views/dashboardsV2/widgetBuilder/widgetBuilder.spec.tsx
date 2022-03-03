@@ -899,9 +899,6 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  /**
-   * UnhandledPromiseRejection appearing for this
-   */
   it('should filter y-axis choices for world map widget charts', async function () {
     const handleSave = jest.fn();
     renderTestComponent({onSave: handleSave});
