@@ -149,7 +149,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                 <PageFilters>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter />
+                  <DatePageFilter forceAlignment="right" />
                 </PageFilters>
               </Feature>
               {this.renderStreamBody()}
