@@ -36,6 +36,7 @@ function renderTestComponent({
     ...initializeOrg(),
     organization: {
       features: orgFeatures ?? [
+        'performance-view',
         'new-widget-builder-experience',
         'dashboards-edit',
         'global-views',
@@ -808,14 +809,7 @@ describe('WidgetBuilder', function () {
   });
 
   it('should filter out non-aggregate fields when switching from table to chart', async function () {
-    renderTestComponent({
-      orgFeatures: [
-        'performance-view',
-        'new-widget-builder-experience',
-        'dashboards-edit',
-        'global-views',
-      ],
-    });
+    renderTestComponent();
 
     expect(await screen.findByText('Table')).toBeInTheDocument();
 
@@ -843,7 +837,7 @@ describe('WidgetBuilder', function () {
     userEvent.click(screen.getByText('Line Chart'));
 
     // Expect event.type field to be dropped
-    expect(await screen.findByText('p95(…)')).toBeInTheDocument();
+    expect(screen.getByText('p95(…)')).toBeInTheDocument();
     expect(screen.queryByText('event.type')).not.toBeInTheDocument();
 
     // No delete button as there is only one field.
