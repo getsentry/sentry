@@ -34,6 +34,7 @@ type Props = WithRouterProps & {
     selectedProjects: Project[];
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  detached?: boolean;
   disableMultipleProjectSelection?: boolean;
   footerMessage?: React.ReactNode;
   forceProject?: MinimalProject | null;
@@ -458,9 +459,14 @@ const FooterMessage = styled('div')`
 const StyledProjectSelector = styled(ProjectSelector)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  margin: 1px 0 0 -1px;
-  border-radius: ${p => p.theme.borderRadiusBottom};
   width: 100%;
+
+  ${p =>
+    !p.detached &&
+    `
+    margin: 1px 0 0 -1px;
+    border-radius: ${p.theme.borderRadiusBottom};
+  `}
 `;
 
 const StyledHeaderItem = styled(HeaderItem)`
