@@ -150,6 +150,8 @@ const config: Config.InitialOptions = {
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
     'integration-docs-platforms':
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
+    '^echarts(.*)': '<rootDir>/tests/js/spec/emptyStub.js',
+    '^zrender/(.*)': '<rootDir>/tests/js/spec/emptyStub.js',
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
@@ -173,7 +175,7 @@ const config: Config.InitialOptions = {
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
-  transformIgnorePatterns: ['/node_modules/(?!echarts|zrender)'],
+  transformIgnorePatterns: ['/node_modules/'],
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
 
