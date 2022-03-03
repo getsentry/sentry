@@ -165,6 +165,11 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/tags/event.type/values/',
       body: [{count: 2, name: 'Nvidia 1080ti'}],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-geo/',
+      body: {data: [], meta: {}},
+    });
   });
 
   afterEach(function () {
