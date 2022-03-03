@@ -28,10 +28,10 @@ const ThresholdTypeForm = ({
   disabled,
   comparisonType,
   onComparisonDeltaChange,
-      onComparisonTypeChange,
-      hasAlertWizardV3,
-      comparisonDelta,
-    } : Props) =>
+  onComparisonTypeChange,
+  hasAlertWizardV3,
+  comparisonDelta,
+}: Props) =>
   dataset === Dataset.SESSIONS ? null : (
     <Feature features={['organizations:change-alerts']} organization={organization}>
       {!hasAlertWizardV3 && <StyledListItem>{t('Select threshold type')}</StyledListItem>}
@@ -49,9 +49,8 @@ const ThresholdTypeForm = ({
               hasAlertWizardV3 ? (
                 comparisonType === AlertRuleComparisonType.COUNT ? (
                   t('Percent Change: {x%} higher or lower compared to previous period')
-                ) : (
-                  // Prevent default to avoid dropdown menu closing on click
-                  <ComparisonContainer onClick={e => e.preventDefault()}>
+                ) : (// Prevent default to avoid dropdown menu closing on click
+                  <ComparisonContaineronClick={e => e.preventDefault()}>
                     {t('Percent Change: {x%} higher or lower compared to')}
                     <SelectControl
                       name="comparisonDelta"
@@ -83,6 +82,7 @@ const ThresholdTypeForm = ({
                         }),
                       }}
                       value={comparisonDelta}
+
                       onChange={({value}) => onComparisonDeltaChange(value)}
                       options={COMPARISON_DELTA_OPTIONS}
                       required={comparisonType === AlertRuleComparisonType.CHANGE}
