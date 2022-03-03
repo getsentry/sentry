@@ -138,12 +138,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       operations: ['count_unique'],
       unit: null,
     },
-    {
-      name: 'not.on.allow.list',
-      type: 'set',
-      operations: ['count_unique'],
-      unit: null,
-    },
   ];
   const dashboard = TestStubs.Dashboard([], {
     id: '1',
@@ -367,6 +361,31 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
     wrapper.unmount();
+  });
+
+  it('metrics do not have equation', async function () {
+    mountModalWithRtl({
+      initialData,
+      widget: {
+        displayType: 'table',
+        widgetType: 'metrics',
+        queries: [
+          {
+            id: '9',
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['sdk.name', 'count()'],
+            orderby: '',
+          },
+        ],
+      },
+    });
+
+    // Select line chart display
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
   });
 
   it('additional fields get added to new seach filters', async function () {
@@ -1363,10 +1382,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
-
-      userEvent.click(screen.getByText('sentry.sessions.user'));
-      // Ensure METRICS_FIELDS_ALLOW_LIST is honoured
-      expect(screen.queryByText('not.on.allow.list')).not.toBeInTheDocument();
 
       wrapper.unmount();
     });
