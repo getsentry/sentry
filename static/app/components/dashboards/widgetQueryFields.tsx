@@ -297,14 +297,16 @@ function WidgetQueryFields({
           <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
             {t('Add Overlay')}
           </Button>
-          <Button
-            size="small"
-            aria-label={t('Add an Equation')}
-            onClick={handleAddEquation}
-            icon={<IconAdd isCircled />}
-          >
-            {t('Add an Equation')}
-          </Button>
+          {!isMetricWidget && (
+            <Button
+              size="small"
+              aria-label={t('Add an Equation')}
+              onClick={handleAddEquation}
+              icon={<IconAdd isCircled />}
+            >
+              {t('Add an Equation')}
+            </Button>
+          )}
         </Actions>
       )}
     </Field>
