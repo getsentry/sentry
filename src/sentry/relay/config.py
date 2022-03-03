@@ -1,5 +1,5 @@
+import logging
 import uuid
-from asyncio.log import logger
 from datetime import datetime
 from typing import Any, List, Mapping, Optional, TypedDict
 
@@ -30,6 +30,8 @@ EXPOSABLE_FEATURES = [
     "organizations:metrics-extraction",
     "organizations:profiling",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def get_exposed_features(project: Project) -> List[str]:
