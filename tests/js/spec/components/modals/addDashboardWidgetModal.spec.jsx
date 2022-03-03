@@ -23,10 +23,6 @@ jest.mock('sentry/actionCreators/modal', () => ({
   openDashboardWidgetLibraryModal: jest.fn(),
 }));
 
-// Mock World Map because setState inside componentDidMount is
-// throwing UnhandledPromiseRejection
-jest.mock('sentry/components/charts/worldMapChart');
-
 const stubEl = props => <div>{props.children}</div>;
 
 function mountModal({
