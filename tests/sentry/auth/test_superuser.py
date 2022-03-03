@@ -49,6 +49,7 @@ class SuperuserTestCase(TestCase):
             user = self.create_user("foo@example.com", is_superuser=True)
         current_datetime = self.current_datetime
         request = self.make_request(user=user)
+        self.login_as(user=user, superuser=True)
         if cookie_token is not None:
             request.COOKIES[COOKIE_NAME] = signing.get_cookie_signer(
                 salt=COOKIE_NAME + COOKIE_SALT
@@ -190,14 +191,14 @@ class SuperuserTestCase(TestCase):
 
     def test_max_time_org_change_within_time(self):
         request = self.build_request()
-        request.organization = "not_our_org"
+        request.organization = self.create_organization(name="not_our_org")
         superuser = Superuser(request, allowed_ips=())
 
         assert superuser.is_active is True
 
     def test_max_time_org_change_time_expired(self):
         request = self.build_request()
-        request.organization = "not_our_org"
+        request.organization = self.create_organization(name="not_our_org")
         superuser = Superuser(request, allowed_ips=())
         superuser.expires = timezone.now()
 

@@ -2509,3 +2509,5 @@ SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
+
+SUPERUSER_ORG_ID = 1

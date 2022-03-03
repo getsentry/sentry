@@ -94,33 +94,6 @@ class SudoModal extends React.Component<Props, State> {
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>
-          {/* <TextBlock>{t('You will need to reauthenticate to continue.')}</TextBlock>
-          <StyledSelectField
-            name="superuserAccessCategory"
-            label={t('Catergory of Superuser Access')}
-            options={placeholderForSUCategories.map(SUCategory => ({
-              value: SUCategory.value,
-              label: SUCategory.name,
-            }))}
-            placeholder={t('Select Catergory')}
-            inline={false}
-            flexibleControlStateSize
-            required
-          />
-          <StyledInputField
-            type="text"
-            inline={false}
-            label={t('Reason for Superuser')}
-            name="superuserReason"
-            flexibleControlStateSize
-            required
-          />
-          <Button
-            priority="primary"
-            href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
-          >
-            {t('Continue')}
-          </Button> */}
           <StyledTextBlock>
             {superuser
               ? t(
