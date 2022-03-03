@@ -60,26 +60,28 @@ const ModalFooter = styled('footer')`
   margin: ${space(3)} -${space(4)} -${space(4)};
 `;
 
-type HeaderProps = {
+interface ClosableHeaderProps extends React.HTMLAttributes<HTMLHeadingElement> {
   /**
    * Show a close button in the header
    */
   closeButton?: boolean;
-};
-
+}
 /**
  * Creates a ModalHeader that includes props to enable the close button
  */
 const makeClosableHeader = (closeModal: () => void) => {
-  const ClosableHeader: React.FC<React.ComponentProps<typeof ModalHeader> & HeaderProps> =
-    ({closeButton, children, ...props}) => (
-      <ModalHeader {...props}>
-        {children}
-        {closeButton ? (
-          <CloseButton aria-label={t('Close Modal')} onClick={closeModal} />
-        ) : null}
-      </ModalHeader>
-    );
+  const ClosableHeader: React.FC<ClosableHeaderProps> = ({
+    closeButton,
+    children,
+    ...props
+  }) => (
+    <ModalHeader {...props}>
+      {children}
+      {closeButton ? (
+        <CloseButton aria-label={t('Close Modal')} onClick={closeModal} />
+      ) : null}
+    </ModalHeader>
+  );
 
   ClosableHeader.displayName = 'Header';
 
