@@ -100,7 +100,7 @@ const DateSelectorContainer = styled('div')`
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  height: 40px;
+  height: 100%;
   font-weight: 600;
   background: ${p => p.theme.background};
   border: none;

@@ -6,8 +6,11 @@ const PageFilterBar = styled('div')`
   display: flex;
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  height: ${p => p.theme.form.default.height}px;
 
   & ${StyledButton} {
+    height: 100%;
+    min-height: auto;
     border-color: transparent !important;
     box-shadow: none;
     z-index: 0;
