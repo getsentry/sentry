@@ -8,8 +8,6 @@ const jsonDiff = require('json-diff');
 const https = require('https');
 
 async function main() {
-  const readFile = fs.readFileSync('tests/apidocs/openapi-derefed.json', 'utf8');
-  // console.log('READ FILE: ', readFile)
   const request = new Promise((resolve, reject) =>
     https.get(
       `https://raw.githubusercontent.com/getsentry/sentry-api-schema/main/openapi-derefed.json`,
@@ -29,6 +27,7 @@ async function main() {
   );
 
   const openApiData = await request;
+  const readFile = fs.readFileSync('tests/apidocs/openapi-derefed.json', 'utf8');
   const target = yaml.safeLoad(readFile);
 
   // eslint-disable-next-line no-console
