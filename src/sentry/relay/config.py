@@ -424,7 +424,7 @@ def _get_satisfaction_thresholds(project: Project) -> _TransactionThresholdConfi
     # Apply custom project threshold
     for i, threshold in enumerate(project.projecttransactionthreshold_set.all()):
         if i > 0:
-            logger.error("More than one transaction threshold applied for project")
+            logger.error("More than one transaction threshold exists for project")
             break
         project_threshold = {
             "metric": TRANSACTION_THRESHOLD_KEYS[threshold.metric],
