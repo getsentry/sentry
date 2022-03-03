@@ -50,9 +50,10 @@ export function Header({
         />
         <Layout.Title>
           <EditableText
+            aria-label={t('Widget title')}
             value={title}
             onChange={onChangeTitle}
-            errorMessage={t('Please set a title for this widget')}
+            errorMessage={t('Widget title is required')}
             maxLength={255}
           />
         </Layout.Title>

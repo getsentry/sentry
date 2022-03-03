@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     AbstractSet,
@@ -20,7 +21,7 @@ from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.types import SCIMMeta, SerializedAvatarFields
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -40,6 +41,7 @@ if TYPE_CHECKING:
         ExternalActorResponse,
         OrganizationSerializerResponse,
         ProjectSerializerResponse,
+        SCIMMeta,
     )
 
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
@@ -108,7 +110,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     id: str
     slug: str
     name: str
-    dateCreated: str
+    dateCreated: datetime
     isMember: bool
     hasAccess: bool
     isPending: bool

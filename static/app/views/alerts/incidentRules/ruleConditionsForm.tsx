@@ -7,7 +7,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import SearchBar from 'sentry/components/events/searchBar';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import FormField from 'sentry/components/forms/formField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
@@ -145,14 +144,12 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   renderInterval() {
     const {
       organization,
-      dataset,
       disabled,
       alertType,
       hasAlertWizardV3,
       timeWindow,
       comparisonDelta,
       comparisonType,
-      onComparisonTypeChange,
       onTimeWindowChange,
       onComparisonDeltaChange,
     } = this.props;
@@ -167,24 +164,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
     return (
       <Fragment>
-        {dataset !== Dataset.SESSIONS && (
-          <Feature features={['organizations:change-alerts']} organization={organization}>
-            <StyledListItem>{t('Select threshold type')}</StyledListItem>
-            <FormRow>
-              <RadioGroup
-                style={{flex: 1}}
-                disabled={disabled}
-                choices={[
-                  [AlertRuleComparisonType.COUNT, 'Count'],
-                  [AlertRuleComparisonType.CHANGE, 'Percent Change'],
-                ]}
-                value={comparisonType}
-                label={t('Threshold Type')}
-                onChange={onComparisonTypeChange}
-              />
-            </FormRow>
-          </Feature>
-        )}
         <StyledListItem>
           <StyledListTitle>
             <div>{intervalLabelText}</div>
@@ -327,8 +306,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       });
     }
 
-    const measurements = {...WebVital, ...MobileVital};
-    const eventOmitTags = dataset === 'events' ? Object.values(measurements) : [];
+    const transactionTags = [
+      'transaction',
+      'transaction.duration',
+      'transaction.op',
+      'transaction.status',
+    ];
+    const measurementTags = Object.values({...WebVital, ...MobileVital});
+    const eventOmitTags =
+      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
     const formElemBaseStyle = {
       padding: `${space(0.5)}`,

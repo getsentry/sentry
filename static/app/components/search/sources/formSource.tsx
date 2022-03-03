@@ -1,10 +1,9 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import type Fuse from 'fuse.js';
 
 import {loadSearchMap} from 'sentry/actionCreators/formSearch';
 import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
 import {ChildProps, Result, ResultItem} from './types';
