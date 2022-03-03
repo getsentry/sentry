@@ -17,6 +17,7 @@ import RouteSource from 'sentry/components/search/sources/routeSource';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
 import {Result} from './sources/types';
@@ -81,7 +82,7 @@ interface SearchProps extends WithRouterProps<{orgId: string}> {
   /**
    * Fuse search options
    */
-  searchOptions?: Fuse.FuseOptions<any>;
+  searchOptions?: Fuse.IFuseOptions<any>;
   /**
    * The sources to query
    */

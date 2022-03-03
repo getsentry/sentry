@@ -70,8 +70,7 @@ describe('Sentry Application Dashboard', function () {
       });
 
       wrapper = mountWithTheme(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />
       );
     });
 
@@ -127,8 +126,7 @@ describe('Sentry Application Dashboard', function () {
       });
 
       wrapper = mountWithTheme(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />
       );
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
@@ -210,8 +208,7 @@ describe('Sentry Application Dashboard', function () {
       });
 
       wrapper = mountWithTheme(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />
       );
     });
 
@@ -240,8 +237,7 @@ describe('Sentry Application Dashboard', function () {
       });
 
       wrapper = mountWithTheme(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext()
+        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />
       );
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();

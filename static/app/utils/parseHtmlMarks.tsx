@@ -1,3 +1,5 @@
+import {Fuse} from 'sentry/utils/fuzzySearch';
+
 type Options = {
   htmlString: string;
   key: string;
@@ -8,9 +10,9 @@ type Options = {
 };
 
 /**
- * Parses the "marked" html strings into a {key, value, indices} (similar to
- * Fuse.js) object, where the indices are a set of zero indexed [start, end]
- * indices for what should be highlighted.
+ * Parses the "marked" html strings into a {key, value, indices} (mimincing the
+ * FuseResultMatch type) object, where the indices are a set of zero indexed
+ * [start, end] indices for what should be highlighted.
  *
  * @param key The key of the field, this mimics the Fuse match object
  * @param htmlString The html string to parse
@@ -39,5 +41,5 @@ export default function parseHtmlMarks({key, htmlString, markTags}: Options) {
     indices.push([openIndex, closeIndex - 1]);
   }
 
-  return {key, value, indices};
+  return {key, value, indices} as Fuse.FuseResultMatch;
 }

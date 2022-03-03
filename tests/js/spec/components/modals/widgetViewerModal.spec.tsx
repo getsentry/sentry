@@ -1,5 +1,7 @@
+import ReactEchartsCore from 'echarts-for-react/lib/core';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
@@ -8,23 +10,14 @@ import space from 'sentry/styles/space';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
-  // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
-  // guaranteed to be in scope
-  const ReactActual = require('react');
-
-  // We need a class component here because `BaseChart` passes `ref` which will
-  // error if we return a stateless/functional component
-  return class extends ReactActual.Component {
-    render() {
-      // ReactEchartsCore accepts a style prop that determines height
-      return <div style={{...this.props.style, background: 'green'}}>echarts mock</div>;
-    }
-  };
+  return jest.fn(({style}) => {
+    return <div style={{...style, background: 'green'}}>echarts mock</div>;
+  });
 });
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-function mountModal({initialData, widget}) {
+function mountModal({initialData: {organization, routerContext}, widget}) {
   return mountWithTheme(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
@@ -33,10 +26,15 @@ function mountModal({initialData, widget}) {
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
         closeModal={() => undefined}
-        organization={initialData.organization}
+        organization={organization}
         widget={widget}
+        onEdit={() => undefined}
       />
-    </div>
+    </div>,
+    {
+      context: routerContext,
+      organization,
+    }
   );
 }
 
@@ -46,7 +44,9 @@ describe('Modals -> WidgetViewerModal', function () {
       features: ['discover-query', 'widget-viewer-modal'],
       apdexThreshold: 400,
     },
-    router: {},
+    router: {
+      location: {query: {}},
+    },
     project: 1,
     projects: [],
   });
@@ -56,7 +56,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Discover Area Chart Widget', function () {
-    let container;
+    let container, eventsMock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()', 'failure_count()'],
@@ -72,7 +72,8 @@ describe('Modals -> WidgetViewerModal', function () {
     };
 
     beforeEach(function () {
-      MockApiClient.addMockResponse({
+      (ReactEchartsCore as jest.Mock).mockClear();
+      eventsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: {},
       });
@@ -122,7 +123,32 @@ describe('Modals -> WidgetViewerModal', function () {
         '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
       );
     });
+
+    it('zooms into the selected time range', function () {
+      act(() => {
+        // Simulate dataZoom event on chart
+        (ReactEchartsCore as jest.Mock).mock.calls[0][0].onEvents.datazoom(undefined, {
+          getModel: () => {
+            return {
+              _payload: {
+                batch: [{startValue: 1646100000000, endValue: 1646120000000}],
+              },
+            };
+          },
+        });
+      });
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: '2022-03-01T02:00:00',
+            end: '2022-03-01T07:33:20',
+          }),
+        })
+      );
+    });
   });
+
   describe('Discover TopN Chart Widget', function () {
     let container;
     const mockQuery = {
@@ -180,6 +206,71 @@ describe('Modals -> WidgetViewerModal', function () {
         },
       });
       container = mountModal({initialData, widget: mockWidget}).container;
+    });
+
+    it('renders Discover topn chart widget viewer', function () {
+      expect(container).toSnapshot();
+    });
+  });
+
+  describe('Discover World Map Chart Widget', function () {
+    let container, eventsMock;
+    const mockQuery = {
+      conditions: 'title:/organizations/:orgId/performance/summary/',
+      fields: ['p75(measurements.lcp)'],
+      id: '1',
+      name: 'Query Name',
+      orderby: '',
+    };
+    const mockWidget = {
+      title: 'Test Widget',
+      displayType: DisplayType.WORLD_MAP,
+      interval: '5m',
+      queries: [mockQuery],
+    };
+
+    beforeEach(function () {
+      const eventsBody = {
+        data: [
+          {
+            'geo.country_code': 'ES',
+            p75_measurements_lcp: 2000,
+          },
+          {
+            'geo.country_code': 'SK',
+            p75_measurements_lcp: 3000,
+          },
+          {
+            'geo.country_code': 'CO',
+            p75_measurements_lcp: 4000,
+          },
+        ],
+        meta: {
+          'geo.country_code': 'string',
+          p75_measurements_lcp: 'duration',
+        },
+      };
+      eventsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        body: eventsBody,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-geo/',
+        body: eventsBody,
+      });
+      container = mountModal({initialData, widget: mockWidget}).container;
+    });
+
+    it('always queries geo.country_code in the table chart', async function () {
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: ['geo.country_code', 'p75(measurements.lcp)'],
+          }),
+        })
+      );
+      expect(await screen.findByText('geo.country_code')).toBeInTheDocument();
     });
 
     it('renders Discover topn chart widget viewer', function () {

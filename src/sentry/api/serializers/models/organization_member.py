@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set, cast
 
 from typing_extensions import TypedDict
@@ -73,7 +74,7 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     pending: bool
     expired: str
     flags: _OrganizationMemberFlags
-    dateCreated: str
+    dateCreated: datetime
     inviteStatus: str
     inviterName: Optional[str]
 
@@ -241,14 +242,14 @@ class SCIMEmail(TypedDict):
     type: str
 
 
-class SCIMMeta(TypedDict):
-    resourceType: str
-
-
 class OrganizationMemberSCIMSerializerOptional(TypedDict, total=False):
     """Sentry doesn't use this field but is expected by SCIM"""
 
     active: bool
+
+
+class SCIMMeta(TypedDict):
+    resourceType: str
 
 
 class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):

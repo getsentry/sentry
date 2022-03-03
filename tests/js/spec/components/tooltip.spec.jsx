@@ -23,12 +23,10 @@ describe('Tooltip', function () {
   });
 
   it('updates title', async function () {
-    const context = TestStubs.routerContext();
     const {rerender} = mountWithTheme(
       <Tooltip delay={0} title="test">
         <span>My Button</span>
-      </Tooltip>,
-      {context}
+      </Tooltip>
     );
 
     // Change title
@@ -49,8 +47,7 @@ describe('Tooltip', function () {
     mountWithTheme(
       <Tooltip delay={0} title="test" disabled>
         <span>My Button</span>
-      </Tooltip>,
-      {context: TestStubs.routerContext()}
+      </Tooltip>
     );
 
     userEvent.hover(screen.getByText('My Button'));
@@ -64,8 +61,7 @@ describe('Tooltip', function () {
     mountWithTheme(
       <Tooltip delay={0} title="">
         <span>My Button</span>
-      </Tooltip>,
-      {context: TestStubs.routerContext()}
+      </Tooltip>
     );
     userEvent.hover(screen.getByText('My Button'));
 
@@ -80,8 +76,7 @@ describe('Tooltip', function () {
     mountWithTheme(
       <Tooltip delay={0} title="test" showOnlyOnOverflow>
         <div>This text overflows</div>
-      </Tooltip>,
-      {context: TestStubs.routerContext()}
+      </Tooltip>
     );
 
     userEvent.hover(screen.getByText('This text overflows'));
@@ -96,8 +91,7 @@ describe('Tooltip', function () {
     mountWithTheme(
       <Tooltip delay={0} title="test" showOnlyOnOverflow>
         <div>This text does not overflow</div>
-      </Tooltip>,
-      {context: TestStubs.routerContext()}
+      </Tooltip>
     );
 
     userEvent.hover(screen.getByText('This text does not overflow'));

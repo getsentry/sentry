@@ -63,7 +63,7 @@ function Filter(props: Props) {
   } = {
     children: (
       <React.Fragment>
-        <IconFilter size="xs" />
+        <IconFilter />
         <FilterLabel>
           {currentFilter === SpanOperationBreakdownFilter.None
             ? t('Filter')

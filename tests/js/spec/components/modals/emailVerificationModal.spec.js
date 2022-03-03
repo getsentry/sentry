@@ -6,8 +6,7 @@ describe('Email Verification Modal', function () {
   let wrapper;
   beforeEach(function () {
     wrapper = mountWithTheme(
-      <EmailVerificationModal Body={p => p.children} Header={p => p.children} />,
-      TestStubs.routerContext()
+      <EmailVerificationModal Body={p => p.children} Header={p => p.children} />
     );
   });
 
@@ -27,8 +26,7 @@ describe('Email Verification Modal', function () {
         Body={p => p.children}
         Header={p => p.children}
         actionMessage="accepting the tenet"
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper.find('TextBlock').text()).toEqual(
       'Please verify your email before accepting the tenet, or go to your email settings.'

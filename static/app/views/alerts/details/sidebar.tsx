@@ -130,10 +130,12 @@ class Sidebar extends PureComponent<Props> {
         <SidebarGroup>
           <Heading>{t('Alert Rule Details')}</Heading>
           <KeyValueTable>
-            <KeyValueTableRow
-              keyName={t('Alert Rule Created')}
-              value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
-            />
+            {rule.dateCreated && (
+              <KeyValueTableRow
+                keyName={t('Alert Rule Created')}
+                value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
+              />
+            )}
             {rule.createdBy && (
               <KeyValueTableRow
                 keyName={t('Created By')}
@@ -216,7 +218,7 @@ const StepContent = styled('div')`
     position: absolute;
     height: 100%;
     top: 28px;
-    left: 19px;
+    left: ${space(1)};
     border-right: 1px ${p => p.theme.gray200} dashed;
   }
 `;
@@ -224,13 +226,13 @@ const StepContent = styled('div')`
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
+  font-weight: 400;
 `;
 
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${space(0.5)} ${space(1)} ${space(0.5)} 0;
 `;
 
 const Badge = styled('span')`
@@ -242,7 +244,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.5;
 `;
 
@@ -252,9 +254,10 @@ const ConditionsBadge = styled('span')`
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: ${space(1)};
   width: fit-content;
+  font-weight: 400;
 `;
 
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`

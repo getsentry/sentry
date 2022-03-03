@@ -22,6 +22,7 @@ import {
 } from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   DateString,
   Environment,
@@ -31,7 +32,7 @@ import {
   PinnedPageFilter,
   Project,
 } from 'sentry/types';
-import {defined} from 'sentry/utils';
+import {defined, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 
 /**
@@ -249,6 +250,7 @@ export function initializeUrlState({
 
   const pinnedFilters = storedPageFilters?.pinnedFilters ?? new Set();
   PageFiltersActions.initializeUrlState(pageFilters, pinnedFilters);
+  updateDesyncedUrlState(router);
 
   const newDatetime = {
     ...datetime,
@@ -292,6 +294,7 @@ export function updateProjects(
   PageFiltersActions.updateProjects(projects, options?.environments);
   updateParams({project: projects, environment: options?.environments}, router, options);
   persistPageFilters('projects', options);
+  updateDesyncedUrlState(router);
 }
 
 /**
@@ -310,6 +313,7 @@ export function updateEnvironments(
   PageFiltersActions.updateEnvironments(environment);
   updateParams({environment}, router, options);
   persistPageFilters('environments', options);
+  updateDesyncedUrlState(router);
 }
 
 /**
@@ -328,6 +332,7 @@ export function updateDateTime(
   PageFiltersActions.updateDateTime(datetime);
   updateParams(datetime, router, options);
   persistPageFilters('datetime', options);
+  updateDesyncedUrlState(router);
 }
 
 /**
@@ -391,6 +396,89 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
 }
 
 /**
+ * Checks if the URL state has changed in synchronization from the local
+ * storage state, and persists that check into the store.
+ */
+async function updateDesyncedUrlState(router?: Router) {
+  // Cannot compare URL state without the router
+  if (!router) {
+    return;
+  }
+
+  const {pathname, query} = router.location;
+
+  // XXX(epurkhiser): Since this is called immediately after updating the
+  // store, wait for a tick since stores are not updated fully synchronously.
+  // This function *should* be called only after persistPageFilters has been
+  // called as well This function *should* be called only after
+  // persistPageFilters has been called as well
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  const {organization} = OrganizationStore.getState();
+
+  // Can't do anything if we don't have an organization
+  if (organization === null) {
+    return;
+  }
+
+  const storedPageFilters = getPageFilterStorage(organization.slug);
+  const pageHasPinning = getPathsWithNewFilters(organization).includes(pathname);
+
+  // If we don't have any stored page filters OR pinning is not enabled for
+  // this page, then we do not check desynced state
+  if (!storedPageFilters || !pageHasPinning) {
+    PageFiltersActions.updateDesyncedFilters(new Set<PinnedPageFilter>());
+    return;
+  }
+
+  const currentQuery = getStateFromQuery(query, {
+    allowAbsoluteDatetime: true,
+    allowEmptyPeriod: true,
+  });
+
+  const differingFilters = new Set<PinnedPageFilter>();
+  const {pinnedFilters, state: storedState} = storedPageFilters;
+
+  // Are selected projects different?
+  if (
+    pinnedFilters.has('projects') &&
+    currentQuery.project !== null &&
+    !valueIsEqual(currentQuery.project, storedState.project)
+  ) {
+    differingFilters.add('projects');
+  }
+
+  // Are selected environments different?
+  if (
+    pinnedFilters.has('environments') &&
+    currentQuery.environment !== null &&
+    !valueIsEqual(currentQuery.environment, storedState.environment)
+  ) {
+    differingFilters.add('environments');
+  }
+
+  const dateTimeInQuery =
+    currentQuery.end !== null ||
+    currentQuery.start !== null ||
+    currentQuery.utc !== null ||
+    currentQuery.period !== null;
+
+  // Is the datetime filter differning?
+  if (
+    pinnedFilters.has('datetime') &&
+    dateTimeInQuery &&
+    (currentQuery.period !== storedState.period ||
+      currentQuery.start !== storedState.start ||
+      currentQuery.end !== storedState.end ||
+      currentQuery.utc !== storedState.utc)
+  ) {
+    differingFilters.add('datetime');
+  }
+
+  PageFiltersActions.updateDesyncedFilters(differingFilters);
+}
+
+/**
  * Merges an UpdateParams object into a Location['query'] object. Results in a
  * PageFilterQuery
  *
@@ -446,4 +534,30 @@ function getNewQueryParams(
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
 
   return Object.fromEntries(paramEntries) as PageFilterQuery;
+}
+
+export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {
+  const {selection, desyncedFilters} = PageFiltersStore.getState();
+  const storedFilterState = getPageFilterStorage(orgSlug)?.state;
+
+  if (!storedFilterState) {
+    return;
+  }
+
+  const newParams = {
+    project: desyncedFilters.has('projects')
+      ? storedFilterState.project
+      : selection.projects,
+    environment: desyncedFilters.has('environments')
+      ? storedFilterState.environment
+      : selection.environments,
+    ...(desyncedFilters.has('datetime')
+      ? pick(storedFilterState, DATE_TIME_KEYS)
+      : selection.datetime),
+  };
+
+  updateParams(newParams, router, {
+    keepCursor: true,
+  });
+  updateDesyncedUrlState(router);
 }
