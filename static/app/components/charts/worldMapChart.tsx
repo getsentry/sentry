@@ -59,7 +59,8 @@ class WorldMapChart extends React.Component<Props, State> {
       import('sentry/data/world.json'),
     ]);
 
-    echarts.registerMap('sentryWorld', worldMap.default as any);
+    // Echarts not available in tests
+    echarts.registerMap?.('sentryWorld', worldMap.default as any);
 
     // eslint-disable-next-line
     this.setState({
