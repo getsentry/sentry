@@ -745,6 +745,45 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
+  it('should not filter y-axis choices for big number widget charts', async function () {
+    const handleSave = jest.fn();
+    renderTestComponent({onSave: handleSave});
+
+    expect(await screen.findByText('Table')).toBeInTheDocument();
+
+    // No delete button as there is only one field.
+    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
+
+    // Select Big number display
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(screen.getByText('Big Number'));
+
+    userEvent.click(screen.getByText('count()'));
+    userEvent.type(screen.getAllByText('count()')[0], 'count_unique{enter}');
+
+    // Be able to choose a non numeric-like option for count_unique()
+    userEvent.click(screen.getByText('user'));
+    userEvent.type(screen.getAllByText('user')[0], 'user.display{enter}');
+
+    // Save widget
+    userEvent.click(screen.getByLabelText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          displayType: 'big_number',
+          queries: [
+            expect.objectContaining({
+              fields: ['count_unique(user.display)'],
+            }),
+          ],
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
