@@ -132,6 +132,8 @@ if (
 
     testMatch = tests.slice(offset, offset + chunk);
   }
+
+  console.log(testMatch);
 }
 
 const config: Config.InitialOptions = {
