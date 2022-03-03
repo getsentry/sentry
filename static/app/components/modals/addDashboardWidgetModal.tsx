@@ -179,9 +179,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
 
   componentDidMount() {
+    this.isMounted = true;
     if (this.omitDashboardProp) {
       this.fetchDashboards();
     }
+  }
+
+  componentWillUnmount() {
+    this.isMounted = false;
   }
 
   get omitDashboardProp() {
@@ -490,6 +495,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     return rightDisplayType && underQueryLimit;
   }
 
+  isMounted = false;
+
   async fetchDashboards() {
     const {api, organization} = this.props;
     const promise: Promise<DashboardListItem[]> = api.requestPromise(
@@ -502,9 +509,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     try {
       const dashboards = await promise;
-      this.setState({
-        dashboards,
-      });
+
+      if (this.isMounted) {
+        this.setState({
+          dashboards,
+        });
+      }
     } catch (error) {
       const errorResponse = error?.responseJSON ?? null;
       if (errorResponse) {
@@ -513,7 +523,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         addErrorMessage(t('Unable to fetch dashboards'));
       }
     }
-    this.setState({loading: false});
+    if (this.isMounted) {
+      this.setState({loading: false});
+    }
   }
 
   handleDashboardChange(option: SelectValue<string>) {
