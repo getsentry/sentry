@@ -12,7 +12,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {DateString, Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
@@ -65,10 +65,8 @@ class AlertRuleDetails extends Component<Props, State> {
   trackView() {
     const {params, organization, location} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'alert_rule_details.viewed',
-      eventName: 'Alert Rule Details: Viewed',
-      organization_id: organization ? organization.id : null,
+    trackAdvancedAnalyticsEvent('alert_rule_details.viewed', {
+      organization,
       rule_id: parseInt(params.ruleId, 10),
       alert: location.query.alert ?? '',
     });

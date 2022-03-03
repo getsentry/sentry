@@ -19,7 +19,7 @@ import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -299,10 +299,8 @@ class IncidentsListContainer extends Component<Props> {
   trackView() {
     const {organization} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'alert_stream.viewed',
-      eventName: 'Alert Stream: Viewed',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('alert_stream.viewed', {
+      organization,
     });
   }
 

@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import AlertChart from './alertChart';
 import AlertRuleIssuesList from './issuesList';
@@ -45,6 +46,14 @@ const PAGE_QUERY_PARAMS = [
 
 class AlertRuleDetails extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
+
+  componentDidMount() {
+    const {organization, params} = this.props;
+    trackAdvancedAnalyticsEvent('alert_stream.viewed', {
+      organization,
+      rule_id: parseInt(params.ruleId, 10),
+    });
+  }
 
   componentDidUpdate(prevProps: Props) {
     const {params: prevParams} = prevProps;
@@ -197,6 +206,12 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             <Button
               icon={<IconEdit />}
               to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('alert_stream.edit_clicked', {
+                  organization,
+                  rule_id: parseInt(ruleId, 10),
+                })
+              }
             >
               {t('Edit Rule')}
             </Button>

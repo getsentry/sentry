@@ -23,7 +23,8 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {metric} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import RuleNameOwnerForm from 'sentry/views/alerts/incidentRules/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/incidentRules/thresholdTypeForm';
@@ -413,12 +414,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   handleFilterUpdate = (query: string) => {
     const {organization, sessionId} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'alert_builder.filter',
-      eventName: 'Alert Builder: Filter',
-      query,
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('alert_builder.filter', {
+      organization,
       session_id: sessionId,
+      query,
     });
 
     this.setState({query});
