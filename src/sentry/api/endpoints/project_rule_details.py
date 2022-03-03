@@ -39,23 +39,31 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             request.user,
         )
 
+        errors = []
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-
-                component = SentryAppInstallation(
-                    **action.get("_sentry_app_installation", {})
-                ).prepare_ui_component(
+                installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
+                component = installation.prepare_ui_component(
                     SentryAppComponent(**action.get("_sentry_app_component")),
                     project,
                     action.get("settings"),
                 )
+                if component is None:
+                    errors.append(
+                        {"detail": f"Could not fetch details from {installation.sentry_app.name}"}
+                    )
+                    action["disabled"] = True
+                    continue
 
                 action["formFields"] = component.schema.get("settings", {})
 
                 # Delete meta fields
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
+
+        if len(errors):
+            serialized_rule["errors"] = errors
 
         return Response(serialized_rule)
 

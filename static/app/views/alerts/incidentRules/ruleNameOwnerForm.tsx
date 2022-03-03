@@ -19,21 +19,23 @@ type Props = {
 
 export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}: Props) {
   const renderRuleName = () => (
-    <TextField
+    <StyledTextField
+      hasAlertWizardV3={hasAlertWizardV3}
       disabled={disabled}
       name="name"
-      label={t('Rule Name')}
-      help={t('Add a name so it’s easy to find later.')}
+      label={hasAlertWizardV3 ? null : t('Rule Name')}
+      help={hasAlertWizardV3 ? null : t('Add a name so it’s easy to find later.')}
       placeholder={t('Something really bad happened')}
       required
     />
   );
 
   const renderTeamSelect = () => (
-    <FormField
+    <StyledFormField
+      hasAlertWizardV3={hasAlertWizardV3}
       name="owner"
-      label={t('Team')}
-      help={t('The team that can edit this alert.')}
+      label={hasAlertWizardV3 ? null : t('Team')}
+      help={hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
       disabled={disabled}
     >
       {({model}) => {
@@ -54,19 +56,15 @@ export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}:
           />
         );
       }}
-    </FormField>
+    </StyledFormField>
   );
 
   return hasAlertWizardV3 ? (
     <Fragment>
       <StyledListItem>{t('Add a name')}</StyledListItem>
-      <Panel>
-        <PanelBody>{renderRuleName()}</PanelBody>
-      </Panel>
+      {renderRuleName()}
       <StyledListItem>{t('Assign this alert')}</StyledListItem>
-      <Panel>
-        <PanelBody>{renderTeamSelect()}</PanelBody>
-      </Panel>
+      {renderTeamSelect()}
     </Fragment>
   ) : (
     <Fragment>
@@ -84,4 +82,33 @@ export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}:
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const StyledTextField = styled(TextField)<{hasAlertWizardV3: boolean}>`
+  ${p =>
+    p.hasAlertWizardV3 &&
+    `
+    border-bottom: none;
+    padding: 0;
+
+    & > div {
+      padding: 0;
+    }
+
+    margin-bottom: ${space(2)};
+  `}
+`;
+
+const StyledFormField = styled(FormField)<{hasAlertWizardV3: boolean}>`
+  ${p =>
+    p.hasAlertWizardV3 &&
+    `
+    padding: 0;
+
+    & > div {
+      padding: 0;
+    }
+
+    margin-bottom: ${space(2)};
+  `}
 `;
