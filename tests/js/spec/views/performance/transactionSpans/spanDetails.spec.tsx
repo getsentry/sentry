@@ -14,7 +14,7 @@ function initializeData(settings) {
   return data;
 }
 
-describe('Performance > Transaction Spans > Span Details', function () {
+describe('Performance > Transaction Spans > Span Summary', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -245,6 +245,8 @@ describe('Performance > Transaction Spans > Span Details', function () {
         context: data.routerContext,
         organization: data.organization,
       });
+
+      expect(await screen.findByText('Span Summary')).toBeInTheDocument();
 
       const operationNameHeader = await screen.findByTestId('header-operation-name');
       expect(
