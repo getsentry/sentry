@@ -7,6 +7,7 @@ import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -38,6 +39,8 @@ function fetchProfiles(
     query: {
       cursor,
       project: selection.projects,
+      environment: selection.environments,
+      ...normalizeDateTimeParams(selection.datetime),
     },
   });
 }
