@@ -2,28 +2,32 @@ import abc
 import re
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Dict, Iterable, Mapping, Optional, Tuple
+from typing import Dict, FrozenSet, Iterable, Mapping, Optional, Tuple
 
 
 def _normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip())
 
 
-@dataclass(unsafe_hash=True)
+@dataclass(frozen=True, eq=True)
 class Role(abc.ABC):
     priority: int
     id: str
     name: str
-    desc: str = ""
-    scopes: Iterable[str] = ()
+    desc: str
+    scopes: FrozenSet[str]
     is_global: bool = False
 
     def __post_init__(self) -> None:
         assert len(self.id) <= 32, "Role id must be no more than 32 characters"
 
-        self.desc = _normalize_whitespace(self.desc)
-        self.scopes = frozenset(self.scopes)
-        self.is_global = bool(self.is_global)
+    @classmethod
+    def from_config(
+        cls, priority: int, desc: str = "", scopes: Iterable[str] = (), **kwargs
+    ) -> "Role":
+        return cls(
+            priority=priority, desc=_normalize_whitespace(desc), scopes=frozenset(scopes), **kwargs
+        )
 
     def __str__(self) -> str:
         return str(self.name)
@@ -43,7 +47,7 @@ class RoleManager:
     ) -> None:
         self._roles: Dict[str, Role] = OrderedDict()
         for idx, role_cfg in enumerate(config):
-            role = Role(idx, **role_cfg)
+            role = Role.from_config(idx, **role_cfg)
             self._roles[role.id] = role
 
         self._choices = tuple((r.id, r.name) for r in self._roles.values())
