@@ -29,7 +29,7 @@ const ThresholdTypeForm = ({
   dataset === Dataset.SESSIONS ? null : (
     <Feature features={['organizations:change-alerts']} organization={organization}>
       {!hasAlertWizardV3 && <StyledListItem>{t('Select threshold type')}</StyledListItem>}
-      <FormRow>
+      <FormRow hasAlertWizardV3={hasAlertWizardV3}>
         <RadioGroup
           style={{flex: 1}}
           disabled={disabled}
@@ -59,12 +59,12 @@ const StyledListItem = styled(ListItem)`
   line-height: 1.3;
 `;
 
-const FormRow = styled('div')`
+const FormRow = styled('div')<{hasAlertWizardV3: boolean}>`
   display: flex;
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => (p.hasAlertWizardV3 ? space(2) : space(4))};
 `;
 
 export default ThresholdTypeForm;

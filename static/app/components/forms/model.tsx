@@ -32,7 +32,7 @@ type ClientOptions = ConstructorParameters<typeof Client>[0];
 
 type OptionsWithInitial = FormOptions & {
   apiOptions?: ClientOptions;
-  initialData?: object;
+  initialData?: Record<string, FieldValue>;
 };
 
 class FormModel {
@@ -75,7 +75,7 @@ class FormModel {
    * POJO of field name -> value
    * It holds field values "since last save"
    */
-  initialData = {};
+  initialData: Record<string, FieldValue> = {};
 
   api: Client;
 
@@ -142,7 +142,7 @@ class FormModel {
    *
    * Also resets snapshots
    */
-  setInitialData(initialData?: object) {
+  setInitialData(initialData?: Record<string, FieldValue>) {
     this.fields.replace(initialData || {});
     this.initialData = Object.fromEntries(this.fields.toJSON()) || {};
 
@@ -704,7 +704,7 @@ class FormModel {
   }
 
   @action
-  submitSuccess(data: object) {
+  submitSuccess(data: Record<string, FieldValue>) {
     // update initial data
     this.formState = FormState.READY;
     this.initialData = data;
@@ -732,7 +732,7 @@ export class MockModel {
   // TODO(TS)
   props: any;
 
-  initialData: object;
+  initialData: Record<string, FieldValue>;
 
   constructor(props) {
     this.props = props;

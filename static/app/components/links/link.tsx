@@ -1,30 +1,36 @@
-import {useEffect} from 'react';
+import React, {useEffect} from 'react';
 import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
-type AnchorProps = React.HTMLProps<HTMLAnchorElement>;
-
-type ToLocationFunction = (location: Location) => LocationDescriptor;
-
-type Props = WithRouterProps & {
+export interface LinkProps
+  extends Omit<
+    React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
+    'href' | 'target' | 'as' | 'css'
+  > {
   /**
    * The string path or LocationDescriptor object
    */
-  to: ToLocationFunction | LocationDescriptor;
+  to: ((location: Location) => LocationDescriptor) | LocationDescriptor;
   /**
    * Style applied to the component's root
    */
   className?: string;
-} & Omit<AnchorProps, 'href' | 'target' | 'as' | 'css'>;
+  /**
+   * Indicator if the link should be disabled
+   */
+  disabled?: boolean;
+}
 
 /**
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-const BaseLink: React.FC<Props> = ({
+
+interface WithRouterBaseLinkProps extends WithRouterProps, LinkProps {}
+function BaseLink({
   location,
   disabled,
   to,
@@ -33,7 +39,7 @@ const BaseLink: React.FC<Props> = ({
   params: _params,
   routes: _routes,
   ...props
-}) => {
+}: WithRouterBaseLinkProps): React.ReactElement {
   useEffect(() => {
     // check if the router is present
     if (!location) {
@@ -52,7 +58,7 @@ const BaseLink: React.FC<Props> = ({
   }
 
   return <Anchor href="" ref={ref} {...props} disabled />;
-};
+}
 
 // Set the displayName for testing convenience
 BaseLink.displayName = 'Link';
