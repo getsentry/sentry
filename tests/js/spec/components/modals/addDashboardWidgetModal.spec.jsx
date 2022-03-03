@@ -642,7 +642,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['sdk.name', 'count()'],
-          orderby: '',
+          orderby: 'count',
         },
       ],
     };
@@ -670,6 +670,12 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('WidgetQueriesForm SelectControl[name="orderby"]')).toHaveLength(
       1
     );
+
+    expect(
+      wrapper
+        .find('WidgetQueriesForm SelectControl[name="orderby"] SingleValue div')
+        .text()
+    ).toEqual('count() asc');
 
     // Add a column, and choose a value,
     wrapper.find('button[aria-label="Add a Column"]').simulate('click');

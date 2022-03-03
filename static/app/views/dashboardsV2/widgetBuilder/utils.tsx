@@ -92,8 +92,7 @@ export function normalizeQueries(
   }
 
   if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    // Reset orderby
-    return queries.map(query => ({...query, orderby: ''}));
+    return queries;
   }
 
   // Filter out non-aggregate fields
