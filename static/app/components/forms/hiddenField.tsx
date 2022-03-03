@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import InputField from './inputField';
+import InputField, {InputFieldProps} from './inputField';
 
-type Props = Omit<InputField['props'], 'type'>;
+export interface HiddenFieldProps extends Omit<InputFieldProps, 'type'> {}
 
-export default function HiddenField(props: Props) {
+export default function HiddenField(props: HiddenFieldProps) {
   return <HiddenInputField {...props} type="hidden" />;
 }
 
