@@ -10,7 +10,7 @@ class RuleFireHistory(Model):  # type: ignore
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     rule = FlexibleForeignKey("sentry.Rule")
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
-    date_added = DateTimeField(default=timezone.now)
+    date_added = DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         db_table = "sentry_rulefirehistory"
