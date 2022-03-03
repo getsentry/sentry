@@ -5,16 +5,14 @@ import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
-import InputField from 'sentry/components/forms/inputField';
+import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
-type InputFieldProps = React.ComponentProps<typeof InputField>;
-
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Text used for the 'add row' button.
    */
@@ -28,7 +26,7 @@ type DefaultProps = {
    * per item specify this as true.
    */
   perItemMapping: boolean;
-};
+}
 
 const defaultProps: DefaultProps = {
   addButtonText: t('Add Item'),
@@ -38,7 +36,7 @@ const defaultProps: DefaultProps = {
 
 type MappedSelectors = Record<string, Partial<ControlProps>>;
 
-export type ChoiceMapperProps = {
+export interface ChoiceMapperProps extends DefaultProps {
   /**
    * Props forwarded to the add mapping dropdown.
    */
@@ -93,16 +91,21 @@ export type ChoiceMapperProps = {
 
   // TODO(ts) This isn't aligned with InputField but that's what the runtime code had.
   onBlur?: () => void;
-} & DefaultProps;
+}
 
-type FieldProps = ChoiceMapperProps & InputFieldProps;
+export interface ChoiceMapperFieldProps
+  extends ChoiceMapperProps,
+    Omit<
+      InputFieldProps,
+      'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'
+    > {}
 
-export default class ChoiceMapper extends React.Component<FieldProps> {
+export default class ChoiceMapper extends React.Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
-  hasValue = (value: FieldProps['value']) => defined(value) && !objectIsEmpty(value);
+  hasValue = (value: InputFieldProps['value']) => defined(value) && !objectIsEmpty(value);
 
-  renderField = (props: ChoiceMapperProps) => {
+  renderField = (props: ChoiceMapperFieldProps) => {
     const {
       onChange,
       onBlur,
@@ -122,7 +125,7 @@ export default class ChoiceMapper extends React.Component<FieldProps> {
     const valueIsEmpty = this.hasValue(props.value);
     const value = valueIsEmpty ? props.value : {};
 
-    const saveChanges = (nextValue: ChoiceMapperProps['value']) => {
+    const saveChanges = (nextValue: ChoiceMapperFieldProps['value']) => {
       onChange?.(nextValue, {});
 
       const validValues = !Object.values(nextValue)

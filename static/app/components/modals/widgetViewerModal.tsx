@@ -3,6 +3,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import moment from 'moment';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -12,6 +13,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -48,8 +50,20 @@ const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 
 function WidgetViewerModal(props: Props) {
-  const {organization, widget, selection, location, Footer, Body, Header, onEdit} = props;
+  const {
+    organization,
+    widget,
+    selection,
+    location,
+    Footer,
+    Body,
+    Header,
+    closeModal,
+    onEdit,
+  } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
+  const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
+
   const renderWidgetViewer = () => {
     const api = useApi();
 
@@ -76,7 +90,7 @@ function WidgetViewerModal(props: Props) {
     const eventView = eventViewFromWidget(
       tableWidget.title,
       tableWidget.queries[0],
-      selection,
+      modalSelection,
       tableWidget.displayType
     );
     const columnOrder = eventView.getColumns();
@@ -88,8 +102,19 @@ function WidgetViewerModal(props: Props) {
             <WidgetCardChartContainer
               api={api}
               organization={organization}
-              selection={selection}
+              selection={modalSelection}
               widget={widget}
+              onZoom={(_evt, chart) => {
+                // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
+                const model = chart.getModel();
+                const {startValue, endValue} = model._payload.batch[0];
+                const start = getUtcDateString(moment.utc(startValue));
+                const end = getUtcDateString(moment.utc(endValue));
+                setModalSelection({
+                  ...modalSelection,
+                  datetime: {...modalSelection.datetime, start, end, period: null},
+                });
+              }}
             />
           </Container>
         )}
@@ -99,7 +124,7 @@ function WidgetViewerModal(props: Props) {
               api={api}
               organization={organization}
               widget={tableWidget}
-              selection={selection}
+              selection={modalSelection}
               limit={
                 widget.displayType === DisplayType.TABLE
                   ? FULL_TABLE_ITEM_LIMIT
@@ -134,7 +159,7 @@ function WidgetViewerModal(props: Props) {
               api={api}
               organization={organization}
               widget={tableWidget}
-              selection={selection}
+              selection={modalSelection}
               limit={
                 widget.displayType === DisplayType.TABLE
                   ? FULL_TABLE_ITEM_LIMIT
@@ -184,12 +209,12 @@ function WidgetViewerModal(props: Props) {
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
-      path = getWidgetIssueUrl(widget, selection, organization);
+      path = getWidgetIssueUrl(widget, modalSelection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
-      path = getWidgetDiscoverUrl(widget, selection, organization);
+      path = getWidgetDiscoverUrl(widget, modalSelection, organization);
       break;
   }
   return (
@@ -202,9 +227,17 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={onEdit}>
-            {t('Edit Widget')}
-          </Button>
+          {onEdit && (
+            <Button
+              type="button"
+              onClick={() => {
+                closeModal();
+                onEdit();
+              }}
+            >
+              {t('Edit Widget')}
+            </Button>
+          )}
           <Button to={path} priority="primary" type="button">
             {openLabel}
           </Button>
