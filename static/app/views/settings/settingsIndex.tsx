@@ -331,7 +331,8 @@ interface ExternalHomeLinkProps extends ExternalLinkProps {
 }
 
 const ExternalHomeLink = styled((props: ExternalHomeLinkProps) => {
-  return <ExternalLink {...props} />;
+  const {isCentered: _isCentered, ...rest} = props;
+  return <ExternalLink {...rest} />;
 })<ExternalHomeLinkProps>`
   color: ${p => p.theme.purple300};
 
@@ -356,7 +357,8 @@ function SupportLinkComponent(
   props: SupportLinkExternalProps | SupportLinkInternalProps
 ) {
   if (props.isSelfHosted) {
-    return <ExternalHomeLink {...props} />;
+    const {isSelfHosted: _isSelfHosted, ...rest} = props;
+    return <ExternalHomeLink {...rest} />;
   }
 
   return <HomeLink {...props} />;
