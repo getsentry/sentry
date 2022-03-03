@@ -343,6 +343,7 @@ const ButtonLabel = styled('span', {
   align-items: center;
   justify-content: ${p => p.align};
   white-space: nowrap;
+  width: max-content;
 `;
 
 type IconProps = {
