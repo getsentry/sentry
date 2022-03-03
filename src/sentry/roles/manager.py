@@ -2,7 +2,7 @@ import abc
 import re
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Dict, FrozenSet, Iterable, Mapping, Optional, Tuple
+from typing import Dict, FrozenSet, Iterable, Mapping, Optional, Sequence, Tuple
 
 
 def _normalize_whitespace(text: str) -> str:
@@ -68,10 +68,10 @@ class RoleManager:
     def get(self, id: str) -> Role:
         return self._roles[id]
 
-    def get_all(self) -> Iterable[Role]:
+    def get_all(self) -> Sequence[Role]:
         return list(self._roles.values())
 
-    def get_choices(self) -> Iterable[Tuple[str, str]]:
+    def get_choices(self) -> Sequence[Tuple[str, str]]:
         return self._choices
 
     def get_default(self) -> Role:
