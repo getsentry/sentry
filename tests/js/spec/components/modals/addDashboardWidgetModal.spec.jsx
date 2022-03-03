@@ -138,12 +138,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       operations: ['count_unique'],
       unit: null,
     },
-    {
-      name: 'not.on.allow.list',
-      type: 'set',
-      operations: ['count_unique'],
-      unit: null,
-    },
   ];
   const dashboard = TestStubs.Dashboard([], {
     id: '1',
@@ -1388,10 +1382,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
-
-      userEvent.click(screen.getByText('sentry.sessions.user'));
-      // Ensure METRICS_FIELDS_ALLOW_LIST is honoured
-      expect(screen.queryByText('not.on.allow.list')).not.toBeInTheDocument();
 
       wrapper.unmount();
     });
