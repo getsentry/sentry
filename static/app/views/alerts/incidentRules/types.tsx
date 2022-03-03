@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 export enum AlertRuleThresholdType {
   ABOVE,
