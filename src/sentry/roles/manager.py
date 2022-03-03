@@ -44,9 +44,6 @@ class Role(abc.ABC):
 class OrganizationRole(Role):
     is_global: bool = False
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
-
 
 @dataclass(frozen=True, eq=True)
 class TeamRole(Role):
