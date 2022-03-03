@@ -1095,13 +1095,11 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(await screen.findByText('Select a dashboard'));
       userEvent.hover(screen.getByText('Test Dashboard'));
-      await waitFor(() => {
-        expect(
-          screen.getByText(
-            textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
-          )
-        ).toBeInTheDocument();
-      });
+      expect(
+        await screen.findByText(
+          textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
+        )
+      ).toBeInTheDocument();
     });
   });
 
