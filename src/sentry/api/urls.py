@@ -62,13 +62,11 @@ from sentry.incidents.endpoints.project_alert_rule_task_details import (
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
+from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 
-# issues endpoints are available both top level (by numerical ID) as well as coupled
-# to the organization (and queryable via short ID)
-from ..rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
@@ -465,6 +463,8 @@ from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.userroles_details import UserRoleDetailsEndpoint
 from .endpoints.userroles_index import UserRolesEndpoint
 
+# issues endpoints are available both top level (by numerical ID) as well as coupled
+# to the organization (and queryable via short ID)
 GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/$", GroupDetailsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/activities/$", GroupActivitiesEndpoint.as_view()),
