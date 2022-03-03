@@ -5,7 +5,6 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -41,6 +40,7 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
+  index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
   noLazyLoad?: boolean;
@@ -145,8 +145,9 @@ class WidgetCard extends React.Component<Props> {
       showWidgetViewerButton,
       router,
       isEditing,
-      onEdit,
+      index,
     } = this.props;
+    const id = widget.id ?? index;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -156,22 +157,16 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
-            {showWidgetViewerButton && !isEditing && (
+            {showWidgetViewerButton && !isEditing && id && (
               <OpenWidgetViewerButton
                 aria-label={t('Open Widget Viewer')}
                 onClick={() => {
-                  if (widget.id) {
-                    router.push({
-                      pathname: `${location.pathname}widget/${widget.id}/`,
-                      query: location.query,
-                    });
-                  } else {
-                    openWidgetViewerModal({
-                      organization,
-                      widget,
-                      onEdit,
-                    });
-                  }
+                  router.push({
+                    pathname: `${location.pathname}${
+                      location.pathname.endsWith('/') ? '' : '/'
+                    }widget/${id}/`,
+                    query: location.query,
+                  });
                 }}
               />
             )}
@@ -283,6 +278,7 @@ const WidgetHeader = styled('div')`
   width: 100%;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 `;
 
 const OpenWidgetViewerButton = styled(IconExpand)`
@@ -293,4 +289,5 @@ const OpenWidgetViewerButton = styled(IconExpand)`
   margin-left: ${space(0.5)};
   height: ${p => p.theme.fontSizeMedium};
   min-width: ${p => p.theme.fontSizeMedium};
+  align-items: center;
 `;

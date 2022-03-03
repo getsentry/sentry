@@ -116,14 +116,16 @@ class DashboardDetail extends Component<Props, State> {
     } = this.props;
     if (location.pathname.match(/\/widget\/[0-9]+\/$/)) {
       const widget =
-        defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
+        defined(widgetId) &&
+        (dashboard.widgets.find(({id}) => id === String(widgetId)) ??
+          dashboard.widgets[widgetId]);
       if (widget) {
         openWidgetViewerModal({
           organization,
           widget,
           onClose: () => {
             router.push({
-              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+              pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
               query: location.query,
             });
           },
