@@ -1,6 +1,6 @@
-# HACK(jferge): this below is a temporary solution to not having to add the is_private attribute
+# HACK(jferge): this below is a temporary solution to not having to add the private attribute
 # to all endpoints at once. if you are trying to exclude your endpoint from the OpenAPI JSON
-# please set is_private = True on your endpoint, and don't modify this file
+# please set private = True on your endpoint, and don't modify this file
 
 # TODO: add the attributes to endpoints in matches, eventually delete this file.
 
