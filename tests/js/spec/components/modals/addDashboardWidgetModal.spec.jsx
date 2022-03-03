@@ -374,7 +374,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   it('metrics do not have equation', async function () {
-    mountModalWithRtl({
+    const wrapper = mountModalWithRtl({
       initialData,
       widget: {
         displayType: 'table',
@@ -396,6 +396,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     userEvent.click(screen.getByText('Line Chart'));
 
     expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
+    wrapper.unmount();
   });
 
   it('additional fields get added to new seach filters', async function () {
