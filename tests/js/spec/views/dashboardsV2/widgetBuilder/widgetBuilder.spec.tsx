@@ -807,37 +807,6 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
-  it('should filter non-legal y-axis choices for timeseries widget charts', async function () {
-    renderTestComponent();
-
-    expect(await screen.findByText('Table')).toBeInTheDocument();
-
-    // Select Line chart display
-    userEvent.click(screen.getByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
-
-    // No delete button as there is only one field.
-    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
-
-    userEvent.click(screen.getByText('count()'));
-    userEvent.type(screen.getAllByText('count()')[0], 'any{enter}');
-
-    // Expect user.display to not be an available parameter option for any()
-    // for line (timeseries) widget charts
-    userEvent.click(screen.getByText('transaction.duration'));
-    userEvent.type(screen.getAllByText('transaction.duration')[0], 'user.display');
-    expect(screen.getByText('No options')).toBeInTheDocument();
-
-    // Be able to choose a numeric-like option for any()
-    userEvent.keyboard('{escape}');
-    userEvent.click(screen.getByText('transaction.duration'));
-    userEvent.type(
-      screen.getAllByText('transaction.duration')[0],
-      'measurements.lcp{enter}'
-    );
-    expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
-  });
-
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
