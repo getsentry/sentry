@@ -50,7 +50,8 @@ const ThresholdTypeForm = ({
                 comparisonType === AlertRuleComparisonType.COUNT ? (
                   'Percent Change: {x%} higher or lower compared to previous period'
                 ) : (
-                  <ComparisonContainer>
+                  // Prevent default to avoid dropdown menu closing on click
+                  <ComparisonContainer onClick={e => e.preventDefault()}>
                     {t('Percent Change: {x%} higher or lower compared to')}
                     <SelectControl
                       name="comparisonDelta"
@@ -82,7 +83,6 @@ const ThresholdTypeForm = ({
                         }),
                       }}
                       value={comparisonDelta}
-                      onClick={e => e.stopPropagation()}
                       onChange={({value}) => onComparisonDeltaChange(value)}
                       options={COMPARISON_DELTA_OPTIONS}
                       required={comparisonType === AlertRuleComparisonType.CHANGE}
