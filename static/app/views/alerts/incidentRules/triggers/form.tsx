@@ -190,7 +190,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     return '300';
   }
 
-  getIndicator(type?: AlertRuleTriggerType) {
+  getIndicator(type: AlertRuleTriggerType) {
     const {hasAlertWizardV3} = this.props;
 
     if (type === AlertRuleTriggerType.CRITICAL) {
@@ -236,7 +236,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     } = this.props;
 
     const resolveTrigger: UnsavedTrigger = {
-      label: 'resolve',
+      label: AlertRuleTriggerType.RESOLVE,
       alertThreshold: resolveThreshold,
       actions: [],
     };
@@ -329,7 +329,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           }
           triggerLabel={
             <TriggerLabel>
-              {this.getIndicator()}
+              {this.getIndicator(AlertRuleTriggerType.RESOLVE)}
               {t('Resolved')}
             </TriggerLabel>
           }

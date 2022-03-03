@@ -9,6 +9,7 @@ export enum AlertRuleThresholdType {
 export enum AlertRuleTriggerType {
   CRITICAL = 'critical',
   WARNING = 'warning',
+  RESOLVE = 'resolve',
 }
 
 export enum AlertRuleComparisonType {
