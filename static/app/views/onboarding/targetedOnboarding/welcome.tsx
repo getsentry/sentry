@@ -81,24 +81,27 @@ function TargetedOnboardingWelcome({organization}: Props) {
               )}
               src={OnboardingInstall}
               cta={
-                <ButtonWithFill
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'growth.onboarding_clicked_instrument_app',
-                      {
-                        organization,
-                        source,
-                      }
-                    );
+                <React.Fragment>
+                  <ButtonWithFill
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'growth.onboarding_clicked_instrument_app',
+                        {
+                          organization,
+                          source,
+                        }
+                      );
 
-                    browserHistory.push(
-                      `/onboarding/${organization.slug}/select-platform/`
-                    );
-                  }}
-                  priority="primary"
-                >
-                  {t('Start')}
-                </ButtonWithFill>
+                      browserHistory.push(
+                        `/onboarding/${organization.slug}/select-platform/`
+                      );
+                    }}
+                    priority="primary"
+                  >
+                    {t('Start')}
+                  </ButtonWithFill>
+                  <PositionedFallingError>{fallingError}</PositionedFallingError>
+                </React.Fragment>
               }
             />
           </ActionItem>
@@ -131,17 +134,14 @@ function TargetedOnboardingWelcome({organization}: Props) {
                 )}
                 src={OnboardingPreview}
                 cta={
-                  <React.Fragment>
-                    <SandboxWithFill scenario="oneIssue" priority="primary" {...{source}}>
-                      {t('Explore')}
-                    </SandboxWithFill>
-                    <PositionedFallingError>{fallingError}</PositionedFallingError>
-                  </React.Fragment>
+                  <SandboxWithFill scenario="oneIssue" priority="primary" {...{source}}>
+                    {t('Explore')}
+                  </SandboxWithFill>
                 }
               />
             </ActionItem>
           )}
-          <motion.p>
+          <motion.p style={{margin: 0}}>
             {t("Gee, I've used Sentry before.")}
             <br />
             <Link
@@ -167,6 +167,9 @@ export default withOrganization(TargetedOnboardingWelcome);
 const PositionedFallingError = styled('span')`
   display: block;
   z-index: 0;
+  position: absolute;
+  right: 30px;
+  top: 30px;
 `;
 
 const Wrapper = styled(motion.div)`
@@ -175,7 +178,6 @@ const Wrapper = styled(motion.div)`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-top: 100px;
 
   h1 {
     font-size: 42px;
@@ -193,6 +195,7 @@ const ActionItem = styled('div')`
     display: grid;
     grid-template-columns: 125px auto 125px;
     width: 680px;
+    align-items: center;
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
@@ -227,6 +230,7 @@ const SubHeaderText = styled(motion.h6)`
 
 const ButtonWrapper = styled('div')`
   margin: ${space(1)};
+  position: relative;
   display: flex;
   flex-diretion: @media (min-width: ${p => p.theme.breakpoints[0]}) {
     justify-content: center;
@@ -243,6 +247,7 @@ const ActionImage = styled('img')`
 
 const ButtonWithFill = styled(Button)`
   min-width: -webkit-fill-available;
+  z-index: 1;
 `;
 
 const SandboxWithFill = styled(DemoSandboxButton)`
