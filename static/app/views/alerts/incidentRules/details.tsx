@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Organization, Project} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import RuleForm from 'sentry/views/alerts/incidentRules/ruleForm';
@@ -41,6 +42,13 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
   onRequestSuccess({stateKey, data}) {
     if (stateKey === 'rule' && data.name) {
       this.props.onChangeTitle(data.name);
+    }
+  }
+
+  onLoadAllEndpointsSuccess() {
+    const {rule} = this.state;
+    if (rule?.errors) {
+      (rule?.errors || []).map(({detail}) => addErrorMessage(detail, {append: true}));
     }
   }
 

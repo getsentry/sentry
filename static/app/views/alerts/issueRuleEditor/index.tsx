@@ -176,6 +176,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
   }
 
+  onLoadAllEndpointsSuccess() {
+    const {rule} = this.state;
+    if (rule) {
+      ((rule as IssueAlertRule)?.errors || []).map(({detail}) =>
+        addErrorMessage(detail, {append: true})
+      );
+    }
+  }
   pollHandler = async (quitTime: number) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));

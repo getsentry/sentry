@@ -50,7 +50,7 @@ export type IssueAlertRuleAction = Omit<
   dynamic_form_fields?: IssueConfigField[];
 } & {
   // These are the same values as the keys in `formFields` for a template
-  [key: string]: number | string;
+  [key: string]: any;
 };
 
 export type IssueAlertRuleCondition = Omit<
@@ -83,6 +83,7 @@ export type IssueAlertRule = UnsavedIssueAlertRule & {
   dateCreated: string;
   id: string;
   projects: string[];
+  errors?: {detail: string}[];
 };
 
 export enum MailActionTargetType {
