@@ -87,13 +87,13 @@ type Props = {
 };
 
 type State = {
-  errorMessage: undefined | string;
   loading: boolean;
-  pageLinks: undefined | null | string;
-  queryFetchID: symbol | undefined;
-  rawResults: undefined | RawResult[];
-  tableResults: undefined | TableDataWithTitle[];
-  timeseriesResults: undefined | Series[];
+  errorMessage?: string;
+  pageLinks?: null | string;
+  queryFetchID?: symbol;
+  rawResults?: RawResult[];
+  tableResults?: TableDataWithTitle[];
+  timeseriesResults?: Series[];
 };
 
 class WidgetQueries extends React.Component<Props, State> {
@@ -150,7 +150,7 @@ class WidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widgetQueries, prevWidgetQueries) ||
       !isSelectionEqual(selection, prevProps.selection) ||
-      !isEqual(cursor, prevProps.cursor)
+      cursor !== prevProps.cursor
     ) {
       this.fetchData();
       return;
