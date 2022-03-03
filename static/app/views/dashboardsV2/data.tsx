@@ -31,6 +31,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             conditions: '!event.type:transaction',
             orderby: 'count()',
           },
@@ -46,6 +48,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['count_unique(issue)'],
+            aggregates: ['count_unique(issue)'],
+            columns: [],
             conditions: '!event.type:transaction',
             orderby: 'count_unique(issue)',
           },
@@ -61,6 +65,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: t('Events'),
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             conditions: '!event.type:transaction',
             orderby: 'count()',
           },
@@ -76,12 +82,16 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: t('Known Users'),
             fields: ['count_unique(user)'],
+            aggregates: ['count_unique(user)'],
+            columns: [],
             conditions: 'has:user.email !event.type:transaction',
             orderby: 'count_unique(user)',
           },
           {
             name: t('Anonymous Users'),
             fields: ['count_unique(user)'],
+            aggregates: ['count_unique(user)'],
+            columns: [],
             conditions: '!has:user.email !event.type:transaction',
             orderby: 'count_unique(user)',
           },
@@ -97,12 +107,16 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: t('Handled'),
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             conditions: 'error.handled:true',
             orderby: 'count()',
           },
           {
             name: t('Unhandled'),
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             conditions: 'error.handled:false',
             orderby: 'count()',
           },
@@ -118,6 +132,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: t('Error counts'),
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             conditions: '!event.type:transaction has:geo.country_code',
             orderby: 'count()',
           },
@@ -133,6 +149,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['count()', 'transaction'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             conditions: '!event.type:error',
             orderby: '-count',
           },
@@ -148,6 +166,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['browser.name', 'count()'],
+            aggregates: ['count()'],
+            columns: ['browser.name'],
             conditions: '!event.type:transaction has:browser.name',
             orderby: '-count',
           },
@@ -163,6 +183,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['user_misery(300)'],
+            aggregates: ['user_misery(300)'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -178,6 +200,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             conditions: '!event.type:error',
             orderby: '-count',
           },
@@ -193,6 +217,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['assignee', 'issue', 'title'],
+            aggregates: [],
+            columns: ['assignee', 'issue', 'title'],
             conditions: 'assigned_or_suggested:me is:unresolved',
             orderby: 'priority',
           },
@@ -208,6 +234,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['transaction', 'user_misery(300)'],
+            aggregates: ['user_misery(300)'],
+            columns: ['transaction'],
             conditions: '',
             orderby: '-user_misery_300',
           },
@@ -232,6 +260,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['issue', 'count_unique(user)'],
+            aggregates: ['issue'],
+            columns: ['count_unique(user)'],
             conditions: '',
             orderby: '-count_unique_user',
           },
@@ -251,6 +281,12 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
               'equation|count_if(browser.name,equals,Firefox)/count() * 100',
               'equation|count_if(browser.name,equals,Safari)/count() * 100',
             ],
+            aggregates: [
+              'equation|count_if(browser.name,equals,Chrome)/count() * 100',
+              'equation|count_if(browser.name,equals,Firefox)/count() * 100',
+              'equation|count_if(browser.name,equals,Safari)/count() * 100',
+            ],
+            columns: [],
             conditions: 'has:browser.name',
             orderby: '',
           },
@@ -266,6 +302,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['assignee', 'issue', 'title'],
+            aggregates: [],
+            columns: ['assignee', 'issue', 'title'],
             conditions: 'assigned_or_suggested:me is:unresolved',
             orderby: 'priority',
           },
@@ -281,6 +319,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['issue', 'count_unique(user)', 'title'],
+            aggregates: ['count_unique(user)'],
+            columns: ['issue', 'title'],
             conditions: '',
             orderby: '-count_unique_user',
           },
@@ -296,6 +336,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['http.url', 'issue', 'count_unique(user)'],
+            aggregates: ['count_unique(user)'],
+            columns: ['http.url', 'issue'],
             conditions: 'event.type:error',
             orderby: '-count_unique_user',
           },
@@ -311,6 +353,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             conditions: 'transaction.status:not_found',
             orderby: '-count',
           },
@@ -326,6 +370,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(measurements.cls)'],
+            aggregates: ['p75(measurements.cls)'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -341,6 +387,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(measurements.lcp)'],
+            aggregates: ['p75(measurements.lcp)'],
+            columns: [],
             conditions: 'has:geo.country_code',
             orderby: '',
           },
@@ -356,6 +404,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(measurements.lcp)', 'p75(measurements.fcp)'],
+            aggregates: ['p75(measurements.lcp)', 'p75(measurements.fcp)'],
+            columns: [],
             conditions: 'transaction.op:pageload',
             orderby: '',
           },
@@ -371,6 +421,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             conditions: 'transaction.op:pageload p75(measurements.lcp):>4s',
             orderby: '-count',
           },
@@ -386,6 +438,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(measurements.lcp)'],
+            aggregates: ['p75(measurements.lcp)'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -401,6 +455,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             conditions: 'transaction.duration:>2s',
             orderby: '-count',
           },
@@ -416,6 +472,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(measurements.fcp)'],
+            aggregates: ['p75(measurements.fcp)'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -440,6 +498,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['issue', 'count_unique(user)'],
+            aggregates: ['count_unique(user)'],
+            columns: ['issue'],
             conditions: '',
             orderby: '-count_unique_user',
           },
@@ -455,6 +515,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             conditions: 'transaction.status:internal_error',
             orderby: '-count',
           },
@@ -475,6 +537,12 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
               'count_if(transaction.status,equals,internal_error)',
               'count()',
             ],
+            aggregates: [
+              'equation|count_if(transaction.status,equals,internal_error) / count() * 100',
+              'count_if(transaction.status,equals,internal_error)',
+              'count()',
+            ],
+            columns: ['transaction'],
             conditions: 'count():>100',
             orderby: '-equation[0]',
           },
@@ -490,6 +558,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['issue', 'count_unique(user)', 'title'],
+            aggregates: ['count_unique(user)'],
+            columns: ['issue', 'title'],
             conditions: '',
             orderby: '-count_unique_user',
           },
@@ -505,6 +575,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['count()', 'transaction'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             conditions: 'transaction.status:internal_error',
             orderby: '-count',
           },
@@ -520,6 +592,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['assignee', 'issue', 'title'],
+            aggregates: [],
+            columns: ['assignee', 'issue', 'title'],
             conditions: 'assigned_or_suggested:me is:unresolved',
             orderby: 'priority',
           },
@@ -535,6 +609,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(transaction.duration)'],
+            aggregates: ['p75(transaction.duration)'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -550,6 +626,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(transaction.duration)'],
+            aggregates: ['p75(transaction.duration)'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -565,12 +643,16 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: 'Transactions',
             fields: ['epm()'],
+            aggregates: ['epm()'],
+            columns: [],
             conditions: 'event.type:transaction',
             orderby: '',
           },
           {
             name: 'Errors',
             fields: ['epm()'],
+            aggregates: ['epm()'],
+            columns: [],
             conditions: 'event.type:error',
             orderby: '',
           },
@@ -586,6 +668,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['count()', 'transaction'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             conditions: 'apdex():<0.5 transaction.op:*task*',
             orderby: '-count',
           },
@@ -601,6 +685,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['epm()', 'http.method', 'http.status_code', 'transaction'],
+            aggregates: ['epm()'],
+            columns: ['http.method', 'http.status_code', 'transaction'],
             conditions:
               'apdex():<0.5 transaction.op:*http* has:http.method has:http.status_code',
             orderby: '-epm',
@@ -617,6 +703,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['apdex(300)'],
+            aggregates: ['apdex(300)'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -632,6 +720,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(transaction.duration)'],
+            aggregates: ['p75(transaction.duration)'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -656,6 +746,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             conditions: 'error.handled:false event.type:error',
             orderby: '',
           },
@@ -671,6 +763,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['count_unique(user)'],
+            aggregates: ['count_unique(user)'],
+            columns: [],
             conditions: 'error.handled:false event.type:error',
             orderby: '',
           },
@@ -686,6 +780,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             conditions: 'event.type:error',
             orderby: '',
           },
@@ -701,6 +797,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['issue', 'count()', 'count_unique(user)'],
+            aggregates: ['count()', 'count_unique(user)'],
+            columns: ['issue'],
             conditions: 'error.handled:false',
             orderby: '-count_unique_user',
           },
@@ -716,6 +814,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: t('Crashes'),
             fields: ['count()', 'count_unique(user)'],
+            aggregates: ['count()', 'count_unique(user)'],
+            columns: [],
             conditions: 'error.handled:false',
             orderby: '',
           },
@@ -731,6 +831,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['os', 'count()'],
+            aggregates: ['count()'],
+            columns: ['os'],
             conditions: 'has:os error.handled:false',
             orderby: '-count',
           },
@@ -746,6 +848,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(measurements.app_start_warm)'],
+            aggregates: ['p75(measurements.app_start_warm)'],
+            columns: [],
             conditions: 'has:measurements.app_start_warm',
             orderby: '',
           },
@@ -761,6 +865,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(measurements.app_start_cold)'],
+            aggregates: ['p75(measurements.app_start_cold)'],
+            columns: [],
             conditions: 'has:measurements.app_start_cold',
             orderby: '',
           },
@@ -776,6 +882,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['epm()'],
+            aggregates: ['epm()'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -791,6 +899,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['transaction', 'p75(measurements.app_start_warm)'],
+            aggregates: ['p75(measurements.app_start_warm)'],
+            columns: ['transaction'],
             conditions: 'has:measurements.app_start_warm',
             orderby: '',
           },
@@ -806,6 +916,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['transaction', 'p75(measurements.app_start_cold)'],
+            aggregates: ['p75(measurements.app_start_cold)'],
+            columns: ['transaction'],
             conditions: 'has:measurements.app_start_cold',
             orderby: '',
           },
@@ -821,6 +933,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['epm()'],
+            aggregates: ['epm()'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -836,6 +950,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['p75(measurements.frames_frozen_rate)'],
+            aggregates: ['p75(measurements.frames_frozen_rate)'],
+            columns: [],
             conditions: '',
             orderby: '',
           },
@@ -851,6 +967,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
           {
             name: '',
             fields: ['transaction', 'p75(measurements.frames_frozen_rate)'],
+            aggregates: ['p75(measurements.frames_frozen_rate)'],
+            columns: ['transaction'],
             conditions: 'has:measurements.frames_frozen_rate',
             orderby: '-p75_measurements_frames_frozen_rate',
           },
