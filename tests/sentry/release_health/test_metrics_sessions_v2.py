@@ -1,69 +1,99 @@
-from datetime import datetime
-from typing import get_args
 from unittest.mock import patch
 
-from sentry.release_health.metrics_sessions_v2 import _SessionStatus, run_sessions_query
+from django.urls import reverse
+
+from sentry.release_health.duplex import compare_results
+from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.testutils.cases import APITestCase, SessionMetricsTestCase, SnubaTestCase
 
 
-class QueryDefinitionMock:
-    def __init__(self, query, start, end, raw_fields, fields, rollup) -> None:
-        self.query = query
-        self.start = start
-        self.end = end
-        self.raw_fields = raw_fields
-        self.fields = fields
-        self.rollup = rollup
+class MetricsSessionsV2SessionsTest(APITestCase, SnubaTestCase):
+    # Sessions cache. The sessions backend writes into it, and the metrics
+    # backend reads from it.
+    cache = {}
+
+    def setUp(self):
+        super().setUp()
+        self.setup_fixture()
+
+    def setup_fixture(self):
+        self.organization1 = self.organization
+        self.project1 = self.project
+        self.project2 = self.create_project(
+            name="teletubbies", slug="teletubbies", teams=[self.team], fire_project_created=True
+        )
+
+        self.release1 = self.create_release(project=self.project1, version="hello")
+        self.release2 = self.create_release(project=self.project1, version="hola")
+        self.release3 = self.create_release(project=self.project2, version="hallo")
+
+        self.environment1 = self.create_environment(self.project1, name="development")
+        self.environment2 = self.create_environment(self.project1, name="production")
+        self.environment3 = self.create_environment(self.project2, name="testing")
+
+    def do_request(self, query, user=None, org=None):
+        self.login_as(user=user or self.user)
+        url = reverse(
+            "sentry-api-0-organization-sessions",
+            kwargs={"organization_slug": (org or self.organization1).slug},
+        )
+        return self.client.get(url, query, format="json")
+
+    def get_sessions_data(self, groupby, interval):
+        response = self.do_request(
+            {
+                "organization_slug": [self.organization1],
+                "project": [self.project1.id],
+                "field": ["sum(session)"],
+                "groupBy": [groupby],
+                "interval": interval,
+            }
+        )
+        assert response.status_code == 200
+        return response.data
+
+    def test_sessions_metrics_equal_num_keys(self):
+        """
+        Tests whether the number of keys in the metrics implementation of
+        sessions data is the same as in the sessions implementation.
+
+        Runs twice. Firstly, against sessions implementation to populate the
+        cache. Then, against the metrics implementation, and compares with
+        cached results.
+
+        Note that this test only checks whether the number of keys in both
+        responses are equal, other errors (such as keys in different order)
+        may happen and we're fine with them.
+        """
+        empty_groupbyes = ["project", "release", "environment", "session.status"]
+        interval_days = "1d"
+
+        from sentry.api.endpoints.organization_sessions import release_health
+
+        if not release_health.is_metrics_based():
+            MetricsSessionsV2SessionsTest.cache["sessions"] = {}
+            for groupby in empty_groupbyes:
+                MetricsSessionsV2SessionsTest.cache["sessions"][groupby] = self.get_sessions_data(
+                    groupby, interval_days
+                )
+        else:
+            sessions_cache = MetricsSessionsV2SessionsTest.cache["sessions"]
+            assert len(sessions_cache) == len(empty_groupbyes)
+            for groupby in empty_groupbyes:
+                metrics_data = self.get_sessions_data(groupby, interval_days)
+                errors = compare_results(
+                    sessions=sessions_cache[groupby],
+                    metrics=metrics_data,
+                    rollup=interval_days * 24 * 60 * 60,  # days to seconds
+                )
+                if len(errors) > 0:
+                    diff_num_keys_msg = "different number of keys in dictionaries sessions"
+                    for e in errors:
+                        assert str(e) not in diff_num_keys_msg
 
 
-@patch(
-    "sentry.release_health.metrics_sessions_v2._fetch_data",
-    lambda *args: ({}, {}),
-)
-@patch(
-    "sentry.release_health.metrics_sessions_v2._flatten_data",
-    lambda *args: {},
-)
-def test_ensure_nonempty_groups_when_no_metrics_data():
-    """tests the groups, not the res"""
-
-    query_fields = ["count_unique(user)", "sum(session)", "p50(session.duration)"]
-    query = QueryDefinitionMock(
-        "",
-        start=datetime(2022, 1, 1, 0, 0),
-        end=datetime(2022, 1, 1, 1, 30),
-        raw_fields=query_fields,
-        fields=query_fields,
-        rollup=3600,
-    )
-    # with these start and end times and rollup value, there should
-    # be two intervals - 00:00, 01:00
-    num_intervals = 2
-
-    result = run_sessions_query("1", query, "pageload")
-
-    groups = result["groups"]
-    unseen_statuses = set(get_args(_SessionStatus))
-    assert len(groups) == len(unseen_statuses)
-
-    for group in groups:
-        by = group["by"]
-        assert len(by) == 1
-        assert by["session.status"] in unseen_statuses
-        unseen_statuses.remove(by["session.status"])
-
-        totals = group["totals"]
-        assert len(totals) == len(query_fields)
-        for field in query_fields:
-            assert totals[field] == status_default_value(field)
-
-        series = group["series"]
-        assert len(series) == len(query_fields)
-        for field in query_fields:
-            field_value = status_default_value(field)
-            assert series[field] == [field_value for _ in range(num_intervals)]
-
-    assert len(unseen_statuses) == 0
-
-
-def status_default_value(field: str):
-    return 0 if field in ("sum(session)", "count_unique(user)") else None
+@patch("sentry.release_health.metrics_sessions_v2.indexer.resolve", MockIndexer().resolve)
+@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+class MetricsSessionsV2MetricsTest(SessionMetricsTestCase, MetricsSessionsV2SessionsTest):
+    """Repeat with metrics backend"""
