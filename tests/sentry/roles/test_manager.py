@@ -14,6 +14,10 @@ class RoleManagerTest(TestCase):
         assert len(default_manager.get_choices()) == len(default_manager.get_all())
         assert default_manager.get_top_dog().id == "owner"
 
+        assert default_manager.can_manage("owner", "manager")
+        assert default_manager.can_manage("owner", "member")
+        assert default_manager.can_manage("manager", "member")
+
         self._assert_mapping(default_manager, "member", "contributor")
         self._assert_mapping(default_manager, "admin", "admin")
         self._assert_mapping(default_manager, "manager", "admin")
@@ -36,6 +40,12 @@ class RoleManagerTest(TestCase):
 
     def test_priority(self):
         manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
+
+        assert len(manager.get_all()) == len(self.TEST_ORG_ROLES)
+        assert manager.can_manage("duke", "baron")
+        assert manager.get_default().id == "peasant"
+        assert manager.get_top_dog().id == "monarch"
+
         assert len(manager.get_all()) == 5
         assert manager.can_manage("duke", "baron")
         assert manager.get_default().id == "peasant"

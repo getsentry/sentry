@@ -2,7 +2,7 @@ import abc
 import re
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Dict, Iterable, Mapping, Optional, Tuple
+from typing import Dict, FrozenSet, Iterable, Mapping, Optional, Sequence, Tuple
 
 from sentry.utils import warnings
 
@@ -11,19 +11,24 @@ def _normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip())
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class Role(abc.ABC):
     priority: int
     id: str
     name: str
-    desc: str = ""
-    scopes: Iterable[str] = ()
+    desc: str
+    scopes: FrozenSet[str]
 
     def __post_init__(self) -> None:
         assert len(self.id) <= 32, "Role id must be no more than 32 characters"
 
-        self.desc = _normalize_whitespace(self.desc)
-        self.scopes = frozenset(self.scopes)
+    @classmethod
+    def from_config(
+        cls, priority: int, desc: str = "", scopes: Iterable[str] = (), **kwargs
+    ) -> "Role":
+        return cls(
+            priority=priority, desc=_normalize_whitespace(desc), scopes=frozenset(scopes), **kwargs
+        )
 
     def __str__(self) -> str:
         return str(self.name)
@@ -35,16 +40,15 @@ class Role(abc.ABC):
         return scope in self.scopes
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class OrganizationRole(Role):
     is_global: bool = False
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        self.is_global = bool(self.is_global)
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class TeamRole(Role):
     mapped_to: Optional[str] = None
 
@@ -58,7 +62,7 @@ class RoleManager:
     ) -> None:
         self._org_roles: Dict[str, OrganizationRole] = OrderedDict()
         for idx, role_cfg in enumerate(org_config):
-            org_role = OrganizationRole(idx, **role_cfg)
+            org_role = OrganizationRole.from_config(idx, **role_cfg)
             self._org_roles[org_role.id] = org_role
 
         self._choices = tuple((r.id, r.name) for r in self._org_roles.values())
@@ -72,7 +76,7 @@ class RoleManager:
 
         self._team_roles: Dict[str, TeamRole] = OrderedDict()
         for idx, role_cfg in enumerate(team_config):
-            team_role = TeamRole(idx, **role_cfg)
+            team_role = TeamRole.from_config(idx, **role_cfg)
             self._team_roles[team_role.id] = team_role
 
         self._org_to_team_map = self._make_org_to_team_map()
@@ -114,10 +118,10 @@ class RoleManager:
     def get(self, id: str) -> OrganizationRole:
         return self._org_roles[id]
 
-    def get_all(self) -> Iterable[OrganizationRole]:
+    def get_all(self) -> Sequence[OrganizationRole]:
         return list(self._org_roles.values())
 
-    def get_choices(self) -> Iterable[Tuple[str, str]]:
+    def get_choices(self) -> Sequence[Tuple[str, str]]:
         return self._choices
 
     def get_default(self) -> OrganizationRole:
