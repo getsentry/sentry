@@ -49,7 +49,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   componentDidMount() {
     const {organization, params} = this.props;
-    trackAdvancedAnalyticsEvent('alert_stream.viewed', {
+    trackAdvancedAnalyticsEvent('issue_alert_rule_details.viewed', {
       organization,
       rule_id: parseInt(params.ruleId, 10),
     });
@@ -207,7 +207,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               icon={<IconEdit />}
               to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
               onClick={() =>
-                trackAdvancedAnalyticsEvent('alert_stream.edit_clicked', {
+                trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
                   organization,
                   rule_id: parseInt(ruleId, 10),
                 })

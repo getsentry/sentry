@@ -299,7 +299,7 @@ class IncidentsListContainer extends Component<Props> {
   trackView() {
     const {organization} = this.props;
 
-    trackAdvancedAnalyticsEvent('alert_stream.viewed', {
+    trackAdvancedAnalyticsEvent('issue_alert_rule_details.viewed', {
       organization,
     });
   }
