@@ -1,25 +1,29 @@
+import abc
+import re
 from collections import OrderedDict
+from dataclasses import dataclass
 from typing import Dict, Iterable, Mapping, Optional, Tuple
 
 
-class Role:
-    def __init__(
-        self,
-        priority: int,
-        id: str,
-        name: str,
-        desc: str = "",
-        scopes: Iterable[str] = (),
-        is_global: bool = False,
-    ) -> None:
-        assert len(id) <= 32, "Role id must be no more than 32 characters"
+def _normalize_whitespace(text: str) -> str:
+    return re.sub(r"\s+", " ", text.strip())
 
-        self.priority = priority
-        self.id = id
-        self.name = name
-        self.desc = desc
-        self.scopes = frozenset(scopes)
-        self.is_global = bool(is_global)
+
+@dataclass
+class Role(abc.ABC):
+    priority: int
+    id: str
+    name: str
+    desc: str = ""
+    scopes: Iterable[str] = ()
+    is_global: bool = False
+
+    def __post_init__(self) -> None:
+        assert len(self.id) <= 32, "Role id must be no more than 32 characters"
+
+        self.desc = _normalize_whitespace(self.desc)
+        self.scopes = frozenset(self.scopes)
+        self.is_global = bool(self.is_global)
 
     def __str__(self) -> str:
         return str(self.name)
@@ -37,21 +41,19 @@ class RoleManager:
         config: Iterable[Mapping[str, str]],
         default: Optional[str] = None,
     ) -> None:
-        role_list = []
         self._roles: Dict[str, Role] = OrderedDict()
         for idx, role_cfg in enumerate(config):
             role = Role(idx, **role_cfg)
-            role_list.append(role)
             self._roles[role.id] = role
 
-        self._choices = tuple((r.id, r.name) for r in role_list)
+        self._choices = tuple((r.id, r.name) for r in self._roles.values())
 
         if default:
             self._default = self._roles[default]
         else:
-            self._default = role_list[0]
+            self._default = next(iter(self._roles.values()))
 
-        self._top_dog = role_list[-1]
+        self._top_dog = next(iter(reversed(self._roles.values())))
 
     def __iter__(self) -> Iterable[Role]:
         yield from self._roles.values()
