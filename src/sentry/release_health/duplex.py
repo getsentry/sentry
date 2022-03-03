@@ -500,7 +500,10 @@ def compare_fixed_list(
     path: str,
     schema: FixedList,
 ) -> List[ComparisonError]:
-    errors = []
+    done, errors = _compare_basic_sequence(sessions, metrics, path)
+    if done:
+        return errors
+
     expected_length = len(schema.child_schemas)
     if len(sessions) != expected_length:
         errors.append(
