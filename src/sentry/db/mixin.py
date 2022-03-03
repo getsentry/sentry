@@ -48,10 +48,10 @@ class PendingDeletionMixin:
 
         with transaction.atomic():
             self.save(update_fields=fields)
-            OrganizationOption.objects.create(
+            OrganizationOption.objects.update_or_create(
                 organization_id=self.organization_id,
                 key=self.build_pending_deletion_key(),
-                value=original_data,
+                defaults=dict(value=original_data),
             )
 
         logger.info(
