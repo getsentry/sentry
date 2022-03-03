@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {Title} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -33,7 +34,6 @@ import {DashboardDetails, DashboardListItem} from '../types';
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';
 import {setShowTemplates, shouldShowTemplates} from './utils';
-import ButtonBar from 'sentry/components/buttonBar';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Dashboards'), value: 'mydashboards'},
@@ -297,7 +297,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                           size="lg"
                           toggle={this.toggleTemplates}
                         />
-                      </TemplateSwitch >
+                      </TemplateSwitch>
                     </Feature>
                     <Button
                       data-test-id="dashboard-create"
