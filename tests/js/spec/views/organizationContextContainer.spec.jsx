@@ -6,7 +6,7 @@ import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {OrganizationLegacyContext} from 'sentry/views/organizationContext';
+import {OrganizationLegacyContext} from 'sentry/views/organizationContextContainer';
 
 jest.mock('sentry/stores/configStore', () => ({
   get: jest.fn(),
@@ -15,7 +15,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
   openSudo: jest.fn(),
 }));
 
-describe('OrganizationContext', function () {
+describe('OrganizationContextContainer', function () {
   let wrapper;
   const org = TestStubs.Organization();
   const teams = [TestStubs.Team()];
