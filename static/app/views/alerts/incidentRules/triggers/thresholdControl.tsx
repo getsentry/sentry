@@ -194,20 +194,22 @@ class ThresholdControl extends React.Component<Props, State> {
             </ThresholdContainer>
           )}
         </Container>
-        <Feature features={['metric-alert-threshold-period']}>
-          <SelectContainer>
-            <SelectControl
-              isDisabled={disabled}
-              name="thresholdPeriod"
-              value={thresholdPeriod}
-              options={[1, 2, 5, 10, 20].map(value => ({
-                value,
-                label: tn('For %s minute', 'For %s minutes', value),
-              }))}
-              onChange={this.handleThresholdPeriodChange}
-            />
-          </SelectContainer>
-        </Feature>
+        {!hideControl && (
+          <Feature features={['metric-alert-threshold-period']}>
+            <SelectContainer>
+              <SelectControl
+                isDisabled={disabled}
+                name="thresholdPeriod"
+                value={thresholdPeriod}
+                options={[1, 2, 5, 10, 20].map(value => ({
+                  value,
+                  label: tn('For %s minute', 'For %s minutes', value),
+                }))}
+                onChange={this.handleThresholdPeriodChange}
+              />
+            </SelectContainer>
+          </Feature>
+        )}
       </Wrapper>
     );
   }

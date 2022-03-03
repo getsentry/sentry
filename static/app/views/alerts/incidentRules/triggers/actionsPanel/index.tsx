@@ -35,10 +35,10 @@ type Props = {
   currentProject: string;
   disabled: boolean;
   error: boolean;
+  hasAlertWizardV3: boolean;
   loading: boolean;
   onAdd: (triggerIndex: number, action: Action) => void;
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
-
   organization: Organization;
   projects: Project[];
   triggers: Trigger[];
@@ -247,6 +247,7 @@ class ActionsPanel extends PureComponent<Props> {
       organization,
       projects,
       triggers,
+      hasAlertWizardV3,
     } = this.props;
 
     const project = projects.find(({slug}) => slug === currentProject);
@@ -284,12 +285,14 @@ class ActionsPanel extends PureComponent<Props> {
     return (
       <Fragment>
         <PerformActionsListItem>
-          {t('Perform actions')}
-          <AlertParagraph>
-            {t(
-              'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
-            )}
-          </AlertParagraph>
+          {hasAlertWizardV3 ? t('Set actions') : t('Perform actions')}
+          {!hasAlertWizardV3 && (
+            <AlertParagraph>
+              {t(
+                'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
+              )}
+            </AlertParagraph>
+          )}
         </PerformActionsListItem>
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {

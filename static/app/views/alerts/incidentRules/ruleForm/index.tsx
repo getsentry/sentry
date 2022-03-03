@@ -808,7 +808,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               />
               {!hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
-              <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
+              <AlertListItem>
+                {hasAlertWizardV3
+                  ? t('Set thresholds')
+                  : t('Set thresholds to trigger alert')}
+              </AlertListItem>
               {hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
               {triggerForm(hasAccess)}
               {ruleNameOwnerForm(hasAccess)}
