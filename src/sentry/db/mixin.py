@@ -1,25 +1,33 @@
+from __future__ import annotations
+
 import logging
+from typing import Any, FrozenSet
 from uuid import uuid4
 
 from django.db import transaction
 
+from sentry.db.models.manager import M
 from sentry.models import OrganizationOption
 
 logger = logging.getLogger("sentry.deletions")
 
 
-def delete_pending_deletion_option(instance, **kwargs):
+def delete_pending_deletion_option(instance: M, **kwargs: Any) -> None:
     if hasattr(instance, "delete_pending_deletion_option"):
         instance.delete_pending_deletion_option()
 
 
 class PendingDeletionMixin:
-    _rename_fields_on_pending_delete = frozenset()
+    _rename_fields_on_pending_delete: FrozenSet[str] = frozenset()
 
-    def build_pending_deletion_key(self):
+    def build_pending_deletion_key(self) -> str:
         return f"pending-delete:{self.__class__.__name__}:{self.id}"
 
-    def rename_on_pending_deletion(self, fields=None, extra_fields_to_save=None):
+    def rename_on_pending_deletion(
+        self,
+        fields: set[str] | None = None,
+        extra_fields_to_save: list[str] | None = None,
+    ) -> None:
         """
         `fields` represents the fields that should be renamed when pending deletion occurs.
 
@@ -55,12 +63,15 @@ class PendingDeletionMixin:
             },
         )
 
-    def get_pending_deletion_option(self):
+    def get_pending_deletion_option(self) -> OrganizationOption:
         return OrganizationOption.objects.get(
             organization_id=self.organization_id, key=self.build_pending_deletion_key()
         )
 
-    def reset_pending_deletion_field_names(self, extra_fields_to_save=None):
+    def reset_pending_deletion_field_names(
+        self,
+        extra_fields_to_save: list[str] | None = None,
+    ) -> bool:
         """
         For special situations, `extra_fields_to_save`, adds additional fields that
         do need to be saved when resetting pending deletion.
@@ -103,7 +114,7 @@ class PendingDeletionMixin:
         )
         return True
 
-    def delete_pending_deletion_option(self):
+    def delete_pending_deletion_option(self) -> None:
         try:
             option = self.get_pending_deletion_option()
         except OrganizationOption.DoesNotExist:
