@@ -62,6 +62,7 @@ class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
         ],
     )
     def get(self, request: Request, project: Project, rule: Rule) -> Response:
+        """ """
         per_page = self.get_per_page(request)
         cursor = self.get_cursor_from_request(request)
         start, end = get_date_range_from_params(request.GET)
