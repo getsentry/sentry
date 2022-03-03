@@ -74,7 +74,7 @@ const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
 /**
  * Just to avoid repeating it
  */
-const MOST_TIME_PERIODS: TimePeriod[] = [
+const MOST_TIME_PERIODS: readonly TimePeriod[] = [
   TimePeriod.ONE_DAY,
   TimePeriod.THREE_DAYS,
   TimePeriod.SEVEN_DAYS,
@@ -86,7 +86,7 @@ const MOST_TIME_PERIODS: TimePeriod[] = [
  * TimeWindow determines data available in TimePeriod
  * If TimeWindow is small, lower TimePeriod to limit data points
  */
-const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
