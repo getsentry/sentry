@@ -4,6 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
+  cleanup,
   mountWithTheme as reactMountWithTheme,
   screen,
   userEvent,
@@ -194,6 +195,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+    TagStore.reset();
+    MetricsTagStore.reset();
+    MetricsMetaStore.reset();
+    cleanup();
   });
 
   it('redirects correctly when creating a new dashboard', async function () {
