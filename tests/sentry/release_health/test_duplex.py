@@ -1,11 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
+from django.utils.datastructures import MultiValueDict
+from freezegun import freeze_time
 
 from sentry.release_health import duplex
 from sentry.release_health.duplex import ComparatorType as Ct
-from sentry.release_health.duplex import DuplexReleaseHealthBackend, ListSet
+from sentry.release_health.duplex import (
+    DuplexReleaseHealthBackend,
+    FixedList,
+    ListSet,
+    get_sessionsv2_schema,
+)
+from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
 
 
 @pytest.mark.parametrize(
@@ -215,6 +223,19 @@ def test_compare_arrays(sessions, metrics, schema, are_equal):
 )
 def test_compare_list_set(sessions, metrics, schema, are_equal):
     result = duplex.compare_list_set(sessions, metrics, 60, "", schema)
+    assert (len(result) == 0) == are_equal
+
+
+@pytest.mark.parametrize(
+    "sessions,metrics,schema, are_equal",
+    [
+        ([1, 2], [1], FixedList([Ct.Exact, Ct.Exact]), False),
+        ([1, 2], [1, 2], FixedList([Ct.Exact, Ct.Exact]), True),
+        ([1, 2, 3], [1, 2, 4], FixedList([Ct.Exact, Ct.Exact, Ct.Ignore]), True),
+    ],
+)
+def test_compare_fixed_list(sessions, metrics, schema, are_equal):
+    result = duplex.compare_fixed_list(sessions, metrics, 60, "", schema)
     assert (len(result) == 0) == are_equal
 
 
@@ -489,3 +510,21 @@ def test_function_dispatch_is_working():
     duplex.sessions.get_current_and_previous_crash_free_rates.assert_called_with(*call_params)
     # check metrics backend were not called again (only one original call)
     assert duplex.metrics.get_current_and_previous_crash_free_rates.call_count == 1
+
+
+@freeze_time("2022-03-02 15:17")
+def test_get_sessionsv2_schema():
+    query = QueryDefinition(
+        query=MultiValueDict(
+            {
+                "statsPeriod": ["24h"],
+                "interval": ["1h"],
+                "field": ["sum(session)", "avg(session.duration)"],
+            }
+        ),
+        params={},
+        allowed_resolution=AllowedResolution.one_hour,
+    )
+    schema = get_sessionsv2_schema(datetime.now(timezone.utc), query)
+    assert schema["sum(session)"] == FixedList(22 * [Ct.Counter] + 2 * [Ct.Ignore])
+    assert schema["avg(session.duration)"] == FixedList(22 * [Ct.Quantile] + 2 * [Ct.Ignore])

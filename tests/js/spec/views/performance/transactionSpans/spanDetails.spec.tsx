@@ -115,7 +115,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         await screen.findByText('No results found for your query')
       ).toBeInTheDocument();
 
-      expect(await screen.findByText('Exclusive Time Breakdown')).toBeInTheDocument();
+      expect(await screen.findByText('Self Time Breakdown')).toBeInTheDocument();
     });
   });
 
@@ -257,7 +257,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
 
       const percentilesHeader = await screen.findByTestId('header-percentiles');
       expect(
-        await within(percentilesHeader).findByText('Exclusive Time Percentiles')
+        await within(percentilesHeader).findByText('Self Time Percentiles')
       ).toBeInTheDocument();
       const p75Section = await within(percentilesHeader).findByTestId('section-p75');
       expect(await within(p75Section).findByText('2.00ms')).toBeInTheDocument();
@@ -307,7 +307,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         organization: data.organization,
       });
 
-      expect(await screen.findByText('Exclusive Time Breakdown')).toBeInTheDocument();
+      expect(await screen.findByText('Self Time Breakdown')).toBeInTheDocument();
     });
 
     it('renders table headers', async function () {
