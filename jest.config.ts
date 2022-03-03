@@ -150,8 +150,8 @@ const config: Config.InitialOptions = {
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
     'integration-docs-platforms':
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
-    '^echarts(.*)': '<rootDir>/tests/js/spec/emptyStub.js',
-    '^zrender/(.*)': '<rootDir>/tests/js/spec/emptyStub.js',
+    '^echarts(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
+    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
