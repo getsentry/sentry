@@ -26,8 +26,10 @@ NATIVE_IMAGE_TYPES = (
 
 # Default disables storing crash reports.
 STORE_CRASH_REPORTS_DEFAULT = 0
-# Do not limit crash report attachments per group.
+# Do not limit crash report attachments per issue.
 STORE_CRASH_REPORTS_ALL = -1
+# The maximum number of crash report attachments per issue if not unlimited.
+STORE_CRASH_REPORTS_MAX = 100
 
 
 def is_native_platform(platform):

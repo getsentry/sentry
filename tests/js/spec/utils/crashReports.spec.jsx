@@ -7,10 +7,10 @@ import {
 
 describe('crashReportsUtils', () => {
   it('returns correct values for organization scope', () => {
-    expect(getStoreCrashReportsValues(0)).toEqual([0, 1, 5, 10, 20, -1]);
+    expect(getStoreCrashReportsValues(0)).toEqual([0, 1, 5, 10, 20, 50, 100, -1]);
   });
   it('returns correct values for project scope', () => {
-    expect(getStoreCrashReportsValues(1)).toEqual([null, 0, 1, 5, 10, 20, -1]);
+    expect(getStoreCrashReportsValues(1)).toEqual([null, 0, 1, 5, 10, 20, 50, 100, -1]);
   });
   it('formats basic values', () => {
     expect(formatStoreCrashReports(-1)).toBe('Unlimited');

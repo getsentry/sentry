@@ -29,7 +29,7 @@ from sentry.lang.native.symbolicator import (
     parse_sources,
     redact_source_secrets,
 )
-from sentry.lang.native.utils import convert_crashreport_count
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
     Group,
@@ -141,7 +141,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
-        min_value=-1, max_value=20, required=False, allow_null=True
+        min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
