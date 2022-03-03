@@ -25,7 +25,6 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.decorators import public
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.models import (
     AuditLogEntryEvent,
@@ -77,9 +76,9 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
-@public(methods={"GET", "POST"})
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
+    public = {"GET", "POST"}
 
     def team_serializer_for_post(self):
         return TeamSCIMSerializer(expand=["members"])
@@ -201,9 +200,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         return super().post(request, organization)
 
 
-@public(methods={"GET", "PATCH"})
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
+    public = {"GET", "PATCH"}
 
     def convert_args(self, request: Request, organization_slug, team_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug)
