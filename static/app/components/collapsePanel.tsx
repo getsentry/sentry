@@ -1,11 +1,11 @@
 import * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconChevron, IconList} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-/** The number of elements to display before collapsing */
 export const COLLAPSE_COUNT = 5;
 
 type ChildRenderProps = {
@@ -16,17 +16,25 @@ type ChildRenderProps = {
 type Props = {
   children: (props: ChildRenderProps) => JSX.Element;
   items: number;
+  buttonTitle?: string;
+  collapseCount?: number;
+  disableBorder?: boolean;
 };
 
 /**
- * Used to expand results for team insights.
+ * Used to expand results.
  *
  * Our collapsible component was not used because we want our
  * expand button to be outside the list of children
  *
- * This component is not yet generic to use elsewhere. Like the hardcoded COLLAPSE_COUNT
  */
-function CollapsePanel({items, children}: Props) {
+function CollapsePanel({
+  items,
+  children,
+  buttonTitle,
+  collapseCount = COLLAPSE_COUNT,
+  disableBorder = true,
+}: Props) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   function expandResults() {
     setIsExpanded(true);
@@ -35,8 +43,14 @@ function CollapsePanel({items, children}: Props) {
   return children({
     isExpanded,
     showMoreButton:
-      isExpanded || items <= COLLAPSE_COUNT ? null : (
-        <ShowMoreButton items={items} onClick={expandResults} />
+      isExpanded || items <= collapseCount ? null : (
+        <ShowMoreButton
+          items={items}
+          buttonTitle={buttonTitle}
+          collapseCount={collapseCount}
+          disableBorder={disableBorder}
+          onClick={expandResults}
+        />
       ),
   });
 }
@@ -44,14 +58,28 @@ function CollapsePanel({items, children}: Props) {
 type ShowMoreButtonProps = {
   items: number;
   onClick: () => void;
+  buttonTitle?: string;
+  collapseCount?: number;
+  disableBorder?: boolean;
 };
 
-function ShowMoreButton({items, onClick}: ShowMoreButtonProps) {
+function ShowMoreButton({
+  items,
+  buttonTitle = 'More',
+  collapseCount = COLLAPSE_COUNT,
+  disableBorder = true,
+  onClick,
+}: ShowMoreButtonProps) {
   return (
-    <ShowMore onClick={onClick} role="button" data-test-id="collapse-show-more">
+    <ShowMore
+      onClick={onClick}
+      role="button"
+      data-test-id="collapse-show-more"
+      disableBorder={disableBorder}
+    >
       <ShowMoreText>
         <StyledIconList color="gray300" />
-        {tct('Show [count] More', {count: items - COLLAPSE_COUNT})}
+        {tct('Show [count] [buttonTitle]', {count: items - collapseCount, buttonTitle})}
       </ShowMoreText>
 
       <IconChevron color="gray300" direction="down" />
@@ -61,7 +89,7 @@ function ShowMoreButton({items, onClick}: ShowMoreButtonProps) {
 
 export default CollapsePanel;
 
-const ShowMore = styled('div')`
+const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(2)};
@@ -69,6 +97,17 @@ const ShowMore = styled('div')`
   color: ${p => p.theme.subText};
   cursor: pointer;
   border-top: 1px solid ${p => p.theme.border};
+
+  ${p =>
+    !p.disableBorder &&
+    css`
+      border-left: 1px solid ${p.theme.border};
+      border-right: 1px solid ${p.theme.border};
+      border-bottom: 1px solid ${p.theme.border};
+      border-bottom-left-radius: ${p.theme.borderRadius};
+      border-bottom-right-radius: ${p.theme.borderRadius};
+      margin-bottom: ${space(2)};
+    `}
 `;
 
 const StyledIconList = styled(IconList)`
