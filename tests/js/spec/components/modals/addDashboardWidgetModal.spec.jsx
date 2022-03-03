@@ -208,7 +208,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -225,7 +225,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -243,7 +243,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     openMenu(wrapper, {name: 'dashboard', control: true});
 
     const input = wrapper.find('SelectControl[name="dashboard"]');
@@ -266,6 +266,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     await clickSubmit(wrapper);
 
     expect(widget.title).toEqual('Unique Users');
+    await tick();
     wrapper.unmount();
   });
 
@@ -287,6 +288,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].conditions).toEqual('color:blue');
+    await tick();
     wrapper.unmount();
   });
 
@@ -305,6 +307,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    await tick();
     wrapper.unmount();
   });
 
@@ -332,6 +335,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    await tick();
     wrapper.unmount();
   });
 
@@ -428,6 +432,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       fields: ['count()', 'p95(transaction.duration)'],
     });
 
+    await tick();
     wrapper.unmount();
   });
 
@@ -507,6 +512,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       conditions: 'event.type:error',
       fields: ['count()'],
     });
+    await tick();
     wrapper.unmount();
   });
 
@@ -528,7 +534,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     await clickSubmit(wrapper);
-    await wrapper.update();
+    wrapper.update();
 
     // API request should fail and not add widget.
     expect(widget).toBeUndefined();
@@ -539,6 +545,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     // Nested object error should display
     const conditionError = wrapper.find('WidgetQueriesForm FieldErrorReason');
     expect(conditionError).toHaveLength(1);
+    await tick();
     wrapper.unmount();
   });
 
@@ -617,6 +624,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.title).toEqual('New title');
 
     expect(eventsStatsMock).toHaveBeenCalledTimes(2);
+    await tick();
     wrapper.unmount();
   });
 
@@ -679,16 +687,18 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     // Add a column, and choose a value,
     wrapper.find('button[aria-label="Add a Column"]').simulate('click');
-    await wrapper.update();
+    wrapper.update();
 
     selectByLabel(wrapper, 'trace', {name: 'field', at: 2, control: true});
-    await wrapper.update();
+    await tick();
+    wrapper.update();
 
     await clickSubmit(wrapper);
 
     // A new field should be added.
     expect(widget.queries[0].fields).toHaveLength(3);
     expect(widget.queries[0].fields[2]).toEqual('trace');
+    await tick();
     wrapper.unmount();
   });
 
@@ -728,6 +738,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()']);
+    await tick();
     wrapper.unmount();
   });
 
@@ -786,6 +797,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    await tick();
     wrapper.unmount();
   });
 
@@ -828,6 +840,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['any(measurements.lcp)']);
+    await tick();
     wrapper.unmount();
   });
 
@@ -862,6 +875,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('big_number');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
+    await tick();
     wrapper.unmount();
   });
 
@@ -925,6 +939,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('world_map');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
+    await tick();
     wrapper.unmount();
   });
 
@@ -974,6 +989,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()']);
+    await tick();
     wrapper.unmount();
   });
 
@@ -1058,6 +1074,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('bar');
+    await tick();
     wrapper.unmount();
   });
 
@@ -1084,6 +1101,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(
       '-count_unique_user'
     );
+    await tick();
     wrapper.unmount();
   });
 
@@ -1101,6 +1119,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     await clickSubmit(wrapper);
     expect(onAddLibraryWidgetMock).toHaveBeenCalledTimes(1);
+    await tick();
     wrapper.unmount();
   });
 
@@ -1117,6 +1136,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('CustomButton')).toHaveLength(1);
     wrapper.find('LibraryButton button').simulate('click');
     expect(openDashboardWidgetLibraryModal).toHaveBeenCalledTimes(1);
+    await tick();
     wrapper.unmount();
   });
 
@@ -1130,11 +1150,12 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     await clickSubmit(wrapper);
 
     expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({widgetType: 'discover'}));
+    await tick();
     wrapper.unmount();
   });
 
   it('limits TopN display to one query when switching from another visualization', async () => {
-    reactMountWithTheme(
+    const wrapper = reactMountWithTheme(
       <AddDashboardWidgetModal
         Header={stubEl}
         Body={stubEl}
@@ -1160,6 +1181,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(
       screen.getAllByPlaceholderText('Search for events, users, tags, and more').length
     ).toEqual(1);
+
+    wrapper.unmount();
   });
 
   describe('Issue Widgets', function () {
@@ -1217,7 +1240,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       wrapper.unmount();
     });
 
-    it('renders the dataset selector', function () {
+    it('renders the dataset selector', async function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
@@ -1316,8 +1339,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
-
-      await tick();
 
       const metricsDataset = screen.getByLabelText('Metrics (Release Health)');
       expect(metricsDataset).not.toBeChecked();
