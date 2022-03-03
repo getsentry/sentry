@@ -3,30 +3,27 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import Button from 'sentry/components/button';
-import Input from 'sentry/components/forms/controls/input';
+import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
-type DefaultProps = {
+interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   defaultQuery: string;
   onSearch: (query: string) => void;
   query: string;
-};
-
-type Props = DefaultProps & {
   onChange?: (query: string) => void;
   width?: string;
-} & Omit<React.ComponentProps<typeof Input>, 'onChange'>;
+}
 
 type State = {
   dropdownVisible: boolean;
   query: string;
 };
 
-class SearchBar extends React.PureComponent<Props, State> {
-  static defaultProps: DefaultProps = {
+class SearchBar extends React.PureComponent<SearchBarProps, State> {
+  static defaultProps: Pick<SearchBarProps, 'query' | 'defaultQuery' | 'onSearch'> = {
     query: '',
     defaultQuery: '',
     onSearch: function () {},
@@ -37,7 +34,7 @@ class SearchBar extends React.PureComponent<Props, State> {
     dropdownVisible: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: SearchBarProps) {
     if (nextProps.query !== this.props.query) {
       this.setState({
         query: nextProps.query,

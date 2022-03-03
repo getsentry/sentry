@@ -1,29 +1,31 @@
-import {Component} from 'react';
+import * as React from 'react';
 
 import {Scope} from 'sentry/types';
 
 import BlankField from './blankField';
-import BooleanField from './booleanField';
-import ChoiceMapperField from './choiceMapperField';
-import EmailField from './emailField';
+import BooleanField, {BooleanFieldProps} from './booleanField';
+import ChoiceMapperField, {ChoiceMapperFieldProps} from './choiceMapperField';
+import EmailField, {EmailFieldProps} from './emailField';
+import {FieldProps} from './field';
 import FieldSeparator from './fieldSeparator';
-import HiddenField from './hiddenField';
-import InputField from './inputField';
+import HiddenField, {HiddenFieldProps} from './hiddenField';
+import InputField, {InputFieldProps} from './inputField';
 import NumberField from './numberField';
 import ProjectMapperField from './projectMapperField';
-import RadioField from './radioField';
-import RangeField from './rangeField';
-import SelectAsyncField from './selectAsyncField';
-import SelectField from './selectField';
-import SentryProjectSelectorField from './sentryProjectSelectorField';
+import RadioField, {RadioFieldProps} from './radioField';
+import RangeField, {RangeFieldProps} from './rangeField';
+import SelectAsyncField, {SelectAsyncFieldProps} from './selectAsyncField';
+import SelectField, {SelectFieldProps} from './selectField';
+import SentryProjectSelectorField, {RenderFieldProps} from './sentryProjectSelectorField';
 import TableField from './tableField';
-import TextareaField from './textareaField';
+import TextareaField, {TextareaFieldProps} from './textareaField';
 import TextField from './textField';
 import {Field} from './type';
 
-type Props = {
+interface FieldFromConfigProps {
   field: Field;
   access?: Set<Scope>;
+
   disabled?: boolean | ((props) => boolean);
   flexibleControlStateSize?: boolean;
   getData?: (data) => any;
@@ -32,74 +34,67 @@ type Props = {
   noOptionsMessage?: () => string;
   onBlur?: (value, event) => void;
   stacked?: boolean;
-};
+}
 
-export default class FieldFromConfig extends Component<Props> {
-  render() {
-    const {field, ...otherProps} = this.props;
+function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null {
+  const {field, ...otherProps} = props;
 
-    const props = {
-      ...otherProps,
-      ...field,
-    };
+  const componentProps = {
+    ...otherProps,
+    ...field,
+  };
 
-    switch (field.type) {
-      case 'separator':
-        return <FieldSeparator />;
-      case 'secret':
-        return <InputField {...props} type="password" />;
-      case 'range':
-        // TODO(ts) The switch on field.type is not resolving
-        // the Field union for this component. The union might be 'too big'.
-        return <RangeField {...(props as any)} />;
-      case 'blank':
-        return <BlankField {...props} />;
-      case 'bool':
-      case 'boolean':
-        return <BooleanField {...props} />;
-      case 'email':
-        return <EmailField {...props} />;
-      case 'hidden':
-        return <HiddenField {...props} />;
-      case 'string':
-      case 'text':
-      case 'url':
-        if (props.multiline) {
-          return <TextareaField {...props} />;
-        }
-        return <TextField {...props} />;
-      case 'number':
-        return <NumberField {...props} />;
-      case 'textarea':
-        return <TextareaField {...props} />;
-      case 'choice':
-      case 'select':
-      case 'array':
-        return <SelectField {...props} />;
-      case 'choice_mapper':
-        // TODO(ts) The switch on field.type is not resolving
-        // the Field union for this component. The union might be 'too big'.
-        return <ChoiceMapperField {...(props as any)} />;
-      case 'radio':
-        const choices = props.choices;
-        if (!Array.isArray(choices)) {
-          throw new Error('Invalid `choices` type. Use an array of options');
-        }
-        return <RadioField {...props} choices={choices} />;
-      case 'table':
-        // TODO(ts) The switch on field.type is not resolving
-        // the Field union for this component. The union might be 'too big'.
-        return <TableField {...(props as any)} />;
-      case 'project_mapper':
-        return <ProjectMapperField {...props} />;
-      case 'sentry_project_selector':
-        return <SentryProjectSelectorField {...props} />;
-      case 'select_async':
-        return <SelectAsyncField {...props} />;
-      case 'custom':
-        return field.Component(props);
-      default:
-        return null;
-    }
+  switch (field.type) {
+    case 'separator':
+      return <FieldSeparator />;
+    case 'secret':
+      return <InputField {...(componentProps as InputFieldProps)} type="password" />;
+    case 'range':
+      return <RangeField {...(componentProps as RangeFieldProps)} />;
+    case 'blank':
+      return <BlankField {...(componentProps as FieldProps)} />;
+    case 'bool':
+    case 'boolean':
+      return <BooleanField {...(componentProps as BooleanFieldProps)} />;
+    case 'email':
+      return <EmailField {...(componentProps as EmailFieldProps)} />;
+    case 'hidden':
+      return <HiddenField {...(componentProps as HiddenFieldProps)} />;
+    case 'string':
+    case 'text':
+    case 'url':
+      if (componentProps.multiline) {
+        return <TextareaField {...(componentProps as TextareaFieldProps)} />;
+      }
+      return <TextField {...componentProps} />;
+    case 'number':
+      return <NumberField {...componentProps} />;
+    case 'textarea':
+      return <TextareaField {...(componentProps as TextareaFieldProps)} />;
+    case 'choice':
+    case 'select':
+    case 'array':
+      return <SelectField {...(componentProps as SelectFieldProps<any>)} />;
+    case 'choice_mapper':
+      return <ChoiceMapperField {...(componentProps as ChoiceMapperFieldProps)} />;
+    case 'radio':
+      if (Array.isArray(componentProps.choices)) {
+        return <RadioField {...(componentProps as RadioFieldProps)} />;
+      }
+      throw new Error('Invalid `choices` type. Use an array of options');
+    case 'table':
+      return <TableField {...(componentProps as InputFieldProps)} />;
+    case 'project_mapper':
+      return <ProjectMapperField {...(componentProps as InputFieldProps)} />;
+    case 'sentry_project_selector':
+      return <SentryProjectSelectorField {...(componentProps as RenderFieldProps)} />;
+    case 'select_async':
+      return <SelectAsyncField {...(componentProps as SelectAsyncFieldProps)} />;
+    case 'custom':
+      return field.Component(field);
+    default:
+      return null;
   }
 }
+
+export default FieldFromConfig;
