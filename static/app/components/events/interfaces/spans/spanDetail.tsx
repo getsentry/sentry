@@ -381,7 +381,7 @@ class SpanDetail extends React.Component<Props, State> {
                 <Row title="Span Group">
                   {defined(span.hash) ? String(span.hash) : null}
                 </Row>
-                <Row title="Span Exclusive Time">
+                <Row title="Span Self Time">
                   {defined(span.exclusive_time)
                     ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
                     : null}

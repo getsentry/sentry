@@ -90,6 +90,7 @@ export type SavedIncidentRule = UnsavedIncidentRule & {
   name: string;
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
+  errors?: {detail: string}[];
   originalAlertRuleId?: number | null;
 };
 
@@ -231,6 +232,11 @@ type SavedActionFields = {
    * model id of the action
    */
   id: string;
+
+  /**
+   *  Could not fetch details from SentryApp. Show the rule but make it disabled.
+   */
+  disabled?: boolean;
 };
 
 type UnsavedAction = {

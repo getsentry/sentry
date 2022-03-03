@@ -143,6 +143,7 @@ class Triggers extends Component<Props> {
           availableActions={availableActions}
           currentProject={currentProject}
           organization={organization}
+          hasAlertWizardV3={hasAlertWizardV3}
           projects={projects}
           triggers={triggers}
           onChange={this.handleChangeActions}
