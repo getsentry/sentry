@@ -1458,6 +1458,22 @@ class MetricsQueryBuilder(QueryBuilder):
         )
         self.granularity = self.resolve_granularity()
 
+    def column(self, name: str) -> Column:
+        """Given an unresolved sentry name and return a snql column.
+
+        :param name: The unresolved sentry name.
+        """
+        try:
+            return super().column(name)
+        except InvalidSearchQuery:
+            raise IncompatibleMetricsQuery("Column was not found in metrics indexer")
+
+    def aliased_column(self, name: str) -> SelectType:
+        try:
+            return super().aliased_column(name)
+        except InvalidSearchQuery:
+            raise IncompatibleMetricsQuery("Column was not found in metrics indexer")
+
     def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
         pre-aggregated
@@ -1550,10 +1566,7 @@ class MetricsQueryBuilder(QueryBuilder):
         operator = search_filter.operator
         value = search_filter.value.value
 
-        try:
-            lhs = self.resolve_column(name)
-        except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery("Column was not recognized in the metrics dataset")
+        lhs = self.resolve_column(name)
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
@@ -1636,6 +1649,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return primary, query_framework
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        self.validate_having_clause()
         # Need to split orderby between the 3 possible tables
         # TODO: need to validate orderby, ordering by tag values is impossible unless the values have low cardinality
         # and we can transform them (eg. project)

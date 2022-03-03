@@ -232,9 +232,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     ) -> Dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
+            meta = results.get("meta", {})
+            is_metrics = meta.get("isMetricsData", False)
             if not data:
-                return {"data": [], "meta": {}}
-            return {"data": data, "meta": results.get("meta", {})}
+                return {"data": [], "meta": {"isMetricsData": is_metrics}}
+            return {"data": data, "meta": results.get("meta", {"isMetricsData": is_metrics})}
 
     def handle_data(
         self,
