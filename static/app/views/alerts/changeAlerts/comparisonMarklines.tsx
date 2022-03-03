@@ -4,15 +4,23 @@ import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {MINUTE} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
-import {AlertRuleThresholdType, Trigger} from 'sentry/views/alerts/incidentRules/types';
+import {
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+  Trigger,
+} from 'sentry/views/alerts/incidentRules/types';
 
 export const checkChangeStatus = (
   value: number,
   thresholdType: AlertRuleThresholdType,
   triggers: Trigger[]
 ): string => {
-  const criticalTrigger = triggers?.find(trig => trig.label === 'critical');
-  const warningTrigger = triggers?.find(trig => trig.label === 'warning');
+  const criticalTrigger = triggers?.find(
+    trig => trig.label === AlertRuleTriggerType.CRITICAL
+  );
+  const warningTrigger = triggers?.find(
+    trig => trig.label === AlertRuleTriggerType.WARNING
+  );
   const criticalTriggerAlertThreshold =
     typeof criticalTrigger?.alertThreshold === 'number'
       ? criticalTrigger.alertThreshold
@@ -28,14 +36,14 @@ export const checkChangeStatus = (
     criticalTriggerAlertThreshold &&
     value >= criticalTriggerAlertThreshold
   ) {
-    return 'critical';
+    return AlertRuleTriggerType.CRITICAL;
   }
   if (
     thresholdType === AlertRuleThresholdType.ABOVE &&
     warningTriggerAlertThreshold &&
     value >= warningTriggerAlertThreshold
   ) {
-    return 'warning';
+    return AlertRuleTriggerType.WARNING;
   }
   // When threshold is below(lower than in comparison alerts) the % diff value is negative
   // It crosses the threshold if its abs value is greater than threshold
@@ -45,14 +53,14 @@ export const checkChangeStatus = (
     criticalTriggerAlertThreshold &&
     -1 * value >= criticalTriggerAlertThreshold
   ) {
-    return 'critical';
+    return AlertRuleTriggerType.CRITICAL;
   }
   if (
     thresholdType === AlertRuleThresholdType.BELOW &&
     warningTriggerAlertThreshold &&
     -1 * value >= warningTriggerAlertThreshold
   ) {
-    return 'warning';
+    return AlertRuleTriggerType.WARNING;
   }
 
   return '';
@@ -104,9 +112,9 @@ export const getComparisonMarkLines = (
           silent: true,
           lineStyle: {
             color:
-              status === 'critical'
+              status === AlertRuleTriggerType.CRITICAL
                 ? theme.red300
-                : status === 'warning'
+                : status === AlertRuleTriggerType.WARNING
                 ? theme.yellow300
                 : theme.green300,
             type: 'solid',
