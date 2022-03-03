@@ -28,70 +28,70 @@ const ThresholdTypeForm = ({
   disabled,
   comparisonType,
   onComparisonDeltaChange,
-      onComparisonTypeChange,
-      hasAlertWizardV3,
-      comparisonDelta,
-    } : Props) =>
+  onComparisonTypeChange,
+  hasAlertWizardV3,
+  comparisonDelta,
+}: Props) =>
   dataset === Dataset.SESSIONS ? null : (
     <Feature features={['organizations:change-alerts']} organization={organization}>
       {!hasAlertWizardV3 && <StyledListItem>{t('Select threshold type')}</StyledListItem>}
       <FormRow hasAlertWizardV3={hasAlertWizardV3}>
         <StyledRadioGroup
           hasAlertWizardV3={hasAlertWizardV3}
-                disabled={disabled}
-                choices={[
-                  [
-                    AlertRuleComparisonType.COUNT,
-                    hasAlertWizardV3 ? 'Static: above or below {x}' : 'Count',
-                  ],
-                  [
-                    AlertRuleComparisonType.CHANGE,
-                    hasAlertWizardV3 ? (
+          disabled={disabled}
+          choices={[
+            [
+              AlertRuleComparisonType.COUNT,
+              hasAlertWizardV3 ? 'Static: above or below {x}' : 'Count',
+            ],
+            [
+              AlertRuleComparisonType.CHANGE,
+              hasAlertWizardV3 ? (
                 comparisonType === AlertRuleComparisonType.COUNT ? (
-                        'Percent Change: {x%} higher or lower compared to previous period'
-                      ) : (
-                        <ComparisonContainer>
-                          {t('Percent Change: {x%} higher or lower compared to')}
-                          <SelectControl
-                            name="comparisonDelta"
-                            styles={{
-                              container: (provided: {
-                                [x: string]: string | number | boolean;
-                              }) => ({
-                                ...provided,
-                                marginLeft: space(1),
-                              }),
-                              control: (provided: {
-                                [x: string]: string | number | boolean;
-                              }) => ({
-                                ...provided,
-                                minHeight: 30,
-                                minWidth: 500,
-                                maxWidth: 1000,
-                              }),
-                              valueContainer: (provided: {
-                                [x: string]: string | number | boolean;
-                              }) => ({
-                                ...provided,
-                                padding: 0,
-                              }),
-                              singleValue: (provided: {
-                                [x: string]: string | number | boolean;
-                              }) => ({
-                                ...provided,
-                              }),
-                            }}
-                            value={comparisonDelta}
-                            onClick={e => e.stopPropagation()}
-                            onChange={({value}) => onComparisonDeltaChange(value)}
-                            options={COMPARISON_DELTA_OPTIONS}
-                            required={comparisonType === AlertRuleComparisonType.CHANGE}
-                          />
-                        </ComparisonContainer>
-                      )
-                    ) : (
-                      'Percent Change'
-                    ),
+                  'Percent Change: {x%} higher or lower compared to previous period'
+                ) : (
+                  <ComparisonContainer>
+                    {t('Percent Change: {x%} higher or lower compared to')}
+                    <SelectControl
+                      name="comparisonDelta"
+                      styles={{
+                        container: (provided: {
+                          [x: string]: string | number | boolean;
+                        }) => ({
+                          ...provided,
+                          marginLeft: space(1),
+                        }),
+                        control: (provided: {
+                          [x: string]: string | number | boolean;
+                        }) => ({
+                          ...provided,
+                          minHeight: 30,
+                          minWidth: 500,
+                          maxWidth: 1000,
+                        }),
+                        valueContainer: (provided: {
+                          [x: string]: string | number | boolean;
+                        }) => ({
+                          ...provided,
+                          padding: 0,
+                        }),
+                        singleValue: (provided: {
+                          [x: string]: string | number | boolean;
+                        }) => ({
+                          ...provided,
+                        }),
+                      }}
+                      value={comparisonDelta}
+                      onClick={e => e.stopPropagation()}
+                      onChange={({value}) => onComparisonDeltaChange(value)}
+                      options={COMPARISON_DELTA_OPTIONS}
+                      required={comparisonType === AlertRuleComparisonType.CHANGE}
+                    />
+                  </ComparisonContainer>
+                )
+              ) : (
+                'Percent Change'
+              ),
             ],
           ]}
           value={comparisonType}
