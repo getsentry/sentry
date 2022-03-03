@@ -29,9 +29,7 @@ class PendingDeletionMixin:
         See the Repository Model for an example.
         """
         fields = fields or self._rename_fields_on_pending_delete
-        original_data = {}
-        original_data["id"] = self.id
-        original_data["model"] = self.__class__.__name__
+        original_data = {"id": self.id, "model": self.__class__.__name__}
 
         for field in fields:
             original_data[field] = getattr(self, field)
