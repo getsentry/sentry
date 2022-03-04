@@ -92,6 +92,8 @@ PREBUILT_DASHBOARDS = {
                             "name": "",
                             "conditions": "!event.type:transaction",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "column": [],
                         }
                     ],
                 },
@@ -104,6 +106,8 @@ PREBUILT_DASHBOARDS = {
                             "name": "",
                             "conditions": "!event.type:transaction",
                             "fields": ["count_unique(issue)"],
+                            "aggregates": ["count_unique(issue)"],
+                            "column": [],
                         }
                     ],
                 },
@@ -116,6 +120,8 @@ PREBUILT_DASHBOARDS = {
                             "name": "Events",
                             "conditions": "!event.type:transaction",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "column": [],
                         }
                     ],
                 },
@@ -128,11 +134,15 @@ PREBUILT_DASHBOARDS = {
                             "name": "Known Users",
                             "conditions": "has:user.email !event.type:transaction",
                             "fields": ["count_unique(user)"],
+                            "aggregates": ["count_unique(user)"],
+                            "column": [],
                         },
                         {
                             "name": "Anonymous Users",
                             "conditions": "!has:user.email !event.type:transaction",
                             "fields": ["count_unique(user)"],
+                            "aggregates": ["count_unique(user)"],
+                            "column": [],
                         },
                     ],
                 },
@@ -145,11 +155,15 @@ PREBUILT_DASHBOARDS = {
                             "name": "Handled",
                             "conditions": "error.handled:true",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "column": [],
                         },
                         {
                             "name": "Unhandled",
                             "conditions": "error.handled:false",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "column": [],
                         },
                     ],
                 },
@@ -162,6 +176,8 @@ PREBUILT_DASHBOARDS = {
                             "name": "Error counts",
                             "conditions": "!event.type:transaction has:geo.country_code",
                             "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "column": [],
                         }
                     ],
                 },
@@ -174,6 +190,8 @@ PREBUILT_DASHBOARDS = {
                             "name": "",
                             "conditions": "!event.type:transaction has:browser.name",
                             "fields": ["browser.name", "count()"],
+                            "aggregates": ["count()"],
+                            "column": ["browser.name"],
                             "orderby": "-count",
                         }
                     ],
@@ -186,6 +204,8 @@ PREBUILT_DASHBOARDS = {
                         {
                             "name": "",
                             "fields": ["count()", "transaction"],
+                            "aggregates": ["count()"],
+                            "column": ["transaction"],
                             "conditions": "!event.type:error",
                             "orderby": "-count",
                         },
@@ -199,6 +219,8 @@ PREBUILT_DASHBOARDS = {
                         {
                             "name": "",
                             "fields": ["user_misery(300)"],
+                            "aggregates": ["user_misery(300)"],
+                            "column": [],
                             "conditions": "",
                             "orderby": "",
                         },
@@ -212,6 +234,8 @@ PREBUILT_DASHBOARDS = {
                         {
                             "name": "",
                             "fields": ["transaction", "count()"],
+                            "aggregates": ["count()"],
+                            "column": ["transaction"],
                             "conditions": "!event.type:error",
                             "orderby": "-count",
                         },
@@ -225,6 +249,8 @@ PREBUILT_DASHBOARDS = {
                         {
                             "name": "",
                             "fields": ["assignee", "issue", "title"],
+                            "aggregates": [],
+                            "column": ["assignee", "issue", "title"],
                             "conditions": "assigned_or_suggested:me is:unresolved",
                             "orderby": "priority",
                         },
@@ -239,6 +265,8 @@ PREBUILT_DASHBOARDS = {
                         {
                             "name": "",
                             "fields": ["transaction", "user_misery(300)"],
+                            "aggregates": ["user_misery(300)"],
+                            "column": ["transaction"],
                             "conditions": "",
                             "orderby": "-user_misery_300",
                         },
