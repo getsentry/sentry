@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -7,13 +7,15 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client, ResponseMeta} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import DateTime from 'sentry/components/dateTime';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {DateString, Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {makeRuleDetailsQuery} from 'sentry/views/alerts/list/row';
@@ -159,26 +161,6 @@ class AlertRuleDetails extends Component<Props, State> {
     }
   };
 
-  handleTimePeriodChange = (value: string) => {
-    browserHistory.push({
-      pathname: this.props.location.pathname,
-      query: {
-        period: value,
-      },
-    });
-  };
-
-  handleZoom = (start: DateString, end: DateString) => {
-    const {location} = this.props;
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        start,
-        end,
-      },
-    });
-  };
-
   renderError() {
     const {error} = this.state;
 
@@ -195,7 +177,7 @@ class AlertRuleDetails extends Component<Props, State> {
 
   render() {
     const {rule, incidents, hasError, selectedIncident} = this.state;
-    const {params} = this.props;
+    const {params, organization} = this.props;
     const timePeriod = this.getTimePeriod();
 
     if (hasError) {
@@ -203,24 +185,33 @@ class AlertRuleDetails extends Component<Props, State> {
     }
 
     return (
-      <Fragment>
-        <SentryDocumentTitle title={rule?.name ?? ''} />
+      <Projects orgId={organization.slug} slugs={rule?.projects}>
+        {({projects}) => (
+          <PageFiltersContainer
+            shouldForceProject
+            forceProject={projects[0] as Project}
+            forceEnvironment={rule?.environment ?? ''}
+            lockedMessageSubject={t('alert rule')}
+            showDateSelector={false}
+          >
+            <SentryDocumentTitle title={rule?.name ?? ''} />
 
-        <DetailsHeader
-          hasIncidentRuleDetailsError={hasError}
-          params={params}
-          rule={rule}
-        />
-        <DetailsBody
-          {...this.props}
-          rule={rule}
-          incidents={incidents}
-          timePeriod={timePeriod}
-          selectedIncident={selectedIncident}
-          handleTimePeriodChange={this.handleTimePeriodChange}
-          handleZoom={this.handleZoom}
-        />
-      </Fragment>
+            <DetailsHeader
+              hasIncidentRuleDetailsError={hasError}
+              params={params}
+              rule={rule}
+            />
+            <DetailsBody
+              {...this.props}
+              rule={rule}
+              project={projects[0] as Project}
+              incidents={incidents}
+              timePeriod={timePeriod}
+              selectedIncident={selectedIncident}
+            />
+          </PageFiltersContainer>
+        )}
+      </Projects>
     );
   }
 }
