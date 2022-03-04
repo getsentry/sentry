@@ -66,7 +66,6 @@ class AlertChart extends AsyncComponent<Props, State> {
     ];
   }
   renderChart() {
-    const {period} = this.props;
     const {alerts} = this.state;
 
     const series = {
@@ -84,7 +83,6 @@ class AlertChart extends AsyncComponent<Props, State> {
       <AreaChart
         isGroupedByDate
         showTimeInTooltip
-        period={period}
         grid={{
           left: space(0.25),
           right: space(2),
