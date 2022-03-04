@@ -45,9 +45,10 @@ function renderProfilingTableCell(
 }
 
 const COLUMN_ORDER: TableColumnKey[] = [
-  'id',
   'failed',
-  'app_version',
+  'id',
+  'app_id',
+  'app_version_name',
   'interaction_name',
   'start_time_unix',
   'trace_duration_ms',
@@ -58,16 +59,21 @@ const COLUMN_ORDER: TableColumnKey[] = [
 const COLUMNS: TableColumnOrders = {
   id: {
     key: 'id',
-    name: t('Flamegraph'),
+    name: t('Profile ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  app_id: {
+    key: 'app_id',
+    name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
   failed: {
     key: 'failed',
     name: t('Status'),
-    width: COL_WIDTH_UNDEFINED,
+    width: 14, // make this as small as possible
   },
-  app_version: {
-    key: 'app_version',
+  app_version_name: {
+    key: 'app_version_name',
     name: t('Version'),
     width: COL_WIDTH_UNDEFINED,
   },

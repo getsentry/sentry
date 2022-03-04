@@ -17,15 +17,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
   'organization' | 'start' | 'end' | 'utc' | 'relative' | 'onUpdate'
-> & {
-  router: WithRouterProps['router'];
-  /**
-   * Reset these URL params when we fire actions (custom routing only)
-   */
-  resetParamsOnChange?: string[];
-};
+> &
+  WithRouterProps & {
+    hidePin?: boolean;
+    /**
+     * Reset these URL params when we fire actions (custom routing only)
+     */
+    resetParamsOnChange?: string[];
+  };
 
-function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
+function DatePageFilter({router, resetParamsOnChange, hidePin, ...props}: Props) {
   const {selection, desyncedFilters} = useLegacyStore(PageFiltersStore);
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
@@ -81,12 +82,16 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
         detached
         {...props}
       />
-      <PageFilterPinButton size="zero" filter="datetime" />
+      {!hidePin && <PageFilterPinButton size="zero" filter="datetime" />}
     </DateSelectorContainer>
   );
 }
 
 const DateSelectorContainer = styled('div')`
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: fit-content;
+  position: relative;
   display: grid;
   gap: ${space(1)};
   align-items: center;
@@ -95,7 +100,7 @@ const DateSelectorContainer = styled('div')`
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  height: 40px;
+  height: 100%;
   font-weight: 600;
   background: ${p => p.theme.background};
   border: none;
