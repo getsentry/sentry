@@ -147,6 +147,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     assignedTo: UserSerializerResponse
     isBookmarked: bool
     isSubscribed: bool
+    isSample: bool
     subscriptionDetails: Optional[GroupSubscriptionResponseOptional]
     hasSeen: bool
     annotations: Sequence[str]
@@ -416,6 +417,13 @@ class GroupSerializerBase(Serializer):
 
         snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
+        sample_groups = tagstore.get_group_list_tag_value(
+            [item_list[0].project_id], [g.id for g in item_list], None, "sample_event", "yes"
+        )
+        sample_groups = set(
+            map(lambda g: g.group_id, filter(lambda g: g.times_seen > 0, sample_groups.values()))
+        )
+
         for item in item_list:
             active_date = item.active_at or item.first_seen
 
@@ -456,6 +464,7 @@ class GroupSerializerBase(Serializer):
                 "assigned_to": resolved_assignees.get(item.id),
                 "is_bookmarked": item.id in bookmarks,
                 "subscription": subscriptions[item.id],
+                "is_sample": item.id in sample_groups,
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
                 "annotations": annotations,
                 "ignore_until": ignore_item,
@@ -588,6 +597,7 @@ class GroupSerializerBase(Serializer):
             "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
             "isBookmarked": attrs["is_bookmarked"],
             "isSubscribed": is_subscribed,
+            "isSample": attrs["is_sample"],
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],

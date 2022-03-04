@@ -12,10 +12,12 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+
+import Tag from './tag';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
@@ -45,6 +47,7 @@ function EventOrGroupExtraDetails({
     lifetime,
     isUnhandled,
     inbox,
+    isSample,
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
@@ -54,6 +57,7 @@ function EventOrGroupExtraDetails({
 
   return (
     <GroupExtra>
+      {isSample && <Tag>{t('Sample Issue')}</Tag>}
       {inbox && (
         <GuideAnchor target="inbox_guide_reason" disabled={!hasGuideAnchor}>
           {inboxReason}

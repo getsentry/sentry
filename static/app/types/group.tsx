@@ -419,6 +419,7 @@ export type BaseGroup = {
   id: string;
   isBookmarked: boolean;
   isPublic: boolean;
+  isSample: boolean;
   isSubscribed: boolean;
   isUnhandled: boolean;
   lastSeen: string;
