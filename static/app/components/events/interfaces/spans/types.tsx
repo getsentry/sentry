@@ -61,6 +61,11 @@ export type SpanGroupProps = {
   toggleSpanGroup: (() => void) | undefined;
 };
 
+export type SpanSiblingGroupProps = {
+  spanGrouping: EnhancedSpan[] | undefined;
+  toggleSiblingSpanGroup: (operation: string, description: string) => void;
+};
+
 type CommonEnhancedProcessedSpanType = {
   continuingTreeDepths: Array<TreeDepthType>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
@@ -111,7 +116,7 @@ export type EnhancedProcessedSpanType =
       span: SpanType;
       treeDepth: number;
       type: 'span_group_sibling';
-    } & SpanGroupProps);
+    } & SpanSiblingGroupProps);
 
 export type SpanEntry = {
   data: Array<RawSpanType>;

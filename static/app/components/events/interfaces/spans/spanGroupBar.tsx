@@ -71,6 +71,7 @@ type Props = {
   toggleSpanGroup: () => void;
   treeDepth: number;
   siblingCount?: number;
+  toggleSiblingSpanGroup?: (operation: string, description: string) => void;
 };
 
 class SpanGroupBar extends React.Component<Props> {
@@ -147,8 +148,14 @@ class SpanGroupBar extends React.Component<Props> {
   }
 
   renderGroupedSpansToggler() {
-    const {spanGrouping, treeDepth, toggleSpanGroup, groupType, siblingCount} =
-      this.props;
+    const {
+      spanGrouping,
+      treeDepth,
+      toggleSpanGroup,
+      toggleSiblingSpanGroup,
+      groupType,
+      siblingCount,
+    } = this.props;
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
@@ -162,8 +169,12 @@ class SpanGroupBar extends React.Component<Props> {
           isSpanGroupToggler
           onClick={event => {
             event.stopPropagation();
-
-            toggleSpanGroup();
+            groupType === GroupType.DESCENDANTS
+              ? toggleSpanGroup()
+              : toggleSiblingSpanGroup(
+                  spanGrouping[0].span.op!,
+                  spanGrouping[0].span.description!
+                );
           }}
         >
           <Count

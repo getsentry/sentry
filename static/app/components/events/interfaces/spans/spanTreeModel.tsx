@@ -43,6 +43,9 @@ class SpanTreeModel {
   showEmbeddedChildren: boolean = false;
   embeddedChildren: Array<SpanTreeModel> = [];
   showSpanGroup: boolean = false;
+  // Entries in this set will follow the format 'op.description'.
+  // Entries will indicate whether a sibling group should be expanded or collapsed
+  ungroupedSiblings: Set<string> = new Set();
 
   constructor(
     parentSpan: SpanType,
@@ -77,6 +80,8 @@ class SpanTreeModel {
       fetchEmbeddedTransactions: action,
       showSpanGroup: observable,
       toggleSpanGroup: action,
+      ungroupedSiblings: observable,
+      toggleSiblingSpanGroup: action,
     });
   }
 
@@ -213,8 +218,6 @@ class SpanTreeModel {
       ? [...this.embeddedChildren, ...this.children]
       : this.children;
 
-    const lastIndex = descendantsSource.length - 1;
-
     const isNotLastSpanOfGroup =
       isOnlySibling && !this.isRoot && descendantsSource.length === 1;
     const shouldGroup = isNotLastSpanOfGroup;
@@ -338,17 +341,19 @@ class SpanTreeModel {
           previousSiblingEndTimestamp: number | undefined;
         },
         group,
-        index
+        groupIndex
       ) => {
         // Groups less than 5 indicate that the spans should be left ungrouped
         if (group.length < MIN_SIBLING_GROUP_SIZE) {
-          for (const spanModel of group) {
+          group.forEach((spanModel, index) => {
             acc.descendants.push(
               ...spanModel.getSpansList({
                 operationNameFilters,
                 generateBounds,
                 treeDepth: shouldHideSpanOfGroup ? treeDepth : treeDepth + 1,
-                isLastSibling: index === lastIndex,
+                isLastSibling:
+                  groupIndex === groupedDescendants.length - 1 &&
+                  index === group.length - 1,
                 continuingTreeDepths: descendantContinuingTreeDepths,
                 hiddenSpanGroups,
                 spanGroups: new Set(childSpanGroup),
@@ -375,7 +380,7 @@ class SpanTreeModel {
             );
 
             acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
-          }
+          });
 
           return acc;
         }
@@ -386,16 +391,41 @@ class SpanTreeModel {
 
         // This may not be the case, and needs to be looked into later
 
+        const wrappedSiblings: EnhancedSpan[] = group.map((spanModel, index) => {
+          const enhancedSibling: EnhancedSpan = {
+            type: 'span',
+            span: spanModel.span,
+            numOfSpanChildren: 0,
+            treeDepth,
+            isLastSibling: index === group.length - 1,
+            continuingTreeDepths,
+            fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
+            showEmbeddedChildren: spanModel.showEmbeddedChildren,
+            toggleEmbeddedChildren: spanModel.toggleEmbeddedChildren({
+              addTraceBounds,
+              removeTraceBounds,
+            }),
+            toggleSpanGroup: undefined,
+          };
+
+          return enhancedSibling;
+        });
+
+        // Check if the group is currently expanded or not
+        const key = `${group[0].span.op}.${group[0].span.description}`;
+        if (key in this.ungroupedSiblings) {
+          acc.descendants.push(...wrappedSiblings);
+          return acc;
+        }
+
         const groupedSiblingsSpan: EnhancedProcessedSpanType = {
           type: 'span_group_sibling',
           span: this.span,
           treeDepth: treeDepth + 1,
           continuingTreeDepths,
-          spanGrouping: [wrappedSpan],
+          spanGrouping: wrappedSiblings,
           siblingCount: group.length,
-          showSpanGroup,
-          // TODO: Needs a separate implementation from nested children toggling
-          toggleSpanGroup: () => {},
+          toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
         };
 
         acc.descendants.push(groupedSiblingsSpan);
@@ -585,6 +615,16 @@ class SpanTreeModel {
 
   toggleSpanGroup = () => {
     this.showSpanGroup = !this.showSpanGroup;
+  };
+
+  toggleSiblingSpanGroup = (operation: string, description: string) => {
+    const key = `${operation}.${description}`;
+
+    if (key in this.ungroupedSiblings) {
+      this.ungroupedSiblings.delete(key);
+    } else {
+      this.ungroupedSiblings.add(`${operation}.${description}`);
+    }
   };
 
   generateTraceBounds = (): TraceBound => {

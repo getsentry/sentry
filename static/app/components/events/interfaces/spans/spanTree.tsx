@@ -234,7 +234,8 @@ class SpanTree extends React.Component<PropType> {
               continuingTreeDepths={continuingTreeDepths}
               spanNumber={spanNumber}
               spanGrouping={payload.spanGrouping as EnhancedSpan[]}
-              toggleSpanGroup={payload.toggleSpanGroup as () => void}
+              toggleSpanGroup={payload.toggleSiblingSpanGroup as () => void}
+              toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
               siblingCount={payload.siblingCount}
               groupType={GroupType.SIBLINGS}
             />
