@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
 
 import {DisplayType} from './types';
 import WidgetWrapper from './widgetWrapper';
@@ -20,15 +19,9 @@ const initialStyles = {
 
 type Props = {
   onAddWidget: () => void;
-  onOpenWidgetBuilder: () => void;
-  orgFeatures: Organization['features'];
 };
 
-function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
-  const onClick = orgFeatures.includes('new-widget-builder-experience')
-    ? onOpenWidgetBuilder
-    : onAddWidget;
-
+function AddWidget({onAddWidget}: Props) {
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,
@@ -56,7 +49,7 @@ function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
         duration: 0.25,
       }}
     >
-      <InnerWrapper onClick={onClick}>
+      <InnerWrapper onClick={onAddWidget}>
         <AddButton
           data-test-id="widget-add"
           icon={<IconAdd size="lg" isCircled color="inactive" />}

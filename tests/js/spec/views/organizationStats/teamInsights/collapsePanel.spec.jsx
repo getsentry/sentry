@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import CollapsePanel from 'sentry/views/organizationStats/teamInsights/collapsePanel';
+import CollapsePanel from 'sentry/components/collapsePanel';
 
 describe('CollapsePanel', () => {
   it('should expand on click', () => {

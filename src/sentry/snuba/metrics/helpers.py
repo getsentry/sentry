@@ -368,38 +368,6 @@ AVAILABLE_OPERATIONS = {
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
-
-_BASE_TAGS = {
-    "environment": [
-        "production",
-        "staging",
-    ],
-    "release": [],
-}
-
-_SESSION_TAGS = dict(
-    _BASE_TAGS,
-    **{
-        "session.status": [
-            "abnormal",
-            "crashed",
-            "errored",
-            "healthy",
-        ],
-    },
-)
-
-_TRANSACTION_TAGS = dict(
-    _BASE_TAGS,
-    transaction=["/foo/:orgId/", "/bar/:orgId/"],
-)
-
-_MEASUREMENT_TAGS = dict(
-    _TRANSACTION_TAGS,
-    measurement_rating=["good", "meh", "poor"],
-)
-
-
 ALLOWED_GROUPBY_COLUMNS = ("project_id",)
 
 
@@ -424,11 +392,6 @@ class SnubaQueryBuilder:
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, [p.id for p in self._projects]),
-            Condition(
-                Column("metric_id"),
-                Op.IN,
-                [resolve_weak(name) for _, name in query_definition.fields.values()],
-            ),
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
@@ -437,6 +400,19 @@ class SnubaQueryBuilder:
             where.extend(filter_)
 
         return where
+
+    def _build_where_for_entity(self, query_definition: QueryDefinition, entity: str):
+        metric_ids_set = set()
+        for op, name in query_definition.fields.values():
+            if OPERATIONS_TO_ENTITY[op] == entity:
+                metric_ids_set.add(resolve_weak(name))
+        return [
+            Condition(
+                Column("metric_id"),
+                Op.IN,
+                list(metric_ids_set),
+            ),
+        ]
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
         return [Column("metric_id")] + [
@@ -485,19 +461,22 @@ class SnubaQueryBuilder:
             match=Entity(entity),
             groupby=groupby,
             select=list(self._build_select(entity, fields)),
-            where=where,
+            where=where + self._build_where_for_entity(query_definition, entity),
             limit=Limit(query_definition.limit or MAX_POINTS),
             offset=Offset(query_definition.offset or 0),
             granularity=Granularity(query_definition.rollup),
             orderby=self._build_orderby(query_definition, entity),
         )
 
-        if totals_query.orderby is None:
-            series_query = totals_query.set_groupby(
-                (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
-            )
-        else:
-            series_query = None
+        series_query = totals_query.set_groupby(
+            (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+        )
+
+        # In a series query, we also need to factor in the len of the intervals array
+        series_limit = MAX_POINTS
+        if query_definition.limit:
+            series_limit = query_definition.limit * len(list(get_intervals(query_definition)))
+        series_query = series_query.set_limit(series_limit)
 
         return {
             "totals": totals_query,
