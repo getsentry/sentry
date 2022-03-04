@@ -47,39 +47,43 @@ def send_issue_ignored_webhook(project, user, group_list, **kwargs):
 
 @comment_created.connect(weak=False)
 def send_comment_created_webhook(project, user, group, data, **kwargs):
-    send_workflow_webhooks(project.organization, group, user, "comment.created", data=data)
+    send_comment_webhooks(project.organization, group, user, "comment.created", data=data)
 
 
 @comment_updated.connect(weak=False)
 def send_comment_updated_webhook(project, user, group, data, **kwargs):
-    send_workflow_webhooks(project.organization, group, user, "comment.updated", data=data)
+    send_comment_webhooks(project.organization, group, user, "comment.updated", data=data)
 
 
 @comment_deleted.connect(weak=False)
 def send_comment_deleted_webhook(project, user, group, data, **kwargs):
-    send_workflow_webhooks(project.organization, group, user, "comment.deleted", data=data)
+    send_comment_webhooks(project.organization, group, user, "comment.deleted", data=data)
+
+
+def send_comment_webhooks(organization, issue, user, event, data=None):
+    data = data or {}
+
+    for install in installations_to_notify(organization, event):
+        build_comment_webhook.delay(
+            installation_id=install.id,
+            issue_id=issue.id,
+            type=event,
+            user_id=(user.id if user else None),
+            data=data,
+        )
 
 
 def send_workflow_webhooks(organization, issue, user, event, data=None):
     data = data or {}
 
     for install in installations_to_notify(organization, event):
-        if event.startswith("comment"):
-            build_comment_webhook.delay(
-                installation_id=install.id,
-                issue_id=issue.id,
-                type=event,
-                user_id=(user.id if user else None),
-                data=data,
-            )
-        else:
-            workflow_notification.delay(
-                installation_id=install.id,
-                issue_id=issue.id,
-                type=event.split(".")[-1],
-                user_id=(user.id if user else None),
-                data=data,
-            )
+        workflow_notification.delay(
+            installation_id=install.id,
+            issue_id=issue.id,
+            type=event.split(".")[-1],
+            user_id=(user.id if user else None),
+            data=data,
+        )
 
 
 def installations_to_notify(organization, event):
