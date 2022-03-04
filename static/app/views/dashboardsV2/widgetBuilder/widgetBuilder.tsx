@@ -1014,22 +1014,26 @@ const BuildSteps = styled(List)`
 `;
 
 const Body = styled(Layout.Body)`
-  grid-template-rows: 1fr;
   && {
     gap: 0;
     padding: 0;
   }
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Main = styled(Layout.Main)`
+  max-width: 1000px;
   padding: ${space(4)};
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    border-right: 1px solid ${p => p.theme.gray200};
+    border-left: 1px solid ${p => p.theme.gray200};
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    border-bottom: 1px solid ${p => p.theme.gray200};
+    border-top: 1px solid ${p => p.theme.gray200};
   }
 `;
 
