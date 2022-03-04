@@ -897,7 +897,10 @@ function WidgetBuilder({
                           menuPlacement="auto"
                           value={state.queries[0].orderby}
                           name="orderby"
-                          options={generateOrderOptions(state.queries[0].fields)}
+                          options={generateOrderOptions({
+                            widgetType,
+                            ...getColumnsAndAggregates(state.queries[0].fields),
+                          })}
                           onChange={(option: SelectValue<string>) => {
                             const newQuery: WidgetQuery = {
                               ...state.queries[0],
