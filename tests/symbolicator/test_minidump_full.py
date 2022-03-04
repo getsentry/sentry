@@ -155,7 +155,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
             self.upload_symbols()
 
-            from sentry.tasks.reprocessing2 import reprocess_group
+            from sentry.tasks.reprocessing import reprocess_group
 
             with BurstTaskRunner() as burst:
                 reprocess_group.delay(project_id=self.project.id, group_id=event.group_id)

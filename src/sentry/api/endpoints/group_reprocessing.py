@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import GroupEndpoint
-from sentry.tasks.reprocessing2 import reprocess_group
+from sentry.tasks.reprocessing import reprocess_group
 
 
 class GroupReprocessingEndpoint(GroupEndpoint):

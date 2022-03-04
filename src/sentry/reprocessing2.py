@@ -503,7 +503,7 @@ def buffered_handle_remaining_events(
             # otherwise.
             return
 
-        from sentry.tasks.reprocessing2 import handle_remaining_events
+        from sentry.tasks.reprocessing import handle_remaining_events
 
         handle_remaining_events.delay(
             project_id=project_id,
@@ -559,7 +559,7 @@ def mark_event_reprocessed(data=None, group_id=None, project_id=None, num_events
 
     key = _get_sync_counter_key(group_id)
     if _get_sync_redis_client().decrby(key, num_events) == 0:
-        from sentry.tasks.reprocessing2 import finish_reprocessing
+        from sentry.tasks.reprocessing import finish_reprocessing
 
         finish_reprocessing.delay(project_id=project_id, group_id=group_id)
 

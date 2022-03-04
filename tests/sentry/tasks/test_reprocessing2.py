@@ -19,7 +19,7 @@ from sentry.models import (
 )
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing2 import is_group_finished
-from sentry.tasks.reprocessing2 import reprocess_group
+from sentry.tasks.reprocessing import reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
