@@ -26,7 +26,6 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
@@ -47,6 +46,7 @@ import Filter, {
 import {
   generateTraceLink,
   generateTransactionLink,
+  normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
 } from '../utils';
@@ -114,13 +114,7 @@ function SummaryContent({
 
   function handleCellAction(column: TableColumn<React.ReactText>) {
     return (action: Actions, value: React.ReactText) => {
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
-
-      // no need to include transaction as its already in the query params
-      searchConditions.removeFilter('transaction');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, column, value);
 

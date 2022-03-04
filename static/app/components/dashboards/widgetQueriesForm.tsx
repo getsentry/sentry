@@ -16,6 +16,7 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
+  getColumnsAndAggregates,
   isEquation,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
@@ -25,10 +26,19 @@ import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
 
 import WidgetQueryFields from './widgetQueryFields';
 
-export const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
+export const generateOrderOptions = ({
+  aggregates,
+  columns,
+  widgetType,
+}: {
+  aggregates: string[];
+  columns: string[];
+  widgetType: WidgetType;
+}): SelectValue<string>[] => {
+  const isMetrics = widgetType === WidgetType.METRICS;
   const options: SelectValue<string>[] = [];
   let equations = 0;
-  fields.forEach(field => {
+  (isMetrics ? aggregates : [...aggregates, ...columns]).forEach(field => {
     let alias = getAggregateAlias(field);
     const label = stripEquationPrefix(field);
     // Equations are referenced via a standard alias following this pattern
@@ -36,8 +46,14 @@ export const generateOrderOptions = (fields: string[]): SelectValue<string>[] =>
       alias = `equation[${equations}]`;
       equations += 1;
     }
-    options.push({label: t('%s asc', label), value: alias});
-    options.push({label: t('%s desc', label), value: `-${alias}`});
+    options.push({
+      label: t('%s asc', label),
+      value: isMetrics ? field : alias,
+    });
+    options.push({
+      label: t('%s desc', label),
+      value: isMetrics ? `-${field}` : `-${alias}`,
+    });
   });
   return options;
 };
@@ -230,6 +246,9 @@ class WidgetQueriesForm extends React.Component<Props> {
               );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
+              const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
+              newQuery.aggregates = aggregates;
+              newQuery.columns = columns;
               if (
                 !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
                 widgetQuery.orderby !== ''
@@ -249,7 +268,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             });
           }}
         />
-        {['table', 'top_n'].includes(displayType) && widgetType !== WidgetType.METRICS && (
+        {['table', 'top_n'].includes(displayType) && (
           <Field
             label={t('Sort by')}
             inline={false}
@@ -261,7 +280,10 @@ class WidgetQueriesForm extends React.Component<Props> {
             <SelectControl
               value={queries[0].orderby}
               name="orderby"
-              options={generateOrderOptions(queries[0].fields)}
+              options={generateOrderOptions({
+                widgetType,
+                ...getColumnsAndAggregates(queries[0].fields),
+              })}
               onChange={(option: SelectValue<string>) =>
                 this.handleFieldChange(0, 'orderby')(option.value)
               }

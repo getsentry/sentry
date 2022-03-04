@@ -4,7 +4,7 @@ import {Trace} from 'sentry/types/profiling/core';
 export type TableColumnKey = keyof Trace;
 
 type NonTableColumnKey =
-  | 'app_id'
+  | 'app_version'
   | 'device_locale'
   | 'device_manufacturer'
   | 'backtrace_available'

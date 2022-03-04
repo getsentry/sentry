@@ -3,6 +3,7 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
 import {Location} from 'history';
+import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -19,7 +20,7 @@ import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
@@ -33,24 +34,17 @@ import {generateFlamegraphRoute} from '../routes';
 import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
 
 interface ProfilingScatterChartProps extends WithRouterProps {
+  datetime: PageFilters['datetime'];
   isLoading: boolean;
-  location: Location;
   traces: Trace[];
-  end?: string;
-  start?: string;
-  statsPeriod?: string | null;
-  utc?: string;
 }
 
 function ProfilingScatterChart({
   router,
   location,
-  traces,
+  datetime,
   isLoading,
-  start,
-  end,
-  statsPeriod,
-  utc,
+  traces,
 }: ProfilingScatterChartProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -86,12 +80,13 @@ function ProfilingScatterChart({
     () =>
       makeScatterChartOptions({
         data,
+        datetime,
         location,
         organization,
         projects,
         theme,
       }),
-    [location, theme, data]
+    [location, datetime, theme, data]
   );
 
   const handleColorEncodingChange = useCallback(
@@ -112,10 +107,10 @@ function ProfilingScatterChart({
       <ChartContainer>
         <ChartZoom
           router={router}
-          period={statsPeriod}
-          start={start}
-          end={end}
-          utc={utc === 'true'}
+          period={datetime.period}
+          start={datetime.start}
+          end={datetime.end}
+          utc={datetime.utc}
         >
           {zoomRenderProps => {
             return (
@@ -143,6 +138,7 @@ function ProfilingScatterChart({
 
 function makeScatterChartOptions({
   data,
+  datetime,
   location,
   organization,
   projects,
@@ -153,6 +149,7 @@ function makeScatterChartOptions({
    * the order of the traces must match the order of the data in the series in the scatter plot.
    */
   data: Record<string, Trace[]>;
+  datetime: PageFilters['datetime'];
   location: Location;
   organization: Organization;
   projects: Project[];
@@ -200,6 +197,17 @@ function makeScatterChartOptions({
     ].join('');
   };
 
+  const now = moment.utc();
+  const end = (defined(datetime.end) ? moment.utc(datetime.end) : now).valueOf();
+  const start = (
+    defined(datetime.start)
+      ? moment.utc(datetime.start)
+      : now.subtract(
+          parseInt(datetime.period ?? '14', 10),
+          datetime.period?.charAt(datetime.period.length - 1) === 'h' ? 'hours' : 'days'
+        )
+  ).valueOf();
+
   return {
     grid: {
       left: '10px',
@@ -210,6 +218,12 @@ function makeScatterChartOptions({
     tooltip: {
       trigger: 'item' as const,
       formatter: _tooltipFormatter,
+    },
+    xAxis: {
+      // need to specify a min/max on the date range here
+      // or echarts will use the min/max from the series
+      min: start,
+      max: end,
     },
     yAxis: {
       axisLabel: {
