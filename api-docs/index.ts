@@ -1,12 +1,11 @@
 /* global process */
 /* eslint import/no-nodejs-modules:0 */
 /* eslint import/no-unresolved:0 */
+import fs from 'fs';
+import path from 'path';
 
-const fs = require('fs');
-const path = require('path');
-
-const JsonRefs = require('json-refs');
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
+import JsonRefs from 'json-refs';
 
 function dictToString(dict) {
   const res = [];
