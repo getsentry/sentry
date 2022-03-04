@@ -1,4 +1,15 @@
-export type MetricsColumnType = 'set' | 'counter' | 'duration';
+export type MetricsType = 'set' | 'counter' | 'distribution';
+
+export type MetricsOperation =
+  | 'sum'
+  | 'count_unique'
+  | 'avg'
+  | 'count'
+  | 'max'
+  | 'p50'
+  | 'p75'
+  | 'p95'
+  | 'p99';
 
 export type MetricsApiResponse = {
   end: string;
@@ -25,8 +36,8 @@ export type MetricTagValue = {
 
 export type MetricMeta = {
   name: string;
-  operations: string[];
-  type: MetricsColumnType;
+  operations: MetricsOperation[];
+  type: MetricsType;
 };
 
 export type MetricsMetaCollection = Record<string, MetricMeta>;

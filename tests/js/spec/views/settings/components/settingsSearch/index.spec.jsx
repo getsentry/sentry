@@ -64,8 +64,9 @@ describe('SettingsSearch', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />);
+
     // renders input
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });

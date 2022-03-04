@@ -37,12 +37,14 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
+  getColumnsAndAggregates,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Measurements, {
   MeasurementCollection,
 } from 'sentry/utils/measurements/measurements';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -94,25 +96,31 @@ const DATASET_CHOICES: [DataSet, string][] = [
   // [DataSet.METRICS, t('Metrics (Release Health)')],
 ];
 
-const QUERIES = {
+const QUERIES: Record<DataSet, WidgetQuery> = {
   [DataSet.EVENTS]: {
     name: '',
     fields: ['count()'],
+    columns: [],
+    aggregates: ['count()'],
     conditions: '',
     orderby: '',
   },
   [DataSet.ISSUES]: {
     name: '',
     fields: ['issue', 'assignee', 'title'] as string[],
+    columns: ['issue', 'assignee', 'title'],
+    aggregates: [],
     conditions: '',
     orderby: '',
   },
-  // [DataSet.METRICS]: {
-  //   name: '',
-  //   fields: [SessionMetric.SENTRY_SESSIONS_SESSION],
-  //   conditions: '',
-  //   orderby: '',
-  // },
+  [DataSet.METRICS]: {
+    name: '',
+    fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+    columns: [],
+    aggregates: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+    conditions: '',
+    orderby: '',
+  },
 };
 
 const WIDGET_TYPE_TO_DATA_SET = {
@@ -310,11 +318,21 @@ function WidgetBuilder({
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
               query.fields = [...defaultTableColumns];
+              const {columns, aggregates} = getColumnsAndAggregates([
+                ...defaultTableColumns,
+              ]);
+              query.aggregates = aggregates;
+              query.columns = columns;
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
               query.fields = [...defaultWidgetQuery.fields];
+              const {columns, aggregates} = getColumnsAndAggregates([
+                ...defaultWidgetQuery.fields,
+              ]);
+              query.aggregates = aggregates;
+              query.columns = columns;
               query.orderby = defaultWidgetQuery.orderby;
             });
           }
@@ -380,6 +398,8 @@ function WidgetBuilder({
       const newState = cloneDeep(prevState);
       const query = cloneDeep(QUERIES.events);
       query.fields = prevState.queries[0].fields;
+      query.aggregates = prevState.queries[0].aggregates;
+      query.columns = prevState.queries[0].columns;
       newState.queries.push(query);
       return newState;
     });
@@ -415,6 +435,9 @@ function WidgetBuilder({
       const prevAggregateAliasFieldStrings = query.fields.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
       newQuery.fields = fieldStrings;
+      const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
+      newQuery.aggregates = aggregates;
+      newQuery.columns = columns;
       if (
         !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
         query.orderby !== ''
@@ -754,6 +777,10 @@ function WidgetBuilder({
                           const fieldStrings = newFields.map(generateFieldAsString);
                           const newQuery = cloneDeep(state.queries[0]);
                           newQuery.fields = fieldStrings;
+                          const {columns, aggregates} =
+                            getColumnsAndAggregates(fieldStrings);
+                          newQuery.aggregates = aggregates;
+                          newQuery.columns = columns;
                           handleQueryChange(0, newQuery);
                         }}
                       />
@@ -888,7 +915,10 @@ function WidgetBuilder({
                           menuPlacement="auto"
                           value={state.queries[0].orderby}
                           name="orderby"
-                          options={generateOrderOptions(state.queries[0].fields)}
+                          options={generateOrderOptions({
+                            widgetType,
+                            ...getColumnsAndAggregates(state.queries[0].fields),
+                          })}
                           onChange={(option: SelectValue<string>) => {
                             const newQuery: WidgetQuery = {
                               ...state.queries[0],
@@ -1018,10 +1048,6 @@ const Body = styled(Layout.Body)`
 const Main = styled(Layout.Main)`
   max-width: 1000px;
   padding: ${space(4)};
-`;
-
-const Side = styled(Layout.Side)`
-  padding: ${space(4)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     border-left: 1px solid ${p => p.theme.gray200};
@@ -1030,4 +1056,8 @@ const Side = styled(Layout.Side)`
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     border-top: 1px solid ${p => p.theme.gray200};
   }
+`;
+
+const Side = styled(Layout.Side)`
+  padding: ${space(4)} ${space(2)};
 `;
