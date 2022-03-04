@@ -133,7 +133,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
 type RouteParams = {
   orgId: string;
   dashboardId?: string;
-  widgetIndex?: string;
+  widgetIndex?: number;
 };
 
 type QueryData = {
@@ -455,7 +455,7 @@ function WidgetBuilder({
     }
 
     let nextWidgetList = [...dashboard.widgets];
-    nextWidgetList.splice(parseInt(widgetIndex, 10), 1);
+    nextWidgetList.splice(widgetIndex, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
     onSave(nextWidgetList);
@@ -631,7 +631,7 @@ function WidgetBuilder({
     });
   }
 
-  if (isEditing && parseInt(widgetIndex, 10) >= dashboard.widgets.length) {
+  if (isEditing && widgetIndex >= dashboard.widgets.length) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
