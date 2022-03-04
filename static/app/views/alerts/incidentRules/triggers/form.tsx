@@ -17,6 +17,7 @@ import {isSessionAggregate} from '../../utils';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
+  AlertRuleTriggerType,
   ThresholdControlValue,
   Trigger,
   UnsavedIncidentRule,
@@ -189,10 +190,10 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     return '300';
   }
 
-  getIndicator(type: string) {
+  getIndicator(type: AlertRuleTriggerType) {
     const {hasAlertWizardV3} = this.props;
 
-    if (type === 'critical') {
+    if (type === AlertRuleTriggerType.CRITICAL) {
       return hasAlertWizardV3 ? (
         <StyledIconDiamond color="red300" size="sm" />
       ) : (
@@ -200,7 +201,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       );
     }
 
-    if (type === 'warning') {
+    if (type === AlertRuleTriggerType.WARNING) {
       return hasAlertWizardV3 ? (
         <StyledIconDiamond color="yellow300" size="sm" />
       ) : (
@@ -235,7 +236,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     } = this.props;
 
     const resolveTrigger: UnsavedTrigger = {
-      label: 'resolve',
+      label: AlertRuleTriggerType.RESOLVE,
       alertThreshold: resolveThreshold,
       actions: [],
     };
@@ -278,7 +279,11 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               }
               triggerLabel={
                 <TriggerLabel>
-                  {this.getIndicator(isCritical ? 'critical' : 'warning')}
+                  {this.getIndicator(
+                    isCritical
+                      ? AlertRuleTriggerType.CRITICAL
+                      : AlertRuleTriggerType.WARNING
+                  )}
                   {isCritical ? t('Critical') : t('Warning')}
                 </TriggerLabel>
               }
@@ -324,7 +329,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           }
           triggerLabel={
             <TriggerLabel>
-              {this.getIndicator('resolved')}
+              {this.getIndicator(AlertRuleTriggerType.RESOLVE)}
               {t('Resolved')}
             </TriggerLabel>
           }
