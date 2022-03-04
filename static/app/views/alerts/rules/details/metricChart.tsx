@@ -44,7 +44,11 @@ import theme from 'sentry/utils/theme';
 import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/incidentRules/incidentRulePresets';
-import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {
+  AlertRuleTriggerType,
+  Dataset,
+  IncidentRule,
+} from 'sentry/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
@@ -349,8 +353,12 @@ class MetricChart extends React.PureComponent<Props, State> {
       return this.renderEmpty();
     }
 
-    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+    const criticalTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.CRITICAL
+    );
+    const warningTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.WARNING
+    );
 
     const series: AreaChartSeries[] = [...timeseriesData];
     const areaSeries: any[] = [];
@@ -681,9 +689,9 @@ class MetricChart extends React.PureComponent<Props, State> {
                         );
 
                         const changeStatusColor =
-                          changeStatus === 'critical'
+                          changeStatus === AlertRuleTriggerType.CRITICAL
                             ? theme.red300
-                            : changeStatus === 'warning'
+                            : changeStatus === AlertRuleTriggerType.WARNING
                             ? theme.yellow300
                             : theme.green300;
 

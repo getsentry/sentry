@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -12,11 +12,13 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import Duration from 'sentry/components/duration';
+import IdBadge from 'sentry/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
 import {IconDiamond, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
@@ -27,11 +29,12 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/consta
 import {
   Action,
   AlertRuleThresholdType,
+  AlertRuleTriggerType,
   Dataset,
   IncidentRule,
 } from 'sentry/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
-import Timeline from 'sentry/views/alerts/rules/details/timeline';
+import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
 
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
 
@@ -40,38 +43,20 @@ import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 
-interface Props extends RouteComponentProps<{orgId: string}, {}> {
+type Props = {
   api: Client;
+  handleTimePeriodChange: (value: string) => void;
+  handleZoom: (start: DateString, end: DateString) => void;
   location: Location;
   organization: Organization;
+  project: Project;
   timePeriod: TimePeriodType;
   incidents?: Incident[];
-  project?: Project;
   rule?: IncidentRule;
   selectedIncident?: Incident | null;
-}
+} & RouteComponentProps<{orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
-  handleTimePeriodChange = (value: string) => {
-    browserHistory.push({
-      pathname: this.props.location.pathname,
-      query: {
-        period: value,
-      },
-    });
-  };
-
-  handleZoom = (start: DateString, end: DateString) => {
-    const {location} = this.props;
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        start,
-        end,
-      },
-    });
-  };
-
   getMetricText(): React.ReactNode {
     const {rule} = this.props;
 
@@ -95,7 +80,9 @@ export default class DetailsBody extends React.Component<Props> {
 
     const {timeWindow} = rule;
 
-    return <Duration seconds={timeWindow * 60} />;
+    return tct('[window]', {
+      window: <Duration seconds={timeWindow * 60} />,
+    });
   }
 
   getInterval() {
@@ -139,15 +126,15 @@ export default class DetailsBody extends React.Component<Props> {
     }
 
     const status =
-      label === 'critical'
+      label === AlertRuleTriggerType.CRITICAL
         ? t('Critical')
-        : label === 'warning'
+        : label === AlertRuleTriggerType.WARNING
         ? t('Warning')
         : t('Resolved');
     const statusIcon =
-      label === 'critical' ? (
+      label === AlertRuleTriggerType.CRITICAL ? (
         <StyledIconDiamond color="red300" size="md" />
-      ) : label === 'warning' ? (
+      ) : label === AlertRuleTriggerType.WARNING ? (
         <StyledIconDiamond color="yellow300" size="md" />
       ) : (
         <StyledIconDiamond color="green300" size="md" />
@@ -206,8 +193,12 @@ export default class DetailsBody extends React.Component<Props> {
       return <Placeholder height="200px" />;
     }
 
-    const criticalTrigger = rule?.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
+    const criticalTrigger = rule?.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.CRITICAL
+    );
+    const warningTrigger = rule?.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.WARNING
+    );
 
     const ownerId = rule.owner?.split(':')[1];
     const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
@@ -325,13 +316,14 @@ export default class DetailsBody extends React.Component<Props> {
   render() {
     const {
       api,
-      rule,
       project,
+      rule,
       incidents,
       location,
       organization,
       timePeriod,
       selectedIncident,
+      handleZoom,
       params: {orgId},
     } = this.props;
 
@@ -357,35 +349,51 @@ export default class DetailsBody extends React.Component<Props> {
           )}
         <StyledLayoutBodyWrapper>
           <Layout.Main>
-            <DateContainer>
-              <StyledDropdownControl
-                label={getDynamicText({
-                  fixed: (
-                    <div>
-                      {t('Date Range')}:{' '}
-                      <DropdownLabel>Oct 14, 2:56 PM — Oct 14, 4:55 PM</DropdownLabel>
-                    </div>
-                  ),
-                  value: (
-                    <div>
-                      {t('Date Range')}:{' '}
-                      <DropdownLabel>{timePeriod.display}</DropdownLabel>
-                    </div>
-                  ),
-                })}
-              >
-                {TIME_OPTIONS.map(({label, value}) => (
-                  <DropdownItem
-                    key={value}
-                    eventKey={value}
-                    isActive={!timePeriod.custom && timePeriod.period === value}
-                    onSelect={this.handleTimePeriodChange}
-                  >
-                    {label}
-                  </DropdownItem>
-                ))}
-              </StyledDropdownControl>
-            </DateContainer>
+            <HeaderContainer>
+              <HeaderGrid>
+                <HeaderItem>
+                  <Heading noMargin>{t('Display')}</Heading>
+                  <ChartControls>
+                    <DropdownControl
+                      label={
+                        getDynamicText({
+                          fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
+                          value: timePeriod.display,
+                        }) ?? '' // we should never get here because timePeriod.display is typed as always defined
+                      }
+                    >
+                      {TIME_OPTIONS.map(({label, value}) => (
+                        <DropdownItem
+                          key={value}
+                          eventKey={value}
+                          isActive={!timePeriod.custom && timePeriod.period === value}
+                          onSelect={this.props.handleTimePeriodChange}
+                        >
+                          {label}
+                        </DropdownItem>
+                      ))}
+                    </DropdownControl>
+                  </ChartControls>
+                </HeaderItem>
+                <HeaderItem>
+                  <Heading noMargin>{t('Project')}</Heading>
+
+                  <IdBadge avatarSize={16} project={project} />
+                </HeaderItem>
+                <HeaderItem>
+                  <Heading noMargin>
+                    {t('Time Interval')}
+                    <Tooltip
+                      title={t('The time window over which the metric is evaluated.')}
+                    >
+                      <IconInfo size="xs" color="gray200" />
+                    </Tooltip>
+                  </Heading>
+
+                  <RuleText>{this.getTimeWindow()}</RuleText>
+                </HeaderItem>
+              </HeaderGrid>
+            </HeaderContainer>
 
             <MetricChart
               api={api}
@@ -399,10 +407,11 @@ export default class DetailsBody extends React.Component<Props> {
               query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
               filter={this.getFilter()}
               orgId={orgId}
-              handleZoom={this.handleZoom}
+              handleZoom={handleZoom}
             />
             <DetailWrapper>
               <ActivityWrapper>
+                <MetricHistory organization={organization} incidents={incidents} />
                 {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                   <RelatedIssues
                     organization={organization}
@@ -434,12 +443,6 @@ export default class DetailsBody extends React.Component<Props> {
           </Layout.Main>
           <Layout.Side>
             {this.renderMetricStatus()}
-            <Timeline
-              api={api}
-              organization={organization}
-              rule={rule}
-              incidents={incidents}
-            />
             {this.renderRuleDetails()}
           </Layout.Side>
         </StyledLayoutBodyWrapper>
@@ -461,24 +464,18 @@ const DetailWrapper = styled('div')`
   }
 `;
 
-const DateContainer = styled('div')`
+const HeaderContainer = styled('div')`
+  height: 60px;
   display: flex;
-  align-items: center;
+  flex-direction: row;
+  align-content: flex-start;
 `;
 
-const DropdownLabel = styled('span')`
-  font-weight: 400;
-`;
-
-const StyledDropdownControl = styled(DropdownControl)`
-  width: 100%;
-
-  button {
-    width: 100%;
-    span {
-      justify-content: space-between;
-    }
-  }
+const HeaderGrid = styled('div')`
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: stretch;
+  gap: 60px;
 `;
 
 const HeaderItem = styled('div')`
@@ -538,6 +535,12 @@ const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
   margin-bottom: ${space(0.5)};
   line-height: 1;
   gap: ${space(1)};
+`;
+
+const ChartControls = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 `;
 
 const ChartPanel = styled(Panel)`

@@ -18,13 +18,13 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     queries: [
       {
         conditions: '',
-        fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+        fields: [`sum(${SessionMetric.SESSION})`],
         name: 'sessions',
         orderby: '',
       },
       {
         conditions: 'environment:prod',
-        fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+        fields: [`sum(${SessionMetric.SESSION})`],
         name: 'users',
         orderby: '',
       },
@@ -38,7 +38,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     queries: [
       {
         conditions: '',
-        fields: [`count_unique(${SessionMetric.SENTRY_SESSIONS_USER})`],
+        fields: [`count_unique(${SessionMetric.USER})`],
         name: 'sessions',
         orderby: '',
       },
@@ -66,7 +66,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`,
+        field: `sum(${SessionMetric.SESSION})`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -209,7 +209,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `count_unique(${SessionMetric.SENTRY_SESSIONS_USER})`,
+        field: `count_unique(${SessionMetric.USER})`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -231,7 +231,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           per_page: 1,
-          orderBy: `count_unique(${SessionMetric.SENTRY_SESSIONS_USER})`,
+          orderBy: `count_unique(${SessionMetric.USER})`,
         }),
       })
     );
@@ -256,11 +256,11 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const sessionMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`,
+        field: `sum(${SessionMetric.SESSION})`,
       }),
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+          field: [`sum(${SessionMetric.SESSION})`],
         }),
       ],
     });
@@ -313,7 +313,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       body: {detail: badMessage},
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+          field: [`sum(${SessionMetric.SESSION})`],
         }),
       ],
     });
@@ -344,7 +344,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`,
+        field: `sum(${SessionMetric.SESSION})`,
       }),
     });
 
@@ -378,7 +378,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`,
+        field: `sum(${SessionMetric.SESSION})`,
       }),
     });
     const children = jest.fn(() => <div />);

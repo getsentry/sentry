@@ -123,6 +123,9 @@ describe('groupDetails', () => {
     act(() => ProjectsStore.loadInitialData(organization.projects));
 
     expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
+
+    // Sample event alert should not show up
+    expect(screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
   });
 
   it('renders error when issue is not found', async function () {
@@ -221,19 +224,15 @@ describe('groupDetails', () => {
   });
 
   it('renders alert for sample event', async function () {
-    const aProject = TestStubs.Project({firstEvent: false});
-    act(() => ProjectsStore.reset());
-    act(() => ProjectsStore.loadInitialData([aProject]));
+    const sampleGruop = TestStubs.Group();
+    sampleGruop.tags.push({key: 'sample_event'});
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/`,
+      body: {...sampleGruop},
+    });
+
     createWrapper();
 
     expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeInTheDocument();
-  });
-  it('does not render alert for non sample events', function () {
-    const aProject = TestStubs.Project({firstEvent: false});
-    act(() => ProjectsStore.reset());
-    act(() => ProjectsStore.loadInitialData([aProject]));
-    createWrapper();
-
-    expect(screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
   });
 });

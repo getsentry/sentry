@@ -8,7 +8,9 @@ import {IconChevron} from 'sentry/icons';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
-import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import BreadcrumbDropdown, {
+  BreadcrumbDropdownProps,
+} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 const BreadcrumbList = styled('div')`
   display: flex;
@@ -44,7 +46,7 @@ export type CrumbDropdown = {
   /**
    * Items of the crumb dropdown
    */
-  items: React.ComponentProps<typeof BreadcrumbDropdown>['items'];
+  items: BreadcrumbDropdownProps['items'];
 
   /**
    * Name of the crumb
@@ -54,10 +56,10 @@ export type CrumbDropdown = {
   /**
    * Callback function for when an item is selected
    */
-  onSelect: React.ComponentProps<typeof BreadcrumbDropdown>['onSelect'];
+  onSelect: BreadcrumbDropdownProps['onSelect'];
 };
 
-type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Array of crumbs that will be rendered
    */
@@ -70,7 +72,7 @@ type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
    * assign `to: null/undefined` when passing props to this component.
    */
   linkLastItem?: boolean;
-};
+}
 
 function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
   return (crumb as CrumbDropdown).items !== undefined;
