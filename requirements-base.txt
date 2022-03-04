@@ -67,6 +67,7 @@ typing-extensions==3.10.0.2
 ua-parser==0.10.0
 unidiff==0.6.0
 urllib3[brotli]==1.25.11
+brotlipy==0.7.0
 # See if we can remove LDFLAGS from lib.sh
 # https://github.com/getsentry/sentry/pull/30094
 uWSGI==2.0.19.1
