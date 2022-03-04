@@ -613,12 +613,9 @@ function WidgetBuilder({
 
   function goToDashboards(id: string, query?: Record<string, any>) {
     const pathQuery =
-      !isEmpty(queryParamsWithoutSource) || selection || query
+      !isEmpty(queryParamsWithoutSource) || query
         ? {
             ...queryParamsWithoutSource,
-            project: pageFilters.projects,
-            environment: pageFilters.environments,
-            statsPeriod: pageFilters.datetime?.period,
             ...query,
           }
         : undefined;

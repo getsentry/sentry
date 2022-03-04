@@ -844,19 +844,10 @@ describe('WidgetBuilder', function () {
       dashboard,
       widget,
       params: {orgId: 'org-slug', dashboardId: '1'},
+      query: {statsPeriod: '90d'},
     });
 
     await screen.findByText('Update Widget');
-    userEvent.click(screen.getAllByText('Errors over time')[0]);
-    userEvent.type(screen.getByLabelText('Widget title'), 'Edited title');
-
-    // Change global selection header period
-    userEvent.click(screen.getByText('Last 24 hours'));
-    expect(router.push).not.toHaveBeenCalled();
-    userEvent.click(screen.getByText('Last 90 days'));
-    expect(screen.queryByText('Last 24 hours')).not.toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledTimes(1);
-
     const globalSelectionHeaderTimePeriod = screen.getByTestId(
       'global-header-timerange-selector'
     );
@@ -870,8 +861,6 @@ describe('WidgetBuilder', function () {
           pathname: '/organizations/org-slug/dashboard/1/',
           query: expect.objectContaining({
             statsPeriod: '90d',
-            project: [],
-            environment: [],
           }),
         })
       );
