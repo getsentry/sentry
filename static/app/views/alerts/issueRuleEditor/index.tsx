@@ -251,8 +251,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     metric.endTransaction({name: 'saveAlertRule'});
 
     router.push({
-      pathname: `/organizations/${organization.slug}/alerts/rules/`,
-      query: {project: project.id},
+      pathname: `/organizations/sentry/alerts/rules/${project.slug}/${rule.id}/details/`,
     });
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
