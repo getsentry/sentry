@@ -154,7 +154,7 @@ function DurationChart({
       DurationFunctionField.P95,
       DurationFunctionField.P99,
       'max',
-    ]).map(v => `${v}(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`);
+    ]).map(v => `${v}(${TransactionMetric.TRANSACTION_DURATION})`);
 
     return (
       <Fragment>

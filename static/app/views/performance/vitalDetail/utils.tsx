@@ -145,10 +145,10 @@ export function getMaxOfSeries(series: Series[]) {
 }
 
 export const vitalToMetricsField: Record<string, TransactionMetric> = {
-  [WebVital.LCP]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP,
-  [WebVital.FCP]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP,
-  [WebVital.FID]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID,
-  [WebVital.CLS]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS,
+  [WebVital.LCP]: TransactionMetric.MEASUREMENTS_LCP,
+  [WebVital.FCP]: TransactionMetric.MEASUREMENTS_FCP,
+  [WebVital.FID]: TransactionMetric.MEASUREMENTS_FID,
+  [WebVital.CLS]: TransactionMetric.MEASUREMENTS_CLS,
 };
 
 export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {

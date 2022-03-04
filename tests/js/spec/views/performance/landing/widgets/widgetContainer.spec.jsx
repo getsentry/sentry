@@ -358,7 +358,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Worst LCP widget - metrics based', async function () {
-    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP})`;
+    const field = `count(${TransactionMetric.MEASUREMENTS_LCP})`;
 
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -466,7 +466,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Worst FCP widget - metrics based', async function () {
-    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP})`;
+    const field = `count(${TransactionMetric.MEASUREMENTS_FCP})`;
 
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -575,7 +575,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Worst FID widget - metrics based', async function () {
-    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID})`;
+    const field = `count(${TransactionMetric.MEASUREMENTS_FID})`;
 
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -682,7 +682,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     const data = initializeData();
 
     it('P50 Duration', async function () {
-      const field = `p50(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+      const field = `p50(${TransactionMetric.TRANSACTION_DURATION})`;
 
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
@@ -753,7 +753,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('P75 Duration', async function () {
-      const field = `p75(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+      const field = `p75(${TransactionMetric.TRANSACTION_DURATION})`;
 
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
@@ -824,7 +824,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('P95 Duration', async function () {
-      const field = `p95(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+      const field = `p95(${TransactionMetric.TRANSACTION_DURATION})`;
 
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
@@ -895,7 +895,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('P95 Duration - with null values', async function () {
-      const field = `p95(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+      const field = `p95(${TransactionMetric.TRANSACTION_DURATION})`;
 
       const metricsData = TestStubs.MetricsField({field});
       metricsData.groups[0].series[field][0] = null;
@@ -942,7 +942,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('P99 Duration', async function () {
-      const field = `p99(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+      const field = `p99(${TransactionMetric.TRANSACTION_DURATION})`;
 
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
@@ -1013,7 +1013,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('P75 LCP', async function () {
-      const field = `p75(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP})`;
+      const field = `p75(${TransactionMetric.MEASUREMENTS_LCP})`;
 
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
@@ -1084,7 +1084,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('TPM', async function () {
-      const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+      const field = `count(${TransactionMetric.TRANSACTION_DURATION})`;
 
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
@@ -1155,7 +1155,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('Failure Rate', async function () {
-      const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+      const field = `count(${TransactionMetric.TRANSACTION_DURATION})`;
 
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
@@ -1446,7 +1446,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most slow frames widget - metrics based', async function () {
-    const field = `avg(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FRAMES_SLOW})`;
+    const field = `avg(${TransactionMetric.MEASUREMENTS_FRAMES_SLOW})`;
 
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -1580,7 +1580,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most frozen frames widget - metrics based', async function () {
-    const field = `avg(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FRAMES_FROZEN})`;
+    const field = `avg(${TransactionMetric.MEASUREMENTS_FRAMES_FROZEN})`;
 
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',

@@ -367,13 +367,13 @@ describe('Performance > TransactionSummary', function () {
 
   it('renders Web Vitals widget - metrics based', async function () {
     const fields = [
-      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP})`,
-      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP})`,
-      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID})`,
-      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS})`,
+      `count(${TransactionMetric.MEASUREMENTS_FCP})`,
+      `count(${TransactionMetric.MEASUREMENTS_LCP})`,
+      `count(${TransactionMetric.MEASUREMENTS_FID})`,
+      `count(${TransactionMetric.MEASUREMENTS_CLS})`,
     ];
 
-    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+    const field = `count(${TransactionMetric.TRANSACTION_DURATION})`;
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -484,7 +484,7 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders sidebar widgets - metrics based', async function () {
-    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+    const field = `count(${TransactionMetric.TRANSACTION_DURATION})`;
 
     MockApiClient.addMockResponse({
       method: 'GET',

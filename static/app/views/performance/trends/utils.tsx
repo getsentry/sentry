@@ -32,11 +32,11 @@ import {
 } from './types';
 
 export const trendParameterToMetricsField: Record<string, TransactionMetric> = {
-  [TrendColumnField.DURATION]: TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION,
-  [TrendColumnField.LCP]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP,
-  [TrendColumnField.FCP]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP,
-  [TrendColumnField.FID]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID,
-  [TrendColumnField.CLS]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS,
+  [TrendColumnField.DURATION]: TransactionMetric.TRANSACTION_DURATION,
+  [TrendColumnField.LCP]: TransactionMetric.MEASUREMENTS_LCP,
+  [TrendColumnField.FCP]: TransactionMetric.MEASUREMENTS_FCP,
+  [TrendColumnField.FID]: TransactionMetric.MEASUREMENTS_FID,
+  [TrendColumnField.CLS]: TransactionMetric.MEASUREMENTS_CLS,
 };
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
