@@ -700,7 +700,7 @@ function WidgetBuilder({
                 <BuildStep
                   title={t('Choose your data set')}
                   description={t(
-                    'Monitor specific events such as errors and transactions or metrics based on Release Health.'
+                    'This reflects the type of information you want to use. For a full list, read the docs.'
                   )}
                 >
                   <DataSetChoices
@@ -724,8 +724,10 @@ function WidgetBuilder({
                 </BuildStep>
                 {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                   <BuildStep
-                    title={t('Columns')}
-                    description="Description of what this means"
+                    title={t('Choose your columns')}
+                    description={t(
+                      'These are the tags, fields, and groupings you can add as columns to your table.'
+                    )}
                   >
                     {state.dataSet === DataSet.EVENTS ? (
                       <Measurements>
@@ -771,8 +773,20 @@ function WidgetBuilder({
                 )}
                 {![DisplayType.TABLE].includes(state.displayType) && (
                   <BuildStep
-                    title={t('Choose your y-axis')}
-                    description="Description of what this means"
+                    title={
+                      displayType === DisplayType.BIG_NUMBER
+                        ? t('Choose what to plot')
+                        : t('Choose what to plot in the y-axis')
+                    }
+                    description={
+                      [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(
+                        displayType
+                      )
+                        ? t(
+                            "This is the data you'd be visualizing in the display. You can chart multiple overlays if they share a similar unit."
+                          )
+                        : t("This is the data you'd be visualizing in the display.")
+                    }
                   >
                     <Measurements>
                       {({measurements}) => (
@@ -789,8 +803,14 @@ function WidgetBuilder({
                   </BuildStep>
                 )}
                 <BuildStep
-                  title={t('Query')}
-                  description="Description of what this means"
+                  title={t('Filter your results')}
+                  description={
+                    canAddSearchConditions
+                      ? t(
+                          'This is how you filter down your search. You can add multiple queries to compare data.'
+                        )
+                      : t('This is how you filter down your search.')
+                  }
                 >
                   <div>
                     {state.queries.map((query, queryIndex) => {
@@ -883,8 +903,10 @@ function WidgetBuilder({
                 </BuildStep>
                 {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                   <BuildStep
-                    title={t('Sort by')}
-                    description="Description of what this means"
+                    title={t('Sort by a column')}
+                    description={t(
+                      "Choose one of the columns you've created to sort by."
+                    )}
                   >
                     <Field
                       inline={false}
