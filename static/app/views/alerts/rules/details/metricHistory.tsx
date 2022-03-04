@@ -15,6 +15,7 @@ import {IconShow} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/incidentRules/types';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
@@ -114,7 +115,12 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
           {incident.seenBy.length}
         </IconWrapper>
       </SeenByCell>
-      <StyledDateTime date={incident.dateCreated} />
+      <StyledDateTime
+        date={getDynamicText({
+          value: incident.dateCreated,
+          fixed: 'Mar 4, 2022 10:44:13 AM UTC',
+        })}
+      />
     </ErrorBoundary>
   );
 }
