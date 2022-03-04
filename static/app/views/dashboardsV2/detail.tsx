@@ -1,6 +1,7 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -58,6 +59,7 @@ type RouteParams = {
   orgId: string;
   dashboardId?: string;
   widgetId?: number;
+  widgetIndex?: number;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
@@ -112,7 +114,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    if (location.pathname.match(/\/widget\/\w*\/$/)) {
+    if (location.pathname.match(/\/widget\/[0-9]+\/$/)) {
       const widget =
         defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
       if (widget) {
@@ -123,6 +125,19 @@ class DashboardDetail extends Component<Props, State> {
             router.push({
               pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
               query: location.query,
+            });
+          },
+          onEdit: () => {
+            openAddDashboardWidgetModal({
+              organization,
+              widget,
+              onUpdateWidget: (nextWidget: Widget) => {
+                const updateIndex = dashboard.widgets.indexOf(widget);
+                const nextWidgetsList = cloneDeep(dashboard.widgets);
+                nextWidgetsList[updateIndex] = nextWidget;
+                this.handleUpdateWidgetList(nextWidgetsList);
+              },
+              source: DashboardWidgetSource.DASHBOARDS,
             });
           },
         });
@@ -177,13 +192,13 @@ class DashboardDetail extends Component<Props, State> {
 
   get isWidgetBuilderRouter() {
     const {location, params, organization} = this.props;
-    const {dashboardId, widgetId} = params;
+    const {dashboardId, widgetIndex} = params;
 
     const widgetBuilderRoutes = [
       `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-      `/organizations/${organization.slug}/dashboards/new/widget/${widgetId}/edit/`,
-      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetId}/edit/`,
+      `/organizations/${organization.slug}/dashboards/new/widget/${widgetIndex}/edit/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
     ];
 
     return widgetBuilderRoutes.includes(location.pathname);

@@ -31,7 +31,7 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
             ),
           }
         : {}),
-      idleTimeout: 1000,
+      idleTimeout: 10000,
       _metricOptions: {
         _reportAllChanges: false,
       },

@@ -31,10 +31,12 @@ export enum SettingScope {
 export function getStoreCrashReportsValues(settingScope: SettingScope) {
   const values: Array<number | null> = [
     0, // disabled
-    1,
+    1, // limited per issue
     5,
     10,
-    20, // limited per issue
+    20,
+    50,
+    100,
     -1, // unlimited
   ];
 

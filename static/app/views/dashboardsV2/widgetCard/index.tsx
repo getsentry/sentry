@@ -145,6 +145,7 @@ class WidgetCard extends React.Component<Props> {
       showWidgetViewerButton,
       router,
       isEditing,
+      onEdit,
     } = this.props;
     return (
       <ErrorBoundary
@@ -168,6 +169,7 @@ class WidgetCard extends React.Component<Props> {
                     openWidgetViewerModal({
                       organization,
                       widget,
+                      onEdit,
                     });
                   }
                 }}
@@ -290,4 +292,5 @@ const OpenWidgetViewerButton = styled(IconExpand)`
   margin: auto;
   margin-left: ${space(0.5)};
   height: ${p => p.theme.fontSizeMedium};
+  min-width: ${p => p.theme.fontSizeMedium};
 `;

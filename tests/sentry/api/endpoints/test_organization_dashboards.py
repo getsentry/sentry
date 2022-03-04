@@ -529,31 +529,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
-    def test_post_widgets_with_invalid_columns_and_aggregates_succeeds(self):
-        data = {
-            "title": "Dashboard with null agg and cols",
-            "widgets": [
-                {
-                    "displayType": "line",
-                    "interval": "5m",
-                    "title": "Transaction count()",
-                    "queries": [
-                        {
-                            "name": "Transactions",
-                            "fields": ["count()"],
-                            "columns": ["transaction"],
-                            "aggregates": ["count_unique(user)"],
-                            "orderby": "count()",
-                            "conditions": "event.type:transaction",
-                        }
-                    ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
-                },
-            ],
-        }
-        response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 400, response.data
-
     def test_invalid_data(self):
         response = self.do_request("post", self.url, data={"malformed-data": "Dashboard from Post"})
         assert response.status_code == 400

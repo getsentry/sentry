@@ -1,12 +1,28 @@
+from rest_framework import status
+
 from sentry import tagstore
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
+from sentry.plugins.base import Notification
 from sentry.plugins.bases import notify
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
 
 from .client import SlackApiClient
+
+IGNORABLE_SLACK_ERRORS = [
+    "channel_is_archived",
+    "invalid_channel",
+    "invalid_token",
+    "action_prohibited",
+]
+
+IGNORABLE_SLACK_ERROR_CODES = [
+    status.HTTP_404_NOT_FOUND,
+    status.HTTP_429_TOO_MANY_REQUESTS,
+]
 
 
 class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
@@ -141,7 +157,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
             return None
         return {tag.strip().lower() for tag in option.split(",")}
 
-    def notify(self, notification, raise_exception=False):
+    def notify(self, notification: Notification, raise_exception: bool = False) -> None:
         event = notification.event
         group = event.group
         project = group.project
@@ -234,8 +250,14 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         if client.icon_url:
             payload["icon_url"] = client.icon_url
 
-        values = {"payload": json.dumps(payload)}
-        client.request(values)
+        try:
+            client.request({"payload": json.dumps(payload)})
+        except ApiError as e:
+            # Ignore 404 and ignorable errors from slack webhooks.
+            if raise_exception or not (
+                e.text in IGNORABLE_SLACK_ERRORS or e.code in IGNORABLE_SLACK_ERROR_CODES
+            ):
+                raise e
 
     def get_client(self, project):
         webhook = self.get_option("webhook", project).strip()
