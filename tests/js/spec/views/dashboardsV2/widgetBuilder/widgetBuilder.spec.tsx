@@ -2,6 +2,7 @@ import React from 'react';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {
   mountWithTheme,
   screen,
@@ -11,7 +12,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
+import * as modals from 'sentry/actionCreators/modal';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -20,8 +21,6 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
-
-jest.mock('sentry/actionCreators/modal');
 
 function renderTestComponent({
   widget,
@@ -762,6 +761,55 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
+  it('deletes the widget when the modal is confirmed', async () => {
+    const handleSave = jest.fn();
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+        {
+          name: 'csp',
+          conditions: 'event.type:csp',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    renderTestComponent({onSave: handleSave, dashboard, widget});
+
+    userEvent.click(await screen.findByText('Delete'));
+
+    await mountGlobalModal();
+    userEvent.click(await screen.findByText('Confirm'));
+
+    await waitFor(() => {
+      // The only widget was deleted
+      expect(handleSave).toHaveBeenCalledWith([]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
@@ -919,6 +967,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('only opens the modal when the query data is changed', async function () {
+      const mockModal = jest.spyOn(modals, 'openWidgetBuilderOverwriteModal');
       renderTestComponent();
       await screen.findByText('Widget Library');
 
@@ -928,7 +977,7 @@ describe('WidgetBuilder', function () {
       expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
 
       // Confirm modal doesn't open because no changes were made
-      expect(openWidgetBuilderOverwriteModal).not.toHaveBeenCalled();
+      expect(mockModal).not.toHaveBeenCalled();
 
       expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(3);
       userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
@@ -936,7 +985,7 @@ describe('WidgetBuilder', function () {
 
       // Should not have overwritten widget data, and confirm modal should open
       expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
-      expect(openWidgetBuilderOverwriteModal).toHaveBeenCalled();
+      expect(mockModal).toHaveBeenCalled();
     });
   });
 
