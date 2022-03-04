@@ -42,6 +42,7 @@ from sentry.models import (
     User,
     UserOption,
 )
+from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
@@ -521,27 +522,22 @@ def build_key_errors(interval, project):
 def build_key_transactions(interval, project):
     start, stop = interval
 
-    # Take the 3 most frequently occuring transactions
-    query = Query(
-        dataset=Dataset.Transactions.value,
-        match=Entity("transactions"),
-        select=[
-            Column("transaction_name"),
-            Function("count", []),
-        ],
-        where=[
-            Condition(Column("finish_ts"), Op.GTE, start),
-            Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
-            Condition(Column("project_id"), Op.EQ, project.id),
-        ],
-        groupby=[Column("transaction_name")],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
+    # Take 3 transactions by user misery
+    query_result = discover.query(
+        selected_columns=["transaction", "user_misery(300)", "count()"],
+        query="",
+        params={
+            "project_id": [project.id],
+            "start": start,
+            "end": stop + timedelta(days=1),
+        },
+        orderby="-user_misery(300)",
+        limit=3,
+        auto_fields=True,
     )
-    query_result = raw_snql_query(query, referrer="reports.key_transactions")
-    key_errors = query_result["data"]
+    key_transactions = query_result["data"]
 
-    transaction_names = map(lambda p: p["transaction_name"], key_errors)
+    transaction_names = map(lambda p: p["transaction"], key_transactions)
 
     def query_p95(interval):
         start, stop = interval
@@ -574,13 +570,14 @@ def build_key_transactions(interval, project):
 
     return [
         (
-            e["transaction_name"],
-            e["count()"],
+            e["transaction"],
+            e["user_misery_300"],
             project.id,
-            this_week_p95.get(e["transaction_name"], None),
-            last_week_p95.get(e["transaction_name"], None),
+            this_week_p95.get(e["transaction"], None),
+            last_week_p95.get(e["transaction"], None),
+            e["count"],
         )
-        for e in key_errors
+        for e in key_transactions
     ]
 
 
@@ -1201,7 +1198,7 @@ def build_key_transactions_ctx(key_events, organization, projects):
     return [
         {
             "name": e[0],
-            "count": e[1],
+            "count": e[5],
             "project": project_id_to_project[e[2]],
             "p95": e[3],
             "p95_prev_week": e[4],
