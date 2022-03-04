@@ -7,6 +7,7 @@ import {Location} from 'history';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels';
@@ -159,6 +160,9 @@ class WidgetCard extends React.Component<Props> {
             {showWidgetViewerButton && !isEditing && (
               <OpenWidgetViewerButton
                 aria-label={t('Open Widget Viewer')}
+                priority="link"
+                size="zero"
+                icon={<IconExpand size="xs" />}
                 onClick={() => {
                   if (widget.id) {
                     router.push({
@@ -282,15 +286,12 @@ const WidgetHeader = styled('div')`
   padding: ${space(2)} ${space(3)} 0 ${space(3)};
   width: 100%;
   display: flex;
+  align-items: center;
   justify-content: space-between;
 `;
 
-const OpenWidgetViewerButton = styled(IconExpand)`
-  &:hover {
-    cursor: pointer;
-  }
-  margin: auto;
+const OpenWidgetViewerButton = styled(Button)`
   margin-left: ${space(0.5)};
-  height: ${p => p.theme.fontSizeMedium};
-  min-width: ${p => p.theme.fontSizeMedium};
+  margin-right: auto;
+  color: ${p => p.theme.textColor};
 `;
