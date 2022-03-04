@@ -682,7 +682,7 @@ describe('Dashboards > Detail', function () {
         {context: initialData.routerContext}
       );
 
-      await mountGlobalModal();
+      await mountGlobalModal(initialData.routerContext);
 
       userEvent.click(screen.getByRole('button', {name: 'Edit Widget'}));
       expect(openEditModal).toHaveBeenCalledWith(
