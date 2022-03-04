@@ -132,9 +132,9 @@ const newIssueQuery: WidgetQuery = {
 
 const newMetricsQuery: WidgetQuery = {
   name: '',
-  fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+  fields: [`sum(${SessionMetric.SESSION})`],
   columns: [],
-  aggregates: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+  aggregates: [`sum(${SessionMetric.SESSION})`],
   conditions: '',
   orderby: '',
 };
