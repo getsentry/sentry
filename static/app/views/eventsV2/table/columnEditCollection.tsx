@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import Button from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -231,9 +232,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     // Compute where the user clicked on the drag handle. Avoids the element
     // jumping from the cursor on mousedown.
-    const {x, y} = Array.from(document.querySelectorAll(`.${DRAG_CLASS}`))
-      .find(n => n.contains(event.currentTarget))!
-      .getBoundingClientRect();
+    const draggingElement = Array.from(document.querySelectorAll(`.${DRAG_CLASS}`)).find(
+      n => n.contains(event.currentTarget)
+    )!;
+    const {x, y} = getOffsetOfElement(draggingElement);
 
     const draggingGrabbedOffset = {
       x: left - x + GHOST_PADDING,

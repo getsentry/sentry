@@ -18,9 +18,7 @@ PROFILE_FILTERS = [
     "device_os_build_number",
     "device_os_name",
     "device_os_version",
-    "environment",
     "error_code",
-    "statsPeriod",
     "transaction_name",
     "version",
 ]
@@ -34,10 +32,9 @@ class OrganizationProfilingProfilesEndpoint(OrganizationEndpoint):
         params = {
             p: request.query_params.getlist(p) for p in PROFILE_FILTERS if p in request.query_params
         }
-        projects = self.get_projects(request, organization)
-
-        if len(projects) > 0:
-            params["project"] = [p.id for p in projects]
+        params.update(self.get_filter_params(request, organization))
+        for p in ["start", "end"]:
+            params[p] = params[p].isoformat()
 
         def data_fn(offset: int, limit: int) -> Any:
             params["offset"] = offset
