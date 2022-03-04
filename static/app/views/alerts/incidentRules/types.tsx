@@ -6,6 +6,12 @@ export enum AlertRuleThresholdType {
   BELOW,
 }
 
+export enum AlertRuleTriggerType {
+  CRITICAL = 'critical',
+  WARNING = 'warning',
+  RESOLVE = 'resolve',
+}
+
 export enum AlertRuleComparisonType {
   COUNT = 'count',
   CHANGE = 'change',
@@ -45,7 +51,7 @@ export enum SessionsAggregate {
 export type UnsavedTrigger = {
   actions: Action[];
   alertThreshold: number | '' | null;
-  label: string;
+  label: AlertRuleTriggerType;
   // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
   // id yet
   alertRuleId?: string;

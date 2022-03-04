@@ -30,6 +30,7 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/consta
 import {
   Action,
   AlertRuleThresholdType,
+  AlertRuleTriggerType,
   Dataset,
   IncidentRule,
 } from 'sentry/views/alerts/incidentRules/types';
@@ -125,15 +126,15 @@ export default class DetailsBody extends React.Component<Props> {
     }
 
     const status =
-      label === 'critical'
+      label === AlertRuleTriggerType.CRITICAL
         ? t('Critical')
-        : label === 'warning'
+        : label === AlertRuleTriggerType.WARNING
         ? t('Warning')
         : t('Resolved');
     const statusIcon =
-      label === 'critical' ? (
+      label === AlertRuleTriggerType.CRITICAL ? (
         <StyledIconDiamond color="red300" size="md" />
-      ) : label === 'warning' ? (
+      ) : label === AlertRuleTriggerType.WARNING ? (
         <StyledIconDiamond color="yellow300" size="md" />
       ) : (
         <StyledIconDiamond color="green300" size="md" />
@@ -192,8 +193,12 @@ export default class DetailsBody extends React.Component<Props> {
       return <Placeholder height="200px" />;
     }
 
-    const criticalTrigger = rule?.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
+    const criticalTrigger = rule?.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.CRITICAL
+    );
+    const warningTrigger = rule?.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.WARNING
+    );
 
     const ownerId = rule.owner?.split(':')[1];
     const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
