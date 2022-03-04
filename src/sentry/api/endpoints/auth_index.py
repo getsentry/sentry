@@ -14,13 +14,10 @@ from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.superuser import Superuser, is_active_superuser
-from sentry.models import Authenticator, AuthIdentity, Organization
+from sentry.models import Authenticator, Organization
 from sentry.utils import auth, json
-from sentry.utils.auth import initiate_login
+from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.functional import extract_lazy_object
-
-# from datetime import timedelta, timezone
-
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -103,20 +100,10 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         validator = AuthVerifyValidator(data=request.data)
-        has_auth_identity = False
+        has_valid_sso_session = has_completed_sso(request, request.superuser.org_id)
         if not validator.is_valid():
-            try:
-                AuthIdentity.objects.get(user_id=request.user.id)
-                has_auth_identity = True
-            except AuthIdentity.DoesNotExist:
-                pass
-            if not has_auth_identity or not request.user.is_superuser:
+            if not has_valid_sso_session or not request.user.is_superuser:
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-
-            # # TODO do we need to check if last sso verification was x amount of time?
-            # valid_session = timedelta(minutes=15)
-            # if timezone.now() - auth_identity.last_verified > valid_session:
-            #     # TODO Redirect to sso login
 
         authenticated = False
         # See if we have a u2f challenge/response
@@ -147,7 +134,7 @@ class AuthIndexEndpoint(Endpoint):
                 pass
 
         # if the user is a superuser and has an authidentity, they are authenticated
-        elif has_auth_identity and request.user.is_superuser:
+        elif has_valid_sso_session and request.user.is_superuser:
             authenticated = True
         # attempt password authentication
         else:
