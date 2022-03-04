@@ -1,6 +1,5 @@
-/* global process */
+/* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-/* eslint import/no-unresolved:0 */
 
 const fs = require('fs');
 const yaml = require('js-yaml');
@@ -8,7 +7,7 @@ const jsonDiff = require('json-diff');
 const https = require('https');
 
 async function main() {
-  const request = new Promise((resolve, reject) =>
+  const openApiData = await new Promise((resolve, reject) =>
     https.get(
       `https://raw.githubusercontent.com/getsentry/sentry-api-schema/main/openapi-derefed.json`,
       res => {
@@ -26,7 +25,6 @@ async function main() {
     )
   );
 
-  const openApiData = await request;
   const readFile = fs.readFileSync('tests/apidocs/openapi-derefed.json', 'utf8');
   const target = yaml.safeLoad(readFile);
 
