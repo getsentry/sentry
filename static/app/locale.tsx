@@ -108,10 +108,10 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
     if (React.isValidElement(arg)) {
       nodes.push(React.cloneElement(arg, {key: idx}));
     } else {
-      // not a react element, fuck around with it so that sprintf.format
-      // can format it for us.  We make sure match[2] is null so that we
-      // do not go down the object path, and we set match[1] to the first
-      // index and then pass an array with two items in.
+      // Not a react element, massage it so that sprintf.format can format it
+      // for us.  We make sure match[2] is null so that we do not go down the
+      // object path, and we set match[1] to the first index and then pass an
+      // array with two items in.
       match[2] = null;
       match[1] = 1;
       nodes.push(<span key={idx++}>{sprintf.format([match], [null, arg])}</span>);

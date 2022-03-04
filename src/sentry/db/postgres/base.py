@@ -11,7 +11,7 @@ from .decorators import (
     auto_reconnect_connection,
     auto_reconnect_cursor,
     capture_transaction_exceptions,
-    less_shitty_error_messages,
+    more_better_error_messages,
 )
 from .operations import DatabaseOperations
 
@@ -80,7 +80,7 @@ class CursorWrapper:
 
     @capture_transaction_exceptions
     @auto_reconnect_cursor
-    @less_shitty_error_messages
+    @more_better_error_messages
     def execute(self, sql, params=None):
         if params is not None:
             return self.cursor.execute(sql, clean_bad_params(params))
@@ -88,7 +88,7 @@ class CursorWrapper:
 
     @capture_transaction_exceptions
     @auto_reconnect_cursor
-    @less_shitty_error_messages
+    @more_better_error_messages
     def executemany(self, sql, paramlist=()):
         return self.cursor.executemany(sql, paramlist)
 

@@ -102,7 +102,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                         },
                         "module": "org.a.b",
                         "type": "g$a",
-                        "value": "Shit broke yo",
+                        "value": "Oh no",
                     }
                 ]
             },
@@ -197,7 +197,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                         },
                         "module": "org.a.b",
                         "type": "g$a",
-                        "value": "Shit broke yo",
+                        "value": "Oh no",
                     }
                 ]
             },
@@ -295,7 +295,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                             ]
                         },
                         "type": "RuntimeException",
-                        "value": "Shit broke yo",
+                        "value": "Oh no",
                     }
                 ]
             },

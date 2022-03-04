@@ -43,7 +43,7 @@ def update(self: Model, using: str | None = None, **kwargs: Any) -> int:
             "Somehow we have updated a negative number of rows. You seem to have a problem with your db backend."
         )
     else:
-        raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
+        raise ValueError("Somehow we have updated multiple rows. This is very, very bad.")
 
 
 update.alters_data = True  # type: ignore
