@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -31,9 +31,10 @@ import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, DateString, Organization, Project} from 'sentry/types';
+import {DateString, Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   getCrashFreeRateSeries,
@@ -67,11 +68,10 @@ import {TimePeriodType} from './constants';
 type Props = WithRouterProps & {
   api: Client;
   filter: string[] | null;
-  handleZoom: (start: DateString, end: DateString) => void;
   interval: string;
   orgId: string;
   organization: Organization;
-  projects: Project[] | AvatarProject[];
+  project: Project;
   query: string;
   rule: IncidentRule;
   timePeriod: TimePeriodType;
@@ -236,6 +236,17 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
+  handleZoom = (start: DateString, end: DateString) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        start,
+        end,
+      },
+    });
+  };
+
   getRuleChangeSeries = (data: AreaChartSeries[]): LineSeriesOption[] => {
     const {dateModified} = this.props.rule || {};
 
@@ -279,10 +290,10 @@ class MetricChart extends React.PureComponent<Props, State> {
     criticalDuration: number,
     warningDuration: number
   ) {
-    const {rule, orgId, projects, timePeriod, query} = this.props;
+    const {rule, orgId, project, timePeriod, query} = this.props;
     const ctaOpts = {
       orgSlug: orgId,
-      projects: projects as Project[],
+      projects: [project],
       rule,
       eventType: query,
       start: timePeriod.start,
@@ -338,7 +349,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       router,
       selectedIncident,
       interval,
-      handleZoom,
       filter,
       incidents,
       rule,
@@ -547,7 +557,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         ''
     );
 
-    const queryFilter = filter?.join(' ');
+    const queryFilter = filter?.join(' ') + t(' over ') + getDuration(timeWindow * 60);
 
     const percentOfWidth =
       width >= 1151
@@ -580,7 +590,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 router={router}
                 start={start}
                 end={end}
-                onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+                onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
               >
                 {zoomRenderProps => (
                   <AreaChart
@@ -747,7 +757,7 @@ class MetricChart extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {api, rule, organization, timePeriod, projects, interval, query} = this.props;
+    const {api, rule, organization, timePeriod, project, interval, query} = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
     // If the chart duration isn't as long as the rollup duration the events-stats
@@ -767,7 +777,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       <SessionsRequest
         api={api}
         organization={organization}
-        project={projects.filter(p => p.id).map(p => Number(p.id))}
+        project={project.id ? [Number(project.id)] : []}
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
@@ -805,9 +815,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         organization={organization}
         query={query}
         environment={environment ? [environment] : undefined}
-        project={(projects as Project[])
-          .filter(p => p && p.slug)
-          .map(project => Number(project.id))}
+        project={project.id ? [Number(project.id)] : []}
         interval={interval}
         comparisonDelta={rule.comparisonDelta ? rule.comparisonDelta * 60 : undefined}
         start={viableStartDate}
