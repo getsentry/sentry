@@ -31,7 +31,7 @@ async function main() {
   const target = yaml.safeLoad(readFile);
 
   // eslint-disable-next-line no-console
-  console.log('JSON DIFF: ', jsonDiff.diffString(openApiData, target));
+  console.log(jsonDiff.diffString(openApiData, target));
 }
 
 main();
