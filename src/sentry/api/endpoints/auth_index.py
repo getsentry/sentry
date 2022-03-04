@@ -19,9 +19,6 @@ from sentry.utils import auth, json
 from sentry.utils.auth import initiate_login
 from sentry.utils.functional import extract_lazy_object
 
-# from datetime import timedelta, timezone
-
-
 logger: logging.Logger = logging.getLogger(__name__)
 
 
@@ -112,11 +109,6 @@ class AuthIndexEndpoint(Endpoint):
                 pass
             if not has_auth_identity or not request.user.is_superuser:
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-
-            # # TODO do we need to check if last sso verification was x amount of time?
-            # valid_session = timedelta(minutes=15)
-            # if timezone.now() - auth_identity.last_verified > valid_session:
-            #     # TODO Redirect to sso login
 
         authenticated = False
         # See if we have a u2f challenge/response
