@@ -40,12 +40,16 @@ describe('Dashboards util', () => {
         {
           name: '1',
           fields: ['count()', 'failure_count()'],
+          aggregates: ['count()', 'failure_count()'],
+          columns: [],
           conditions: 'title:test',
           orderby: '',
         },
         {
           name: '2',
           fields: ['count()', 'failure_count()'],
+          aggregates: ['count()', 'failure_count()'],
+          columns: [],
           conditions: 'event.type:test',
           orderby: '',
         },
@@ -78,6 +82,8 @@ describe('Dashboards util', () => {
         {
           name: '1',
           fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
           conditions: 'title:test',
           orderby: '',
         },
