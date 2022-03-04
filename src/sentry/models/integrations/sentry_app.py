@@ -2,7 +2,6 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import QuerySet
@@ -25,9 +24,6 @@ from sentry.db.models import (
 )
 from sentry.models.apiscopes import HasApiScopes
 from sentry.utils import metrics
-
-if TYPE_CHECKING:
-    from sentry.models import Project, User
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those
@@ -98,19 +94,6 @@ class SentryAppManager(ParanoidManager):
             return self.all()
 
         return self.filter(status=SentryAppStatus.PUBLISHED)
-
-    def check_project_permission_for_sentry_app_user(
-        self, user: "User", project: "Project"
-    ) -> bool:
-        """
-        This method checks if a user from a Sentry app has permission to a
-        specific project. For now, only checks if app is installed on the
-        organization of the project.
-        """
-        assert user.is_sentry_app
-        # if the user exists, so should the sentry_app
-        sentry_app = self.get(proxy_user=user)
-        return sentry_app.is_installed_on(project.organization)
 
 
 class SentryApp(ParanoidModel, HasApiScopes):

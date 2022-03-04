@@ -17,13 +17,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
   'organization' | 'start' | 'end' | 'utc' | 'relative' | 'onUpdate'
-> & {
-  router: WithRouterProps['router'];
-  /**
-   * Reset these URL params when we fire actions (custom routing only)
-   */
-  resetParamsOnChange?: string[];
-};
+> &
+  WithRouterProps & {
+    /**
+     * Reset these URL params when we fire actions (custom routing only)
+     */
+    resetParamsOnChange?: string[];
+  };
 
 function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
   const {selection, desyncedFilters} = useLegacyStore(PageFiltersStore);
