@@ -290,7 +290,6 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
             rootClassName={css`
               position: relative;
               display: flex;
-              left: -1px;
             `}
             inputProps={{style: {padding: 8, paddingLeft: 14}}}
             emptyMessage={t('You have no environments')}

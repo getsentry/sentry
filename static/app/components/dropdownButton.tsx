@@ -47,6 +47,7 @@ const DropdownButton = ({
     <StyledButton
       {...props}
       type="button"
+      aria-haspopup="listbox"
       disabled={disabled}
       priority={priority}
       isOpen={isOpen}
