@@ -183,6 +183,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/utils/profiling.py                                      @getsentry/profiling
 /src/sentry/api/endpoints/project_profiling_profile.py              @getsentry/profiling
 /src/sentry/api/endpoints/organization_profiling_profiles.py        @getsentry/profiling
+/src/sentry/profiles                                                @getsentry/profiling
 /tests/sentry/api/endpoints/test_project_profiling_profile.py       @getsentry/profiling
 /tests/sentry/api/endpoints/test_organization_profiling_profiles.py @getsentry/profiling
 ### End of Profiling ###
