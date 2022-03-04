@@ -164,7 +164,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
         groupBy: columns.length ? columns : undefined,
         interval,
         limit: this.limit,
-        orderBy: query.orderby || this.limit ? query.fields[0] : undefined,
+        orderBy: query.orderby || (this.limit ? aggregates[0] : undefined),
         project: projects,
         query: query.conditions,
         start,
