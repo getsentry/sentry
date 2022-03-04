@@ -111,7 +111,7 @@ function IssueListFilters({
       </SearchContainer>
       {hasPageFilters && (
         <IssueListDropdownsWrapper>
-          <DatePageFilter />
+          <DatePageFilter alignDropdown="left" />
           {hasIssuePercentDisplay && (
             <IssueListDisplayOptions
               onDisplayChange={onDisplayChange}
