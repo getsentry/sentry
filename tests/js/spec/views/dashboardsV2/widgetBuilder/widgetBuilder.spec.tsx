@@ -10,6 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -127,6 +128,8 @@ describe('WidgetBuilder', function () {
   let eventsStatsMock: jest.Mock | undefined;
 
   beforeEach(function () {
+    PageFiltersStore.init();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [
