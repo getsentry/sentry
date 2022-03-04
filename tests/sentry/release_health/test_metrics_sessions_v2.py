@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from tests.snuba.api.endpoints.test_organization_sessions import result_sorted
 
 
-class MetricsSessionsV2SessionsTest(APITestCase, SnubaTestCase):
+class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.setup_fixture()
