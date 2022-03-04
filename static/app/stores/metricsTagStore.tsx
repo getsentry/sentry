@@ -1,13 +1,13 @@
 import Reflux from 'reflux';
 
 import MetricsTagActions from 'sentry/actions/metricTagActions';
-import {MetricTag, MetricTagCollection} from 'sentry/types';
+import {MetricsTag, MetricsTagCollection} from 'sentry/types';
 
 type MetricsTagStoreInterface = {
-  getAllTags(): MetricTagCollection;
-  onLoadTagsSuccess(data: MetricTag[]): void;
+  getAllTags(): MetricsTagCollection;
+  onLoadTagsSuccess(data: MetricsTag[]): void;
   reset(): void;
-  state: MetricTagCollection;
+  state: MetricsTagCollection;
 };
 
 const storeConfig: Reflux.StoreDefinition & MetricsTagStoreInterface = {
@@ -28,7 +28,7 @@ const storeConfig: Reflux.StoreDefinition & MetricsTagStoreInterface = {
   },
 
   onLoadTagsSuccess(data) {
-    const newTags = data.reduce<MetricTagCollection>((acc, tag) => {
+    const newTags = data.reduce<MetricsTagCollection>((acc, tag) => {
       acc[tag.key] = {
         ...tag,
       };

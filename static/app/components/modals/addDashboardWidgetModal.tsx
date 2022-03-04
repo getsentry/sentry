@@ -26,7 +26,7 @@ import space from 'sentry/styles/space';
 import {
   DateString,
   MetricsMetaCollection,
-  MetricTagCollection,
+  MetricsTagCollection,
   Organization,
   PageFilters,
   SelectValue,
@@ -89,7 +89,7 @@ type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
     metricsMeta: MetricsMetaCollection;
-    metricsTags: MetricTagCollection;
+    metricsTags: MetricsTagCollection;
     organization: Organization;
     selection: PageFilters;
     tags: TagCollection;

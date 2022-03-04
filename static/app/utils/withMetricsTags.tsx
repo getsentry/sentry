@@ -1,15 +1,15 @@
 import * as React from 'react';
 
 import MetricsTagStore from 'sentry/stores/metricsTagStore';
-import {MetricTagCollection} from 'sentry/types';
+import {MetricsTagCollection} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 export type InjectedMetricsTagsProps = {
-  metricsTags: MetricTagCollection;
+  metricsTags: MetricsTagCollection;
 };
 
 type State = {
-  metricsTags: MetricTagCollection;
+  metricsTags: MetricsTagCollection;
 };
 
 function withMetricsTags<P extends InjectedMetricsTagsProps>(
@@ -29,7 +29,7 @@ function withMetricsTags<P extends InjectedMetricsTagsProps>(
       this.unsubscribe();
     }
     unsubscribe = MetricsTagStore.listen(
-      (metricsTags: MetricTagCollection) => this.setState({metricsTags}),
+      (metricsTags: MetricsTagCollection) => this.setState({metricsTags}),
       undefined
     );
 
