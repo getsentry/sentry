@@ -4,15 +4,12 @@ from django.urls import reverse
 
 from sentry.release_health.duplex import compare_results
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.sentry_metrics.indexer.mock import MockIndexer
-from sentry.testutils.cases import APITestCase, SessionMetricsTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 
 class MetricsSessionsV2SessionsTest(APITestCase, SnubaTestCase):
-    # Sessions cache. The sessions backend writes into it, and the metrics
-    # backend reads from it.
-    cache = {}
-
     def setUp(self):
         super().setUp()
         self.setup_fixture()
@@ -69,31 +66,27 @@ class MetricsSessionsV2SessionsTest(APITestCase, SnubaTestCase):
         empty_groupbyes = ["project", "release", "environment", "session.status"]
         interval_days = "1d"
 
-        from sentry.api.endpoints.organization_sessions import release_health
+        for groupby in empty_groupbyes:
+            with patch(
+                "sentry.api.endpoints.organization_sessions.release_health",
+                SessionsReleaseHealthBackend(),
+            ):
+                sessions_data = self.get_sessions_data(groupby, interval_days)
 
-        if not release_health.is_metrics_based():
-            MetricsSessionsV2SessionsTest.cache["sessions"] = {}
-            for groupby in empty_groupbyes:
-                MetricsSessionsV2SessionsTest.cache["sessions"][groupby] = self.get_sessions_data(
-                    groupby, interval_days
-                )
-        else:
-            sessions_cache = MetricsSessionsV2SessionsTest.cache["sessions"]
-            assert len(sessions_cache) == len(empty_groupbyes)
-            for groupby in empty_groupbyes:
+            with patch(
+                "sentry.release_health.metrics_sessions_v2.indexer.resolve", MockIndexer().resolve
+            ), patch(
+                "sentry.api.endpoints.organization_sessions.release_health",
+                MetricsReleaseHealthBackend(),
+            ):
                 metrics_data = self.get_sessions_data(groupby, interval_days)
-                errors = compare_results(
-                    sessions=sessions_cache[groupby],
-                    metrics=metrics_data,
-                    rollup=interval_days * 24 * 60 * 60,  # days to seconds
-                )
-                if len(errors) > 0:
-                    diff_num_keys_msg = "different number of keys in dictionaries sessions"
-                    for e in errors:
-                        assert str(e) not in diff_num_keys_msg
 
-
-@patch("sentry.release_health.metrics_sessions_v2.indexer.resolve", MockIndexer().resolve)
-@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
-class MetricsSessionsV2MetricsTest(SessionMetricsTestCase, MetricsSessionsV2SessionsTest):
-    """Repeat with metrics backend"""
+            errors = compare_results(
+                sessions=sessions_data,
+                metrics=metrics_data,
+                rollup=interval_days * 24 * 60 * 60,  # days to seconds
+            )
+            if len(errors) > 0:
+                diff_num_keys_msg = "different number of keys in dictionaries sessions"
+                for e in errors:
+                    assert str(e) not in diff_num_keys_msg
