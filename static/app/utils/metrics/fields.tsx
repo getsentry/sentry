@@ -1,5 +1,7 @@
 import invert from 'lodash/invert';
 
+import {MetricsOperation, MetricsType} from 'sentry/types';
+
 import {ColumnType} from '../discover/fields';
 
 export enum SessionMetric {
@@ -64,6 +66,50 @@ export const METRIC_TO_COLUMN_TYPE: Readonly<
   [TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_STALL_TOTAL_TIME]: 'duration',
   [TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_STALL_LONGEST_TIME]: 'duration',
   [TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_STALL_PERCENTAGE]: 'percentage',
+};
+
+export const METRICS_OPERATIONS: Readonly<
+  Record<
+    MetricsOperation,
+    {defaultValue: SessionMetric | TransactionMetric; metricsTypes: MetricsType[]}
+  >
+> = {
+  sum: {
+    metricsTypes: ['counter'],
+    defaultValue: SessionMetric.SENTRY_SESSIONS_SESSION,
+  },
+  count_unique: {
+    metricsTypes: ['set'],
+    defaultValue: SessionMetric.SENTRY_SESSIONS_USER,
+  },
+  avg: {
+    metricsTypes: ['distribution'],
+    defaultValue: TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION,
+  },
+  count: {
+    metricsTypes: ['distribution'],
+    defaultValue: TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION,
+  },
+  max: {
+    metricsTypes: ['distribution'],
+    defaultValue: TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION,
+  },
+  p50: {
+    metricsTypes: ['distribution'],
+    defaultValue: TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION,
+  },
+  p75: {
+    metricsTypes: ['distribution'],
+    defaultValue: TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION,
+  },
+  p95: {
+    metricsTypes: ['distribution'],
+    defaultValue: TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION,
+  },
+  p99: {
+    metricsTypes: ['distribution'],
+    defaultValue: TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION,
+  },
 };
 
 // This is not the full map, just what we need for performance table.
