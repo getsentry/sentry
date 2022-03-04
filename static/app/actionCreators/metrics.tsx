@@ -9,9 +9,9 @@ import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
 import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import {
   DateString,
-  MetricMeta,
   MetricsApiResponse,
-  MetricTag,
+  MetricsMeta,
+  MetricsTag,
   Organization,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -65,7 +65,7 @@ export const doMetricsRequest = (
       cursor,
       end,
       environment,
-      groupBy,
+      groupBy: groupBy?.filter(g => !!g),
       interval: interval || getInterval({start, end, period: statsPeriod}),
       query: query || undefined,
       per_page: limit,
@@ -83,7 +83,7 @@ export const doMetricsRequest = (
   return api.requestPromise(pathname, {includeAllArgs, query: urlQuery});
 };
 
-function tagFetchSuccess(tags: MetricTag[]) {
+function tagFetchSuccess(tags: MetricsTag[]) {
   MetricsTagActions.loadMetricsTagsSuccess(tags);
 }
 
@@ -92,7 +92,7 @@ export function fetchMetricsTags(
   orgSlug: Organization['slug'],
   projects?: number[],
   fields?: string[]
-): Promise<MetricTag[]> {
+): Promise<MetricsTag[]> {
   MetricsTagStore.reset();
 
   const promise = api.requestPromise(`/organizations/${orgSlug}/metrics/tags/`, {
@@ -111,7 +111,7 @@ export function fetchMetricsTags(
   return promise;
 }
 
-function metaFetchSuccess(metricsMeta: MetricMeta[]) {
+function metaFetchSuccess(metricsMeta: MetricsMeta[]) {
   MetricsMetaActions.loadMetricsMetaSuccess(metricsMeta);
 }
 
@@ -119,10 +119,10 @@ export function fetchMetricsFields(
   api: Client,
   orgSlug: Organization['slug'],
   projects?: number[]
-): Promise<MetricMeta[]> {
+): Promise<MetricsMeta[]> {
   MetricsMetaStore.reset();
 
-  const promise: Promise<MetricMeta[]> = api.requestPromise(
+  const promise: Promise<MetricsMeta[]> = api.requestPromise(
     `/organizations/${orgSlug}/metrics/meta/`,
     {
       query: {

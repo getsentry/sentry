@@ -37,12 +37,14 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
+  getColumnsAndAggregates,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Measurements, {
   MeasurementCollection,
 } from 'sentry/utils/measurements/measurements';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -94,25 +96,31 @@ const DATASET_CHOICES: [DataSet, string][] = [
   // [DataSet.METRICS, t('Metrics (Release Health)')],
 ];
 
-const QUERIES = {
+const QUERIES: Record<DataSet, WidgetQuery> = {
   [DataSet.EVENTS]: {
     name: '',
     fields: ['count()'],
+    columns: [],
+    aggregates: ['count()'],
     conditions: '',
     orderby: '',
   },
   [DataSet.ISSUES]: {
     name: '',
     fields: ['issue', 'assignee', 'title'] as string[],
+    columns: ['issue', 'assignee', 'title'],
+    aggregates: [],
     conditions: '',
     orderby: '',
   },
-  // [DataSet.METRICS]: {
-  //   name: '',
-  //   fields: [SessionMetric.SENTRY_SESSIONS_SESSION],
-  //   conditions: '',
-  //   orderby: '',
-  // },
+  [DataSet.METRICS]: {
+    name: '',
+    fields: [`sum(${SessionMetric.SESSION})`],
+    columns: [],
+    aggregates: [`sum(${SessionMetric.SESSION})`],
+    conditions: '',
+    orderby: '',
+  },
 };
 
 const WIDGET_TYPE_TO_DATA_SET = {
@@ -300,11 +308,21 @@ function WidgetBuilder({
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
               query.fields = [...defaultTableColumns];
+              const {columns, aggregates} = getColumnsAndAggregates([
+                ...defaultTableColumns,
+              ]);
+              query.aggregates = aggregates;
+              query.columns = columns;
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
               query.fields = [...defaultWidgetQuery.fields];
+              const {columns, aggregates} = getColumnsAndAggregates([
+                ...defaultWidgetQuery.fields,
+              ]);
+              query.aggregates = aggregates;
+              query.columns = columns;
               query.orderby = defaultWidgetQuery.orderby;
             });
           }
@@ -370,6 +388,8 @@ function WidgetBuilder({
       const newState = cloneDeep(prevState);
       const query = cloneDeep(QUERIES.events);
       query.fields = prevState.queries[0].fields;
+      query.aggregates = prevState.queries[0].aggregates;
+      query.columns = prevState.queries[0].columns;
       newState.queries.push(query);
       return newState;
     });
@@ -405,6 +425,9 @@ function WidgetBuilder({
       const prevAggregateAliasFieldStrings = query.fields.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
       newQuery.fields = fieldStrings;
+      const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
+      newQuery.aggregates = aggregates;
+      newQuery.columns = columns;
       if (
         !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
         query.orderby !== ''
@@ -677,7 +700,7 @@ function WidgetBuilder({
                 <BuildStep
                   title={t('Choose your data set')}
                   description={t(
-                    'Monitor specific events such as errors and transactions or metrics based on Release Health.'
+                    'This reflects the type of information you want to use. For a full list, read the docs.'
                   )}
                 >
                   <DataSetChoices
@@ -701,8 +724,10 @@ function WidgetBuilder({
                 </BuildStep>
                 {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                   <BuildStep
-                    title={t('Columns')}
-                    description="Description of what this means"
+                    title={t('Choose your columns')}
+                    description={t(
+                      'These are the tags, fields, and groupings you can add as columns to your table.'
+                    )}
                   >
                     {state.dataSet === DataSet.EVENTS ? (
                       <Measurements>
@@ -736,6 +761,10 @@ function WidgetBuilder({
                           const fieldStrings = newFields.map(generateFieldAsString);
                           const newQuery = cloneDeep(state.queries[0]);
                           newQuery.fields = fieldStrings;
+                          const {columns, aggregates} =
+                            getColumnsAndAggregates(fieldStrings);
+                          newQuery.aggregates = aggregates;
+                          newQuery.columns = columns;
                           handleQueryChange(0, newQuery);
                         }}
                       />
@@ -744,8 +773,20 @@ function WidgetBuilder({
                 )}
                 {![DisplayType.TABLE].includes(state.displayType) && (
                   <BuildStep
-                    title={t('Choose your y-axis')}
-                    description="Description of what this means"
+                    title={
+                      displayType === DisplayType.BIG_NUMBER
+                        ? t('Choose what to plot')
+                        : t('Choose what to plot in the y-axis')
+                    }
+                    description={
+                      [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(
+                        displayType
+                      )
+                        ? t(
+                            "This is the data you'd be visualizing in the display. You can chart multiple overlays if they share a similar unit."
+                          )
+                        : t("This is the data you'd be visualizing in the display.")
+                    }
                   >
                     <Measurements>
                       {({measurements}) => (
@@ -762,8 +803,14 @@ function WidgetBuilder({
                   </BuildStep>
                 )}
                 <BuildStep
-                  title={t('Query')}
-                  description="Description of what this means"
+                  title={t('Filter your results')}
+                  description={
+                    canAddSearchConditions
+                      ? t(
+                          'This is how you filter down your search. You can add multiple queries to compare data.'
+                        )
+                      : t('This is how you filter down your search.')
+                  }
                 >
                   <div>
                     {state.queries.map((query, queryIndex) => {
@@ -856,8 +903,10 @@ function WidgetBuilder({
                 </BuildStep>
                 {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                   <BuildStep
-                    title={t('Sort by')}
-                    description="Description of what this means"
+                    title={t('Sort by a column')}
+                    description={t(
+                      "Choose one of the columns you've created to sort by."
+                    )}
                   >
                     <Field
                       inline={false}
@@ -870,7 +919,10 @@ function WidgetBuilder({
                           menuPlacement="auto"
                           value={state.queries[0].orderby}
                           name="orderby"
-                          options={generateOrderOptions(state.queries[0].fields)}
+                          options={generateOrderOptions({
+                            widgetType,
+                            ...getColumnsAndAggregates(state.queries[0].fields),
+                          })}
                           onChange={(option: SelectValue<string>) => {
                             const newQuery: WidgetQuery = {
                               ...state.queries[0],
@@ -932,8 +984,10 @@ function WidgetBuilder({
                     dataSet: prebuiltWidget.widgetType
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
+                    userHasModified: false,
                   })
                 }
+                bypassOverwriteModal={!state.userHasModified}
               />
             </Side>
           </Body>
@@ -987,22 +1041,26 @@ const BuildSteps = styled(List)`
 `;
 
 const Body = styled(Layout.Body)`
-  grid-template-rows: 1fr;
   && {
     gap: 0;
     padding: 0;
   }
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Main = styled(Layout.Main)`
+  max-width: 1000px;
   padding: ${space(4)};
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    border-right: 1px solid ${p => p.theme.gray200};
+    border-left: 1px solid ${p => p.theme.gray200};
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    border-bottom: 1px solid ${p => p.theme.gray200};
+    border-top: 1px solid ${p => p.theme.gray200};
   }
 `;
 

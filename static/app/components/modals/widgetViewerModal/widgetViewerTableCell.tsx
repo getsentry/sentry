@@ -33,6 +33,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  isFirstPage?: boolean;
   tableData?: TableDataWithTitle;
 };
 
@@ -80,7 +81,7 @@ export const renderGridHeaderCell =
   };
 
 export const renderGridBodyCell =
-  ({location, organization, widget, tableData}: Props) =>
+  ({location, organization, widget, tableData, isFirstPage}: Props) =>
   (
     column: GridColumnOrder,
     dataRow: Record<string, any>,
@@ -124,7 +125,10 @@ export const renderGridBodyCell =
 
     return (
       <React.Fragment>
-        {isTopEvents && rowIndex < DEFAULT_NUM_TOP_EVENTS && columnIndex === 0 ? (
+        {isTopEvents &&
+        isFirstPage &&
+        rowIndex < DEFAULT_NUM_TOP_EVENTS &&
+        columnIndex === 0 ? (
           <TopResultsIndicator count={DEFAULT_NUM_TOP_EVENTS} index={rowIndex} />
         ) : null}
         {cell}
