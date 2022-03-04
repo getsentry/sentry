@@ -116,9 +116,9 @@ const QUERIES: Record<DataSet, WidgetQuery> = {
   },
   [DataSet.METRICS]: {
     name: '',
-    fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+    fields: [`sum(${SessionMetric.SESSION})`],
     columns: [],
-    aggregates: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+    aggregates: [`sum(${SessionMetric.SESSION})`],
     conditions: '',
     orderby: '',
   },
@@ -910,7 +910,10 @@ function WidgetBuilder({
                             menuPlacement="auto"
                             value={state.queries[0].orderby}
                             name="orderby"
-                            options={generateOrderOptions(state.queries[0].fields)}
+                            options={generateOrderOptions({
+                              widgetType,
+                              ...getColumnsAndAggregates(state.queries[0].fields),
+                            })}
                             onChange={(option: SelectValue<string>) => {
                               const newQuery: WidgetQuery = {
                                 ...state.queries[0],
@@ -979,8 +982,10 @@ function WidgetBuilder({
                     dataSet: prebuiltWidget.widgetType
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
+                    userHasModified: false,
                   })
                 }
+                bypassOverwriteModal={!state.userHasModified}
               />
             </Side>
           </Body>
@@ -1034,10 +1039,13 @@ const BuildSteps = styled(List)`
 `;
 
 const Body = styled(Layout.Body)`
-  grid-template-rows: 1fr;
   && {
     gap: 0;
     padding: 0;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr;
   }
 `;
 
