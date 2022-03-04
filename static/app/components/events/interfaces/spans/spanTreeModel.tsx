@@ -424,7 +424,6 @@ class SpanTreeModel {
           treeDepth: treeDepth + 1,
           continuingTreeDepths,
           spanGrouping: wrappedSiblings,
-          siblingCount: group.length,
           toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
         };
 

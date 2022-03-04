@@ -112,7 +112,6 @@ export type EnhancedProcessedSpanType =
     } & SpanGroupProps)
   | ({
       continuingTreeDepths: Array<TreeDepthType>;
-      siblingCount: number;
       span: SpanType;
       treeDepth: number;
       type: 'span_group_sibling';

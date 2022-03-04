@@ -116,6 +116,7 @@ type SpanBarProps = {
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
+  toggleSiblingSpanGroup: (operation: string, description: string) => void;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
