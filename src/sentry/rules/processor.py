@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
 from random import randrange
-from typing import Mapping, Sequence, Set
+from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Sequence, Set, Tuple
 
 from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.eventstore.models import Event
 from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, RuleFuture, history, rules
 from sentry.utils.hashlib import hash_values
@@ -18,7 +21,14 @@ SLOW_CONDITION_MATCHES = ["event_frequency"]
 class RuleProcessor:
     logger = logging.getLogger("sentry.rules")
 
-    def __init__(self, event, is_new, is_regression, is_new_group_environment, has_reappeared):
+    def __init__(
+        self,
+        event: Event,
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        has_reappeared: bool,
+    ) -> None:
         self.event = event
         self.group = event.group
         self.project = event.project
@@ -28,15 +38,14 @@ class RuleProcessor:
         self.is_new_group_environment = is_new_group_environment
         self.has_reappeared = has_reappeared
 
-        self.grouped_futures = {}
+        self.grouped_futures: MutableMapping[
+            str, Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]
+        ] = {}
 
-    def get_rules(self):
-        """
-        Get all of the rules for this project from the DB (or cache).
-
-        :return: a list of `Rule`s
-        """
-        return Rule.get_for_project(self.project.id)
+    def get_rules(self) -> Sequence[Rule]:
+        """Get all of the rules for this project from the DB (or cache)."""
+        rules_: Sequence[Rule] = Rule.get_for_project(self.project.id)
+        return rules_
 
     def _build_rule_status_cache_key(self, rule_id: int) -> str:
         return "grouprulestatus:1:%s" % hash_values([self.group.id, rule_id])
@@ -45,7 +54,7 @@ class RuleProcessor:
         keys = [self._build_rule_status_cache_key(rule.id) for rule in rules]
         cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
         missing_rule_ids: Set[int] = set()
-        rule_statuses: Mapping[int, GroupRuleStatus] = {}
+        rule_statuses: MutableMapping[int, GroupRuleStatus] = {}
         for key, rule in zip(keys, rules):
             rule_status = cache_results.get(key)
             if not rule_status:
@@ -58,7 +67,7 @@ class RuleProcessor:
             statuses = GroupRuleStatus.objects.filter(
                 group=self.group, rule_id__in=missing_rule_ids
             )
-            to_cache: Sequence[GroupRuleStatus] = list()
+            to_cache: List[GroupRuleStatus] = list()
             for status in statuses:
                 rule_statuses[status.rule_id] = status
                 missing_rule_ids.remove(status.rule_id)
@@ -99,24 +108,30 @@ class RuleProcessor:
 
         return rule_statuses
 
-    def condition_matches(self, condition, state, rule):
+    def condition_matches(
+        self, condition: Mapping[str, Any], state: EventState, rule: Rule
+    ) -> bool | None:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
             self.logger.warning("Unregistered condition %r", condition["id"])
-            return
+            return None
 
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
-        return safe_execute(condition_inst.passes, self.event, state, _with_transaction=False)
+        passes: bool = safe_execute(
+            condition_inst.passes, self.event, state, _with_transaction=False
+        )
+        return passes
 
-    def get_rule_type(self, condition):
+    def get_rule_type(self, condition: Mapping[str, Any]) -> str | None:
         rule_cls = rules.get(condition["id"])
         if rule_cls is None:
             self.logger.warning("Unregistered condition or filter %r", condition["id"])
-            return
+            return None
 
-        return rule_cls.rule_type
+        rule_type: str = rule_cls.rule_type
+        return rule_type
 
-    def get_state(self):
+    def get_state(self) -> EventState:
         return EventState(
             is_new=self.is_new,
             is_regression=self.is_regression,
@@ -124,7 +139,7 @@ class RuleProcessor:
             has_reappeared=self.has_reappeared,
         )
 
-    def get_match_function(self, match_name):
+    def get_match_function(self, match_name: str) -> Callable[..., bool] | None:
         if match_name == "all":
             return all
         elif match_name == "any":
@@ -133,7 +148,7 @@ class RuleProcessor:
             return lambda bool_iter: not any(bool_iter)
         return None
 
-    def apply_rule(self, rule, status):
+    def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
         If all conditions and filters pass, execute every action.
 
@@ -233,7 +248,7 @@ class RuleProcessor:
                 else:
                     self.grouped_futures[key][1].append(rule_future)
 
-    def apply(self):
+    def apply(self) -> Iterable[Any]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()
