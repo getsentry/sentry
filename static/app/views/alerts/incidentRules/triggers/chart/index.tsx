@@ -143,7 +143,7 @@ type State = {
  */
 class TriggersChart extends React.PureComponent<Props, State> {
   state: State = {
-    statsPeriod: TimePeriod.ONE_DAY,
+    statsPeriod: TimePeriod.SEVEN_DAYS,
     totalCount: null,
   };
 
@@ -191,7 +191,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = statsPeriodOptions.includes(statsPeriod)
       ? statsPeriod
-      : statsPeriodOptions[0];
+      : statsPeriodOptions[statsPeriodOptions.length - 1];
     return period;
   };
 
