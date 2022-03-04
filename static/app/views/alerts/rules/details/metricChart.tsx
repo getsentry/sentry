@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -68,7 +68,6 @@ import {TimePeriodType} from './constants';
 type Props = WithRouterProps & {
   api: Client;
   filter: string[] | null;
-  handleZoom: (start: DateString, end: DateString) => void;
   interval: string;
   orgId: string;
   organization: Organization;
@@ -237,6 +236,17 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
+  handleZoom = (start: DateString, end: DateString) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        start,
+        end,
+      },
+    });
+  };
+
   getRuleChangeSeries = (data: AreaChartSeries[]): LineSeriesOption[] => {
     const {dateModified} = this.props.rule || {};
 
@@ -339,7 +349,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       router,
       selectedIncident,
       interval,
-      handleZoom,
       filter,
       incidents,
       rule,
@@ -581,7 +590,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 router={router}
                 start={start}
                 end={end}
-                onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+                onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
               >
                 {zoomRenderProps => (
                   <AreaChart
