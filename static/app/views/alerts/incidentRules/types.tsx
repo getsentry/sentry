@@ -6,6 +6,12 @@ export enum AlertRuleThresholdType {
   BELOW,
 }
 
+export enum AlertRuleTriggerType {
+  CRITICAL = 'critical',
+  WARNING = 'warning',
+  RESOLVE = 'resolve',
+}
+
 export enum AlertRuleComparisonType {
   COUNT = 'count',
   CHANGE = 'change',
@@ -45,7 +51,7 @@ export enum SessionsAggregate {
 export type UnsavedTrigger = {
   actions: Action[];
   alertThreshold: number | '' | null;
-  label: string;
+  label: AlertRuleTriggerType;
   // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
   // id yet
   alertRuleId?: string;
@@ -90,6 +96,7 @@ export type SavedIncidentRule = UnsavedIncidentRule & {
   name: string;
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
+  errors?: {detail: string}[];
   originalAlertRuleId?: number | null;
 };
 
@@ -231,6 +238,11 @@ type SavedActionFields = {
    * model id of the action
    */
   id: string;
+
+  /**
+   *  Could not fetch details from SentryApp. Show the rule but make it disabled.
+   */
+  disabled?: boolean;
 };
 
 type UnsavedAction = {

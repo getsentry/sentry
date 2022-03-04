@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart, {BarChartSeries} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
@@ -14,7 +15,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
-import CollapsePanel, {COLLAPSE_COUNT} from './collapsePanel';
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 

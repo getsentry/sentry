@@ -18,6 +18,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {DEFAULT_PROJECT_THRESHOLD_METRIC} from 'sentry/views/performance/data';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 function getProjectID(eventData: EventData, projects: Project[]): string | undefined {
@@ -193,7 +194,7 @@ class RelatedTransactions extends React.Component<Props> {
         'project',
         `${rule.aggregate}`,
         'count_unique(user)',
-        `user_misery(${organization.apdexThreshold})`,
+        `user_misery(${DEFAULT_PROJECT_THRESHOLD_METRIC})`,
       ],
       orderby: `-${aggregateAlias}`,
 
