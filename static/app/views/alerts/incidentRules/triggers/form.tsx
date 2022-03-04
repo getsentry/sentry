@@ -369,13 +369,9 @@ const StyledIconDiamond = styled(IconDiamond)`
 `;
 
 const StyledField = styled(Field)<{hasAlertWizardV3: boolean}>`
-  & > label > div > span {
-    ${p =>
-      p.hasAlertWizardV3 &&
-      `
-      display: flex;
-      flex-direction: row;
-    `}
+  & > label > div:first-child > span {
+    display: flex;
+    flex-direction: row;
   }
 `;
 
