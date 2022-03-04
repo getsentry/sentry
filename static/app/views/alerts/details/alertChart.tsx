@@ -50,13 +50,14 @@ class AlertChart extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {project, organization, period, start, end, utc, rule} = this.props;
+
     return [
       [
         'alerts',
         `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/stats/`,
         {
           query: {
-            statsPeriod: period,
+            ...(period && {statsPeriod: period}),
             start,
             end,
             utc,
