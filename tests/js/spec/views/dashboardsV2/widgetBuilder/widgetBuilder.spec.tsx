@@ -10,7 +10,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -20,24 +19,6 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
-
-expect.extend({
-  statusCode(expected, response) {
-    const {status} = response;
-    const pass = expected === status;
-
-    if (pass) {
-      return {
-        message: () => `expected ${status} to be ${expected}`,
-        pass: true,
-      };
-    }
-    return {
-      message: () => `expected ${status} to be ${expected}. Response: ${response}`,
-      pass: false,
-    };
-  },
-});
 
 // Mock World Map because setState inside componentDidMount is
 // throwing UnhandledPromiseRejection
@@ -128,8 +109,6 @@ describe('WidgetBuilder', function () {
   let eventsStatsMock: jest.Mock | undefined;
 
   beforeEach(function () {
-    PageFiltersStore.init();
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [
@@ -327,8 +306,8 @@ describe('WidgetBuilder', function () {
             queryOrderby: '',
             start: null,
             end: null,
-            period: '24h',
-            utc: false,
+            period: '14d',
+            utc: null,
             project: [],
             environment: [],
           },
@@ -364,18 +343,18 @@ describe('WidgetBuilder', function () {
           pathname: '/organizations/org-slug/dashboard/2/',
           query: {
             displayType: 'table',
+            end: null,
+            environment: [],
             interval: '5m',
-            title: 'Custom Widget',
-            queryNames: [''],
+            period: '14d',
+            project: [],
             queryConditions: [''],
             queryFields: ['last_seen()'],
+            queryNames: [''],
             queryOrderby: '',
             start: null,
-            end: null,
-            period: '24h',
-            utc: false,
-            project: [],
-            environment: [],
+            title: 'Custom Widget',
+            utc: null,
           },
         })
       );
@@ -1227,18 +1206,18 @@ describe('WidgetBuilder', function () {
             pathname: '/organizations/org-slug/dashboards/new/',
             query: {
               displayType: 'table',
+              end: null,
+              environment: [],
               interval: '5m',
-              title: 'Custom Widget',
-              queryNames: [''],
+              period: '14d',
+              project: [],
               queryConditions: [''],
               queryFields: ['count()'],
+              queryNames: [''],
               queryOrderby: '',
               start: null,
-              end: null,
-              period: '24h',
-              utc: false,
-              project: [],
-              environment: [],
+              title: 'Custom Widget',
+              utc: null,
             },
           })
         );
@@ -1260,18 +1239,18 @@ describe('WidgetBuilder', function () {
             pathname: '/organizations/org-slug/dashboard/2/',
             query: {
               displayType: 'table',
+              end: null,
+              environment: [],
               interval: '5m',
-              title: 'Custom Widget',
-              queryNames: [''],
+              period: '14d',
+              project: [],
               queryConditions: [''],
               queryFields: ['count()'],
+              queryNames: [''],
               queryOrderby: '',
               start: null,
-              end: null,
-              period: '24h',
-              utc: false,
-              project: [],
-              environment: [],
+              title: 'Custom Widget',
+              utc: null,
             },
           })
         );
