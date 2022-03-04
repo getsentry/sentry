@@ -112,9 +112,12 @@ class AuthIndexEndpoint(Endpoint):
 
         validator = AuthVerifyValidator(data=request.data)
         has_valid_sso_session = has_completed_sso(request, request.superuser.org_id)
+
         if not validator.is_valid():
-            if not has_valid_sso_session or not request.user.is_superuser:
+            if not has_valid_sso_session and request.user.is_superuser:
                 self._reauthenticate_with_sso(request)
+            else:
+                return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         authenticated = False
         # See if we have a u2f challenge/response
