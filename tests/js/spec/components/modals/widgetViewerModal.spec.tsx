@@ -1,7 +1,7 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
@@ -172,6 +172,12 @@ describe('Modals -> WidgetViewerModal', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
+        match: [MockApiClient.matchQuery({cursor: undefined})],
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+        },
         body: {
           data: [
             {
@@ -205,11 +211,43 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        match: [MockApiClient.matchQuery({cursor: '0:10:0'})],
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=0:20:0>; rel="next"; results="true"; cursor="0:20:0"',
+        },
+        body: {
+          data: [
+            {
+              'error.type': ['Next Page Test Error'],
+              count: 1,
+            },
+          ],
+          meta: {
+            'error.type': 'array',
+            count: 'integer',
+          },
+        },
+      });
       container = mountModal({initialData, widget: mockWidget}).container;
     });
 
     it('renders Discover topn chart widget viewer', function () {
       expect(container).toSnapshot();
+    });
+
+    it('renders pagination buttons', async function () {
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    });
+
+    it('paginates to the next page', async function () {
+      expect(screen.getByText('Test Error 1c')).toBeInTheDocument();
+      userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
     });
   });
 
