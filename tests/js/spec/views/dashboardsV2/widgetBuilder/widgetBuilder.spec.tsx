@@ -579,6 +579,87 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
+  it('can add and delete additional queries', async function () {
+    const handleSave = jest.fn();
+
+    renderTestComponent({onSave: handleSave});
+
+    userEvent.click(await screen.findByText('Table'));
+
+    // Select line chart display
+    userEvent.click(screen.getByText('Line Chart'));
+
+    // Set first query search conditions
+    userEvent.type(
+      screen.getByPlaceholderText('Search for events, users, tags, and more'),
+      'event.type:transaction{enter}'
+    );
+
+    // Set first query legend alias
+    userEvent.paste(screen.getByPlaceholderText('Legend Alias'), 'Transactions');
+    userEvent.keyboard('{enter}');
+
+    // Click the "Add Query" button twice
+    userEvent.click(screen.getByLabelText('Add query'));
+    userEvent.click(screen.getByLabelText('Add query'));
+
+    // Expect three search bars
+    expect(screen.getAllByRole('button', {name: 'Remove query'})).toHaveLength(3);
+
+    // Expect "Add Query" button to be hidden since we're limited to at most 3 search conditions
+    expect(screen.queryByLabelText('Add query')).not.toBeInTheDocument();
+
+    // Delete second query
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove query'})[1]);
+
+    // // Expect "Add Query" button to be shown again
+    expect(screen.getByLabelText('Add query')).toBeInTheDocument();
+
+    // Set second query search conditions
+    userEvent.type(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1],
+      'event.type:error{enter}'
+    );
+
+    // Set second query legend alias
+    userEvent.paste(screen.getAllByPlaceholderText('Legend Alias')[1], 'Errors');
+    userEvent.keyboard('{enter}');
+
+    // Save widget
+    userEvent.click(screen.getByLabelText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          title: 'Custom Widget',
+          displayType: 'line',
+          interval: '5m',
+          widgetType: 'discover',
+          queries: [
+            {
+              name: 'Transactions',
+              conditions: 'event.type:transaction',
+              aggregates: ['count()'],
+              fields: ['count()'],
+              columns: [],
+              orderby: '',
+            },
+            {
+              name: 'Errors',
+              conditions: 'event.type:error',
+              aggregates: ['count()'],
+              fields: ['count()'],
+              columns: [],
+              orderby: '',
+            },
+          ],
+        }),
+      ]);
+    });
+
+    expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
   it('renders column inputs for table widgets', async function () {
     const widget: Widget = {
       id: '0',
