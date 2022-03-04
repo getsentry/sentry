@@ -244,13 +244,17 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
 
     // Content - Step 3
-    expect(screen.getByRole('heading', {name: 'Columns'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Choose your columns'})
+    ).toBeInTheDocument();
 
     // Content - Step 4
-    expect(screen.getByRole('heading', {name: 'Query'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Filter your results'})
+    ).toBeInTheDocument();
 
     // Content - Step 5
-    expect(screen.getByRole('heading', {name: 'Sort by'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sort by a column'})).toBeInTheDocument();
   });
 
   it('can update the title', async function () {
@@ -610,7 +614,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByLabelText('Search events')).toBeInTheDocument();
 
     // Should have an orderby select
-    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    expect(screen.getByText('Sort by a column')).toBeInTheDocument();
 
     // Add a column, and choose a value,
     userEvent.click(screen.getByLabelText('Add a Column'));
@@ -673,9 +677,9 @@ describe('WidgetBuilder', function () {
     // // Restricting to a single y-axis
     expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
 
-    expect(screen.getByText('Choose your y-axis')).toBeInTheDocument();
+    expect(screen.getByText('Choose what to plot in the y-axis')).toBeInTheDocument();
 
-    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    expect(screen.getByText('Sort by a column')).toBeInTheDocument();
 
     expect(screen.getByText('title')).toBeInTheDocument();
     expect(screen.getAllByText('count()')).toHaveLength(2);
@@ -737,8 +741,8 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
     expect(screen.getByText('user')).toBeInTheDocument();
 
-    // Sort by
-    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    // Sort by a column
+    expect(screen.getByText('Sort by a column')).toBeInTheDocument();
     expect(screen.getByText('count_unique(user) desc')).toBeInTheDocument();
   });
 
