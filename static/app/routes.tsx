@@ -987,7 +987,7 @@ function buildRoutes() {
       >
         <Route
           path="widget/:widgetId/"
-          componentPromise={() => import('sentry/views/dashboardsV2/view')}
+          componentPromise={() => import('sentry/views/dashboardsV2/create')}
           component={SafeLazyLoad}
         />
       </Route>
