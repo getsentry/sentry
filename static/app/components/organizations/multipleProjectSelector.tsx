@@ -459,11 +459,11 @@ const FooterMessage = styled('div')`
 const StyledProjectSelector = styled(ProjectSelector)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  width: 100%;
 
   ${p =>
     !p.detached &&
     `
+    width: 100%;
     margin: 1px 0 0 -1px;
     border-radius: ${p.theme.borderRadiusBottom};
   `}

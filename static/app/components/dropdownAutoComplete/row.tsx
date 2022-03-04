@@ -93,7 +93,7 @@ const AutoCompleteItem = styled('div')<{
   flex-direction: column;
   justify-content: center;
 
-  font-size: 0.9em;
+  font-size: ${p => p.theme.fontSizeMedium};
   background-color: ${p => (p.isHighlighted ? p.theme.hover : 'transparent')};
   color: ${p => (p.isHighlighted ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
