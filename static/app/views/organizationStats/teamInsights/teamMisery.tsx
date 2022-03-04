@@ -6,6 +6,7 @@ import {Location} from 'history';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PanelTable from 'sentry/components/panels/panelTable';
@@ -23,7 +24,6 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Color} from 'sentry/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import CollapsePanel, {COLLAPSE_COUNT} from './collapsePanel';
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
 

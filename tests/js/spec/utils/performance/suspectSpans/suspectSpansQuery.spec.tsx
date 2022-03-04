@@ -45,7 +45,7 @@ describe('SuspectSpansQuery', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches data with the right op filter', function () {
+  it('fetches data with the right op filter', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -67,7 +67,7 @@ describe('SuspectSpansQuery', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches data with the right group filter', function () {
+  it('fetches data with the right group filter', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -89,7 +89,7 @@ describe('SuspectSpansQuery', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches data with the right per suspect param', function () {
+  it('fetches data with the right per suspect param', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
