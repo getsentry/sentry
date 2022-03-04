@@ -56,7 +56,6 @@ class AlertChart extends AsyncComponent<Props, State> {
         `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/stats/`,
         {
           query: {
-            project: project.id,
             statsPeriod: period,
             start,
             end,
