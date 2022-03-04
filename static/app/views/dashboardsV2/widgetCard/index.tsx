@@ -9,6 +9,7 @@ import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
@@ -160,17 +161,19 @@ class WidgetCard extends React.Component<Props> {
               <OpenWidgetViewerButton
                 aria-label={t('Open Widget Viewer')}
                 onClick={() => {
-                  if (widget.id) {
-                    router.push({
-                      pathname: `${location.pathname}widget/${widget.id}/`,
-                      query: location.query,
-                    });
-                  } else {
-                    openWidgetViewerModal({
-                      organization,
-                      widget,
-                      onEdit,
-                    });
+                  if (!isWidgetViewerPath(location.pathname)) {
+                    if (widget.id) {
+                      router.push({
+                        pathname: `${location.pathname}widget/${widget.id}/`,
+                        query: location.query,
+                      });
+                    } else {
+                      openWidgetViewerModal({
+                        organization,
+                        widget,
+                        onEdit,
+                      });
+                    }
                   }
                 }}
               />
