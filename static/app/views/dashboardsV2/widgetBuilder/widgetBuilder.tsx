@@ -560,6 +560,9 @@ function WidgetBuilder({
   }
 
   async function fetchDashboards() {
+    if (!isMounted.current) {
+      return;
+    }
     const promise: Promise<DashboardListItem[]> = api.requestPromise(
       `/organizations/${organization.slug}/dashboards/`,
       {

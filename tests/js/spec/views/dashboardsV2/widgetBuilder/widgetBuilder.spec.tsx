@@ -20,6 +20,24 @@ import {
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
+expect.extend({
+  statusCode(expected, response) {
+    const {status} = response;
+    const pass = expected === status;
+
+    if (pass) {
+      return {
+        message: () => `expected ${status} to be ${expected}`,
+        pass: true,
+      };
+    }
+    return {
+      message: () => `expected ${status} to be ${expected}. Response: ${response}`,
+      pass: false,
+    };
+  },
+});
+
 // Mock World Map because setState inside componentDidMount is
 // throwing UnhandledPromiseRejection
 jest.mock('sentry/components/charts/worldMapChart');
