@@ -18,7 +18,7 @@ type Props = {
 export function Footer({goBackLocation, onSave, onDelete, isEditing}: Props) {
   return (
     <FooterWrapper>
-      <StyledButtonBar gap={1}>
+      <Actions gap={1}>
         <Button to={goBackLocation}>{t('Cancel')}</Button>
         {isEditing && onDelete && (
           <Confirm
@@ -32,12 +32,12 @@ export function Footer({goBackLocation, onSave, onDelete, isEditing}: Props) {
         <Button priority="primary" onClick={onSave}>
           {isEditing ? t('Update Widget') : t('Add Widget')}
         </Button>
-      </StyledButtonBar>
+      </Actions>
     </FooterWrapper>
   );
 }
 
-const StyledButtonBar = styled(ButtonBar)`
+const Actions = styled(ButtonBar)`
   justify-content: flex-end;
 `;
 
