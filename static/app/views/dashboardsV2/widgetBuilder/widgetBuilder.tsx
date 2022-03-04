@@ -16,7 +16,6 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import LoadingError from 'sentry/components/loadingError';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PanelAlert} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -70,7 +69,6 @@ import {
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DEFAULT_STATS_PERIOD} from '../data';
 import WidgetCard from '../widgetCard';
 
 import BuildStep from './buildStep';
@@ -666,330 +664,318 @@ function WidgetBuilder({
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-      <PageFiltersContainer
-        skipLoadLastUsed={organization.features.includes('global-views')}
-        defaultSelection={{
-          datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
-        }}
-      >
-        <PageContentWithoutPadding>
-          <Header
-            orgSlug={orgSlug}
-            title={state.title}
-            dashboardTitle={dashboard.title}
-            goBackLocation={previousLocation}
-            isEditing={isEditing}
-            onChangeTitle={newTitle => {
-              handleDisplayTypeOrTitleChange('title', newTitle);
-            }}
-            onSave={handleSave}
-          />
-          <Body>
-            <Main>
-              <BuildSteps symbol="colored-numeric">
-                <BuildStep
-                  title={t('Choose your visualization')}
-                  description={t(
-                    'This is a preview of how your widget will appear in the dashboard.'
-                  )}
-                >
-                  <VisualizationWrapper>
-                    <DisplayTypeSelector
-                      displayType={state.displayType}
-                      onChange={(option: {label: string; value: DisplayType}) => {
-                        handleDisplayTypeOrTitleChange('displayType', option.value);
-                      }}
-                      error={state.errors?.displayType}
-                    />
-                    <WidgetCard
-                      organization={organization}
-                      selection={pageFilters}
-                      widget={currentWidget}
-                      isEditing={false}
-                      widgetLimitReached={false}
-                      renderErrorMessage={errorMessage =>
-                        typeof errorMessage === 'string' && (
-                          <PanelAlert type="error">{errorMessage}</PanelAlert>
-                        )
-                      }
-                      isSorting={false}
-                      currentWidgetDragging={false}
-                      noLazyLoad
-                    />
-                  </VisualizationWrapper>
-                </BuildStep>
-                <BuildStep
-                  title={t('Choose your data set')}
-                  description={t(
-                    'Monitor specific events such as errors and transactions or metrics based on Release Health.'
-                  )}
-                >
-                  <DataSetChoices
-                    label="dataSet"
-                    value={state.dataSet}
-                    choices={DATASET_CHOICES}
-                    disabledChoices={
-                      state.displayType !== DisplayType.TABLE
-                        ? [
-                            [
-                              DATASET_CHOICES[1][0],
-                              t(
-                                'This data set is restricted to the table visualization.'
-                              ),
-                            ],
-                          ]
-                        : undefined
-                    }
-                    onChange={handleDataSetChange}
-                  />
-                </BuildStep>
-                {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
-                  <BuildStep
-                    title={t('Columns')}
-                    description="Description of what this means"
-                  >
-                    {state.dataSet === DataSet.EVENTS ? (
-                      <Measurements>
-                        {({measurements}) => (
-                          <ColumnFields
-                            displayType={state.displayType}
-                            organization={organization}
-                            widgetType={widgetType}
-                            columns={explodedFields}
-                            errors={state.errors?.queries}
-                            fieldOptions={getAmendedFieldOptions(measurements)}
-                            onChange={handleYAxisOrColumnFieldChange}
-                          />
-                        )}
-                      </Measurements>
-                    ) : (
-                      <ColumnFields
-                        displayType={state.displayType}
-                        organization={organization}
-                        widgetType={widgetType}
-                        columns={state.queries[0].fields.map(field =>
-                          explodeField({field})
-                        )}
-                        errors={
-                          state.errors?.queries?.[0]
-                            ? [state.errors?.queries?.[0]]
-                            : undefined
-                        }
-                        fieldOptions={generateIssueWidgetFieldOptions()}
-                        onChange={newFields => {
-                          const fieldStrings = newFields.map(generateFieldAsString);
-                          const newQuery = cloneDeep(state.queries[0]);
-                          newQuery.fields = fieldStrings;
-                          const {columns, aggregates} =
-                            getColumnsAndAggregates(fieldStrings);
-                          newQuery.aggregates = aggregates;
-                          newQuery.columns = columns;
-                          handleQueryChange(0, newQuery);
-                        }}
-                      />
-                    )}
-                  </BuildStep>
+      <PageContentWithoutPadding>
+        <Header
+          orgSlug={orgSlug}
+          title={state.title}
+          dashboardTitle={dashboard.title}
+          goBackLocation={previousLocation}
+          isEditing={isEditing}
+          onChangeTitle={newTitle => {
+            handleDisplayTypeOrTitleChange('title', newTitle);
+          }}
+          onSave={handleSave}
+        />
+        <Body>
+          <Main>
+            <BuildSteps symbol="colored-numeric">
+              <BuildStep
+                title={t('Choose your visualization')}
+                description={t(
+                  'This is a preview of how your widget will appear in the dashboard.'
                 )}
-                {![DisplayType.TABLE].includes(state.displayType) && (
-                  <BuildStep
-                    title={t('Choose your y-axis')}
-                    description="Description of what this means"
-                  >
+              >
+                <VisualizationWrapper>
+                  <DisplayTypeSelector
+                    displayType={state.displayType}
+                    onChange={(option: {label: string; value: DisplayType}) => {
+                      handleDisplayTypeOrTitleChange('displayType', option.value);
+                    }}
+                    error={state.errors?.displayType}
+                  />
+                  <WidgetCard
+                    organization={organization}
+                    selection={pageFilters}
+                    widget={currentWidget}
+                    isEditing={false}
+                    widgetLimitReached={false}
+                    renderErrorMessage={errorMessage =>
+                      typeof errorMessage === 'string' && (
+                        <PanelAlert type="error">{errorMessage}</PanelAlert>
+                      )
+                    }
+                    isSorting={false}
+                    currentWidgetDragging={false}
+                    noLazyLoad
+                  />
+                </VisualizationWrapper>
+              </BuildStep>
+              <BuildStep
+                title={t('Choose your data set')}
+                description={t(
+                  'Monitor specific events such as errors and transactions or metrics based on Release Health.'
+                )}
+              >
+                <DataSetChoices
+                  label="dataSet"
+                  value={state.dataSet}
+                  choices={DATASET_CHOICES}
+                  disabledChoices={
+                    state.displayType !== DisplayType.TABLE
+                      ? [
+                          [
+                            DATASET_CHOICES[1][0],
+                            t('This data set is restricted to the table visualization.'),
+                          ],
+                        ]
+                      : undefined
+                  }
+                  onChange={handleDataSetChange}
+                />
+              </BuildStep>
+              {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
+                <BuildStep
+                  title={t('Columns')}
+                  description="Description of what this means"
+                >
+                  {state.dataSet === DataSet.EVENTS ? (
                     <Measurements>
                       {({measurements}) => (
-                        <YAxisSelector
-                          widgetType={widgetType}
+                        <ColumnFields
                           displayType={state.displayType}
-                          fields={explodedFields}
+                          organization={organization}
+                          widgetType={widgetType}
+                          columns={explodedFields}
+                          errors={state.errors?.queries}
                           fieldOptions={getAmendedFieldOptions(measurements)}
                           onChange={handleYAxisOrColumnFieldChange}
-                          errors={state.errors?.queries}
                         />
                       )}
                     </Measurements>
-                  </BuildStep>
-                )}
+                  ) : (
+                    <ColumnFields
+                      displayType={state.displayType}
+                      organization={organization}
+                      widgetType={widgetType}
+                      columns={state.queries[0].fields.map(field =>
+                        explodeField({field})
+                      )}
+                      errors={
+                        state.errors?.queries?.[0]
+                          ? [state.errors?.queries?.[0]]
+                          : undefined
+                      }
+                      fieldOptions={generateIssueWidgetFieldOptions()}
+                      onChange={newFields => {
+                        const fieldStrings = newFields.map(generateFieldAsString);
+                        const newQuery = cloneDeep(state.queries[0]);
+                        newQuery.fields = fieldStrings;
+                        const {columns, aggregates} =
+                          getColumnsAndAggregates(fieldStrings);
+                        newQuery.aggregates = aggregates;
+                        newQuery.columns = columns;
+                        handleQueryChange(0, newQuery);
+                      }}
+                    />
+                  )}
+                </BuildStep>
+              )}
+              {![DisplayType.TABLE].includes(state.displayType) && (
                 <BuildStep
-                  title={t('Query')}
+                  title={t('Choose your y-axis')}
                   description="Description of what this means"
                 >
-                  <div>
-                    {state.queries.map((query, queryIndex) => {
-                      return (
-                        <QueryField
-                          key={queryIndex}
-                          inline={false}
-                          flexibleControlStateSize
-                          stacked
-                          error={state.errors?.queries?.[queryIndex]?.conditions}
-                        >
-                          <SearchConditionsWrapper>
-                            <Search
-                              searchSource="widget_builder"
-                              organization={organization}
-                              projectIds={selection.projects}
-                              query={query.conditions}
-                              fields={[]}
-                              onSearch={field => {
-                                // SearchBar will call handlers for both onSearch and onBlur
-                                // when selecting a value from the autocomplete dropdown. This can
-                                // cause state issues for the search bar in our use case. To prevent
-                                // this, we set a timer in our onSearch handler to block our onBlur
-                                // handler from firing if it is within 200ms, ie from clicking an
-                                // autocomplete value.
-                                setBlurTimeout(
-                                  window.setTimeout(() => {
-                                    setBlurTimeout(null);
-                                  }, 200)
-                                );
+                  <Measurements>
+                    {({measurements}) => (
+                      <YAxisSelector
+                        widgetType={widgetType}
+                        displayType={state.displayType}
+                        fields={explodedFields}
+                        fieldOptions={getAmendedFieldOptions(measurements)}
+                        onChange={handleYAxisOrColumnFieldChange}
+                        errors={state.errors?.queries}
+                      />
+                    )}
+                  </Measurements>
+                </BuildStep>
+              )}
+              <BuildStep title={t('Query')} description="Description of what this means">
+                <div>
+                  {state.queries.map((query, queryIndex) => {
+                    return (
+                      <QueryField
+                        key={queryIndex}
+                        inline={false}
+                        flexibleControlStateSize
+                        stacked
+                        error={state.errors?.queries?.[queryIndex]?.conditions}
+                      >
+                        <SearchConditionsWrapper>
+                          <Search
+                            searchSource="widget_builder"
+                            organization={organization}
+                            projectIds={selection.projects}
+                            query={query.conditions}
+                            fields={[]}
+                            onSearch={field => {
+                              // SearchBar will call handlers for both onSearch and onBlur
+                              // when selecting a value from the autocomplete dropdown. This can
+                              // cause state issues for the search bar in our use case. To prevent
+                              // this, we set a timer in our onSearch handler to block our onBlur
+                              // handler from firing if it is within 200ms, ie from clicking an
+                              // autocomplete value.
+                              setBlurTimeout(
+                                window.setTimeout(() => {
+                                  setBlurTimeout(null);
+                                }, 200)
+                              );
 
+                              const newQuery: WidgetQuery = {
+                                ...state.queries[queryIndex],
+                                conditions: field,
+                              };
+                              handleQueryChange(queryIndex, newQuery);
+                            }}
+                            onBlur={field => {
+                              if (!blurTimeout) {
                                 const newQuery: WidgetQuery = {
                                   ...state.queries[queryIndex],
                                   conditions: field,
                                 };
                                 handleQueryChange(queryIndex, newQuery);
+                              }
+                            }}
+                            useFormWrapper={false}
+                            maxQueryLength={MAX_QUERY_LENGTH}
+                          />
+                          {!hideLegendAlias && (
+                            <LegendAliasInput
+                              type="text"
+                              name="name"
+                              required
+                              value={query.name}
+                              placeholder={t('Legend Alias')}
+                              onChange={event => {
+                                const newQuery: WidgetQuery = {
+                                  ...state.queries[queryIndex],
+                                  name: event.target.value,
+                                };
+                                handleQueryChange(queryIndex, newQuery);
                               }}
-                              onBlur={field => {
-                                if (!blurTimeout) {
-                                  const newQuery: WidgetQuery = {
-                                    ...state.queries[queryIndex],
-                                    conditions: field,
-                                  };
-                                  handleQueryChange(queryIndex, newQuery);
-                                }
-                              }}
-                              useFormWrapper={false}
-                              maxQueryLength={MAX_QUERY_LENGTH}
                             />
-                            {!hideLegendAlias && (
-                              <LegendAliasInput
-                                type="text"
-                                name="name"
-                                required
-                                value={query.name}
-                                placeholder={t('Legend Alias')}
-                                onChange={event => {
-                                  const newQuery: WidgetQuery = {
-                                    ...state.queries[queryIndex],
-                                    name: event.target.value,
-                                  };
-                                  handleQueryChange(queryIndex, newQuery);
-                                }}
-                              />
-                            )}
-                            {state.queries.length > 1 && (
-                              <Button
-                                size="zero"
-                                borderless
-                                onClick={() => handleQueryRemove(queryIndex)}
-                                icon={<IconDelete />}
-                                title={t('Remove query')}
-                                aria-label={t('Remove query')}
-                              />
-                            )}
-                          </SearchConditionsWrapper>
-                        </QueryField>
-                      );
-                    })}
-                    {canAddSearchConditions && (
-                      <Button
-                        size="small"
-                        icon={<IconAdd isCircled />}
-                        onClick={handleAddSearchConditions}
-                      >
-                        {t('Add query')}
-                      </Button>
-                    )}
-                  </div>
-                </BuildStep>
-                {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
-                  <BuildStep
-                    title={t('Sort by')}
-                    description="Description of what this means"
-                  >
-                    <Field
-                      inline={false}
-                      flexibleControlStateSize
-                      stacked
-                      error={state.errors?.orderby}
-                    >
-                      {state.dataSet === DataSet.EVENTS ? (
-                        <SelectControl
-                          menuPlacement="auto"
-                          value={state.queries[0].orderby}
-                          name="orderby"
-                          options={generateOrderOptions({
-                            widgetType,
-                            ...getColumnsAndAggregates(state.queries[0].fields),
-                          })}
-                          onChange={(option: SelectValue<string>) => {
-                            const newQuery: WidgetQuery = {
-                              ...state.queries[0],
-                              orderby: option.value,
-                            };
-                            handleQueryChange(0, newQuery);
-                          }}
-                        />
-                      ) : (
-                        <SelectControl
-                          menuPlacement="auto"
-                          value={state.queries[0].orderby || IssueSortOptions.DATE}
-                          name="orderby"
-                          options={generateIssueWidgetOrderOptions(
-                            organization?.features?.includes('issue-list-trend-sort')
                           )}
-                          onChange={(option: SelectValue<string>) => {
-                            const newQuery: WidgetQuery = {
-                              ...state.queries[0],
-                              orderby: option.value,
-                            };
-                            handleQueryChange(0, newQuery);
-                          }}
-                        />
-                      )}
-                    </Field>
-                  </BuildStep>
-                )}
-                {notDashboardsOrigin && (
-                  <BuildStep
-                    title={t('Choose your dashboard')}
-                    description={t(
-                      "Choose which dashboard you'd like to add this query to. It will appear as a widget."
-                    )}
-                    required
+                          {state.queries.length > 1 && (
+                            <Button
+                              size="zero"
+                              borderless
+                              onClick={() => handleQueryRemove(queryIndex)}
+                              icon={<IconDelete />}
+                              title={t('Remove query')}
+                              aria-label={t('Remove query')}
+                            />
+                          )}
+                        </SearchConditionsWrapper>
+                      </QueryField>
+                    );
+                  })}
+                  {canAddSearchConditions && (
+                    <Button
+                      size="small"
+                      icon={<IconAdd isCircled />}
+                      onClick={handleAddSearchConditions}
+                    >
+                      {t('Add query')}
+                    </Button>
+                  )}
+                </div>
+              </BuildStep>
+              {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
+                <BuildStep
+                  title={t('Sort by')}
+                  description="Description of what this means"
+                >
+                  <Field
+                    inline={false}
+                    flexibleControlStateSize
+                    stacked
+                    error={state.errors?.orderby}
                   >
-                    <DashboardSelector
-                      error={state.errors?.dashboard}
-                      dashboards={state.dashboards}
-                      onChange={selectedDashboard =>
-                        setState({
-                          ...state,
-                          selectedDashboard,
-                          errors: {...state.errors, dashboard: undefined},
-                        })
-                      }
-                      disabled={state.loading}
-                    />
-                  </BuildStep>
-                )}
-              </BuildSteps>
-            </Main>
-            <Side>
-              <WidgetLibrary
-                onWidgetSelect={prebuiltWidget =>
-                  setState({
-                    ...state,
-                    ...prebuiltWidget,
-                    dataSet: prebuiltWidget.widgetType
-                      ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
-                      : DataSet.EVENTS,
-                  })
-                }
-              />
-            </Side>
-          </Body>
-        </PageContentWithoutPadding>
-      </PageFiltersContainer>
+                    {state.dataSet === DataSet.EVENTS ? (
+                      <SelectControl
+                        menuPlacement="auto"
+                        value={state.queries[0].orderby}
+                        name="orderby"
+                        options={generateOrderOptions({
+                          widgetType,
+                          ...getColumnsAndAggregates(state.queries[0].fields),
+                        })}
+                        onChange={(option: SelectValue<string>) => {
+                          const newQuery: WidgetQuery = {
+                            ...state.queries[0],
+                            orderby: option.value,
+                          };
+                          handleQueryChange(0, newQuery);
+                        }}
+                      />
+                    ) : (
+                      <SelectControl
+                        menuPlacement="auto"
+                        value={state.queries[0].orderby || IssueSortOptions.DATE}
+                        name="orderby"
+                        options={generateIssueWidgetOrderOptions(
+                          organization?.features?.includes('issue-list-trend-sort')
+                        )}
+                        onChange={(option: SelectValue<string>) => {
+                          const newQuery: WidgetQuery = {
+                            ...state.queries[0],
+                            orderby: option.value,
+                          };
+                          handleQueryChange(0, newQuery);
+                        }}
+                      />
+                    )}
+                  </Field>
+                </BuildStep>
+              )}
+              {notDashboardsOrigin && (
+                <BuildStep
+                  title={t('Choose your dashboard')}
+                  description={t(
+                    "Choose which dashboard you'd like to add this query to. It will appear as a widget."
+                  )}
+                  required
+                >
+                  <DashboardSelector
+                    error={state.errors?.dashboard}
+                    dashboards={state.dashboards}
+                    onChange={selectedDashboard =>
+                      setState({
+                        ...state,
+                        selectedDashboard,
+                        errors: {...state.errors, dashboard: undefined},
+                      })
+                    }
+                    disabled={state.loading}
+                  />
+                </BuildStep>
+              )}
+            </BuildSteps>
+          </Main>
+          <Side>
+            <WidgetLibrary
+              onWidgetSelect={prebuiltWidget =>
+                setState({
+                  ...state,
+                  ...prebuiltWidget,
+                  dataSet: prebuiltWidget.widgetType
+                    ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
+                    : DataSet.EVENTS,
+                })
+              }
+            />
+          </Side>
+        </Body>
+      </PageContentWithoutPadding>
     </SentryDocumentTitle>
   );
 }
