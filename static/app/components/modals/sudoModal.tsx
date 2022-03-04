@@ -36,12 +36,30 @@ type Props = WithRouterProps &
 type State = {
   busy: boolean;
   error: boolean;
+  isFirstStep: boolean;
 };
 
 class SudoModal extends React.Component<Props, State> {
   state: State = {
     error: false,
     busy: false,
+    isFirstStep: true,
+  };
+
+  handleSubmit = async data => {
+    const {api, superuser} = this.props;
+
+    if (this.state.isFirstStep && superuser) {
+      this.setState({isFirstStep: false});
+    } else {
+      try {
+        data.isSuperuserModal = superuser;
+        await api.requestPromise('/auth/', {method: 'PUT', data});
+        this.handleSuccess();
+      } catch (err) {
+        this.handleError();
+      }
+    }
   };
 
   handleSuccess = () => {
@@ -57,7 +75,7 @@ class SudoModal extends React.Component<Props, State> {
       return;
     }
 
-    this.setState({busy: true}, () => {
+    this.setState({busy: true, isFirstStep: true}, () => {
       retryRequest().then(() => {
         this.setState({busy: false}, closeModal);
       });
@@ -65,7 +83,7 @@ class SudoModal extends React.Component<Props, State> {
   };
 
   handleError = () => {
-    this.setState({busy: false, error: true});
+    this.setState({busy: false, error: true, isFirstStep: true});
   };
 
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
@@ -85,7 +103,7 @@ class SudoModal extends React.Component<Props, State> {
 
   renderBodyContent() {
     const {superuser} = this.props;
-    const {error} = this.state;
+    const {error, isFirstStep} = this.state;
     const user = ConfigStore.get('user');
     const placeholderForSUCategories = [
       {value: '1', name: 'a'},
@@ -154,42 +172,50 @@ class SudoModal extends React.Component<Props, State> {
         <Form
           apiMethod="PUT"
           apiEndpoint="/auth/"
-          submitLabel={t('Confirm Password')}
+          submitLabel={isFirstStep ? t('Continue') : t('Confirm Password')}
+          onSubmit={this.handleSubmit}
           onSubmitSuccess={this.handleSuccess}
           onSubmitError={this.handleError}
           hideFooter={!user.hasPasswordAuth}
           resetOnError
         >
-          <StyledInputField
-            type="password"
-            inline={false}
-            label={t('Password')}
-            name="password"
-            autoFocus
-            flexibleControlStateSize
-          />
-          {/* only show the 2 below if they are superusers */}
-          <StyledSelectField
-            name="superuserAccessCategory"
-            label={t('Catergory of Superuser Access')}
-            options={placeholderForSUCategories.map(SUCategory => ({
-              value: SUCategory.value,
-              label: SUCategory.name,
-            }))}
-            placeholder={t('Select Catergory')}
-            inline={false}
-            flexibleControlStateSize
-            required
-          />
-          <StyledInputField
-            type="text"
-            inline={false}
-            label={t('Reason for Superuser')}
-            name="superuserReason"
-            flexibleControlStateSize
-            required
-          />
-          <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+          {isFirstStep && superuser && (
+            <StyledSelectField
+              name="superuserAccessCategory"
+              label={t('Catergory of Superuser Access')}
+              options={placeholderForSUCategories.map(SUCategory => ({
+                value: SUCategory.value,
+                label: SUCategory.name,
+              }))}
+              placeholder={t('Select Catergory')}
+              inline={false}
+              flexibleControlStateSize
+              required
+            />
+          )}
+          {isFirstStep && superuser && (
+            <StyledInputField
+              type="text"
+              inline={false}
+              label={t('Reason for Superuser')}
+              name="superuserReason"
+              flexibleControlStateSize
+              required
+            />
+          )}
+          {((!isFirstStep && superuser) || !superuser) && (
+            <StyledInputField
+              type="password"
+              inline={false}
+              label={t('Password')}
+              name="password"
+              autoFocus
+              flexibleControlStateSize
+            />
+          )}
+          {((!isFirstStep && superuser) || !superuser) && (
+            <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+          )}
         </Form>
       </React.Fragment>
     );

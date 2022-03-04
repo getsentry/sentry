@@ -163,7 +163,8 @@ class AuthIndexEndpoint(Endpoint):
 
             # only give superuser access when going through superuser modal
             if request.user.is_superuser:
-                request.superuser.set_logged_in(request.user)
+                if request.data.get("isSuperuserModal"):
+                    request.superuser.set_logged_in(request.user)
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
