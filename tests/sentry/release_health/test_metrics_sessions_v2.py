@@ -7,6 +7,7 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from tests.snuba.api.endpoints.test_organization_sessions import result_sorted
 
 
 class MetricsSessionsV2SessionsTest(APITestCase, SnubaTestCase):
@@ -58,10 +59,6 @@ class MetricsSessionsV2SessionsTest(APITestCase, SnubaTestCase):
         Runs twice. Firstly, against sessions implementation to populate the
         cache. Then, against the metrics implementation, and compares with
         cached results.
-
-        Note that this test only checks whether the number of keys in both
-        responses are equal, other errors (such as keys in different order)
-        may happen and we're fine with them.
         """
         empty_groupbyes = ["project", "release", "environment", "session.status"]
         interval_days = "1d"
@@ -71,7 +68,7 @@ class MetricsSessionsV2SessionsTest(APITestCase, SnubaTestCase):
                 "sentry.api.endpoints.organization_sessions.release_health",
                 SessionsReleaseHealthBackend(),
             ):
-                sessions_data = self.get_sessions_data(groupby, interval_days)
+                sessions_data = result_sorted(self.get_sessions_data(groupby, interval_days))
 
             with patch(
                 "sentry.release_health.metrics_sessions_v2.indexer.resolve", MockIndexer().resolve
@@ -79,14 +76,11 @@ class MetricsSessionsV2SessionsTest(APITestCase, SnubaTestCase):
                 "sentry.api.endpoints.organization_sessions.release_health",
                 MetricsReleaseHealthBackend(),
             ):
-                metrics_data = self.get_sessions_data(groupby, interval_days)
+                metrics_data = result_sorted(self.get_sessions_data(groupby, interval_days))
 
             errors = compare_results(
                 sessions=sessions_data,
                 metrics=metrics_data,
                 rollup=interval_days * 24 * 60 * 60,  # days to seconds
             )
-            if len(errors) > 0:
-                diff_num_keys_msg = "different number of keys in dictionaries sessions"
-                for e in errors:
-                    assert str(e) not in diff_num_keys_msg
+            assert len(errors) == 0

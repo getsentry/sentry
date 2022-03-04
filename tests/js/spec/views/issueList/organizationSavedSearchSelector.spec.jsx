@@ -55,7 +55,7 @@ describe('IssueListSavedSearchSelector', function () {
   describe('selecting an option', function () {
     it('calls onSelect when clicked', async function () {
       wrapper.find('DropdownButton').simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       const item = wrapper.find('MenuItem a').first();
       expect(item).toHaveLength(1);

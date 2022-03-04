@@ -54,7 +54,7 @@ export default function OpsFilter(props: Props) {
           isOpen={isOpen}
         >
           <Fragment>
-            <IconFilter size="xs" />
+            <IconFilter />
             <FilterLabel>
               {defined(currentOp) ? tct('Filter - [op]', {op: currentOp}) : t('Filter')}
             </FilterLabel>
