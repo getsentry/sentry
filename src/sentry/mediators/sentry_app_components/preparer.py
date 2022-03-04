@@ -4,6 +4,7 @@ from django.utils.encoding import force_str
 
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests import SelectRequester
+from sentry.utils import json
 
 
 class Preparer(Mediator):
@@ -71,7 +72,7 @@ class Preparer(Mediator):
             if len(dependant_data_list) != len(field.get("depends_on")):
                 return field.update({"choices": []})
 
-            dependant_data = {x["name"]: x["value"] for x in dependant_data_list}
+            dependant_data = json.dumps({x["name"]: x["value"] for x in dependant_data_list})
 
             return self._get_select_choices(field, dependant_data)
 
