@@ -44,7 +44,6 @@ const StyledButtonBar = styled(ButtonBar)`
 const FooterWrapper = styled('div')`
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.gray200};
-  height: 100px;
   position: sticky;
   bottom: 0;
   padding: ${space(4)};
