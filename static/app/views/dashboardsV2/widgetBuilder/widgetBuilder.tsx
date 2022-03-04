@@ -772,6 +772,10 @@ function WidgetBuilder({
                             const fieldStrings = newFields.map(generateFieldAsString);
                             const newQuery = cloneDeep(state.queries[0]);
                             newQuery.fields = fieldStrings;
+                            const {columns, aggregates} =
+                              getColumnsAndAggregates(fieldStrings);
+                            newQuery.aggregates = aggregates;
+                            newQuery.columns = columns;
                             handleQueryChange(0, newQuery);
                           }}
                         />
