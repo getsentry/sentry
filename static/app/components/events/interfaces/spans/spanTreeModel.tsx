@@ -396,7 +396,7 @@ class SpanTreeModel {
             type: 'span',
             span: spanModel.span,
             numOfSpanChildren: 0,
-            treeDepth,
+            treeDepth: treeDepth + 1,
             isLastSibling: index === group.length - 1,
             continuingTreeDepths,
             fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
@@ -413,7 +413,7 @@ class SpanTreeModel {
 
         // Check if the group is currently expanded or not
         const key = `${group[0].span.op}.${group[0].span.description}`;
-        if (key in this.ungroupedSiblings) {
+        if (this.ungroupedSiblings.has(key)) {
           acc.descendants.push(...wrappedSiblings);
           return acc;
         }
@@ -620,7 +620,7 @@ class SpanTreeModel {
   toggleSiblingSpanGroup = (operation: string, description: string) => {
     const key = `${operation}.${description}`;
 
-    if (key in this.ungroupedSiblings) {
+    if (this.ungroupedSiblings.has(key)) {
       this.ungroupedSiblings.delete(key);
     } else {
       this.ungroupedSiblings.add(`${operation}.${description}`);
