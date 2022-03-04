@@ -9,6 +9,7 @@ import {
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
+import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -170,6 +171,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   return (
     <Fragment>
       {!hideGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
+      {hideGlobalHeader && <DesyncedFilterAlert router={router} />}
       {children}
     </Fragment>
   );
