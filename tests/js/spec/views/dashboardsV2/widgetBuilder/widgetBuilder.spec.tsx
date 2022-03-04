@@ -8,6 +8,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -167,6 +168,7 @@ describe('WidgetBuilder', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('no feature access', function () {
@@ -217,7 +219,7 @@ describe('WidgetBuilder', function () {
     );
     expect(screen.getByRole('link', {name: 'Dashboard'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboards/new/?source=dashboards'
+      '/organizations/org-slug/dashboards/new/?end&start&statsPeriod=24h&utc=false'
     );
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
@@ -302,7 +304,7 @@ describe('WidgetBuilder', function () {
             queryOrderby: '',
             start: null,
             end: null,
-            period: '24h',
+            statsPeriod: '24h',
             utc: false,
             project: [],
             environment: [],
@@ -347,7 +349,7 @@ describe('WidgetBuilder', function () {
             queryOrderby: '',
             start: null,
             end: null,
-            period: '24h',
+            statsPeriod: '24h',
             utc: false,
             project: [],
             environment: [],
@@ -810,6 +812,63 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
+  it('persists the global selection header period when updating a widget', async () => {
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const {router} = renderTestComponent({dashboard, widget});
+
+    await screen.findByText('Update Widget');
+    userEvent.click(screen.getAllByText('Errors over time')[0]);
+    userEvent.type(screen.getByLabelText('Widget title'), 'Edited title');
+    expect(router.push).not.toHaveBeenCalled();
+
+    // Change global selection header period
+    userEvent.click(screen.getByText('Last 24 hours'));
+    expect(router.push).not.toHaveBeenCalled();
+    userEvent.click(screen.getByText('Last 90 days'));
+    expect(router.push).toHaveBeenCalledTimes(1);
+    const globalSelectionHeaderTimePeriod = screen.getByTestId(
+      'global-header-timerange-selector'
+    );
+    await within(globalSelectionHeaderTimePeriod).findByText('Last 90 days');
+
+    userEvent.click(screen.getByText('Update Widget'));
+
+    await waitFor(() => {
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '90d',
+            project: [],
+            environment: [],
+          }),
+        })
+      );
+    });
+  });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
@@ -841,7 +900,7 @@ describe('WidgetBuilder', function () {
               queryOrderby: '',
               start: null,
               end: null,
-              period: '24h',
+              statsPeriod: '24h',
               utc: false,
               project: [],
               environment: [],
@@ -874,7 +933,7 @@ describe('WidgetBuilder', function () {
               queryOrderby: '',
               start: null,
               end: null,
-              period: '24h',
+              statsPeriod: '24h',
               utc: false,
               project: [],
               environment: [],

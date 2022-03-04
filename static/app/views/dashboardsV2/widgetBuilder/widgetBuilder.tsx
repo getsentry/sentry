@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import omit from 'lodash/omit';
 import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
@@ -200,6 +201,13 @@ function WidgetBuilder({
     ? {...selection, datetime: {start, end, period: null, utc: null}}
     : selection;
 
+  const globalSelectionHeaderParams = {
+    project: pageFilters.projects,
+    environment: pageFilters.environments,
+    ...omit(pageFilters.datetime, 'period'),
+    statsPeriod: pageFilters.datetime?.period,
+  };
+
   // when opening from discover or issues page, the user selects the dashboard in the widget UI
   const notDashboardsOrigin = [
     DashboardWidgetSource.DISCOVERV2,
@@ -266,7 +274,7 @@ function WidgetBuilder({
     pathname: currentDashboardId
       ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
       : `/organizations/${orgId}/dashboards/new/`,
-    query: {...location.query},
+    query: omit({...location.query, ...globalSelectionHeaderParams}, 'period', 'source'),
   };
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
@@ -598,9 +606,7 @@ function WidgetBuilder({
       title: widgetData.title,
       ...queryData,
       // Propagate page filters
-      ...selection.datetime,
-      project: selection.projects,
-      environment: selection.environments,
+      ...globalSelectionHeaderParams,
     };
 
     addSuccessMessage(t('Added widget.'));
@@ -611,14 +617,20 @@ function WidgetBuilder({
     if (id === NEW_DASHBOARD_ID) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
-        query,
+        query: {
+          ...globalSelectionHeaderParams,
+          ...query,
+        },
       });
       return;
     }
 
     router.push({
       pathname: `/organizations/${organization.slug}/dashboard/${id}/`,
-      query,
+      query: {
+        ...globalSelectionHeaderParams,
+        ...query,
+      },
     });
   }
 
