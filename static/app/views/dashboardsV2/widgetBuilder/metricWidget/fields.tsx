@@ -1,10 +1,10 @@
-import {MetricMeta, MetricsOperation, SelectValue} from 'sentry/types';
+import {MetricsMeta, MetricsOperation, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {METRICS_OPERATIONS} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 export function generateMetricsWidgetFieldOptions(
-  fields: MetricMeta[] = [],
+  fields: MetricsMeta[] = [],
   tagKeys?: string[]
 ) {
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
