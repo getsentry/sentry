@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {Title} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -284,19 +285,19 @@ class ManageDashboards extends AsyncView<Props, State> {
               <PageContent>
                 <StyledPageHeader>
                   <Title>{t('Dashboards')}</Title>
-                  <ButtonContainer>
+                  <ButtonBar gap={1.5}>
                     <Feature
                       organization={organization}
                       features={['dashboards-template']}
                     >
-                      <SwitchContainer>
+                      <TemplateSwitch>
                         {t('Show Templates')}
-                        <TemplateSwitch
+                        <Switch
                           isActive={showTemplates}
                           size="lg"
                           toggle={this.toggleTemplates}
                         />
-                      </SwitchContainer>
+                      </TemplateSwitch>
                     </Feature>
                     <Button
                       data-test-id="dashboard-create"
@@ -309,7 +310,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                     >
                       {t('Create Dashboard')}
                     </Button>
-                  </ButtonContainer>
+                  </ButtonBar>
                 </StyledPageHeader>
                 {showTemplates && this.renderTemplates()}
                 {this.renderActions()}
@@ -345,21 +346,13 @@ const StyledActions = styled('div')`
   }
 `;
 
-const SwitchContainer = styled('div')`
+const TemplateSwitch = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  display: inline;
-  padding-right: ${space(2)};
-`;
-
-const TemplateSwitch = styled(Switch)`
-  vertical-align: middle;
-  display: inline;
-  margin-left: ${space(1)};
-`;
-
-const ButtonContainer = styled('div')`
-  display: inline;
-  flex-shrink: 0;
+  display: grid;
+  align-items: center;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  width: max-content;
 `;
 
 const TemplateContainer = styled('div')`
