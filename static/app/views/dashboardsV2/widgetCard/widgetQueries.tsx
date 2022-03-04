@@ -186,7 +186,6 @@ class WidgetQueries extends React.Component<Props, State> {
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
     // to do a discover 'table' query instead of a 'timeseries' query.
-    this.setState({tableResults: []});
 
     const promises = widget.queries.map(query => {
       const eventView = eventViewFromWidget(widget.title, query, selection);
