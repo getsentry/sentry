@@ -24,6 +24,7 @@ from snuba_sdk import (
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
     MAX_POINTS,
     QueryDefinition,
@@ -186,7 +187,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     query_definition = QueryDefinition(query_params)
     snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
 
-    def expected_query(match, select, extra_groupby):
+    def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
         return Query(
             dataset="metrics",
@@ -196,10 +197,10 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
-                Condition(Column("metric_id"), Op.IN, [9, 11, 7]),
                 Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
                 Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
                 Condition(Column("tags[6]"), Op.IN, [10]),
+                Condition(Column("metric_id"), Op.IN, [resolve_weak(metric_name)]),
             ],
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
@@ -207,29 +208,45 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
         )
 
     assert snuba_queries["metrics_counters"]["totals"] == expected_query(
-        "metrics_counters", ("sum", "value", "sum"), []
+        "metrics_counters", ("sum", "value", "sum"), [], "sentry.sessions.session"
     )
 
     expected_percentile_select = ("quantiles(0.95)", "value", "p95")
     assert snuba_queries == {
         "metrics_counters": {
-            "totals": expected_query("metrics_counters", ("sum", "value", "sum"), []),
+            "totals": expected_query(
+                "metrics_counters", ("sum", "value", "sum"), [], "sentry.sessions.session"
+            ),
             "series": expected_query(
-                "metrics_counters", ("sum", "value", "sum"), [Column("bucketed_time")]
+                "metrics_counters",
+                ("sum", "value", "sum"),
+                [Column("bucketed_time")],
+                "sentry.sessions.session",
             ),
         },
         "metrics_sets": {
-            "totals": expected_query("metrics_sets", ("uniq", "value", "count_unique"), []),
+            "totals": expected_query(
+                "metrics_sets", ("uniq", "value", "count_unique"), [], "sentry.sessions.user"
+            ),
             "series": expected_query(
-                "metrics_sets", ("uniq", "value", "count_unique"), [Column("bucketed_time")]
+                "metrics_sets",
+                ("uniq", "value", "count_unique"),
+                [Column("bucketed_time")],
+                "sentry.sessions.user",
             ),
         },
         "metrics_distributions": {
-            "totals": expected_query("metrics_distributions", expected_percentile_select, []),
+            "totals": expected_query(
+                "metrics_distributions",
+                expected_percentile_select,
+                [],
+                "sentry.sessions.session.duration",
+            ),
             "series": expected_query(
                 "metrics_distributions",
                 expected_percentile_select,
                 [Column("bucketed_time")],
+                "sentry.sessions.session.duration",
             ),
         },
     }
@@ -256,29 +273,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
 
     counter_queries = snuba_queries.pop("metrics_counters")
     assert not snuba_queries
-    assert counter_queries["series"] == Query(
-        dataset="metrics",
-        match=Entity("metrics_counters"),
-        select=[Function("sum", [Column("value")], "sum")],
-        groupby=[
-            Column("metric_id"),
-            Column("tags[8]"),
-            Column("tags[2]"),
-            Column("bucketed_time"),
-        ],
-        where=[
-            Condition(Column("org_id"), Op.EQ, 1),
-            Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("metric_id"), Op.IN, [9]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
-            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
-        ],
-        orderby=[OrderBy(Column("sum"), Direction.DESC)],
-        limit=Limit(6480),
-        offset=Offset(0),
-        granularity=Granularity(query_definition.rollup),
-    )
 
     assert counter_queries["totals"] == Query(
         dataset="metrics",
@@ -292,13 +286,36 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("metric_id"), Op.IN, [9]),
             Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(Column("tags[6]", entity=None), Op.IN, [10]),
+            Condition(Column("metric_id"), Op.IN, [9]),
         ],
         orderby=[OrderBy(Column("sum"), Direction.DESC)],
         limit=Limit(3),
+        offset=Offset(0),
+        granularity=Granularity(query_definition.rollup),
+    )
+    assert counter_queries["series"] == Query(
+        dataset="metrics",
+        match=Entity("metrics_counters"),
+        select=[Function("sum", [Column("value")], "sum")],
+        groupby=[
+            Column("metric_id"),
+            Column("tags[8]"),
+            Column("tags[2]"),
+            Column("bucketed_time"),
+        ],
+        where=[
+            Condition(Column("org_id"), Op.EQ, 1),
+            Condition(Column("project_id"), Op.IN, [1]),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
+            Condition(Column("metric_id"), Op.IN, [9]),
+        ],
+        orderby=[OrderBy(Column("sum"), Direction.DESC)],
+        limit=Limit(6480),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
