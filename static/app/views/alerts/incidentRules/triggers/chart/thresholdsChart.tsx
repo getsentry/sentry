@@ -9,6 +9,7 @@ import Graphic from 'sentry/components/charts/components/graphic';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -23,7 +24,12 @@ import {
   shouldScaleAlertChart,
 } from 'sentry/views/alerts/utils';
 
-import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
+import {
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+  IncidentRule,
+  Trigger,
+} from '../../types';
 
 type DefaultProps = {
   comparisonData: Series[];
@@ -223,7 +229,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     // Shave off the left margin
     const graphAreaMargin = 7;
 
-    const isCritical = trigger.label === 'critical';
+    const isCritical = trigger.label === AlertRuleTriggerType.CRITICAL;
     const LINE_STYLE = {
       stroke: isResolution ? theme.green300 : isCritical ? theme.red300 : theme.yellow300,
       lineDash: [2],
@@ -386,9 +392,9 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
           );
 
           const changeStatusColor =
-            changeStatus === 'critical'
+            changeStatus === AlertRuleTriggerType.CRITICAL
               ? theme.red300
-              : changeStatus === 'warning'
+              : changeStatus === AlertRuleTriggerType.WARNING
               ? theme.yellow300
               : theme.green300;
 
@@ -413,7 +419,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         isGroupedByDate
         showTimeInTooltip
         minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-        period={period}
+        period={DEFAULT_STATS_PERIOD || period}
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
         {...chartOptions}

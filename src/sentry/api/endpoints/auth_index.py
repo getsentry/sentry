@@ -19,9 +19,6 @@ from sentry.utils import auth, json
 from sentry.utils.auth import initiate_login
 from sentry.utils.functional import extract_lazy_object
 
-# from datetime import timedelta, timezone
-
-
 logger: logging.Logger = logging.getLogger(__name__)
 
 
@@ -105,15 +102,13 @@ class AuthIndexEndpoint(Endpoint):
         validator = AuthVerifyValidator(data=request.data)
         has_auth_identity = False
         if not validator.is_valid():
-            auth_identity = AuthIdentity.objects.get(user_id=request.user.id)
-            if not auth_identity or not request.user.is_superuser:
+            try:
+                AuthIdentity.objects.get(user_id=request.user.id)
+                has_auth_identity = True
+            except AuthIdentity.DoesNotExist:
+                pass
+            if not has_auth_identity or not request.user.is_superuser:
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-
-            has_auth_identity = True
-            # # TODO do we need to check if last sso verification was x amount of time?
-            # valid_session = timedelta(minutes=15)
-            # if timezone.now() - auth_identity.last_verified > valid_session:
-            #     # TODO Redirect to sso login
 
         authenticated = False
         # See if we have a u2f challenge/response
@@ -159,7 +154,9 @@ class AuthIndexEndpoint(Endpoint):
             auth.login(request._request, request.user)
 
             # only give superuser access when going through superuser modal
-            request.superuser.set_logged_in(request.user)
+            if request.user.is_superuser:
+                if request.data.get("isSuperuserModal"):
+                    request.superuser.set_logged_in(request.user)
         except auth.AuthUserPasswordExpired:
             return Response(
                 {

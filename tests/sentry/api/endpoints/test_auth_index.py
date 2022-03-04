@@ -4,6 +4,7 @@ from unittest import mock
 from django.test import override_settings
 
 from sentry.models import Authenticator, AuthProvider
+from sentry.models.authidentity import AuthIdentity
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import AuthProviderTestCase
 
@@ -75,6 +76,14 @@ class AuthVerifyEndpointTest(APITestCase):
             },
         )
 
+    def test_sso_not_superuser(self):
+        user = self.create_user("foo@example.com")
+        org_provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
+        self.login_as(user)
+        response = self.client.put(self.path, data={})
+        assert response.status_code == 400
+
     def test_valid_password(self):
         user = self.create_user("foo@example.com")
         self.login_as(user)
@@ -134,6 +143,28 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 data={
                     "password": "admin",
+                    "superuserAccessCategory": "for testing",
+                    "superuserReason": "for testing",
+                },
+            )
+            assert response.status_code == 401
+
+    def test_superuser_sso(self):
+        from sentry.auth.superuser import Superuser
+
+        org_provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+        user = self.create_user("foo@example.com", is_superuser=True)
+
+        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
+
+        with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
+            SUPERUSER_ORG_ID=self.organization.id
+        ):
+            self.login_as(user)
+            response = self.client.put(
+                self.path,
+                data={
                     "superuserAccessCategory": "for testing",
                     "superuserReason": "for testing",
                 },

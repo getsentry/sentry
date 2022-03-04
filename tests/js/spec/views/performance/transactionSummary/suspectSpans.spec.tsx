@@ -67,8 +67,8 @@ describe('SuspectSpans', function () {
       expect(await screen.findByText('Span Name')).toBeInTheDocument();
       expect(await screen.findByText('Total Count')).toBeInTheDocument();
       expect(await screen.findByText('Frequency')).toBeInTheDocument();
-      expect(await screen.findByText('P75 Exclusive Time')).toBeInTheDocument();
-      expect(await screen.findByText('Total Exclusive Time')).toBeInTheDocument();
+      expect(await screen.findByText('P75 Self Time')).toBeInTheDocument();
+      expect(await screen.findByText('Total Self Time')).toBeInTheDocument();
     });
 
     // Due to the createHref being stubbed out (see link below),
@@ -90,9 +90,9 @@ describe('SuspectSpans', function () {
     //   );
 
     //   await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-    //   expect(screen.getByText('P75 Exclusive Time')).toHaveAttribute('href', null);
+    //   expect(screen.getByText('P75 Self Time')).toHaveAttribute('href', null);
     //   expect(screen.getByText('Total Occurrences')).toHaveAttribute('href', null);
-    //   expect(screen.getByText('Total Exclusive Time')).toHaveAttribute('href', null);
+    //   expect(screen.getByText('Total Self Time')).toHaveAttribute('href', null);
     // });
   });
 });

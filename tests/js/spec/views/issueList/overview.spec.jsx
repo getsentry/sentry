@@ -549,7 +549,7 @@ describe('IssueList', function () {
       createWrapper();
       await tick();
       await tick();
-      await wrapper.update();
+      wrapper.update();
 
       // Update the search textarea
       wrapper
@@ -557,7 +557,7 @@ describe('IssueList', function () {
         .simulate('change', {target: {value: 'dogs'}});
       // Submit the form
       wrapper.find('IssueListFilters SmartSearchBar form').simulate('submit');
-      await wrapper.update();
+      wrapper.update();
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -1225,7 +1225,7 @@ describe('IssueList', function () {
     it('fetches members and sets state', async function () {
       const instance = wrapper.instance();
       await instance.componentDidMount();
-      await wrapper.update();
+      wrapper.update();
 
       expect(fetchMembersRequest).toHaveBeenCalled();
 
@@ -1354,7 +1354,7 @@ describe('IssueList', function () {
     it('fetches and displays processing issues', async function () {
       const instance = wrapper.instance();
       instance.componentDidMount();
-      await wrapper.update();
+      wrapper.update();
 
       GroupStore.add([group]);
       wrapper.setState({

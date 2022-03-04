@@ -119,7 +119,7 @@ describe('ConfigureDistributedTracing', function () {
     wrapper.find('button[aria-label="Snooze"]').first().simulate('click');
 
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(putMock).toHaveBeenCalledWith(
       '/prompts-activity/',
@@ -183,7 +183,7 @@ describe('ConfigureDistributedTracing', function () {
     wrapper.find('button[aria-label="Dismiss"]').first().simulate('click');
 
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(putMock).toHaveBeenCalledWith(
       '/prompts-activity/',
