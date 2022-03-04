@@ -1,6 +1,3 @@
-"""
-Used for notifying a *specific* sentry app with a custom webhook payload (i.e. specified UI components)
-"""
 from typing import Any, Mapping, Optional, Sequence
 
 from rest_framework import serializers
@@ -29,6 +26,11 @@ def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str
 
 
 class NotifyEventSentryAppAction(EventAction):  # type: ignore
+    """
+    Used for notifying a *specific* sentry app with a custom webhook payload
+    (i.e. specified UI components).
+    """
+
     id = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
     actionType = "sentryapp"
     # Required field for EventAction, value is ignored

@@ -1,7 +1,3 @@
-"""
-Used for notifying *all* enabled plugins
-"""
-
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import LegacyPluginService
@@ -10,6 +6,7 @@ from sentry.utils.safe import safe_execute
 
 
 class NotifyEventAction(EventAction):
+    """Used for notifying *all* enabled plugins."""
     id = "sentry.rules.actions.notify_event.NotifyEventAction"
     label = "Send a notification (for all legacy integrations)"
     prompt = "Send a notification to all legacy integrations"

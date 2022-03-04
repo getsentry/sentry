@@ -1,3 +1,7 @@
+import abc
+import logging
+from collections import namedtuple
+
 """
 Rules apply either before an event gets stored, or immediately after.
 
@@ -27,9 +31,6 @@ by the rule's logic. Each rule condition may be associated with a form.
 - [ACTION:I want to get notified when] [RULE:an event is first seen]
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
 """
-import abc
-import logging
-from collections import namedtuple
 
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are

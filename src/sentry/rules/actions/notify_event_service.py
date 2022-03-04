@@ -1,6 +1,3 @@
-"""
-Used for notifying a *specific* plugin/sentry app with a generic webhook payload
-"""
 import logging
 
 from django import forms
@@ -134,6 +131,8 @@ class NotifyEventServiceForm(forms.Form):
 
 
 class NotifyEventServiceAction(EventAction):
+    """Used for notifying a *specific* plugin/sentry app with a generic webhook payload."""
+
     id = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
     form_cls = NotifyEventServiceForm
     label = "Send a notification via {service}"
