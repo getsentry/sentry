@@ -1,5 +1,4 @@
 import logging
-from collections import namedtuple
 from datetime import timedelta
 from random import randrange
 from typing import Mapping, Sequence, Set
@@ -9,11 +8,10 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.models import GroupRuleStatus, Rule
-from sentry.rules import EventState, history, rules
+from sentry.rules import EventState, RuleFuture, history, rules
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
-RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 SLOW_CONDITION_MATCHES = ["event_frequency"]
 
 
