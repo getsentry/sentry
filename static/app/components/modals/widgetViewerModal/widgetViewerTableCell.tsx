@@ -5,7 +5,6 @@ import {Location, LocationDescriptorObject} from 'history';
 import {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Tooltip from 'sentry/components/tooltip';
-import Truncate from 'sentry/components/truncate';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
@@ -24,6 +23,8 @@ import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/
 import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
+import {WidgetViewerQueryField} from './utils';
+
 // Dashboards only supports top 5 for now
 const DEFAULT_NUM_TOP_EVENTS = 5;
 
@@ -32,11 +33,12 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  isFirstPage?: boolean;
   tableData?: TableDataWithTitle;
 };
 
 export const renderGridHeaderCell =
-  ({selection, widget, tableData}: Props) =>
+  ({location, selection, widget, tableData}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const eventView = eventViewFromWidget(
       widget.title,
@@ -46,11 +48,21 @@ export const renderGridHeaderCell =
     );
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
-    const field = {field: column.name, width: column.width};
+    const field = {field: String(column.key), width: column.width};
     function generateSortLink(): LocationDescriptorObject | undefined {
-      // TODO: need write sort link generation for widget viewer
-      return undefined;
+      if (!tableMeta) {
+        return undefined;
+      }
+
+      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const queryStringObject = nextEventView.generateQueryStringObject();
+
+      return {
+        ...location,
+        query: {...location.query, [WidgetViewerQueryField.SORT]: queryStringObject.sort},
+      };
     }
+
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
     const titleText = isEquationAlias(column.name)
@@ -60,11 +72,7 @@ export const renderGridHeaderCell =
     return (
       <SortLink
         align={align}
-        title={
-          <StyledTooltip title={titleText}>
-            <Truncate value={titleText} maxLength={60} expandable={false} />
-          </StyledTooltip>
-        }
+        title={<StyledTooltip title={titleText}>{titleText}</StyledTooltip>}
         direction={currentSort ? currentSort.kind : undefined}
         canSort={canSort}
         generateSortLink={generateSortLink}
@@ -73,7 +81,7 @@ export const renderGridHeaderCell =
   };
 
 export const renderGridBodyCell =
-  ({location, organization, widget, tableData}: Props) =>
+  ({location, organization, widget, tableData, isFirstPage}: Props) =>
   (
     column: GridColumnOrder,
     dataRow: Record<string, any>,
@@ -117,7 +125,10 @@ export const renderGridBodyCell =
 
     return (
       <React.Fragment>
-        {isTopEvents && rowIndex < DEFAULT_NUM_TOP_EVENTS && columnIndex === 0 ? (
+        {isTopEvents &&
+        isFirstPage &&
+        rowIndex < DEFAULT_NUM_TOP_EVENTS &&
+        columnIndex === 0 ? (
           <TopResultsIndicator count={DEFAULT_NUM_TOP_EVENTS} index={rowIndex} />
         ) : null}
         {cell}

@@ -17,14 +17,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
   'organization' | 'start' | 'end' | 'utc' | 'relative' | 'onUpdate'
-> & {
-  router: WithRouterProps['router'];
-  hidePin?: boolean;
-  /**
-   * Reset these URL params when we fire actions (custom routing only)
-   */
-  resetParamsOnChange?: string[];
-};
+> &
+  WithRouterProps & {
+    hidePin?: boolean;
+    /**
+     * Reset these URL params when we fire actions (custom routing only)
+     */
+    resetParamsOnChange?: string[];
+  };
 
 function DatePageFilter({router, resetParamsOnChange, hidePin, ...props}: Props) {
   const {selection, desyncedFilters} = useLegacyStore(PageFiltersStore);
@@ -121,4 +121,4 @@ const DropdownTitle = styled('div')`
   flex: 1;
 `;
 
-export default withRouter<Props>(DatePageFilter);
+export default withRouter(DatePageFilter);
