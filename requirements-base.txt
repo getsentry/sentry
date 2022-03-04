@@ -57,7 +57,7 @@ rfc3986-validator==0.1.1
 sentry-arroyo==0.0.5
 sentry-relay==0.8.9
 sentry-sdk>=1.4.3,<1.6.0
-snuba-sdk==0.1.1
+snuba-sdk==0.1.2
 simplejson==3.17.2
 statsd==3.3
 structlog==21.1.0
