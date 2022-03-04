@@ -14,7 +14,7 @@
     "json-diff": "^0.7.1",
     "json-refs": "^3.0.15",
     "openapi-examples-validator": "^4.1.1",
-    "ts-node": "^10.1.0"
+    "ts-node": "^10.6.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.5",
