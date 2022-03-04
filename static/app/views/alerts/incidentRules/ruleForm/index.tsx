@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -26,6 +26,7 @@ import {defined} from 'sentry/utils';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import RuleNameOwnerForm from 'sentry/views/alerts/incidentRules/ruleNameOwnerForm';
+import ThresholdTypeForm from 'sentry/views/alerts/incidentRules/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/incidentRules/triggers';
 import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
@@ -44,6 +45,7 @@ import RuleConditionsForm from '../ruleConditionsForm';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
+  AlertRuleTriggerType,
   Dataset,
   EventTypes,
   IncidentRule,
@@ -110,7 +112,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     // Warning trigger is removed if it is blank when saving
     if (triggersClone.length !== 2) {
-      triggersClone.push(createDefaultTrigger('warning'));
+      triggersClone.push(createDefaultTrigger(AlertRuleTriggerType.WARNING));
     }
 
     return {
@@ -336,7 +338,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           errors: triggerErrors,
           triggerIndex,
           isValid: (): boolean => {
-            if (trigger.label === 'critical') {
+            if (trigger.label === AlertRuleTriggerType.CRITICAL) {
               return !isEmpty(trigger[field]);
             }
 
@@ -359,7 +361,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     // If we have 2 triggers, we need to make sure that the critical and warning
     // alert thresholds are valid (e.g. if critical is above x, warning must be less than x)
-    const criticalTriggerIndex = triggers.findIndex(({label}) => label === 'critical');
+    const criticalTriggerIndex = triggers.findIndex(
+      ({label}) => label === AlertRuleTriggerType.CRITICAL
+    );
     const warningTriggerIndex = criticalTriggerIndex ^ 1;
     const criticalTrigger = triggers[criticalTriggerIndex];
     const warningTrigger = triggers[warningTriggerIndex];
@@ -462,7 +466,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
-      trigger => trigger.label !== 'warning' || !isEmpty(trigger.alertThreshold)
+      trigger =>
+        trigger.label !== AlertRuleTriggerType.WARNING || !isEmpty(trigger.alertThreshold)
     );
 
     // form model has all form state data, however we use local state to keep
@@ -618,7 +623,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
   };
 
-  handleRuleSaveFailure = (msg: React.ReactNode) => {
+  handleRuleSaveFailure = (msg: ReactNode) => {
     addErrorMessage(msg);
     metric.endTransaction({name: 'saveAlertRule'});
   };
@@ -732,6 +737,21 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
+    const thresholdTypeForm = (hasAccess: boolean) => (
+      <ThresholdTypeForm
+        comparisonType={comparisonType}
+        dataset={dataset}
+        disabled={!hasAccess || !canEdit}
+        onComparisonDeltaChange={value =>
+          this.handleFieldChange('comparisonDelta', value)
+        }
+        onComparisonTypeChange={this.handleComparisonTypeChange}
+        organization={organization}
+        hasAlertWizardV3={hasAlertWizardV3}
+        comparisonDelta={comparisonDelta}
+      />
+    );
+
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => (
@@ -789,13 +809,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 timeWindow={timeWindow}
                 comparisonType={comparisonType}
                 comparisonDelta={comparisonDelta}
-                onComparisonTypeChange={this.handleComparisonTypeChange}
                 onComparisonDeltaChange={value =>
                   this.handleFieldChange('comparisonDelta', value)
                 }
                 onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               />
-              <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
+              {!hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
+              <AlertListItem>
+                {hasAlertWizardV3
+                  ? t('Set thresholds')
+                  : t('Set thresholds to trigger alert')}
+              </AlertListItem>
+              {hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
               {triggerForm(hasAccess)}
               {ruleNameOwnerForm(hasAccess)}
             </List>

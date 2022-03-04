@@ -40,7 +40,7 @@ describe('SmartSearchBarActions', () => {
       });
     });
 
-    it('does not pin when query is empty', async function () {
+    it('does not pin when query is empty', function () {
       const {Action} = makePinSearchAction({sort: ''});
 
       const wrapper = mountWithTheme(
@@ -54,12 +54,12 @@ describe('SmartSearchBarActions', () => {
         options
       );
       wrapper.find('ActionButton').simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       expect(pinRequest).not.toHaveBeenCalled();
     });
 
-    it('adds pins', async function () {
+    it('adds pins', function () {
       const {Action} = makePinSearchAction({sort: ''});
 
       const wrapper = mountWithTheme(
@@ -73,13 +73,13 @@ describe('SmartSearchBarActions', () => {
         options
       );
       wrapper.find('ActionButton').simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       expect(pinRequest).toHaveBeenCalled();
       expect(unpinRequest).not.toHaveBeenCalled();
     });
 
-    it('removes pins', async function () {
+    it('removes pins', function () {
       const pinnedSearch = TestStubs.Search({isPinned: true});
       const {Action} = makePinSearchAction({pinnedSearch, sort: ''});
 
@@ -95,7 +95,7 @@ describe('SmartSearchBarActions', () => {
       );
 
       wrapper.find('ActionButton').simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       expect(pinRequest).not.toHaveBeenCalled();
       expect(unpinRequest).toHaveBeenCalled();

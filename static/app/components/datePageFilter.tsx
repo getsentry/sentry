@@ -2,7 +2,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import DropdownButton from 'sentry/components/dropdownButton';
+import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import TimeRangeSelector, {
   ChangeData,
@@ -17,16 +17,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
   'organization' | 'start' | 'end' | 'utc' | 'relative' | 'onUpdate'
-> & {
-  router: WithRouterProps['router'];
-  /**
-   * Reset these URL params when we fire actions (custom routing only)
-   */
-  resetParamsOnChange?: string[];
-};
+> &
+  WithRouterProps & {
+    /**
+     * Reset these URL params when we fire actions (custom routing only)
+     */
+    resetParamsOnChange?: string[];
+  };
 
 function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
-  const {selection} = useLegacyStore(PageFiltersStore);
+  const {selection, desyncedFilters} = useLegacyStore(PageFiltersStore);
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
 
@@ -54,11 +54,16 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
     }
 
     return (
-      <StyledDropdownButton isOpen={isOpen} icon={<IconCalendar />} {...getActorProps()}>
+      <PageFilterDropdownButton
+        isOpen={isOpen}
+        icon={<IconCalendar />}
+        highlighted={desyncedFilters.has('datetime')}
+        {...getActorProps()}
+      >
         <DropdownTitle>
           <TitleContainer>{label}</TitleContainer>
         </DropdownTitle>
-      </StyledDropdownButton>
+      </PageFilterDropdownButton>
     );
   };
 
@@ -73,6 +78,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
         onUpdate={handleUpdate}
         label={<IconCalendar color="textColor" />}
         customDropdownButton={customDropdownButton}
+        detached
         {...props}
       />
       <PageFilterPinButton size="zero" filter="datetime" />
@@ -94,12 +100,6 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   background: ${p => p.theme.background};
   border: none;
   box-shadow: none;
-`;
-
-const StyledDropdownButton = styled(DropdownButton)`
-  width: 100%;
-  height: 40px;
-  text-overflow: ellipsis;
 `;
 
 const TitleContainer = styled('div')`

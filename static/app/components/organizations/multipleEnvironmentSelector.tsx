@@ -52,6 +52,8 @@ type Props = WithRouterProps & {
     summary: string;
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  detached?: boolean;
+  forceEnvironment?: string;
 } & DefaultProps;
 
 type State = {
@@ -231,8 +233,14 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {value, loadingProjects, customDropdownButton, customLoadingIndicator} =
-      this.props;
+    const {
+      value,
+      loadingProjects,
+      customDropdownButton,
+      customLoadingIndicator,
+      forceEnvironment,
+      detached,
+    } = this.props;
     const environments = this.getEnvironments();
 
     const hasNewPageFilters =
@@ -243,7 +251,16 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       ? `${validatedValue.join(', ')}`
       : t('All Environments');
 
-    return loadingProjects ? (
+    return forceEnvironment !== undefined ? (
+      <StyledHeaderItem
+        data-test-id="global-header-environment-selector"
+        icon={<IconWindow />}
+        isOpen={false}
+        locked
+      >
+        {forceEnvironment ? forceEnvironment : t('All Environments')}
+      </StyledHeaderItem>
+    ) : loadingProjects ? (
       customLoadingIndicator ?? (
         <StyledHeaderItem
           data-test-id="global-header-environment-selector"
@@ -265,6 +282,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
             allowActorToggle
             closeOnSelect
             blendCorner={false}
+            detached={detached}
             searchPlaceholder={t('Filter environments')}
             onSelect={this.handleSelect}
             onClose={this.handleClose}
@@ -332,6 +350,7 @@ export default withApi(withRouter(MultipleEnvironmentSelector));
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
+  width: 100%;
 `;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
@@ -339,10 +358,13 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   border: 1px solid ${p => p.theme.border};
   position: absolute;
   top: 100%;
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: ${p => p.theme.borderRadiusBottom};
-  margin-top: 0;
-  min-width: 100%;
+
+  ${p =>
+    !p.detached &&
+    `
+    margin-top: 0;
+    border-radius: ${p.theme.borderRadiusBottom};
+  `};
 `;
 
 const StyledPinButton = styled(PageFilterPinButton)`
