@@ -520,10 +520,6 @@ function WidgetBuilder({
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
-    if (!isMounted.current) {
-      return false;
-    }
-
     if (notDashboardsOrigin) {
       // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
       if (
