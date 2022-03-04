@@ -218,7 +218,12 @@ class TestComments(APITestCase):
         data = {"text": "hello world"}
         self.client.post(url, data=data, format="json")
         note = Activity.objects.get(group=self.issue, project=self.project, type=Activity.NOTE)
-        data = {"comment_id": note.id, "timestamp": note.datetime, "comment": "hello world"}
+        data = {
+            "comment_id": note.id,
+            "timestamp": note.datetime,
+            "comment": "hello world",
+            "project_slug": self.project.slug,
+        }
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
@@ -232,7 +237,12 @@ class TestComments(APITestCase):
         url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
         data = {"text": "goodbye cruel world"}
         self.client.put(url, data=data, format="json")
-        data = {"comment_id": note.id, "timestamp": note.datetime, "comment": "goodbye cruel world"}
+        data = {
+            "comment_id": note.id,
+            "timestamp": note.datetime,
+            "comment": "goodbye cruel world",
+            "project_slug": self.project.slug,
+        }
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
@@ -245,7 +255,12 @@ class TestComments(APITestCase):
         note = self.create_comment(self.issue, self.project, self.user)
         url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
         self.client.delete(url, format="json")
-        data = {"comment_id": note.id, "timestamp": note.datetime, "comment": "hello world"}
+        data = {
+            "comment_id": note.id,
+            "timestamp": note.datetime,
+            "comment": "hello world",
+            "project_slug": self.project.slug,
+        }
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
