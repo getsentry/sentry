@@ -21,7 +21,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -111,17 +111,6 @@ const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
   [TimeWindow.TWO_HOURS]: [TimePeriod.THIRTY_DAYS],
   [TimeWindow.FOUR_HOURS]: [TimePeriod.THIRTY_DAYS],
   [TimeWindow.ONE_DAY]: [TimePeriod.THIRTY_DAYS],
-};
-
-const AGGREGATE_FUNCTIONS = {
-  avg: (seriesChunk: SeriesDataUnit[]) =>
-    AGGREGATE_FUNCTIONS.sum(seriesChunk) / seriesChunk.length,
-  sum: (seriesChunk: SeriesDataUnit[]) =>
-    seriesChunk.reduce((acc, series) => acc + series.value, 0),
-  max: (seriesChunk: SeriesDataUnit[]) =>
-    Math.max(...seriesChunk.map(series => series.value)),
-  min: (seriesChunk: SeriesDataUnit[]) =>
-    Math.min(...seriesChunk.map(series => series.value)),
 };
 
 const TIME_WINDOW_TO_SESSION_INTERVAL = {

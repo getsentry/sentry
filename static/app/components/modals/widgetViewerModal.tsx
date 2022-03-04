@@ -16,6 +16,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -29,6 +30,7 @@ import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidget
 import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
+import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
   renderGridBodyCell,
   renderGridHeaderCell,
@@ -67,11 +69,25 @@ function WidgetViewerModal(props: Props) {
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
   const [cursor, setCursor] = React.useState<string>();
 
+  // Use sort if provided by location query to sort table
+  const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
+  const sortedQueries = sort
+    ? widget.queries.map(query => ({...query, orderby: sort}))
+    : widget.queries;
+  // Top N widget charts rely on the table sorting
+  const primaryWidget =
+    widget.displayType === DisplayType.TOP_N
+      ? {...widget, queries: sortedQueries}
+      : widget;
+
   const renderWidgetViewer = () => {
     const api = useApi();
 
     // Create Table widget
-    const tableWidget = {...cloneDeep(widget), displayType: DisplayType.TABLE};
+    const tableWidget = {
+      ...cloneDeep({...widget, queries: sortedQueries}),
+      displayType: DisplayType.TABLE,
+    };
     const fields = tableWidget.queries[0].fields;
 
     // World Map view should always have geo.country in the table chart
@@ -106,7 +122,8 @@ function WidgetViewerModal(props: Props) {
               api={api}
               organization={organization}
               selection={modalSelection}
-              widget={widget}
+              // Top N charts rely on the orderby of the table
+              widget={primaryWidget}
               onZoom={(_evt, chart) => {
                 // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
                 const model = chart.getModel();
@@ -185,6 +202,7 @@ function WidgetViewerModal(props: Props) {
                       grid={{
                         renderHeadCell: renderGridHeaderCell({
                           ...props,
+                          widget: tableWidget,
                           tableData: tableResults?.[0],
                         }) as (
                           column: GridColumnOrder,
@@ -192,6 +210,7 @@ function WidgetViewerModal(props: Props) {
                         ) => React.ReactNode,
                         renderBodyCell: renderGridBodyCell({
                           ...props,
+                          widget: tableWidget,
                           tableData: tableResults?.[0],
                           isFirstPage,
                         }),
@@ -226,12 +245,12 @@ function WidgetViewerModal(props: Props) {
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
-      path = getWidgetIssueUrl(widget, modalSelection, organization);
+      path = getWidgetIssueUrl(primaryWidget, modalSelection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
-      path = getWidgetDiscoverUrl(widget, modalSelection, organization);
+      path = getWidgetDiscoverUrl(primaryWidget, modalSelection, organization);
       break;
   }
   return (
