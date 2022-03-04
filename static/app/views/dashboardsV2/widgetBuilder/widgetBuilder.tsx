@@ -46,7 +46,6 @@ import Measurements, {
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import useApi from 'sentry/utils/useApi';
-import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {
   assignTempId,
@@ -144,7 +143,6 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
-  selection: PageFilters;
   tags: TagCollection;
   displayType?: DisplayType;
   end?: DateString;
@@ -172,7 +170,6 @@ function WidgetBuilder({
   params,
   location,
   organization,
-  selection,
   start,
   end,
   statsPeriod,
@@ -188,6 +185,12 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
+
+  const selection = {
+    projects: [],
+    environments: [],
+    datetime: {start: null, end: null, period: '14d', utc: null},
+  };
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -980,7 +983,7 @@ function WidgetBuilder({
   );
 }
 
-export default withPageFilters(withTags(WidgetBuilder));
+export default withTags(WidgetBuilder);
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
