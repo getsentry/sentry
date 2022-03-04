@@ -252,11 +252,11 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
     install, _, user = get_webhook_data(installation_id, issue_id, user_id)
     data = kwargs.get("data", {})
     payload = {
-        "comment_id": data.id,
-        "group_id": data.group.id,
-        "project_slug": data.project.slug,
-        "timestamp": data.datetime,
-        "comment": data.data["text"],
+        "comment_id": data.get("comment_id"),
+        "group_id": issue_id,
+        "project_slug": data.get("project_slug"),
+        "timestamp": data.get("timestamp"),
+        "comment": data.get("comment"),
     }
     send_webhooks(installation=install, event=type, data=payload, actor=user)
 

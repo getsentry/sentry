@@ -454,10 +454,16 @@ class TestCommentWebhook(TestCase):
             user=self.user,
             data={"text": "hello world"},
         )
+        self.data = {
+            "comment_id": self.note.id,
+            "timestamp": self.note.datetime,
+            "comment": self.note.data.get("text"),
+            "project_slug": self.note.project.slug,
+        }
 
     def test_sends_comment_created_webhook(self, safe_urlopen):
         build_comment_webhook(
-            self.install.id, self.issue.id, "comment.created", self.user.id, data=self.note
+            self.install.id, self.issue.id, "comment.created", self.user.id, data=self.data
         )
 
         assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
@@ -466,9 +472,9 @@ class TestCommentWebhook(TestCase):
         assert faux(safe_urlopen).kwarg_equals("data.data.group_id", self.issue.id, format="json")
 
     def test_sends_comment_updated_webhook(self, safe_urlopen):
-        self.note.update(data={"text": "goodbye world"})
+        self.data.update(data={"text": "goodbye world"})
         build_comment_webhook(
-            self.install.id, self.issue.id, "comment.updated", self.user.id, data=self.note
+            self.install.id, self.issue.id, "comment.updated", self.user.id, data=self.data
         )
 
         assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
@@ -479,7 +485,7 @@ class TestCommentWebhook(TestCase):
     def test_sends_comment_deleted_webhook(self, safe_urlopen):
         self.note.delete()
         build_comment_webhook(
-            self.install.id, self.issue.id, "comment.deleted", self.user.id, data=self.note
+            self.install.id, self.issue.id, "comment.deleted", self.user.id, data=self.data
         )
 
         assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)

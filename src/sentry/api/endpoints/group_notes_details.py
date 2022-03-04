@@ -27,14 +27,23 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
 
-        comment_deleted.send_robust(
-            project=group.project,
-            user=request.user,
-            group=group,
-            data=note,
-            sender="delete",
-        )
+        webhook_data = {
+            "comment_id": note.id,
+            "timestamp": note.datetime,
+            "comment": note.data.get("text"),
+            "project_slug": note.project.slug,
+        }
+
         note.delete()
+
+        if Activity.objects.filter(id=webhook_data["comment_id"]).count() == 0:
+            comment_deleted.send_robust(
+                project=group.project,
+                user=request.user,
+                group=group,
+                data=webhook_data,
+                sender="delete",
+            )
 
         return Response(status=204)
 
@@ -65,11 +74,18 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             if note.data.get("external_id"):
                 self.update_external_comment(request, group, note)
 
+            webhook_data = {
+                "comment_id": note.id,
+                "timestamp": note.datetime,
+                "comment": note.data.get("text"),
+                "project_slug": note.project.slug,
+            }
+
             comment_updated.send_robust(
                 project=group.project,
                 user=request.user,
                 group=group,
-                data=note,
+                data=webhook_data,
                 sender="put",
             )
             return Response(serialize(note, request.user), status=200)

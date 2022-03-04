@@ -77,11 +77,19 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
         self.create_external_comment(request, group, activity)
+
+        webhook_data = {
+            "comment_id": activity.id,
+            "timestamp": activity.datetime,
+            "comment": activity.data.get("text"),
+            "project_slug": activity.project.slug,
+        }
+
         comment_created.send_robust(
             project=group.project,
             user=request.user,
             group=group,
-            data=activity,
+            data=webhook_data,
             sender="post",
         )
         return Response(serialize(activity, request.user), status=201)
