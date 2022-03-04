@@ -1,10 +1,11 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-const fs = require('fs');
-const yaml = require('js-yaml');
-const jsonDiff = require('json-diff');
-const https = require('https');
+import fs from 'fs';
+import https from 'https';
+
+import yaml from 'js-yaml';
+import jsonDiff from 'json-diff';
 
 async function main() {
   const openApiData = await new Promise((resolve, reject) =>
