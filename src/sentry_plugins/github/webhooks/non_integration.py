@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.http import HttpResponse
@@ -14,7 +16,7 @@ class GithubWebhookEndpoint(GithubWebhookBase):
     def get_logging_data(self, organization):
         return {"organization_id": organization.id}
 
-    def get_secret(self, organization):
+    def get_secret(self, organization: Organization) -> str | None:
         return OrganizationOption.objects.get_value(
             organization=organization, key="github:webhook_secret"
         )

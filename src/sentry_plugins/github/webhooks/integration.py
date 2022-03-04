@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -5,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.models import Organization
 
 from .base import GithubWebhookBase
 from .events import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook
@@ -24,7 +27,7 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def get_secret(self, organization):
+    def get_secret(self, organization: Organization) -> str | None:
         return options.get("github.integration-hook-secret")
 
     def post(self, request: Request) -> Response:

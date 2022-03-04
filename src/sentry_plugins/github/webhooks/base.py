@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import abc
 import hashlib
 import hmac
 import logging
@@ -10,6 +13,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.models import Organization
 from sentry.utils import json
 
 from .events import PullRequestEventWebhook, PushEventWebhook
@@ -17,7 +21,7 @@ from .events import PullRequestEventWebhook, PushEventWebhook
 logger = logging.getLogger("sentry.webhooks")
 
 
-class GithubWebhookBase(View):
+class GithubWebhookBase(View, abc.ABC):
     _handlers = {"push": PushEventWebhook, "pull_request": PullRequestEventWebhook}
 
     # https://developer.github.com/webhooks/
@@ -42,14 +46,13 @@ class GithubWebhookBase(View):
     def get_logging_data(self, organization):
         pass
 
-    def get_secret(self, organization):
+    def get_secret(self, organization: Organization) -> str | None:
         raise NotImplementedError
 
     def handle(self, request: Request, organization=None) -> Response:
         secret = self.get_secret(organization)
-
         if secret is None:
-            logger.error("github.webhook.missing-secret", extra=self.get_logging_data(organization))
+            logger.info("github.webhook.missing-secret", extra=self.get_logging_data(organization))
             return HttpResponse(status=401)
 
         body = bytes(request.body)
