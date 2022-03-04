@@ -130,27 +130,37 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
             <div data-test-id="user-feedback">
               <Header>
                 <PageHeading>{t('User Feedback')}</PageHeading>
+                {!hasNewPageFilters && (
+                  <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
+                    <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
+                      {t('Unresolved')}
+                    </Button>
+                    <Button barId="" to={{pathname, query: allIssuesQuery}}>
+                      {t('All Issues')}
+                    </Button>
+                  </ButtonBar>
+                )}
               </Header>
-              <Filters>
-                <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
-                  <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
-                    {t('Unresolved')}
-                  </Button>
-                  <Button barId="" to={{pathname, query: allIssuesQuery}}>
-                    {t('All Issues')}
-                  </Button>
-                </ButtonBar>
-                <Feature
-                  organization={organization}
-                  features={['organizations:selection-filters-v2']}
-                >
+              <Feature
+                organization={organization}
+                features={['organizations:selection-filters-v2']}
+              >
+                <Filters>
+                  <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
+                    <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
+                      {t('Unresolved')}
+                    </Button>
+                    <Button barId="" to={{pathname, query: allIssuesQuery}}>
+                      {t('All Issues')}
+                    </Button>
+                  </ButtonBar>
                   <PageFilterBar>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
                     <DatePageFilter hidePin alignDropdown="right" />
                   </PageFilterBar>
-                </Feature>
-              </Filters>
+                </Filters>
+              </Feature>
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
             </div>
