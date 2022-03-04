@@ -915,10 +915,7 @@ function WidgetBuilder({
                           menuPlacement="auto"
                           value={state.queries[0].orderby}
                           name="orderby"
-                          options={generateOrderOptions({
-                            widgetType,
-                            ...getColumnsAndAggregates(state.queries[0].fields),
-                          })}
+                          options={generateOrderOptions(state.queries[0].fields)}
                           onChange={(option: SelectValue<string>) => {
                             const newQuery: WidgetQuery = {
                               ...state.queries[0],
@@ -1035,26 +1032,22 @@ const BuildSteps = styled(List)`
 `;
 
 const Body = styled(Layout.Body)`
+  grid-template-rows: 1fr;
   && {
     gap: 0;
     padding: 0;
   }
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const Main = styled(Layout.Main)`
-  max-width: 1000px;
   padding: ${space(4)};
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    border-left: 1px solid ${p => p.theme.gray200};
+    border-right: 1px solid ${p => p.theme.gray200};
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    border-top: 1px solid ${p => p.theme.gray200};
+    border-bottom: 1px solid ${p => p.theme.gray200};
   }
 `;
 
