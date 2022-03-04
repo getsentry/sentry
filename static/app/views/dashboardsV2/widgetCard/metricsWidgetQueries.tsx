@@ -64,7 +64,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       'tempId',
       'widgetType',
     ];
-    const ignoredQueryProps = ['name', 'fields'];
+    const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
     const widgetQueryNames = widget.queries.map(q => q.name);
     const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
 
@@ -86,6 +86,16 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       !isEqual(
         widget.queries.flatMap(q => q.fields.filter(field => !!field)),
         prevProps.widget.queries.flatMap(q => q.fields.filter(field => !!field))
+      ) ||
+      !isEqual(
+        widget.queries.flatMap(q => q.aggregates?.filter(aggregate => !!aggregate)),
+        prevProps.widget.queries.flatMap(q =>
+          q.aggregates?.filter(aggregate => !!aggregate)
+        )
+      ) ||
+      !isEqual(
+        widget.queries.flatMap(q => q.columns?.filter(column => !!column)),
+        prevProps.widget.queries.flatMap(q => q.columns?.filter(column => !!column))
       )
     ) {
       this.fetchData();
