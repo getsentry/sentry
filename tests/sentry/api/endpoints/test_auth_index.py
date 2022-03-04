@@ -142,7 +142,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 data={
-                    "password": "admin",
                     "superuserAccessCategory": "for testing",
                     "superuserReason": "for testing",
                 },
@@ -174,8 +173,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     def test_superuser_no_sso_with_referrer(self):
         from sentry.auth.superuser import Superuser
 
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
-
         user = self.create_user("foo@example.com", is_superuser=True)
 
         with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
@@ -186,7 +183,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 HTTP_REFERER="http://testserver/bar",
                 data={
-                    "password": "admin",
                     "superuserAccessCategory": "for testing",
                     "superuserReason": "for testing",
                 },
@@ -196,8 +192,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
     def test_superuser_no_sso_with_bad_referrer(self):
         from sentry.auth.superuser import Superuser
-
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
@@ -209,7 +203,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 HTTP_REFERER="http://hacktheplanet/bar",
                 data={
-                    "password": "admin",
                     "superuserAccessCategory": "for testing",
                     "superuserReason": "for testing",
                 },
