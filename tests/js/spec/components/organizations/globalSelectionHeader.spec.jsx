@@ -771,6 +771,43 @@ describe('GlobalSelectionHeader', function () {
     });
   });
 
+  describe('forceProject + forceEnvironment selection mode', function () {
+    beforeEach(async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [],
+      });
+      const initialData = initializeOrg({
+        organization: {features: ['global-views']},
+        projects: [
+          {id: 1, slug: 'staging-project', environments: ['staging']},
+          {id: 2, slug: 'prod-project', environments: ['prod']},
+        ],
+      });
+
+      ProjectsStore.loadInitialData(initialData.projects);
+
+      wrapper = mountWithTheme(
+        <PageFiltersContainer
+          organization={initialData.organization}
+          shouldForceProject
+          forceProject={initialData.projects[0]}
+          forceEnvironment="test-env"
+        />,
+        initialData.routerContext
+      );
+
+      await tick();
+      wrapper.update();
+    });
+
+    it('renders the forced environment', function () {
+      expect(wrapper.find('MultipleEnvironmentSelector HeaderItem').text()).toBe(
+        'test-env'
+      );
+    });
+  });
+
   describe('without global-views (multi-project feature)', function () {
     describe('without existing URL params', function () {
       const initialData = initializeOrg({

@@ -53,6 +53,7 @@ type Props = WithRouterProps & {
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
   detached?: boolean;
+  forceEnvironment?: string;
 } & DefaultProps;
 
 type State = {
@@ -237,6 +238,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       loadingProjects,
       customDropdownButton,
       customLoadingIndicator,
+      forceEnvironment,
       detached,
     } = this.props;
     const environments = this.getEnvironments();
@@ -249,7 +251,16 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       ? `${validatedValue.join(', ')}`
       : t('All Environments');
 
-    return loadingProjects ? (
+    return forceEnvironment !== undefined ? (
+      <StyledHeaderItem
+        data-test-id="global-header-environment-selector"
+        icon={<IconWindow />}
+        isOpen={false}
+        locked
+      >
+        {forceEnvironment ? forceEnvironment : t('All Environments')}
+      </StyledHeaderItem>
+    ) : loadingProjects ? (
       customLoadingIndicator ?? (
         <StyledHeaderItem
           data-test-id="global-header-environment-selector"
@@ -339,6 +350,7 @@ export default withApi(withRouter(MultipleEnvironmentSelector));
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
+  width: 100%;
 `;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
