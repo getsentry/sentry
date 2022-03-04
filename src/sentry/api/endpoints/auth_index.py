@@ -35,6 +35,17 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
+    def _reauthenticate_with_sso(self, request):
+        if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
+            # if a superuser hitting this endpoint is not active, they are most likely
+            # trying to become active, and likely need to re-identify with SSO to do so.
+            redirect = request.META.get("HTTP_REFERER", "")
+            if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
+                redirect = None
+
+            initiate_login(request, redirect)
+            raise SsoRequired(Organization.objects.get_from_cache(id=Superuser.org_id))
+
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -103,7 +114,7 @@ class AuthIndexEndpoint(Endpoint):
         has_valid_sso_session = has_completed_sso(request, request.superuser.org_id)
         if not validator.is_valid():
             if not has_valid_sso_session or not request.user.is_superuser:
-                return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+                self._reauthenticate_with_sso(request)
 
         authenticated = False
         # See if we have a u2f challenge/response
@@ -133,7 +144,7 @@ class AuthIndexEndpoint(Endpoint):
                 )
                 pass
 
-        # if the user is a superuser and has an authidentity, they are authenticated
+        # if the user is a superuser and has a valid sso session, they are authenticated
         elif has_valid_sso_session and request.user.is_superuser:
             authenticated = True
         # attempt password authentication
@@ -160,16 +171,6 @@ class AuthIndexEndpoint(Endpoint):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
-
-        if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
-            # if a superuser hitting this endpoint is not active, they are most likely
-            # trying to become active, and likely need to re-identify with SSO to do so.
-            redirect = request.META.get("HTTP_REFERER", "")
-            if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
-                redirect = None
-
-            initiate_login(request, redirect)
-            raise SsoRequired(Organization.objects.get_from_cache(id=Superuser.org_id))
 
         request.user = request._request.user
 
