@@ -24,7 +24,12 @@ import {
   shouldScaleAlertChart,
 } from 'sentry/views/alerts/utils';
 
-import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
+import {
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+  IncidentRule,
+  Trigger,
+} from '../../types';
 
 type DefaultProps = {
   comparisonData: Series[];
@@ -224,7 +229,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     // Shave off the left margin
     const graphAreaMargin = 7;
 
-    const isCritical = trigger.label === 'critical';
+    const isCritical = trigger.label === AlertRuleTriggerType.CRITICAL;
     const LINE_STYLE = {
       stroke: isResolution ? theme.green300 : isCritical ? theme.red300 : theme.yellow300,
       lineDash: [2],
@@ -387,9 +392,9 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
           );
 
           const changeStatusColor =
-            changeStatus === 'critical'
+            changeStatus === AlertRuleTriggerType.CRITICAL
               ? theme.red300
-              : changeStatus === 'warning'
+              : changeStatus === AlertRuleTriggerType.WARNING
               ? theme.yellow300
               : theme.green300;
 

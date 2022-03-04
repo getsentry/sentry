@@ -188,7 +188,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_USER}),
+      body: TestStubs.MetricsField({field: SessionMetric.USER}),
     });
   });
 
@@ -202,7 +202,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -219,7 +219,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -237,7 +237,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     openMenu(wrapper, {name: 'dashboard', control: true});
 
     const input = wrapper.find('SelectControl[name="dashboard"]');
@@ -578,7 +578,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     await clickSubmit(wrapper);
-    await wrapper.update();
+    wrapper.update();
 
     // API request should fail and not add widget.
     expect(widget).toBeUndefined();
@@ -729,10 +729,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     // Add a column, and choose a value,
     wrapper.find('button[aria-label="Add a Column"]').simulate('click');
-    await wrapper.update();
+    wrapper.update();
 
     selectByLabel(wrapper, 'trace', {name: 'field', at: 2, control: true});
-    await wrapper.update();
+    wrapper.update();
 
     await clickSubmit(wrapper);
 
