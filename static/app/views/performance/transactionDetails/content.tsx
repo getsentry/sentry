@@ -33,6 +33,7 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 import EventMetas from './eventMetas';
+import FinishSetupAlert from './finishSetupAlert';
 
 type Props = Pick<
   RouteComponentProps<{eventSlug: string}, {}>,
@@ -98,12 +99,23 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {event} = this.state;
+    const {organization} = this.props;
 
     if (!event) {
       return <NotFound />;
     }
+    const isSampleTransaction = event.tags.some(
+      tag => tag.key === 'sample_event' && tag.value === 'yes'
+    );
 
-    return this.renderContent(event);
+    return (
+      <Fragment>
+        {isSampleTransaction && (
+          <FinishSetupAlert organization={organization} projectId={this.projectId} />
+        )}
+        {this.renderContent(event)}
+      </Fragment>
+    );
   }
 
   renderContent(event: Event) {
