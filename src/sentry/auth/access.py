@@ -286,12 +286,10 @@ class SystemAccess(Access):
 
     @property
     def teams(self) -> FrozenSet[Team]:
-        warnings.warn("SystemAccess.teams is empty but has access to all teams")
         return frozenset()
 
     @property
     def projects(self) -> FrozenSet[Project]:
-        warnings.warn("SystemAccess.projects is empty but has access to all projects")
         return frozenset()
 
     def has_permission(self, permission: str) -> bool:
