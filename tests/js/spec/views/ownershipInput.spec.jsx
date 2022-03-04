@@ -75,12 +75,12 @@ describe('Project Ownership Input', function () {
 
     // Select the user.
     await selectByValueAsync(wrapper, 'user:1', {control: true, name: 'owners'});
-    await wrapper.update();
+    wrapper.update();
 
     // Add the new rule.
     const button = wrapper.find('RuleBuilder AddButton button');
     button.simulate('click');
-    await wrapper.update();
+    wrapper.update();
 
     expect(put).toHaveBeenCalledWith(
       '/projects/org-slug/project-slug/ownership/',

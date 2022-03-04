@@ -57,10 +57,7 @@ describe('IntegrationRepos', function () {
 
       const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       wrapper.find('DropdownButton').simulate('click');
-
       wrapper.find('StyledListElement').simulate('click');
-      await wrapper.update();
-      await wrapper.update();
 
       expect(addRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/`,
@@ -72,6 +69,10 @@ describe('IntegrationRepos', function () {
           },
         })
       );
+
+      await tick();
+      wrapper.update();
+
       const name = wrapper.find('RepositoryRow').find('strong').first();
       expect(name).toHaveLength(1);
       expect(name.text()).toEqual('example/repo-name');
@@ -105,7 +106,7 @@ describe('IntegrationRepos', function () {
       const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       expect(addRepo).toHaveBeenCalled();
       expect(wrapper.find('RepoOption')).toHaveLength(0);
