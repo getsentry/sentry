@@ -18,14 +18,14 @@ describe('Metrics ActionCreator', function () {
 
   describe('doMetricsRequest', function () {
     const options = {
-      field: [SessionMetric.SENTRY_SESSIONS_SESSION],
+      field: [SessionMetric.SESSION],
       orgSlug,
       cursor: undefined,
       environment: [],
       groupBy: ['session.status'],
       interval: '1h',
       limit: 5,
-      orderBy: SessionMetric.SENTRY_SESSIONS_SESSION,
+      orderBy: SessionMetric.SESSION,
       project: [TestStubs.Project().id],
       query: 'release:123',
       statsPeriod: '14d',
@@ -92,10 +92,11 @@ describe('Metrics ActionCreator', function () {
       );
     });
 
-    it('ignores falsy fields', function () {
+    it('ignores falsy fields and groupBys', function () {
       doMetricsRequest(api, {
         ...options,
-        field: [SessionMetric.SENTRY_SESSIONS_SESSION, ''],
+        field: [SessionMetric.SESSION, ''],
+        groupBy: ['session.status', ''],
       });
       expect(mock).toHaveBeenCalledTimes(1);
       expect(mock).toHaveBeenLastCalledWith(
@@ -103,6 +104,7 @@ describe('Metrics ActionCreator', function () {
         expect.objectContaining({
           query: expect.objectContaining({
             field: ['sentry.sessions.session'],
+            groupBy: ['session.status'],
           }),
         })
       );
@@ -125,12 +127,7 @@ describe('Metrics ActionCreator', function () {
     });
 
     it('fetches api and updates store', async function () {
-      fetchMetricsTags(
-        api,
-        orgSlug,
-        [1],
-        [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`]
-      );
+      fetchMetricsTags(api, orgSlug, [1], [`sum(${SessionMetric.SESSION})`]);
 
       await waitFor(() => expect(MetricsTagStore.reset).toHaveBeenCalledTimes(1));
 

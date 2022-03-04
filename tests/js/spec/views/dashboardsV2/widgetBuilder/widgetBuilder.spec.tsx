@@ -2,14 +2,17 @@ import React from 'react';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {
   mountWithTheme,
   screen,
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import * as modals from 'sentry/actionCreators/modal';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -239,13 +242,17 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
 
     // Content - Step 3
-    expect(screen.getByRole('heading', {name: 'Columns'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Choose your columns'})
+    ).toBeInTheDocument();
 
     // Content - Step 4
-    expect(screen.getByRole('heading', {name: 'Query'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Filter your results'})
+    ).toBeInTheDocument();
 
     // Content - Step 5
-    expect(screen.getByRole('heading', {name: 'Sort by'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Sort by a column'})).toBeInTheDocument();
   });
 
   it('can update the title', async function () {
@@ -382,6 +389,8 @@ describe('WidgetBuilder', function () {
             {
               conditions: '',
               fields: ['count()', 'count_unique(user)'],
+              aggregates: ['count()', 'count_unique(user)'],
+              columns: [],
               orderby: '',
               name: '',
             },
@@ -426,70 +435,9 @@ describe('WidgetBuilder', function () {
             {
               name: '',
               fields: ['count()', 'equation|count() + 100'],
+              aggregates: ['count()', 'equation|count() + 100'],
+              columns: [],
               conditions: '',
-              orderby: '',
-            },
-          ],
-        }),
-      ]);
-    });
-
-    expect(handleSave).toHaveBeenCalledTimes(1);
-  });
-
-  it('additional fields get added to new seach filters', async function () {
-    const handleSave = jest.fn();
-
-    renderTestComponent({onSave: handleSave});
-
-    userEvent.click(await screen.findByText('Table'));
-
-    // Select line chart display
-    userEvent.click(screen.getByText('Line Chart'));
-
-    // Click the add overlay button
-    userEvent.click(screen.getByLabelText('Add Overlay'));
-
-    // Should be another field input.
-    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
-
-    userEvent.click(screen.getByText('(Required)'));
-    userEvent.click(screen.getByText('count_unique(…)'));
-
-    // Add another search filter
-    userEvent.click(screen.getByLabelText('Add query'));
-
-    // Set second query search conditions
-    userEvent.type(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1],
-      'event.type:error{enter}'
-    );
-
-    // Set second query legend alias
-    userEvent.paste(screen.getAllByPlaceholderText('Legend Alias')[1], 'Errors');
-    userEvent.keyboard('{enter}');
-
-    // Save widget
-    userEvent.click(screen.getByLabelText('Add Widget'));
-
-    await waitFor(() => {
-      expect(handleSave).toHaveBeenCalledWith([
-        expect.objectContaining({
-          title: 'Custom Widget',
-          displayType: 'line',
-          interval: '5m',
-          widgetType: 'discover',
-          queries: [
-            {
-              name: '',
-              fields: ['count()', 'count_unique(user)'],
-              conditions: '',
-              orderby: '',
-            },
-            {
-              name: 'Errors',
-              fields: ['count()', 'count_unique(user)'],
-              conditions: 'event.type:error',
               orderby: '',
             },
           ],
@@ -530,12 +478,16 @@ describe('WidgetBuilder', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
           orderby: '',
         },
         {
           name: 'csp',
           conditions: 'event.type:csp',
           fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
           orderby: '',
         },
       ],
@@ -660,7 +612,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByLabelText('Search events')).toBeInTheDocument();
 
     // Should have an orderby select
-    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    expect(screen.getByText('Sort by a column')).toBeInTheDocument();
 
     // Add a column, and choose a value,
     userEvent.click(screen.getByLabelText('Add a Column'));
@@ -681,6 +633,8 @@ describe('WidgetBuilder', function () {
               name: 'errors',
               conditions: 'event.type:error',
               fields: ['sdk.name', 'count()', 'trace'],
+              aggregates: ['count()'],
+              columns: ['sdk.name', 'trace'],
               orderby: '',
             },
           ],
@@ -721,9 +675,9 @@ describe('WidgetBuilder', function () {
     // // Restricting to a single y-axis
     expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
 
-    expect(screen.getByText('Choose your y-axis')).toBeInTheDocument();
+    expect(screen.getByText('Choose what to plot in the y-axis')).toBeInTheDocument();
 
-    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    expect(screen.getByText('Sort by a column')).toBeInTheDocument();
 
     expect(screen.getByText('title')).toBeInTheDocument();
     expect(screen.getAllByText('count()')).toHaveLength(2);
@@ -785,8 +739,8 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
     expect(screen.getByText('user')).toBeInTheDocument();
 
-    // Sort by
-    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    // Sort by a column
+    expect(screen.getByText('Sort by a column')).toBeInTheDocument();
     expect(screen.getByText('count_unique(user) desc')).toBeInTheDocument();
   });
 
@@ -807,111 +761,53 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
-  it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+  it('deletes the widget when the modal is confirmed', async () => {
     const handleSave = jest.fn();
-    renderTestComponent({onSave: handleSave});
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+        {
+          name: 'csp',
+          conditions: 'event.type:csp',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
 
-    // No delete button as there is only one field.
-    expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
+    renderTestComponent({onSave: handleSave, dashboard, widget});
 
-    // Select Big Number display
-    userEvent.click(await screen.findByText('Table'));
-    userEvent.click(screen.getByText('Big Number'));
+    userEvent.click(await screen.findByText('Delete'));
 
-    // Choose any()
-    userEvent.click(screen.getByText('count()'));
-    userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
-    userEvent.click(screen.getByText('transaction.duration'));
-    userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
-
-    // Select Line chart display
-    userEvent.click(screen.getByText('Big Number'));
-    userEvent.click(screen.getByText('Line Chart'));
-
-    // Expect any(...) field to be converted to count()
-    expect(screen.getByText('count()')).toBeInTheDocument();
-
-    // Save widget
-    userEvent.click(screen.getByLabelText('Add Widget'));
+    await mountGlobalModal();
+    userEvent.click(await screen.findByText('Confirm'));
 
     await waitFor(() => {
-      expect(handleSave).toHaveBeenCalledWith([
-        expect.objectContaining({
-          displayType: 'line',
-          queries: [
-            expect.objectContaining({
-              fields: ['count()'],
-            }),
-          ],
-        }),
-      ]);
+      // The only widget was deleted
+      expect(handleSave).toHaveBeenCalledWith([]);
     });
 
     expect(handleSave).toHaveBeenCalledTimes(1);
-  });
-
-  it('should filter non-legal y-axis choices for timeseries widget charts', async function () {
-    renderTestComponent();
-
-    expect(await screen.findByText('Table')).toBeInTheDocument();
-
-    // Select Line chart display
-    userEvent.click(screen.getByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
-
-    // No delete button as there is only one field.
-    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
-
-    userEvent.click(screen.getByText('count()'));
-    userEvent.type(screen.getAllByText('count()')[0], 'any{enter}');
-
-    // Expect user.display to not be an available parameter option for any()
-    // for line (timeseries) widget charts
-    userEvent.click(screen.getByText('transaction.duration'));
-    userEvent.type(screen.getAllByText('transaction.duration')[0], 'user.display');
-    expect(screen.getByText('No options')).toBeInTheDocument();
-
-    // Be able to choose a numeric-like option for any()
-    userEvent.keyboard('{escape}');
-    userEvent.click(screen.getByText('transaction.duration'));
-    userEvent.type(
-      screen.getAllByText('transaction.duration')[0],
-      'measurements.lcp{enter}'
-    );
-    expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
-  });
-
-  it('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
-    renderTestComponent();
-
-    expect(await screen.findByText('Table')).toBeInTheDocument();
-
-    // No delete button as there is only one field.
-    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
-
-    // Add field column
-    userEvent.click(screen.getByLabelText('Add a Column'));
-    userEvent.click(screen.getByText('(Required)'));
-    userEvent.type(screen.getByText('(Required)'), 'event.type{enter}');
-
-    const removeColumnButtons = screen.queryAllByLabelText('Remove column');
-    expect(removeColumnButtons).toHaveLength(2);
-
-    // Remove the default count() column
-    userEvent.click(removeColumnButtons[0]);
-    expect(screen.queryByText('count()')).not.toBeInTheDocument();
-    expect(screen.getByText('event.type')).toBeInTheDocument();
-
-    // Select Line chart display
-    userEvent.click(screen.getByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
-
-    // Expect event.type field to be converted to count()
-    expect(screen.queryByText('event.type')).not.toBeInTheDocument();
-    expect(screen.getByText('count()')).toBeInTheDocument();
-
-    // No delete button as there is only one field.
-    expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
   });
 
   describe('Widget creation coming from other verticals', function () {
@@ -989,31 +885,6 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  it('disables dashboards with max widgets', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [
-        {...untitledDashboard, widgetDisplay: []},
-        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
-      ],
-    });
-
-    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
-
-    renderTestComponent({
-      query: {
-        source: DashboardWidgetSource.DISCOVERV2,
-      },
-    });
-
-    userEvent.click(await screen.findByText('Select a dashboard'));
-    userEvent.type(screen.getByText('Select a dashboard'), 'Test Dashboard{enter}');
-
-    // Dashboard wasn't selected because it has the max number of widgets
-    expect(screen.queryByText('Test Dashboard')).not.toBeInTheDocument();
-    expect(screen.getByText('Select a dashboard')).toBeInTheDocument();
-  });
-
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
       const handleSave = jest.fn();
@@ -1034,6 +905,8 @@ describe('WidgetBuilder', function () {
               {
                 conditions: '',
                 fields: ['issue', 'assignee', 'title'],
+                columns: ['issue', 'assignee', 'title'],
+                aggregates: [],
                 name: '',
                 orderby: '',
               },
@@ -1092,5 +965,53 @@ describe('WidgetBuilder', function () {
       renderTestComponent();
       expect(await screen.findByText('Widget Library')).toBeInTheDocument();
     });
+
+    it('only opens the modal when the query data is changed', async function () {
+      const mockModal = jest.spyOn(modals, 'openWidgetBuilderOverwriteModal');
+      renderTestComponent();
+      await screen.findByText('Widget Library');
+
+      userEvent.click(screen.getByText('Duration Distribution'));
+
+      // Widget Library, Builder title, and Chart title
+      expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
+
+      // Confirm modal doesn't open because no changes were made
+      expect(mockModal).not.toHaveBeenCalled();
+
+      expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(3);
+      userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+      userEvent.click(screen.getByText('High Throughput Transactions'));
+
+      // Should not have overwritten widget data, and confirm modal should open
+      expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
+      expect(mockModal).toHaveBeenCalled();
+    });
+  });
+
+  it('disables dashboards with max widgets', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        {...untitledDashboard, widgetDisplay: []},
+        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
+      ],
+    });
+
+    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+      },
+    });
+
+    userEvent.click(await screen.findByText('Select a dashboard'));
+    userEvent.hover(screen.getByText('Test Dashboard'));
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
+      )
+    ).toBeInTheDocument();
   });
 });

@@ -73,21 +73,27 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
 type Props = {
   api: Client;
   children: (
-    props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
+    props: Pick<
+      State,
+      'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage' | 'pageLinks'
+    >
   ) => React.ReactNode;
   organization: OrganizationSummary;
   selection: PageFilters;
   widget: Widget;
+  cursor?: string;
   limit?: number;
+  pagination?: boolean;
 };
 
 type State = {
-  errorMessage: undefined | string;
   loading: boolean;
-  queryFetchID: symbol | undefined;
-  rawResults: undefined | RawResult[];
-  tableResults: undefined | TableDataWithTitle[];
-  timeseriesResults: undefined | Series[];
+  errorMessage?: string;
+  pageLinks?: null | string;
+  queryFetchID?: symbol;
+  rawResults?: RawResult[];
+  tableResults?: TableDataWithTitle[];
+  timeseriesResults?: Series[];
 };
 
 class WidgetQueries extends React.Component<Props, State> {
@@ -98,6 +104,7 @@ class WidgetQueries extends React.Component<Props, State> {
     timeseriesResults: undefined,
     rawResults: undefined,
     tableResults: undefined,
+    pageLinks: undefined,
   };
 
   componentDidMount() {
@@ -106,7 +113,7 @@ class WidgetQueries extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, widget} = this.props;
+    const {selection, widget, cursor} = this.props;
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
@@ -142,7 +149,8 @@ class WidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widgetQueries, prevWidgetQueries) ||
-      !isSelectionEqual(selection, prevProps.selection)
+      !isSelectionEqual(selection, prevProps.selection) ||
+      cursor !== prevProps.cursor
     ) {
       this.fetchData();
       return;
@@ -173,12 +181,11 @@ class WidgetQueries extends React.Component<Props, State> {
   private _isMounted: boolean = false;
 
   fetchEventData(queryFetchID: symbol) {
-    const {selection, api, organization, widget, limit} = this.props;
+    const {selection, api, organization, widget, limit, cursor, pagination} = this.props;
 
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
     // to do a discover 'table' query instead of a 'timeseries' query.
-    this.setState({tableResults: []});
 
     const promises = widget.queries.map(query => {
       const eventView = eventViewFromWidget(widget.title, query, selection);
@@ -186,7 +193,7 @@ class WidgetQueries extends React.Component<Props, State> {
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
         per_page: limit ?? DEFAULT_TABLE_LIMIT,
-        noPagination: true,
+        ...(!!!pagination ? {noPagination: true} : {cursor}),
       };
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;
@@ -214,7 +221,8 @@ class WidgetQueries extends React.Component<Props, State> {
     let completed = 0;
     promises.forEach(async (promise, i) => {
       try {
-        const [data] = await promise;
+        const [data, _textstatus, resp] = await promise;
+
         // Cast so we can add the title.
         const tableData = data as TableDataWithTitle;
         tableData.title = widget.queries[i]?.name ?? '';
@@ -235,6 +243,7 @@ class WidgetQueries extends React.Component<Props, State> {
           return {
             ...prevState,
             tableResults,
+            pageLinks: resp?.getResponseHeader('Link'),
           };
         });
       } catch (err) {
@@ -388,7 +397,8 @@ class WidgetQueries extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    const {loading, timeseriesResults, tableResults, errorMessage} = this.state;
+    const {loading, timeseriesResults, tableResults, errorMessage, pageLinks} =
+      this.state;
 
     const filteredTimeseriesResults = timeseriesResults?.filter(result => !!result);
     return children({
@@ -396,6 +406,7 @@ class WidgetQueries extends React.Component<Props, State> {
       timeseriesResults: filteredTimeseriesResults,
       tableResults,
       errorMessage,
+      pageLinks,
     });
   }
 }

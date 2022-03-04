@@ -1,11 +1,11 @@
 import Reflux from 'reflux';
 
 import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
-import {MetricMeta, MetricsMetaCollection} from 'sentry/types';
+import {MetricsMeta, MetricsMetaCollection} from 'sentry/types';
 
 type MetricsMetaStoreInterface = {
   getAllFields(): MetricsMetaCollection;
-  onLoadSuccess(data: MetricMeta[]): void;
+  onLoadSuccess(data: MetricsMeta[]): void;
   reset(): void;
   state: MetricsMetaCollection;
 };
