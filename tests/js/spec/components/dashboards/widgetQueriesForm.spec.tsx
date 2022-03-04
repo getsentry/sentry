@@ -115,7 +115,7 @@ describe('WidgetQueriesForm', function () {
   });
 
   it('does not show metrics tags in orderby', function () {
-    const field = `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`;
+    const field = `sum(${SessionMetric.SESSION})`;
     mountWithTheme(
       <TestComponent
         widgetType={WidgetType.METRICS}
