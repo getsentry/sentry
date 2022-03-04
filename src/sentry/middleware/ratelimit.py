@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 
 from django.http.response import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
@@ -8,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.ratelimits import above_rate_limit_check, get_rate_limit_key, get_rate_limit_value
-from sentry.types.ratelimit import RateLimitCategory
+from sentry.types.ratelimit import RateLimitCategory, RateLimitType
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -22,8 +23,10 @@ class RatelimitMiddleware(MiddlewareMixin):
     def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
         """Check if the endpoint call will violate."""
         try:
+            # TODO: put these fields into their own object
             request.will_be_rate_limited = False
             request.rate_limit_category = None
+            request.rate_limit_uid = uuid.uuid4().hex
 
             key = get_rate_limit_key(view_func, request)
             if key is None:
@@ -39,9 +42,12 @@ class RatelimitMiddleware(MiddlewareMixin):
             if rate_limit is None:
                 return
 
-            request.rate_limit_metadata = above_rate_limit_check(key, rate_limit)
+            request.rate_limit_metadata = above_rate_limit_check(
+                key, rate_limit, request.rate_limit_uid
+            )
 
-            if request.rate_limit_metadata.is_limited:
+            # TODO: also limit by concurrent window once we have the data
+            if request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW:
                 request.will_be_rate_limited = True
                 enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
                 if enforce_rate_limit:

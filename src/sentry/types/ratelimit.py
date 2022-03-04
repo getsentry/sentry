@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -26,6 +28,12 @@ class RateLimit:
     concurrent_limit: Optional[int] = field(default=None)
 
 
+class RateLimitType(Enum):
+    NOT_LIMITED = "not_limited"
+    CONCURRENT = "concurrent"
+    FIXED_WINDOW = "fixed_window"
+
+
 @dataclass
 class RateLimitMeta:
     """
@@ -40,9 +48,11 @@ class RateLimitMeta:
         reset_time (int): UTC Epoch time in seconds when the current window expires
     """
 
-    is_limited: bool
+    rate_limit_type: RateLimitType
     current: int
     remaining: int
     limit: int
     window: int
     reset_time: int
+    concurrent_limit: int | None
+    concurrent_requests: int | None

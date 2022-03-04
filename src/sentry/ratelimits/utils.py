@@ -7,8 +7,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta
+from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils.hashlib import md5_text
 
 from . import backend as ratelimiter
@@ -26,6 +27,15 @@ DEFAULT_CONFIG = {
     # 10 invites per email per org per day
     "members:org-invite-to-email": {"limit": 10, "window": 3600 * 24},
 }
+
+_CONCURRENT_RATE_LIMITER = ConcurrentRateLimiter()
+
+
+def concurrent_limiter() -> ConcurrentRateLimiter:
+    global _CONCURRENT_RATE_LIMITER
+    if not _CONCURRENT_RATE_LIMITER:
+        _CONCURRENT_RATE_LIMITER = ConcurrentRateLimiter()
+    return _CONCURRENT_RATE_LIMITER
 
 
 def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | None:
@@ -120,18 +130,35 @@ def get_rate_limit_value(
     return rate_limit_config.get_rate_limit(http_method, category)
 
 
-def above_rate_limit_check(key: str, rate_limit: RateLimit) -> RateLimitMeta:
-    is_limited, current, reset_time = ratelimiter.is_limited_with_value(
+def above_rate_limit_check(key: str, rate_limit: RateLimit, request_uid: str) -> RateLimitMeta:
+    rate_limit_type = RateLimitType.NOT_LIMITED
+    window_limited, current, reset_time = ratelimiter.is_limited_with_value(
         key, limit=rate_limit.limit, window=rate_limit.window
     )
-    remaining = rate_limit.limit - current if not is_limited else 0
+    remaining = 0
+    remaining = rate_limit.limit - current if not window_limited else 0
+    if window_limited:
+        rate_limit_type = RateLimitType.FIXED_WINDOW
+    concurrent_requests = None
+    if rate_limit.concurrent_limit is not None:
+        concurrent_requests = concurrent_limiter().start_request(
+            key, rate_limit.concurrent_limit, request_uid
+        )
+        # TODO: This is a little clunky. I do this comparison here and in
+        # the rate limit class. Maybe make the rate limit class return a
+        # a payload with metadata?
+        if concurrent_requests >= rate_limit.concurrent_limit:
+            rate_limit_type = RateLimitType.CONCURRENT
+
     return RateLimitMeta(
-        is_limited=is_limited,
+        rate_limit_type=rate_limit_type,
         current=current,
         limit=rate_limit.limit,
         window=rate_limit.window,
         reset_time=reset_time,
         remaining=remaining,
+        concurrent_limit=rate_limit.concurrent_limit,
+        concurrent_requests=concurrent_requests,
     )
 
 
