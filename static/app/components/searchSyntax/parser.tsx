@@ -529,9 +529,12 @@ export class TokenConverter {
    *
    * [0]:https://pegjs.org/documentation
    */
-  predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
+  predicateFilter = <T extends FilterType>(
+    type: T,
+    key: ReturnType<TokenConverter['tokenKeyAggregate']>
+  ) => {
     const keyName = getKeyName(key);
-    const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
+    const aggregateKey = key;
 
     const {isNumeric, isDuration, isBoolean, isDate, isPercentage} = this.keyValidation;
 
