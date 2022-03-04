@@ -32,7 +32,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             user=request.user,
             group=group,
             data=note,
-            sender="post",
+            sender="delete",
         )
         note.delete()
 
@@ -70,7 +70,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 user=request.user,
                 group=group,
                 data=note,
-                sender="post",
+                sender="put",
             )
             return Response(serialize(note, request.user), status=200)
 

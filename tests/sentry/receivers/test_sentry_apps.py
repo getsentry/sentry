@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, Repository
+from sentry.signals import comment_deleted
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
 
@@ -213,14 +214,11 @@ class TestComments(APITestCase):
         )
         self.login_as(self.user)
 
-    def create_comment(self):
+    def test_comment_created(self, delay):
         url = f"/api/0/issues/{self.issue.id}/notes/"
         data = {"text": "hello world"}
         self.client.post(url, data=data, format="json")
-        return Activity.objects.get(group=self.issue, project=self.project, type=Activity.NOTE)
-
-    def test_comment_created(self, delay):
-        note = self.create_comment()
+        note = Activity.objects.get(group=self.issue, project=self.project, type=Activity.NOTE)
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
@@ -230,7 +228,7 @@ class TestComments(APITestCase):
         )
 
     def test_comment_updated(self, delay):
-        note = self.create_comment()
+        note = self.create_comment(self.issue, self.project, self.user)
         url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
         data = {"text": "goodbye cruel world"}
         self.client.put(url, data=data, format="json")
@@ -245,15 +243,32 @@ class TestComments(APITestCase):
             data=updated_note,
         )
 
-    def test_comment_deleted(self, delay):
-        note = self.create_comment()
-        url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
-        self.client.delete(url, format="json")
 
-        assert faux(delay).called_with(
-            installation_id=self.install.id,
-            issue_id=self.issue.id,
-            type="comment.deleted",
-            user_id=self.user.id,
-            data=note,
+class TestDeleteComment(APITestCase):
+    def setUp(self):
+        self.issue = self.create_group(project=self.project)
+        self.sentry_app = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["comment.updated", "comment.created", "comment.deleted"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        self.login_as(self.user)
+        self.note = self.create_comment(self.issue, self.project, self.user)
+
+    def _wrapper(self):
+        comment_deleted.send_robust(self.project, self.user, self.issue, self.note, "delete")
+
+    @patch("sentry.signals.BetterSignal.send_robust")
+    def test_comment_deleted(self, mock_send_robust):
+        url = f"/api/0/issues/{self.issue.id}/notes/{self.note.id}/"
+        self.client.delete(url, format="json")
+        self._wrapper()
+        mock_send_robust.assert_called_with(
+            self.project,
+            self.user,
+            self.issue,
+            self.note,
+            "delete",
         )
