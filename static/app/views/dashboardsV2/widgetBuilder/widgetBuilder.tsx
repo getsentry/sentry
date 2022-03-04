@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import isEmpty from 'lodash/isEmpty';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
@@ -201,13 +202,6 @@ function WidgetBuilder({
     ? {...selection, datetime: {start, end, period: null, utc: null}}
     : selection;
 
-  const globalSelectionHeaderParams = {
-    project: pageFilters.projects,
-    environment: pageFilters.environments,
-    ...omit(pageFilters.datetime, 'period'),
-    statsPeriod: pageFilters.datetime?.period,
-  };
-
   // when opening from discover or issues page, the user selects the dashboard in the widget UI
   const notDashboardsOrigin = [
     DashboardWidgetSource.DISCOVERV2,
@@ -270,11 +264,12 @@ function WidgetBuilder({
   };
 
   const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
+  const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
     pathname: currentDashboardId
       ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
       : `/organizations/${orgId}/dashboards/new/`,
-    query: omit({...location.query, ...globalSelectionHeaderParams}, 'period', 'source'),
+    query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
@@ -606,7 +601,10 @@ function WidgetBuilder({
       title: widgetData.title,
       ...queryData,
       // Propagate page filters
-      ...globalSelectionHeaderParams,
+      project: pageFilters.projects,
+      environment: pageFilters.environments,
+      ...omit(pageFilters.datetime, 'period'),
+      statsPeriod: pageFilters.datetime?.period,
     };
 
     addSuccessMessage(t('Added widget.'));
@@ -614,23 +612,28 @@ function WidgetBuilder({
   }
 
   function goToDashboards(id: string, query?: Record<string, any>) {
+    const pathQuery =
+      !isEmpty(queryParamsWithoutSource) || selection || query
+        ? {
+            ...queryParamsWithoutSource,
+            project: pageFilters.projects,
+            environment: pageFilters.environments,
+            statsPeriod: pageFilters.datetime?.period,
+            ...query,
+          }
+        : undefined;
+
     if (id === NEW_DASHBOARD_ID) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
-        query: {
-          ...globalSelectionHeaderParams,
-          ...query,
-        },
+        query: pathQuery,
       });
       return;
     }
 
     router.push({
       pathname: `/organizations/${organization.slug}/dashboard/${id}/`,
-      query: {
-        ...globalSelectionHeaderParams,
-        ...query,
-      },
+      query: pathQuery,
     });
   }
 

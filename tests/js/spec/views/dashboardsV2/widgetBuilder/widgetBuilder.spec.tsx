@@ -29,10 +29,12 @@ function renderTestComponent({
   query,
   orgFeatures,
   onSave,
+  params,
 }: {
   dashboard?: WidgetBuilderProps['dashboard'];
   onSave?: WidgetBuilderProps['onSave'];
   orgFeatures?: string[];
+  params?: WidgetBuilderProps['params'];
   query?: Record<string, any>;
   widget?: WidgetBuilderProps['widget'];
 } = {}) {
@@ -76,6 +78,7 @@ function renderTestComponent({
       params={{
         orgId: organization.slug,
         widgetIndex: widget ? 0 : undefined,
+        ...params,
       }}
     />,
     {
@@ -219,7 +222,7 @@ describe('WidgetBuilder', function () {
     );
     expect(screen.getByRole('link', {name: 'Dashboard'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboards/new/?end&start&statsPeriod=24h&utc=false'
+      '/organizations/org-slug/dashboards/new/'
     );
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
@@ -837,18 +840,23 @@ describe('WidgetBuilder', function () {
       widgets: [widget],
     };
 
-    const {router} = renderTestComponent({dashboard, widget});
+    const {router} = renderTestComponent({
+      dashboard,
+      widget,
+      params: {orgId: 'org-slug', dashboardId: '1'},
+    });
 
     await screen.findByText('Update Widget');
     userEvent.click(screen.getAllByText('Errors over time')[0]);
     userEvent.type(screen.getByLabelText('Widget title'), 'Edited title');
-    expect(router.push).not.toHaveBeenCalled();
 
     // Change global selection header period
     userEvent.click(screen.getByText('Last 24 hours'));
     expect(router.push).not.toHaveBeenCalled();
     userEvent.click(screen.getByText('Last 90 days'));
+    expect(screen.queryByText('Last 24 hours')).not.toBeInTheDocument();
     expect(router.push).toHaveBeenCalledTimes(1);
+
     const globalSelectionHeaderTimePeriod = screen.getByTestId(
       'global-header-timerange-selector'
     );
@@ -859,6 +867,7 @@ describe('WidgetBuilder', function () {
     await waitFor(() => {
       expect(router.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/1/',
           query: expect.objectContaining({
             statsPeriod: '90d',
             project: [],
