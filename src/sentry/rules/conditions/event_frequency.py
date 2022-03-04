@@ -55,7 +55,7 @@ class EventFrequencyForm(forms.Form):  # type: ignore
     )
     value = forms.IntegerField(widget=forms.TextInput())
     comparisonType = forms.ChoiceField(
-        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),
+        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),  # type: ignore
         required=False,
     )
     comparisonInterval = forms.ChoiceField(
