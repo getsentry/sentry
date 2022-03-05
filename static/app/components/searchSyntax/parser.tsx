@@ -529,12 +529,10 @@ export class TokenConverter {
    *
    * [0]:https://pegjs.org/documentation
    */
-  predicateFilter = <T extends FilterType>(
-    type: T,
-    key: ReturnType<TokenConverter['tokenKeyAggregate']>
-  ) => {
+  predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
+    // @ts-expect-error Unclear why this isn’t resolving correctly
     const keyName = getKeyName(key);
-    const aggregateKey = key;
+    const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
     const {isNumeric, isDuration, isBoolean, isDate, isPercentage} = this.keyValidation;
 
