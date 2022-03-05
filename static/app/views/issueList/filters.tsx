@@ -95,7 +95,7 @@ function IssueListFilters({
           <PageFilterBar>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter hidePin alignDropdown="right" />
+            <DatePageFilter alignDropdown="right" />
           </PageFilterBar>
         ) : (
           <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
