@@ -36,14 +36,13 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         note.delete()
 
-        if Activity.objects.filter(id=webhook_data["comment_id"]).count() == 0:
-            comment_deleted.send_robust(
-                project=group.project,
-                user=request.user,
-                group=group,
-                data=webhook_data,
-                sender="delete",
-            )
+        comment_deleted.send_robust(
+            project=group.project,
+            user=request.user,
+            group=group,
+            data=webhook_data,
+            sender="delete",
+        )
 
         return Response(status=204)
 
