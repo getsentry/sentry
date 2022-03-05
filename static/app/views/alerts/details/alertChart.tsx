@@ -22,7 +22,7 @@ type Props = AsyncComponent['props'] &
   };
 
 type State = AsyncComponent['state'] & {
-  alerts: ProjectAlertRuleStats[];
+  ruleFireHistory: ProjectAlertRuleStats[];
 };
 
 class AlertChart extends AsyncComponent<Props, State> {
@@ -44,7 +44,7 @@ class AlertChart extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      alerts: [],
+      ruleFireHistory: [],
     };
   }
 
@@ -53,7 +53,7 @@ class AlertChart extends AsyncComponent<Props, State> {
 
     return [
       [
-        'alerts',
+        'ruleFireHistory',
         `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/stats/`,
         {
           query: {
@@ -66,12 +66,13 @@ class AlertChart extends AsyncComponent<Props, State> {
       ],
     ];
   }
+
   renderChart() {
-    const {alerts} = this.state;
+    const {ruleFireHistory} = this.state;
 
     const series = {
       seriesName: 'Alerts Triggered',
-      data: alerts.map(alert => ({
+      data: ruleFireHistory.map(alert => ({
         name: alert.date,
         value: alert.count,
       })),
@@ -109,11 +110,16 @@ class AlertChart extends AsyncComponent<Props, State> {
   }
 
   render() {
-    const {alerts} = this.state;
+    const {ruleFireHistory, loading} = this.state;
 
-    const totalAlertsTriggered = alerts.reduce((acc, curr) => acc + curr.count, 0);
+    const totalAlertsTriggered = ruleFireHistory.reduce(
+      (acc, curr) => acc + curr.count,
+      0
+    );
 
-    return (
+    return loading ? (
+      this.renderEmpty()
+    ) : (
       <Panel>
         <StyledPanelBody withPadding>
           <ChartHeader>
