@@ -346,20 +346,20 @@ class MetricMetaWithTagKeys(MetricMeta):
 
 # Map requested op name to the corresponding Snuba function
 _OP_TO_SNUBA_FUNCTION = {
-    "metrics_counters": {"sum": "sum"},
+    "metrics_counters": {"sum": "sumIf"},
     "metrics_distributions": {
-        "avg": "avg",
-        "count": "count",
-        "max": "max",
-        "min": "min",
+        "avg": "avgIf",
+        "count": "countIf",
+        "max": "maxIf",
+        "min": "minIf",
         # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
-        "p50": "quantiles(0.50)",
-        "p75": "quantiles(0.75)",
-        "p90": "quantiles(0.90)",
-        "p95": "quantiles(0.95)",
-        "p99": "quantiles(0.99)",
+        "p50": "quantilesIf(0.50)",
+        "p75": "quantilesIf(0.75)",
+        "p90": "quantilesIf(0.90)",
+        "p95": "quantilesIf(0.95)",
+        "p99": "quantilesIf(0.99)",
     },
-    "metrics_sets": {"count_unique": "uniq"},
+    "metrics_sets": {"count_unique": "uniqIf"},
 }
 
 AVAILABLE_OPERATIONS = {
@@ -415,7 +415,7 @@ class SnubaQueryBuilder:
         ]
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
-        return [Column("metric_id")] + [
+        return [
             Column(resolve_tag_key(field))
             if field not in ALLOWED_GROUPBY_COLUMNS
             else Column(field)
@@ -427,9 +427,15 @@ class SnubaQueryBuilder:
     ) -> Optional[List[OrderBy]]:
         if query_definition.orderby is None:
             return None
-        (op, _), direction = query_definition.orderby
-
-        return [OrderBy(Column(op), direction)]
+        (op, metric_name), direction = query_definition.orderby
+        return [
+            OrderBy(
+                self._build_conditional_aggregate_for_metric(
+                    name=metric_name, op=op, entity=entity
+                ),
+                direction,
+            )
+        ]
 
     def _build_queries(self, query_definition):
         queries_by_entity = OrderedDict()
@@ -450,10 +456,20 @@ class SnubaQueryBuilder:
         }
 
     @staticmethod
+    def _build_conditional_aggregate_for_metric(entity, op, name):
+        snuba_function = _OP_TO_SNUBA_FUNCTION[entity][op]
+        return Function(
+            snuba_function,
+            [Column("value"), Function("equals", [Column("metric_id"), resolve_weak(name)])],
+            alias=f"{op}({name})",
+        )
+
+    @staticmethod
     def _build_select(entity, fields):
-        for op, _ in fields:
-            snuba_function = _OP_TO_SNUBA_FUNCTION[entity][op]
-            yield Function(snuba_function, [Column("value")], alias=op)
+        for op, name in fields:
+            yield SnubaQueryBuilder._build_conditional_aggregate_for_metric(
+                entity=entity, op=op, name=name
+            )
 
     def _build_queries_for_entity(self, query_definition, entity, fields, where, groupby):
         totals_query = Query(
@@ -516,54 +532,51 @@ class SnubaResultConverter:
         self._intervals = intervals
         self._results = results
 
-        self._ops_by_metric = ops_by_metric = {}
-        for op, metric in query_definition.fields.values():
-            ops_by_metric.setdefault(metric, []).append(op)
-
         self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
 
     def _parse_tag(self, tag_string: str) -> str:
         tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
         return reverse_resolve(tag_key)
 
-    def _extract_data(self, entity, data, groups):
+    def _extract_data(self, data, groups):
         tags = tuple(
             (key, data[key])
             for key in sorted(data.keys())
             if (key.startswith("tags[") or key in ALLOWED_GROUPBY_COLUMNS)
         )
 
-        metric_name = reverse_resolve(data["metric_id"])
-        ops = self._ops_by_metric[metric_name]
-
         tag_data = groups.setdefault(
             tags,
-            {
-                "totals": {},
-            },
+            {"totals": {}, "series": {}},
         )
 
-        timestamp = data.pop(TS_COL_GROUP, None)
-        if timestamp is not None:
-            timestamp = parse_snuba_datetime(timestamp)
+        bucketed_time = data.pop(TS_COL_GROUP, None)
+        if bucketed_time is not None:
+            bucketed_time = parse_snuba_datetime(bucketed_time)
 
-        for op in ops:
-            key = f"{op}({metric_name})"
+        for op, metric_name in self._query_definition.fields.values():
+            try:
+                key = f"{op}({metric_name})"
+                value = data[key]
+                if op in _OPERATIONS_PERCENTILES:
+                    value = value[0]
+                cleaned_value = finite_or_none(value)
+            except KeyError:
+                continue
 
-            value = data[op]
-            if op in _OPERATIONS_PERCENTILES:
-                value = value[0]
+            if bucketed_time is None:
+                tag_data["totals"][key] = cleaned_value
 
-            # If this is time series data, add it to the appropriate series.
-            # Else, add to totals
-            if timestamp is None:
-                tag_data["totals"][key] = finite_or_none(value)
-            else:
-                series = tag_data.setdefault("series", {}).setdefault(
-                    key, len(self._intervals) * [_DEFAULT_AGGREGATES[op]]
-                )
-                series_index = self._timestamp_index[timestamp]
-                series[series_index] = finite_or_none(value)
+            default_null_value = _DEFAULT_AGGREGATES[op]
+            # Checks whether we are trying to populate series, or we are populating totals but
+            # it's a default null value, and so we need to do the same for the series key
+            if bucketed_time is not None or cleaned_value == default_null_value:
+                empty_values = len(self._intervals) * [default_null_value]
+                series = tag_data["series"].setdefault(key, empty_values)
+
+                if bucketed_time is not None:
+                    series_index = self._timestamp_index[bucketed_time]
+                    series[series_index] = cleaned_value
 
     def translate_results(self):
         groups = {}
@@ -571,12 +584,12 @@ class SnubaResultConverter:
         for entity, subresults in self._results.items():
             totals = subresults["totals"]["data"]
             for data in totals:
-                self._extract_data(entity, data, groups)
+                self._extract_data(data, groups)
 
             if "series" in subresults:
                 series = subresults["series"]["data"]
                 for data in series:
-                    self._extract_data(entity, data, groups)
+                    self._extract_data(data, groups)
 
         groups = [
             dict(
