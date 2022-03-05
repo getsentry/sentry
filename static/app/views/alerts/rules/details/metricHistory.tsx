@@ -162,7 +162,7 @@ function MetricHistory({organization, incidents}: Props) {
 export default MetricHistory;
 
 const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean}>`
-  grid-template-columns: max-content 1fr 0.2fr 0.5fr;
+  grid-template-columns: max-content 1fr repeat(2, max-content);
 
   & > div {
     padding: ${space(1)} ${space(2)};
