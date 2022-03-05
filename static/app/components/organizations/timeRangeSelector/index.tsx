@@ -413,6 +413,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
               value,
               searchKey: itemLabel,
               label: <DropdownItemLabel>{itemLabel}</DropdownItemLabel>,
+              'data-test-id': value,
             })
           )
         : []),
@@ -422,6 +423,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
               value: 'absolute',
               searchKey: 'absolute',
               label: <DropdownItemLabel>{t('Absolute date')}</DropdownItemLabel>,
+              'data-test-id': 'absolute',
             },
           ]
         : []),

@@ -7,7 +7,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 describe('DatePageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({
-    organization: undefined,
+    organization: {features: ['selection-filters-v2']},
     project: undefined,
     projects: undefined,
     router: {
@@ -72,6 +72,9 @@ describe('DatePageFilter', function () {
         pinnedFilters: new Set(),
       })
     );
+
+    // Open time period dropdown
+    userEvent.click(screen.getByText('30D'));
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Pin'});
