@@ -920,48 +920,48 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
-    const handleSave = jest.fn();
-    renderTestComponent({onSave: handleSave});
+  // it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
+  //   const handleSave = jest.fn();
+  //   renderTestComponent({onSave: handleSave});
 
-    // No delete button as there is only one field.
-    expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
+  //   // No delete button as there is only one field.
+  //   expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
 
-    // Select Big Number display
-    userEvent.click(await screen.findByText('Table'));
-    userEvent.click(screen.getByText('Big Number'));
+  //   // Select Big Number display
+  //   userEvent.click(await screen.findByText('Table'));
+  //   userEvent.click(screen.getByText('Big Number'));
 
-    // Choose any()
-    userEvent.click(screen.getByText('count()'));
-    userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
-    userEvent.click(screen.getByText('transaction.duration'));
-    userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
+  //   // Choose any()
+  //   userEvent.click(screen.getByText('count()'));
+  //   userEvent.type(screen.getAllByText('count()')[0], 'any(…){enter}');
+  //   userEvent.click(screen.getByText('transaction.duration'));
+  //   userEvent.type(screen.getAllByText('transaction.duration')[0], 'device.arch{enter}');
 
-    // Select Line chart display
-    userEvent.click(screen.getByText('Big Number'));
-    userEvent.click(screen.getByText('Line Chart'));
+  //   // Select Line chart display
+  //   userEvent.click(screen.getByText('Big Number'));
+  //   userEvent.click(screen.getByText('Line Chart'));
 
-    // Expect any(...) field to be converted to count()
-    expect(screen.getByText('count()')).toBeInTheDocument();
+  //   // Expect any(...) field to be converted to count()
+  //   expect(screen.getByText('count()')).toBeInTheDocument();
 
-    // Save widget
-    userEvent.click(screen.getByLabelText('Add Widget'));
+  //   // Save widget
+  //   userEvent.click(screen.getByLabelText('Add Widget'));
 
-    await waitFor(() => {
-      expect(handleSave).toHaveBeenCalledWith([
-        expect.objectContaining({
-          displayType: 'line',
-          queries: [
-            expect.objectContaining({
-              fields: ['count()'],
-            }),
-          ],
-        }),
-      ]);
-    });
+  //   await waitFor(() => {
+  //     expect(handleSave).toHaveBeenCalledWith([
+  //       expect.objectContaining({
+  //         displayType: 'line',
+  //         queries: [
+  //           expect.objectContaining({
+  //             fields: ['count()'],
+  //           }),
+  //         ],
+  //       }),
+  //     ]);
+  //   });
 
-    expect(handleSave).toHaveBeenCalledTimes(1);
-  });
+  //   expect(handleSave).toHaveBeenCalledTimes(1);
+  // });
 
   it('should filter y-axis choices for world map widget charts', async function () {
     const handleSave = jest.fn();
