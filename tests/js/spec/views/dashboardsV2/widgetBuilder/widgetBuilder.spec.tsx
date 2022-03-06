@@ -311,8 +311,8 @@ describe('WidgetBuilder', function () {
             queryOrderby: '',
             start: null,
             end: null,
-            period: '14d',
-            utc: null,
+            period: '24h',
+            utc: false,
             project: [],
             environment: [],
           },
@@ -351,7 +351,7 @@ describe('WidgetBuilder', function () {
             end: null,
             environment: [],
             interval: '5m',
-            period: '14d',
+            period: '24h',
             project: [],
             queryConditions: [''],
             queryFields: ['last_seen()'],
@@ -359,7 +359,7 @@ describe('WidgetBuilder', function () {
             queryOrderby: '',
             start: null,
             title: 'Custom Widget',
-            utc: null,
+            utc: false,
           },
         })
       );
@@ -1214,7 +1214,7 @@ describe('WidgetBuilder', function () {
               end: null,
               environment: [],
               interval: '5m',
-              period: '14d',
+              period: '24h',
               project: [],
               queryConditions: [''],
               queryFields: ['count()'],
@@ -1222,7 +1222,7 @@ describe('WidgetBuilder', function () {
               queryOrderby: '',
               start: null,
               title: 'Custom Widget',
-              utc: null,
+              utc: false,
             },
           })
         );
@@ -1247,7 +1247,7 @@ describe('WidgetBuilder', function () {
               end: null,
               environment: [],
               interval: '5m',
-              period: '14d',
+              period: '24h',
               project: [],
               queryConditions: [''],
               queryFields: ['count()'],
@@ -1255,7 +1255,7 @@ describe('WidgetBuilder', function () {
               queryOrderby: '',
               start: null,
               title: 'Custom Widget',
-              utc: null,
+              utc: false,
             },
           })
         );
