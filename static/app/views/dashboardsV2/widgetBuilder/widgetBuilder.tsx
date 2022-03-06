@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -48,7 +48,7 @@ import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import withTags from 'sentry/utils/withTags';
+// import withTags from 'sentry/utils/withTags';
 import {
   assignTempId,
   enforceWidgetHeightValues,
@@ -148,7 +148,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
-  tags: TagCollection;
+  // tags: TagCollection;
   displayType?: DisplayType;
   end?: DateString;
   start?: DateString;
@@ -179,7 +179,6 @@ function WidgetBuilder({
   start,
   end,
   statsPeriod,
-  tags,
   onSave,
   router,
 }: Props) {
@@ -240,6 +239,16 @@ function WidgetBuilder({
 
   const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
 
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
@@ -270,6 +279,9 @@ function WidgetBuilder({
   };
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
+    if (!isMounted.current) {
+      return;
+    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       const normalized = normalizeQueries(newDisplayType, prevState.queries);
@@ -556,6 +568,10 @@ function WidgetBuilder({
   }
 
   async function fetchDashboards() {
+    if (!isMounted.current) {
+      return;
+    }
+
     const promise: Promise<DashboardListItem[]> = api.requestPromise(
       `/organizations/${organization.slug}/dashboards/`,
       {
@@ -625,7 +641,7 @@ function WidgetBuilder({
   function getAmendedFieldOptions(measurements: MeasurementCollection) {
     return generateFieldOptions({
       organization,
-      tagKeys: Object.values(tags).map(({key}) => key),
+      tagKeys: Object.values({} as TagCollection).map(({key}) => key),
       measurementKeys: Object.values(measurements).map(({key}) => key),
       spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
     });
@@ -975,13 +991,13 @@ function WidgetBuilder({
                       <DashboardSelector
                         error={state.errors?.dashboard}
                         dashboards={state.dashboards}
-                        onChange={selectedDashboard =>
+                        onChange={selectedDashboard => {
                           setState({
                             ...state,
                             selectedDashboard,
                             errors: {...state.errors, dashboard: undefined},
-                          })
-                        }
+                          });
+                        }}
                         disabled={state.loading}
                       />
                     </BuildStep>
@@ -997,7 +1013,7 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
-                onWidgetSelect={prebuiltWidget =>
+                onWidgetSelect={prebuiltWidget => {
                   setState({
                     ...state,
                     ...prebuiltWidget,
@@ -1005,8 +1021,8 @@ function WidgetBuilder({
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
                     userHasModified: false,
-                  })
-                }
+                  });
+                }}
                 bypassOverwriteModal={!state.userHasModified}
               />
             </Side>
@@ -1017,7 +1033,7 @@ function WidgetBuilder({
   );
 }
 
-export default withPageFilters(withTags(WidgetBuilder));
+export default withPageFilters(WidgetBuilder);
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
