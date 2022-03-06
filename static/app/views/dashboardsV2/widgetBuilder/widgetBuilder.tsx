@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -16,6 +16,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import LoadingError from 'sentry/components/loadingError';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PanelAlert} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -46,6 +47,7 @@ import Measurements, {
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import useApi from 'sentry/utils/useApi';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {
   assignTempId,
@@ -68,6 +70,7 @@ import {
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+import {DEFAULT_STATS_PERIOD} from '../data';
 import WidgetCard from '../widgetCard';
 
 import BuildStep from './buildStep';
@@ -144,6 +147,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
+  selection: PageFilters;
   tags: TagCollection;
   displayType?: DisplayType;
   end?: DateString;
@@ -171,6 +175,7 @@ function WidgetBuilder({
   params,
   location,
   organization,
+  selection,
   start,
   end,
   statsPeriod,
@@ -186,12 +191,6 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
-
-  const selection = {
-    projects: [],
-    environments: [],
-    datetime: {start: null, end: null, period: '14d', utc: null},
-  };
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -240,16 +239,6 @@ function WidgetBuilder({
   });
 
   const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
-
-  const isMounted = useRef(false);
-
-  useEffect(() => {
-    isMounted.current = true;
-
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (notDashboardsOrigin) {
@@ -474,10 +463,6 @@ function WidgetBuilder({
   }
 
   async function handleSave() {
-    if (!isMounted.current) {
-      return;
-    }
-
     const widgetData: Widget = assignTempId(currentWidget);
 
     if (widgetToBeUpdated) {
@@ -535,10 +520,6 @@ function WidgetBuilder({
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
-    if (!isMounted.current) {
-      return false;
-    }
-
     if (notDashboardsOrigin) {
       // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
       if (
@@ -575,9 +556,6 @@ function WidgetBuilder({
   }
 
   async function fetchDashboards() {
-    if (!isMounted.current) {
-      return;
-    }
     const promise: Promise<DashboardListItem[]> = api.requestPromise(
       `/organizations/${organization.slug}/dashboards/`,
       {
@@ -1039,7 +1017,7 @@ function WidgetBuilder({
   );
 }
 
-export default withTags(WidgetBuilder);
+export default withPageFilters(withTags(WidgetBuilder));
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
@@ -1088,9 +1066,14 @@ const Body = styled(Layout.Body)`
     gap: 0;
     padding: 0;
   }
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Main = styled(Layout.Main)`
+  max-width: 1000px;
   padding: ${space(4)};
   flex: 1;
 `;
@@ -1099,11 +1082,11 @@ const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    border-right: 1px solid ${p => p.theme.gray200};
+    border-left: 1px solid ${p => p.theme.gray200};
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    border-bottom: 1px solid ${p => p.theme.gray200};
+    border-top: 1px solid ${p => p.theme.gray200};
   }
 `;
 
