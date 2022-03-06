@@ -2,7 +2,6 @@ import React from 'react';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
 import {
   mountWithTheme,
   screen,
