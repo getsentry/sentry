@@ -1026,6 +1026,7 @@ const PageContentWithoutPadding = styled(PageContent)`
 const VisualizationWrapper = styled('div')`
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 `;
 
 const DataSetChoices = styled(RadioGroup)`
