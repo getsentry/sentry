@@ -176,11 +176,11 @@ describe('WidgetBuilder', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.restoreAllMocks();
   });
 
   it('no feature access', function () {
     renderTestComponent({orgFeatures: []});
-
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
