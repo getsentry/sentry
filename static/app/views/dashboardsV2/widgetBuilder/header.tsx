@@ -63,9 +63,9 @@ export function Header({
         <ButtonBar gap={1}>
           <Button
             title={t(
-              "You’re seeing the metrics project because you have the feature flag 'organizations:metrics' enabled. Send us feedback via email."
+              "You are seeing the widget builder on a full page because you have the feature flags 'organizations:new-widget-builder-experience' and 'dashboards-edit' enabled. How do you like the new widget builder? Send us feedback via email."
             )}
-            href="mailto:metrics-feedback@sentry.io?subject=Metrics Feedback"
+            href="mailto:new-widget-builder-experience@sentry.io?subject=New Widget Builder Experience Feedback"
           >
             {t('Give Feedback')}
           </Button>
