@@ -26,6 +26,7 @@ function withTags<P extends InjectedTagsProps>(WrappedComponent: React.Component
     componentWillUnmount() {
       this.unsubscribe();
     }
+
     unsubscribe = TagStore.listen(
       (tags: TagCollection) => this.setState({tags}),
       undefined

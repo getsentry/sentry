@@ -48,7 +48,7 @@ import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-// import withTags from 'sentry/utils/withTags';
+import withTags from 'sentry/utils/withTags';
 import {
   assignTempId,
   enforceWidgetHeightValues,
@@ -148,7 +148,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
-  // tags: TagCollection;
+  tags: TagCollection;
   displayType?: DisplayType;
   end?: DateString;
   start?: DateString;
@@ -176,6 +176,7 @@ function WidgetBuilder({
   location,
   organization,
   selection,
+  tags,
   start,
   end,
   statsPeriod,
@@ -375,6 +376,9 @@ function WidgetBuilder({
   }
 
   function handleDataSetChange(newDataSet: string) {
+    if (!isMounted.current) {
+      return;
+    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       newState.queries.splice(0, newState.queries.length);
@@ -641,7 +645,7 @@ function WidgetBuilder({
   function getAmendedFieldOptions(measurements: MeasurementCollection) {
     return generateFieldOptions({
       organization,
-      tagKeys: Object.values({} as TagCollection).map(({key}) => key),
+      tagKeys: Object.values(tags).map(({key}) => key),
       measurementKeys: Object.values(measurements).map(({key}) => key),
       spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
     });
@@ -1033,7 +1037,7 @@ function WidgetBuilder({
   );
 }
 
-export default withPageFilters(WidgetBuilder);
+export default withPageFilters(withTags(WidgetBuilder));
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
