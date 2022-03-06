@@ -23,28 +23,21 @@ export type MetricsApiResponse = {
   start: string;
 };
 
-export type MetricTagCollection = Record<string, MetricTag>;
+export type MetricsTagCollection = Record<string, MetricsTag>;
 
-export type MetricTag = {
+export type MetricsTag = {
   key: string;
 };
 
-export type MetricTagValue = {
+export type MetricsTagValue = {
   key: string;
   value: string;
 };
 
-export type MetricMeta = {
+export type MetricsMeta = {
   name: string;
   operations: MetricsOperation[];
   type: MetricsType;
 };
 
-export type MetricsMetaCollection = Record<string, MetricMeta>;
-
-export type MetricQuery = {
-  aggregation?: string;
-  groupBy?: string[];
-  legend?: string;
-  metricMeta?: MetricMeta;
-};
+export type MetricsMetaCollection = Record<string, MetricsMeta>;

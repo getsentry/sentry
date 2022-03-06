@@ -188,7 +188,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_USER}),
+      body: TestStubs.MetricsField({field: SessionMetric.USER}),
     });
   });
 
