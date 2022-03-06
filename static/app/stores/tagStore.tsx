@@ -54,6 +54,7 @@ type TagStoreInterface = {
   getAllTags(): TagCollection;
   getBuiltInTags(): TagCollection;
   getIssueAttributes(): TagCollection;
+  getState(): TagCollection;
   onLoadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
@@ -154,6 +155,10 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
   reset() {
     this.state = {};
     this.trigger(this.state);
+  },
+
+  getState() {
+    return this.state;
   },
 
   getAllTags() {

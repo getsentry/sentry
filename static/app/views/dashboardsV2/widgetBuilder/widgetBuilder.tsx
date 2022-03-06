@@ -24,13 +24,7 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {
-  DateString,
-  Organization,
-  PageFilters,
-  SelectValue,
-  TagCollection,
-} from 'sentry/types';
+import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -47,8 +41,8 @@ import Measurements, {
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import useApi from 'sentry/utils/useApi';
+import {useTags} from 'sentry/utils/useTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import withTags from 'sentry/utils/withTags';
 import {
   assignTempId,
   enforceWidgetHeightValues,
@@ -148,7 +142,6 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
-  tags: TagCollection;
   displayType?: DisplayType;
   end?: DateString;
   start?: DateString;
@@ -176,7 +169,6 @@ function WidgetBuilder({
   location,
   organization,
   selection,
-  tags,
   start,
   end,
   statsPeriod,
@@ -207,6 +199,7 @@ function WidgetBuilder({
   ].includes(source);
 
   const api = useApi();
+  const tags = useTags();
 
   const [state, setState] = useState<State>(() => {
     if (!widgetToBeUpdated) {
@@ -356,6 +349,10 @@ function WidgetBuilder({
   function handleDisplayTypeOrTitleChange<
     F extends keyof Pick<State, 'displayType' | 'title'>
   >(field: F, value: State[F]) {
+    if (!isMounted.current) {
+      return;
+    }
+
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.change', {
       from: source,
       field,
@@ -401,6 +398,9 @@ function WidgetBuilder({
   }
 
   function handleAddSearchConditions() {
+    if (!isMounted.current) {
+      return;
+    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       const query = cloneDeep(QUERIES.events);
@@ -413,6 +413,9 @@ function WidgetBuilder({
   }
 
   function handleQueryRemove(index: number) {
+    if (!isMounted.current) {
+      return;
+    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       newState.queries.splice(index, 1);
@@ -421,6 +424,9 @@ function WidgetBuilder({
   }
 
   function handleQueryChange(queryIndex: number, newQuery: WidgetQuery) {
+    if (!isMounted.current) {
+      return;
+    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, `queries.${queryIndex}`, newQuery);
@@ -536,6 +542,10 @@ function WidgetBuilder({
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
+    if (!isMounted.current) {
+      return false;
+    }
+
     if (notDashboardsOrigin) {
       // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
       if (
@@ -1037,7 +1047,7 @@ function WidgetBuilder({
   );
 }
 
-export default withPageFilters(withTags(WidgetBuilder));
+export default withPageFilters(WidgetBuilder);
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
