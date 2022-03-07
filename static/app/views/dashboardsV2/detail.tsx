@@ -120,7 +120,9 @@ class DashboardDetail extends Component<Props, State> {
     } = this.props;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
-        defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
+        defined(widgetId) &&
+        (dashboard.widgets.find(({id}) => id === String(widgetId)) ??
+          dashboard.widgets[widgetId]);
       if (widget) {
         openWidgetViewerModal({
           organization,

@@ -14,6 +14,7 @@ const TABLE_ITEM_LIMIT = 20;
 
 type Props = {
   dragId: string;
+  index: string;
   isEditing: boolean;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -39,6 +40,7 @@ function SortableWidget(props: Props) {
     isPreview,
     isMobile,
     windowWidth,
+    index,
   } = props;
 
   const {
@@ -78,6 +80,7 @@ function SortableWidget(props: Props) {
     showContextMenu: true,
     isPreview,
     showWidgetViewerButton: organization.features.includes('widget-viewer-modal'),
+    index,
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {

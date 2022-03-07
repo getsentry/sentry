@@ -5,7 +5,6 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -43,6 +42,7 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
+  index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
   noLazyLoad?: boolean;
@@ -147,8 +147,9 @@ class WidgetCard extends React.Component<Props> {
       showWidgetViewerButton,
       router,
       isEditing,
-      onEdit,
+      index,
     } = this.props;
+    const id = widget.id ?? index;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -158,7 +159,7 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
-            {showWidgetViewerButton && !isEditing && (
+            {showWidgetViewerButton && !isEditing && id && (
               <OpenWidgetViewerButton
                 aria-label={t('Open Widget Viewer')}
                 priority="link"
@@ -166,18 +167,12 @@ class WidgetCard extends React.Component<Props> {
                 icon={<IconExpand size="xs" />}
                 onClick={() => {
                   if (!isWidgetViewerPath(location.pathname)) {
-                    if (widget.id) {
-                      router.push({
-                        pathname: `${location.pathname}widget/${widget.id}/`,
-                        query: location.query,
-                      });
-                    } else {
-                      openWidgetViewerModal({
-                        organization,
-                        widget,
-                        onEdit,
-                      });
-                    }
+                    router.push({
+                      pathname: `${location.pathname}${
+                        location.pathname.endsWith('/') ? '' : '/'
+                      }widget/${id}/`,
+                      query: location.query,
+                    });
                   }
                 }}
               />
