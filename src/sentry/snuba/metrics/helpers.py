@@ -29,8 +29,10 @@ __all__ = (
 
 import math
 import re
+from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from functools import cached_property
 from typing import (
     Any,
     Collection,
@@ -402,20 +404,8 @@ class SnubaQueryBuilder:
 
         return where
 
-    def _build_where_for_entity(self, query_definition: QueryDefinition, entity: str):
-        metric_ids_set = set()
-        for op, name in query_definition.fields.values():
-            if OPERATIONS_TO_ENTITY[op] == entity:
-                metric_ids_set.add(resolve_weak(name))
-        return [
-            Condition(
-                Column("metric_id"),
-                Op.IN,
-                list(metric_ids_set),
-            ),
-        ]
-
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
+        # ToDo ensure we cannot add any other cols than tags and groupBy as columns
         return [
             Column(resolve_tag_key(field))
             if field not in ALLOWED_GROUPBY_COLUMNS
@@ -429,74 +419,89 @@ class SnubaQueryBuilder:
         if query_definition.orderby is None:
             return None
         (op, metric_name), direction = query_definition.orderby
-        return [
-            OrderBy(
-                self._build_conditional_aggregate_for_metric(
-                    name=metric_name, op=op, entity=entity
-                ),
-                direction,
-            )
-        ]
-
-    def _build_queries(self, query_definition):
-        queries_by_entity = OrderedDict()
-        for op, metric_name in query_definition.fields.values():
-            entity = OPERATIONS_TO_ENTITY[op]
-
-            if entity not in self._implemented_datasets:
-                raise NotImplementedError(f"Dataset not yet implemented: {entity}")
-
-            queries_by_entity.setdefault(entity, []).append((op, metric_name))
-
-        where = self._build_where(query_definition)
-        groupby = self._build_groupby(query_definition)
-
-        return {
-            entity: self._build_queries_for_entity(query_definition, entity, fields, where, groupby)
-            for entity, fields in queries_by_entity.items()
-        }
-
-    @staticmethod
-    def _build_conditional_aggregate_for_metric(entity, op, name):
-        snuba_function = OP_TO_SNUBA_FUNCTION[entity][op]
-        return Function(
-            snuba_function,
-            [Column("value"), Function("equals", [Column("metric_id"), resolve_weak(name)])],
-            alias=f"{op}({name})",
+        metric_field_obj = metric_object_factory(op, metric_name)
+        return metric_field_obj.generate_orderby_clause(
+            entity=entity, projects=self._projects, direction=direction
         )
 
-    @classmethod
-    def _build_select(cls, entity, fields):
-        for op, name in fields:
-            yield cls._build_conditional_aggregate_for_metric(entity=entity, op=op, name=name)
-
-    def _build_queries_for_entity(self, query_definition, entity, fields, where, groupby):
+    @staticmethod
+    def _build_totals_and_series_queries(
+        entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
+    ):
         totals_query = Query(
             dataset=Dataset.Metrics.value,
             match=Entity(entity),
             groupby=groupby,
-            select=list(self._build_select(entity, fields)),
-            where=where + self._build_where_for_entity(query_definition, entity),
-            limit=Limit(query_definition.limit or MAX_POINTS),
-            offset=Offset(query_definition.offset or 0),
-            granularity=Granularity(query_definition.rollup),
-            orderby=self._build_orderby(query_definition, entity),
+            select=select,
+            where=where,
+            limit=Limit(limit or MAX_POINTS),
+            offset=Offset(offset or 0),
+            granularity=Granularity(rollup),
+            orderby=orderby,
         )
-
         series_query = totals_query.set_groupby(
             (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
         )
 
         # In a series query, we also need to factor in the len of the intervals array
         series_limit = MAX_POINTS
-        if query_definition.limit:
-            series_limit = query_definition.limit * len(list(get_intervals(query_definition)))
+        if limit:
+            series_limit = limit * intervals_len
         series_query = series_query.set_limit(series_limit)
 
-        return {
-            "totals": totals_query,
-            "series": series_query,
-        }
+        return {"totals": totals_query, "series": series_query}
+
+    def _build_queries(self, query_definition):
+        metric_name_to_obj_dict = {}
+
+        queries_by_entity = OrderedDict()
+        for op, metric_name in query_definition.fields.values():
+            metric_field_obj = metric_object_factory(op, metric_name)
+            entity = metric_field_obj.get_entity(projects=self._projects)
+
+            if entity not in self._implemented_datasets:
+                raise NotImplementedError(f"Dataset not yet implemented: {entity}")
+
+            metric_name_to_obj_dict[(op, metric_name)] = metric_field_obj
+
+            queries_by_entity.setdefault(entity, []).append((op, metric_name))
+
+        where = self._build_where(query_definition)
+        groupby = self._build_groupby(query_definition)
+
+        queries_dict = {}
+        for entity, fields in queries_by_entity.items():
+            select = []
+            metric_ids_set = set()
+            for op, name in fields:
+                metric_field_obj = metric_name_to_obj_dict[(op, name)]
+                select += metric_field_obj.generate_select_statements(
+                    entity=entity, projects=self._projects
+                )
+                metric_ids_set |= metric_field_obj.generate_metric_ids(entity)
+
+            where_for_entity = [
+                Condition(
+                    Column("metric_id"),
+                    Op.IN,
+                    list(metric_ids_set),
+                ),
+            ]
+            orderby = self._build_orderby(query_definition, entity)
+
+            queries_dict[entity] = self._build_totals_and_series_queries(
+                entity=entity,
+                select=select,
+                where=where + where_for_entity,
+                groupby=groupby,
+                orderby=orderby,
+                limit=query_definition.limit,
+                offset=query_definition.offset,
+                rollup=query_definition.rollup,
+                intervals_len=len(list(get_intervals(query_definition))),
+            )
+
+        return queries_dict
 
     def get_snuba_queries(self):
         return self._queries
@@ -571,8 +576,7 @@ class SnubaResultConverter:
                 tag_data["totals"][key] = cleaned_value
 
             default_null_value = _DEFAULT_AGGREGATES[op]
-            # Checks whether we are trying to populate series, or we are populating totals but
-            # it's a default null value, and so we need to do the same for the series key
+
             if bucketed_time is not None or cleaned_value == default_null_value:
                 empty_values = len(self._intervals) * [default_null_value]
                 series = tag_data["series"].setdefault(key, empty_values)
@@ -608,3 +612,63 @@ class SnubaResultConverter:
         ]
 
         return groups
+
+
+def metric_object_factory(op, metric_name):
+    return RawMetric(op, metric_name)
+
+
+class MetricsFieldBase(ABC):
+    def __init__(self, op, metric_name):
+        self.op = op
+        self.metric_name = metric_name
+
+    @abstractmethod
+    def get_entity(self, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_metric_ids(self, *args):
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_select_statements(self, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_orderby_clause(self, **kwargs):
+        raise NotImplementedError
+
+
+class RawMetric(MetricsFieldBase):
+    def get_entity(self, **kwargs):
+        return OPERATIONS_TO_ENTITY[self.op]
+
+    def generate_metric_ids(self, entity, *args):
+        return (
+            {resolve_weak(self.metric_name)} if OPERATIONS_TO_ENTITY[self.op] == entity else set()
+        )
+
+    def _build_conditional_aggregate_for_metric(self, entity):
+        snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
+        return Function(
+            snuba_function,
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), resolve_weak(self.metric_name)]),
+            ],
+            alias=f"{self.op}({self.metric_name})",
+        )
+
+    def generate_select_statements(self, entity, **kwargs):
+        return [self._build_conditional_aggregate_for_metric(entity=entity)]
+
+    def generate_orderby_clause(self, entity, direction, **kwargs):
+        return [
+            OrderBy(
+                self.generate_select_statements(entity=entity)[0],
+                direction,
+            )
+        ]
+
+    entity = cached_property(get_entity)
