@@ -18,10 +18,10 @@ class AutoSyncNotification(ProjectNotification):
     def determine_recipients(self) -> Iterable[Team | User]:
         raise self.organization.get_owners()
 
-    def get_reference(self):
+    def get_reference(self) -> None:
         return None
 
-    def get_notification_providers(self):
+    def get_notification_providers(self) -> Iterable[ExternalProviders]:
         # For now, return only email.
         return [ExternalProviders.EMAIL]
 
