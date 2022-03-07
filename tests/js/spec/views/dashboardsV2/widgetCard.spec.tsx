@@ -528,7 +528,8 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         showWidgetViewerButton
-      />
+      />,
+      {context: routerContext}
     );
 
     userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
