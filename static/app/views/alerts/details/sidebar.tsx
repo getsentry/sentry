@@ -107,6 +107,7 @@ class Sidebar extends PureComponent<Props> {
 
   render() {
     const {rule} = this.props;
+    // TODO: update this with rule's dateTriggered and dateModified when api updates
     const dateTriggered = new Date(0);
 
     const ownerId = rule.owner?.split(':')[1];
