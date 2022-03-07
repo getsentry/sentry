@@ -269,7 +269,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
           defaultTableColumns,
           defaultTitle,
-          displayType,
+          displayType:
+            displayType !== DisplayType.TOP_N && displayType !== DisplayType.TABLE
+              ? !!defaultTableColumns.length
+                ? DisplayType.TABLE
+                : displayType
+              : displayType,
         },
       });
       return;
