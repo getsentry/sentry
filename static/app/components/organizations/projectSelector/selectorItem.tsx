@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -12,7 +11,6 @@ import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {alertHighlight, pulse} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
@@ -29,55 +27,33 @@ type Props = {
   onMultiSelect?: (project: Project, event: React.MouseEvent) => void;
 } & typeof defaultProps;
 
-type State = {
-  bookmarkHasChanged: boolean;
-};
-
-class ProjectSelectorItem extends React.PureComponent<Props, State> {
-  static defaultProps = defaultProps;
-  state: State = {
-    bookmarkHasChanged: false,
-  };
-
-  componentDidUpdate(nextProps: Props) {
-    if (nextProps.project.isBookmarked !== this.props.project.isBookmarked) {
-      this.setBookmarkHasChanged();
-    }
-  }
-
-  setBookmarkHasChanged() {
-    this.setState({bookmarkHasChanged: true});
-  }
-
-  handleClick = (event: React.MouseEvent) => {
-    const {project, onMultiSelect} = this.props;
-
+function ProjectSelectorItem({
+  project,
+  organization,
+  onMultiSelect,
+  multi = false,
+  inputValue = '',
+  isChecked = false,
+}: Props) {
+  const handleClick = (event: React.MouseEvent) => {
     event.stopPropagation();
-
-    if (onMultiSelect) {
-      onMultiSelect(project, event);
-    }
+    onMultiSelect?.(project, event);
   };
 
-  handleBookmarkToggle = (isBookmarked: boolean) => {
-    const {organization} = this.props;
+  const handleBookmarkToggle = (isBookmarked: boolean) => {
     analytics('projectselector.bookmark_toggle', {
       org_id: parseInt(organization.id, 10),
       bookmarked: isBookmarked,
     });
   };
 
-  clearAnimation = () => {
-    this.setState({bookmarkHasChanged: false});
-  };
-
-  renderDisabledCheckbox({
+  const renderDisabledCheckbox = ({
     children,
     features,
   }: {
     children: React.ReactNode;
     features: string[];
-  }) {
+  }) => {
     return (
       <Hovercard
         body={
@@ -92,68 +68,59 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
         {children}
       </Hovercard>
     );
-  }
+  };
 
-  render() {
-    const {project, multi, inputValue, isChecked, organization} = this.props;
-    const {bookmarkHasChanged} = this.state;
-
-    return (
-      <BadgeAndActionsWrapper
-        bookmarkHasChanged={bookmarkHasChanged}
-        onAnimationEnd={this.clearAnimation}
+  return (
+    <BadgeAndActionsWrapper>
+      <PageFilterRow
+        checked={isChecked}
+        onCheckClick={handleClick}
+        multi={multi}
+        renderCheckbox={({checkbox}) => (
+          <Feature
+            features={['organizations:global-views']}
+            hookName="feature-disabled:project-selector-checkbox"
+            renderDisabled={renderDisabledCheckbox}
+          >
+            {checkbox}
+          </Feature>
+        )}
       >
-        <PageFilterRow
-          checked={isChecked}
-          onCheckClick={this.handleClick}
-          multi={multi}
-          renderCheckbox={({checkbox}) => (
-            <Feature
-              features={['organizations:global-views']}
-              hookName="feature-disabled:project-selector-checkbox"
-              renderDisabled={this.renderDisabledCheckbox}
-            >
-              {checkbox}
-            </Feature>
-          )}
-        >
-          <BadgeWrapper isMulti={multi}>
-            <IdBadge
-              project={project}
-              avatarSize={16}
-              displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-              avatarProps={{consistentWidth: true}}
-              disableLink
-            />
-          </BadgeWrapper>
-          <StyledBookmarkStar
+        <BadgeWrapper isMulti={multi}>
+          <IdBadge
             project={project}
-            organization={organization}
-            bookmarkHasChanged={bookmarkHasChanged}
-            onToggle={this.handleBookmarkToggle}
+            avatarSize={16}
+            displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
+            avatarProps={{consistentWidth: true}}
+            disableLink
           />
-          <StyledLink
-            to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
-            onClick={e => e.stopPropagation()}
-          >
-            <IconOpen />
-          </StyledLink>
+        </BadgeWrapper>
+        <StyledBookmarkStar
+          project={project}
+          organization={organization}
+          onToggle={handleBookmarkToggle}
+        />
+        <StyledLink
+          to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+          onClick={e => e.stopPropagation()}
+        >
+          <IconOpen />
+        </StyledLink>
 
-          <StyledLink
-            to={`/settings/${organization.slug}/${project.slug}/`}
-            onClick={e => e.stopPropagation()}
-          >
-            <IconSettings />
-          </StyledLink>
-        </PageFilterRow>
-      </BadgeAndActionsWrapper>
-    );
-  }
+        <StyledLink
+          to={`/settings/${organization.slug}/${project.slug}/`}
+          onClick={e => e.stopPropagation()}
+        >
+          <IconSettings />
+        </StyledLink>
+      </PageFilterRow>
+    </BadgeAndActionsWrapper>
+  );
 }
 
 export default ProjectSelectorItem;
 
-const StyledBookmarkStar = styled(BookmarkStar)<{bookmarkHasChanged: boolean}>`
+const StyledBookmarkStar = styled(BookmarkStar)`
   padding: ${space(1)} ${space(0.5)};
   box-sizing: content-box;
   opacity: ${p => (p.project.isBookmarked ? 1 : 0.33)};
@@ -162,11 +129,6 @@ const StyledBookmarkStar = styled(BookmarkStar)<{bookmarkHasChanged: boolean}>`
   width: 14px;
   height: 14px;
   margin-top: -${space(0.25)}; /* trivial alignment bump */
-  ${p =>
-    p.bookmarkHasChanged &&
-    css`
-      animation: 0.5s ${pulse(1.4)};
-    `};
 `;
 
 const BadgeWrapper = styled('div')<{isMulti: boolean}>`
@@ -190,13 +152,7 @@ const StyledLink = styled(Link)`
   }
 `;
 
-const BadgeAndActionsWrapper = styled('div')<{bookmarkHasChanged: boolean}>`
-  ${p =>
-    p.bookmarkHasChanged &&
-    css`
-      animation: 1s ${alertHighlight('info', p.theme)};
-    `};
-  z-index: ${p => (p.bookmarkHasChanged ? 1 : 'inherit')};
+const BadgeAndActionsWrapper = styled('div')`
   position: relative;
   border-style: solid;
   border-width: 1px 0;

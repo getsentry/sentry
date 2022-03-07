@@ -11,6 +11,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getItem} from 'sentry/utils/localStorage';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -571,7 +572,13 @@ describe('GlobalSelectionHeader', function () {
     OrganizationActions.update(initializationObj.organization);
 
     wrapper = mountWithTheme(
-      <PageFiltersContainer organization={initializationObj.organization} />,
+      <OrganizationContext.Provider value={initializationObj.organization}>
+        <PageFiltersContainer
+          organization={initializationObj.organization}
+          hideGlobalHeader
+        />
+      </OrganizationContext.Provider>,
+
       initializationObj.routerContext
     );
 
@@ -582,6 +589,9 @@ describe('GlobalSelectionHeader', function () {
     // Wait for desynced filters to update
     await tick();
     expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']));
+
+    wrapper.update();
+    expect(wrapper.find('DesyncedFilterAlert')).toHaveLength(1);
   });
 
   /**

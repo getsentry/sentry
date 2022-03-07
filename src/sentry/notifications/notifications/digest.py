@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 
+from sentry import features
 from sentry.digests import Digest
 from sentry.digests.utils import (
     get_digest_as_context,
@@ -15,7 +16,7 @@ from sentry.eventstore.models import Event
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType
-from sentry.notifications.utils import get_integration_link, has_alert_integration
+from sentry.notifications.utils import get_integration_link, get_rules, has_alert_integration
 from sentry.notifications.utils.digest import (
     get_digest_subject,
     send_as_alert_notification,
@@ -78,11 +79,20 @@ class DigestNotification(ProjectNotification):
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
+        alert_status_page_enabled = features.has(
+            "organizations:alert-rule-status-page", self.project.organization
+        )
+        rules_details = {
+            rule.id: rule
+            for rule in get_rules(list(self.digest.keys()), self.project.organization, self.project)
+        }
         return {
             **get_digest_as_context(self.digest),
             "has_alert_integration": has_alert_integration(self.project),
             "project": self.project,
             "slack_link": get_integration_link(self.organization, "slack"),
+            "alert_status_page_enabled": alert_status_page_enabled,
+            "rules_details": rules_details,
         }
 
     def get_extra_context(

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
@@ -91,10 +92,11 @@ function IssueListFilters({
         </ClassNames>
 
         {hasPageFilters ? (
-          <ProjectEnvironmentFilters>
+          <PageFilterBar>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-          </ProjectEnvironmentFilters>
+            <DatePageFilter hidePin alignDropdown="right" />
+          </PageFilterBar>
         ) : (
           <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
             {hasIssuePercentDisplay && (
@@ -111,7 +113,6 @@ function IssueListFilters({
       </SearchContainer>
       {hasPageFilters && (
         <IssueListDropdownsWrapper>
-          <DatePageFilter alignDropdown="left" />
           {hasIssuePercentDisplay && (
             <IssueListDisplayOptions
               onDisplayChange={onDisplayChange}
@@ -144,9 +145,16 @@ const SearchContainer = styled('div')<{
   ${p =>
     p.hasPageFilters
       ? `
-    @media (min-width: ${p.theme.breakpoints[1]}) {
-      grid-template-columns: 3fr 2fr;
+    grid-template-columns: 1fr 32rem;
+
+    @media (max-width: ${p.theme.breakpoints[2]}) {
+      grid-template-columns: 1fr 28rem;
     }
+
+    @media (max-width: ${p.theme.breakpoints[1]}) {
+      grid-template-columns: 1fr 24rem;
+    }
+
   `
       : `
     @media (min-width: ${p.theme.breakpoints[p.hasIssuePercentDisplay ? 1 : 0]}) {
@@ -155,14 +163,8 @@ const SearchContainer = styled('div')<{
   }`}
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
-`;
-
-const ProjectEnvironmentFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 `;
 
 const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
