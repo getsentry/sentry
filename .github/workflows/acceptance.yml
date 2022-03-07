@@ -146,7 +146,7 @@ jobs:
   acceptance:
     name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     strategy:
       matrix:
         python-version: [3.8.12]
