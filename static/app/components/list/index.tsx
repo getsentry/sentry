@@ -57,7 +57,7 @@ const List = styled(
   ${p =>
     typeof p.symbol === 'string' &&
     listSymbol[p.symbol] &&
-    getListSymbolStyle(p.theme, p.symbol, p.initialCounterValue)};
+    getListSymbolStyle(p.theme, p.symbol, p.initialCounterValue)}
 `;
 
 export default List;
