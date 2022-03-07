@@ -1,7 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
-import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -34,9 +33,20 @@ class Sidebar extends PureComponent<Props> {
         ))
       : '';
     const actions = rule.actions.length
-      ? rule.actions.map(action => (
-          <ConditionsBadge key={action.id}>{action.name}</ConditionsBadge>
-        ))
+      ? rule.actions.map(action => {
+          let name = action.name;
+          if (
+            action.id ===
+            'sentry.integrations.slack.notify_action.SlackNotifyServiceAction'
+          ) {
+            // Remove (optionally, an ID: XXX) from slack action
+            name = name.replace(/\(optionally.*\)/, '');
+            // Remove tags if they aren't used
+            name = name.replace(' and show tags [] in notification', '');
+          }
+
+          return <ConditionsBadge key={action.id}>{name}</ConditionsBadge>;
+        })
       : '';
 
     return (
@@ -97,8 +107,8 @@ class Sidebar extends PureComponent<Props> {
 
   render() {
     const {rule} = this.props;
+    // TODO: update this with rule's dateTriggered and dateModified when api updates
     const dateTriggered = new Date(0);
-    const dateModified = new Date(0);
 
     const ownerId = rule.owner?.split(':')[1];
     const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
@@ -106,12 +116,6 @@ class Sidebar extends PureComponent<Props> {
     return (
       <Fragment>
         <StatusContainer>
-          <HeaderItem>
-            <Heading noMargin>{t('Alert Status')}</Heading>
-            <Status>
-              <AlertBadge status={undefined} />
-            </Status>
-          </HeaderItem>
           <HeaderItem>
             <Heading noMargin>{t('Last Triggered')}</Heading>
             <Status>
@@ -140,12 +144,6 @@ class Sidebar extends PureComponent<Props> {
               <KeyValueTableRow
                 keyName={t('Created By')}
                 value={<CreatedBy>{rule.createdBy.name ?? '-'}</CreatedBy>}
-              />
-            )}
-            {dateModified && (
-              <KeyValueTableRow
-                keyName={t('Last Modified')}
-                value={<TimeSince date={dateModified} suffix={t('ago')} />}
               />
             )}
             <KeyValueTableRow
