@@ -12,7 +12,7 @@ import Link, {LinkProps} from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
+import {IconDocs, IconLock, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
