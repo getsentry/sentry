@@ -35,10 +35,13 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
-    def _reauthenticate_with_sso(self, request):
+    @staticmethod
+    def _reauthenticate_with_sso(request):
+        """
+        If a superuser hitting this endpoint is not active, they are most likely
+        trying to become active, and likely need to re-identify with SSO to do so.
+        """
         if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
-            # if a superuser hitting this endpoint is not active, they are most likely
-            # trying to become active, and likely need to re-identify with SSO to do so.
             redirect = request.META.get("HTTP_REFERER", "")
             if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
                 redirect = None
@@ -163,9 +166,8 @@ class AuthIndexEndpoint(Endpoint):
             auth.login(request._request, request.user)
 
             # only give superuser access when going through superuser modal
-            if request.user.is_superuser:
-                if request.data.get("isSuperuserModal"):
-                    request.superuser.set_logged_in(request.user)
+            if request.user.is_superuser and request.data.get("isSuperuserModal"):
+                request.superuser.set_logged_in(request.user)
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
