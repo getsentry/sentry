@@ -277,6 +277,7 @@ class SpanTreeModel {
           : isFirstSpanOfGroup && this.showSpanGroup && !hideSpanTree
           ? this.toggleSpanGroup
           : undefined,
+      toggleSiblingSpanGroup: undefined,
     };
 
     if (wrappedSpan.type === 'root_span') {
@@ -398,6 +399,7 @@ class SpanTreeModel {
             numOfSpanChildren: 0,
             treeDepth: treeDepth + 1,
             isLastSibling: index === group.length - 1,
+            isFirstSiblingOfGroup: index === 0,
             continuingTreeDepths,
             fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
             showEmbeddedChildren: spanModel.showEmbeddedChildren,
@@ -406,6 +408,7 @@ class SpanTreeModel {
               removeTraceBounds,
             }),
             toggleSpanGroup: undefined,
+            toggleSiblingSpanGroup: index === 0 ? this.toggleSiblingSpanGroup : undefined,
           };
 
           return enhancedSibling;
@@ -424,6 +427,8 @@ class SpanTreeModel {
           treeDepth: treeDepth + 1,
           continuingTreeDepths,
           spanGrouping: wrappedSiblings,
+          toggleSpanGroup: undefined,
+          showSpanGroup,
           toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
         };
 
@@ -482,6 +487,7 @@ class SpanTreeModel {
         spanGrouping,
         showSpanGroup,
         toggleSpanGroup: wrappedSpan.toggleSpanGroup,
+        toggleSiblingSpanGroup: undefined,
       };
 
       return [

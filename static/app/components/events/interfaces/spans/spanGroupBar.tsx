@@ -68,9 +68,9 @@ type Props = {
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
-  toggleSiblingSpanGroup: (operation: string, description: string) => void;
   toggleSpanGroup: () => void;
   treeDepth: number;
+  toggleSiblingSpanGroup?: (operation: string, description: string) => void;
 };
 
 class SpanGroupBar extends React.Component<Props> {
@@ -355,7 +355,8 @@ class SpanGroupBar extends React.Component<Props> {
                       onClick={() => {
                         groupType === GroupType.DESCENDANTS
                           ? toggleSpanGroup()
-                          : toggleSiblingSpanGroup(
+                          : toggleSiblingSpanGroup &&
+                            toggleSiblingSpanGroup(
                               spanGrouping[0].span.op!,
                               spanGrouping[0].span.description!
                             );

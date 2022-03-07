@@ -13,6 +13,7 @@ export type RawSpanType = {
   start_timestamp: number;
   timestamp: number;
   trace_id: string;
+  type: 'span';
   description?: string;
   exclusive_time?: number;
   hash?: string;
@@ -58,12 +59,13 @@ export type FetchEmbeddedChildrenState =
 export type SpanGroupProps = {
   showSpanGroup: boolean;
   spanGrouping: EnhancedSpan[] | undefined;
+  toggleSiblingSpanGroup: ((operation: string, description: string) => void) | undefined;
   toggleSpanGroup: (() => void) | undefined;
 };
 
 export type SpanSiblingGroupProps = {
   spanGrouping: EnhancedSpan[] | undefined;
-  toggleSiblingSpanGroup: (operation: string, description: string) => void;
+  toggleSiblingSpanGroup: (operation: string, description: string) => void | undefined;
 };
 
 type CommonEnhancedProcessedSpanType = {
@@ -76,6 +78,7 @@ type CommonEnhancedProcessedSpanType = {
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
   treeDepth: number;
+  isFirstSiblingOfGroup?: boolean;
 };
 
 export type EnhancedSpan =
@@ -85,6 +88,9 @@ export type EnhancedSpan =
     } & CommonEnhancedProcessedSpanType)
   | ({
       span: SpanType;
+      toggleSiblingSpanGroup:
+        | ((operation: string, description: string) => void)
+        | undefined;
       toggleSpanGroup: (() => void) | undefined;
       type: 'span';
     } & CommonEnhancedProcessedSpanType);
@@ -115,7 +121,7 @@ export type EnhancedProcessedSpanType =
       span: SpanType;
       treeDepth: number;
       type: 'span_group_sibling';
-    } & SpanSiblingGroupProps);
+    } & SpanGroupProps);
 
 export type SpanEntry = {
   data: Array<RawSpanType>;

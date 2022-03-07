@@ -257,6 +257,20 @@ class SpanTree extends React.Component<PropType> {
           toggleSpanGroup = payload.toggleSpanGroup;
         }
 
+        let toggleSiblingSpanGroup:
+          | ((operation: string, description: string) => void)
+          | undefined = undefined;
+        if (payload.type === 'span' && payload.isFirstSiblingOfGroup) {
+          toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
+        }
+
+        let groupType;
+        if (toggleSpanGroup) {
+          groupType = GroupType.DESCENDANTS;
+        } else if (toggleSiblingSpanGroup) {
+          groupType = GroupType.SIBLINGS;
+        }
+
         acc.spanTree.push(
           <SpanBar
             key={key}
@@ -277,9 +291,11 @@ class SpanTree extends React.Component<PropType> {
             isRoot={isRoot}
             showEmbeddedChildren={payload.showEmbeddedChildren}
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
+            toggleSiblingSpanGroup={toggleSiblingSpanGroup}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
             toggleSpanGroup={toggleSpanGroup}
             numOfSpans={numOfSpans}
+            groupType={groupType}
           />
         );
 
