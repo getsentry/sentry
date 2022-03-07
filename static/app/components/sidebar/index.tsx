@@ -284,17 +284,18 @@ function Sidebar({location, organization}: Props) {
   );
 
   const replays = hasOrganization && (
-    // todo: wrap in <Feature/>
-    <SidebarItem
-      {...sidebarItemProps}
-      onClick={(_id, evt) =>
-        navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
-      }
-      icon={<IconLab size="md" />}
-      label={t('Replays')}
-      to={`/organizations/${organization.slug}/replays/`}
-      id="replays"
-    />
+    <Feature features={['session-replay']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
+        }
+        icon={<IconLab size="md" />}
+        label={t('Replays')}
+        to={`/organizations/${organization.slug}/replays/`}
+        id="replays"
+      />
+    </Feature>
   );
 
   const dashboards = hasOrganization && (
