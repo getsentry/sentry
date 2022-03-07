@@ -566,7 +566,7 @@ def test_massage_virtual_groupby_timeseries():
                 # while in one of the time slots, we have a healthy user, it is
                 # the *same* user as the one experiencing a crash later on,
                 # so in the *whole* time window, that one user is not counted as healthy,
-                # so the `0` here is expected, as thats an example of the `count_unique` behavior.
+                # so the `0` here is expected, as that's an example of the `count_unique` behavior.
                 "totals": {"count_unique(user)": 0, "sum(session)": 16},
             },
         ],

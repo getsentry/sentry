@@ -2478,7 +2478,7 @@ DEMO_MODE = False
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
 
-# paramters that determine how demo events are generated
+# parameters that determine how demo events are generated
 DEMO_DATA_GEN_PARAMS = {}
 
 # parameters for an org when quickly generating them synchronously

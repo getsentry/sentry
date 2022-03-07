@@ -482,7 +482,7 @@ async function updateDesyncedUrlState(router?: Router) {
  * Merges an UpdateParams object into a Location['query'] object. Results in a
  * PageFilterQuery
  *
- * Preserves the old query params, except for `cursor` (can be overriden with
+ * Preserves the old query params, except for `cursor` (can be overridden with
  * keepCursor option)
  *
  * @param obj New query params

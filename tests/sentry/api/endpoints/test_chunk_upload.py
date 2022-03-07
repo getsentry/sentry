@@ -85,7 +85,7 @@ class ChunkUploadTest(APITestCase):
         )
         assert response.data["url"] == options.get("system.url-prefix") + self.url
 
-        # user overriden upload url prefix has priority, even when calling from sentry-cli that supports relative urls
+        # user overridden upload url prefix has priority, even when calling from sentry-cli that supports relative urls
         options.set("system.upload-url-prefix", "test")
         response = self.client.get(
             self.url,

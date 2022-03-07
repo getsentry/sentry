@@ -330,7 +330,7 @@ def _render_trees(group: Group, user):
                 # postgres (unclear how this could be reached).
                 #
                 # We select some intermediate computation values here which we
-                # definetly don't need the results of. It's just temp vars.
+                # definitely don't need the results of. It's just temp vars.
                 Function(
                     # First we find the materialized hash using find_hash_expr,
                     # and subtract 1 which should be the parent hash if there
