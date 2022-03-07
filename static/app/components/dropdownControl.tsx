@@ -62,6 +62,7 @@ type Props = DefaultProps & {
    */
   buttonTooltipTitle?: string | null;
   className?: string;
+  detached?: boolean;
 
   /**
    * String or element for the button contents.
@@ -115,7 +116,8 @@ class DropdownControl extends React.Component<Props> {
   }
 
   renderChildren(isOpen: boolean, getMenuProps: GetMenuPropsFn) {
-    const {children, alignRight, menuWidth, blendWithActor, priority} = this.props;
+    const {children, alignRight, menuWidth, blendWithActor, priority, detached} =
+      this.props;
 
     if (typeof children === 'function') {
       return children({isOpen, getMenuProps});
@@ -131,6 +133,7 @@ class DropdownControl extends React.Component<Props> {
         width={menuWidth}
         isOpen={isOpen}
         blendWithActor={blendWithActor}
+        detached={detached}
         blendCorner
       >
         {children}

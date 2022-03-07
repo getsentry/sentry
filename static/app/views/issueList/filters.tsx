@@ -7,6 +7,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
@@ -29,6 +30,7 @@ type Props = {
   organization: Organization;
 
   query: string;
+  queryCount: number;
   savedSearch: SavedSearch;
   selectedProjects: number[];
   sort: string;
@@ -40,6 +42,7 @@ function IssueListFilters({
   organization,
   savedSearch,
   query,
+  queryCount,
   isSearchDisabled,
   sort,
   display,
@@ -111,18 +114,27 @@ function IssueListFilters({
           </DropdownsWrapper>
         )}
       </SearchContainer>
-      {hasPageFilters && (
-        <IssueListDropdownsWrapper>
-          {hasIssuePercentDisplay && (
-            <IssueListDisplayOptions
-              onDisplayChange={onDisplayChange}
-              display={display}
-              hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-              hasSessions={hasSessions}
+      {hasPageFilters && queryCount > 0 && (
+        <ResultsRow>
+          <QueryCount>{`${queryCount} ${t('results found')}`}</QueryCount>
+          <DisplayOptionsBar>
+            {hasIssuePercentDisplay && (
+              <IssueListDisplayOptions
+                onDisplayChange={onDisplayChange}
+                display={display}
+                hasMultipleProjectsSelected={hasMultipleProjectsSelected}
+                hasSessions={hasSessions}
+                hasPageFilters
+              />
+            )}
+            <IssueListSortOptions
+              sort={sort}
+              query={query}
+              onSelect={onSortChange}
+              hasPageFilters
             />
-          )}
-          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-        </IssueListDropdownsWrapper>
+          </DisplayOptionsBar>
+        </ResultsRow>
       )}
     </FilterContainer>
   );
@@ -131,7 +143,7 @@ function IssueListFilters({
 const FilterContainer = styled('div')`
   display: grid;
   gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const SearchContainer = styled('div')<{
@@ -141,6 +153,7 @@ const SearchContainer = styled('div')<{
   display: inline-grid;
   gap: ${space(1)};
   width: 100%;
+  margin-bottom: ${space(1)};
 
   ${p =>
     p.hasPageFilters
@@ -178,11 +191,24 @@ const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   }
 `;
 
-const IssueListDropdownsWrapper = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-auto-columns: max-content;
-  grid-auto-flow: column;
+const QueryCount = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: 600;
+  color: ${p => p.theme.headingColor};
+  margin-bottom: 0;
+`;
+
+const DisplayOptionsBar = styled(PageFilterBar)`
+  height: auto;
+  button[aria-haspopup='listbox'] {
+    font-weight: 600;
+  }
+`;
+
+const ResultsRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 export default IssueListFilters;

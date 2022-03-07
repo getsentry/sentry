@@ -5,6 +5,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Tooltip from 'sentry/components/tooltip';
+import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {getDisplayLabel, IssueDisplayOptions} from 'sentry/views/issueList/utils';
 
@@ -13,6 +14,7 @@ type Props = {
   hasMultipleProjectsSelected: boolean;
   hasSessions: boolean;
   onDisplayChange: (display: string) => void;
+  hasPageFilters?: boolean;
 };
 
 const IssueListDisplayOptions = ({
@@ -20,6 +22,7 @@ const IssueListDisplayOptions = ({
   display,
   hasSessions,
   hasMultipleProjectsSelected,
+  hasPageFilters,
 }: Props) => {
   const getMenuItem = (key: IssueDisplayOptions): React.ReactNode => {
     let tooltipText: string | undefined;
@@ -51,8 +54,12 @@ const IssueListDisplayOptions = ({
           title={tooltipText}
           disabled={!tooltipText}
         >
-          {getDisplayLabel(key)}
-          {key === IssueDisplayOptions.SESSIONS && <FeatureBadge type="beta" noTooltip />}
+          <OptionWrap>
+            {getDisplayLabel(key)}
+            {key === IssueDisplayOptions.SESSIONS && (
+              <FeatureBadge type="beta" noTooltip />
+            )}
+          </OptionWrap>
         </StyledTooltip>
       </DropdownItem>
     );
@@ -65,9 +72,16 @@ const IssueListDisplayOptions = ({
       disabled={!hasSessions || hasMultipleProjectsSelected}
     >
       <StyledDropdownControl
-        buttonProps={{
-          prefix: t('Display'),
-        }}
+        buttonProps={
+          hasPageFilters
+            ? {
+                borderless: true,
+                size: 'small',
+                icon: <IconStack />,
+              }
+            : {prefix: t('Display')}
+        }
+        detached={hasPageFilters}
         buttonTooltipTitle={
           display === IssueDisplayOptions.SESSIONS
             ? t(
@@ -92,6 +106,10 @@ const IssueListDisplayOptions = ({
 
 const StyledTooltip = styled(Tooltip)`
   width: 100%;
+`;
+
+const OptionWrap = styled('span')`
+  white-space: nowrap;
 `;
 
 const StyledDropdownControl = styled(DropdownControl)`
