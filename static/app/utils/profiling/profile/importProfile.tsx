@@ -5,6 +5,7 @@ import {
   isSchema,
 } from '../guards/profile';
 
+import {importChromeTrace, isChromeTraceFormat} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
@@ -134,6 +135,10 @@ export async function importDroppedProfile(
 
         if (isJSProfile(json)) {
           return importJSSelfProfile(json, file.name);
+        }
+
+        if (isChromeTraceFormat(json)) {
+          return importChromeTrace(json);
         }
 
         throw new Error('Unsupported JSON format');

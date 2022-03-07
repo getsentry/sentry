@@ -68,6 +68,8 @@ namespace ChromeTrace {
     ts: number;
     // Thread clock timestamp
     tts?: number;
+    dur?: number;
+    tdur?: number;
     pid: number;
     tid: number;
     cname?: string;
