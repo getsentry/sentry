@@ -28,9 +28,18 @@ type Props = {
   widgetLimitReached: boolean;
 };
 
-class Controls extends React.Component<Props> {
-  renderCancelButton(label = t('Cancel')) {
-    const {onCancel} = this.props;
+function Controls({
+  organization,
+  dashboardState,
+  dashboards,
+  widgetLimitReached,
+  onEdit,
+  onCommit,
+  onDelete,
+  onCancel,
+  onAddWidget,
+}: Props) {
+  function renderCancelButton(label = t('Cancel')) {
     return (
       <Button
         data-test-id="dashboard-cancel"
@@ -44,133 +53,120 @@ class Controls extends React.Component<Props> {
     );
   }
 
-  render() {
-    const {
-      organization,
-      dashboardState,
-      dashboards,
-      widgetLimitReached,
-      onEdit,
-      onCommit,
-      onDelete,
-      onAddWidget,
-    } = this.props;
-
-    if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
-      return (
-        <StyledButtonBar gap={1} key="edit-controls">
-          {this.renderCancelButton()}
-          <Confirm
-            priority="danger"
-            message={t('Are you sure you want to delete this dashboard?')}
-            onConfirm={onDelete}
-            disabled={dashboards.length <= 1}
-          >
-            <Button data-test-id="dashboard-delete" priority="danger">
-              {t('Delete')}
-            </Button>
-          </Confirm>
-          <Button
-            data-test-id="dashboard-commit"
-            onClick={e => {
-              e.preventDefault();
-              onCommit();
-            }}
-            priority="primary"
-          >
-            {t('Save and Finish')}
-          </Button>
-        </StyledButtonBar>
-      );
-    }
-
-    if (dashboardState === DashboardState.CREATE) {
-      return (
-        <StyledButtonBar gap={1} key="create-controls">
-          {this.renderCancelButton()}
-          <Button
-            data-test-id="dashboard-commit"
-            onClick={e => {
-              e.preventDefault();
-              onCommit();
-            }}
-            priority="primary"
-          >
-            {t('Save and Finish')}
-          </Button>
-        </StyledButtonBar>
-      );
-    }
-
-    if (dashboardState === DashboardState.PREVIEW) {
-      return (
-        <StyledButtonBar gap={1} key="preview-controls">
-          {this.renderCancelButton(t('Go Back'))}
-          <Button
-            data-test-id="dashboard-commit"
-            onClick={e => {
-              e.preventDefault();
-              onCommit();
-            }}
-            priority="primary"
-          >
-            {t('Add Dashboard')}
-          </Button>
-        </StyledButtonBar>
-      );
-    }
-
+  if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
-      <StyledButtonBar gap={1} key="controls">
-        <DashboardEditFeature>
-          {hasFeature => (
-            <React.Fragment>
-              <Button
-                data-test-id="dashboard-edit"
-                onClick={e => {
-                  e.preventDefault();
-                  onEdit();
-                }}
-                icon={<IconEdit />}
-                disabled={!hasFeature}
-                priority={
-                  organization.features.includes('widget-library') ? 'default' : 'primary'
-                }
-              >
-                {t('Edit Dashboard')}
-              </Button>
-              {organization.features.includes('widget-library') && hasFeature ? (
-                <Tooltip
-                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                    maxWidgets: MAX_WIDGETS,
-                  })}
-                  disabled={!!!widgetLimitReached}
-                >
-                  <Button
-                    data-test-id="add-widget-library"
-                    priority="primary"
-                    disabled={widgetLimitReached}
-                    icon={<IconAdd isCircled />}
-                    onClick={() => {
-                      trackAdvancedAnalyticsEvent(
-                        'dashboards_views.widget_library.opened',
-                        {
-                          organization,
-                        }
-                      );
-                      onAddWidget();
-                    }}
-                  >
-                    {t('Add Widget')}
-                  </Button>
-                </Tooltip>
-              ) : null}
-            </React.Fragment>
-          )}
-        </DashboardEditFeature>
+      <StyledButtonBar gap={1} key="edit-controls">
+        {renderCancelButton()}
+        <Confirm
+          priority="danger"
+          message={t('Are you sure you want to delete this dashboard?')}
+          onConfirm={onDelete}
+          disabled={dashboards.length <= 1}
+        >
+          <Button data-test-id="dashboard-delete" priority="danger">
+            {t('Delete')}
+          </Button>
+        </Confirm>
+        <Button
+          data-test-id="dashboard-commit"
+          onClick={e => {
+            e.preventDefault();
+            onCommit();
+          }}
+          priority="primary"
+        >
+          {t('Save and Finish')}
+        </Button>
       </StyledButtonBar>
     );
   }
+
+  if (dashboardState === DashboardState.CREATE) {
+    return (
+      <StyledButtonBar gap={1} key="create-controls">
+        {renderCancelButton()}
+        <Button
+          data-test-id="dashboard-commit"
+          onClick={e => {
+            e.preventDefault();
+            onCommit();
+          }}
+          priority="primary"
+        >
+          {t('Save and Finish')}
+        </Button>
+      </StyledButtonBar>
+    );
+  }
+
+  if (dashboardState === DashboardState.PREVIEW) {
+    return (
+      <StyledButtonBar gap={1} key="preview-controls">
+        {renderCancelButton(t('Go Back'))}
+        <Button
+          data-test-id="dashboard-commit"
+          onClick={e => {
+            e.preventDefault();
+            onCommit();
+          }}
+          priority="primary"
+        >
+          {t('Add Dashboard')}
+        </Button>
+      </StyledButtonBar>
+    );
+  }
+
+  return (
+    <StyledButtonBar gap={1} key="controls">
+      <DashboardEditFeature>
+        {hasFeature => (
+          <React.Fragment>
+            <Button
+              data-test-id="dashboard-edit"
+              onClick={e => {
+                e.preventDefault();
+                onEdit();
+              }}
+              icon={<IconEdit />}
+              disabled={!hasFeature}
+              priority={
+                organization.features.includes('widget-library') ? 'default' : 'primary'
+              }
+            >
+              {t('Edit Dashboard')}
+            </Button>
+            {organization.features.includes('widget-library') && hasFeature ? (
+              <Tooltip
+                title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                  maxWidgets: MAX_WIDGETS,
+                })}
+                disabled={!!!widgetLimitReached}
+              >
+                <Button
+                  data-test-id="add-widget-library"
+                  priority="primary"
+                  disabled={widgetLimitReached}
+                  icon={<IconAdd isCircled />}
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'dashboards_views.widget_library.opened',
+                      {
+                        organization,
+                      }
+                    );
+                    onAddWidget();
+                  }}
+                >
+                  {t('Add Widget')}
+                </Button>
+              </Tooltip>
+            ) : null}
+          </React.Fragment>
+        )}
+      </DashboardEditFeature>
+    </StyledButtonBar>
+  );
 }
 
 const DashboardEditFeature = ({
