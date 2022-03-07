@@ -34,6 +34,7 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -57,6 +58,7 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 
+import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
 import {DashboardStep} from './buildSteps/dashboardStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
@@ -65,8 +67,15 @@ import {SortByStep} from './buildSteps/sortByStep';
 import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
 import {Footer} from './footer';
+import {GroupBySelector} from './groupBySelector';
 import {Header} from './header';
-import {DataSet, getParsedDefaultWidgetQuery, mapErrors, normalizeQueries} from './utils';
+import {
+  DataSet,
+  getAmendedFieldOptions,
+  getParsedDefaultWidgetQuery,
+  mapErrors,
+  normalizeQueries,
+} from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 
 const NEW_DASHBOARD_ID = 'new';
@@ -267,6 +276,11 @@ function WidgetBuilder({
       : `/organizations/${orgId}/dashboards/new/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(state.displayType);
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
@@ -464,17 +478,20 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
-    for (const index in state.queries) {
-      const queryIndex = Number(index);
-      const query = state.queries[queryIndex];
-
+    state.queries.forEach((query, index) => {
       const descending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
+
       newQuery.fields = fieldStrings;
       newQuery.aggregates = aggregates;
-      newQuery.columns = columns;
+
+      if (!(widgetBuilderNewDesign && isTimeseriesChart)) {
+        // Prevent overwriting columns when setting y-axis for time series
+        newQuery.columns = columns;
+      }
+
       if (
         !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
         query.orderby !== ''
@@ -491,12 +508,19 @@ function WidgetBuilder({
         }
       }
 
-      if (widgetBuilderNewDesign && queryIndex === 0) {
-        newQuery.orderby = aggregateAliasFieldStrings[0];
-      }
+      handleQueryChange(index, newQuery);
+    });
+  }
 
-      handleQueryChange(queryIndex, newQuery);
-    }
+  function handleGroupByChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+
+    state.queries.forEach((query, index) => {
+      const newQuery = cloneDeep(query);
+      newQuery.columns = fieldStrings;
+
+      handleQueryChange(index, newQuery);
+    });
   }
 
   function handleDelete() {
@@ -793,6 +817,32 @@ function WidgetBuilder({
                     onQueryChange={handleQueryChange}
                     onQueryRemove={handleQueryRemove}
                   />
+                  {widgetBuilderNewDesign && isTimeseriesChart && (
+                    <BuildStep
+                      title={t('Group your results')}
+                      description={t(
+                        'This is how you can group your data result by tag or field. For a full list, read the docs.'
+                      )}
+                    >
+                      <Measurements>
+                        {({measurements}) => (
+                          <GroupBySelector
+                            columns={
+                              state.queries[0].columns
+                                ?.filter(field => !(field === 'equation|'))
+                                .map(field => explodeField({field})) ?? []
+                            }
+                            fieldOptions={getAmendedFieldOptions({
+                              measurements,
+                              organization,
+                              tags
+                            })}
+                            onChange={handleGroupByChange}
+                          />
+                        )}
+                      </Measurements>
+                    </BuildStep>
+                  )}
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <SortByStep
                       queries={state.queries}
