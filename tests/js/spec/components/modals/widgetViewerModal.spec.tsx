@@ -367,7 +367,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Issue Table Widget', function () {
-    let container;
+    let container, rerender, issuesMock;
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
@@ -387,6 +387,43 @@ describe('Modals -> WidgetViewerModal', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'GET',
+        match: [
+          MockApiClient.matchData({
+            cursor: '0:10:0',
+          }),
+        ],
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:20:0>; rel="next"; results="true"; cursor="0:20:0"',
+        },
+        body: [
+          {
+            id: '2',
+            title: 'Another Error: Failed',
+            project: {
+              id: '3',
+            },
+            status: 'unresolved',
+            lifetime: {count: 5},
+            count: 3,
+            userCount: 1,
+          },
+        ],
+      });
+      issuesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'GET',
+        match: [
+          MockApiClient.matchData({
+            cursor: undefined,
+          }),
+        ],
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+        },
         body: [
           {
             id: '1',
@@ -401,7 +438,9 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         ],
       });
-      container = mountModal({initialData, widget: mockWidget}).container;
+      const modal = mountModal({initialData, widget: mockWidget});
+      container = modal.container;
+      rerender = modal.rerender;
     });
 
     it('renders widget title', function () {
@@ -431,6 +470,61 @@ describe('Modals -> WidgetViewerModal', function () {
         'href',
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=&statsPeriod=14d'
       );
+    });
+
+    it('sorts table when a sortable column header is clicked', function () {
+      userEvent.click(screen.getByText('events'));
+      expect(initialData.router.push).toHaveBeenCalledWith({
+        query: {modalSort: 'freq'},
+      });
+      // Need to manually set the new router location and rerender to simulate the sortable column click
+      initialData.router.location.query = {modalSort: ['freq']};
+      rerender(
+        <div style={{padding: space(4)}}>
+          <WidgetViewerModal
+            Header={stubEl}
+            Footer={stubEl as ModalRenderProps['Footer']}
+            Body={stubEl as ModalRenderProps['Body']}
+            CloseButton={stubEl}
+            closeModal={() => undefined}
+            organization={initialData.organization}
+            widget={mockWidget}
+            onEdit={() => undefined}
+          />
+        </div>,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(issuesMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          data: {
+            cursor: undefined,
+            display: 'events',
+            environment: [],
+            expand: ['owners'],
+            limit: 20,
+            project: [],
+            query: 'is:unresolved',
+            sort: 'date',
+            statsPeriod: '14d',
+          },
+        })
+      );
+    });
+
+    it('renders pagination buttons', async function () {
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    });
+
+    it('paginates to the next page', async function () {
+      expect(screen.getByText('Error: Failed')).toBeInTheDocument();
+      userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(issuesMock).toHaveBeenCalledTimes(1);
+      expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
     });
   });
 });

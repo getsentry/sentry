@@ -32,8 +32,9 @@ import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
+  renderDiscoverGridHeaderCell,
   renderGridBodyCell,
-  renderGridHeaderCell,
+  renderIssueGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -150,27 +151,38 @@ function WidgetViewerModal(props: Props) {
                   ? FULL_TABLE_ITEM_LIMIT
                   : HALF_TABLE_ITEM_LIMIT
               }
+              cursor={cursor}
             >
-              {({transformedResults, loading}) => {
+              {({transformedResults, loading, pageLinks}) => {
                 return (
-                  <GridEditable
-                    isLoading={loading}
-                    data={transformedResults}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      renderHeadCell: renderGridHeaderCell({
-                        ...props,
-                      }) as (
-                        column: GridColumnOrder,
-                        columnIndex: number
-                      ) => React.ReactNode,
-                      renderBodyCell: renderGridBodyCell({
-                        ...props,
-                      }),
-                    }}
-                    location={location}
-                  />
+                  <React.Fragment>
+                    <GridEditable
+                      isLoading={loading}
+                      data={transformedResults}
+                      columnOrder={columnOrder}
+                      columnSortBy={columnSortBy}
+                      grid={{
+                        renderHeadCell: renderIssueGridHeaderCell({
+                          ...props,
+                          widget: tableWidget,
+                        }) as (
+                          column: GridColumnOrder,
+                          columnIndex: number
+                        ) => React.ReactNode,
+                        renderBodyCell: renderGridBodyCell({
+                          ...props,
+                          widget: tableWidget,
+                        }),
+                      }}
+                      location={location}
+                    />
+                    <StyledPagination
+                      pageLinks={pageLinks}
+                      onCursor={newCursor => {
+                        setCursor(newCursor);
+                      }}
+                    />
+                  </React.Fragment>
                 );
               }}
             </IssueWidgetQueries>
@@ -200,7 +212,7 @@ function WidgetViewerModal(props: Props) {
                       columnOrder={columnOrder}
                       columnSortBy={columnSortBy}
                       grid={{
-                        renderHeadCell: renderGridHeaderCell({
+                        renderHeadCell: renderDiscoverGridHeaderCell({
                           ...props,
                           widget: tableWidget,
                           tableData: tableResults?.[0],

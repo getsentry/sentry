@@ -7,7 +7,10 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Tooltip from 'sentry/components/tooltip';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
+import {
+  getIssueFieldRenderer,
+  getSortField,
+} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -24,7 +27,6 @@ import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {WidgetViewerQueryField} from './utils';
-
 // Dashboards only supports top 5 for now
 const DEFAULT_NUM_TOP_EVENTS = 5;
 
@@ -37,7 +39,32 @@ type Props = {
   tableData?: TableDataWithTitle;
 };
 
-export const renderGridHeaderCell =
+export const renderIssueGridHeaderCell =
+  ({location, widget, tableData}: Props) =>
+  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+    const tableMeta = tableData?.meta;
+    const align = fieldAlignment(column.name, column.type, tableMeta);
+    const sortField = getSortField(String(column.key));
+
+    return (
+      <SortLink
+        align={align}
+        title={<StyledTooltip title={column.name}>{column.name}</StyledTooltip>}
+        direction={widget.queries[0].orderby === sortField ? 'desc' : undefined}
+        canSort
+        generateSortLink={() => {
+          return sortField
+            ? {
+                ...location,
+                query: {...location.query, [WidgetViewerQueryField.SORT]: sortField},
+              }
+            : undefined;
+        }}
+      />
+    );
+  };
+
+export const renderDiscoverGridHeaderCell =
   ({location, selection, widget, tableData}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const eventView = eventViewFromWidget(
