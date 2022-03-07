@@ -42,7 +42,7 @@ def code_owners_auto_sync(commit_id: int, **kwargs):
             codeowner_contents = None
 
         if not codeowner_contents:
-            return AutoSyncNotification(code_mapping).send()
+            return AutoSyncNotification(code_mapping.project).send()
 
         codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
 

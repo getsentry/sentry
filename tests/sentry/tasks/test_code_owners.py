@@ -1,7 +1,13 @@
 from unittest.mock import patch
 
-from sentry.models import Commit, CommitFileChange, ExternalActor, Repository
-from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models import (
+    Commit,
+    CommitFileChange,
+    ExternalActor,
+    ProjectCodeOwners,
+    ProjectOwnership,
+    Repository,
+)
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
 from sentry.testutils import TestCase
 
@@ -35,6 +41,10 @@ class CodeOwnersTest(TestCase):
         self.data = {
             "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n",
         }
+
+        self.ownership = ProjectOwnership.objects.create(
+            project=self.project, auto_assignment=True, codeowners_auto_sync=True
+        )
 
         self.code_owners = self.create_codeowners(
             self.project, self.code_mapping, raw=self.data["raw"]
@@ -115,7 +125,8 @@ class CodeOwnersTest(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
         return_value=None,
     )
-    @patch("sentry.tasks.code_owners.send_codeowners_auto_sync_failure_email")
+    # @patch("sentry.tasks.codeowners.send_codeowners_auto_sync_failure_email")
+    @patch("sentry.notifications.notifications.codeowners_auto_sync.AutoSyncNotification.send")
     def test_codeowners_auto_sync_failed_to_fetch_file(
         self,
         mock_send_email,
@@ -139,4 +150,4 @@ class CodeOwnersTest(TestCase):
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
         assert code_owners.raw == self.data["raw"]
-        mock_send_email.assert_called_once_with(self.code_mapping)
+        mock_send_email.assert_called_once_with()
