@@ -72,7 +72,6 @@ from sentry.models import (
     ReleaseEnvironment,
     ReleaseProject,
     ReleaseProjectEnvironment,
-    Replay,
     UserReport,
     get_crashreport_key,
 )
@@ -1630,9 +1629,6 @@ def save_attachment(
         file_id=file.id,
         type=attachment.type,
     )
-
-    if attachment.name == "rrweb.json":
-        Replay.objects.create(event_id=event_id, project_id=project.id)
 
     track_outcome(
         org_id=project.organization_id,

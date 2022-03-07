@@ -8,7 +8,6 @@ from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingProfilesEndpoint,
 )
-from sentry.api.endpoints.organization_replays import OrganizationReplaysEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -1402,11 +1401,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/user-feedback/$",
                     OrganizationUserReportsEndpoint.as_view(),
                     name="sentry-api-0-organization-user-feedback",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/replays/$",
-                    OrganizationReplaysEndpoint.as_view(),
-                    name="sentry-api-0-organization-replays",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/user-teams/$",
