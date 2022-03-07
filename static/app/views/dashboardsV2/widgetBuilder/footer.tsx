@@ -10,12 +10,19 @@ import space from 'sentry/styles/space';
 
 type Props = {
   goBackLocation: React.ComponentProps<typeof Link>['to'];
+  invalidForm: boolean;
   onSave: (event: React.MouseEvent) => void;
   isEditing?: boolean;
   onDelete?: () => void;
 };
 
-export function Footer({goBackLocation, onSave, onDelete, isEditing}: Props) {
+export function Footer({
+  goBackLocation,
+  onSave,
+  onDelete,
+  invalidForm,
+  isEditing,
+}: Props) {
   return (
     <FooterWrapper>
       <Actions gap={1}>
@@ -29,7 +36,12 @@ export function Footer({goBackLocation, onSave, onDelete, isEditing}: Props) {
             <Button priority="danger">{t('Delete')}</Button>
           </Confirm>
         )}
-        <Button priority="primary" onClick={onSave}>
+        <Button
+          priority="primary"
+          onClick={onSave}
+          disabled={invalidForm}
+          title={invalidForm ? t('Required fields must be filled out') : undefined}
+        >
           {isEditing ? t('Update Widget') : t('Add Widget')}
         </Button>
       </Actions>

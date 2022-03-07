@@ -154,7 +154,7 @@ export function YAxisSelector({
   if (displayType === DisplayType.TOP_N) {
     const fieldValue = fields[fields.length - 1];
     return (
-      <Field inline={false} flexibleControlStateSize error={fieldError} required stacked>
+      <Field inline={false} flexibleControlStateSize error={fieldError} stacked>
         <QueryFieldWrapper>
           <QueryField
             fieldValue={fieldValue}
@@ -182,7 +182,7 @@ export function YAxisSelector({
       fields.length === 3);
 
   return (
-    <Field inline={false} flexibleControlStateSize error={fieldError} required stacked>
+    <Field inline={false} flexibleControlStateSize error={fieldError} stacked>
       {fields.map((fieldValue, i) => (
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
           <QueryField
