@@ -68,9 +68,9 @@ type Props = {
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
+  toggleSiblingSpanGroup: (operation: string, description: string) => void;
   toggleSpanGroup: () => void;
   treeDepth: number;
-  toggleSiblingSpanGroup?: (operation: string, description: string) => void;
 };
 
 class SpanGroupBar extends React.Component<Props> {
@@ -322,6 +322,8 @@ class SpanGroupBar extends React.Component<Props> {
                 spanGrouping,
                 toggleSpanGroup,
                 spanNumber,
+                toggleSiblingSpanGroup,
+                groupType,
               } = this.props;
 
               const {isSpanVisibleInView: isSpanVisible} = generateBounds({
@@ -351,7 +353,12 @@ class SpanGroupBar extends React.Component<Props> {
                         paddingTop: 0,
                       }}
                       onClick={() => {
-                        toggleSpanGroup();
+                        groupType === GroupType.DESCENDANTS
+                          ? toggleSpanGroup()
+                          : toggleSiblingSpanGroup(
+                              spanGrouping[0].span.op!,
+                              spanGrouping[0].span.description!
+                            );
                       }}
                     >
                       <RowTitleContainer ref={generateContentSpanBarRef()}>
