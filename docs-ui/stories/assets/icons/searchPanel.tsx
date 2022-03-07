@@ -106,7 +106,7 @@ const SearchPanel = () => {
 
   const fuse = new Fuse(icons, {
     keys: ['id', 'groups', 'keywords'],
-    limit: 5,
+    threshold: 0.3,
   });
 
   const debouncedSearch = useCallback(
@@ -114,7 +114,7 @@ const SearchPanel = () => {
       if (!newQuery) {
         setResults(groupedIcons);
       } else {
-        const searchResults = fuse.search(newQuery, {limit: 5});
+        const searchResults = fuse.search(newQuery).map(result => result.item);
         const namedIcons = addIconNames(searchResults);
         const enumeratedIcons = enumerateIconVariants(namedIcons);
 
