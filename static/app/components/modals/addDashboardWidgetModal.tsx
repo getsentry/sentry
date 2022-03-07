@@ -797,7 +797,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const showMetricsDatasetSelector =
       showDatasetSelector && organization.features.includes('dashboards-metrics');
 
-    const datasetChoices: [WidgetType, string][] = [DiscoverDataset];
+    const datasetChoices: [WidgetType, React.ReactElement | string][] = [DiscoverDataset];
 
     if (showIssueDatasetSelector) {
       datasetChoices.push(IssueDataset);
