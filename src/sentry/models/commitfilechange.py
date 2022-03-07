@@ -53,7 +53,7 @@ def process_resource_change(instance, **kwargs):
     )
     # CODEOWNERS file added or modified, trigger auto-sync
     if instance.filename in filepaths and instance.type in ["A", "M"]:
-        code_owners_auto_sync.delay(instance.commit)
+        code_owners_auto_sync.delay(instance.commit_id)
 
 
 post_save.connect(

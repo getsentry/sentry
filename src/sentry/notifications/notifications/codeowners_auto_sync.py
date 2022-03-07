@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
+from urllib.parse import urljoin
 
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingTypes
@@ -17,20 +18,32 @@ class AutoSyncNotification(ProjectNotification):
     def determine_recipients(self) -> Iterable[Team | User]:
         raise self.organization.get_owners()
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
-        # For now, filter to only email.
-        return {ExternalProviders.EMAIL: super().get_participants()[ExternalProviders.EMAIL]}
+    def get_reference(self):
+        return None
+
+    def get_notification_providers(self):
+        # For now, return only email.
+        return [ExternalProviders.EMAIL]
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return "Unable to Complete CODEOWNERS Auto-Sync"
 
     def get_context(self) -> MutableMapping[str, Any]:
-        return {
-            "project_name": self.project.name,
-            "url": absolute_uri(
-                f"/settings/{self.organization.slug}/projects/{self.project.slug}/ownership/"
-            ),
-        }
+        return {"project_name": self.project.name}
+
+    def get_recipient_context(
+        self, recipient: Team | User, extra_context: Mapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        context = super().get_recipient_context(recipient, extra_context)
+        context["url"] = str(
+            urljoin(
+                absolute_uri(
+                    f"/settings/{self.organization.slug}/projects/{self.project.slug}/ownership/"
+                ),
+                self.get_sentry_query_params(ExternalProviders.EMAIL, recipient),
+            )
+        )
+        return context
 
     def get_type(self) -> str:
         return "deploy.auto-sync"

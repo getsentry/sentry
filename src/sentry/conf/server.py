@@ -560,6 +560,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.check_auth",
     "sentry.tasks.check_monitors",
     "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.codeowners.code_owners_auto_sync",
+    "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
     "sentry.tasks.deletion",

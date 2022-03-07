@@ -90,7 +90,7 @@ class CodeOwnersTest(TestCase):
                 filename=".github/CODEOWNERS",
                 type="A",
             )
-            code_owners_auto_sync(commit)
+            code_owners_auto_sync(commit.id)
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
         assert code_owners.raw == LATEST_GITHUB_CODEOWNERS["raw"]
@@ -135,7 +135,7 @@ class CodeOwnersTest(TestCase):
                 filename=".github/CODEOWNERS",
                 type="A",
             )
-            code_owners_auto_sync(commit)
+            code_owners_auto_sync(commit.id)
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
         assert code_owners.raw == self.data["raw"]
