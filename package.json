@@ -212,10 +212,11 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test": "node scripts/test.js",
-    "test-precommit": "yarn test --bail --findRelatedTests -u",
     "test-ci": "yarn test --ci --coverage",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
+    "test-precommit": "yarn test --bail --findRelatedTests -u",
     "test-staged": "yarn test --findRelatedTests $(git diff --name-only --cached)",
+    "test-watch": "yarn test --watch",
     "lint": "yarn eslint tests/js static/app --ext .js,.jsx,.ts,.tsx",
     "lint:css": "yarn stylelint 'static/app/**/*.[jt]sx'",
     "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
