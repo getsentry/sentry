@@ -135,9 +135,7 @@ class SettingsIndex extends React.Component<SettingsIndexProps> {
                       />
                     </AvatarContainer>
                   ) : (
-                    <HomeIcon color="green300">
-                      <IconStack size="lg" />
-                    </HomeIcon>
+                    <OrgAvatarPlaceholder />
                   )}
                   <OrganizationName>
                     {organization ? organization.slug : t('No Organization')}
@@ -310,6 +308,12 @@ const HomeIcon = styled('div')<{color?: string}>`
   justify-content: center;
   align-items: center;
   margin-bottom: 20px;
+`;
+
+const OrgAvatarPlaceholder = styled(HomeIcon)`
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  border: solid 1px ${p => p.theme.innerBorder};
 `;
 
 const HomeLink = styled(Link)<LinkProps>`
