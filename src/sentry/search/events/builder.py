@@ -1451,6 +1451,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
+        self.metric_ids: List[int] = []
         super().__init__(
             # Dataset is always Metrics
             Dataset.Metrics,
@@ -1495,6 +1496,15 @@ class MetricsQueryBuilder(QueryBuilder):
             Condition(self.column("organization_id"), Op.EQ, self.params["organization_id"])
         )
         return conditions
+
+    def resolve_query(self, *args: Any, **kwargs: Any) -> None:
+        super().resolve_query(*args, **kwargs)
+        # Optimization to add metric ids to the filter
+        if len(self.metric_ids) > 0:
+            self.where.append(
+                # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
+                Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
+            )
 
     def resolve_limit(self, limit: Optional[int]) -> Limit:
         """Impose a max limit, since we may need to create a large condition based on the group by values when the query
