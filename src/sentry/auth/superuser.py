@@ -301,7 +301,7 @@ class Superuser:
         if current_datetime is None:
             current_datetime = timezone.now()
 
-        token = get_random_string(12)
+        superuser_session_id = get_random_string(12)
 
         su_access_json = json.loads(request.body)
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
@@ -313,7 +313,7 @@ class Superuser:
             logger.info(
                 "superuser.superuser_access",
                 extra={
-                    "superuser_session_id": token,
+                    "superuser_session_id": superuser_session_id,
                     "user_id": request.user.id,
                     "user_email": request.user.email,
                     "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
@@ -323,7 +323,7 @@ class Superuser:
 
             self._set_logged_in(
                 expires=current_datetime + MAX_AGE,
-                token=token,
+                token=superuser_session_id,
                 user=user,
                 current_datetime=current_datetime,
             )
