@@ -77,12 +77,6 @@ email_verified = BetterSignal(providing_args=["email"])
 mocks_loaded = BetterSignal(providing_args=["project"])
 
 user_feedback_received = BetterSignal(providing_args=["project"])
-issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
-
-issue_resolved = BetterSignal(
-    providing_args=["organization_id", "project", "group", "user", "resolution_type"]
-)
-issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 
 advanced_search = BetterSignal(providing_args=["project"])
 advanced_search_feature_gated = BetterSignal(providing_args=["organization", "user"])
@@ -97,9 +91,18 @@ repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
+issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
+
+issue_resolved = BetterSignal(
+    providing_args=["organization_id", "project", "group", "user", "resolution_type"]
+)
+issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
 issue_unignored = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
+comment_created = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
+comment_updated = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
+comment_deleted = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
 inbox_in = BetterSignal(providing_args=["project", "user", "group", "reason"])
 inbox_out = BetterSignal(
     providing_args=["project", "user", "group", "action", "inbox_date_added", "referrer"]
