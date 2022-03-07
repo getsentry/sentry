@@ -11,6 +11,7 @@ import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
@@ -53,6 +54,7 @@ const framesList = [
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions} = props;
+  const pageError = usePageError();
 
   const field = props.fields[0];
 
@@ -171,6 +173,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               },
               'medium'
             )}
+            hideError
+            onError={pageError.setPageError}
           />
         );
       },
