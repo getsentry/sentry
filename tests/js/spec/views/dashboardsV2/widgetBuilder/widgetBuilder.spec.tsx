@@ -259,7 +259,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByRole('heading', {name: 'Sort by a column'})).toBeInTheDocument();
   });
 
-  it('renders new design', async function () {
+  it.only('renders new design', async function () {
     renderTestComponent({
       orgFeatures: [
         'new-widget-builder-experience',

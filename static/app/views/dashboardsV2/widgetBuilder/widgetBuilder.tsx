@@ -953,6 +953,14 @@ function WidgetBuilder({
                       )}
                     </div>
                   </BuildStep>
+                  <BuildStep
+                    title={t('Group your results')}
+                    description={t(
+                      'This is how you can group your data result by tag or field. For a full list, read the docs.'
+                    )}
+                  >
+                    Hello world
+                  </BuildStep>
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <BuildStep
                       title={t('Sort by a column')}
