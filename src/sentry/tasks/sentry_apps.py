@@ -251,14 +251,25 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
 def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwargs):
     install, _, user = get_webhook_data(installation_id, issue_id, user_id)
     data = kwargs.get("data", {})
+    project_slug = data.get("project_slug")
+    comment_id = data.get("comment_id")
     payload = {
-        "comment_id": data.get("comment_id"),
+        "comment_id": comment_id,
         "group_id": issue_id,
-        "project_slug": data.get("project_slug"),
+        "project_slug": project_slug,
         "timestamp": data.get("timestamp"),
         "comment": data.get("comment"),
     }
     send_webhooks(installation=install, event=type, data=payload, actor=user)
+    # type is comment.created, comment.updated, or comment.deleted
+    analytics.record(
+        type,
+        user_id=user_id,
+        group_id=issue_id,
+        project_slug=project_slug,
+        installation_id=installation_id,
+        comment_id=comment_id,
+    )
 
 
 def get_webhook_data(installation_id, issue_id, user_id):
