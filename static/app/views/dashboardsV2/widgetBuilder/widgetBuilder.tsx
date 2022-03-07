@@ -692,7 +692,7 @@ function WidgetBuilder({
                       }}
                       error={state.errors?.displayType}
                     />
-                    <Chart>
+                    <VisualizationWrapper displayType={state.displayType}>
                       <WidgetCard
                         organization={organization}
                         selection={pageFilters}
@@ -708,7 +708,7 @@ function WidgetBuilder({
                         currentWidgetDragging={false}
                         noLazyLoad
                       />
-                    </Chart>
+                    </VisualizationWrapper>
                   </BuildStep>
                   <BuildStep
                     title={t('Choose your data set')}
@@ -1023,8 +1023,8 @@ const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
 `;
 
-const Chart = styled('div')`
-  overflow: hidden;
+const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
+  overflow: ${p => (p.displayType === DisplayType.TABLE ? 'hidden' : 'visible')};
 `;
 
 const DataSetChoices = styled(RadioGroup)`
