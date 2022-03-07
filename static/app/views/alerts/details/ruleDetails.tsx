@@ -246,6 +246,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             <AlertRuleIssuesList
               organization={organization}
               project={project}
+              rule={rule}
               period={period ?? ''}
               start={start ?? null}
               end={end ?? null}
