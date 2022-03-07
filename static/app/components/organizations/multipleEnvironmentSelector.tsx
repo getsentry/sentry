@@ -2,6 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 import uniq from 'lodash/uniq';
 
 import {Client} from 'sentry/api';
@@ -57,7 +58,6 @@ type Props = WithRouterProps & {
 } & DefaultProps;
 
 type State = {
-  hasChanges: boolean;
   selectedEnvs: Set<string>;
 };
 
@@ -73,7 +73,6 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
   state: State = {
     selectedEnvs: new Set(this.props.value),
-    hasChanges: false,
   };
 
   componentDidUpdate(prevProps: Props) {
@@ -81,6 +80,10 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
     if (this.props.value !== prevProps.value) {
       this.syncSelectedStateFromProps();
     }
+  }
+
+  get hasChanges() {
+    return !isEqual(new Set(this.props.value), this.state.selectedEnvs);
   }
 
   syncSelectedStateFromProps = () =>
@@ -93,13 +96,8 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
     this.props.onChange(environments);
   };
 
-  /**
-   * Checks if "onUpdate" is callable. Only calls if there are changes
-   * @param selectedEnvs optional parameter passed to onUpdate representing
-   * an array containing a directly selected environment (not multi-selected)
-   */
   doUpdate = (selectedEnvs?: string[]) => {
-    this.setState({hasChanges: false}, () => this.props.onUpdate(selectedEnvs));
+    this.props.onUpdate(selectedEnvs);
   };
 
   /**
@@ -123,10 +121,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
       this.doChange(Array.from(selectedEnvs.values()));
 
-      return {
-        selectedEnvs,
-        hasChanges: true,
-      };
+      return {selectedEnvs};
     });
   };
 
@@ -140,7 +135,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
   handleClose = () => {
     // Only update if there are changes
-    if (!this.state.hasChanges) {
+    if (!this.hasChanges) {
       return;
     }
 
@@ -164,7 +159,6 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
     this.setState(
       {
-        hasChanges: false,
         selectedEnvs: new Set(),
       },
       () => {
@@ -302,7 +296,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
               ) : undefined
             }
             menuFooter={({actions}) =>
-              this.state.hasChanges ? (
+              this.hasChanges ? (
                 <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
               ) : null
             }
