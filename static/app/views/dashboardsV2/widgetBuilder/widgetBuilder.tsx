@@ -2,6 +2,8 @@ import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import isEmpty from 'lodash/isEmpty';
+import omit from 'lodash/omit';
 import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
@@ -263,11 +265,12 @@ function WidgetBuilder({
   };
 
   const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
+  const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
     pathname: currentDashboardId
       ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
       : `/organizations/${orgId}/dashboards/new/`,
-    query: {...location.query},
+    query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
@@ -599,9 +602,10 @@ function WidgetBuilder({
       title: widgetData.title,
       ...queryData,
       // Propagate page filters
-      ...selection.datetime,
-      project: selection.projects,
-      environment: selection.environments,
+      project: pageFilters.projects,
+      environment: pageFilters.environments,
+      ...omit(pageFilters.datetime, 'period'),
+      statsPeriod: pageFilters.datetime?.period,
     };
 
     addSuccessMessage(t('Added widget.'));
@@ -609,17 +613,25 @@ function WidgetBuilder({
   }
 
   function goToDashboards(id: string, query?: Record<string, any>) {
+    const pathQuery =
+      !isEmpty(queryParamsWithoutSource) || query
+        ? {
+            ...queryParamsWithoutSource,
+            ...query,
+          }
+        : undefined;
+
     if (id === NEW_DASHBOARD_ID) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
-        query,
+        query: pathQuery,
       });
       return;
     }
 
     router.push({
       pathname: `/organizations/${organization.slug}/dashboard/${id}/`,
-      query,
+      query: pathQuery,
     });
   }
 
