@@ -228,7 +228,7 @@ describe('WidgetBuilder', function () {
     // Header - Widget Title
     expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
 
-    // Header - Actions
+    // Footer - Actions
     expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
     expect(screen.getByLabelText('Add Widget')).toBeInTheDocument();
 
@@ -257,6 +257,65 @@ describe('WidgetBuilder', function () {
 
     // Content - Step 5
     expect(screen.getByRole('heading', {name: 'Sort by a column'})).toBeInTheDocument();
+  });
+
+  it('renders new design', async function () {
+    renderTestComponent({
+      orgFeatures: [
+        'new-widget-builder-experience',
+        'new-widget-builder-design',
+        'dashboards-edit',
+        'global-views',
+      ],
+    });
+
+    // Switch to line chart for time series
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    // Header - Breadcrumbs
+    expect(screen.getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/'
+    );
+    expect(screen.getByRole('link', {name: 'Dashboard'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/new/'
+    );
+    expect(screen.getByText('Widget Builder')).toBeInTheDocument();
+
+    // Header - Widget Title
+    expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
+
+    // Footer - Actions
+    expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add Widget')).toBeInTheDocument();
+
+    // Content - Step 1
+    expect(
+      screen.getByRole('heading', {name: 'Choose your data set'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Select All Events (Errors and Transactions)')
+    ).toBeChecked();
+
+    // Content - Step 2
+    expect(
+      screen.getByRole('heading', {name: 'Choose your visualization'})
+    ).toBeInTheDocument();
+
+    // Content - Step 3
+    expect(
+      screen.getByRole('heading', {name: 'Choose what to plot in the y-axis'})
+    ).toBeInTheDocument();
+
+    // Content - Step 4
+    expect(
+      screen.getByRole('heading', {name: 'Filter your results'})
+    ).toBeInTheDocument();
+
+    // Content - Step 5
+    expect(screen.getByRole('heading', {name: 'Group your results'})).toBeInTheDocument();
   });
 
   it('can update the title', async function () {
