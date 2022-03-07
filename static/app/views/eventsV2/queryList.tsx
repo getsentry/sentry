@@ -130,12 +130,7 @@ class QueryList extends React.Component<Props> {
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
           defaultTableColumns,
           defaultTitle,
-          displayType:
-            displayType !== DisplayType.TOP_N && displayType !== DisplayType.TABLE
-              ? !!defaultTableColumns.length
-                ? DisplayType.TABLE
-                : displayType
-              : displayType,
+          displayType,
         },
       });
       return;
