@@ -19,6 +19,10 @@ import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {
+  isWidgetViewerPath,
+  WidgetViewerQueryField,
+} from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -59,6 +63,7 @@ type RouteParams = {
   orgId: string;
   dashboardId?: string;
   widgetId?: number;
+  widgetIndex?: number;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
@@ -113,17 +118,21 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    if (location.pathname.match(/\/widget\/\w*\/$/)) {
+    if (isWidgetViewerPath(location.pathname)) {
       const widget =
-        defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
+        defined(widgetId) &&
+        (dashboard.widgets.find(({id}) => id === String(widgetId)) ??
+          dashboard.widgets[widgetId]);
       if (widget) {
         openWidgetViewerModal({
           organization,
           widget,
           onClose: () => {
+            // Filter out Widget Viewer Modal query params when exiting the Modal
+            const query = omit(location.query, Object.values(WidgetViewerQueryField));
             router.push({
-              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-              query: location.query,
+              pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
+              query,
             });
           },
           onEdit: () => {
@@ -191,13 +200,13 @@ class DashboardDetail extends Component<Props, State> {
 
   get isWidgetBuilderRouter() {
     const {location, params, organization} = this.props;
-    const {dashboardId, widgetId} = params;
+    const {dashboardId, widgetIndex} = params;
 
     const widgetBuilderRoutes = [
       `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-      `/organizations/${organization.slug}/dashboards/new/widget/${widgetId}/edit/`,
-      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetId}/edit/`,
+      `/organizations/${organization.slug}/dashboards/new/widget/${widgetIndex}/edit/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
     ];
 
     return widgetBuilderRoutes.includes(location.pathname);

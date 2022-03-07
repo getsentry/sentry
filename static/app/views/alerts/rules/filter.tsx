@@ -132,7 +132,7 @@ class Filter extends Component<Props> {
             {...getActorProps()}
             showChevron={false}
             isOpen={isOpen}
-            icon={<IconFilter size="xs" />}
+            icon={<IconFilter />}
             hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
             priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
             data-test-id="filter-button"

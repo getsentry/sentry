@@ -261,26 +261,25 @@ def get_tag_values(
 def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     """Get time series for the given query"""
     intervals = list(get_intervals(query))
+    results = {}
 
-    if query.orderby is not None and len(query.fields) > 1:
+    if not query.groupby:
+        # When there is no groupBy columns specified, we don't want to go through running an
+        # initial query first to get the groups because there are no groups, and it becomes just
+        # one group which is basically identical to eliminating the orderBy altogether
+        query.orderby = None
+
+    if query.orderby is not None:
+        # ToDo(ahmed): Re-examine the known limitation that since we make two queries,
+        #  where we use the results of the first query to filter down the results of the second
+        #  query, so if the field used to order by has no values for certain transactions for
+        #  example in the case of the performance table, we might end up showing less
+        #  transactions than there actually are if we choose to order by it. We are limited by
+        #  the rows available for the field used in the orderBy.
+
         # Multi-field select with order by functionality. Currently only supports the
         # performance table.
         original_query_fields = copy(query.fields)
-
-        # This check is necessary as we only support this multi-field select with one field
-        # order by functionality only for the performance table. The reason behind this is
-        # that since we make two queries, where we use the results of the first query to
-        # filter down the results of the second query, if the field used to order by has no
-        # values for certain transactions, we might end up showing less transactions than
-        # there actually are if we choose to order by it. However, we are certain that this
-        # won't happen with the performance table because all the metrics in the table are
-        # always extracted from transactions.
-        for _, field_name in list(original_query_fields.values()):
-            if not (field_name.startswith("sentry.transactions")):
-                raise InvalidParams(
-                    f"Multi-field select order by queries is not supported "
-                    f"for metric {field_name}"
-                )
 
         # The initial query has to contain only one field which is the same as the order by
         # field
@@ -314,8 +313,6 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
         snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
 
-        results = {entity: {"totals": {"data": []}} for entity in snuba_queries.keys()}
-
         # If we do not get any results from the first query, then there is no point in making
         # the second query
         if len(initial_query_results["data"]) > 0:
@@ -342,75 +339,85 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             ]
 
             for entity, queries in snuba_queries.items():
+                results.setdefault(entity, {})
                 # This loop has constant time complexity as it will always have a maximum of
                 # three queries corresponding to the three available entities
                 # ["metrics_sets", "metrics_distributions", "metrics_counters"]
-                snuba_query = queries["totals"]
-
-                # If query is grouped by project_id, then we should remove the original
-                # condition project_id cause it might be more relaxed than the project_id
-                # condition in the second query
-                where = []
-                if "project_id" in groupby_tags:
+                for key, snuba_query in queries.items():
+                    results[entity].setdefault(key, {"data": []})
+                    # If query is grouped by project_id, then we should remove the original
+                    # condition project_id cause it might be more relaxed than the project_id
+                    # condition in the second query
+                    where = []
                     for condition in snuba_query.where:
                         if not (
-                            isinstance(condition.lhs, Column) and condition.lhs.name == "project_id"
+                            isinstance(condition.lhs, Column)
+                            and condition.lhs.name == "project_id"
+                            and "project_id" in groupby_tags
                         ):
                             where += [condition]
 
-                # Adds the conditions obtained from the previous query
-                for condition_key, condition_value in ordered_tag_conditions.items():
-                    lhs_condition = (
-                        Function("tuple", [Column(col) for col in condition_key])
-                        if isinstance(condition_key, tuple)
-                        else Column(condition_key)
+                    # Adds the conditions obtained from the previous query
+                    for condition_key, condition_value in ordered_tag_conditions.items():
+                        if not condition_key or not condition_value:
+                            # Safeguard to prevent adding empty conditions to the where clause
+                            continue
+
+                        lhs_condition = (
+                            Function("tuple", [Column(col) for col in condition_key])
+                            if isinstance(condition_key, tuple)
+                            else Column(condition_key)
+                        )
+                        where += [
+                            Condition(lhs_condition, Op.IN, Function("tuple", condition_value))
+                        ]
+                    snuba_query = snuba_query.set_where(where)
+
+                    # Set the limit of the second query to be the provided limits multiplied by
+                    # the number of the metrics requested in the query in this specific entity
+                    snuba_query = snuba_query.set_limit(
+                        snuba_query.limit.limit * len(snuba_query.select)
                     )
-                    where += [Condition(lhs_condition, Op.IN, Function("tuple", condition_value))]
-                snuba_query = snuba_query.set_where(where)
-                # Set the limit of the second query to be the provided limits multiplied by
-                # the number of the metrics requested in the query in this specific entity
-                snuba_query = snuba_query.set_limit(query.limit * len(snuba_query.select))
-                snuba_query = snuba_query.set_offset(0)
+                    snuba_query = snuba_query.set_offset(0)
 
-                snuba_query_res = raw_snql_query(
-                    snuba_query, use_cache=False, referrer="api.metrics.totals.second_query"
-                )
-                # Create a dictionary that has keys representing the ordered by tuples from the
-                # initial query, so that we are able to order it easily in the next code block
-                # If for example, we are grouping by (project_id, transaction) -> then this
-                # logic will output a dictionary that looks something like, where `tags[1]`
-                # represents transaction
-                # {
-                #     (3, 2): [{"metric_id": 4, "project_id": 3, "tags[1]": 2, "p50": [11.0]}],
-                #     (3, 3): [{"metric_id": 4, "project_id": 3, "tags[1]": 3, "p50": [5.0]}],
-                # }
-                snuba_query_data_dict = {}
-                for data_elem in snuba_query_res["data"]:
-                    snuba_query_data_dict.setdefault(
-                        tuple(data_elem[col] for col in groupby_tags), []
-                    ).append(data_elem)
+                    snuba_query_res = raw_snql_query(
+                        snuba_query, use_cache=False, referrer=f"api.metrics.{key}.second_query"
+                    )
+                    # Create a dictionary that has keys representing the ordered by tuples from the
+                    # initial query, so that we are able to order it easily in the next code block
+                    # If for example, we are grouping by (project_id, transaction) -> then this
+                    # logic will output a dictionary that looks something like, where `tags[1]`
+                    # represents transaction
+                    # {
+                    #     (3, 2): [{"metric_id": 4, "project_id": 3, "tags[1]": 2, "p50": [11.0]}],
+                    #     (3, 3): [{"metric_id": 4, "project_id": 3, "tags[1]": 3, "p50": [5.0]}],
+                    # }
+                    snuba_query_data_dict = {}
+                    for data_elem in snuba_query_res["data"]:
+                        snuba_query_data_dict.setdefault(
+                            tuple(data_elem[col] for col in groupby_tags), []
+                        ).append(data_elem)
 
-                # Order the results according to the results of the initial query, so that when
-                # the results dict is passed on to `SnubaResultsConverter`, it comes out ordered
-                # Ordered conditions might for example look something like this
-                # {..., ('project_id', 'tags[1]'): [(3, 3), (3, 2)]}, then we end up with
-                # {
-                #     "totals": {
-                #         "data": [
-                #             {
-                #               "metric_id": 5, "project_id": 3, "tags[1]": 3, "count_unique": 5
-                #             },
-                #             {
-                #               "metric_id": 5, "project_id": 3, "tags[1]": 2, "count_unique": 1
-                #             },
-                #         ]
-                #     }
-                # }
-                for group_tuple in ordered_tag_conditions[groupby_tags]:
-                    results[entity]["totals"]["data"] += snuba_query_data_dict.get(group_tuple, [])
+                    # Order the results according to the results of the initial query, so that when
+                    # the results dict is passed on to `SnubaResultsConverter`, it comes out ordered
+                    # Ordered conditions might for example look something like this
+                    # {..., ('project_id', 'tags[1]'): [(3, 3), (3, 2)]}, then we end up with
+                    # {
+                    #     "totals": {
+                    #         "data": [
+                    #             {
+                    #               "metric_id": 5, "project_id": 3, "tags[1]": 3, "count_unique": 5
+                    #             },
+                    #             {
+                    #               "metric_id": 5, "project_id": 3, "tags[1]": 2, "count_unique": 1
+                    #             },
+                    #         ]
+                    #     }
+                    # }
+                    for group_tuple in ordered_tag_conditions[groupby_tags]:
+                        results[entity][key]["data"] += snuba_query_data_dict.get(group_tuple, [])
     else:
         snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
-        results = {}
         for entity, queries in snuba_queries.items():
             results.setdefault(entity, {})
             for key, snuba_query in queries.items():
