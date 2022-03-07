@@ -226,7 +226,7 @@ class SpanTree extends React.Component<PropType> {
         if (payload.type === 'span_group_sibling') {
           acc.spanTree.push(
             <SpanGroupBar
-              key={`${spanNumber}-span-group`}
+              key={`${spanNumber}-span-sibling`}
               event={waterfallModel.event}
               span={span}
               generateBounds={generateBounds}
