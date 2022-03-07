@@ -465,12 +465,10 @@ class SnubaQueryBuilder:
             alias=f"{op}({name})",
         )
 
-    @staticmethod
-    def _build_select(entity, fields):
+    @classmethod
+    def _build_select(cls, entity, fields):
         for op, name in fields:
-            yield SnubaQueryBuilder._build_conditional_aggregate_for_metric(
-                entity=entity, op=op, name=name
-            )
+            yield cls._build_conditional_aggregate_for_metric(entity=entity, op=op, name=name)
 
     def _build_queries_for_entity(self, query_definition, entity, fields, where, groupby):
         totals_query = Query(
@@ -556,14 +554,18 @@ class SnubaResultConverter:
             bucketed_time = parse_snuba_datetime(bucketed_time)
 
         for op, metric_name in self._query_definition.fields.values():
+            key = f"{op}({metric_name})"
+
             try:
-                key = f"{op}({metric_name})"
                 value = data[key]
-                if op in _OPERATIONS_PERCENTILES:
-                    value = value[0]
-                cleaned_value = finite_or_none(value)
             except KeyError:
+                # This could occur when we have derived metrics that are generated from post
+                # query operations, and so don't have a direct mapping to the query results
                 continue
+
+            if op in _OPERATIONS_PERCENTILES:
+                value = value[0]
+            cleaned_value = finite_or_none(value)
 
             if bucketed_time is None:
                 tag_data["totals"][key] = cleaned_value
