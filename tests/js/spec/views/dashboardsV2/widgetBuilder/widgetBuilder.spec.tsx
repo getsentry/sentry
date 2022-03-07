@@ -370,9 +370,6 @@ describe('WidgetBuilder', function () {
     // Click the add overlay button
     userEvent.click(screen.getByLabelText('Add Overlay'));
 
-    // Should be another field input.
-    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
-
     userEvent.click(screen.getByText('(Required)'));
     userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
 
@@ -406,7 +403,6 @@ describe('WidgetBuilder', function () {
     const handleSave = jest.fn();
 
     renderTestComponent({onSave: handleSave});
-
     userEvent.click(await screen.findByText('Table'));
 
     // Select line chart display
@@ -414,9 +410,6 @@ describe('WidgetBuilder', function () {
 
     // Click the add an equation button
     userEvent.click(screen.getByLabelText('Add an Equation'));
-
-    // Should be another field input.
-    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
 
     expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
 
@@ -979,7 +972,6 @@ describe('WidgetBuilder', function () {
       // Confirm modal doesn't open because no changes were made
       expect(mockModal).not.toHaveBeenCalled();
 
-      expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(3);
       userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
       userEvent.click(screen.getByText('High Throughput Transactions'));
 
