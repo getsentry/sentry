@@ -191,5 +191,5 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
 
 export function getFields(fieldsString: string): string[] {
   // Use a negative lookahead to avoid splitting on commas inside equation fields
-  return fieldsString.split(/,(?![^(]*\))/g) ?? [];
+  return fieldsString.split(/,(?![^(]*\))/g);
 }
