@@ -685,14 +685,14 @@ function WidgetBuilder({
                       'This is a preview of how your widget will appear in the dashboard.'
                     )}
                   >
-                    <VisualizationWrapper>
-                      <DisplayTypeSelector
-                        displayType={state.displayType}
-                        onChange={(option: {label: string; value: DisplayType}) => {
-                          handleDisplayTypeOrTitleChange('displayType', option.value);
-                        }}
-                        error={state.errors?.displayType}
-                      />
+                    <DisplayTypeSelector
+                      displayType={state.displayType}
+                      onChange={(option: {label: string; value: DisplayType}) => {
+                        handleDisplayTypeOrTitleChange('displayType', option.value);
+                      }}
+                      error={state.errors?.displayType}
+                    />
+                    <Chart>
                       <WidgetCard
                         organization={organization}
                         selection={pageFilters}
@@ -708,7 +708,7 @@ function WidgetBuilder({
                         currentWidgetDragging={false}
                         noLazyLoad
                       />
-                    </VisualizationWrapper>
+                    </Chart>
                   </BuildStep>
                   <BuildStep
                     title={t('Choose your data set')}
@@ -1023,9 +1023,7 @@ const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
 `;
 
-const VisualizationWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
+const Chart = styled('div')`
   overflow: hidden;
 `;
 
