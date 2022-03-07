@@ -504,7 +504,6 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('opens the widget viewer modal when a widget has no id', async () => {
-    const openWidgetViewerModal = jest.spyOn(modal, 'openWidgetViewerModal');
     const widget: Widget = {
       title: 'Widget',
       interval: '5m',
@@ -528,10 +527,14 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         showWidgetViewerButton
-      />
+        index="10"
+      />,
+      {context: routerContext}
     );
 
     userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
-    expect(openWidgetViewerModal).toHaveBeenCalledWith(expect.objectContaining({widget}));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
+    );
   });
 });

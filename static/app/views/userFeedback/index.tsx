@@ -12,6 +12,7 @@ import EventUserFeedback from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
@@ -129,28 +130,36 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
             <div data-test-id="user-feedback">
               <Header>
                 <PageHeading>{t('User Feedback')}</PageHeading>
-                <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
-                  <Button
-                    size="small"
-                    barId="unresolved"
-                    to={{pathname, query: unresolvedQuery}}
-                  >
-                    {t('Unresolved')}
-                  </Button>
-                  <Button size="small" barId="" to={{pathname, query: allIssuesQuery}}>
-                    {t('All Issues')}
-                  </Button>
-                </ButtonBar>
+                {!hasNewPageFilters && (
+                  <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
+                    <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
+                      {t('Unresolved')}
+                    </Button>
+                    <Button barId="" to={{pathname, query: allIssuesQuery}}>
+                      {t('All Issues')}
+                    </Button>
+                  </ButtonBar>
+                )}
               </Header>
               <Feature
                 organization={organization}
                 features={['organizations:selection-filters-v2']}
               >
-                <PageFilters>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="right" />
-                </PageFilters>
+                <Filters>
+                  <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
+                    <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
+                      {t('Unresolved')}
+                    </Button>
+                    <Button barId="" to={{pathname, query: allIssuesQuery}}>
+                      {t('All Issues')}
+                    </Button>
+                  </ButtonBar>
+                  <PageFilterBar>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter hidePin alignDropdown="right" />
+                  </PageFilterBar>
+                </Filters>
               </Feature>
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
@@ -171,14 +180,19 @@ const Header = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const PageFilters = styled('div')`
+const Filters = styled('div')`
   display: grid;
+  grid-template-columns: max-content max-content;
+  justify-content: start;
   gap: ${space(1)};
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content;
   margin-bottom: ${space(2)};
 
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 `;
 
