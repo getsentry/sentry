@@ -84,7 +84,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {loading, groupHistory, issuesPageLinks} = this.state;
+    const {loading, groupHistory, groupHistoryPageLinks} = this.state;
 
     return (
       <Fragment>
@@ -123,7 +123,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
           })}
         </StyledPanelTable>
         <PaginationWrapper>
-          <StyledPagination pageLinks={issuesPageLinks} size="xsmall" />
+          <StyledPagination pageLinks={groupHistoryPageLinks} size="xsmall" />
         </PaginationWrapper>
       </Fragment>
     );
