@@ -197,6 +197,7 @@ class AlertRuleDetails extends Component<Props, State> {
               forceEnvironment={rule?.environment ?? ''}
               lockedMessageSubject={t('alert rule')}
               showDateSelector={false}
+              skipLoadLastUsed
             >
               <SentryDocumentTitle title={rule?.name ?? ''} />
 
