@@ -224,7 +224,7 @@
     "storybook": "SENTRY_UI_HOT_RELOAD='' start-storybook -p 9001 -c .storybook",
     "storybook-build": "build-storybook -c .storybook -o docs-ui/.storybook-out --quiet",
     "webpack-profile": "NO_TS_FORK=1 yarn -s webpack --profile --json > stats.json",
-    "install-api-docs": "yarn add ts-node && cd api-docs && yarn install",
+    "install-api-docs": "yarn add ts-node@^10.7.0 && cd api-docs && yarn install",
     "build-deprecated-docs": "yarn install-api-docs && ts-node api-docs/index.ts api-docs/openapi.json tests/apidocs/openapi-deprecated.json",
     "diff-docs": "yarn install-api-docs && ts-node api-docs/openapi-diff.ts",
     "deref-api-docs": "ts-node api-docs/index.ts tests/apidocs/openapi-spectacular.json tests/apidocs/openapi-derefed.json",
