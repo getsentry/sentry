@@ -98,10 +98,10 @@ describe('ProjectPageFilter', function () {
 
     // Open the project dropdown
     expect(screen.getByText('My Projects')).toBeInTheDocument();
-    userEvent.click(screen.getByText('My Projects'));
+    userEvent.click(screen.getByText('My Projects'), undefined, {skipHover: true});
 
     // Click the first project's checkbox
-    userEvent.click(screen.getByText('project-2'));
+    userEvent.click(screen.getByText('project-2'), undefined, {skipHover: true});
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(

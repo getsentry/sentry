@@ -102,10 +102,10 @@ describe('EnvironmentPageFilter', function () {
 
     // Open the environment dropdown
     expect(screen.getByText('All Environments')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Environments'));
+    userEvent.click(screen.getByText('All Environments'), undefined, {skipHover: true});
 
     // Click the first environment directly
-    userEvent.click(screen.getByText('prod'));
+    userEvent.click(screen.getByText('prod'), undefined, {skipHover: true});
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
