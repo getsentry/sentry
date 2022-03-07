@@ -54,7 +54,6 @@ const List = styled(
   list-style: none;
   display: grid;
   gap: ${space(0.5)};
-  color: ${p => p.theme.black};
   ${p =>
     typeof p.symbol === 'string' &&
     listSymbol[p.symbol] &&
