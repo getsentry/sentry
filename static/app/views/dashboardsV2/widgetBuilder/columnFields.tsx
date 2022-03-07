@@ -36,7 +36,6 @@ export function ColumnFields({
       error={errors?.find(error => error?.fields)?.fields}
       flexibleControlStateSize
       stacked
-      required
     >
       {displayType === DisplayType.TABLE ? (
         <ColumnCollectionEdit
