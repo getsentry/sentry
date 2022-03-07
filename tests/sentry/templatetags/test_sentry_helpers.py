@@ -84,3 +84,17 @@ def test_date_handle_date_and_datetime():
     )
 
     assert result == "\n".join(["2021-04-16", "2021-04-17"])
+
+
+@pytest.mark.parametrize(
+    "a_dict,key,expected",
+    (
+        ({}, "", ""),
+        ({}, "hi", ""),
+        ({"hello": 1}, "hello", "1"),
+    ),
+)
+def test_get_item(a_dict, key, expected):
+    prefix = '{% load sentry_helpers %} {{ something|get_item:"' + key + '" }}'
+    result = engines["django"].from_string(prefix).render(context={"something": a_dict}).strip()
+    assert result == expected
