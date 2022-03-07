@@ -186,13 +186,16 @@ class AlertRuleDetails extends Component<Props, State> {
 
     return (
       <Projects orgId={organization.slug} slugs={rule?.projects}>
-        {({projects}) => {
+        {({projects, fetching}) => {
           const project = projects.find(({slug}) => slug === rule?.projects[0]) as
             | Project
             | undefined;
+          const globalSelectionReady = project !== undefined && !fetching;
+
           return (
             <PageFiltersContainer
-              shouldForceProject
+              isGlobalSelectionReady={globalSelectionReady}
+              shouldForceProject={globalSelectionReady}
               forceProject={project}
               forceEnvironment={rule?.environment ?? ''}
               lockedMessageSubject={t('alert rule')}
