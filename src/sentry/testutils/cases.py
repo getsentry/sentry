@@ -202,7 +202,6 @@ class BaseTestCase(Fixtures, Exam):
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
         if is_superuser:
-            # XXX: this is gross, but its a one off and apis change only once in a great while
             request._body = json.dumps(
                 {
                     "superuserAccessCategory": "Edit organization settings",
@@ -210,6 +209,7 @@ class BaseTestCase(Fixtures, Exam):
                 }
             )
             request.superuser.set_logged_in(user)
+        # XXX: this is gross, but its a one off and apis change only once in a great while
         request.is_superuser = lambda: request.superuser.is_active
         request.successful_authenticator = None
         return request

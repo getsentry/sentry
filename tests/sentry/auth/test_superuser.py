@@ -83,7 +83,7 @@ class SuperuserTestCase(TestCase):
         # no ips = any host
         superuser = Superuser(request, allowed_ips=())
         request.session[SsoSession.django_session_key(superuser.org_id)] = {
-            "ts": timezone.now().timestamp()
+            "ts": self.current_datetime.timestamp()
         }
         superuser.set_logged_in(request.user)
         assert superuser.is_active is True
