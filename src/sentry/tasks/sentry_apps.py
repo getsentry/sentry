@@ -10,6 +10,7 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
 from sentry.models import (
+    Activity,
     Group,
     Organization,
     Project,
@@ -45,7 +46,7 @@ RETRY_OPTIONS = {
 # Hook events to match what we externally call these primitives.
 RESOURCE_RENAMES = {"Group": "issue"}
 
-TYPES = {"Group": Group, "Error": Event}
+TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
 
 
 def _webhook_event_data(event, group_id, project_id):
@@ -151,7 +152,6 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
             return
-
         name = sender.lower()
     else:
         # Some resources are named differently than their model. eg. Group vs Issue.
@@ -239,8 +239,30 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
-    extra = {"installation_id": installation_id, "issue_id": issue_id}
+    install, issue, user = get_webhook_data(installation_id, issue_id, user_id)
 
+    data = kwargs.get("data", {})
+    data.update({"issue": serialize(issue)})
+    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+
+
+@instrumented_task(name="sentry.tasks.sentry_apps.build_comment_webhook", **TASK_OPTIONS)
+@retry(**RETRY_OPTIONS)
+def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwargs):
+    install, _, user = get_webhook_data(installation_id, issue_id, user_id)
+    data = kwargs.get("data", {})
+    payload = {
+        "comment_id": data.get("comment_id"),
+        "group_id": issue_id,
+        "project_slug": data.get("project_slug"),
+        "timestamp": data.get("timestamp"),
+        "comment": data.get("comment"),
+    }
+    send_webhooks(installation=install, event=type, data=payload, actor=user)
+
+
+def get_webhook_data(installation_id, issue_id, user_id):
+    extra = {"installation_id": installation_id, "issue_id": issue_id}
     try:
         install = SentryAppInstallation.objects.get(
             id=installation_id, status=SentryAppInstallationStatus.INSTALLED
@@ -262,10 +284,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     except User.DoesNotExist:
         logger.info("workflow_notification.missing_user", extra=extra)
 
-    data = kwargs.get("data", {})
-    data.update({"issue": serialize(issue)})
-
-    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+    return (install, issue, user)
 
 
 @instrumented_task("sentry.tasks.send_process_resource_change_webhook", **TASK_OPTIONS)
