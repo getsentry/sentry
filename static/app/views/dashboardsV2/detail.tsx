@@ -19,7 +19,10 @@ import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {WidgetViewerQueryField} from 'sentry/components/modals/widgetViewerModal/utils';
+import {
+  isWidgetViewerPath,
+  WidgetViewerQueryField,
+} from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -115,7 +118,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    if (location.pathname.match(/\/widget\/[0-9]+\/$/)) {
+    if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
         (dashboard.widgets.find(({id}) => id === String(widgetId)) ??

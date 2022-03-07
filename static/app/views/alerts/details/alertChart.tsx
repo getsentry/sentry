@@ -1,28 +1,85 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
+import AsyncComponent from 'sentry/components/asyncComponent';
 import AreaChart from 'sentry/components/charts/areaChart';
 import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
+import {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-type Props = {
-  orgId: string;
-  organization: Organization;
+type Props = AsyncComponent['props'] &
+  DateTimeObject & {
+    orgId: string;
+    organization: Organization;
+    project: Project;
+    rule: IssueAlertRule;
+  };
+
+type State = AsyncComponent['state'] & {
+  ruleFireHistory: ProjectAlertRuleStats[];
 };
 
-class AlertChart extends React.PureComponent<Props> {
+class AlertChart extends AsyncComponent<Props, State> {
+  componentDidUpdate(prevProps: Props) {
+    const {project, organization, start, end, period, utc} = this.props;
+
+    if (
+      prevProps.start !== start ||
+      prevProps.end !== end ||
+      prevProps.period !== period ||
+      prevProps.utc !== utc ||
+      prevProps.organization.id !== organization.id ||
+      prevProps.project.id !== project.id
+    ) {
+      this.remountComponent();
+    }
+  }
+
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      ruleFireHistory: [],
+    };
+  }
+
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {project, organization, period, start, end, utc, rule} = this.props;
+
+    return [
+      [
+        'ruleFireHistory',
+        `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/stats/`,
+        {
+          query: {
+            ...(period && {statsPeriod: period}),
+            start,
+            end,
+            utc,
+          },
+        },
+      ],
+    ];
+  }
+
   renderChart() {
-    const TOTAL = 6;
-    const NOW = new Date().getTime();
-    const getValue = () => Math.round(Math.random() * 1000);
-    const getDate = num => NOW - (TOTAL - num) * 86400000;
-    const getData = num =>
-      [...Array(num)].map((_v, i) => ({value: getValue(), name: getDate(i)}));
+    const {ruleFireHistory} = this.state;
+
+    const series = {
+      seriesName: 'Alerts Triggered',
+      data: ruleFireHistory.map(alert => ({
+        name: alert.date,
+        value: alert.count,
+      })),
+      emphasis: {
+        disabled: true,
+      },
+    };
 
     return (
       <AreaChart
@@ -34,12 +91,10 @@ class AlertChart extends React.PureComponent<Props> {
           top: space(3),
           bottom: 0,
         }}
-        series={[
-          {
-            seriesName: 'Alerts',
-            data: getData(7),
-          },
-        ]}
+        yAxis={{
+          minInterval: 1,
+        }}
+        series={[series]}
       />
     );
   }
@@ -55,7 +110,16 @@ class AlertChart extends React.PureComponent<Props> {
   }
 
   render() {
-    return (
+    const {ruleFireHistory, loading} = this.state;
+
+    const totalAlertsTriggered = ruleFireHistory.reduce(
+      (acc, curr) => acc + curr.count,
+      0
+    );
+
+    return loading ? (
+      this.renderEmpty()
+    ) : (
       <Panel>
         <StyledPanelBody withPadding>
           <ChartHeader>
@@ -68,7 +132,7 @@ class AlertChart extends React.PureComponent<Props> {
         </StyledPanelBody>
         <ChartFooter>
           <FooterHeader>{t('Alerts Triggered')}</FooterHeader>
-          <FooterValue>{'88'}</FooterValue>
+          <FooterValue>{totalAlertsTriggered}</FooterValue>
         </ChartFooter>
       </Panel>
     );
