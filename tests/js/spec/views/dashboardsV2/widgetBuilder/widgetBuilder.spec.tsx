@@ -8,7 +8,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -848,10 +847,7 @@ describe('WidgetBuilder', function () {
     });
 
     await screen.findByText('Update Widget');
-    const globalSelectionHeaderTimePeriod = screen.getByTestId(
-      'global-header-timerange-selector'
-    );
-    await within(globalSelectionHeaderTimePeriod).findByText('Last 90 days');
+    await screen.findByText('Last 90 days');
 
     userEvent.click(screen.getByText('Update Widget'));
 
