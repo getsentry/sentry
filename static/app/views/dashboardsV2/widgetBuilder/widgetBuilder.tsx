@@ -14,6 +14,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -21,7 +22,7 @@ import {PanelAlert} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {
@@ -685,14 +686,14 @@ function WidgetBuilder({
                       'This is a preview of how your widget will appear in the dashboard.'
                     )}
                   >
-                    <VisualizationWrapper>
-                      <DisplayTypeSelector
-                        displayType={state.displayType}
-                        onChange={(option: {label: string; value: DisplayType}) => {
-                          handleDisplayTypeOrTitleChange('displayType', option.value);
-                        }}
-                        error={state.errors?.displayType}
-                      />
+                    <DisplayTypeSelector
+                      displayType={state.displayType}
+                      onChange={(option: {label: string; value: DisplayType}) => {
+                        handleDisplayTypeOrTitleChange('displayType', option.value);
+                      }}
+                      error={state.errors?.displayType}
+                    />
+                    <VisualizationWrapper displayType={state.displayType}>
                       <WidgetCard
                         organization={organization}
                         selection={pageFilters}
@@ -738,9 +739,28 @@ function WidgetBuilder({
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <BuildStep
                       title={t('Choose your columns')}
-                      description={t(
-                        'These are the tags, fields, and groupings you can add as columns to your table.'
-                      )}
+                      description={
+                        state.dataSet !== DataSet.ISSUES
+                          ? tct(
+                              'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
+                              {
+                                functionLink: (
+                                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
+                                ),
+                                tagFieldLink: (
+                                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
+                                ),
+                              }
+                            )
+                          : tct(
+                              '[tagFieldLink: Tag and field] columns will help you view more details about the issues (i.e. title).',
+                              {
+                                tagFieldLink: (
+                                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
+                                ),
+                              }
+                            )
+                      }
                     >
                       {state.dataSet === DataSet.EVENTS ? (
                         <Measurements>
@@ -1023,9 +1043,8 @@ const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
 `;
 
-const VisualizationWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
+const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
+  overflow: ${p => (p.displayType === DisplayType.TABLE ? 'hidden' : 'visible')};
 `;
 
 const DataSetChoices = styled(RadioGroup)`
@@ -1081,12 +1100,17 @@ const Main = styled(Layout.Main)`
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     border-left: 1px solid ${p => p.theme.gray200};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
     border-top: 1px solid ${p => p.theme.gray200};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-row: 2/2;
+    grid-column: 1/1;
   }
 `;
 
