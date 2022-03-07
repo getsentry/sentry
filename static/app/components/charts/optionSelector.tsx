@@ -124,13 +124,7 @@ const StyledTruncate = styled(Truncate)<{
   isActive: boolean;
 }>`
   & span {
-    ${p =>
-      p.isActive &&
-      `
-      color: ${p.theme.white};
-      background: ${p.theme.active};
-      border: none;
-    `}
+    ${p => p.isActive && 'border: none;'}
   }
 `;
 

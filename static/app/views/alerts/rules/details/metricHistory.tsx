@@ -10,11 +10,10 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import PanelTable from 'sentry/components/panels/panelTable';
 import StatusIndicator from 'sentry/components/statusIndicator';
-import Tooltip from 'sentry/components/tooltip';
-import {IconShow} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/incidentRules/types';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
@@ -106,15 +105,12 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
         })}
       </Cell>
       <Cell>{threshold}</Cell>
-      <SeenByCell>
-        <IconWrapper>
-          <Tooltip title={t('People who have viewed this')} skipWrapper>
-            <StyledIconShow size="xs" color="gray200" />
-          </Tooltip>
-          {incident.seenBy.length}
-        </IconWrapper>
-      </SeenByCell>
-      <StyledDateTime date={incident.dateCreated} />
+      <StyledDateTime
+        date={getDynamicText({
+          value: incident.dateCreated,
+          fixed: 'Mar 4, 2022 10:44:13 AM UTC',
+        })}
+      />
     </ErrorBoundary>
   );
 }
@@ -137,13 +133,7 @@ function MetricHistory({organization, incidents}: Props) {
       {({isExpanded, showMoreButton}) => (
         <div>
           <StyledPanelTable
-            headers={[
-              t('Alert'),
-              t('Reason'),
-              t('Duration'),
-              t('Seen By'),
-              t('Date Triggered'),
-            ]}
+            headers={[t('Alert'), t('Reason'), t('Duration'), t('Date Triggered')]}
             isEmpty={!numOfIncidents}
             emptyMessage={t('No alerts triggered during this time.')}
             expanded={numOfIncidents <= COLLAPSE_COUNT || isExpanded}
@@ -172,7 +162,7 @@ function MetricHistory({organization, incidents}: Props) {
 export default MetricHistory;
 
 const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean}>`
-  grid-template-columns: max-content 3fr repeat(3, max-content);
+  grid-template-columns: max-content 1fr repeat(2, max-content);
 
   & > div {
     padding: ${space(1)} ${space(2)};
@@ -217,18 +207,4 @@ const Cell = styled('div')`
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1)};
-`;
-
-const SeenByCell = styled(Cell)`
-  justify-content: flex-end;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: end;
-`;
-
-const StyledIconShow = styled(IconShow)`
-  margin-right: ${space(0.5)};
 `;

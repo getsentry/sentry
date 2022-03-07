@@ -299,9 +299,7 @@ class FromRequestTest(TestCase):
         assert result.has_permission("test.permission")
 
         assert result.role == "admin"
-        assert result.is_active
         assert result.has_global_access
-        assert result.organization_id == org.id
 
         assert result.teams == frozenset({team})
         assert result.has_team_access(team)
@@ -332,6 +330,32 @@ class FromRequestTest(TestCase):
         assert result.has_team_access(team)
         assert result.projects == frozenset({project})
         assert result.has_project_access(project)
+
+    def test_superuser_with_team_membership(self):
+        org = self.create_organization()
+        AuthProvider.objects.create(organization=org)
+
+        member_team = self.create_team(organization=org)
+        member_project = self.create_project(organization=org, teams=[member_team])
+        non_member_team = self.create_team(organization=org)
+        non_member_project = self.create_project(organization=org, teams=[non_member_team])
+
+        user = self.create_user(is_superuser=True)
+        self.create_member(user=user, organization=org, role="admin", teams=[member_team])
+
+        request = self.make_request(user=user, is_superuser=True)
+        result = access.from_request(request, org)
+
+        assert result.teams == frozenset({member_team, non_member_team})
+        assert result.has_team_access(member_team)
+        assert result.has_team_access(non_member_team)
+        assert result.projects == frozenset({member_project, non_member_project})
+        assert result.has_project_access(member_project)
+        assert result.has_project_access(non_member_project)
+        assert result.has_project_membership(member_project)
+
+        # TODO: This should actually be false per the has_project_membership docstring
+        assert result.has_project_membership(non_member_project)
 
 
 class FromSentryAppTest(TestCase):
@@ -372,7 +396,6 @@ class FromSentryAppTest(TestCase):
     def test_has_access(self):
         request = self.make_request(user=self.proxy_user)
         result = access.from_request(request, self.org)
-        assert result.is_active
         assert result.has_global_access
         assert result.has_team_access(self.team)
         assert result.teams == frozenset({self.team})
@@ -451,7 +474,6 @@ class FromSentryAppTest(TestCase):
 class DefaultAccessTest(TestCase):
     def test_no_access(self):
         result = access.DEFAULT
-        assert not result.is_active
         assert result.sso_is_valid
         assert not result.scopes
         assert not result.has_team_access(Mock())

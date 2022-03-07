@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -88,11 +88,20 @@ const ProjectSelector = ({
   selectedProjects = [],
   ...props
 }: Props) => {
+  // We'll only update the selected project list every time we open the menu,
+  // this helps avoid re-sorting as we select projects.
+  const lastSelected = useRef<Project[]>(selectedProjects);
+
+  const handleClose = () => {
+    lastSelected.current = selectedProjects;
+    onClose?.();
+  };
+
   const getProjects = () => {
     const {nonMemberProjects = []} = props;
     return [
       sortBy(multiProjects, project => [
-        !selectedProjects.find(selectedProject => selectedProject.slug === project.slug),
+        !lastSelected.current.find(p => p.slug === project.slug),
         !project.isBookmarked,
         project.slug,
       ]),
@@ -174,7 +183,7 @@ const ProjectSelector = ({
       detached={detached}
       searchPlaceholder={t('Filter projects')}
       onSelect={handleSelect}
-      onClose={onClose}
+      onClose={handleClose}
       onChange={onFilterChange}
       busyItemsStillVisible={searching}
       onScroll={onScroll}
@@ -217,14 +226,14 @@ const ProjectSelector = ({
         }
 
         return (
-          <React.Fragment>
+          <Fragment>
             {showCreateProjectButton && (
               <CreateProjectButton priority="primary" size="small" to={newProjectUrl}>
                 {t('Create project')}
               </CreateProjectButton>
             )}
             {renderedFooter}
-          </React.Fragment>
+          </Fragment>
         );
       }}
       items={getItems(hasProjects)}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, cast
 
 from django.db.models import Count
@@ -141,11 +142,24 @@ def get_integration_link(organization: Organization, integration_slug: str) -> s
     return integration_link
 
 
+@dataclass
+class NotificationRuleDetails:
+    id: int
+    label: str
+    url: str
+    status_url: str
+
+
 def get_rules(
     rules: Sequence[Rule], organization: Organization, project: Project
-) -> Sequence[tuple[str, str]]:
+) -> Sequence[NotificationRuleDetails]:
     return [
-        (rule.label, f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/")
+        NotificationRuleDetails(
+            rule.id,
+            rule.label,
+            f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/",
+            f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule.id}/details/",
+        )
         for rule in rules
     ]
 
