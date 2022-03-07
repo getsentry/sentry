@@ -7,9 +7,9 @@ class CommentEvent(analytics.Event, abc.ABC):
     attributes = (
         analytics.Attribute("user_id", type=int, required=False),
         analytics.Attribute("group_id", type=int),
-        analytics.Attribute("project_id", type=int),
-        analytics.Attribute("comment_id", type=int),
+        analytics.Attribute("project_slug", type=str),
         analytics.Attribute("installation_id", type=int),
+        analytics.Attribute("comment_id", type=int),
     )
 
 
