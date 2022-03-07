@@ -1101,6 +1101,9 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
+        "measurements.fcp": "metrics_distributions",
+        "measurements.fid": "metrics_distributions",
+        "measurements.cls": "metrics_distributions",
         "user": "metrics_sets",
     }
     METRIC_STRINGS = []
@@ -1114,6 +1117,8 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         PGStringIndexer().bulk_record(
             strings=[
                 "transaction",
+                "environment",
+                "http.status",
                 "transaction.status",
                 *self.METRIC_STRINGS,
                 *list(SPAN_STATUS_NAME_TO_CODE.keys()),
