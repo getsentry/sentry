@@ -455,7 +455,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
 
-    def test_post_widgets_with_null_columns_and_aggregates_succeeds(self):
+    def test_post_widgets_with_null_columns_and_aggregates_succeeds_and_sets_value(self):
         data = {
             "title": "Dashboard with null agg and cols",
             "widgets": [
@@ -490,6 +490,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             self.assert_serialized_widget(expected_widget, actual_widget)
             queries = actual_widget.dashboardwidgetquery_set.all()
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
+                expected_query["columns"] = []
+                expected_query["aggregates"] = ["count()"]
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_post_widgets_with_columns_and_aggregates_succeeds(self):

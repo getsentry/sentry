@@ -288,7 +288,7 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(
             data={
                 "message": "Foo bar",
-                "exception": {"type": "Foo", "value": "shits on fiah yo"},
+                "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
                 "timestamp": one_min_ago,
             },
@@ -332,7 +332,7 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(
             data={
                 "message": "Foo bar",
-                "exception": {"type": "Foo", "value": "shits on fiah yo"},
+                "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
                 "timestamp": one_min_ago,
             },
@@ -380,7 +380,7 @@ class TestSendResourceChangeWebhook(TestCase):
         event = self.store_event(
             data={
                 "message": "Foo bar",
-                "exception": {"type": "Foo", "value": "shits on fiah yo"},
+                "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
                 "timestamp": one_min_ago,
             },

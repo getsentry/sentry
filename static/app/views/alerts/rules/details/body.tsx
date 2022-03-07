@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -12,20 +12,17 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import Duration from 'sentry/components/duration';
-import IdBadge from 'sentry/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
 import {IconDiamond, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Actor, DateString, Organization, Project} from 'sentry/types';
+import {Actor, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import Projects from 'sentry/utils/projects';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
 import {
   Action,
@@ -46,10 +43,9 @@ import RelatedTransactions from './relatedTransactions';
 
 type Props = {
   api: Client;
-  handleTimePeriodChange: (value: string) => void;
-  handleZoom: (start: DateString, end: DateString) => void;
   location: Location;
   organization: Organization;
+  project: Project;
   timePeriod: TimePeriodType;
   incidents?: Incident[];
   rule?: IncidentRule;
@@ -117,6 +113,15 @@ export default class DetailsBody extends React.Component<Props> {
 
     return queryWithEventType;
   }
+
+  handleTimePeriodChange = (value: string) => {
+    browserHistory.push({
+      pathname: this.props.location.pathname,
+      query: {
+        period: value,
+      },
+    });
+  };
 
   renderTrigger(label: string, threshold: number, actions: Action[]): React.ReactNode {
     const {rule} = this.props;
@@ -316,154 +321,119 @@ export default class DetailsBody extends React.Component<Props> {
   render() {
     const {
       api,
+      project,
       rule,
       incidents,
       location,
       organization,
       timePeriod,
       selectedIncident,
-      handleZoom,
       params: {orgId},
     } = this.props;
 
-    if (!rule) {
+    if (!rule || !project) {
       return this.renderLoading();
     }
 
-    const {query, projects: projectSlugs, dataset} = rule;
+    const {query, dataset} = rule;
 
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
     return (
-      <Projects orgId={orgId} slugs={projectSlugs}>
-        {({initiallyLoaded, projects}) => {
-          return initiallyLoaded ? (
-            <React.Fragment>
-              {selectedIncident &&
-                selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
-                  <StyledLayoutBody>
-                    <StyledAlert type="warning" icon={<IconInfo size="md" />}>
-                      {t(
-                        'Alert Rule settings have been updated since this alert was triggered.'
-                      )}
-                    </StyledAlert>
-                  </StyledLayoutBody>
+      <React.Fragment>
+        {selectedIncident &&
+          selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
+            <StyledLayoutBody>
+              <StyledAlert type="warning" icon={<IconInfo size="md" />}>
+                {t(
+                  'Alert Rule settings have been updated since this alert was triggered.'
                 )}
-              <StyledLayoutBodyWrapper>
-                <Layout.Main>
-                  <HeaderContainer>
-                    <HeaderGrid>
-                      <HeaderItem>
-                        <Heading noMargin>{t('Display')}</Heading>
-                        <ChartControls>
-                          <DropdownControl
-                            label={
-                              getDynamicText({
-                                fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
-                                value: timePeriod.display,
-                              }) ?? '' // we should never get here because timePeriod.display is typed as always defined
-                            }
-                          >
-                            {TIME_OPTIONS.map(({label, value}) => (
-                              <DropdownItem
-                                key={value}
-                                eventKey={value}
-                                isActive={
-                                  !timePeriod.custom && timePeriod.period === value
-                                }
-                                onSelect={this.props.handleTimePeriodChange}
-                              >
-                                {label}
-                              </DropdownItem>
-                            ))}
-                          </DropdownControl>
-                        </ChartControls>
-                      </HeaderItem>
-                      {projects && projects.length && (
-                        <HeaderItem>
-                          <Heading noMargin>{t('Project')}</Heading>
+              </StyledAlert>
+            </StyledLayoutBody>
+          )}
+        <StyledLayoutBodyWrapper>
+          <Layout.Main>
+            <DateContainer>
+              <StyledDropdownControl
+                label={getDynamicText({
+                  fixed: (
+                    <div>
+                      {t('Date Range')}:{' '}
+                      <DropdownLabel>Oct 14, 2:56 PM — Oct 14, 4:55 PM</DropdownLabel>
+                    </div>
+                  ),
+                  value: (
+                    <div>
+                      {t('Date Range')}:{' '}
+                      <DropdownLabel>{timePeriod.display}</DropdownLabel>
+                    </div>
+                  ),
+                })}
+              >
+                {TIME_OPTIONS.map(({label, value}) => (
+                  <DropdownItem
+                    key={value}
+                    eventKey={value}
+                    isActive={!timePeriod.custom && timePeriod.period === value}
+                    onSelect={this.handleTimePeriodChange}
+                  >
+                    {label}
+                  </DropdownItem>
+                ))}
+              </StyledDropdownControl>
+            </DateContainer>
 
-                          <IdBadge avatarSize={16} project={projects[0]} />
-                        </HeaderItem>
-                      )}
-                      <HeaderItem>
-                        <Heading noMargin>
-                          {t('Time Interval')}
-                          <Tooltip
-                            title={t(
-                              'The time window over which the metric is evaluated.'
-                            )}
-                          >
-                            <IconInfo size="xs" color="gray200" />
-                          </Tooltip>
-                        </Heading>
-
-                        <RuleText>{this.getTimeWindow()}</RuleText>
-                      </HeaderItem>
-                    </HeaderGrid>
-                  </HeaderContainer>
-
-                  <MetricChart
-                    api={api}
-                    rule={rule}
-                    incidents={incidents}
-                    timePeriod={timePeriod}
-                    selectedIncident={selectedIncident}
+            <MetricChart
+              api={api}
+              rule={rule}
+              incidents={incidents}
+              timePeriod={timePeriod}
+              selectedIncident={selectedIncident}
+              organization={organization}
+              project={project}
+              interval={this.getInterval()}
+              query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
+              filter={this.getFilter()}
+              orgId={orgId}
+            />
+            <DetailWrapper>
+              <ActivityWrapper>
+                <MetricHistory organization={organization} incidents={incidents} />
+                {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
+                  <RelatedIssues
                     organization={organization}
-                    projects={projects}
-                    interval={this.getInterval()}
-                    query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
-                    filter={this.getFilter()}
-                    orgId={orgId}
-                    handleZoom={handleZoom}
+                    rule={rule}
+                    projects={[project]}
+                    timePeriod={timePeriod}
+                    query={
+                      dataset === Dataset.ERRORS
+                        ? queryWithTypeFilter
+                        : dataset === Dataset.SESSIONS
+                        ? `${query} error.unhandled:true`
+                        : undefined
+                    }
                   />
-                  <DetailWrapper>
-                    <ActivityWrapper>
-                      <MetricHistory organization={organization} incidents={incidents} />
-                      {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
-                        <RelatedIssues
-                          organization={organization}
-                          rule={rule}
-                          projects={((projects as Project[]) || []).filter(project =>
-                            rule.projects.includes(project.slug)
-                          )}
-                          timePeriod={timePeriod}
-                          query={
-                            dataset === Dataset.ERRORS
-                              ? queryWithTypeFilter
-                              : dataset === Dataset.SESSIONS
-                              ? `${query} error.unhandled:true`
-                              : undefined
-                          }
-                        />
-                      )}
-                      {dataset === Dataset.TRANSACTIONS && (
-                        <RelatedTransactions
-                          organization={organization}
-                          location={location}
-                          rule={rule}
-                          projects={((projects as Project[]) || []).filter(project =>
-                            rule.projects.includes(project.slug)
-                          )}
-                          start={timePeriod.start}
-                          end={timePeriod.end}
-                          filter={extractEventTypeFilterFromRule(rule)}
-                        />
-                      )}
-                    </ActivityWrapper>
-                  </DetailWrapper>
-                </Layout.Main>
-                <Layout.Side>
-                  {this.renderMetricStatus()}
-                  {this.renderRuleDetails()}
-                </Layout.Side>
-              </StyledLayoutBodyWrapper>
-            </React.Fragment>
-          ) : (
-            <Placeholder height="200px" />
-          );
-        }}
-      </Projects>
+                )}
+                {dataset === Dataset.TRANSACTIONS && (
+                  <RelatedTransactions
+                    organization={organization}
+                    location={location}
+                    rule={rule}
+                    projects={[project]}
+                    start={timePeriod.start}
+                    end={timePeriod.end}
+                    filter={extractEventTypeFilterFromRule(rule)}
+                  />
+                )}
+              </ActivityWrapper>
+            </DetailWrapper>
+          </Layout.Main>
+          <Layout.Side>
+            {this.renderMetricStatus()}
+            {this.renderRuleDetails()}
+          </Layout.Side>
+        </StyledLayoutBodyWrapper>
+      </React.Fragment>
     );
   }
 }
@@ -481,18 +451,23 @@ const DetailWrapper = styled('div')`
   }
 `;
 
-const HeaderContainer = styled('div')`
-  height: 60px;
+const DateContainer = styled('div')`
   display: flex;
-  flex-direction: row;
-  align-content: flex-start;
+  align-items: center;
 `;
 
-const HeaderGrid = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto auto;
-  align-items: stretch;
-  gap: 60px;
+const DropdownLabel = styled('span')`
+  font-weight: 400;
+`;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  width: 100%;
+  button {
+    width: 100%;
+    span {
+      justify-content: space-between;
+    }
+  }
 `;
 
 const HeaderItem = styled('div')`
@@ -552,12 +527,6 @@ const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
   margin-bottom: ${space(0.5)};
   line-height: 1;
   gap: ${space(1)};
-`;
-
-const ChartControls = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
 `;
 
 const ChartPanel = styled(Panel)`
