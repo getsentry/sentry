@@ -686,14 +686,14 @@ function WidgetBuilder({
                       'This is a preview of how your widget will appear in the dashboard.'
                     )}
                   >
-                    <VisualizationWrapper>
-                      <DisplayTypeSelector
-                        displayType={state.displayType}
-                        onChange={(option: {label: string; value: DisplayType}) => {
-                          handleDisplayTypeOrTitleChange('displayType', option.value);
-                        }}
-                        error={state.errors?.displayType}
-                      />
+                    <DisplayTypeSelector
+                      displayType={state.displayType}
+                      onChange={(option: {label: string; value: DisplayType}) => {
+                        handleDisplayTypeOrTitleChange('displayType', option.value);
+                      }}
+                      error={state.errors?.displayType}
+                    />
+                    <VisualizationWrapper displayType={state.displayType}>
                       <WidgetCard
                         organization={organization}
                         selection={pageFilters}
@@ -1043,9 +1043,8 @@ const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
 `;
 
-const VisualizationWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
+const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
+  overflow: ${p => (p.displayType === DisplayType.TABLE ? 'hidden' : 'visible')};
 `;
 
 const DataSetChoices = styled(RadioGroup)`
