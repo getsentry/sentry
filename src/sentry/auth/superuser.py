@@ -313,7 +313,7 @@ class Superuser:
             logger.info(
                 "superuser.superuser_access",
                 extra={
-                    "superuser_session_id": superuser_session_id,
+                    "superuser_token_id": superuser_session_id,
                     "user_id": request.user.id,
                     "user_email": request.user.email,
                     "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
