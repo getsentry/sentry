@@ -1,15 +1,37 @@
-import * as React from 'react';
-import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router';
 
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {Organization, PageFilters} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-const Body = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
-  flex-direction: column;
-  flex: 1;
-`;
+type Props = RouteComponentProps<{}, {}> & {
+  children: React.ReactChildren;
+  organization: Organization;
+  selection: PageFilters;
+};
 
-// TODO: feature check on 'replays'
-const ReplaysContainer: React.FC = ({children}) => <Body>{children}</Body>;
+function ReplaysContainer({organization, children}: Props) {
+  function renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
 
-export default withPageFilters(ReplaysContainer);
+  return (
+    <Feature
+      features={['session-replay']}
+      organization={organization}
+      renderDisabled={renderNoAccess}
+    >
+      {children}
+    </Feature>
+  );
+}
+
+export default withPageFilters(withOrganization(ReplaysContainer));
