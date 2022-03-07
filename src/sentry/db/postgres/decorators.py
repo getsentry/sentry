@@ -79,7 +79,7 @@ def capture_transaction_exceptions(func):
     return inner
 
 
-def less_shitty_error_messages(func):
+def more_better_error_messages(func):
     """
     Wraps functions where the first param is a SQL statement and enforces
     any exceptions thrown will also contain the statement in the message.
