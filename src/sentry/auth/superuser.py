@@ -50,6 +50,8 @@ ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTE
 
 ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
 
+SENTRY_SELF_HOSTED = getattr(settings, "SENTRY_SELF_HOSTED", False)
+
 UNSET = object()
 
 
@@ -285,9 +287,27 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if request.method == "PUT":
-            # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
+        if SENTRY_SELF_HOSTED:
+            self._set_logged_in(
+                expires=current_datetime + MAX_AGE,
+                token=token,
+                user=user,
+                current_datetime=current_datetime,
+            )
+
+            logger.info(
+                "superuser.logged-in",
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
+            )
+            return
+
+        try:
             su_access_json = json.loads(request.body)
+        except AttributeError:
+            su_access_json = []
+
+        if "superuserAccessCategory" in su_access_json:
+
             su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
             if not su_access_info.is_valid():
@@ -296,7 +316,7 @@ class Superuser:
             logger.info(
                 "superuser.superuser_access",
                 extra={
-                    "superuser_session_id": token,
+                    "superuser_token_id": token,
                     "user_id": request.user.id,
                     "user_email": request.user.email,
                     "su_access_category": su_access_info.validated_data["superuserAccessCategory"],

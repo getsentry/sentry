@@ -14,9 +14,9 @@ from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.superuser import Superuser, is_active_superuser
-from sentry.models import Authenticator, AuthIdentity, Organization
+from sentry.models import Authenticator, Organization
 from sentry.utils import auth, json
-from sentry.utils.auth import initiate_login
+from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.functional import extract_lazy_object
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -34,6 +34,20 @@ class AuthIndexEndpoint(Endpoint):
     authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
 
     permission_classes = ()
+
+    @staticmethod
+    def _reauthenticate_with_sso(request):
+        """
+        If a superuser hitting this endpoint is not active, they are most likely
+        trying to become active, and likely need to re-identify with SSO to do so.
+        """
+        if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
+            redirect = request.META.get("HTTP_REFERER", "")
+            if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
+                redirect = None
+
+            initiate_login(request, redirect)
+            raise SsoRequired(Organization.objects.get_from_cache(id=Superuser.org_id))
 
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
@@ -100,14 +114,12 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         validator = AuthVerifyValidator(data=request.data)
-        has_auth_identity = False
+        has_valid_sso_session = has_completed_sso(request, request.superuser.org_id)
+
         if not validator.is_valid():
-            try:
-                AuthIdentity.objects.get(user_id=request.user.id)
-                has_auth_identity = True
-            except AuthIdentity.DoesNotExist:
-                pass
-            if not has_auth_identity or not request.user.is_superuser:
+            if not has_valid_sso_session and request.user.is_superuser:
+                self._reauthenticate_with_sso(request)
+            else:
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         authenticated = False
@@ -138,8 +150,8 @@ class AuthIndexEndpoint(Endpoint):
                 )
                 pass
 
-        # if the user is a superuser and has an authidentity, they are authenticated
-        elif has_auth_identity and request.user.is_superuser:
+        # if the user is a superuser and has a valid sso session, they are authenticated
+        elif has_valid_sso_session and request.user.is_superuser:
             authenticated = True
         # attempt password authentication
         else:
@@ -154,9 +166,8 @@ class AuthIndexEndpoint(Endpoint):
             auth.login(request._request, request.user)
 
             # only give superuser access when going through superuser modal
-            if request.user.is_superuser:
-                if request.data.get("isSuperuserModal"):
-                    request.superuser.set_logged_in(request.user)
+            if request.user.is_superuser and request.data.get("isSuperuserModal"):
+                request.superuser.set_logged_in(request.user)
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
@@ -165,16 +176,6 @@ class AuthIndexEndpoint(Endpoint):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
-
-        if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
-            # if a superuser hitting this endpoint is not active, they are most likely
-            # trying to become active, and likely need to re-identify with SSO to do so.
-            redirect = request.META.get("HTTP_REFERER", "")
-            if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
-                redirect = None
-
-            initiate_login(request, redirect)
-            raise SsoRequired(Organization.objects.get_from_cache(id=Superuser.org_id))
 
         request.user = request._request.user
 
