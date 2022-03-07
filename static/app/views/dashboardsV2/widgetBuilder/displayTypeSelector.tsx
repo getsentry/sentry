@@ -19,7 +19,7 @@ type Props = {
 
 export function DisplayTypeSelector({displayType, onChange, error}: Props) {
   return (
-    <StyledField error={error} inline={false} flexibleControlStateSize stacked required>
+    <StyledField error={error} inline={false} flexibleControlStateSize stacked>
       <SelectControl
         name="displayType"
         options={DISPLAY_TYPES_OPTIONS}
