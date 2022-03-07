@@ -1,7 +1,7 @@
 export const EVENT_CHOICES = ['issue', 'error', 'comment'] as const;
 
 export const DESCRIPTIONS = {
-  issue: 'created, resolved, assigned',
+  issue: 'created, resolved, assigned, ignored',
   error: 'created',
   comment: 'created, edited, deleted',
 } as const;
