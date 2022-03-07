@@ -52,12 +52,12 @@ describe('AlertRuleDetails', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/`,
-      body: [TestStubs.Group()],
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/group-history/`,
+      body: [{count: 1, group: TestStubs.Group()}],
       headers: {
         Link:
-          '<https://sentry.io/api/0/organizations/org-slug/issues/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
-          '<https://sentry.io/api/0/organizations/org-slug/issues/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
+          '<https://sentry.io/api/0/projects/org-slug/project-slug/rules/1/group-history/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
+          '<https://sentry.io/api/0/projects/org-slug/project-slug/rules/1/group-history/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
     });
     MockApiClient.addMockResponse({
