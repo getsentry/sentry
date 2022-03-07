@@ -230,12 +230,15 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     } = this.props;
 
     if (widget.displayType === 'table') {
-      return (
-        <TransitionChart loading={loading} reloading={loading}>
-          <LoadingScreen loading={loading} />
-          {this.tableResultComponent({tableResults, loading, errorMessage})}
-        </TransitionChart>
-      );
+      return getDynamicText({
+        value: (
+          <TransitionChart loading={loading} reloading={loading}>
+            <LoadingScreen loading={loading} />
+            {this.tableResultComponent({tableResults, loading, errorMessage})}
+          </TransitionChart>
+        ),
+        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+      });
     }
 
     if (widget.displayType === 'big_number') {
