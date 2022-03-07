@@ -142,6 +142,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
           onDelete={this.handleArtifactDelete}
           downloadUrl={`${artifactApiUrl}${artifact.id}/?download=1`}
           downloadRole={organization.debugFilesRole}
+          orgSlug={organization.slug}
         />
       );
     });
