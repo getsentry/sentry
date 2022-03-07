@@ -127,16 +127,12 @@ class SettingsIndex extends React.Component<SettingsIndexProps> {
               {!organization && <LoadingIndicator overlay hideSpinner />}
               <HomePanelHeader>
                 <HomeLinkIcon to={organizationSettingsUrl}>
-                  {organization ? (
-                    <AvatarContainer>
-                      <OrganizationAvatar
-                        organization={organization}
-                        size={HOME_ICON_SIZE}
-                      />
-                    </AvatarContainer>
-                  ) : (
-                    <OrgAvatarPlaceholder />
-                  )}
+                  <AvatarContainer>
+                    <OrganizationAvatar
+                      organization={organization}
+                      size={HOME_ICON_SIZE}
+                    />
+                  </AvatarContainer>
                   <OrganizationName>
                     {organization ? organization.slug : t('No Organization')}
                   </OrganizationName>
@@ -310,12 +306,6 @@ const HomeIcon = styled('div')<{color?: string}>`
   margin-bottom: 20px;
 `;
 
-const OrgAvatarPlaceholder = styled(HomeIcon)`
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  border: solid 1px ${p => p.theme.innerBorder};
-`;
-
 const HomeLink = styled(Link)<LinkProps>`
   color: ${p => p.theme.purple300};
 
@@ -368,8 +358,10 @@ function SupportLinkComponent(
   return <HomeLink {...props} />;
 }
 
-const AvatarContainer = styled('div')`
-  margin-bottom: 20px;
+const AvatarContainer = styled(HomeIcon)`
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  border: solid 1px ${p => p.theme.innerBorder};
 `;
 
 const OrganizationName = styled('div')`
