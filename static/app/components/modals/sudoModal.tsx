@@ -117,6 +117,7 @@ class SudoModal extends React.Component<Props, State> {
     const {superuser} = this.props;
     const {error, isFirstStep, errorType} = this.state;
     const user = ConfigStore.get('user');
+    const isSelfHosted = ConfigStore.get('isSelfHosted');
     const placeholderForSUCategories = [
       {value: '1', name: 'a'},
       {value: '2', name: 'b'},
@@ -152,7 +153,7 @@ class SudoModal extends React.Component<Props, State> {
             onSubmitError={this.handleError}
             resetOnError
           >
-            {isFirstStep && superuser && (
+            {!isSelfHosted && isFirstStep && superuser && (
               <StyledSelectField
                 name="superuserAccessCategory"
                 label={t('Catergory of Superuser Access')}
@@ -166,7 +167,7 @@ class SudoModal extends React.Component<Props, State> {
                 required
               />
             )}
-            {isFirstStep && superuser && (
+            {!isSelfHosted && isFirstStep && superuser && (
               <StyledInputField
                 type="text"
                 inline={false}
@@ -215,7 +216,7 @@ class SudoModal extends React.Component<Props, State> {
           hideFooter={!user.hasPasswordAuth}
           resetOnError
         >
-          {isFirstStep && superuser && (
+          {!isSelfHosted && isFirstStep && superuser && (
             <StyledSelectField
               name="superuserAccessCategory"
               label={t('Catergory of Superuser Access')}
@@ -229,7 +230,7 @@ class SudoModal extends React.Component<Props, State> {
               required
             />
           )}
-          {isFirstStep && superuser && (
+          {!isSelfHosted && isFirstStep && superuser && (
             <StyledInputField
               type="text"
               inline={false}
@@ -239,7 +240,7 @@ class SudoModal extends React.Component<Props, State> {
               required
             />
           )}
-          {((!isFirstStep && superuser) || !superuser) && (
+          {((!isFirstStep && superuser) || !superuser || isSelfHosted) && (
             <StyledInputField
               type="password"
               inline={false}
@@ -249,7 +250,7 @@ class SudoModal extends React.Component<Props, State> {
               flexibleControlStateSize
             />
           )}
-          {((!isFirstStep && superuser) || !superuser) && (
+          {((!isFirstStep && superuser) || !superuser || isSelfHosted) && (
             <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
           )}
         </Form>
