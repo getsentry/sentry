@@ -876,6 +876,8 @@ describe('WidgetBuilder', function () {
       },
     });
 
+    await screen.findByText('Add Widget');
+
     expect(
       await screen.findByText('count_if(transaction.duration,equals,300)*2')
     ).toBeInTheDocument();
