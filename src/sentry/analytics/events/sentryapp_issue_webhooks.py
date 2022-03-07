@@ -11,19 +11,19 @@ class SentryAppIssueEvent(analytics.Event, abc.ABC):
     )
 
 
-class SentryAppIssueAssigned(analytics.Event):
+class SentryAppIssueAssigned(SentryAppIssueEvent):
     type = "sentry_app.issue.assigned"
 
 
-class SentryAppIssueCreated(analytics.Event):
+class SentryAppIssueCreated(SentryAppIssueEvent):
     type = "sentry_app.issue.created"
 
 
-class SentryAppIssueIgnored(analytics.Event):
+class SentryAppIssueIgnored(SentryAppIssueEvent):
     type = "sentry_app.issue.ignored"
 
 
-class SentryAppIssueResolved(analytics.Event):
+class SentryAppIssueResolved(SentryAppIssueEvent):
     type = "sentry_app.issue.resolved"
 
 

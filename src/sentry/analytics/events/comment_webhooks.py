@@ -13,15 +13,15 @@ class CommentEvent(analytics.Event, abc.ABC):
     )
 
 
-class CommentCreatedEvent(analytics.Event):
+class CommentCreatedEvent(CommentEvent):
     type = "comment.created"
 
 
-class CommentUpdatedEvent(analytics.Event):
+class CommentUpdatedEvent(CommentEvent):
     type = "comment.updated"
 
 
-class CommentDeletedEvent(analytics.Event):
+class CommentDeletedEvent(CommentEvent):
     type = "comment.deleted"
 
 
