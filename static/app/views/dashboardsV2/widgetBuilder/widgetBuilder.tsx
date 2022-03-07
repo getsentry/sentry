@@ -2,6 +2,8 @@ import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import isEmpty from 'lodash/isEmpty';
+import omit from 'lodash/omit';
 import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
@@ -14,6 +16,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -21,7 +24,7 @@ import {PanelAlert} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {
@@ -262,11 +265,12 @@ function WidgetBuilder({
   };
 
   const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
+  const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
     pathname: currentDashboardId
       ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
       : `/organizations/${orgId}/dashboards/new/`,
-    query: {...location.query},
+    query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
@@ -598,9 +602,10 @@ function WidgetBuilder({
       title: widgetData.title,
       ...queryData,
       // Propagate page filters
-      ...selection.datetime,
-      project: selection.projects,
-      environment: selection.environments,
+      project: pageFilters.projects,
+      environment: pageFilters.environments,
+      ...omit(pageFilters.datetime, 'period'),
+      statsPeriod: pageFilters.datetime?.period,
     };
 
     addSuccessMessage(t('Added widget.'));
@@ -608,17 +613,25 @@ function WidgetBuilder({
   }
 
   function goToDashboards(id: string, query?: Record<string, any>) {
+    const pathQuery =
+      !isEmpty(queryParamsWithoutSource) || query
+        ? {
+            ...queryParamsWithoutSource,
+            ...query,
+          }
+        : undefined;
+
     if (id === NEW_DASHBOARD_ID) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
-        query,
+        query: pathQuery,
       });
       return;
     }
 
     router.push({
       pathname: `/organizations/${organization.slug}/dashboard/${id}/`,
-      query,
+      query: pathQuery,
     });
   }
 
@@ -629,6 +642,14 @@ function WidgetBuilder({
       measurementKeys: Object.values(measurements).map(({key}) => key),
       spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
     });
+  }
+
+  function isFormInvalid() {
+    if (notDashboardsOrigin && !state.selectedDashboard) {
+      return true;
+    }
+
+    return false;
   }
 
   if (isEditing && widgetIndex >= dashboard.widgets.length) {
@@ -685,14 +706,14 @@ function WidgetBuilder({
                       'This is a preview of how your widget will appear in the dashboard.'
                     )}
                   >
-                    <VisualizationWrapper>
-                      <DisplayTypeSelector
-                        displayType={state.displayType}
-                        onChange={(option: {label: string; value: DisplayType}) => {
-                          handleDisplayTypeOrTitleChange('displayType', option.value);
-                        }}
-                        error={state.errors?.displayType}
-                      />
+                    <DisplayTypeSelector
+                      displayType={state.displayType}
+                      onChange={(option: {label: string; value: DisplayType}) => {
+                        handleDisplayTypeOrTitleChange('displayType', option.value);
+                      }}
+                      error={state.errors?.displayType}
+                    />
+                    <VisualizationWrapper displayType={state.displayType}>
                       <WidgetCard
                         organization={organization}
                         selection={pageFilters}
@@ -738,9 +759,28 @@ function WidgetBuilder({
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <BuildStep
                       title={t('Choose your columns')}
-                      description={t(
-                        'These are the tags, fields, and groupings you can add as columns to your table.'
-                      )}
+                      description={
+                        state.dataSet !== DataSet.ISSUES
+                          ? tct(
+                              'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
+                              {
+                                functionLink: (
+                                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
+                                ),
+                                tagFieldLink: (
+                                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
+                                ),
+                              }
+                            )
+                          : tct(
+                              '[tagFieldLink: Tag and field] columns will help you view more details about the issues (i.e. title).',
+                              {
+                                tagFieldLink: (
+                                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
+                                ),
+                              }
+                            )
+                      }
                     >
                       {state.dataSet === DataSet.EVENTS ? (
                         <Measurements>
@@ -877,7 +917,6 @@ function WidgetBuilder({
                                 <LegendAliasInput
                                   type="text"
                                   name="name"
-                                  required
                                   value={query.name}
                                   placeholder={t('Legend Alias')}
                                   onChange={event => {
@@ -993,6 +1032,7 @@ function WidgetBuilder({
                 isEditing={isEditing}
                 onSave={handleSave}
                 onDelete={handleDelete}
+                invalidForm={isFormInvalid()}
               />
             </MainWrapper>
             <Side>
@@ -1023,9 +1063,9 @@ const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
 `;
 
-const VisualizationWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
+const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
+  overflow: ${p => (p.displayType === DisplayType.TABLE ? 'hidden' : 'visible')};
+  padding-right: ${space(2)};
 `;
 
 const DataSetChoices = styled(RadioGroup)`
@@ -1081,12 +1121,17 @@ const Main = styled(Layout.Main)`
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     border-left: 1px solid ${p => p.theme.gray200};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
     border-top: 1px solid ${p => p.theme.gray200};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-row: 2/2;
+    grid-column: 1/1;
   }
 `;
 

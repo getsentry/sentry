@@ -390,6 +390,9 @@ class Fixtures:
             kwargs["actor"] = self.user.actor
         return Factories.create_group_history(*args, **kwargs)
 
+    def create_comment(self, *args, **kwargs):
+        return Factories.create_comment(*args, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
