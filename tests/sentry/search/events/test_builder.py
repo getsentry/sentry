@@ -1,5 +1,6 @@
 import datetime
 import re
+from typing import List
 
 import pytest
 from django.utils import timezone
@@ -579,9 +580,9 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
         "arrayElement",
         [
             Function(
-                f"quantilesMergeIf(0.{quantile.rstrip('0')})",
+                f"quantilesIf(0.{quantile.rstrip('0')})",
                 [
-                    Column("percentiles"),
+                    Column("value"),
                     Function(
                         "equals",
                         [Column("metric_id"), indexer.resolve(constants.METRICS_MAP[field])],
@@ -592,6 +593,16 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
         ],
         f"p{quantile}_{field.replace('.', '_')}",
     )
+
+
+def _metric_conditions(metrics) -> List[Condition]:
+    return [
+        Condition(
+            Column("metric_id"),
+            Op.IN,
+            sorted(indexer.resolve(constants.METRICS_MAP[metric]) for metric in metrics),
+        )
+    ]
 
 
 class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
@@ -660,7 +671,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "p99(measurements.fid)",
             ],
         )
-        self.assertCountEqual(query.where, self.default_conditions)
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(
+                    [
+                        "transaction.duration",
+                        "measurements.lcp",
+                        "measurements.fcp",
+                        "measurements.cls",
+                        "measurements.fid",
+                    ]
+                ),
+            ],
+        )
         self.assertCountEqual(
             query.distributions,
             [
@@ -678,7 +703,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "",
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
-        self.assertCountEqual(query.where, self.default_conditions)
+        self.assertCountEqual(
+            query.where, [*self.default_conditions, *_metric_conditions(["transaction.duration"])]
+        )
         transaction_index = indexer.resolve("transaction")
         transaction = AliasedExpression(
             Column(f"tags[{transaction_index}]"),
@@ -713,7 +740,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         transaction_name = indexer.resolve("foo_transaction")
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
-            query.where, [*self.default_conditions, Condition(transaction, Op.EQ, transaction_name)]
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
+                Condition(transaction, Op.EQ, transaction_name),
+            ],
         )
 
     def test_transaction_in_filter(self):
@@ -730,6 +762,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.where,
             [
                 *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
                 Condition(transaction, Op.IN, [transaction_name1, transaction_name2]),
             ],
         )
@@ -764,7 +797,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         self.assertCountEqual(
             query.where,
-            [*self.default_conditions, Condition(Column("project_id"), Op.EQ, self.project.id)],
+            [
+                *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
+                Condition(Column("project_id"), Op.EQ, self.project.id),
+            ],
         )
 
     def test_limit_validation(self):
@@ -1088,6 +1125,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
+        assert snql_query[0].where == [
+            *self.default_conditions,
+            *_metric_conditions(["transaction.duration"]),
+        ]
         assert snql_query[0].select == [_metric_percentile_definition("50")]
         assert snql_query[0].match.name == "metrics_distributions"
         assert snql_query[0].granularity.granularity == 60
@@ -1164,6 +1205,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query.where,
             [
                 *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
                 Condition(transaction, Op.IN, [transaction_name1, transaction_name2]),
             ],
         )
@@ -1201,7 +1243,11 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         self.assertCountEqual(
             query.where,
-            [*self.default_conditions, Condition(Column("project_id"), Op.EQ, self.project.id)],
+            [
+                *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
+                Condition(Column("project_id"), Op.EQ, self.project.id),
+            ],
         )
 
     def test_meta(self):
