@@ -20,8 +20,14 @@ from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
 )
 from sentry.utils import json, metrics
+
 from .client import SlackClient
-from .utils import (get_channel_id, SLACK_RATE_LIMITED_MESSAGE, strip_channel_name, validate_channel_id)
+from .utils import (
+    SLACK_RATE_LIMITED_MESSAGE,
+    get_channel_id,
+    strip_channel_name,
+    validate_channel_id,
+)
 
 logger = logging.getLogger("sentry.rules")
 
