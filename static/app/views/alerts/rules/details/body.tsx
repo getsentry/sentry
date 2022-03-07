@@ -45,9 +45,9 @@ type Props = {
   api: Client;
   location: Location;
   organization: Organization;
-  project: Project;
   timePeriod: TimePeriodType;
   incidents?: Incident[];
+  project?: Project;
   rule?: IncidentRule;
   selectedIncident?: Incident | null;
 } & RouteComponentProps<{orgId: string}, {}>;
