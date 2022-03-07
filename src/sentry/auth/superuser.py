@@ -303,7 +303,7 @@ class Superuser:
 
         try:
             su_access_json = json.loads(request.body)
-        except json.JSONDecodeError:
+        except AttributeError:
             su_access_json = []
 
         if "superuserAccessCategory" in su_access_json:
