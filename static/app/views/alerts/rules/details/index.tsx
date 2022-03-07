@@ -186,31 +186,36 @@ class AlertRuleDetails extends Component<Props, State> {
 
     return (
       <Projects orgId={organization.slug} slugs={rule?.projects}>
-        {({projects}) => (
-          <PageFiltersContainer
-            shouldForceProject
-            forceProject={projects[0] as Project}
-            forceEnvironment={rule?.environment ?? ''}
-            lockedMessageSubject={t('alert rule')}
-            showDateSelector={false}
-          >
-            <SentryDocumentTitle title={rule?.name ?? ''} />
+        {({projects}) => {
+          const project = projects.find(({slug}) => slug === rule?.projects[0]) as
+            | Project
+            | undefined;
+          return (
+            <PageFiltersContainer
+              shouldForceProject
+              forceProject={project}
+              forceEnvironment={rule?.environment ?? ''}
+              lockedMessageSubject={t('alert rule')}
+              showDateSelector={false}
+            >
+              <SentryDocumentTitle title={rule?.name ?? ''} />
 
-            <DetailsHeader
-              hasIncidentRuleDetailsError={hasError}
-              params={params}
-              rule={rule}
-            />
-            <DetailsBody
-              {...this.props}
-              rule={rule}
-              project={projects[0] as Project}
-              incidents={incidents}
-              timePeriod={timePeriod}
-              selectedIncident={selectedIncident}
-            />
-          </PageFiltersContainer>
-        )}
+              <DetailsHeader
+                hasIncidentRuleDetailsError={hasError}
+                params={params}
+                rule={rule}
+              />
+              <DetailsBody
+                {...this.props}
+                rule={rule}
+                project={project}
+                incidents={incidents}
+                timePeriod={timePeriod}
+                selectedIncident={selectedIncident}
+              />
+            </PageFiltersContainer>
+          );
+        }}
       </Projects>
     );
   }
