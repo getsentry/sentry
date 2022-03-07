@@ -49,21 +49,7 @@ export class Flamegraph {
 
     this.formatter = makeFormatter(profile.unit);
 
-    if (this.frames.length) {
-      this.configSpace = new Rect(this.startedAt, 0, this.duration, this.depth);
-    } else {
-      // If we have no frames, set the trace duration to 1 second so that we can render a placeholder grid
-      this.configSpace = new Rect(
-        this.startedAt,
-        0,
-        this.profile.unit === 'microseconds'
-          ? 1e6
-          : this.profile.unit === 'milliseconds'
-          ? 1e3
-          : 1,
-        0
-      );
-    }
+    this.configSpace = new Rect(this.startedAt, 0, this.duration, this.depth);
   }
 
   static Empty(): Flamegraph {
