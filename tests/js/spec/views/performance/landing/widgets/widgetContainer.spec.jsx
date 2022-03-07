@@ -221,7 +221,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Errors in widgets call PageError Provider', async function () {
+  it('should call PageError Provider when errors are present', async function () {
     const data = initializeData();
 
     eventStatsMock = MockApiClient.addMockResponse({
