@@ -63,7 +63,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
             query: 'is:unresolved',
             limit: '10',
             project: project.id,
-            statsPeriod: period,
+            ...(period && {statsPeriod: period}),
             start,
             end,
             utc,
