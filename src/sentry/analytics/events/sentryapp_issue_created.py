@@ -2,7 +2,7 @@ from sentry import analytics
 
 
 class SentryAppIssueCreated(analytics.Event):
-    type = "sentryapp.issue.created"
+    type = "sentry_app.issue.created"
 
     attributes = (
         analytics.Attribute("user_id", type=int, required=False),

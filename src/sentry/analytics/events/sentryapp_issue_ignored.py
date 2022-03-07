@@ -2,7 +2,7 @@ from sentry import analytics
 
 
 class SentryAppIssueIgnored(analytics.Event):
-    type = "sentryapp.issue.ignored"
+    type = "sentry_app.issue.ignored"
 
     attributes = (
         analytics.Attribute("user_id", type=int, required=False),

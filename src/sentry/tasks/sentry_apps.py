@@ -245,7 +245,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     data.update({"issue": serialize(issue)})
     send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
     analytics.record(
-        f"issue.{type}",
+        f"sentry_app.issue.{type}",
         user_id=user_id,
         group_id=issue_id,
         installation_id=installation_id,
