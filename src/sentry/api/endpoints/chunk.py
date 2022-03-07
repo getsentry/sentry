@@ -72,7 +72,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 endpoint = options.get("system.url-prefix")
                 url = urljoin(endpoint.rstrip("/") + "/", relative_url.lstrip("/"))
         else:
-            # If user overriden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
+            # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = urljoin(endpoint.rstrip("/") + "/", relative_url.lstrip("/"))
 
         return Response(

@@ -46,6 +46,7 @@ import RuleConditionsForm from '../ruleConditionsForm';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
+  AlertRuleTriggerType,
   Dataset,
   EventTypes,
   IncidentRule,
@@ -112,7 +113,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     // Warning trigger is removed if it is blank when saving
     if (triggersClone.length !== 2) {
-      triggersClone.push(createDefaultTrigger('warning'));
+      triggersClone.push(createDefaultTrigger(AlertRuleTriggerType.WARNING));
     }
 
     return {
@@ -338,7 +339,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           errors: triggerErrors,
           triggerIndex,
           isValid: (): boolean => {
-            if (trigger.label === 'critical') {
+            if (trigger.label === AlertRuleTriggerType.CRITICAL) {
               return !isEmpty(trigger[field]);
             }
 
@@ -361,7 +362,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     // If we have 2 triggers, we need to make sure that the critical and warning
     // alert thresholds are valid (e.g. if critical is above x, warning must be less than x)
-    const criticalTriggerIndex = triggers.findIndex(({label}) => label === 'critical');
+    const criticalTriggerIndex = triggers.findIndex(
+      ({label}) => label === AlertRuleTriggerType.CRITICAL
+    );
     const warningTriggerIndex = criticalTriggerIndex ^ 1;
     const criticalTrigger = triggers[criticalTriggerIndex];
     const warningTrigger = triggers[warningTriggerIndex];
@@ -462,7 +465,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
-      trigger => trigger.label !== 'warning' || !isEmpty(trigger.alertThreshold)
+      trigger =>
+        trigger.label !== AlertRuleTriggerType.WARNING || !isEmpty(trigger.alertThreshold)
     );
 
     // form model has all form state data, however we use local state to keep
@@ -737,9 +741,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         comparisonType={comparisonType}
         dataset={dataset}
         disabled={!hasAccess || !canEdit}
+        onComparisonDeltaChange={value =>
+          this.handleFieldChange('comparisonDelta', value)
+        }
         onComparisonTypeChange={this.handleComparisonTypeChange}
         organization={organization}
         hasAlertWizardV3={hasAlertWizardV3}
+        comparisonDelta={comparisonDelta}
       />
     );
 
@@ -800,14 +808,17 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 timeWindow={timeWindow}
                 comparisonType={comparisonType}
                 comparisonDelta={comparisonDelta}
-                onComparisonTypeChange={this.handleComparisonTypeChange}
                 onComparisonDeltaChange={value =>
                   this.handleFieldChange('comparisonDelta', value)
                 }
                 onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               />
               {!hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
-              <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
+              <AlertListItem>
+                {hasAlertWizardV3
+                  ? t('Set thresholds')
+                  : t('Set thresholds to trigger alert')}
+              </AlertListItem>
               {hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
               {triggerForm(hasAccess)}
               {ruleNameOwnerForm(hasAccess)}
