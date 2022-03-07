@@ -378,7 +378,7 @@ def from_user(
 
     def organizationless():
         return OrganizationlessAccess(
-            permissions=get_permissions_for_user(user.id) if is_superuser else frozenset(),
+            permissions=get_permissions_for_user(user.id) if is_superuser else frozenset()
         )
 
     if not organization:
