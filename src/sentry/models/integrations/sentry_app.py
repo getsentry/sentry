@@ -2,7 +2,6 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import QuerySet
@@ -26,21 +25,24 @@ from sentry.db.models import (
 from sentry.models.apiscopes import HasApiScopes
 from sentry.utils import metrics
 
-if TYPE_CHECKING:
-    from sentry.models import Project, User
-
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those
 # specific events are for each resource.
 EVENT_EXPANSION = {
-    "issue": ["issue.created", "issue.resolved", "issue.ignored", "issue.assigned"],
+    "issue": [
+        "issue.created",
+        "issue.resolved",
+        "issue.ignored",
+        "issue.assigned",
+    ],
     "error": ["error.created"],
+    "comment": ["comment.created", "comment.updated", "comment.deleted"],
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
 # per-event-type (issue.created, project.deleted, etc.). These are valid
 # resources a Sentry App may subscribe to.
-VALID_EVENT_RESOURCES = ("issue", "error")
+VALID_EVENT_RESOURCES = ("issue", "error", "comment")
 
 REQUIRED_EVENT_PERMISSIONS = {
     "issue": "event:read",
@@ -49,6 +51,7 @@ REQUIRED_EVENT_PERMISSIONS = {
     "member": "member:read",
     "organization": "org:read",
     "team": "team:read",
+    "comment": "event:read",
 }
 
 # The only events valid for Sentry Apps are the ones listed in the values of
@@ -98,19 +101,6 @@ class SentryAppManager(ParanoidManager):
             return self.all()
 
         return self.filter(status=SentryAppStatus.PUBLISHED)
-
-    def check_project_permission_for_sentry_app_user(
-        self, user: "User", project: "Project"
-    ) -> bool:
-        """
-        This method checks if a user from a Sentry app has permission to a
-        specific project. For now, only checks if app is installed on the
-        organization of the project.
-        """
-        assert user.is_sentry_app
-        # if the user exists, so should the sentry_app
-        sentry_app = self.get(proxy_user=user)
-        return sentry_app.is_installed_on(project.organization)
 
 
 class SentryApp(ParanoidModel, HasApiScopes):

@@ -500,7 +500,10 @@ def compare_fixed_list(
     path: str,
     schema: FixedList,
 ) -> List[ComparisonError]:
-    errors = []
+    done, errors = _compare_basic_sequence(sessions, metrics, path)
+    if done:
+        return errors
+
     expected_length = len(schema.child_schemas)
     if len(sessions) != expected_length:
         errors.append(
@@ -689,6 +692,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         try:
+            # We read from the metrics source even if there is no need to compare.
+            metrics_fn = getattr(self.metrics, fn_name)
+            with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
+                metrics_val = metrics_fn(*args)
+
             if not isinstance(should_compare, bool):
                 # should compare depends on the session result
                 # evaluate it now
@@ -705,10 +713,6 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
             copy = deepcopy(ret_val)
 
-            metrics_fn = getattr(self.metrics, fn_name)
-            with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
-                metrics_val = metrics_fn(*args)
-
             set_context("release-health-duplex-metrics", {"metrics": metrics_val})
 
             with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
@@ -717,15 +721,17 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 "release-health-duplex-errors", {"errors": [str(error) for error in errors]}
             )
 
+            should_report = features.has(
+                "organizations:release-health-check-metrics-report", organization
+            )
+
             incr(
                 "releasehealth.metrics.compare",
-                tags={"has_errors": str(bool(errors)), **tags},
+                tags={"has_errors": str(bool(errors)), "reported": str(should_report), **tags},
                 sample_rate=1.0,
             )
 
-            if errors and features.has(
-                "organizations:release-health-check-metrics-report", organization
-            ):
+            if errors and should_report:
                 tag_delta(errors, tags)
                 # We heavily rely on Sentry's message sanitization to properly deduplicate this
                 capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")

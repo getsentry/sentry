@@ -9,7 +9,8 @@ from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, BooleanCondition, Condition, Op, Or
 from snuba_sdk.entity import Entity
-from snuba_sdk.expressions import Granularity, Limit, Offset, Turbo
+from snuba_sdk.expressions import Granularity, Limit, Offset
+from snuba_sdk.flags import Turbo
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query

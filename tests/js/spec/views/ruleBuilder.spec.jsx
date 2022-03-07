@@ -89,7 +89,7 @@ describe('RuleBuilder', function () {
 
     // Select the first item in the list.
     await selectByValueAsync(wrapper, 'user:1', {name: 'owners', control: true});
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('AddButton').prop('disabled')).toBe(false);
     add.simulate('click');

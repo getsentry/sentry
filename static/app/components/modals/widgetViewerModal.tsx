@@ -9,11 +9,14 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -27,6 +30,7 @@ import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidget
 import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
+import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
   renderGridBodyCell,
   renderGridHeaderCell,
@@ -63,12 +67,27 @@ function WidgetViewerModal(props: Props) {
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
+  const [cursor, setCursor] = React.useState<string>();
+
+  // Use sort if provided by location query to sort table
+  const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
+  const sortedQueries = sort
+    ? widget.queries.map(query => ({...query, orderby: sort}))
+    : widget.queries;
+  // Top N widget charts rely on the table sorting
+  const primaryWidget =
+    widget.displayType === DisplayType.TOP_N
+      ? {...widget, queries: sortedQueries}
+      : widget;
 
   const renderWidgetViewer = () => {
     const api = useApi();
 
     // Create Table widget
-    const tableWidget = {...cloneDeep(widget), displayType: DisplayType.TABLE};
+    const tableWidget = {
+      ...cloneDeep({...widget, queries: sortedQueries}),
+      displayType: DisplayType.TABLE,
+    };
     const fields = tableWidget.queries[0].fields;
 
     // World Map view should always have geo.country in the table chart
@@ -103,7 +122,8 @@ function WidgetViewerModal(props: Props) {
               api={api}
               organization={organization}
               selection={modalSelection}
-              widget={widget}
+              // Top N charts rely on the orderby of the table
+              widget={primaryWidget}
               onZoom={(_evt, chart) => {
                 // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
                 const model = chart.getModel();
@@ -165,29 +185,45 @@ function WidgetViewerModal(props: Props) {
                   ? FULL_TABLE_ITEM_LIMIT
                   : HALF_TABLE_ITEM_LIMIT
               }
+              pagination
+              cursor={cursor}
             >
-              {({tableResults, loading}) => {
+              {({tableResults, loading, pageLinks}) => {
+                const isFirstPage = pageLinks
+                  ? parseLinkHeader(pageLinks).previous.results === false
+                  : false;
                 return (
-                  <GridEditable
-                    isLoading={loading}
-                    data={tableResults?.[0]?.data ?? []}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      renderHeadCell: renderGridHeaderCell({
-                        ...props,
-                        tableData: tableResults?.[0],
-                      }) as (
-                        column: GridColumnOrder,
-                        columnIndex: number
-                      ) => React.ReactNode,
-                      renderBodyCell: renderGridBodyCell({
-                        ...props,
-                        tableData: tableResults?.[0],
-                      }),
-                    }}
-                    location={location}
-                  />
+                  <React.Fragment>
+                    <GridEditable
+                      isLoading={loading}
+                      data={tableResults?.[0]?.data ?? []}
+                      columnOrder={columnOrder}
+                      columnSortBy={columnSortBy}
+                      grid={{
+                        renderHeadCell: renderGridHeaderCell({
+                          ...props,
+                          widget: tableWidget,
+                          tableData: tableResults?.[0],
+                        }) as (
+                          column: GridColumnOrder,
+                          columnIndex: number
+                        ) => React.ReactNode,
+                        renderBodyCell: renderGridBodyCell({
+                          ...props,
+                          widget: tableWidget,
+                          tableData: tableResults?.[0],
+                          isFirstPage,
+                        }),
+                      }}
+                      location={location}
+                    />
+                    <StyledPagination
+                      pageLinks={pageLinks}
+                      onCursor={newCursor => {
+                        setCursor(newCursor);
+                      }}
+                    />
+                  </React.Fragment>
                 );
               }}
             </WidgetQueries>
@@ -209,12 +245,12 @@ function WidgetViewerModal(props: Props) {
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
-      path = getWidgetIssueUrl(widget, modalSelection, organization);
+      path = getWidgetIssueUrl(primaryWidget, modalSelection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
-      path = getWidgetDiscoverUrl(widget, modalSelection, organization);
+      path = getWidgetDiscoverUrl(primaryWidget, modalSelection, organization);
       break;
   }
   return (
@@ -273,7 +309,7 @@ const Container = styled('div')`
 const TableContainer = styled('div')`
   max-width: 1400px;
   position: relative;
-  margin: ${space(4)} 0;
+  margin: ${space(2)} 0;
   & > div {
     margin: 0;
   }
@@ -287,6 +323,10 @@ const WidgetTitle = styled('h4')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+`;
+
+const StyledPagination = styled(Pagination)`
+  padding-top: ${space(2)};
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));
