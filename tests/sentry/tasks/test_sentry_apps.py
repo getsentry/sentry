@@ -8,11 +8,12 @@ from requests.exceptions import Timeout
 
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
-from sentry.models import Rule, SentryApp, SentryAppInstallation
+from sentry.models import Activity, Rule, SentryApp, SentryAppInstallation
 from sentry.receivers.sentry_apps import *  # NOQA
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
+    build_comment_webhook,
     installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
@@ -30,7 +31,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 
-def raiseStatuseFalse():
+def raiseStatusFalse():
     return False
 
 
@@ -47,7 +48,7 @@ RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 MockResponse = namedtuple(
     "MockResponse", ["headers", "content", "text", "ok", "status_code", "raise_for_status"]
 )
-MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatuseFalse)
+MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse)
 MockFailureResponseInstance = MockResponse({}, {}, "", False, 400, raiseStatusTrue)
 MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException)
 MockResponseWithHeadersInstance = MockResponse(
@@ -427,6 +428,70 @@ class TestInstallationWebhook(TestCase):
     def test_gracefully_handles_missing_user(self, run):
         installation_webhook(self.install.id, 999)
         assert len(run.mock_calls) == 0
+
+
+@patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+class TestCommentWebhook(TestCase):
+    def setUp(self):
+        self.project = self.create_project()
+        self.user = self.create_user()
+
+        self.sentry_app = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["comment.updated", "comment.created", "comment.deleted"],
+        )
+
+        self.install = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=self.sentry_app.slug
+        )
+
+        self.issue = self.create_group(project=self.project)
+
+        self.note = Activity.objects.create(
+            group=self.issue,
+            project=self.project,
+            type=Activity.NOTE,
+            user=self.user,
+            data={"text": "hello world"},
+        )
+        self.data = {
+            "comment_id": self.note.id,
+            "timestamp": self.note.datetime,
+            "comment": self.note.data.get("text"),
+            "project_slug": self.note.project.slug,
+        }
+
+    def test_sends_comment_created_webhook(self, safe_urlopen):
+        build_comment_webhook(
+            self.install.id, self.issue.id, "comment.created", self.user.id, data=self.data
+        )
+
+        assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
+        assert faux(safe_urlopen).kwarg_equals("data.action", "created", format="json")
+        assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "comment")
+        assert faux(safe_urlopen).kwarg_equals("data.data.group_id", self.issue.id, format="json")
+
+    def test_sends_comment_updated_webhook(self, safe_urlopen):
+        self.data.update(data={"text": "goodbye world"})
+        build_comment_webhook(
+            self.install.id, self.issue.id, "comment.updated", self.user.id, data=self.data
+        )
+
+        assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
+        assert faux(safe_urlopen).kwarg_equals("data.action", "updated", format="json")
+        assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "comment")
+        assert faux(safe_urlopen).kwarg_equals("data.data.group_id", self.issue.id, format="json")
+
+    def test_sends_comment_deleted_webhook(self, safe_urlopen):
+        self.note.delete()
+        build_comment_webhook(
+            self.install.id, self.issue.id, "comment.deleted", self.user.id, data=self.data
+        )
+
+        assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
+        assert faux(safe_urlopen).kwarg_equals("data.action", "deleted", format="json")
+        assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "comment")
+        assert faux(safe_urlopen).kwarg_equals("data.data.group_id", self.issue.id, format="json")
 
 
 @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)

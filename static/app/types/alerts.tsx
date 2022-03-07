@@ -86,6 +86,12 @@ export type IssueAlertRule = UnsavedIssueAlertRule & {
   errors?: {detail: string}[];
 };
 
+// Project's alert rule stats
+export type ProjectAlertRuleStats = {
+  count: number;
+  date: string;
+};
+
 export enum MailActionTargetType {
   IssueOwners = 'IssueOwners',
   Team = 'Team',
