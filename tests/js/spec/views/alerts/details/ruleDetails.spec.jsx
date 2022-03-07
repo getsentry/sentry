@@ -52,8 +52,8 @@ describe('AlertRuleDetails', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/`,
-      body: [TestStubs.Group()],
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/group-history/`,
+      body: [{count: 1, group: TestStubs.Group()}],
       headers: {
         Link:
           '<https://sentry.io/api/0/organizations/org-slug/issues/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
@@ -78,20 +78,6 @@ describe('AlertRuleDetails', () => {
     expect(await screen.findByText('My alert rule')).toBeInTheDocument();
     expect(screen.getByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
-  });
-
-  it('should allow paginating results', async () => {
-    createWrapper();
-
-    expect(await screen.findByLabelText('Next')).toBeEnabled();
-    userEvent.click(screen.getByLabelText('Next'));
-
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/mock-pathname/',
-      query: {
-        cursor: '0:100:0',
-      },
-    });
   });
 
   it('should reset pagination cursor on date change', async () => {
