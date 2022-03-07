@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -66,7 +70,7 @@ class RedmineOptionsForm(forms.Form):
             del self.fields["tracker_id"]
             del self.fields["default_priority"]
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         cd = self.cleaned_data
         if cd.get("host") and cd.get("key"):
             client = RedmineClient(cd["host"], cd["key"])

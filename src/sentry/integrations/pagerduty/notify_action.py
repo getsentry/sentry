@@ -74,7 +74,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
                 params=params,
             )
 
-    def clean(self) -> Mapping[str, Any]:
+    def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
 
         integration_id = _validate_int_field("account", cleaned_data)

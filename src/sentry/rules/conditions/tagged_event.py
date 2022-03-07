@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django import forms
 
 from sentry import tagstore
@@ -10,7 +14,7 @@ class TaggedEventForm(forms.Form):
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()), widget=forms.Select())
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         super().clean()
 
         match = self.cleaned_data.get("match")

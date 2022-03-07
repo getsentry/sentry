@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django import forms
 
 from sentry.models import Project, User
@@ -28,7 +32,7 @@ class MemberTeamForm(forms.Form):
                 raise forms.ValidationError("targetIdentifier must be an integer")
         return targetIdentifier
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
         try:
             targetType = self.targetTypeEnum(cleaned_data.get("targetType"))

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Any
 
 import pytz
 from django import forms
@@ -109,7 +112,7 @@ class AuthenticationForm(forms.Form):
 
         return ratelimiter.is_limited(f"auth:username:{username}", limit)
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         username = self.cleaned_data.get("username")
         password = self.cleaned_data.get("password")
 

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
 import re
 from datetime import timedelta
+from typing import Any
 
 from django import forms
 from django.core.cache import cache
@@ -62,7 +65,7 @@ class EventFrequencyForm(forms.Form):
         required=False,
     )
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
         # Don't store an empty string here if the value isn't passed
         if cleaned_data.get("comparisonInterval") == "":
@@ -220,7 +223,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
     )
     value = forms.FloatField(widget=forms.TextInput(), min_value=0)
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
         if cleaned_data["comparisonType"] == COMPARISON_TYPE_COUNT and cleaned_data["value"] > 100:
             self.add_error(
