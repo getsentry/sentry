@@ -10,6 +10,7 @@ __all__ = (
     "MetricType",
     "MetricUnit",
     "OPERATIONS",
+    "OP_TO_SNUBA_FUNCTION",
     "QueryDefinition",
     "SnubaQueryBuilder",
     "SnubaResultConverter",
@@ -345,7 +346,7 @@ class MetricMetaWithTagKeys(MetricMeta):
 
 
 # Map requested op name to the corresponding Snuba function
-_OP_TO_SNUBA_FUNCTION = {
+OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
     "metrics_distributions": {
         "avg": "avgIf",
@@ -363,7 +364,7 @@ _OP_TO_SNUBA_FUNCTION = {
 }
 
 AVAILABLE_OPERATIONS = {
-    type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_SNUBA_FUNCTION.items()
+    type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
 }
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
@@ -457,7 +458,7 @@ class SnubaQueryBuilder:
 
     @staticmethod
     def _build_conditional_aggregate_for_metric(entity, op, name):
-        snuba_function = _OP_TO_SNUBA_FUNCTION[entity][op]
+        snuba_function = OP_TO_SNUBA_FUNCTION[entity][op]
         return Function(
             snuba_function,
             [Column("value"), Function("equals", [Column("metric_id"), resolve_weak(name)])],
