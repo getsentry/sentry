@@ -463,13 +463,13 @@ async function updateDesyncedUrlState(router?: Router) {
     currentQuery.utc !== null ||
     currentQuery.period !== null;
 
-  // Is the datetime filter differning?
+  // Is the datetime filter different?
   if (
     pinnedFilters.has('datetime') &&
     dateTimeInQuery &&
     (currentQuery.period !== storedState.period ||
-      currentQuery.start !== storedState.start ||
-      currentQuery.end !== storedState.end ||
+      currentQuery.start?.getTime() !== storedState.start?.getTime() ||
+      currentQuery.end?.getTime() !== storedState.end?.getTime() ||
       currentQuery.utc !== storedState.utc)
   ) {
     differingFilters.add('datetime');
