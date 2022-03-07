@@ -15,6 +15,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
+import FeatureBadge from 'sentry/components/featureBadge';
 import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
@@ -147,9 +148,11 @@ const IssueDataset: [WidgetType, string] = [
   WidgetType.ISSUE,
   t('Issues (States, Assignment, Time, etc.)'),
 ];
-const MetricsDataset: [WidgetType, string] = [
+const MetricsDataset: [WidgetType, React.ReactElement] = [
   WidgetType.METRICS,
-  t('Metrics (Release Health)'),
+  <React.Fragment key="metrics-dataset">
+    {t('Metrics (Release Health)')} <FeatureBadge type="alpha" />
+  </React.Fragment>,
 ];
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
