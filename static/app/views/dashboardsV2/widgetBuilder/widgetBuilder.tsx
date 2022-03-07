@@ -636,6 +636,14 @@ function WidgetBuilder({
     });
   }
 
+  function isFormInvalid() {
+    if (notDashboardsOrigin && !state.selectedDashboard) {
+      return true;
+    }
+
+    return false;
+  }
+
   if (isEditing && widgetIndex >= dashboard.widgets.length) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -901,7 +909,6 @@ function WidgetBuilder({
                                 <LegendAliasInput
                                   type="text"
                                   name="name"
-                                  required
                                   value={query.name}
                                   placeholder={t('Legend Alias')}
                                   onChange={event => {
@@ -1017,6 +1024,7 @@ function WidgetBuilder({
                 isEditing={isEditing}
                 onSave={handleSave}
                 onDelete={handleDelete}
+                invalidForm={isFormInvalid()}
               />
             </MainWrapper>
             <Side>
