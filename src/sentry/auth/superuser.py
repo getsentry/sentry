@@ -152,7 +152,6 @@ class Superuser:
                     extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 )
             return
-        # don't want to spam the logs since superuser session is not activated on log in
         elif not data:
             if getattr(self, "token", None):
                 logger.warning(
