@@ -1045,6 +1045,7 @@ const PageContentWithoutPadding = styled(PageContent)`
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   overflow: ${p => (p.displayType === DisplayType.TABLE ? 'hidden' : 'visible')};
+  padding-right: ${space(2)};
 `;
 
 const DataSetChoices = styled(RadioGroup)`
