@@ -991,6 +991,8 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable the new widget builder experience on Dashboards
     "organizations:new-widget-builder-experience": False,
+    # Enable the new widget builder experience "design" on Dashboards
+    "organizations:new-widget-builder-experience-design": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
