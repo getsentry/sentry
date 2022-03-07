@@ -118,6 +118,7 @@ class ProjectProguard extends AsyncView<Props, State> {
           onDelete={this.handleDelete}
           downloadRole={organization.debugFilesRole}
           key={mapping.id}
+          orgSlug={organization.slug}
         />
       );
     });

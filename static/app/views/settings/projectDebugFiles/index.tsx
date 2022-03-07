@@ -157,6 +157,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           downloadRole={organization.debugFilesRole}
           onDelete={this.handleDelete}
           key={debugFile.id}
+          orgSlug={organization.slug}
         />
       );
     });

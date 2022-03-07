@@ -7,11 +7,12 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
+import Link from 'sentry/components/links/link';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
@@ -23,6 +24,7 @@ type Props = {
   downloadRole: string;
   downloadUrl: string;
   onDelete: (id: string) => void;
+  orgSlug: string;
   showDetails: boolean;
 };
 
@@ -32,6 +34,7 @@ const DebugFileRow = ({
   downloadUrl,
   downloadRole,
   onDelete,
+  orgSlug,
 }: Props) => {
   const {
     id,
@@ -102,7 +105,15 @@ const DebugFileRow = ({
             {({hasRole}) => (
               <Tooltip
                 disabled={hasRole}
-                title={t('You do not have permission to download debug files.')}
+                title={tct(
+                  'Debug files can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+                  {
+                    downloadRole,
+                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+                  }
+                )}
+                isHoverable
               >
                 <Button
                   size="xsmall"
