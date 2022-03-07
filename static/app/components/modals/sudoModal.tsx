@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import InputField from 'sentry/components/forms/inputField';
+import SelectField from 'sentry/components/forms/selectField';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,12 +35,32 @@ type Props = WithRouterProps &
 type State = {
   busy: boolean;
   error: boolean;
+  errorType: string;
+  isFirstStep: boolean;
 };
 
 class SudoModal extends React.Component<Props, State> {
   state: State = {
     error: false,
+    errorType: '',
     busy: false,
+    isFirstStep: true,
+  };
+
+  handleSubmit = async data => {
+    const {api, superuser} = this.props;
+
+    if (this.state.isFirstStep && superuser) {
+      this.setState({isFirstStep: false});
+    } else {
+      try {
+        data.isSuperuserModal = superuser;
+        await api.requestPromise('/auth/', {method: 'PUT', data});
+        this.handleSuccess();
+      } catch (err) {
+        this.handleError(err);
+      }
+    }
   };
 
   handleSuccess = () => {
@@ -56,15 +76,26 @@ class SudoModal extends React.Component<Props, State> {
       return;
     }
 
-    this.setState({busy: true}, () => {
+    this.setState({busy: true, isFirstStep: true}, () => {
       retryRequest().then(() => {
         this.setState({busy: false}, closeModal);
       });
     });
   };
 
-  handleError = () => {
-    this.setState({busy: false, error: true});
+  handleError = err => {
+    let errType = '';
+    if (err.status === 403) {
+      errType = 'invalidPassword';
+    } else if (err.status === 401) {
+      errType = 'invalidSSOSession';
+    } else if (
+      err.responseText ===
+      '{"superuserReason":["Ensure this field has at least 4 characters."]}'
+    ) {
+      errType = 'invalidReason';
+    }
+    this.setState({busy: false, error: true, isFirstStep: true, errorType: errType});
   };
 
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
@@ -84,18 +115,68 @@ class SudoModal extends React.Component<Props, State> {
 
   renderBodyContent() {
     const {superuser} = this.props;
-    const {error} = this.state;
+    const {error, isFirstStep, errorType} = this.state;
     const user = ConfigStore.get('user');
+    const placeholderForSUCategories = [
+      {value: '1', name: 'a'},
+      {value: '2', name: 'b'},
+    ];
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>
-          <TextBlock>{t('You will need to reauthenticate to continue.')}</TextBlock>
-          <Button
-            priority="primary"
-            href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
+          <StyledTextBlock>
+            {superuser
+              ? t(
+                  'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
+                )
+              : t('You will need to reauthenticate to continue')}
+          </StyledTextBlock>
+          {error && (
+            <StyledAlert type="error" icon={<IconFlag size="md" />}>
+              {errorType === 'invalidPassword'
+                ? t('Incorrect password')
+                : errorType === 'invalidReason'
+                ? t(
+                    'Please make sure your reason for access is between 4 to 128 characters'
+                  )
+                : errorType === 'invalidSSOSession'
+                ? t('Your SSO Session has expired, please reauthnticate')
+                : t('An error ocurred, please try again')}
+            </StyledAlert>
+          )}
+          <Form
+            apiMethod="PUT"
+            apiEndpoint="/auth/"
+            submitLabel={t('Re-authenticate')}
+            onSubmitSuccess={this.handleSuccess}
+            onSubmitError={this.handleError}
+            resetOnError
           >
-            {t('Continue')}
-          </Button>
+            {isFirstStep && superuser && (
+              <StyledSelectField
+                name="superuserAccessCategory"
+                label={t('Catergory of Superuser Access')}
+                options={placeholderForSUCategories.map(SUCategory => ({
+                  value: SUCategory.value,
+                  label: SUCategory.name,
+                }))}
+                placeholder={t('Select Catergory')}
+                inline={false}
+                flexibleControlStateSize
+                required
+              />
+            )}
+            {isFirstStep && superuser && (
+              <StyledInputField
+                type="text"
+                inline={false}
+                label={t('Reason for Superuser')}
+                name="superuserReason"
+                flexibleControlStateSize
+                required
+              />
+            )}
+          </Form>
         </React.Fragment>
       );
     }
@@ -112,28 +193,65 @@ class SudoModal extends React.Component<Props, State> {
 
         {error && (
           <StyledAlert type="error" icon={<IconFlag size="md" />}>
-            {t('Incorrect password')}
+            {errorType === 'invalidPassword'
+              ? t('Incorrect password')
+              : errorType === 'invalidReason'
+              ? t(
+                  'Please make sure your reason for access is between 4 to 128 characters'
+                )
+              : errorType === 'invalidSSOSession'
+              ? t('Your SSO Session has expired, please reauthnticate')
+              : t('An error ocurred, please try again')}
           </StyledAlert>
         )}
 
         <Form
           apiMethod="PUT"
           apiEndpoint="/auth/"
-          submitLabel={t('Confirm Password')}
+          submitLabel={isFirstStep ? t('Continue') : t('Confirm Password')}
+          onSubmit={this.handleSubmit}
           onSubmitSuccess={this.handleSuccess}
           onSubmitError={this.handleError}
           hideFooter={!user.hasPasswordAuth}
           resetOnError
         >
-          <StyledInputField
-            type="password"
-            inline={false}
-            label={t('Password')}
-            name="password"
-            autoFocus
-            flexibleControlStateSize
-          />
-          <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+          {isFirstStep && superuser && (
+            <StyledSelectField
+              name="superuserAccessCategory"
+              label={t('Catergory of Superuser Access')}
+              options={placeholderForSUCategories.map(SUCategory => ({
+                value: SUCategory.value,
+                label: SUCategory.name,
+              }))}
+              placeholder={t('Select Catergory')}
+              inline={false}
+              flexibleControlStateSize
+              required
+            />
+          )}
+          {isFirstStep && superuser && (
+            <StyledInputField
+              type="text"
+              inline={false}
+              label={t('Reason for Superuser')}
+              name="superuserReason"
+              flexibleControlStateSize
+              required
+            />
+          )}
+          {((!isFirstStep && superuser) || !superuser) && (
+            <StyledInputField
+              type="password"
+              inline={false}
+              label={t('Password')}
+              name="password"
+              autoFocus
+              flexibleControlStateSize
+            />
+          )}
+          {((!isFirstStep && superuser) || !superuser) && (
+            <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+          )}
         </Form>
       </React.Fragment>
     );
@@ -159,6 +277,10 @@ const StyledTextBlock = styled(TextBlock)`
 `;
 
 const StyledInputField = styled(InputField)`
+  padding-left: 0;
+`;
+
+const StyledSelectField = styled(SelectField)`
   padding-left: 0;
 `;
 

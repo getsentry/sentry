@@ -285,25 +285,31 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if request.method == "PUT":
-            # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
+        try:
             su_access_json = json.loads(request.body)
-            su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
-            if not su_access_info.is_valid():
-                raise serializers.ValidationError(su_access_info.errors)
+            if "superuserAccessCategory" in su_access_json:
 
-            logger.info(
-                "superuser.superuser_access",
-                extra={
-                    "superuser_session_id": token,
-                    "user_id": request.user.id,
-                    "user_email": request.user.email,
-                    "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
-                    "reason_for_su": su_access_info.validated_data["superuserReason"],
-                },
-            )
+                su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
+                if not su_access_info.is_valid():
+                    raise serializers.ValidationError(su_access_info.errors)
+
+                logger.info(
+                    "superuser.superuser_access",
+                    extra={
+                        "superuser_session_id": token,
+                        "user_id": request.user.id,
+                        "user_email": request.user.email,
+                        "su_access_category": su_access_info.validated_data[
+                            "superuserAccessCategory"
+                        ],
+                        "reason_for_su": su_access_info.validated_data["superuserReason"],
+                    },
+                )
+        except json.JSONDecodeError:
+            # since there isn't a valid request body, we just want to give them su access for now (this is the case of sso login for now)
+            pass
         self._set_logged_in(
             expires=current_datetime + MAX_AGE,
             token=token,
