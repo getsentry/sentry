@@ -244,6 +244,12 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     data = kwargs.get("data", {})
     data.update({"issue": serialize(issue)})
     send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+    analytics.record(
+        f"issue.{type}",
+        user_id=user_id,
+        group_id=issue_id,
+        installation_id=installation_id,
+    )
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.build_comment_webhook", **TASK_OPTIONS)
