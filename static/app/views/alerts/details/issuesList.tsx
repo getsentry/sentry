@@ -15,6 +15,11 @@ import {Group, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {getMessage, getTitle} from 'sentry/utils/events';
 
+type GroupHistory = {
+  count: number;
+  group: Group;
+};
+
 type Props = AsyncComponent['props'] &
   DateTimeObject & {
     organization: Organization;
@@ -24,12 +29,7 @@ type Props = AsyncComponent['props'] &
   };
 
 type State = AsyncComponent['state'] & {
-  groupHistory:
-    | {
-        count: number;
-        group: Group;
-      }[]
-    | null;
+  groupHistory: GroupHistory[] | null;
 };
 
 class AlertRuleIssuesList extends AsyncComponent<Props, State> {
