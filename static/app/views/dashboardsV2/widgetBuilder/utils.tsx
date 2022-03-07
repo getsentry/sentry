@@ -177,7 +177,8 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
   if (!Object.keys(parsedQuery).length) {
     return undefined;
   }
-  const fields = parsedQuery.fields?.split(',') ?? [];
+
+  const fields = parseFields(parsedQuery.fields);
   const {columns, aggregates} = getColumnsAndAggregates(fields);
 
   return {
@@ -186,4 +187,26 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
     columns,
     aggregates,
   } as WidgetQuery;
+}
+
+/**
+ * Retrieves the array of fields from a string.
+ *
+ * Since fields themselves can contain commas, we need to build
+ * up each field to ensure we don't accidentally split a field.
+ */
+function parseFields(fieldsString: string): string[] {
+  const exploded = fieldsString.split(',');
+  const completedFields: string[] = [];
+
+  let currentField: string[] = [];
+  exploded.forEach(term => {
+    currentField.push(term);
+    if (term.includes(')')) {
+      completedFields.push(currentField.join(','));
+      currentField = [];
+    }
+  });
+
+  return completedFields;
 }
