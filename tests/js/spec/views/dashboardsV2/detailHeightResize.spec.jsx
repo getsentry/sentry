@@ -20,13 +20,7 @@ jest.mock('echarts-for-react/lib/core', () => {
 
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
-    features: [
-      'global-views',
-      'dashboards-basic',
-      'dashboards-edit',
-      'discover-query',
-      'dashboard-grid-layout',
-    ],
+    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
   describe('custom dashboards', function () {

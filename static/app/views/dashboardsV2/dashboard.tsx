@@ -5,8 +5,6 @@ import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
-import {closestCenter, DndContext} from '@dnd-kit/core';
-import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -36,7 +34,6 @@ import {
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
   enforceWidgetHeightValues,
-  generateWidgetId,
   generateWidgetsAfterCompaction,
   getDashboardLayout,
   getDefaultWidgetHeight,
@@ -94,54 +91,49 @@ type State = {
 class Dashboard extends Component<Props, State> {
   constructor(props) {
     super(props);
-    const {dashboard, organization} = props;
-    const isUsingGrid = organization.features.includes('dashboard-grid-layout');
+    const {dashboard} = props;
     const desktopLayout = getDashboardLayout(dashboard.widgets);
     this.state = {
       isMobile: false,
       layouts: {
-        [DESKTOP]: isUsingGrid ? desktopLayout : [],
-        [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
+        [DESKTOP]: desktopLayout,
+        [MOBILE]: getMobileLayout(desktopLayout, dashboard.widgets),
       },
       windowWidth: window.innerWidth,
     };
   }
 
   static getDerivedStateFromProps(props, state) {
-    if (props.organization.features.includes('dashboard-grid-layout')) {
-      if (state.isMobile) {
-        // Don't need to recalculate any layout state from props in the mobile view
-        // because we want to force different positions (i.e. new widgets added
-        // at the bottom)
-        return null;
-      }
+    if (state.isMobile) {
+      // Don't need to recalculate any layout state from props in the mobile view
+      // because we want to force different positions (i.e. new widgets added
+      // at the bottom)
+      return null;
+    }
 
-      // If the user clicks "Cancel" and the dashboard resets,
-      // recalculate the layout to revert to the unmodified state
-      const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
-      if (
-        !isEqual(
-          dashboardLayout.map(pickDefinedStoreKeys),
-          state.layouts[DESKTOP].map(pickDefinedStoreKeys)
-        )
-      ) {
-        return {
-          ...state,
-          layouts: {
-            [DESKTOP]: dashboardLayout,
-            [MOBILE]: getMobileLayout(dashboardLayout, props.dashboard.widgets),
-          },
-        };
-      }
+    // If the user clicks "Cancel" and the dashboard resets,
+    // recalculate the layout to revert to the unmodified state
+    const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
+    if (
+      !isEqual(
+        dashboardLayout.map(pickDefinedStoreKeys),
+        state.layouts[DESKTOP].map(pickDefinedStoreKeys)
+      )
+    ) {
+      return {
+        ...state,
+        layouts: {
+          [DESKTOP]: dashboardLayout,
+          [MOBILE]: getMobileLayout(dashboardLayout, props.dashboard.widgets),
+        },
+      };
     }
     return null;
   }
 
   async componentDidMount() {
     const {isEditing, organization, api} = this.props;
-    if (organization.features.includes('dashboard-grid-layout')) {
-      window.addEventListener('resize', this.debouncedHandleResize);
-    }
+    window.addEventListener('resize', this.debouncedHandleResize);
 
     if (organization.features.includes('dashboards-metrics')) {
       fetchMetricsFields(api, organization.slug);
@@ -175,10 +167,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    const {organization} = this.props;
-    if (organization.features.includes('dashboard-grid-layout')) {
-      window.removeEventListener('resize', this.debouncedHandleResize);
-    }
+    window.removeEventListener('resize', this.debouncedHandleResize);
   }
 
   debouncedHandleResize = debounce(() => {
@@ -395,18 +384,9 @@ class Dashboard extends Component<Props, State> {
     });
   };
 
-  getWidgetIds() {
-    return [
-      ...this.props.dashboard.widgets.map((widget, index): string => {
-        return generateWidgetId(widget, index);
-      }),
-      ADD_WIDGET_BUTTON_DRAG_ID,
-    ];
-  }
-
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
+    const {isEditing, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
       widget,
@@ -418,26 +398,18 @@ class Dashboard extends Component<Props, State> {
       isPreview,
     };
 
-    if (organization.features.includes('dashboard-grid-layout')) {
-      const key = constructGridItemKey(widget);
-      const dragId = key;
-      return (
-        <GridItem key={key} data-grid={widget.layout}>
-          <SortableWidget
-            {...widgetProps}
-            dragId={dragId}
-            isMobile={isMobile}
-            windowWidth={windowWidth}
-            index={String(index)}
-          />
-        </GridItem>
-      );
-    }
-
-    const key = generateWidgetId(widget, index);
+    const key = constructGridItemKey(widget);
     const dragId = key;
     return (
-      <SortableWidget {...widgetProps} key={key} dragId={dragId} index={String(index)} />
+      <GridItem key={key} data-grid={widget.layout}>
+        <SortableWidget
+          {...widgetProps}
+          dragId={dragId}
+          isMobile={isMobile}
+          windowWidth={windowWidth}
+          index={String(index)}
+        />
+      </GridItem>
     );
   }
 
@@ -540,7 +512,7 @@ class Dashboard extends Component<Props, State> {
     };
   }
 
-  renderGridDashboard() {
+  render() {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
@@ -595,82 +567,9 @@ class Dashboard extends Component<Props, State> {
       </GridLayout>
     );
   }
-
-  renderDndDashboard = () => {
-    const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
-    let {widgets} = dashboard;
-    // Filter out any issue/metrics widgets if the user does not have the feature flag
-    widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.ISSUE) {
-        return organization.features.includes('issues-in-dashboards');
-      }
-      if (widgetType === WidgetType.METRICS) {
-        return organization.features.includes('dashboards-metrics');
-      }
-      return true;
-    });
-
-    const items = this.getWidgetIds();
-
-    return (
-      <DndContext
-        collisionDetection={closestCenter}
-        onDragEnd={({over, active}) => {
-          const activeDragId = active.id;
-          const getIndex = items.indexOf.bind(items);
-
-          const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
-
-          if (over && over.id !== ADD_WIDGET_BUTTON_DRAG_ID) {
-            const overIndex = getIndex(over.id);
-            if (activeIndex !== overIndex) {
-              onUpdate(arrayMove(widgets, activeIndex, overIndex));
-            }
-          }
-        }}
-      >
-        <WidgetContainer>
-          <SortableContext items={items} strategy={rectSortingStrategy}>
-            {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && !!!widgetLimitReached && (
-              <AddWidget onAddWidget={this.handleStartAdd} />
-            )}
-          </SortableContext>
-        </WidgetContainer>
-      </DndContext>
-    );
-  };
-
-  render() {
-    const {organization} = this.props;
-    if (organization.features.includes('dashboard-grid-layout')) {
-      return this.renderGridDashboard();
-    }
-
-    return this.renderDndDashboard();
-  }
 }
 
 export default withApi(withPageFilters(Dashboard));
-
-const WidgetContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-flow: row dense;
-  gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-  }
-`;
 
 // A widget being dragged has a z-index of 3
 // Allow the Add Widget tile to show above widgets when moved

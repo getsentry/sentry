@@ -23,9 +23,9 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
-import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
+import {DashboardListItem} from 'sentry/views/dashboardsV2/types';
 
-import {cloneDashboard, miniWidget} from '../utils';
+import {cloneDashboard} from '../utils';
 
 import DashboardCard from './dashboardCard';
 import GridPreview from './gridPreview';
@@ -130,35 +130,13 @@ function DashboardList({
     );
   }
 
-  function renderDndPreview(dashboard) {
-    return (
-      <WidgetGrid>
-        {dashboard.widgetDisplay.map((displayType, i) => {
-          return displayType === DisplayType.BIG_NUMBER ? (
-            <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
-              <WidgetImage src={miniWidget(displayType)} />
-            </BigNumberWidgetWrapper>
-          ) : (
-            <MiniWidgetWrapper key={`${i}-${displayType}`}>
-              <WidgetImage src={miniWidget(displayType)} />
-            </MiniWidgetWrapper>
-          );
-        })}
-      </WidgetGrid>
-    );
-  }
-
   function renderGridPreview(dashboard) {
     return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 
   function renderMiniDashboards() {
-    const isUsingGrid = organization.features.includes('dashboard-grid-layout');
     return dashboards?.map((dashboard, index) => {
-      const widgetRenderer = isUsingGrid ? renderGridPreview : renderDndPreview;
-      const widgetCount = isUsingGrid
-        ? dashboard.widgetPreview.length
-        : dashboard.widgetDisplay.length;
+      const widgetRenderer = renderGridPreview;
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -167,7 +145,7 @@ function DashboardList({
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
           }}
-          detail={tn('%s widget', '%s widgets', widgetCount)}
+          detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
@@ -234,58 +212,6 @@ const DashboardGrid = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
-`;
-
-const WidgetGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-flow: row dense;
-  gap: ${space(0.25)};
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-  }
-`;
-
-const BigNumberWidgetWrapper = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-  height: 100%;
-
-  /* 2 cols */
-  grid-area: span 1 / span 2;
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    /* 4 cols */
-    grid-area: span 1 / span 1;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    /* 6 and 8 cols */
-    grid-area: span 1 / span 2;
-  }
-`;
-
-const MiniWidgetWrapper = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-  height: 100%;
-  grid-area: span 2 / span 2;
-`;
-
-const WidgetImage = styled('img')`
-  width: 100%;
-  height: 100%;
 `;
 
 const PaginationRow = styled(Pagination)`
