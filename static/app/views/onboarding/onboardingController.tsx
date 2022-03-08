@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import {logExperiment} from 'sentry/utils/analytics';
 import withExperiment from 'sentry/utils/withExperiment';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -12,7 +13,12 @@ type Props = Omit<React.ComponentPropsWithoutRef<typeof Onboarding>, 'projects'>
 };
 
 function OnboardingController({experimentAssignment, ...rest}: Props) {
-  // TODO: call logExperiment
+  React.useEffect(() => {
+    logExperiment({
+      key: 'TargetedOnboardingWelcomePageExperiment',
+      organization: rest.organization,
+    });
+  }, []);
   const {
     params: {step},
   } = rest;
