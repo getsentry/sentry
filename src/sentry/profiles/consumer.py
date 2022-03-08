@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from typing import Any, Dict, MutableMapping, Optional, Sequence
 
 import msgpack
@@ -32,23 +33,49 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         self.__producer = producer
         self.__producer_topic = "processed-profiles"
 
-    def process_message(self, message: Any) -> MutableMapping[str, Any]:
-        data = msgpack.unpackb(message.value(), use_list=False)
-        if data["platform"] != "ios":
-            return data
-        return self.symbolicate(data)
+    def _validate_message(self, profile: MutableMapping[str, Any]) -> bool:
+        return "sampled_profile" in profile and "samples" in profile["sampled_profile"]
 
-    def symbolicate(self, data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-        data["event_id"] = data["transaction_id"]
-        data["project"] = data["project_id"]
-        data["stacktraces"] = {"frames": []}
-        data["debug_meta"] = {"images": []}
-        data = process_payload(data)
-        del data["event_id"]
-        del data["project"]
-        del data["stacktraces"]
-        del data["debug_meta"]
-        return data
+    def process_message(self, message: Any) -> MutableMapping[str, Any]:
+        profile = msgpack.unpackb(message.value(), use_list=False)
+        if not self._validate_profile(profile):
+            return None
+        if profile["platform"] != "ios":
+            return profile
+        return self.symbolicate(profile)
+
+    def symbolicate(self, profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+        samples = profile["sampled_profiles"]["samples"]
+
+        # collect all unsymbolicated frames
+        frames_by_address = {}
+        indexes_by_address = defaultdict(list)
+        for i, s in enumerate(samples):
+            for j, f in enumerate(s["frames"]):
+                indexes_by_address[f["instruction_addr"]].append((i, j))
+                frames_by_address[f["instruction_addr"]] = f
+
+        # set proper keys for process_payload to do its job
+        profile["platform"] = "native"
+        profile["stacktraces"] = {"frames": frames_by_address.values()}
+        profile["event_id"] = profile["transaction_id"]
+        profile["project"] = profile["project_id"]
+
+        # symbolicate
+        profile = process_payload(profile)
+
+        # replace  unsymbolicated frames by symbolicated ones
+        frames_by_address = {f["instruction_addr"]: f for f in profile["stacktraces"]["frames"]}
+        for address, indexes in indexes_by_address:
+            samples[indexes[0]][indexes[1]] = frames_by_address[address]
+
+        # remove unneeded keys
+        for k in ("event_id", "project", "stacktraces", "debug_meta"):
+            profile.pop(k, None)
+
+        profile["platform"] = "ios"
+
+        return profile
 
     def flush_batch(self, batch: Sequence[MutableMapping[str, Any]]) -> None:
         self.__producer.poll(0)
