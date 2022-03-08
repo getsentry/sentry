@@ -23,6 +23,7 @@ from rest_framework import serializers
 from sentry.auth.system import is_system_auth
 from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.superuser")
 
@@ -49,8 +50,6 @@ IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15)
 ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
 ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
-
-SENTRY_SELF_HOSTED = getattr(settings, "SENTRY_SELF_HOSTED", False)
 
 UNSET = object()
 
@@ -287,7 +286,7 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if SENTRY_SELF_HOSTED:
+        if is_self_hosted():
             self._set_logged_in(
                 expires=current_datetime + MAX_AGE,
                 token=token,
