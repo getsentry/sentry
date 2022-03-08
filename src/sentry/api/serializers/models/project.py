@@ -23,6 +23,7 @@ from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
+    EnvironmentBookmark,
     EnvironmentProject,
     NotificationSetting,
     Project,
@@ -533,10 +534,16 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             )
             .exclude(
                 is_hidden=True,
-                # HACK(lb): avoiding the no environment value
             )
+            # HACK(lb): avoiding the no environment value
             .exclude(environment__name="")
-            .values("project_id", "environment__name")
+            .values("project_id", "environment__id", "environment__name")
+        )
+
+        bookmarked_envs = set(
+            EnvironmentBookmark.objects.filter(
+                environment_id__in={pe["environment__id"] for pe in project_envs}, user=user
+            ).values_list("environment__name", flat=True)
         )
 
         environments_by_project = defaultdict(list)
@@ -544,6 +551,11 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             environments_by_project[project_env["project_id"]].append(
                 project_env["environment__name"]
             )
+
+        environments_bookmarked_by_project = {
+            project_id: list(set(project_envs) & bookmarked_envs)
+            for project_id, project_envs in environments_by_project.items()
+        }
 
         # We just return the version key here so that we cut down on response size
         latest_release_versions = {
@@ -558,6 +570,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
+            attrs[item]["environmentsBookmarked"] = environments_bookmarked_by_project.get(
+                item.id, []
+            )
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
@@ -576,6 +591,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "hasAccess": attrs["has_access"],
             "dateCreated": obj.date_added,
             "environments": attrs["environments"],
+            "environmentsBookmarked": attrs["environmentsBookmarked"],
             "eventProcessing": {
                 "symbolicationDegraded": should_demote_symbolication(obj.id),
             },

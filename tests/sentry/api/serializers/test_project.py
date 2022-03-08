@@ -17,6 +17,7 @@ from sentry.api.serializers.models.project import (
 from sentry.models import (
     Deploy,
     Environment,
+    EnvironmentBookmark,
     EnvironmentProject,
     Project,
     Release,
@@ -325,6 +326,14 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert result["latestDeploys"] is None
         assert result["latestRelease"] is None
         assert result["environments"] == []
+
+    def test_bookmarked_environments(self):
+        EnvironmentBookmark.objects.create(environment=self.environment_1, user=self.user)
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+
+        assert result["environments"] == ["production", "staging"]
+        assert result["environmentsBookmarked"] == ["production"]
 
     def test_avoid_hidden_and_no_env(self):
         hidden_env = Environment.objects.create(

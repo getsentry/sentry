@@ -189,6 +189,7 @@ from .endpoints.organization_dashboard_widget_details import (
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
+from .endpoints.organization_environment_details import OrganizationEnvironmentDetailsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import (
@@ -1469,6 +1470,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/environments/$",
                     OrganizationEnvironmentsEndpoint.as_view(),
                     name="sentry-api-0-organization-environments",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/environments/(?P<environment>[^\/]+)/$",
+                    OrganizationEnvironmentDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-environment-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/broadcasts/$",

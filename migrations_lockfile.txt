@@ -6,5 +6,9 @@ To resolve this, rebase against latest master and regenerate your migration. Thi
 will then be regenerated, and you should be able to merge without conflicts.
 
 nodestore: 0002_nodestore_no_dictfield
+<<<<<<< HEAD
 sentry: 0280_extend_commit_author_email_length
+=======
+sentry: 0280_environment_bookmarks
+>>>>>>> 37c6462520 (feat(environments): Add bookmarking functionality)
 social_auth: 0001_initial

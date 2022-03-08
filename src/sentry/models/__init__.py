@@ -29,6 +29,7 @@ from .deploy import *  # NOQA
 from .distribution import *  # NOQA
 from .email import *  # NOQA
 from .environment import *  # NOQA
+from .environmentbookmark import *  # NOQA
 from .event import *  # NOQA
 from .eventattachment import *  # NOQA
 from .eventerror import *  # NOQA

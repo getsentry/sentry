@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import Environment, EnvironmentProject
+from sentry.models import Environment, EnvironmentBookmark, EnvironmentProject
 from sentry.testutils import APITestCase
 
 
@@ -17,6 +17,7 @@ class ProjectEnvironmentsTest(APITestCase):
             project_id=project.id, organization_id=project.organization_id, name="staging"
         )
         env2.add_project(project)
+        EnvironmentBookmark.objects.create(environment=env2, user=self.user)
 
         self.login_as(user=self.user)
 
@@ -29,6 +30,7 @@ class ProjectEnvironmentsTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]["name"] == "production"
         assert response.data[1]["name"] == "staging"
+        assert response.data[1]["isBookmarked"]
 
     def test_visibility_filtering(self):
         project = self.create_project()
