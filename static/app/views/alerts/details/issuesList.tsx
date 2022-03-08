@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -90,6 +91,8 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
       <Fragment>
         <StyledPanelTable
           isLoading={loading}
+          isEmpty={groupHistory?.length === 0}
+          emptyMessage={t('No issues exist for the current query.')}
           headers={[
             t('Issue'),
             <AlignRight key="alerts">{t('Alerts')}</AlignRight>,
@@ -137,9 +140,13 @@ const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(1.5)};
 
-  & > div {
-    padding: ${space(1)} ${space(2)};
-  }
+  ${p =>
+    !p.isEmpty &&
+    css`
+      & > div {
+        padding: ${space(1)} ${space(2)};
+      }
+    `}
 `;
 
 const AlignRight = styled('div')`
