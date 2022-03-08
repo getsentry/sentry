@@ -192,12 +192,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # typ
             self.track_response_code("create", PermissionDenied.status_code)
             raise PermissionDenied
 
-        serializer = ProjectCodeOwnerSerializer(
-            context={
-                "project": project,
-            },
-            data={**request.data},
-        )
+        serializer = ProjectCodeOwnerSerializer(context={"project": project}, data=request.data)
 
         if serializer.is_valid():
             project_codeowners = serializer.save()

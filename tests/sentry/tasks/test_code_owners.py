@@ -125,7 +125,6 @@ class CodeOwnersTest(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
         return_value=None,
     )
-    # @patch("sentry.tasks.codeowners.send_codeowners_auto_sync_failure_email")
     @patch("sentry.notifications.notifications.codeowners_auto_sync.AutoSyncNotification.send")
     def test_codeowners_auto_sync_failed_to_fetch_file(
         self,

@@ -9,6 +9,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
+    from sentry.db.models import Model
     from sentry.models import Team, User
 
 
@@ -16,9 +17,10 @@ class AutoSyncNotification(ProjectNotification):
     notification_setting_type = NotificationSettingTypes.DEPLOY
 
     def determine_recipients(self) -> Iterable[Team | User]:
-        raise self.organization.get_owners()
+        return self.organization.get_owners()
 
-    def get_reference(self) -> None:
+    def get_reference(self) -> None | Model:
+        super().get_reference
         return None
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
