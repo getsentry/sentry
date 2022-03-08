@@ -15,7 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
 import Teams from 'sentry/utils/teams';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -302,10 +302,8 @@ class AlertRulesListContainer extends Component<Props> {
   trackView() {
     const {organization, location} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'alert_rules.viewed',
-      eventName: 'Alert Rules: Viewed',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('alert_rules.viewed', {
+      organization,
       sort: Array.isArray(location.query.sort)
         ? location.query.sort.join(',')
         : location.query.sort,
