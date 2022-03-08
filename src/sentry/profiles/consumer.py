@@ -1,4 +1,3 @@
-import logging
 from collections import defaultdict
 from typing import Any, Dict, MutableMapping, Optional, Sequence
 
@@ -10,8 +9,6 @@ from sentry.lang.native.processing import process_payload
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker, BatchingKafkaConsumer
 from sentry.utils.kafka import create_batching_kafka_consumer
-
-logger = logging.getLogger(__name__)
 
 
 def get_profiles_consumer(
@@ -28,6 +25,50 @@ def get_profiles_consumer(
     )
 
 
+def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+    normalized_profile = {
+        "organization_id": profile["organization_id"],
+        "project_id": profile["project_id"],
+        "transaction_id": profile["transaction_id"],
+        "received": profile["received"],
+        "device_classification": profile["device_classification"],
+        "device_locale": profile["device_locale"],
+        "device_manufacturer": profile["device_manufacturer"],
+        "device_model": profile["device_model"],
+        "device_os_name": profile["device_os_name"],
+        "device_os_version": profile["device_os_version"],
+        "duration_ns": int(profile["duration_ns"]),
+        "environment": profile.get("environment"),
+        "platform": profile["platform"],
+        "trace_id": profile["trace_id"],
+        "transaction_name": profile["transaction_name"],
+        "version_name": profile["version_name"],
+        "version_code": profile["version_code"],
+        "retention_days": 30,
+    }
+
+    if profile["platform"] == "android":
+        normalized_profile = {
+            **normalized_profile,
+            **{
+                "android_api_level": profile["android_api_level"],
+                "profile": profile["stacktrace"],
+                "symbols": profile["android_trace"],
+            },
+        }
+    elif profile["platform"] == "ios":
+        normalized_profile = {
+            **normalized_profile,
+            **{
+                "device_os_build_number": profile["device_os_build_number"],
+                "profile": profile["sampled_profile"],
+                "symbols": profile["debug_meta"],
+            },
+        }
+
+    return normalized_profile
+
+
 class ProfilesWorker(AbstractBatchWorker):  # type: ignore
     def __init__(self, producer: Producer) -> None:
         self.__producer = producer
@@ -40,9 +81,9 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         profile = msgpack.unpackb(message.value(), use_list=False)
         if not self._validate_profile(profile):
             return None
-        if profile["platform"] != "ios":
-            return profile
-        return self.symbolicate(profile)
+        if profile["platform"] == "ios":
+            profile = self.symbolicate(profile)
+        return _normalize(profile)
 
     def symbolicate(self, profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         samples = profile["sampled_profiles"]["samples"]
@@ -77,11 +118,11 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
 
         return profile
 
-    def flush_batch(self, batch: Sequence[MutableMapping[str, Any]]) -> None:
+    def flush_batch(self, profiles: Sequence[MutableMapping[str, Any]]) -> None:
         self.__producer.poll(0)
-        for message in batch:
+        for profile in profiles:
             self.__producer.produce(
-                self.__producer_topic, json.dumps(message), callback=self.callback
+                self.__producer_topic, json.dumps(profile), callback=self.callback
             )
         self.__producer.flush()
 
