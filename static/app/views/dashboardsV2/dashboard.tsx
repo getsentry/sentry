@@ -347,9 +347,10 @@ class Dashboard extends Component<Props, State> {
       paramDashboardId,
       onSetWidgetToBeUpdated,
       handleAddCustomWidget,
+      isEditing,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience')) {
+    if (organization.features.includes('new-widget-builder-experience') && isEditing) {
       onSetWidgetToBeUpdated(widget);
 
       trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.opened', {
