@@ -480,18 +480,16 @@ describe('Modals -> WidgetViewerModal', function () {
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {modalSort: ['freq']};
       rerender(
-        <div style={{padding: space(4)}}>
-          <WidgetViewerModal
-            Header={stubEl}
-            Footer={stubEl as ModalRenderProps['Footer']}
-            Body={stubEl as ModalRenderProps['Body']}
-            CloseButton={stubEl}
-            closeModal={() => undefined}
-            organization={initialData.organization}
-            widget={mockWidget}
-            onEdit={() => undefined}
-          />
-        </div>,
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
         {
           context: initialData.routerContext,
           organization: initialData.organization,

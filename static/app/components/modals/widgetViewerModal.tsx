@@ -182,7 +182,7 @@ function WidgetViewerModal(props: Props) {
                     <StyledPagination
                       pageLinks={pageLinks}
                       onCursor={(nextCursor, _path, _query, delta) => {
-                        let nextPage: number | undefined = isNaN(pagination.page)
+                        let nextPage = isNaN(pagination.page)
                           ? delta
                           : pagination.page + delta;
                         let newCursor = nextCursor;
