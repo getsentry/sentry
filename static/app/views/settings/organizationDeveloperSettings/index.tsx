@@ -4,9 +4,10 @@ import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
 import Access from 'sentry/components/acl/access';
 import AlertLink from 'sentry/components/alertLink';
 import Button from 'sentry/components/button';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Organization, SentryApp} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -155,6 +156,16 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={t('Developer Settings')} />
+        <PanelAlert type="info">
+          {tct(
+            "We've added new webhooks for comments on issues! Read more in our [link:webhook documentation].",
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/#comments" />
+              ),
+            }
+          )}
+        </PanelAlert>
         <AlertLink href="https://docs.sentry.io/product/integrations/integration-platform/">
           {t(
             'Have questions about the Integration Platform? Learn more about it in our docs.'
