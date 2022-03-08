@@ -9,17 +9,17 @@ describe('MetricsTagStore', function () {
     it('should add a new tags and trigger the new addition', () => {
       jest.spyOn(MetricsTagStore, 'trigger');
 
-      const tags = MetricsTagStore.getAllTags();
-      expect(tags).toEqual({});
+      const {metricsTags} = MetricsTagStore.getState();
+      expect(metricsTags).toEqual({});
 
-      MetricsTagStore.onLoadTagsSuccess([
+      MetricsTagStore.onLoadSuccess([
         {key: 'environment'},
         {key: 'release'},
         {key: 'session.status'},
       ]);
 
-      const updatedTags = MetricsTagStore.getAllTags();
-      expect(updatedTags).toEqual({
+      const {metricsTags: metricsNewTags} = MetricsTagStore.getState();
+      expect(metricsNewTags).toEqual({
         environment: {key: 'environment'},
         release: {key: 'release'},
         'session.status': {key: 'session.status'},
