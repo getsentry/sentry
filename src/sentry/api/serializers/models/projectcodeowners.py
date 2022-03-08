@@ -40,10 +40,8 @@ class ProjectCodeOwnersSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "codeMappingId": str(obj.repository_project_path_config_id),
-            "provider": "unknown",
+            "provider": attrs.get("provider", "unknown"),
         }
-
-        data["provider"] = attrs.get("provider", "unknown")
 
         if "codeMapping" in self.expand:
             config = attrs.get("codeMapping", {})
