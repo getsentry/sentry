@@ -193,9 +193,10 @@ export function YAxisSelector({
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
             otherColumns={fields}
           />
-          {i !== 0 && (canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
-            <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
-          )}
+          {fields.length > 1 &&
+            (canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
+              <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
+            )}
         </QueryFieldWrapper>
       ))}
       {!hideAddYAxisButtons && (

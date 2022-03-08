@@ -16,7 +16,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/incidentRules/types';
 
@@ -52,24 +52,20 @@ class AlertWizard extends Component<Props, State> {
 
   componentDidMount() {
     // capture landing on the alert wizard page and viewing the issue alert by default
+    this.trackView();
+  }
+
+  trackView(alertType: AlertType = DEFAULT_ALERT_OPTION) {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'alert_wizard.option_viewed',
-      eventName: 'Alert Wizard: Option Viewed',
-      organization_id: organization.id,
-      alert_type: DEFAULT_ALERT_OPTION,
+    trackAdvancedAnalyticsEvent('alert_wizard.option_viewed', {
+      organization,
+      alert_type: alertType,
     });
   }
 
   handleChangeAlertOption = (alertOption: AlertType) => {
-    const {organization} = this.props;
     this.setState({alertOption});
-    trackAnalyticsEvent({
-      eventKey: 'alert_wizard.option_viewed',
-      eventName: 'Alert Wizard: Option Viewed',
-      organization_id: organization.id,
-      alert_type: alertOption,
-    });
+    this.trackView(alertOption);
   };
 
   renderCreateAlertButton() {
@@ -125,10 +121,8 @@ class AlertWizard extends Component<Props, State> {
         {({hasFeature}) => (
           <WizardButtonContainer
             onClick={() =>
-              trackAnalyticsEvent({
-                eventKey: 'alert_wizard.option_selected',
-                eventName: 'Alert Wizard: Option Selected',
-                organization_id: organization.id,
+              trackAdvancedAnalyticsEvent('alert_wizard.option_selected', {
+                organization,
                 alert_type: alertOption,
               })
             }
