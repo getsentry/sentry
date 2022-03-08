@@ -30,31 +30,43 @@ export const generateOrderOptions = ({
   aggregates,
   columns,
   widgetType,
+  widgetBuilderNewDesign = false,
 }: {
   aggregates: string[];
   columns: string[];
   widgetType: WidgetType;
+  widgetBuilderNewDesign?: boolean;
 }): SelectValue<string>[] => {
   const isMetrics = widgetType === WidgetType.METRICS;
   const options: SelectValue<string>[] = [];
   let equations = 0;
-  (isMetrics ? aggregates : [...aggregates, ...columns]).forEach(field => {
-    let alias = getAggregateAlias(field);
-    const label = stripEquationPrefix(field);
-    // Equations are referenced via a standard alias following this pattern
-    if (isEquation(field)) {
-      alias = `equation[${equations}]`;
-      equations += 1;
-    }
-    options.push({
-      label: t('%s asc', label),
-      value: isMetrics ? field : alias,
+  (isMetrics ? aggregates : [...aggregates, ...columns])
+    .filter(field => !!field)
+    .forEach(field => {
+      let alias = getAggregateAlias(field);
+      const label = stripEquationPrefix(field);
+      // Equations are referenced via a standard alias following this pattern
+      if (isEquation(field)) {
+        alias = `equation[${equations}]`;
+        equations += 1;
+      }
+
+      if (widgetBuilderNewDesign) {
+        options.push({label, value: alias});
+        return;
+      }
+
+      options.push({
+        label: t('%s asc', label),
+        value: isMetrics ? field : alias,
+      });
+
+      options.push({
+        label: t('%s desc', label),
+        value: isMetrics ? `-${field}` : `-${alias}`,
+      });
     });
-    options.push({
-      label: t('%s desc', label),
-      value: isMetrics ? `-${field}` : `-${alias}`,
-    });
-  });
+
   return options;
 };
 

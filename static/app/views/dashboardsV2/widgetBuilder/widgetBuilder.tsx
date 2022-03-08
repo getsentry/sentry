@@ -82,12 +82,14 @@ import {DashboardSelector} from './dashboardSelector';
 import {DisplayTypeSelector} from './displayTypeSelector';
 import {Footer} from './footer';
 import {Header} from './header';
+import {SortBySelectors} from './sortBySelectors';
 import {
   DataSet,
   DisplayType,
   getParsedDefaultWidgetQuery,
   mapErrors,
   normalizeQueries,
+  SortAscOrDescOption,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 import {YAxisSelector} from './yAxisSelector';
@@ -107,7 +109,7 @@ const QUERIES: Record<DataSet, WidgetQuery> = {
     columns: [],
     aggregates: ['count()'],
     conditions: '',
-    orderby: '',
+    orderby: 'count',
   },
   [DataSet.ISSUES]: {
     name: '',
@@ -115,7 +117,7 @@ const QUERIES: Record<DataSet, WidgetQuery> = {
     columns: ['issue', 'assignee', 'title'],
     aggregates: [],
     conditions: '',
-    orderby: '',
+    orderby: IssueSortOptions.DATE,
   },
   [DataSet.METRICS]: {
     name: '',
@@ -133,18 +135,18 @@ const WIDGET_TYPE_TO_DATA_SET = {
   // [WidgetType.METRICS]: DataSet.METRICS,
 };
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   dashboardId?: string;
   widgetIndex?: number;
-};
+}
 
-type QueryData = {
+interface QueryData {
   queryConditions: string[];
   queryFields: string[];
   queryNames: string[];
   queryOrderby: string;
-};
+}
 
 interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
@@ -159,7 +161,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   widget?: Widget;
 }
 
-type State = {
+interface State {
   dashboards: DashboardListItem[];
   dataSet: DataSet;
   displayType: Widget['displayType'];
@@ -170,7 +172,7 @@ type State = {
   userHasModified: boolean;
   errors?: Record<string, any>;
   selectedDashboard?: SelectValue<string>;
-};
+}
 
 function WidgetBuilder({
   dashboard,
@@ -194,6 +196,9 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
+  const widgetBuilderNewDesign = organization.features.includes(
+    'new-widget-builder-experience-design'
+  );
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -230,7 +235,12 @@ function WidgetBuilder({
       title: widgetToBeUpdated.title,
       displayType: widgetToBeUpdated.displayType,
       interval: widgetToBeUpdated.interval,
-      queries: normalizeQueries(widgetToBeUpdated.displayType, widgetToBeUpdated.queries),
+      queries: normalizeQueries({
+        displayType: widgetToBeUpdated.displayType,
+        queries: widgetToBeUpdated.queries,
+        widgetType: widgetToBeUpdated.widgetType ?? WidgetType.DISCOVER,
+        widgetBuilderNewDesign,
+      }),
       errors: undefined,
       loading: false,
       dashboards: [],
@@ -276,7 +286,13 @@ function WidgetBuilder({
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const normalized = normalizeQueries(newDisplayType, prevState.queries);
+      const normalized = normalizeQueries({
+        displayType: newDisplayType,
+        queries: prevState.queries,
+        widgetType:
+          prevState.dataSet === DataSet.EVENTS ? WidgetType.DISCOVER : WidgetType.ISSUE,
+        widgetBuilderNewDesign,
+      });
 
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
@@ -290,7 +306,16 @@ function WidgetBuilder({
       ) {
         // World Map display type only supports Events Dataset
         // so set state to default events query.
-        set(newState, 'queries', normalizeQueries(newDisplayType, [{...QUERIES.events}]));
+        set(
+          newState,
+          'queries',
+          normalizeQueries({
+            displayType: newDisplayType,
+            queries: [{...QUERIES.events}],
+            widgetType: WidgetType.DISCOVER,
+            widgetBuilderNewDesign,
+          })
+        );
         set(newState, 'dataSet', DataSet.EVENTS);
         return {...newState, errors: undefined};
       }
@@ -328,7 +353,9 @@ function WidgetBuilder({
               ]);
               query.aggregates = aggregates;
               query.columns = columns;
-              query.orderby = defaultWidgetQuery.orderby;
+              if (!!defaultWidgetQuery.orderby) {
+                query.orderby = defaultWidgetQuery.orderby;
+              }
             });
           }
         }
@@ -447,6 +474,10 @@ function WidgetBuilder({
         } else {
           newQuery.orderby = '';
         }
+      }
+
+      if (widgetBuilderNewDesign && queryIndex === 0) {
+        newQuery.orderby = aggregateAliasFieldStrings[0];
       }
 
       handleQueryChange(queryIndex, newQuery);
@@ -677,6 +708,7 @@ function WidgetBuilder({
   ].includes(state.displayType);
 
   const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
+  const orderBy = state.queries[0].orderby;
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -745,7 +777,7 @@ function WidgetBuilder({
                         state.displayType !== DisplayType.TABLE
                           ? [
                               [
-                                DATASET_CHOICES[1][0],
+                                DataSet.ISSUES,
                                 t(
                                   'This data set is restricted to the table visualization.'
                                 ),
@@ -962,23 +994,42 @@ function WidgetBuilder({
                     >
                       <Field
                         inline={false}
+                        error={state.errors?.orderby}
                         flexibleControlStateSize
                         stacked
-                        error={state.errors?.orderby}
                       >
-                        {state.dataSet === DataSet.EVENTS ? (
-                          <SelectControl
-                            menuPlacement="auto"
-                            value={state.queries[0].orderby}
-                            name="orderby"
-                            options={generateOrderOptions({
-                              widgetType,
-                              ...getColumnsAndAggregates(state.queries[0].fields),
-                            })}
-                            onChange={(option: SelectValue<string>) => {
+                        {widgetBuilderNewDesign ? (
+                          <SortBySelectors
+                            sortByOptions={
+                              state.dataSet === DataSet.EVENTS
+                                ? generateOrderOptions({
+                                    widgetType,
+                                    widgetBuilderNewDesign: true,
+                                    ...getColumnsAndAggregates(state.queries[0].fields),
+                                  })
+                                : generateIssueWidgetOrderOptions(
+                                    organization.features.includes(
+                                      'issue-list-trend-sort'
+                                    )
+                                  )
+                            }
+                            values={{
+                              sortAscOrDesc:
+                                orderBy[0] === '-'
+                                  ? SortAscOrDescOption.HIGH_TO_LOW
+                                  : SortAscOrDescOption.LOW_TO_HIGH,
+                              sortBy:
+                                orderBy[0] === '-'
+                                  ? orderBy.substring(1, orderBy.length)
+                                  : orderBy,
+                            }}
+                            onChange={({sortAscOrDesc, sortBy}) => {
                               const newQuery: WidgetQuery = {
                                 ...state.queries[0],
-                                orderby: option.value,
+                                orderby:
+                                  sortAscOrDesc === SortAscOrDescOption.HIGH_TO_LOW
+                                    ? `-${sortBy}`
+                                    : sortBy,
                               };
                               handleQueryChange(0, newQuery);
                             }}
@@ -986,11 +1037,24 @@ function WidgetBuilder({
                         ) : (
                           <SelectControl
                             menuPlacement="auto"
-                            value={state.queries[0].orderby || IssueSortOptions.DATE}
+                            value={
+                              state.dataSet === DataSet.EVENTS
+                                ? state.queries[0].orderby
+                                : state.queries[0].orderby || IssueSortOptions.DATE
+                            }
                             name="orderby"
-                            options={generateIssueWidgetOrderOptions(
-                              organization?.features?.includes('issue-list-trend-sort')
-                            )}
+                            options={
+                              state.dataSet === DataSet.EVENTS
+                                ? generateOrderOptions({
+                                    widgetType,
+                                    ...getColumnsAndAggregates(state.queries[0].fields),
+                                  })
+                                : generateIssueWidgetOrderOptions(
+                                    organization.features.includes(
+                                      'issue-list-trend-sort'
+                                    )
+                                  )
+                            }
                             onChange={(option: SelectValue<string>) => {
                               const newQuery: WidgetQuery = {
                                 ...state.queries[0],

@@ -8,13 +8,13 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   goBackLocation: React.ComponentProps<typeof Link>['to'];
   invalidForm: boolean;
   onSave: (event: React.MouseEvent) => void;
   isEditing?: boolean;
   onDelete?: () => void;
-};
+}
 
 export function Footer({
   goBackLocation,
