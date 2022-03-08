@@ -62,7 +62,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # typ
             self.track_response_code("create", status.HTTP_201_CREATED)
             analytics.record(
                 "codeowners.created",
-                user_id=request.user.id if request.user and request.user.id else None,
+                user_id=getattr(request.user, "id", None),
                 organization_id=project.organization_id,
                 project_id=project.id,
                 codeowners_id=project_codeowners.id,
