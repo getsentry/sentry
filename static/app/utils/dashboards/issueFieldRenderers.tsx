@@ -99,12 +99,12 @@ const SPECIAL_FIELDS: SpecialFields = {
     },
   },
   lifetimeEvents: {
-    sortField: 'freq',
+    sortField: null,
     renderFunc: (data, {organization}) =>
       issuesCountRenderer(data, organization, 'lifetimeEvents'),
   },
   lifetimeUsers: {
-    sortField: 'user',
+    sortField: null,
     renderFunc: (data, {organization}) =>
       issuesCountRenderer(data, organization, 'lifetimeUsers'),
   },
