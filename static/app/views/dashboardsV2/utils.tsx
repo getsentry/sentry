@@ -45,9 +45,9 @@ export function eventViewFromWidget(
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
   const fields =
     widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.fields.includes('geo.country_code')
-      ? ['geo.country_code', ...query.fields]
-      : query.fields;
+    !query.columns.includes('geo.country_code')
+      ? ['geo.country_code', ...query.columns]
+      : query.columns;
   const conditions =
     widgetDisplayType === DisplayType.WORLD_MAP &&
     !query.conditions.includes('has:geo.country_code')
@@ -188,7 +188,9 @@ export function getWidgetDiscoverUrl(
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   discoverLocation.query.yAxis = [
-    ...new Set(widget.queries[0].fields.filter(field => yAxisOptions.includes(field))),
+    ...new Set(
+      widget.queries[0].aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+    ),
   ].slice(0, 3);
 
   // Visualization specific transforms
@@ -202,10 +204,10 @@ export function getWidgetDiscoverUrl(
     case DisplayType.TOP_N:
       discoverLocation.query.display = DisplayModes.TOP5;
       // Last field is used as the yAxis
-      const fields = widget.queries[0].fields;
-      discoverLocation.query.yAxis = fields[fields.length - 1];
-      if (fields.slice(0, -1).includes(fields[fields.length - 1])) {
-        discoverLocation.query.field = fields.slice(0, -1);
+      const aggregates = widget.queries[0].aggregates;
+      discoverLocation.query.yAxis = aggregates[aggregates.length - 1];
+      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1])) {
+        discoverLocation.query.field = aggregates.slice(0, -1);
       }
       break;
     default:
