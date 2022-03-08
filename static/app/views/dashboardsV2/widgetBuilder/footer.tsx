@@ -59,4 +59,5 @@ const FooterWrapper = styled('div')`
   position: sticky;
   bottom: 0;
   padding: ${space(4)};
+  z-index: ${p => p.theme.zIndex.initial};
 `;

@@ -1119,6 +1119,33 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('renders fields with commas properly', async () => {
+    const defaultWidgetQuery = {
+      conditions: '',
+      fields: ['equation|count_if(transaction.duration,equals,300)*2'],
+      orderby: '',
+      name: '',
+    };
+    const defaultTableColumns = [
+      'count_if(transaction.duration,equals,300)',
+      'equation|count_if(transaction.duration,equals,300)*2',
+    ];
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        defaultTableColumns,
+        yAxis: ['equation|count_if(transaction.duration,equals,300)*2'],
+      },
+    });
+
+    await screen.findByText('Add Widget');
+
+    expect(
+      await screen.findByText('count_if(transaction.duration,equals,300)*2')
+    ).toBeInTheDocument();
+  });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
