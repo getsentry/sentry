@@ -195,9 +195,14 @@ export function getSeriesSelection(
 }
 
 export function isMultiSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats | null | undefined
+  data: MultiSeriesEventsStats | EventsStats | null | undefined,
+  isTopN?: boolean
 ): data is MultiSeriesEventsStats {
-  return defined(data) && data.data === undefined && data.totals === undefined;
+  return (
+    defined(data) &&
+    ((data.data === undefined && data.totals === undefined) ||
+      (defined(isTopN) && isTopN))
+  );
 }
 
 // If dimension is a number convert it to pixels, otherwise use dimension
