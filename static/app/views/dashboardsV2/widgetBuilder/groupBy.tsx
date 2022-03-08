@@ -27,9 +27,9 @@ export function GroupBy({fieldOptions}: Props) {
           />
         </QueryFieldWrapper>
       </Field>
-      <Button size="small" icon={<IconAdd isCircled />} onClick={() => {}}>
+      <AddGroupButton size="small" icon={<IconAdd isCircled />} onClick={() => {}}>
         {t('Add Group')}
-      </Button>
+      </AddGroupButton>
     </React.Fragment>
   );
 }
@@ -46,4 +46,8 @@ const QueryFieldWrapper = styled('div')`
   > * + * {
     margin-left: ${space(1)};
   }
+`;
+
+const AddGroupButton = styled(Button)`
+  width: min-content;
 `;

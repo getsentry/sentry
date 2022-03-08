@@ -958,12 +958,9 @@ function WidgetBuilder({
                     </div>
                   </BuildStep>
                   {/* TODO: Add feature flag{organization.features.includes('new-widget-builder-design') && ( */}
-                  {[
-                    DisplayType.TABLE,
-                    DisplayType.BAR,
-                    DisplayType.LINE,
-                    DisplayType.AREA,
-                  ].includes(state.displayType) && (
+                  {[DisplayType.BAR, DisplayType.LINE, DisplayType.AREA].includes(
+                    state.displayType
+                  ) && (
                     <BuildStep
                       title={t('Group your results')}
                       description={t(
