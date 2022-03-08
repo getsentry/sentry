@@ -29,9 +29,6 @@ class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
             group=group,
             date_added=timezone.now() - timedelta(days=1),
         )
-        # import pdb
-
-        # pdb.set_trace()
 
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
