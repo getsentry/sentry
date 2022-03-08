@@ -51,15 +51,11 @@ export const renderIssueGridHeaderCell =
         align={align}
         title={<StyledTooltip title={column.name}>{column.name}</StyledTooltip>}
         direction={widget.queries[0].orderby === sortField ? 'desc' : undefined}
-        canSort
-        generateSortLink={() => {
-          return sortField
-            ? {
-                ...location,
-                query: {...location.query, [WidgetViewerQueryField.SORT]: sortField},
-              }
-            : undefined;
-        }}
+        canSort={!!sortField}
+        generateSortLink={() => ({
+          ...location,
+          query: {...location.query, [WidgetViewerQueryField.SORT]: sortField},
+        })}
       />
     );
   };
