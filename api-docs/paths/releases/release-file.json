@@ -1,6 +1,8 @@
 {
   "get": {
-    "tags": ["Releases"],
+    "tags": [
+      "Releases"
+    ],
     "description": "Retrieve a file for a given release.",
     "operationId": "Retrieve an Organization Release's File",
     "parameters": [
@@ -29,6 +31,15 @@
         "required": true,
         "schema": {
           "type": "string"
+        }
+      },
+      {
+        "name": "download",
+        "in": "query",
+        "required": false,
+        "description": "Set this parameter to anything to download the file's content.",
+        "schema": {
+          "type": "integer"
         }
       }
     ],
@@ -63,12 +74,16 @@
     },
     "security": [
       {
-        "auth_token": ["project:releases"]
+        "auth_token": [
+          "project:releases"
+        ]
       }
     ]
   },
   "put": {
-    "tags": ["Releases"],
+    "tags": [
+      "Releases"
+    ],
     "description": "Update an organization release file.",
     "operationId": "Update an Organization Release File",
     "parameters": [
@@ -153,12 +168,16 @@
     },
     "security": [
       {
-        "auth_token": ["project:releases"]
+        "auth_token": [
+          "project:releases"
+        ]
       }
     ]
   },
   "delete": {
-    "tags": ["Releases"],
+    "tags": [
+      "Releases"
+    ],
     "description": "Delete a file for a given release.",
     "operationId": "Delete an Organization Release's File",
     "parameters": [
@@ -203,7 +222,9 @@
     },
     "security": [
       {
-        "auth_token": ["project:releases"]
+        "auth_token": [
+          "project:releases"
+        ]
       }
     ]
   }
