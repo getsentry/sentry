@@ -24,8 +24,10 @@ from snuba_sdk import (
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
     MAX_POINTS,
+    OP_TO_SNUBA_FUNCTION,
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
@@ -186,20 +188,29 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     query_definition = QueryDefinition(query_params)
     snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
 
-    def expected_query(match, select, extra_groupby):
+    def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
         return Query(
             dataset="metrics",
             match=Entity(match),
-            select=[Function(function, [Column(column)], alias)],
-            groupby=[Column("metric_id"), Column("tags[8]"), Column("tags[2]")] + extra_groupby,
+            select=[
+                Function(
+                    OP_TO_SNUBA_FUNCTION[match][alias],
+                    [
+                        Column("value"),
+                        Function("equals", [Column("metric_id"), resolve_weak(metric_name)]),
+                    ],
+                    alias=f"{alias}({metric_name})",
+                )
+            ],
+            groupby=[Column("tags[8]"), Column("tags[2]")] + extra_groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
-                Condition(Column("metric_id"), Op.IN, [9, 11, 7]),
                 Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
                 Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
                 Condition(Column("tags[6]"), Op.IN, [10]),
+                Condition(Column("metric_id"), Op.IN, [resolve_weak(metric_name)]),
             ],
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
@@ -207,29 +218,45 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
         )
 
     assert snuba_queries["metrics_counters"]["totals"] == expected_query(
-        "metrics_counters", ("sum", "value", "sum"), []
+        "metrics_counters", ("sum", "value", "sum"), [], "sentry.sessions.session"
     )
 
     expected_percentile_select = ("quantiles(0.95)", "value", "p95")
     assert snuba_queries == {
         "metrics_counters": {
-            "totals": expected_query("metrics_counters", ("sum", "value", "sum"), []),
+            "totals": expected_query(
+                "metrics_counters", ("sum", "value", "sum"), [], "sentry.sessions.session"
+            ),
             "series": expected_query(
-                "metrics_counters", ("sum", "value", "sum"), [Column("bucketed_time")]
+                "metrics_counters",
+                ("sum", "value", "sum"),
+                [Column("bucketed_time")],
+                "sentry.sessions.session",
             ),
         },
         "metrics_sets": {
-            "totals": expected_query("metrics_sets", ("uniq", "value", "count_unique"), []),
+            "totals": expected_query(
+                "metrics_sets", ("uniq", "value", "count_unique"), [], "sentry.sessions.user"
+            ),
             "series": expected_query(
-                "metrics_sets", ("uniq", "value", "count_unique"), [Column("bucketed_time")]
+                "metrics_sets",
+                ("uniq", "value", "count_unique"),
+                [Column("bucketed_time")],
+                "sentry.sessions.user",
             ),
         },
         "metrics_distributions": {
-            "totals": expected_query("metrics_distributions", expected_percentile_select, []),
+            "totals": expected_query(
+                "metrics_distributions",
+                expected_percentile_select,
+                [],
+                "sentry.sessions.session.duration",
+            ),
             "series": expected_query(
                 "metrics_distributions",
                 expected_percentile_select,
                 [Column("bucketed_time")],
+                "sentry.sessions.session.duration",
             ),
         },
     }
@@ -256,27 +283,55 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
 
     counter_queries = snuba_queries.pop("metrics_counters")
     assert not snuba_queries
-    assert counter_queries["series"] is None  # No series because of orderBy
+
+    op = "sum"
+    metric_name = "sentry.sessions.session"
+    select = Function(
+        OP_TO_SNUBA_FUNCTION["metrics_counters"]["sum"],
+        [Column("value"), Function("equals", [Column("metric_id"), resolve_weak(metric_name)])],
+        alias=f"{op}({metric_name})",
+    )
 
     assert counter_queries["totals"] == Query(
         dataset="metrics",
         match=Entity("metrics_counters"),
-        select=[Function("sum", [Column("value")], "sum")],
+        select=[select],
         groupby=[
-            Column("metric_id"),
             Column("tags[8]"),
             Column("tags[2]"),
         ],
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("metric_id"), Op.IN, [9]),
             Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(Column("tags[6]", entity=None), Op.IN, [10]),
+            Condition(Column("metric_id"), Op.IN, [9]),
         ],
-        orderby=[OrderBy(Column("sum"), Direction.DESC)],
+        orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(3),
+        offset=Offset(0),
+        granularity=Granularity(query_definition.rollup),
+    )
+    assert counter_queries["series"] == Query(
+        dataset="metrics",
+        match=Entity("metrics_counters"),
+        select=[select],
+        groupby=[
+            Column("tags[8]"),
+            Column("tags[2]"),
+            Column("bucketed_time"),
+        ],
+        where=[
+            Condition(Column("org_id"), Op.EQ, 1),
+            Condition(Column("project_id"), Op.IN, [1]),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
+            Condition(Column("metric_id"), Op.IN, [9]),
+        ],
+        orderby=[OrderBy(select, Direction.DESC)],
+        limit=Limit(6480),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
@@ -312,12 +367,12 @@ def test_translate_results(_1, _2, monkeypatch):
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,  # session.status:healthy
-                        "sum": 300,
+                        "sum(sentry.sessions.session)": 300,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 14,  # session.status:abnormal
-                        "sum": 330,
+                        "sum(sentry.sessions.session)": 330,
                     },
                 ],
             },
@@ -327,25 +382,25 @@ def test_translate_results(_1, _2, monkeypatch):
                         "metric_id": 9,  # session
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "sum": 100,
+                        "sum(sentry.sessions.session)": 100,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "sum": 110,
+                        "sum(sentry.sessions.session)": 110,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "sum": 200,
+                        "sum(sentry.sessions.session)": 200,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "sum": 220,
+                        "sum(sentry.sessions.session)": 220,
                     },
                 ],
             },
@@ -356,16 +411,16 @@ def test_translate_results(_1, _2, monkeypatch):
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "max": 123.4,
-                        "p50": [1],
-                        "p95": [4],
+                        "max(sentry.sessions.session.duration)": 123.4,
+                        "p50(sentry.sessions.session.duration)": [1],
+                        "p95(sentry.sessions.session.duration)": [4],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 14,
-                        "max": 456.7,
-                        "p50": [1.5],
-                        "p95": [4.5],
+                        "max(sentry.sessions.session.duration)": 456.7,
+                        "p50(sentry.sessions.session.duration)": [1.5],
+                        "p95(sentry.sessions.session.duration)": [4.5],
                     },
                 ],
             },
@@ -375,33 +430,33 @@ def test_translate_results(_1, _2, monkeypatch):
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "max": 10.1,
-                        "p50": [1.1],
-                        "p95": [4.1],
+                        "max(sentry.sessions.session.duration)": 10.1,
+                        "p50(sentry.sessions.session.duration)": [1.1],
+                        "p95(sentry.sessions.session.duration)": [4.1],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "max": 20.2,
-                        "p50": [1.2],
-                        "p95": [4.2],
+                        "max(sentry.sessions.session.duration)": 20.2,
+                        "p50(sentry.sessions.session.duration)": [1.2],
+                        "p95(sentry.sessions.session.duration)": [4.2],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "max": 30.3,
-                        "p50": [1.3],
-                        "p95": [4.3],
+                        "max(sentry.sessions.session.duration)": 30.3,
+                        "p50(sentry.sessions.session.duration)": [1.3],
+                        "p95(sentry.sessions.session.duration)": [4.3],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "max": 40.4,
-                        "p50": [1.4],
-                        "p95": [4.4],
+                        "max(sentry.sessions.session.duration)": 40.4,
+                        "p50(sentry.sessions.session.duration)": [1.4],
+                        "p95(sentry.sessions.session.duration)": [4.4],
                     },
                 ],
             },
@@ -465,7 +520,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
                 "data": [
                     {
                         "metric_id": 9,  # session
-                        "sum": 400,
+                        "sum(sentry.sessions.session)": 400,
                     },
                 ],
             },
@@ -474,13 +529,13 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
                     {
                         "metric_id": 9,  # session
                         "bucketed_time": "2021-08-23T00:00Z",
-                        "sum": 100,
+                        "sum(sentry.sessions.session)": 100,
                     },
                     # no data for 2021-08-24
                     {
                         "metric_id": 9,  # session
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "sum": 300,
+                        "sum(sentry.sessions.session)": 300,
                     },
                 ],
             },

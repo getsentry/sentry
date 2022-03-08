@@ -70,7 +70,6 @@ describe('ProjectKeyDetails', function () {
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
-    const routerContext = TestStubs.routerContext();
 
     wrapper = mountWithTheme(
       <ProjectKeyDetails
@@ -82,13 +81,10 @@ describe('ProjectKeyDetails', function () {
         }}
       />,
       {
-        ...routerContext,
         context: {
-          ...routerContext.context,
           project: TestStubs.Project(),
         },
         childContextTypes: {
-          ...routerContext.childContextTypes,
           project: PropTypes.object,
         },
       }

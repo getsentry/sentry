@@ -11,6 +11,7 @@ import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {WebVital} from 'sentry/utils/discover/fields';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -88,6 +89,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, eventView, organization, location} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
+  const pageError = usePageError();
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
     field,
@@ -161,6 +163,8 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 },
                 'medium'
               )}
+              hideError
+              onError={pageError.setPageError}
             />
           );
         },
@@ -224,7 +228,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               <Button
                 onClick={handleViewAllClick}
                 to={target}
-                size="xsmall"
+                size="small"
                 data-test-id="view-all-button"
               >
                 {t('View All')}

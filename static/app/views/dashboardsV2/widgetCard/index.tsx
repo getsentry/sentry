@@ -5,10 +5,11 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
@@ -41,6 +42,7 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
+  index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
   noLazyLoad?: boolean;
@@ -141,9 +143,13 @@ class WidgetCard extends React.Component<Props> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
+      location,
       showWidgetViewerButton,
-      onEdit,
+      router,
+      isEditing,
+      index,
     } = this.props;
+    const id = widget.id ?? index;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -153,14 +159,21 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
-            {showWidgetViewerButton && (
+            {showWidgetViewerButton && !isEditing && id && (
               <OpenWidgetViewerButton
+                aria-label={t('Open Widget Viewer')}
+                priority="link"
+                size="zero"
+                icon={<IconExpand size="xs" />}
                 onClick={() => {
-                  openWidgetViewerModal({
-                    organization,
-                    widget,
-                    onEdit,
-                  });
+                  if (!isWidgetViewerPath(location.pathname)) {
+                    router.push({
+                      pathname: `${location.pathname}${
+                        location.pathname.endsWith('/') ? '' : '/'
+                      }widget/${id}/`,
+                      query: location.query,
+                    });
+                  }
                 }}
               />
             )}
@@ -271,14 +284,12 @@ const WidgetHeader = styled('div')`
   padding: ${space(2)} ${space(3)} 0 ${space(3)};
   width: 100%;
   display: flex;
+  align-items: center;
   justify-content: space-between;
 `;
 
-const OpenWidgetViewerButton = styled(IconExpand)`
-  &:hover {
-    cursor: pointer;
-  }
-  margin: auto;
+const OpenWidgetViewerButton = styled(Button)`
   margin-left: ${space(0.5)};
-  height: ${p => p.theme.fontSizeMedium};
+  margin-right: auto;
+  color: ${p => p.theme.textColor};
 `;

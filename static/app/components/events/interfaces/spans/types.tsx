@@ -1,9 +1,11 @@
+import {Fuse} from 'sentry/utils/fuzzySearch';
+
 export type GapSpanType = {
   isOrphan: boolean;
   start_timestamp: number;
+  // this is essentially end_timestamp
   timestamp: number;
   type: 'gap';
-  // this is essentially end_timestamp
   description?: string;
 };
 
@@ -11,6 +13,7 @@ export type RawSpanType = {
   data: Object;
   span_id: string;
   start_timestamp: number;
+  // this is essentially end_timestamp
   timestamp: number;
   trace_id: string;
   type: 'span';
@@ -19,7 +22,6 @@ export type RawSpanType = {
   hash?: string;
   op?: string;
   parent_span_id?: string;
-  // this is essentially end_timestamp
   same_process_as_parent?: boolean;
   status?: string;
   tags?: {[key: string]: string};
@@ -182,25 +184,9 @@ export type IndexedFusedSpan = {
   tagValues: string[];
 };
 
-export type FuseResult = {
-  item: IndexedFusedSpan;
-  score: number;
-};
-
 export type FilterSpans = {
-  results: FuseResult[];
+  results: Fuse.FuseResult<IndexedFusedSpan>[];
   spanIDs: Set<string>;
-};
-
-type FuseKey = 'indexed' | 'tagKeys' | 'tagValues' | 'dataKeys' | 'dataValues';
-
-export type SpanFuseOptions = {
-  distance: number;
-  includeMatches: false;
-  keys: FuseKey[];
-  location: number;
-  maxPatternLength: number;
-  threshold: number;
 };
 
 export type TraceBound = {

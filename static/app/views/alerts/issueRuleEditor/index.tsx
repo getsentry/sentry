@@ -176,6 +176,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
   }
 
+  onLoadAllEndpointsSuccess() {
+    const {rule} = this.state;
+    if (rule) {
+      ((rule as IssueAlertRule)?.errors || []).map(({detail}) =>
+        addErrorMessage(detail, {append: true})
+      );
+    }
+  }
   pollHandler = async (quitTime: number) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
@@ -242,10 +250,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     metric.endTransaction({name: 'saveAlertRule'});
 
-    router.push({
-      pathname: `/organizations/${organization.slug}/alerts/rules/`,
-      query: {project: project.id},
-    });
+    router.push(
+      organization.features.includes('alert-rule-status-page')
+        ? {
+            pathname: `/organizations/sentry/alerts/rules/${project.slug}/${rule.id}/details/`,
+          }
+        : {
+            pathname: `/organizations/${organization.slug}/alerts/rules/`,
+            query: {project: project.id},
+          }
+    );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 

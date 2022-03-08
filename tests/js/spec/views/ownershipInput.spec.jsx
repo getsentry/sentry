@@ -39,8 +39,7 @@ describe('Project Ownership Input', function () {
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const submit = wrapper.find('SaveButton button');
@@ -67,8 +66,7 @@ describe('Project Ownership Input', function () {
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     // Set a path, as path is selected bu default.
@@ -77,12 +75,12 @@ describe('Project Ownership Input', function () {
 
     // Select the user.
     await selectByValueAsync(wrapper, 'user:1', {control: true, name: 'owners'});
-    await wrapper.update();
+    wrapper.update();
 
     // Add the new rule.
     const button = wrapper.find('RuleBuilder AddButton button');
     button.simulate('click');
-    await wrapper.update();
+    wrapper.update();
 
     expect(put).toHaveBeenCalledWith(
       '/projects/org-slug/project-slug/ownership/',

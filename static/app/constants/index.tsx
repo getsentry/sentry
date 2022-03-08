@@ -1,10 +1,11 @@
 /* global process */
-/**
- * Common constants here
- */
 
 import {t} from 'sentry/locale';
 import {DataCategory, Scope} from 'sentry/types';
+
+/**
+ * Common constants here
+ */
 
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
@@ -165,19 +166,6 @@ export const DEFAULT_TOAST_DURATION = 6000;
 export const DEFAULT_DEBOUNCE_DURATION = 300;
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
-
-// See http://fusejs.io/ for more information
-export const DEFAULT_FUSE_OPTIONS = {
-  includeScore: true,
-  includeMatches: true,
-  threshold: 0.4,
-  location: 0,
-  distance: 75,
-  maxPatternLength: 24,
-  minMatchCharLength: 2,
-  // tokenize: true,
-  // findAllMatches: true,
-};
 
 // Maps a `type: string` -> `url-prefix: string`
 export const AVATAR_URL_MAP = {

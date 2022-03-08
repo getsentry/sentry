@@ -55,11 +55,10 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper).toSnapshot();
   });
@@ -89,11 +88,10 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -162,11 +160,10 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -210,11 +207,10 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -263,11 +259,10 @@ describe('ProjectTeams', function () {
           project={project}
           organization={org}
         />
-      </App>,
-      TestStubs.routerContext()
+      </App>
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     // Open the dropdown
     wrapper.find('TeamSelect DropdownButton').simulate('click');

@@ -31,7 +31,7 @@ describe('Incident Rules Create', () => {
   });
 
   it('renders a metric', async () => {
-    const {organization, project, routerContext} = initializeOrg();
+    const {organization, project} = initializeOrg();
     mountWithTheme(
       <TriggersChart
         api={api}
@@ -41,8 +41,7 @@ describe('Incident Rules Create', () => {
         timeWindow={1}
         aggregate="count()"
         triggers={[]}
-      />,
-      {context: routerContext}
+      />
     );
 
     await tick();
@@ -54,7 +53,7 @@ describe('Incident Rules Create', () => {
           interval: '1m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '1d',
+          statsPeriod: '10000m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
         },
@@ -67,7 +66,7 @@ describe('Incident Rules Create', () => {
         query: {
           project: ['2'],
           query: 'event.type:error',
-          statsPeriod: '1d',
+          statsPeriod: '10000m',
           environment: [],
         },
       })

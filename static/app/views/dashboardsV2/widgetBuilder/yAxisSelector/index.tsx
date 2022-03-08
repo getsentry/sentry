@@ -154,7 +154,7 @@ export function YAxisSelector({
   if (displayType === DisplayType.TOP_N) {
     const fieldValue = fields[fields.length - 1];
     return (
-      <Field inline={false} flexibleControlStateSize error={fieldError} required stacked>
+      <Field inline={false} flexibleControlStateSize error={fieldError} stacked>
         <QueryFieldWrapper>
           <QueryField
             fieldValue={fieldValue}
@@ -182,7 +182,7 @@ export function YAxisSelector({
       fields.length === 3);
 
   return (
-    <Field inline={false} flexibleControlStateSize error={fieldError} required stacked>
+    <Field inline={false} flexibleControlStateSize error={fieldError} stacked>
       {fields.map((fieldValue, i) => (
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
           <QueryField
@@ -193,9 +193,10 @@ export function YAxisSelector({
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
             otherColumns={fields}
           />
-          {(canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
-            <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
-          )}
+          {fields.length > 1 &&
+            (canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
+              <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
+            )}
         </QueryFieldWrapper>
       ))}
       {!hideAddYAxisButtons && (

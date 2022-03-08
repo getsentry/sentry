@@ -80,6 +80,11 @@ type Props = {
   defaultSelection?: Partial<PageFilters>;
 
   /**
+   * If a forced environment is passed, selection is disabled
+   */
+  forceEnvironment?: string;
+
+  /**
    * If a forced project is passed, selection is disabled
    */
   forceProject?: MinimalProject | null;
@@ -217,7 +222,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     callIfFunction(this.props.onUpdateTime, newValueObj);
   };
 
-  handleUpdateEnvironmments = () => {
+  handleUpdateEnvironments = () => {
     const {environments} = this.state;
     updateEnvironments(environments, this.props.router, this.getUpdateOptions());
     this.setState({environments: null});
@@ -278,6 +283,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     const {
       className,
       shouldForceProject,
+      forceEnvironment,
       forceProject,
       isGlobalSelectionReady,
       loadingProjects,
@@ -369,9 +375,10 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                 projects={this.props.projects}
                 loadingProjects={loadingProjects}
                 selectedProjects={selectedProjects}
+                forceEnvironment={forceEnvironment}
                 value={this.props.selection.environments}
                 onChange={this.handleChangeEnvironments}
-                onUpdate={this.handleUpdateEnvironmments}
+                onUpdate={this.handleUpdateEnvironments}
               />
             </HeaderItemPosition>
           </React.Fragment>

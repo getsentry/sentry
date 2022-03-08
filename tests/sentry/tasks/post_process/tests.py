@@ -494,7 +494,7 @@ class PostProcessGroupTest(TestCase):
         event = self.store_event(
             data={
                 "message": "Foo bar",
-                "exception": {"type": "Foo", "value": "shits on fiah yo"},
+                "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
                 "timestamp": iso_format(timezone.now()),
             },
@@ -571,7 +571,7 @@ class PostProcessGroupTest(TestCase):
             data={
                 "message": "Foo bar",
                 "level": "error",
-                "exception": {"type": "Foo", "value": "shits on fiah yo"},
+                "exception": {"type": "Foo", "value": "oh no"},
                 "timestamp": iso_format(timezone.now()),
             },
             project_id=self.project.id,

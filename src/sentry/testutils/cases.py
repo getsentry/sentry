@@ -1098,7 +1098,14 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         "metrics_sets": "s",
         "metrics_counters": "c",
     }
-    ENTITY_MAP = {"transaction.duration": "metrics_distributions", "user": "metrics_sets"}
+    ENTITY_MAP = {
+        "transaction.duration": "metrics_distributions",
+        "measurements.lcp": "metrics_distributions",
+        "measurements.fcp": "metrics_distributions",
+        "measurements.fid": "metrics_distributions",
+        "measurements.cls": "metrics_distributions",
+        "user": "metrics_sets",
+    }
     METRIC_STRINGS = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
 
@@ -1110,6 +1117,8 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         PGStringIndexer().bulk_record(
             strings=[
                 "transaction",
+                "environment",
+                "http.status",
                 "transaction.status",
                 *self.METRIC_STRINGS,
                 *list(SPAN_STATUS_NAME_TO_CODE.keys()),
@@ -1370,6 +1379,10 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["conditions"] == widget_data_source.conditions
         if "orderby" in data:
             assert data["orderby"] == widget_data_source.orderby
+        if "aggregates" in data:
+            assert data["aggregates"] == widget_data_source.aggregates
+        if "columns" in data:
+            assert data["columns"] == widget_data_source.columns
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")

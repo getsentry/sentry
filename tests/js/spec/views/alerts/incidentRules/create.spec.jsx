@@ -38,15 +38,14 @@ describe('Incident Rules Create', function () {
   });
 
   it('renders', function () {
-    const {organization, project, routerContext} = initializeOrg();
+    const {organization, project} = initializeOrg();
     mountWithTheme(
       <IncidentRulesCreate
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
         project={project}
         userTeamIds={[]}
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(eventStatsMock).toHaveBeenCalledWith(
@@ -56,7 +55,7 @@ describe('Incident Rules Create', function () {
           interval: '60m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '14d',
+          statsPeriod: '10000m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
         },
