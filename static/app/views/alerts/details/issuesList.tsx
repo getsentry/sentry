@@ -84,7 +84,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, rule} = this.props;
     const {loading, groupHistory, groupHistoryPageLinks} = this.state;
 
     return (
@@ -107,7 +107,12 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
             return (
               <Fragment key={issue.id}>
                 <TitleWrapper>
-                  <Link to={`/organizations/${organization.slug}/issues/${issue.id}/`}>
+                  <Link
+                    to={{
+                      pathname: `/organizations/${organization.slug}/issues/${issue.id}/`,
+                      query: rule.environment ? {environment: rule.environment} : {},
+                    }}
+                  >
                     {title}:
                   </Link>
                   <MessageWrapper>{message}</MessageWrapper>
