@@ -46,7 +46,7 @@ from sentry.release_health.base import (
 )
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.metrics.helpers import get_intervals
+from sentry.snuba.metrics.query_builder import get_intervals
 from sentry.snuba.sessions import get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.metrics import incr, timer, timing

@@ -1,25 +1,7 @@
 __all__ = (
-    "ALLOWED_GROUPBY_COLUMNS",
-    "AVAILABLE_OPERATIONS",
-    "FIELD_REGEX",
-    "MAX_POINTS",
-    "METRIC_TYPE_TO_ENTITY",
-    "MetricMeta",
-    "MetricMetaWithTagKeys",
-    "MetricOperation",
-    "MetricType",
-    "MetricUnit",
-    "OPERATIONS",
-    "OP_TO_SNUBA_FUNCTION",
     "QueryDefinition",
     "SnubaQueryBuilder",
     "SnubaResultConverter",
-    "TAG_REGEX",
-    "TS_COL_GROUP",
-    "TS_COL_QUERY",
-    "Tag",
-    "TagValue",
-    "TimeRange",
     "get_date_range",
     "get_intervals",
     "parse_field",
@@ -28,25 +10,9 @@ __all__ = (
 )
 
 import math
-import re
-from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from functools import cached_property
-from typing import (
-    Any,
-    Collection,
-    Dict,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Protocol,
-    Sequence,
-    Tuple,
-    TypedDict,
-    Union,
-)
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
 from snuba_sdk.conditions import BooleanCondition
@@ -62,7 +28,19 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
     reverse_resolve_weak,
 )
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.fields import metric_object_factory
+from sentry.snuba.metrics.utils import (
+    _OPERATIONS_PERCENTILES,
+    ALLOWED_GROUPBY_COLUMNS,
+    DEFAULT_AGGREGATES,
+    FIELD_REGEX,
+    MAX_POINTS,
+    OPERATIONS,
+    TS_COL_GROUP,
+    TS_COL_QUERY,
+    TimeRange,
+)
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     ONE_DAY,
     AllowedResolution,
@@ -72,34 +50,8 @@ from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import parse_snuba_datetime
 
-FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
-TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
-_OPERATIONS_PERCENTILES = (
-    "p50",
-    "p75",
-    "p90",
-    "p95",
-    "p99",
-)
-
-OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
-    "sum",
-) + _OPERATIONS_PERCENTILES
-
-#: Max number of data points per time series:
-MAX_POINTS = 10000
-
-
-TS_COL_QUERY = "timestamp"
-TS_COL_GROUP = "bucketed_time"
-
-
-def parse_field(field: str) -> Tuple[str, str]:
+def parse_field(field: str) -> Tuple[Optional[str], str]:
     matches = FIELD_REGEX.match(field)
     try:
         if matches is None:
@@ -247,12 +199,6 @@ class QueryDefinition:
             return None
 
 
-class TimeRange(Protocol):
-    start: datetime
-    end: datetime
-    rollup: int
-
-
 def get_intervals(query: TimeRange):
     start = query.start
     end = query.end
@@ -309,69 +255,6 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     # but we might want to reconsider once caching becomes an issue for metrics.
 
     return start, end, interval
-
-
-#: The type of metric, which determines the snuba entity to query
-MetricType = Literal["counter", "set", "distribution"]
-
-#: A function that can be applied to a metric
-MetricOperation = Literal["avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99"]
-
-MetricUnit = Literal["seconds"]
-
-
-METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
-    "counter": EntityKey.MetricsCounters,
-    "set": EntityKey.MetricsSets,
-    "distribution": EntityKey.MetricsDistributions,
-}
-
-
-class MetricMeta(TypedDict):
-    name: str
-    type: MetricType
-    operations: Collection[MetricOperation]
-    unit: Optional[MetricUnit]
-
-
-class Tag(TypedDict):
-    key: str  # Called key here to be consistent with JS type
-
-
-class TagValue(TypedDict):
-    key: str
-    value: str
-
-
-class MetricMetaWithTagKeys(MetricMeta):
-    tags: Sequence[Tag]
-
-
-# Map requested op name to the corresponding Snuba function
-OP_TO_SNUBA_FUNCTION = {
-    "metrics_counters": {"sum": "sumIf"},
-    "metrics_distributions": {
-        "avg": "avgIf",
-        "count": "countIf",
-        "max": "maxIf",
-        "min": "minIf",
-        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
-        "p50": "quantilesIf(0.50)",
-        "p75": "quantilesIf(0.75)",
-        "p90": "quantilesIf(0.90)",
-        "p95": "quantilesIf(0.95)",
-        "p99": "quantilesIf(0.99)",
-    },
-    "metrics_sets": {"count_unique": "uniqIf"},
-}
-
-AVAILABLE_OPERATIONS = {
-    type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
-}
-OPERATIONS_TO_ENTITY = {
-    op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
-}
-ALLOWED_GROUPBY_COLUMNS = ("project_id",)
 
 
 class SnubaQueryBuilder:
@@ -507,20 +390,6 @@ class SnubaQueryBuilder:
         return self._queries
 
 
-_DEFAULT_AGGREGATES = {
-    "avg": None,
-    "count_unique": 0,
-    "count": 0,
-    "max": None,
-    "p50": None,
-    "p75": None,
-    "p90": None,
-    "p95": None,
-    "p99": None,
-    "sum": 0,
-}
-
-
 class SnubaResultConverter:
     """Interpret a Snuba result and convert it to API format"""
 
@@ -560,7 +429,6 @@ class SnubaResultConverter:
 
         for op, metric_name in self._query_definition.fields.values():
             key = f"{op}({metric_name})"
-
             try:
                 value = data[key]
             except KeyError:
@@ -575,8 +443,7 @@ class SnubaResultConverter:
             if bucketed_time is None:
                 tag_data["totals"][key] = cleaned_value
 
-            default_null_value = _DEFAULT_AGGREGATES[op]
-
+            default_null_value = DEFAULT_AGGREGATES[op]
             if bucketed_time is not None or cleaned_value == default_null_value:
                 empty_values = len(self._intervals) * [default_null_value]
                 series = tag_data["series"].setdefault(key, empty_values)
@@ -610,65 +477,4 @@ class SnubaResultConverter:
             )
             for tags, data in groups.items()
         ]
-
         return groups
-
-
-def metric_object_factory(op, metric_name):
-    return RawMetric(op, metric_name)
-
-
-class MetricsFieldBase(ABC):
-    def __init__(self, op, metric_name):
-        self.op = op
-        self.metric_name = metric_name
-
-    @abstractmethod
-    def get_entity(self, **kwargs):
-        raise NotImplementedError
-
-    @abstractmethod
-    def generate_metric_ids(self, *args):
-        raise NotImplementedError
-
-    @abstractmethod
-    def generate_select_statements(self, **kwargs):
-        raise NotImplementedError
-
-    @abstractmethod
-    def generate_orderby_clause(self, **kwargs):
-        raise NotImplementedError
-
-
-class RawMetric(MetricsFieldBase):
-    def get_entity(self, **kwargs):
-        return OPERATIONS_TO_ENTITY[self.op]
-
-    def generate_metric_ids(self, entity, *args):
-        return (
-            {resolve_weak(self.metric_name)} if OPERATIONS_TO_ENTITY[self.op] == entity else set()
-        )
-
-    def _build_conditional_aggregate_for_metric(self, entity):
-        snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
-        return Function(
-            snuba_function,
-            [
-                Column("value"),
-                Function("equals", [Column("metric_id"), resolve_weak(self.metric_name)]),
-            ],
-            alias=f"{self.op}({self.metric_name})",
-        )
-
-    def generate_select_statements(self, entity, **kwargs):
-        return [self._build_conditional_aggregate_for_metric(entity=entity)]
-
-    def generate_orderby_clause(self, entity, direction, **kwargs):
-        return [
-            OrderBy(
-                self.generate_select_statements(entity=entity)[0],
-                direction,
-            )
-        ]
-
-    entity = cached_property(get_entity)

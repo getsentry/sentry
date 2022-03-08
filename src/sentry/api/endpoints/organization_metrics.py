@@ -11,7 +11,7 @@ from sentry.snuba.metrics import (
     QueryDefinition,
     get_metrics,
     get_series,
-    get_single_metric,
+    get_single_metric_info,
     get_tag_values,
     get_tags,
 )
@@ -40,7 +40,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         try:
-            metric = get_single_metric(projects, metric_name)
+            metric = get_single_metric_info(projects, metric_name)
         except InvalidParams:
             raise ResourceDoesNotExist(detail=f"metric '{metric_name}'")
 
