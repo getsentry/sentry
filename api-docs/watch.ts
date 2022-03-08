@@ -1,9 +1,9 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 no-console:0 */
+import spawn from 'child_process';
+import {stderr, stdout} from 'process';
 
-const sane = require('sane');
-const {spawn} = require('child_process');
-const {stdout, stderr} = require('process');
+import sane from 'sane';
 
 const watcherPy = sane('src/sentry');
 const watcherJson = sane('api-docs');
