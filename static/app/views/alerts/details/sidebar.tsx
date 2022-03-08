@@ -127,10 +127,10 @@ class Sidebar extends PureComponent<Props> {
             </Status>
           </HeaderItem>
         </StatusContainer>
-        <ConditionsSidebarGroup>
-          <Heading>{t('Alert Conditions')}</Heading>
+        <SidebarGroup>
+          <Heading noMargin>{t('Alert Conditions')}</Heading>
           {this.renderConditions()}
-        </ConditionsSidebarGroup>
+        </SidebarGroup>
         <SidebarGroup>
           <Heading>{t('Alert Rule Details')}</Heading>
           <KeyValueTable>
@@ -165,10 +165,6 @@ const SidebarGroup = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const ConditionsSidebarGroup = styled(SidebarGroup)`
-  display: inline-block;
-`;
-
 const HeaderItem = styled('div')`
   flex: 1;
   display: flex;
@@ -200,7 +196,7 @@ const Step = styled('div')`
   margin-top: ${space(4)};
 
   :first-child {
-    margin-top: ${space(3)};
+    margin-top: ${space(1)};
   }
 `;
 
@@ -259,13 +255,8 @@ const ConditionsBadge = styled('span')`
 `;
 
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
-  display: grid;
-  grid-template-columns: auto auto;
-  justify-content: flex-start;
   margin-top: ${p => (p.noMargin ? 0 : space(2))};
-  margin-bottom: ${space(0.5)};
-  line-height: 1;
-  gap: ${space(1)};
+  margin-bottom: ${p => (p.noMargin ? 0 : space(1))};
 `;
 
 const CreatedBy = styled('div')`
