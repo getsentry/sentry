@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Sequence
 
 from django.db.models import Subquery
 
@@ -31,9 +31,7 @@ def validate_association(
     return list(raw_items_set.difference(sentry_items))
 
 
-def validate_codeowners_associations(
-    codeowners: str, project: Project
-) -> tuple[Mapping[str, Any], Any]:
+def validate_codeowners_associations(codeowners, project):
     # Get list of team/user names from CODEOWNERS file
     team_names, usernames, emails = parse_code_owners(codeowners)
 
