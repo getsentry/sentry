@@ -14,6 +14,7 @@ import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 type GroupHistory = {
   count: number;
@@ -116,7 +117,12 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                   <Count value={issue.count} />
                 </AlignRight>
                 <div>
-                  <StyledDateTime date={issue.lastSeen} />
+                  <StyledDateTime
+                    date={getDynamicText({
+                      value: issue.lastSeen,
+                      fixed: 'Mar 16, 2020 9:10:13 AM UTC',
+                    })}
+                  />
                 </div>
               </Fragment>
             );
