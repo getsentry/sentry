@@ -32,22 +32,23 @@ class Sidebar extends PureComponent<Props> {
           </ConditionsBadge>
         ))
       : '';
-    const actions = rule.actions.length
-      ? rule.actions.map(action => {
-          let name = action.name;
-          if (
-            action.id ===
-            'sentry.integrations.slack.notify_action.SlackNotifyServiceAction'
-          ) {
-            // Remove (optionally, an ID: XXX) from slack action
-            name = name.replace(/\(optionally.*\)/, '');
-            // Remove tags if they aren't used
-            name = name.replace(' and show tags [] in notification', '');
-          }
+    const actions = rule.actions.length ? (
+      rule.actions.map(action => {
+        let name = action.name;
+        if (
+          action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction'
+        ) {
+          // Remove (optionally, an ID: XXX) from slack action
+          name = name.replace(/\(optionally.*\)/, '');
+          // Remove tags if they aren't used
+          name = name.replace(' and show tags [] in notification', '');
+        }
 
-          return <ConditionsBadge key={action.id}>{name}</ConditionsBadge>;
-        })
-      : '';
+        return <ConditionsBadge key={action.id}>{name}</ConditionsBadge>;
+      })
+    ) : (
+      <ConditionsBadge>{t('Do nothing')}</ConditionsBadge>
+    );
 
     return (
       <PanelBody>
