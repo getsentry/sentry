@@ -1,5 +1,4 @@
-import logging
-from typing import Any, Mapping, MutableMapping, Sequence, Union
+from typing import Any, Mapping, MutableMapping
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -7,43 +6,19 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import (
-    ExternalActor,
-    Project,
-    ProjectCodeOwners,
-    RepositoryProjectPathConfig,
-    UserEmail,
-)
+from sentry.models import Project, ProjectCodeOwners, RepositoryProjectPathConfig
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
-
-from .index import ProjectCodeOwnersEndpoint
 from .details import ProjectCodeOwnersDetailsEndpoint
 from .external_actor.team_details import ExternalTeamDetailsEndpoint
 from .external_actor.team_index import ExternalTeamEndpoint
 from .external_actor.user_details import ExternalUserDetailsEndpoint
 from .external_actor.user_index import ExternalUserEndpoint
+from .index import ProjectCodeOwnersEndpoint
 from .request import ProjectCodeOwnersRequestEndpoint
-
-logger = logging.getLogger(__name__)
 
 # Max accepted string length of the CODEOWNERS file
 MAX_RAW_LENGTH = 100_000
-
-
-def validate_association(
-    raw_items: Sequence[Union[UserEmail, ExternalActor]],
-    associations: Sequence[Union[UserEmail, ExternalActor]],
-    type: str,
-) -> Sequence[str]:
-    raw_items_set = {str(item) for item in raw_items}
-    if type == "emails":
-        # associations are UserEmail objects
-        sentry_items = {item.email for item in associations}
-    else:
-        # associations are ExternalActor objects
-        sentry_items = {item.external_name for item in associations}
-    return list(raw_items_set.difference(sentry_items))
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
