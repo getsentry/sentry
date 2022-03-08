@@ -3,10 +3,11 @@ import isEqual from 'lodash/isEqual';
 import {t} from 'sentry/locale';
 import {
   aggregateOutputType,
+  getColumnsAndAggregates,
   isAggregateFieldOrEquation,
   isLegalYAxisType,
 } from 'sentry/utils/discover/fields';
-import {Widget} from 'sentry/views/dashboardsV2/types';
+import {Widget, WidgetQuery} from 'sentry/views/dashboardsV2/types';
 
 export enum DisplayType {
   AREA = 'area',
@@ -112,6 +113,8 @@ export function normalizeQueries(
     return {
       ...query,
       fields: fields.length ? fields : ['count()'],
+      columns: [],
+      aggregates: fields.length ? fields : ['count()'],
     };
   });
 
@@ -140,9 +143,13 @@ export function normalizeQueries(
       }
     }
 
+    const {columns, aggregates} = getColumnsAndAggregates(referenceFields);
+
     queries = queries.map(query => {
       return {
         ...query,
+        columns,
+        aggregates,
         fields: referenceFields,
       };
     });
@@ -154,9 +161,35 @@ export function normalizeQueries(
       return {
         ...query,
         fields: query.fields.slice(0, 1),
+        aggregates: query.aggregates?.slice(0, 1),
       };
     });
   }
 
   return queries;
+}
+
+export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined {
+  // "any" was needed here because it doesn't pass in getsentry
+  const urlSeachParams = new URLSearchParams(query) as any;
+  const parsedQuery = Object.fromEntries(urlSeachParams.entries());
+
+  if (!Object.keys(parsedQuery).length) {
+    return undefined;
+  }
+
+  const fields = parsedQuery.fields ? getFields(parsedQuery.fields) : [];
+  const {columns, aggregates} = getColumnsAndAggregates(fields);
+
+  return {
+    ...parsedQuery,
+    fields,
+    columns,
+    aggregates,
+  } as WidgetQuery;
+}
+
+export function getFields(fieldsString: string): string[] {
+  // Use a negative lookahead to avoid splitting on commas inside equation fields
+  return fieldsString.split(/,(?![^(]*\))/g);
 }

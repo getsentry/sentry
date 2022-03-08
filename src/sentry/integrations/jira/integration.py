@@ -669,7 +669,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # Sort based on priority, then field name
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
 
-        # build up some dynamic fields based on required shit.
+        # Build up some dynamic fields based on what is required.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
                 # don't overwrite the fixed fields for the form.

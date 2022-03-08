@@ -57,7 +57,12 @@ describe('GroupSidebar', function () {
       url: `/prompts-activity/`,
       body: {},
     });
-
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      query: {project: -1},
+      method: 'GET',
+      body: [],
+    });
     tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
       body: TestStubs.Tags(),

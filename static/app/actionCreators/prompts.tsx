@@ -77,16 +77,14 @@ export async function promptsCheck(
     query,
   });
 
-  const data = response?.data;
-
-  if (!data) {
-    return null;
+  if (response?.data) {
+    return {
+      dismissedTime: response.data.dismissed_ts,
+      snoozedTime: response.data.snoozed_ts,
+    };
   }
 
-  return {
-    dismissedTime: data.dismissed_ts,
-    snoozedTime: data.snoozed_ts,
-  };
+  return null;
 }
 
 /**

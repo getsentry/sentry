@@ -7,14 +7,14 @@ from snuba_sdk import Column, Function
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.sentry_metrics import indexer
 
 
 class MetricsDatasetConfig(DatasetConfig):
-    def __init__(self, builder: QueryBuilder):
+    def __init__(self, builder: MetricsQueryBuilder):
         self.builder = builder
 
     @property
@@ -40,10 +40,15 @@ class MetricsDatasetConfig(DatasetConfig):
             # TODO: unsure if this should be incompatible or invalid
             raise InvalidSearchQuery(f"Metric: {value} could not be resolved")
 
+        self.builder.metric_ids.append(metric_id)
         return metric_id
 
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
+        """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
+        need to add them here since snuba has a FunctionMapper that will add it for us. Basically it turns expressions
+        like quantiles(0.9)(value) into quantilesMerge(0.9)(percentiles)
+        """
         resolve_metric_id = {
             "name": "metric_id",
             "fn": lambda args: self.resolve_metric(args["column"]),
@@ -112,10 +117,89 @@ class MetricsDatasetConfig(DatasetConfig):
                     required_args=[fields.FunctionArg("column")],
                     calculated_args=[resolve_metric_id],
                     snql_set=lambda args, alias: Function(
-                        "uniqCombinedIf",
+                        "uniqIf",
                         [
                             Column("value"),
                             Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "epm",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            Function("divide", [args["interval"], 60]),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "eps",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            args["interval"],
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "failure_count",
+                    snql_distribution=self._resolve_failure_count,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "failure_rate",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            self._resolve_failure_count(args),
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
                         ],
                         alias,
                     ),
@@ -139,6 +223,39 @@ class MetricsDatasetConfig(DatasetConfig):
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
 
+    def _resolve_failure_count(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        statuses = [indexer.resolve(status) for status in constants.NON_FAILURE_STATUS]
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric("transaction.duration"),
+                            ],
+                        ),
+                        Function(
+                            "notIn",
+                            [
+                                self.builder.column("transaction.status"),
+                                list(status for status in statuses if status is not None),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
     def _resolve_percentile(
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
@@ -149,9 +266,9 @@ class MetricsDatasetConfig(DatasetConfig):
             "arrayElement",
             [
                 Function(
-                    f"quantilesMergeIf({fixed_percentile})",
+                    f"quantilesIf({fixed_percentile})",
                     [
-                        Column("percentiles"),
+                        Column("value"),
                         Function("equals", [Column("metric_id"), args["metric_id"]]),
                     ],
                 ),

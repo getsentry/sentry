@@ -177,6 +177,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (models.UserReport, "date_added", None),
             (models.GroupEmailThread, "date", None),
             (models.GroupRuleStatus, "date_added", None),
+            (models.RuleFireHistory, "date_added", None),
         ] + EXTRA_BULK_QUERY_DELETES
 
         # Deletions that use the `deletions` code path (which handles their child relations)
@@ -302,6 +303,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                     project_id=project_id,
                     order_by=order_by,
                 )
+                q.using = db_router.db_for_read(model, replica=True)
 
                 for chunk in q.iterator(chunk_size=100):
                     task_queue.put((imp, chunk))

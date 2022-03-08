@@ -5,30 +5,50 @@ import {t} from 'sentry/locale';
 import {Trace} from 'sentry/types/profiling/core';
 
 import {ProfilingTableCell} from './profilingTableCell';
-import {TableColumnKey, TableColumnOrders} from './types';
+import {TableColumn, TableColumnKey, TableColumnOrders, TableDataRow} from './types';
 
 interface ProfilingTableProps {
+  error: string | null;
+  isLoading: boolean;
   location: Location;
   traces: Trace[];
 }
 
-function ProfilingTable({location, traces}: ProfilingTableProps) {
+function ProfilingTable({error, isLoading, location, traces}: ProfilingTableProps) {
   return (
     <GridEditable
-      isLoading={false}
+      isLoading={isLoading}
+      error={error}
       data={traces}
       columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
       columnSortBy={[]}
-      grid={{renderBodyCell: ProfilingTableCell}}
+      grid={{renderBodyCell: renderProfilingTableCell}}
       location={location}
     />
   );
 }
 
+function renderProfilingTableCell(
+  column: TableColumn,
+  dataRow: TableDataRow,
+  rowIndex: number,
+  columnIndex: number
+) {
+  return (
+    <ProfilingTableCell
+      column={column}
+      dataRow={dataRow}
+      rowIndex={rowIndex}
+      columnIndex={columnIndex}
+    />
+  );
+}
+
 const COLUMN_ORDER: TableColumnKey[] = [
-  'id',
   'failed',
-  'app_version',
+  'id',
+  'app_id',
+  'app_version_name',
   'interaction_name',
   'start_time_unix',
   'trace_duration_ms',
@@ -39,16 +59,21 @@ const COLUMN_ORDER: TableColumnKey[] = [
 const COLUMNS: TableColumnOrders = {
   id: {
     key: 'id',
-    name: t('Flamegraph'),
+    name: t('Profile ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  app_id: {
+    key: 'app_id',
+    name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
   failed: {
     key: 'failed',
     name: t('Status'),
-    width: COL_WIDTH_UNDEFINED,
+    width: 14, // make this as small as possible
   },
-  app_version: {
-    key: 'app_version',
+  app_version_name: {
+    key: 'app_version_name',
     name: t('Version'),
     width: COL_WIDTH_UNDEFINED,
   },

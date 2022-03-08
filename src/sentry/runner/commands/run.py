@@ -464,7 +464,7 @@ def batching_kafka_options(group):
             "force_cluster",
             default=None,
             type=str,
-            help="Kafka cluster ID of the overriden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
+            help="Kafka cluster ID of the overridden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
         )(f)
 
         return f
@@ -527,18 +527,6 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
     ):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
-
-
-@run.command("ingest-metrics-consumer")
-@log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
-@batching_kafka_options("ingest-metrics-consumer")
-@configuration
-def metrics_consumer(**options):
-
-    from sentry.sentry_metrics.indexer.indexer_consumer import get_metrics_consumer
-
-    get_metrics_consumer(**options).run()
 
 
 @run.command("ingest-metrics-consumer-2")

@@ -9,13 +9,13 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
+import FeatureBadge from 'sentry/components/featureBadge';
 import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
@@ -26,18 +26,21 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DateString,
-  MetricMeta,
-  MetricTag,
+  MetricsMetaCollection,
+  MetricsTagCollection,
   Organization,
   PageFilters,
   SelectValue,
   TagCollection,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
+import withMetricsMeta from 'sentry/utils/withMetricsMeta';
+import withMetricsTags from 'sentry/utils/withMetricsTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
@@ -53,11 +56,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
-import {
-  DEFAULT_METRICS_FIELDS,
-  generateMetricsWidgetFieldOptions,
-  METRICS_FIELDS_ALLOW_LIST,
-} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
+import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import {mapErrors, normalizeQueries} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
@@ -90,6 +89,8 @@ export type DashboardWidgetModalOptions = {
 type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
+    metricsMeta: MetricsMetaCollection;
+    metricsTags: MetricsTagCollection;
     organization: Organization;
     selection: PageFilters;
     tags: TagCollection;
@@ -104,8 +105,6 @@ type State = {
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   loading: boolean;
-  metricFields: MetricMeta[];
-  metricTags: MetricTag[];
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
@@ -114,23 +113,29 @@ type State = {
   selectedDashboard?: SelectValue<string>;
 };
 
-const newDiscoverQuery = {
+const newDiscoverQuery: WidgetQuery = {
   name: '',
   fields: ['count()'],
+  columns: [],
+  aggregates: ['count()'],
   conditions: '',
   orderby: '',
 };
 
-const newIssueQuery = {
+const newIssueQuery: WidgetQuery = {
   name: '',
   fields: ['issue', 'assignee', 'title'] as string[],
+  columns: ['issue', 'assignee', 'title'],
+  aggregates: [],
   conditions: '',
   orderby: '',
 };
 
-const newMetricsQuery = {
+const newMetricsQuery: WidgetQuery = {
   name: '',
-  fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+  fields: [`sum(${SessionMetric.SESSION})`],
+  columns: [],
+  aggregates: [`sum(${SessionMetric.SESSION})`],
   conditions: '',
   orderby: '',
 };
@@ -143,27 +148,31 @@ const IssueDataset: [WidgetType, string] = [
   WidgetType.ISSUE,
   t('Issues (States, Assignment, Time, etc.)'),
 ];
-const MetricsDataset: [WidgetType, string] = [
+const MetricsDataset: [WidgetType, React.ReactElement] = [
   WidgetType.METRICS,
-  t('Metrics (Release Health)'),
+  <React.Fragment key="metrics-dataset">
+    {t('Metrics (Release Health)')} <FeatureBadge type="alpha" />
+  </React.Fragment>,
 ];
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultWidgetQuery, defaultTitle, displayType} = props;
+    const {widget, defaultTitle, displayType} = props;
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
         displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
-        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newDiscoverQuery}],
+        queries: [
+          this.defaultWidgetQueries
+            ? {...this.defaultWidgetQueries}
+            : {...newDiscoverQuery},
+        ],
         errors: undefined,
         loading: !!this.omitDashboardProp,
         dashboards: [],
-        metricTags: [],
-        metricFields: [],
         userHasModified: false,
         widgetType: WidgetType.DISCOVER,
       };
@@ -178,8 +187,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       errors: undefined,
       loading: false,
       dashboards: [],
-      metricTags: [],
-      metricFields: [],
       userHasModified: false,
       widgetType: widget.widgetType ?? WidgetType.DISCOVER,
     };
@@ -189,10 +196,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (this.omitDashboardProp) {
       this.fetchDashboards();
     }
-    if (this.props.organization.features.includes('dashboards-metrics')) {
-      this.fetchMetricsTags();
-      this.fetchMetricsFields();
+  }
+
+  get defaultWidgetQueries() {
+    const {defaultWidgetQuery} = this.props;
+    if (defaultWidgetQuery) {
+      const {columns, aggregates} = getColumnsAndAggregates(defaultWidgetQuery.fields);
+      defaultWidgetQuery.aggregates = aggregates;
+      defaultWidgetQuery.columns = columns;
     }
+    return defaultWidgetQuery;
   }
 
   get omitDashboardProp() {
@@ -392,11 +405,21 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
               query.fields = [...defaultTableColumns];
+              const {columns, aggregates} = getColumnsAndAggregates([
+                ...defaultTableColumns,
+              ]);
+              query.aggregates = aggregates;
+              query.columns = columns;
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
               query.fields = [...defaultWidgetQuery.fields];
+              const {columns, aggregates} = getColumnsAndAggregates([
+                ...defaultWidgetQuery.fields,
+              ]);
+              query.aggregates = aggregates;
+              query.columns = columns;
               query.orderby = defaultWidgetQuery.orderby;
             });
           }
@@ -458,6 +481,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       const query = cloneDeep(newDiscoverQuery);
       query.fields = this.state.queries[0].fields;
+      query.aggregates = this.state.queries[0].aggregates;
+      query.columns = this.state.queries[0].columns;
       newState.queries.push(query);
 
       return newState;
@@ -527,28 +552,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState({loading: false});
   }
 
-  async fetchMetricsTags() {
-    const {api, organization, selection} = this.props;
-    const projects = !selection.projects.length ? undefined : selection.projects;
-    const metricTags = await fetchMetricsTags(api, organization.slug, projects);
-    this.setState({
-      metricTags,
-    });
-  }
-
-  async fetchMetricsFields() {
-    const {api, organization, selection} = this.props;
-    const projects = !selection.projects.length ? undefined : selection.projects;
-
-    const metricFields = await fetchMetricsFields(api, organization.slug, projects);
-    const filteredFields = metricFields.filter(field =>
-      METRICS_FIELDS_ALLOW_LIST.includes(field.name)
-    );
-    this.setState({
-      metricFields: filteredFields,
-    });
-  }
-
   handleDashboardChange(option: SelectValue<string>) {
     this.setState({selectedDashboard: option});
   }
@@ -607,7 +610,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
 
   renderWidgetQueryForm() {
-    const {organization, selection, tags, start, end, statsPeriod} = this.props;
+    const {
+      organization,
+      selection,
+      tags,
+      metricsTags,
+      metricsMeta,
+      start,
+      end,
+      statsPeriod,
+    } = this.props;
     const state = this.state;
     const errors = state.errors;
 
@@ -621,8 +633,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
     const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      state.metricFields.length ? state.metricFields : DEFAULT_METRICS_FIELDS,
-      Object.values(state.metricTags).map(({key}) => key)
+      Object.values(metricsMeta),
+      Object.values(metricsTags).map(({key}) => key)
     );
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
@@ -785,7 +797,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const showMetricsDatasetSelector =
       showDatasetSelector && organization.features.includes('dashboards-metrics');
 
-    const datasetChoices: [WidgetType, string][] = [DiscoverDataset];
+    const datasetChoices: [WidgetType, React.ReactElement | string][] = [DiscoverDataset];
 
     if (showIssueDatasetSelector) {
       datasetChoices.push(IssueDataset);
@@ -930,4 +942,6 @@ const StyledFieldLabel = styled(FieldLabel)`
   display: inline-flex;
 `;
 
-export default withApi(withPageFilters(withTags(AddDashboardWidgetModal)));
+export default withApi(
+  withPageFilters(withTags(withMetricsMeta(withMetricsTags(AddDashboardWidgetModal))))
+);

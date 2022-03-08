@@ -1,5 +1,5 @@
 import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
-import {timestampWithMs} from '@sentry/utils';
+import {browserPerformanceTimeOrigin, timestampWithMs} from '@sentry/utils';
 
 import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
 
@@ -40,6 +40,37 @@ export const VisuallyCompleteWithData = ({
 }) => {
   const isVisuallyCompleteSet = useRef(false);
   const isDataCompleteSet = useRef(false);
+  const longTaskCount = useRef(0);
+
+  useEffect(() => {
+    if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
+      return () => {};
+    }
+    const timeOrigin = browserPerformanceTimeOrigin / 1000;
+
+    const observer = new PerformanceObserver(function (list) {
+      const perfEntries = list.getEntries();
+
+      const transaction = getCurrentSentryReactTransaction();
+      if (!transaction) {
+        return;
+      }
+      perfEntries.forEach(entry => {
+        const startSeconds = timeOrigin + entry.startTime / 1000;
+        longTaskCount.current++;
+        transaction.startChild({
+          description: `Long Task - ${id}`,
+          op: `ui.long-task`,
+          startTimestamp: startSeconds,
+          endTimestamp: startSeconds + entry.duration / 1000,
+        });
+      });
+    });
+    observer.observe({entryTypes: ['longtask']});
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const num = useRef(1);
 
@@ -71,18 +102,36 @@ export const VisuallyCompleteWithData = ({
       if (!isDataCompleteSet.current && hasData) {
         isDataCompleteSet.current = true;
 
+        performance.mark(`${id}-vcsd-end-pre-timeout`);
+
         setTimeout(() => {
+          if (!browserPerformanceTimeOrigin) {
+            return;
+          }
           performance.mark(`${id}-vcsd-end`);
+          const measureName = `VCD [${id}] #${num.current}`;
           performance.measure(
             `VCD [${id}] #${num.current}`,
             `${id}-vcsd-start`,
             `${id}-vcsd-end`
           );
           num.current = num.current++;
-          const time = performance.now();
+          const [measureEntry] = performance.getEntriesByName(measureName);
+          if (!measureEntry) {
+            return;
+          }
+
           transaction.registerBeforeFinishCallback(t => {
+            if (!browserPerformanceTimeOrigin) {
+              return;
+            }
             // Should be called after performance entries finish callback.
             const lcp = t._measurements.lcp?.value;
+
+            // Adjust to be relative to transaction.startTimestamp
+            const entryStartSeconds =
+              browserPerformanceTimeOrigin / 1000 + measureEntry.startTime / 1000;
+            const time = (entryStartSeconds - transaction.startTimestamp) * 1000;
 
             const newMeasurements = {
               ...t._measurements,
@@ -93,6 +142,7 @@ export const VisuallyCompleteWithData = ({
               newMeasurements.lcpDiffVCD = {value: lcp - time};
             }
 
+            t.setTag('longTaskCount', longTaskCount.current);
             t.setMeasurements(newMeasurements);
           });
         }, 0);

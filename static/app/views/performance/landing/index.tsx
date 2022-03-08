@@ -6,7 +6,7 @@ import {Location} from 'history';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SearchBar from 'sentry/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageHeading from 'sentry/components/pageHeading';
@@ -19,6 +19,10 @@ import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {
+  PageErrorAlert,
+  PageErrorProvider,
+} from 'sentry/utils/performance/contexts/pageError';
 import useTeams from 'sentry/utils/useTeams';
 
 import MetricsSearchBar from '../metricsSearchBar';
@@ -105,109 +109,112 @@ export function PerformanceLanding(props: Props) {
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <StyledHeading>{t('Performance')}</StyledHeading>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          {!showOnboarding && (
-            <ButtonBar gap={3}>
-              <MetricsSwitch onSwitch={() => handleSearch('')} />
-              <Button
-                priority="primary"
-                data-test-id="landing-header-trends"
-                onClick={() => handleTrendsClick()}
-              >
-                {t('View Trends')}
-              </Button>
-            </ButtonBar>
-          )}
-        </Layout.HeaderActions>
-
-        <Layout.HeaderNavTabs>
-          {LANDING_DISPLAYS.map(({label, field}) => (
-            <li key={label} className={landingDisplay.field === field ? 'active' : ''}>
-              <a
-                href="#"
-                data-test-id={`landing-tab-${field}`}
-                onClick={() =>
-                  handleLandingDisplayChange(
-                    field,
-                    location,
-                    projects,
-                    organization,
-                    eventView
-                  )
-                }
-              >
-                {t(label)}
-              </a>
-            </li>
-          ))}
-        </Layout.HeaderNavTabs>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <GlobalSdkUpdateAlert />
-          {showOnboarding ? (
-            <Onboarding
-              organization={organization}
-              project={
-                props.selection.projects.length > 0
-                  ? // If some projects selected, use the first selection
-                    projects.find(
-                      project => props.selection.projects[0].toString() === project.id
-                    ) || projects[0]
-                  : // Otherwise, use the first project in the org
-                    projects[0]
-              }
-            />
-          ) : (
-            <Fragment>
-              <SearchContainerWithFilter>
-                {isMetricsData ? (
-                  <MetricsSearchBar
-                    searchSource="performance_landing_metrics"
-                    orgSlug={organization.slug}
-                    query={filterString}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                    projectIds={eventView.project}
-                  />
-                ) : (
-                  <SearchBar
-                    searchSource="performance_landing"
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={filterString}
-                    fields={generateAggregateFields(
-                      organization,
-                      [...eventView.fields, {field: 'tps()'}],
-                      ['epm()', 'eps()']
-                    )}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                )}
-              </SearchContainerWithFilter>
-              {initiallyLoaded ? (
-                <TeamKeyTransactionManager.Provider
-                  organization={organization}
-                  teams={teams}
-                  selectedTeams={['myteams']}
-                  selectedProjects={eventView.project.map(String)}
+      <PageErrorProvider>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <StyledHeading>{t('Performance')}</StyledHeading>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            {!showOnboarding && (
+              <ButtonBar gap={3}>
+                <MetricsSwitch onSwitch={() => handleSearch('')} />
+                <Button
+                  priority="primary"
+                  data-test-id="landing-header-trends"
+                  onClick={() => handleTrendsClick()}
                 >
-                  <GenericQueryBatcher>
-                    <ViewComponent {...props} />
-                  </GenericQueryBatcher>
-                </TeamKeyTransactionManager.Provider>
-              ) : (
-                <LoadingIndicator />
-              )}
-            </Fragment>
-          )}
-        </Layout.Main>
-      </Layout.Body>
+                  {t('View Trends')}
+                </Button>
+              </ButtonBar>
+            )}
+          </Layout.HeaderActions>
+
+          <Layout.HeaderNavTabs>
+            {LANDING_DISPLAYS.map(({label, field}) => (
+              <li key={label} className={landingDisplay.field === field ? 'active' : ''}>
+                <a
+                  href="#"
+                  data-test-id={`landing-tab-${field}`}
+                  onClick={() =>
+                    handleLandingDisplayChange(
+                      field,
+                      location,
+                      projects,
+                      organization,
+                      eventView
+                    )
+                  }
+                >
+                  {t(label)}
+                </a>
+              </li>
+            ))}
+          </Layout.HeaderNavTabs>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <GlobalSdkUpdateAlert />
+            <PageErrorAlert />
+            {showOnboarding ? (
+              <Onboarding
+                organization={organization}
+                project={
+                  props.selection.projects.length > 0
+                    ? // If some projects selected, use the first selection
+                      projects.find(
+                        project => props.selection.projects[0].toString() === project.id
+                      ) || projects[0]
+                    : // Otherwise, use the first project in the org
+                      projects[0]
+                }
+              />
+            ) : (
+              <Fragment>
+                <SearchContainerWithFilter>
+                  {isMetricsData ? (
+                    <MetricsSearchBar
+                      searchSource="performance_landing_metrics"
+                      orgSlug={organization.slug}
+                      query={filterString}
+                      onSearch={handleSearch}
+                      maxQueryLength={MAX_QUERY_LENGTH}
+                      projectIds={eventView.project}
+                    />
+                  ) : (
+                    <SearchBar
+                      searchSource="performance_landing"
+                      organization={organization}
+                      projectIds={eventView.project}
+                      query={filterString}
+                      fields={generateAggregateFields(
+                        organization,
+                        [...eventView.fields, {field: 'tps()'}],
+                        ['epm()', 'eps()']
+                      )}
+                      onSearch={handleSearch}
+                      maxQueryLength={MAX_QUERY_LENGTH}
+                    />
+                  )}
+                </SearchContainerWithFilter>
+                {initiallyLoaded ? (
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={teams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <GenericQueryBatcher>
+                      <ViewComponent {...props} />
+                    </GenericQueryBatcher>
+                  </TeamKeyTransactionManager.Provider>
+                ) : (
+                  <LoadingIndicator />
+                )}
+              </Fragment>
+            )}
+          </Layout.Main>
+        </Layout.Body>
+      </PageErrorProvider>
     </StyledPageContent>
   );
 }

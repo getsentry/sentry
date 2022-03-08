@@ -10,9 +10,9 @@ import {IconCalendar} from 'sentry/icons';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 
-import InputField, {onEvent} from './inputField';
+import InputField, {InputFieldProps, onEvent} from './inputField';
 
-type Props = Omit<InputField['props'], 'field'>;
+interface DatePickerFieldProps extends Omit<InputFieldProps, 'field'> {}
 
 function handleChangeDate(
   onChange: onEvent,
@@ -29,7 +29,7 @@ function handleChangeDate(
 
 const Calendar = lazy(() => import('./calendarField'));
 
-export default function DatePickerField(props: Props) {
+export default function DatePickerField(props: DatePickerFieldProps) {
   return (
     <InputField
       {...props}

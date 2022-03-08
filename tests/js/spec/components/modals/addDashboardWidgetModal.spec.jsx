@@ -13,6 +13,8 @@ import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new'
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
+import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
+import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import * as types from 'sentry/views/dashboardsV2/types';
@@ -116,16 +118,39 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'browser.name', key: 'browser.name'},
     {name: 'custom-field', key: 'custom-field'},
   ];
+  const metricsTags = [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}];
+  const metricsMeta = [
+    {
+      name: 'sentry.sessions.session',
+      type: 'counter',
+      operations: ['sum'],
+      unit: null,
+    },
+    {
+      name: 'sentry.sessions.session.error',
+      type: 'set',
+      operations: ['count_unique'],
+      unit: null,
+    },
+    {
+      name: 'sentry.sessions.user',
+      type: 'set',
+      operations: ['count_unique'],
+      unit: null,
+    },
+  ];
   const dashboard = TestStubs.Dashboard([], {
     id: '1',
     title: 'Test Dashboard',
     widgetDisplay: ['area'],
   });
 
-  let eventsStatsMock, metricsTagsMock, metricsMetaMock, metricsDataMock;
+  let eventsStatsMock, metricsDataMock;
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
+    MetricsTagStore.onLoadTagsSuccess(metricsTags);
+    MetricsMetaStore.onLoadSuccess(metricsMeta);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
@@ -156,43 +181,14 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: '/organizations/org-slug/issues/',
       body: [],
     });
-    metricsTagsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/tags/',
       body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
-    });
-    metricsMetaMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/meta/',
-      body: [
-        {
-          name: 'sentry.sessions.session',
-          type: 'counter',
-          operations: ['sum'],
-          unit: null,
-        },
-        {
-          name: 'sentry.sessions.session.error',
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-        {
-          name: 'sentry.sessions.user',
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-        {
-          name: 'not.on.allow.list',
-          type: 'set',
-          operations: ['count_unique'],
-          unit: null,
-        },
-      ],
     });
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({field: SessionMetric.SENTRY_SESSIONS_USER}),
+      body: TestStubs.MetricsField({field: SessionMetric.USER}),
     });
   });
 
@@ -206,7 +202,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -223,7 +219,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -241,7 +237,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.DISCOVERV2,
     });
     await tick();
-    await wrapper.update();
+    wrapper.update();
     openMenu(wrapper, {name: 'dashboard', control: true});
 
     const input = wrapper.find('SelectControl[name="dashboard"]');
@@ -306,6 +302,25 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
+  it('updates widget aggregate', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 0, control: true});
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual(['p95(transaction.duration)']);
+    wrapper.unmount();
+  });
+
   it('can add additional fields', async function () {
     let widget = undefined;
     const wrapper = mountModal({
@@ -330,6 +345,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual([
+      'count()',
+      'p95(transaction.duration)',
+    ]);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -364,7 +384,33 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
+    expect(widget.queries[0].aggregates).toEqual(['count()', 'equation|count() + 100']);
     wrapper.unmount();
+  });
+
+  it('metrics do not have equation', async function () {
+    mountModalWithRtl({
+      initialData,
+      widget: {
+        displayType: 'table',
+        widgetType: 'metrics',
+        queries: [
+          {
+            id: '9',
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['sdk.name', 'count()'],
+            orderby: '',
+          },
+        ],
+      },
+    });
+
+    // Select line chart display
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
   });
 
   it('additional fields get added to new seach filters', async function () {
@@ -397,6 +443,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual([
+      'count()',
+      'p95(transaction.duration)',
+    ]);
 
     // Add another search filter
     const addQuery = wrapper.find('button[aria-label="Add Query"]');
@@ -419,11 +469,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       name: '',
       conditions: '',
       fields: ['count()', 'p95(transaction.duration)'],
+      aggregates: ['count()', 'p95(transaction.duration)'],
     });
     expect(widget.queries[1]).toMatchObject({
       name: 'Errors',
       conditions: 'event.type:error',
       fields: ['count()', 'p95(transaction.duration)'],
+      aggregates: ['count()', 'p95(transaction.duration)'],
     });
 
     wrapper.unmount();
@@ -526,7 +578,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     await clickSubmit(wrapper);
-    await wrapper.update();
+    wrapper.update();
 
     // API request should fail and not add widget.
     expect(widget).toBeUndefined();
@@ -640,7 +692,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['sdk.name', 'count()'],
-          orderby: '',
+          orderby: 'count',
         },
       ],
     };
@@ -669,18 +721,26 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       1
     );
 
+    expect(
+      wrapper
+        .find('WidgetQueriesForm SelectControl[name="orderby"] SingleValue div')
+        .text()
+    ).toEqual('count() asc');
+
     // Add a column, and choose a value,
     wrapper.find('button[aria-label="Add a Column"]').simulate('click');
-    await wrapper.update();
+    wrapper.update();
 
     selectByLabel(wrapper, 'trace', {name: 'field', at: 2, control: true});
-    await wrapper.update();
+    wrapper.update();
 
     await clickSubmit(wrapper);
 
     // A new field should be added.
     expect(widget.queries[0].fields).toHaveLength(3);
-    expect(widget.queries[0].fields[2]).toEqual('trace');
+    expect(widget.queries[0].fields).toEqual(['sdk.name', 'count()', 'trace']);
+    expect(widget.queries[0].aggregates).toEqual(['count()']);
+    expect(widget.queries[0].columns).toEqual(['sdk.name', 'trace']);
     wrapper.unmount();
   });
 
@@ -778,6 +838,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].aggregates).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -820,6 +882,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['any(measurements.lcp)']);
+    expect(widget.queries[0].aggregates).toEqual(['any(measurements.lcp)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -854,6 +918,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('big_number');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
+    expect(widget.queries[0].aggregates).toEqual(['count_unique(user.display)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -917,6 +983,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('world_map');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
+    expect(widget.queries[0].aggregates).toEqual(['count_unique(measurements.lcp)']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -966,6 +1034,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()']);
+    expect(widget.queries[0].aggregates).toEqual(['count()']);
+    expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
   });
 
@@ -1181,6 +1251,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
               fields: ['issue', 'assignee', 'title'],
               name: '',
               orderby: '',
+              aggregates: [],
+              columns: ['issue', 'assignee', 'title'],
             },
           ],
           title: '',
@@ -1222,8 +1294,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      expect(metricsTagsMock).not.toHaveBeenCalled();
-      expect(metricsMetaMock).not.toHaveBeenCalled();
       expect(metricsDataMock).not.toHaveBeenCalled();
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
@@ -1233,7 +1303,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
-      // Hide without the dashboard-metrics feature flag
+      // Hide without the dashboards-metrics feature flag
       expect(screen.queryByText('Metrics (Release Health)')).not.toBeInTheDocument();
       wrapper.unmount();
     });
@@ -1313,11 +1383,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       await tick();
 
-      const metricsDataset = screen.getByLabelText('Metrics (Release Health)');
+      const metricsDataset = screen.getByLabelText(/metrics/i);
       expect(metricsDataset).not.toBeChecked();
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
       expect(metricsDataset).toBeChecked();
 
       userEvent.click(screen.getByText('Table'));
@@ -1327,7 +1395,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       wrapper.unmount();
     });
 
-    it('retrieves tags when modal is opened', async function () {
+    it('displays metrics tags', async function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
@@ -1341,12 +1409,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
-      expect(metricsMetaMock).toHaveBeenCalledTimes(1);
-
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
 
       expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
@@ -1360,10 +1423,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
-
-      userEvent.click(screen.getByText('sentry.sessions.user'));
-      // Ensure METRICS_FIELDS_ALLOW_LIST is honoured
-      expect(screen.queryByText('not.on.allow.list')).not.toBeInTheDocument();
 
       wrapper.unmount();
     });
@@ -1382,12 +1441,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      expect(metricsTagsMock).toHaveBeenCalledTimes(1);
-      expect(metricsMetaMock).toHaveBeenCalledTimes(1);
-
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -1402,6 +1456,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
       wrapper.unmount();
     });
+
     it('makes the appropriate metrics call', async function () {
       initialData.organization.features = [
         'performance-view',
@@ -1415,9 +1470,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));

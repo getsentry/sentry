@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
@@ -114,12 +115,22 @@ class QueryList extends React.Component<Props> {
       saved_query: !!savedQuery,
     });
 
+    const defaultTitle =
+      savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+
     if (organization.features.includes('new-widget-builder-experience')) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DISCOVERV2,
+          start: eventView.start,
+          end: eventView.end,
+          statsPeriod: eventView.statsPeriod,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          defaultTableColumns,
+          defaultTitle,
+          displayType,
         },
       });
       return;
@@ -338,10 +349,7 @@ class QueryList extends React.Component<Props> {
             />
           )}
           renderContextMenu={() => (
-            <Feature
-              organization={organization}
-              features={['connect-discover-and-dashboards', 'dashboards-edit']}
-            >
+            <Feature organization={organization} features={['dashboards-edit']}>
               {({hasFeature}) => this.renderDropdownMenu(menuItems(hasFeature))}
             </Feature>
           )}

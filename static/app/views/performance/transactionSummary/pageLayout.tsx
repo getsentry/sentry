@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -75,13 +75,7 @@ function PageLayout(props: Props) {
   const transactionName = getTransactionName(location);
 
   if (!defined(projectId) || !defined(transactionName)) {
-    // If there is no transaction name, redirect to the Performance landing page
-    browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/performance/`,
-      query: {
-        ...location.query,
-      },
-    });
+    redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
@@ -198,13 +192,22 @@ const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
   }
 `;
 
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
-
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
   margin: 0;
 `;
+
+export function redirectToPerformanceHomepage(
+  organization: Organization,
+  location: Location
+) {
+  // If there is no transaction name, redirect to the Performance landing page
+  browserHistory.replace({
+    pathname: `/organizations/${organization.slug}/performance/`,
+    query: {
+      ...location.query,
+    },
+  });
+}
 
 export default PageLayout;
