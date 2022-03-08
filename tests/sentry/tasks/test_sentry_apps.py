@@ -469,7 +469,7 @@ class TestCommentWebhook(TestCase):
         assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
         assert faux(safe_urlopen).kwarg_equals("data.action", "created", format="json")
         assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "comment")
-        assert faux(safe_urlopen).kwarg_equals("data.data.group_id", self.issue.id, format="json")
+        assert faux(safe_urlopen).kwarg_equals("data.data.issue_id", self.issue.id, format="json")
 
     def test_sends_comment_updated_webhook(self, safe_urlopen):
         self.data.update(data={"text": "goodbye world"})
@@ -480,7 +480,7 @@ class TestCommentWebhook(TestCase):
         assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
         assert faux(safe_urlopen).kwarg_equals("data.action", "updated", format="json")
         assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "comment")
-        assert faux(safe_urlopen).kwarg_equals("data.data.group_id", self.issue.id, format="json")
+        assert faux(safe_urlopen).kwarg_equals("data.data.issue_id", self.issue.id, format="json")
 
     def test_sends_comment_deleted_webhook(self, safe_urlopen):
         self.note.delete()
@@ -491,7 +491,7 @@ class TestCommentWebhook(TestCase):
         assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
         assert faux(safe_urlopen).kwarg_equals("data.action", "deleted", format="json")
         assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "comment")
-        assert faux(safe_urlopen).kwarg_equals("data.data.group_id", self.issue.id, format="json")
+        assert faux(safe_urlopen).kwarg_equals("data.data.issue_id", self.issue.id, format="json")
 
 
 @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)

@@ -260,9 +260,9 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
     project_slug = data.get("project_slug")
     comment_id = data.get("comment_id")
     payload = {
-        "comment_id": comment_id,
-        "group_id": issue_id,
-        "project_slug": project_slug,
+        "comment_id": data.get("comment_id"),
+        "issue_id": issue_id,
+        "project_slug": data.get("project_slug"),
         "timestamp": data.get("timestamp"),
         "comment": data.get("comment"),
     }
