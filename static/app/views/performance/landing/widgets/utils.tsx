@@ -11,6 +11,7 @@ export const eventsRequestQueryProps = [
   'end',
   'environment',
   'project',
+  'referrer',
 ] as const;
 
 function setWidgetStorageObject(localObject: Record<string, string>) {
