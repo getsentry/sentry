@@ -71,6 +71,7 @@ export type DashboardWidgetModalOptions = {
   organization: Organization;
   source: DashboardWidgetSource;
   dashboard?: DashboardDetails;
+  defaultTableAggregates?: readonly string[];
   defaultTableColumns?: readonly string[];
   defaultTitle?: string;
   defaultWidgetQuery?: WidgetQuery;
@@ -201,9 +202,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   get defaultWidgetQueries() {
     const {defaultWidgetQuery} = this.props;
     if (defaultWidgetQuery) {
-      const {columns, aggregates} = getColumnsAndAggregates(defaultWidgetQuery.fields);
-      defaultWidgetQuery.aggregates = aggregates;
-      defaultWidgetQuery.columns = columns;
+      defaultWidgetQuery.fields = [
+        ...defaultWidgetQuery.columns,
+        ...defaultWidgetQuery.aggregates,
+      ];
     }
     return defaultWidgetQuery;
   }
@@ -312,7 +314,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       } = {
         queryNames: [],
         queryConditions: [],
-        queryFields: widgetData.queries[0].fields,
+        queryFields: [
+          ...widgetData.queries[0].columns,
+          ...widgetData.queries[0].aggregates,
+        ],
         queryOrderby: widgetData.queries[0].orderby,
       };
       widgetData.queries.forEach(query => {

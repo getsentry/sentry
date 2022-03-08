@@ -22,6 +22,7 @@ import {Organization, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
@@ -96,16 +97,18 @@ class QueryList extends React.Component<Props> {
     const {organization, router, location} = this.props;
 
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
-    const defaultTableColumns = eventView.fields.map(({field}) => field);
+    const defaultTableFields = eventView.fields.map(({field}) => field);
+    const {columns, aggregates} = getColumnsAndAggregates(defaultTableFields);
     const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
-      fields: [
-        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+      aggregates: [
+        ...(displayType === DisplayType.TOP_N ? aggregates : []),
         ...(typeof savedQuery?.yAxis === 'string'
           ? [savedQuery?.yAxis]
           : savedQuery?.yAxis ?? ['count()']),
       ],
+      columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
@@ -128,7 +131,8 @@ class QueryList extends React.Component<Props> {
           end: eventView.end,
           statsPeriod: eventView.statsPeriod,
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          defaultTableColumns,
+          defaultTableColumns: columns,
+          defaultTableAggregates: aggregates,
           defaultTitle,
           displayType,
         },
@@ -143,7 +147,8 @@ class QueryList extends React.Component<Props> {
       statsPeriod: eventView.statsPeriod,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns,
+      defaultTableColumns: columns,
+      defaultTableAggregates: aggregates,
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),

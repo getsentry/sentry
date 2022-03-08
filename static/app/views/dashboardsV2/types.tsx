@@ -28,12 +28,12 @@ export enum WidgetType {
 }
 
 export type WidgetQuery = {
+  aggregates: string[];
+  columns: string[];
   conditions: string;
-  fields: string[];
   name: string;
   orderby: string;
-  aggregates?: string[];
-  columns?: string[];
+  fields?: string[];
 };
 
 export type Widget = {

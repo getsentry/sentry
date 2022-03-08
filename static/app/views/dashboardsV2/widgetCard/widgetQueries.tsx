@@ -15,7 +15,6 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {getAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
@@ -61,7 +60,7 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
 
     output = output.concat(transformed);
   } else {
-    const field = query.fields[0];
+    const field = query.aggregates[0];
     const prefixedName = seriesNamePrefix ? `${seriesNamePrefix} : ${field}` : field;
     const transformed = transformSeries(result, prefixedName);
     output.push(transformed);
@@ -119,7 +118,8 @@ class WidgetQueries extends React.Component<Props, State> {
     // Also don't count empty fields when checking for field changes
     const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries
       .map((query: WidgetQuery) => {
-        query.fields = query.fields.filter(field => !!field);
+        query.aggregates = query.aggregates.filter(field => !!field);
+        query.columns = query.columns.filter(field => !!field);
         return query;
       })
       .reduce(
@@ -133,7 +133,10 @@ class WidgetQueries extends React.Component<Props, State> {
 
     const [widgetQueryNames, widgetQueries] = widget.queries
       .map((query: WidgetQuery) => {
-        query.fields = query.fields.filter(field => !!field && field !== 'equation|');
+        query.aggregates = query.aggregates.filter(
+          field => !!field && field !== 'equation|'
+        );
+        query.columns = query.columns.filter(field => !!field && field !== 'equation|');
         return query;
       })
       .reduce(
@@ -292,12 +295,12 @@ class WidgetQueries extends React.Component<Props, State> {
           environment: environments,
           period: statsPeriod,
           query: query.conditions,
-          yAxis: getAggregateFields(query.fields)[0],
+          yAxis: query.aggregates[query.aggregates.length - 1],
           includePrevious: false,
           referrer: `api.dashboards.widget.${displayType}-chart`,
           partial: true,
           topEvents: TOP_N,
-          field: query.fields,
+          field: [...query.columns, ...query.aggregates],
         };
         if (query.orderby) {
           requestData.orderby = query.orderby;
@@ -312,7 +315,7 @@ class WidgetQueries extends React.Component<Props, State> {
           environment: environments,
           period: statsPeriod,
           query: query.conditions,
-          yAxis: query.fields,
+          yAxis: query.aggregates,
           orderby: query.orderby,
           includePrevious: false,
           referrer: `api.dashboards.widget.${displayType}-chart`,
