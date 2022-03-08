@@ -33,7 +33,7 @@ type Props = WithRouterProps & {
   /**
    * When menu is closed
    */
-  onUpdate: (selectedEnvs?: string[]) => void;
+  onUpdate: (selectedEnvs: string[]) => void;
   organization: Organization;
   projects: Project[];
   selectedProjects: number[];
@@ -107,14 +107,14 @@ function MultipleEnvironmentSelector({
    */
   const handleUpdate = (actions: MenuFooterChildProps['actions']) => {
     actions.close();
-    onUpdate();
+    onUpdate(selectedEnvs);
   };
 
   const handleClose = () => {
     lastSelectedEnvs.current = selectedEnvs;
 
     // Only update if there are changes
-    if (hasChanges) {
+    if (!hasChanges) {
       return;
     }
 
@@ -124,7 +124,7 @@ function MultipleEnvironmentSelector({
       org_id: parseInt(organization.id, 10),
     });
 
-    onUpdate();
+    onUpdate(selectedEnvs);
   };
 
   /**
@@ -138,7 +138,7 @@ function MultipleEnvironmentSelector({
 
     setSelectedEnvs([]);
     onChange([]);
-    onUpdate();
+    onUpdate([]);
   };
 
   /**
