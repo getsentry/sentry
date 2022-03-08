@@ -41,6 +41,7 @@ const numericStyle = (
             font-weight: 500;
             font-size: ${theme.fontSizeSmall};
             background-color: ${theme.yellow300};
+            color: ${theme.black};
           `
         : css`
             top: 3px;
