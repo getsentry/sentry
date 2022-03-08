@@ -87,6 +87,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
         ...location.query,
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
+        isDefaultQuery: false,
       },
     });
   }

@@ -172,8 +172,8 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
     return undefined;
   }
 
-  const columns = [...parsedQuery.columns?.split(',')] ?? [];
-  const aggregates = [...parsedQuery.aggregates?.split(',')] ?? [];
+  const columns = parsedQuery.columns ? getFields(parsedQuery.columns) : [];
+  const aggregates = parsedQuery.aggregates ? getFields(parsedQuery.aggregates) : [];
   const fields = [...columns, ...aggregates];
 
   return {
@@ -182,4 +182,9 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
     columns,
     aggregates,
   } as WidgetQuery;
+}
+
+export function getFields(fieldsString: string): string[] {
+  // Use a negative lookahead to avoid splitting on commas inside equation fields
+  return fieldsString.split(/,(?![^(]*\))/g);
 }

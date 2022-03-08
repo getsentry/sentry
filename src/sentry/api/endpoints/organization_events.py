@@ -55,7 +55,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         performance_use_metrics = features.has(
             "organizations:performance-use-metrics", organization=organization, actor=request.user
         )
-        metrics_enhanced = referrer in METRICS_ENHANCED_REFERRERS and performance_use_metrics
+        metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
         )
