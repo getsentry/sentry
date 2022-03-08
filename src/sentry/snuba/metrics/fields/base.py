@@ -34,7 +34,7 @@ from sentry.utils.snuba import raw_snql_query
 
 
 def metric_object_factory(op, metric_name):
-    """Returns an appropriate instance of MetricFieldBase object"""
+    """Returns an appropriate instance of MetricsFieldBase object"""
     return RawMetric(op, metric_name)
 
 
