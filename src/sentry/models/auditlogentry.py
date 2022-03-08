@@ -394,8 +394,14 @@ class AuditLogEntry(Model):
             return f"changed on-demand budget to {next_ondemand_budget}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
+
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
-            return "changed plan to {}".format(self.data["plan_name"])
+            plan_name = self.data["plan_name"]
+            if "quotas" in self.data:
+                quotas = self.data["quotas"]
+                return f"changed plan to {plan_name} with {quotas}"
+            return f"changed plan to {plan_name}"
+
         elif self.event == AuditLogEntryEvent.PLAN_CANCELLED:
             return "cancelled plan"
 

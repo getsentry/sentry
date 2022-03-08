@@ -72,8 +72,8 @@ export type GrowthEventParameters = {
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
   'growth.sample_error_onboarding_link_clicked': {
-    project_id: string;
     platform?: string;
+    project_id?: string;
   };
   'growth.sample_transaction_docs_link_clicked': {
     project_id: string;

@@ -1,0 +1,9 @@
+---
+created: '2022-02-28T13:20:49.317250Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+projectThreshold:
+  metric: duration
+  threshold: 300.0
+transactionThresholds: {}

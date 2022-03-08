@@ -3,6 +3,7 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
 import {Location} from 'history';
+import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -54,7 +55,10 @@ function ProfilingScatterChart({
   const data: Record<string, Trace[]> = useMemo(() => {
     const dataMap = {};
     for (const row of traces) {
-      const seriesName = row[colorEncoding];
+      const seriesName =
+        colorEncoding === 'version'
+          ? `${row.app_version_name} (build ${row.app_version})`
+          : row[colorEncoding];
       if (!dataMap[seriesName]) {
         dataMap[seriesName] = [];
       }
@@ -79,12 +83,13 @@ function ProfilingScatterChart({
     () =>
       makeScatterChartOptions({
         data,
+        datetime,
         location,
         organization,
         projects,
         theme,
       }),
-    [location, theme, data]
+    [location, datetime, theme, data]
   );
 
   const handleColorEncodingChange = useCallback(
@@ -136,6 +141,7 @@ function ProfilingScatterChart({
 
 function makeScatterChartOptions({
   data,
+  datetime,
   location,
   organization,
   projects,
@@ -146,6 +152,7 @@ function makeScatterChartOptions({
    * the order of the traces must match the order of the data in the series in the scatter plot.
    */
   data: Record<string, Trace[]>;
+  datetime: PageFilters['datetime'];
   location: Location;
   organization: Organization;
   projects: Project[];
@@ -193,6 +200,17 @@ function makeScatterChartOptions({
     ].join('');
   };
 
+  const now = moment.utc();
+  const end = (defined(datetime.end) ? moment.utc(datetime.end) : now).valueOf();
+  const start = (
+    defined(datetime.start)
+      ? moment.utc(datetime.start)
+      : now.subtract(
+          parseInt(datetime.period ?? '14', 10),
+          datetime.period?.charAt(datetime.period.length - 1) === 'h' ? 'hours' : 'days'
+        )
+  ).valueOf();
+
   return {
     grid: {
       left: '10px',
@@ -203,6 +221,12 @@ function makeScatterChartOptions({
     tooltip: {
       trigger: 'item' as const,
       formatter: _tooltipFormatter,
+    },
+    xAxis: {
+      // need to specify a min/max on the date range here
+      // or echarts will use the min/max from the series
+      min: start,
+      max: end,
     },
     yAxis: {
       axisLabel: {

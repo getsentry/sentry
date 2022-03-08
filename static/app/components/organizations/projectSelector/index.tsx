@@ -1,11 +1,11 @@
-import * as React from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {IconAdd, IconPin} from 'sentry/icons';
+import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -36,6 +36,10 @@ type Props = {
    */
   selectedProjects: Array<Project>;
   /**
+   * Whether the menu should be detached from the actor
+   */
+  detached?: boolean;
+  /**
    * Allow selecting multiple projects
    */
   multi?: boolean;
@@ -56,7 +60,6 @@ type Props = {
    * recover
    */
   paginated?: boolean;
-  pinned?: boolean;
   /**
    * Represents if a search is taking place
    */
@@ -72,6 +75,7 @@ const ProjectSelector = ({
   menuFooter,
   className,
   rootClassName,
+  detached,
   onClose,
   onFilterChange,
   onScroll,
@@ -82,14 +86,22 @@ const ProjectSelector = ({
   onMultiSelect,
   multi = false,
   selectedProjects = [],
-  pinned,
   ...props
 }: Props) => {
+  // We'll only update the selected project list every time we open the menu,
+  // this helps avoid re-sorting as we select projects.
+  const lastSelected = useRef<Project[]>(selectedProjects);
+
+  const handleClose = () => {
+    lastSelected.current = selectedProjects;
+    onClose?.();
+  };
+
   const getProjects = () => {
     const {nonMemberProjects = []} = props;
     return [
       sortBy(multiProjects, project => [
-        !selectedProjects.find(selectedProject => selectedProject.slug === project.slug),
+        !lastSelected.current.find(p => p.slug === project.slug),
         !project.isBookmarked,
         project.slug,
       ]),
@@ -160,10 +172,6 @@ const ProjectSelector = ({
     ];
   };
 
-  const handlePinClick = () => {
-    pinFilter('projects', !pinned);
-  };
-
   const hasProjects = !!projects?.length || !!nonMemberProjects?.length;
   const newProjectUrl = `/organizations/${organization.slug}/projects/new/`;
   const hasProjectWrite = organization.access.includes('project:write');
@@ -172,9 +180,10 @@ const ProjectSelector = ({
   return (
     <DropdownAutoComplete
       blendCorner={false}
+      detached={detached}
       searchPlaceholder={t('Filter projects')}
       onSelect={handleSelect}
-      onClose={onClose}
+      onClose={handleClose}
       onChange={onFilterChange}
       busyItemsStillVisible={searching}
       onScroll={onScroll}
@@ -203,15 +212,7 @@ const ProjectSelector = ({
           >
             {hasPageFilters ? '' : t('Project')}
           </AddButton>
-          {hasPageFilters && (
-            <PinButton
-              aria-pressed={pinned}
-              aria-label={t('Pin')}
-              onClick={handlePinClick}
-              size="xsmall"
-              icon={<IconPin size="xs" isSolid={pinned} />}
-            />
-          )}
+          {hasPageFilters && <PageFilterPinButton size="xsmall" filter="projects" />}
         </InputActions>
       }
       menuFooter={renderProps => {
@@ -225,14 +226,14 @@ const ProjectSelector = ({
         }
 
         return (
-          <React.Fragment>
+          <Fragment>
             {showCreateProjectButton && (
               <CreateProjectButton priority="primary" size="small" to={newProjectUrl}>
                 {t('Create project')}
               </CreateProjectButton>
             )}
             {renderedFooter}
-          </React.Fragment>
+          </Fragment>
         );
       }}
       items={getItems(hasProjects)}
@@ -252,14 +253,6 @@ const Label = styled('div')`
 `;
 
 const AddButton = styled(Button)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  :hover {
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const PinButton = styled(Button)`
   display: block;
   color: ${p => p.theme.gray300};
   :hover {

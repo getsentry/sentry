@@ -1,24 +1,7 @@
 __all__ = (
-    "ALLOWED_GROUPBY_COLUMNS",
-    "AVAILABLE_OPERATIONS",
-    "FIELD_REGEX",
-    "MAX_POINTS",
-    "METRIC_TYPE_TO_ENTITY",
-    "MetricMeta",
-    "MetricMetaWithTagKeys",
-    "MetricOperation",
-    "MetricType",
-    "MetricUnit",
-    "OPERATIONS",
     "QueryDefinition",
     "SnubaQueryBuilder",
     "SnubaResultConverter",
-    "TAG_REGEX",
-    "TS_COL_GROUP",
-    "TS_COL_QUERY",
-    "Tag",
-    "TagValue",
-    "TimeRange",
     "get_date_range",
     "get_intervals",
     "parse_field",
@@ -27,23 +10,9 @@ __all__ = (
 )
 
 import math
-import re
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Collection,
-    Dict,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Protocol,
-    Sequence,
-    Tuple,
-    TypedDict,
-    Union,
-)
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
 from snuba_sdk.conditions import BooleanCondition
@@ -59,7 +28,19 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
     reverse_resolve_weak,
 )
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.fields import metric_object_factory
+from sentry.snuba.metrics.utils import (
+    _OPERATIONS_PERCENTILES,
+    ALLOWED_GROUPBY_COLUMNS,
+    DEFAULT_AGGREGATES,
+    FIELD_REGEX,
+    MAX_POINTS,
+    OPERATIONS,
+    TS_COL_GROUP,
+    TS_COL_QUERY,
+    TimeRange,
+)
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     ONE_DAY,
     AllowedResolution,
@@ -69,34 +50,8 @@ from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import parse_snuba_datetime
 
-FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
-TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
-_OPERATIONS_PERCENTILES = (
-    "p50",
-    "p75",
-    "p90",
-    "p95",
-    "p99",
-)
-
-OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
-    "sum",
-) + _OPERATIONS_PERCENTILES
-
-#: Max number of data points per time series:
-MAX_POINTS = 10000
-
-
-TS_COL_QUERY = "timestamp"
-TS_COL_GROUP = "bucketed_time"
-
-
-def parse_field(field: str) -> Tuple[str, str]:
+def parse_field(field: str) -> Tuple[Optional[str], str]:
     matches = FIELD_REGEX.match(field)
     try:
         if matches is None:
@@ -244,12 +199,6 @@ class QueryDefinition:
             return None
 
 
-class TimeRange(Protocol):
-    start: datetime
-    end: datetime
-    rollup: int
-
-
 def get_intervals(query: TimeRange):
     start = query.start
     end = query.end
@@ -308,69 +257,6 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     return start, end, interval
 
 
-#: The type of metric, which determines the snuba entity to query
-MetricType = Literal["counter", "set", "distribution"]
-
-#: A function that can be applied to a metric
-MetricOperation = Literal["avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99"]
-
-MetricUnit = Literal["seconds"]
-
-
-METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
-    "counter": EntityKey.MetricsCounters,
-    "set": EntityKey.MetricsSets,
-    "distribution": EntityKey.MetricsDistributions,
-}
-
-
-class MetricMeta(TypedDict):
-    name: str
-    type: MetricType
-    operations: Collection[MetricOperation]
-    unit: Optional[MetricUnit]
-
-
-class Tag(TypedDict):
-    key: str  # Called key here to be consistent with JS type
-
-
-class TagValue(TypedDict):
-    key: str
-    value: str
-
-
-class MetricMetaWithTagKeys(MetricMeta):
-    tags: Sequence[Tag]
-
-
-# Map requested op name to the corresponding Snuba function
-_OP_TO_SNUBA_FUNCTION = {
-    "metrics_counters": {"sum": "sum"},
-    "metrics_distributions": {
-        "avg": "avg",
-        "count": "count",
-        "max": "max",
-        "min": "min",
-        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
-        "p50": "quantiles(0.50)",
-        "p75": "quantiles(0.75)",
-        "p90": "quantiles(0.90)",
-        "p95": "quantiles(0.95)",
-        "p99": "quantiles(0.99)",
-    },
-    "metrics_sets": {"count_unique": "uniq"},
-}
-
-AVAILABLE_OPERATIONS = {
-    type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_SNUBA_FUNCTION.items()
-}
-OPERATIONS_TO_ENTITY = {
-    op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
-}
-ALLOWED_GROUPBY_COLUMNS = ("project_id",)
-
-
 class SnubaQueryBuilder:
 
     #: Datasets actually implemented in snuba:
@@ -392,11 +278,6 @@ class SnubaQueryBuilder:
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, [p.id for p in self._projects]),
-            Condition(
-                Column("metric_id"),
-                Op.IN,
-                [resolve_weak(name) for _, name in query_definition.fields.values()],
-            ),
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
@@ -407,7 +288,8 @@ class SnubaQueryBuilder:
         return where
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
-        return [Column("metric_id")] + [
+        # ToDo ensure we cannot add any other cols than tags and groupBy as columns
+        return [
             Column(resolve_tag_key(field))
             if field not in ALLOWED_GROUPBY_COLUMNS
             else Column(field)
@@ -419,78 +301,93 @@ class SnubaQueryBuilder:
     ) -> Optional[List[OrderBy]]:
         if query_definition.orderby is None:
             return None
-        (op, _), direction = query_definition.orderby
-
-        return [OrderBy(Column(op), direction)]
-
-    def _build_queries(self, query_definition):
-        queries_by_entity = OrderedDict()
-        for op, metric_name in query_definition.fields.values():
-            entity = OPERATIONS_TO_ENTITY[op]
-
-            if entity not in self._implemented_datasets:
-                raise NotImplementedError(f"Dataset not yet implemented: {entity}")
-
-            queries_by_entity.setdefault(entity, []).append((op, metric_name))
-
-        where = self._build_where(query_definition)
-        groupby = self._build_groupby(query_definition)
-
-        return {
-            entity: self._build_queries_for_entity(query_definition, entity, fields, where, groupby)
-            for entity, fields in queries_by_entity.items()
-        }
+        (op, metric_name), direction = query_definition.orderby
+        metric_field_obj = metric_object_factory(op, metric_name)
+        return metric_field_obj.generate_orderby_clause(
+            entity=entity, projects=self._projects, direction=direction
+        )
 
     @staticmethod
-    def _build_select(entity, fields):
-        for op, _ in fields:
-            snuba_function = _OP_TO_SNUBA_FUNCTION[entity][op]
-            yield Function(snuba_function, [Column("value")], alias=op)
-
-    def _build_queries_for_entity(self, query_definition, entity, fields, where, groupby):
+    def _build_totals_and_series_queries(
+        entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
+    ):
         totals_query = Query(
             dataset=Dataset.Metrics.value,
             match=Entity(entity),
             groupby=groupby,
-            select=list(self._build_select(entity, fields)),
+            select=select,
             where=where,
-            limit=Limit(query_definition.limit or MAX_POINTS),
-            offset=Offset(query_definition.offset or 0),
-            granularity=Granularity(query_definition.rollup),
-            orderby=self._build_orderby(query_definition, entity),
+            limit=Limit(limit or MAX_POINTS),
+            offset=Offset(offset or 0),
+            granularity=Granularity(rollup),
+            orderby=orderby,
         )
-
         series_query = totals_query.set_groupby(
             (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
         )
 
         # In a series query, we also need to factor in the len of the intervals array
         series_limit = MAX_POINTS
-        if query_definition.limit:
-            series_limit = query_definition.limit * len(list(get_intervals(query_definition)))
+        if limit:
+            series_limit = limit * intervals_len
         series_query = series_query.set_limit(series_limit)
 
-        return {
-            "totals": totals_query,
-            "series": series_query,
-        }
+        return {"totals": totals_query, "series": series_query}
+
+    def _build_queries(self, query_definition):
+        metric_name_to_obj_dict = {}
+
+        queries_by_entity = OrderedDict()
+        for op, metric_name in query_definition.fields.values():
+            metric_field_obj = metric_object_factory(op, metric_name)
+            entity = metric_field_obj.get_entity(projects=self._projects)
+
+            if entity not in self._implemented_datasets:
+                raise NotImplementedError(f"Dataset not yet implemented: {entity}")
+
+            metric_name_to_obj_dict[(op, metric_name)] = metric_field_obj
+
+            queries_by_entity.setdefault(entity, []).append((op, metric_name))
+
+        where = self._build_where(query_definition)
+        groupby = self._build_groupby(query_definition)
+
+        queries_dict = {}
+        for entity, fields in queries_by_entity.items():
+            select = []
+            metric_ids_set = set()
+            for op, name in fields:
+                metric_field_obj = metric_name_to_obj_dict[(op, name)]
+                select += metric_field_obj.generate_select_statements(
+                    entity=entity, projects=self._projects
+                )
+                metric_ids_set |= metric_field_obj.generate_metric_ids(entity)
+
+            where_for_entity = [
+                Condition(
+                    Column("metric_id"),
+                    Op.IN,
+                    list(metric_ids_set),
+                ),
+            ]
+            orderby = self._build_orderby(query_definition, entity)
+
+            queries_dict[entity] = self._build_totals_and_series_queries(
+                entity=entity,
+                select=select,
+                where=where + where_for_entity,
+                groupby=groupby,
+                orderby=orderby,
+                limit=query_definition.limit,
+                offset=query_definition.offset,
+                rollup=query_definition.rollup,
+                intervals_len=len(list(get_intervals(query_definition))),
+            )
+
+        return queries_dict
 
     def get_snuba_queries(self):
         return self._queries
-
-
-_DEFAULT_AGGREGATES = {
-    "avg": None,
-    "count_unique": 0,
-    "count": 0,
-    "max": None,
-    "p50": None,
-    "p75": None,
-    "p90": None,
-    "p95": None,
-    "p99": None,
-    "sum": 0,
-}
 
 
 class SnubaResultConverter:
@@ -508,54 +405,52 @@ class SnubaResultConverter:
         self._intervals = intervals
         self._results = results
 
-        self._ops_by_metric = ops_by_metric = {}
-        for op, metric in query_definition.fields.values():
-            ops_by_metric.setdefault(metric, []).append(op)
-
         self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
 
     def _parse_tag(self, tag_string: str) -> str:
         tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
         return reverse_resolve(tag_key)
 
-    def _extract_data(self, entity, data, groups):
+    def _extract_data(self, data, groups):
         tags = tuple(
             (key, data[key])
             for key in sorted(data.keys())
             if (key.startswith("tags[") or key in ALLOWED_GROUPBY_COLUMNS)
         )
 
-        metric_name = reverse_resolve(data["metric_id"])
-        ops = self._ops_by_metric[metric_name]
-
         tag_data = groups.setdefault(
             tags,
-            {
-                "totals": {},
-            },
+            {"totals": {}, "series": {}},
         )
 
-        timestamp = data.pop(TS_COL_GROUP, None)
-        if timestamp is not None:
-            timestamp = parse_snuba_datetime(timestamp)
+        bucketed_time = data.pop(TS_COL_GROUP, None)
+        if bucketed_time is not None:
+            bucketed_time = parse_snuba_datetime(bucketed_time)
 
-        for op in ops:
+        for op, metric_name in self._query_definition.fields.values():
             key = f"{op}({metric_name})"
+            try:
+                value = data[key]
+            except KeyError:
+                # This could occur when we have derived metrics that are generated from post
+                # query operations, and so don't have a direct mapping to the query results
+                continue
 
-            value = data[op]
             if op in _OPERATIONS_PERCENTILES:
                 value = value[0]
+            cleaned_value = finite_or_none(value)
 
-            # If this is time series data, add it to the appropriate series.
-            # Else, add to totals
-            if timestamp is None:
-                tag_data["totals"][key] = finite_or_none(value)
-            else:
-                series = tag_data.setdefault("series", {}).setdefault(
-                    key, len(self._intervals) * [_DEFAULT_AGGREGATES[op]]
-                )
-                series_index = self._timestamp_index[timestamp]
-                series[series_index] = finite_or_none(value)
+            if bucketed_time is None:
+                tag_data["totals"][key] = cleaned_value
+
+            default_null_value = DEFAULT_AGGREGATES[op]
+            if bucketed_time is not None or cleaned_value == default_null_value:
+                empty_values = len(self._intervals) * [default_null_value]
+                series = tag_data["series"].setdefault(key, empty_values)
+
+                if bucketed_time is not None:
+                    series_index = self._timestamp_index[bucketed_time]
+                    series[series_index] = cleaned_value
 
     def translate_results(self):
         groups = {}
@@ -563,12 +458,12 @@ class SnubaResultConverter:
         for entity, subresults in self._results.items():
             totals = subresults["totals"]["data"]
             for data in totals:
-                self._extract_data(entity, data, groups)
+                self._extract_data(data, groups)
 
             if "series" in subresults:
                 series = subresults["series"]["data"]
                 for data in series:
-                    self._extract_data(entity, data, groups)
+                    self._extract_data(data, groups)
 
         groups = [
             dict(
@@ -582,5 +477,4 @@ class SnubaResultConverter:
             )
             for tags, data in groups.items()
         ]
-
         return groups

@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import {t} from 'sentry/locale';
 import {
   aggregateOutputType,
+  getColumnsAndAggregates,
   isAggregateFieldOrEquation,
   isLegalYAxisType,
 } from 'sentry/utils/discover/fields';
@@ -92,8 +93,7 @@ export function normalizeQueries(
   }
 
   if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    // Reset orderby
-    return queries.map(query => ({...query, orderby: ''}));
+    return queries;
   }
 
   // Filter out non-aggregate fields
@@ -113,6 +113,8 @@ export function normalizeQueries(
     return {
       ...query,
       fields: fields.length ? fields : ['count()'],
+      columns: [],
+      aggregates: fields.length ? fields : ['count()'],
     };
   });
 
@@ -141,9 +143,13 @@ export function normalizeQueries(
       }
     }
 
+    const {columns, aggregates} = getColumnsAndAggregates(referenceFields);
+
     queries = queries.map(query => {
       return {
         ...query,
+        columns,
+        aggregates,
         fields: referenceFields,
       };
     });
@@ -155,6 +161,7 @@ export function normalizeQueries(
       return {
         ...query,
         fields: query.fields.slice(0, 1),
+        aggregates: query.aggregates?.slice(0, 1),
       };
     });
   }
@@ -171,8 +178,18 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
     return undefined;
   }
 
+  const fields = parsedQuery.fields ? getFields(parsedQuery.fields) : [];
+  const {columns, aggregates} = getColumnsAndAggregates(fields);
+
   return {
     ...parsedQuery,
-    fields: parsedQuery.fields?.split(',') ?? [],
+    fields,
+    columns,
+    aggregates,
   } as WidgetQuery;
+}
+
+export function getFields(fieldsString: string): string[] {
+  // Use a negative lookahead to avoid splitting on commas inside equation fields
+  return fieldsString.split(/,(?![^(]*\))/g);
 }

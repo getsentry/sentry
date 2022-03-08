@@ -34,12 +34,12 @@ type Props = WithRouterProps & {
     selectedProjects: Project[];
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  detached?: boolean;
   disableMultipleProjectSelection?: boolean;
   footerMessage?: React.ReactNode;
   forceProject?: MinimalProject | null;
   isGlobalSelectionReady?: boolean;
   lockedMessageSubject?: React.ReactNode;
-  pinned?: boolean;
   shouldForceProject?: boolean;
   showIssueStreamLink?: boolean;
   showProjectSettingsLink?: boolean;
@@ -208,7 +208,6 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       footerMessage,
       customDropdownButton,
       customLoadingIndicator,
-      pinned,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -295,7 +294,6 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 message={footerMessage}
               />
             )}
-            pinned={pinned}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
               if (customDropdownButton) {
@@ -461,9 +459,14 @@ const FooterMessage = styled('div')`
 const StyledProjectSelector = styled(ProjectSelector)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  margin: 1px 0 0 -1px;
-  border-radius: ${p => p.theme.borderRadiusBottom};
   width: 100%;
+
+  ${p =>
+    !p.detached &&
+    `
+    margin: 1px 0 0 -1px;
+    border-radius: ${p.theme.borderRadiusBottom};
+  `}
 `;
 
 const StyledHeaderItem = styled(HeaderItem)`

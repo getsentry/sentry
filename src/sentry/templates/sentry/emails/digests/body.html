@@ -32,7 +32,13 @@
 
     <div class="rule">
       <div class="container">
-        {{ rule.label }}
+        {% if alert_status_page_enabled %}
+            {% with rule_details=rules_details|get_item:rule.id %}
+                You’re receiving this email because you’re subscribed to notifications for <a href="{% absolute_uri rule_details.status_url %}">{{ rule_details.label }}</a>
+            {% endwith %}
+        {% else %}
+            {{ rule.label }}
+        {% endif %}
       </div>
     </div>
 

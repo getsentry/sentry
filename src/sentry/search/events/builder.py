@@ -9,7 +9,8 @@ from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, BooleanCondition, Condition, Op, Or
 from snuba_sdk.entity import Entity
-from snuba_sdk.expressions import Granularity, Limit, Offset, Turbo
+from snuba_sdk.expressions import Granularity, Limit, Offset
+from snuba_sdk.flags import Turbo
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
@@ -1450,6 +1451,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
+        self.metric_ids: List[int] = []
         super().__init__(
             # Dataset is always Metrics
             Dataset.Metrics,
@@ -1457,6 +1459,22 @@ class MetricsQueryBuilder(QueryBuilder):
             **kwargs,
         )
         self.granularity = self.resolve_granularity()
+
+    def column(self, name: str) -> Column:
+        """Given an unresolved sentry name and return a snql column.
+
+        :param name: The unresolved sentry name.
+        """
+        try:
+            return super().column(name)
+        except InvalidSearchQuery:
+            raise IncompatibleMetricsQuery("Column was not found in metrics indexer")
+
+    def aliased_column(self, name: str) -> SelectType:
+        try:
+            return super().aliased_column(name)
+        except InvalidSearchQuery:
+            raise IncompatibleMetricsQuery("Column was not found in metrics indexer")
 
     def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
@@ -1494,6 +1512,15 @@ class MetricsQueryBuilder(QueryBuilder):
             Condition(self.column("organization_id"), Op.EQ, self.params["organization_id"])
         )
         return conditions
+
+    def resolve_query(self, *args: Any, **kwargs: Any) -> None:
+        super().resolve_query(*args, **kwargs)
+        # Optimization to add metric ids to the filter
+        if len(self.metric_ids) > 0:
+            self.where.append(
+                # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
+                Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
+            )
 
     def resolve_limit(self, limit: Optional[int]) -> Limit:
         """Impose a max limit, since we may need to create a large condition based on the group by values when the query
@@ -1550,10 +1577,7 @@ class MetricsQueryBuilder(QueryBuilder):
         operator = search_filter.operator
         value = search_filter.value.value
 
-        try:
-            lhs = self.resolve_column(name)
-        except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery("Column was not recognized in the metrics dataset")
+        lhs = self.resolve_column(name)
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
         is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
@@ -1636,6 +1660,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return primary, query_framework
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        self.validate_having_clause()
         # Need to split orderby between the 3 possible tables
         # TODO: need to validate orderby, ordering by tag values is impossible unless the values have low cardinality
         # and we can transform them (eg. project)

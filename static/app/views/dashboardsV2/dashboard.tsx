@@ -347,9 +347,10 @@ class Dashboard extends Component<Props, State> {
       paramDashboardId,
       onSetWidgetToBeUpdated,
       handleAddCustomWidget,
+      isEditing,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience')) {
+    if (organization.features.includes('new-widget-builder-experience') && isEditing) {
       onSetWidgetToBeUpdated(widget);
 
       trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.opened', {
@@ -428,6 +429,7 @@ class Dashboard extends Component<Props, State> {
             dragId={dragId}
             isMobile={isMobile}
             windowWidth={windowWidth}
+            index={String(index)}
           />
         </GridItem>
       );
@@ -435,7 +437,9 @@ class Dashboard extends Component<Props, State> {
 
     const key = generateWidgetId(widget, index);
     const dragId = key;
-    return <SortableWidget {...widgetProps} key={key} dragId={dragId} />;
+    return (
+      <SortableWidget {...widgetProps} key={key} dragId={dragId} index={String(index)} />
+    );
   }
 
   handleLayoutChange = (_, allLayouts: Layouts) => {

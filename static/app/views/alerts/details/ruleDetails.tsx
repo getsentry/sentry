@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
@@ -12,6 +11,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import AlertChart from './alertChart';
 import AlertRuleIssuesList from './issuesList';
@@ -45,6 +46,14 @@ const PAGE_QUERY_PARAMS = [
 
 class AlertRuleDetails extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
+
+  componentDidMount() {
+    const {organization, params} = this.props;
+    trackAdvancedAnalyticsEvent('issue_alert_rule_details.viewed', {
+      organization,
+      rule_id: parseInt(params.ruleId, 10),
+    });
+  }
 
   componentDidUpdate(prevProps: Props) {
     const {params: prevParams} = prevProps;
@@ -182,7 +191,13 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     }
 
     return (
-      <Fragment>
+      <PageFiltersContainer
+        shouldForceProject
+        forceProject={project}
+        forceEnvironment={rule.environment ?? ''}
+        lockedMessageSubject={t('alert rule')}
+        showDateSelector={false}
+      >
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
@@ -197,6 +212,12 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             <Button
               icon={<IconEdit />}
               to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
+                  organization,
+                  rule_id: parseInt(ruleId, 10),
+                })
+              }
             >
               {t('Edit Rule')}
             </Button>
@@ -212,10 +233,20 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               utc={utc ?? null}
               onUpdate={this.handleUpdateDatetime}
             />
-            <AlertChart organization={organization} orgId={orgId} />
+            <AlertChart
+              organization={organization}
+              orgId={orgId}
+              project={project}
+              rule={rule}
+              period={period ?? ''}
+              start={start ?? null}
+              end={end ?? null}
+              utc={utc ?? null}
+            />
             <AlertRuleIssuesList
               organization={organization}
               project={project}
+              rule={rule}
               period={period ?? ''}
               start={start ?? null}
               end={end ?? null}
@@ -227,7 +258,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             <Sidebar rule={rule} />
           </Layout.Side>
         </StyledLayoutBody>
-      </Fragment>
+      </PageFiltersContainer>
     );
   }
 }
