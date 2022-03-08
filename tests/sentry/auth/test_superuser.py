@@ -175,19 +175,20 @@ class SuperuserTestCase(TestCase):
         )
 
         superuser = Superuser(request, org_id=None)
-        superuser.set_logged_in(request.user)
-        assert superuser.is_active is True
-        assert logger.info.call_count == 2
-        logger.info.assert_any_call(
-            "superuser.superuser_access",
-            extra={
-                "superuser_session_id": superuser.token,
-                "user_id": 10,
-                "user_email": "test@sentry.io",
-                "su_access_category": "Edit organization settings",
-                "reason_for_su": "Edit organization settings",
-            },
-        )
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 2
+            logger.info.assert_any_call(
+                "superuser.superuser_access",
+                extra={
+                    "superuser_token_id": superuser.token,
+                    "user_id": 10,
+                    "user_email": "test@sentry.io",
+                    "su_access_category": "Edit organization settings",
+                    "reason_for_su": "Edit organization settings",
+                },
+            )
 
     def test_max_time_org_change_within_time(self):
         request = self.build_request()
