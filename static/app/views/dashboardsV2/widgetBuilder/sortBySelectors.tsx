@@ -49,7 +49,7 @@ export function SortBySelectors({values, sortByOptions, onChange}: Props) {
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 200px 1fr;

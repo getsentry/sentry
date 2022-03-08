@@ -102,32 +102,34 @@ const DATASET_CHOICES: [DataSet, string][] = [
   // [DataSet.METRICS, t('Metrics (Release Health)')],
 ];
 
-const QUERIES: Record<DataSet, WidgetQuery> = {
-  [DataSet.EVENTS]: {
-    name: '',
-    fields: ['count()'],
-    columns: [],
-    aggregates: ['count()'],
-    conditions: '',
-    orderby: 'count',
-  },
-  [DataSet.ISSUES]: {
-    name: '',
-    fields: ['issue', 'assignee', 'title'] as string[],
-    columns: ['issue', 'assignee', 'title'],
-    aggregates: [],
-    conditions: '',
-    orderby: IssueSortOptions.DATE,
-  },
-  [DataSet.METRICS]: {
-    name: '',
-    fields: [`sum(${SessionMetric.SESSION})`],
-    columns: [],
-    aggregates: [`sum(${SessionMetric.SESSION})`],
-    conditions: '',
-    orderby: '',
-  },
-};
+function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
+  return {
+    [DataSet.EVENTS]: {
+      name: '',
+      fields: ['count()'],
+      columns: [],
+      aggregates: ['count()'],
+      conditions: '',
+      orderby: widgetBuilderNewDesign ? 'count' : '',
+    },
+    [DataSet.ISSUES]: {
+      name: '',
+      fields: ['issue', 'assignee', 'title'] as string[],
+      columns: ['issue', 'assignee', 'title'],
+      aggregates: [],
+      conditions: '',
+      orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
+    },
+    [DataSet.METRICS]: {
+      name: '',
+      fields: [`sum(${SessionMetric.SESSION})`],
+      columns: [],
+      aggregates: [`sum(${SessionMetric.SESSION})`],
+      conditions: '',
+      orderby: '',
+    },
+  };
+}
 
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
@@ -222,7 +224,22 @@ function WidgetBuilder({
         title: defaultTitle ?? t('Custom Widget'),
         displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
-        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...QUERIES.events}],
+        queries: [
+          defaultWidgetQuery
+            ? widgetBuilderNewDesign
+              ? {
+                  ...defaultWidgetQuery,
+                  orderby:
+                    defaultWidgetQuery.orderby ||
+                    generateOrderOptions({
+                      widgetType: WidgetType.DISCOVER,
+                      widgetBuilderNewDesign,
+                      ...getColumnsAndAggregates(defaultWidgetQuery.fields),
+                    })[0].value,
+                }
+              : {...defaultWidgetQuery}
+            : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+        ],
         errors: undefined,
         loading: !!notDashboardsOrigin,
         dashboards: [],
@@ -311,7 +328,7 @@ function WidgetBuilder({
           'queries',
           normalizeQueries({
             displayType: newDisplayType,
-            queries: [{...QUERIES.events}],
+            queries: [{...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]}],
             widgetType: WidgetType.DISCOVER,
             widgetBuilderNewDesign,
           })
@@ -407,7 +424,7 @@ function WidgetBuilder({
         ...(widgetToBeUpdated?.widgetType &&
         WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
           ? widgetToBeUpdated.queries
-          : [QUERIES[newDataSet]])
+          : [{...getDataSetQuery(widgetBuilderNewDesign)[newDataSet]}])
       );
 
       set(newState, 'userHasModified', true);
@@ -418,7 +435,9 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(QUERIES.events);
+      const query = cloneDeep({
+        ...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS],
+      });
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;

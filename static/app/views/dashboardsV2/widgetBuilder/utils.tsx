@@ -112,7 +112,7 @@ export function normalizeQueries({
   }
 
   if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    if (!queries[0].orderby) {
+    if (!queries[0].orderby && widgetBuilderNewDesign) {
       const orderBy = (
         widgetType === WidgetType.DISCOVER
           ? generateOrderOptions({
@@ -214,7 +214,6 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
 
   return {
     ...parsedQuery,
-    orderby: parsedQuery.orderby || parsedQuery.fields[0],
     fields,
     columns,
     aggregates,
