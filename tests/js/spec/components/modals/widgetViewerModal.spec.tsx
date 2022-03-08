@@ -65,7 +65,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Discover Area Chart Widget', function () {
-    let container, eventsMock;
+    let container, rerender, eventsMock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()', 'failure_count()'],
@@ -73,11 +73,18 @@ describe('Modals -> WidgetViewerModal', function () {
       name: 'Query Name',
       orderby: '',
     };
+    const additionalMockQuery = {
+      conditions: '',
+      fields: ['count()'],
+      id: '2',
+      name: 'Another Query Name',
+      orderby: '',
+    };
     const mockWidget = {
       title: 'Test Widget',
       displayType: DisplayType.AREA,
       interval: '5m',
-      queries: [mockQuery],
+      queries: [mockQuery, additionalMockQuery],
     };
 
     beforeEach(function () {
@@ -101,7 +108,9 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      container = mountModal({initialData, widget: mockWidget}).container;
+      const modal = mountModal({initialData, widget: mockWidget});
+      container = modal.container;
+      rerender = modal.rerender;
     });
 
     it('renders Edit and Open buttons', function () {
@@ -154,6 +163,67 @@ describe('Modals -> WidgetViewerModal', function () {
             end: '2022-03-01T07:33:20',
           }),
         })
+      );
+    });
+
+    it('renders multiquery label and selector', function () {
+      expect(
+        screen.getByText(
+          'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByText('Query Name')).toBeInTheDocument();
+    });
+
+    it('updates selected query when selected in the query dropdown', function () {
+      userEvent.click(screen.getByText('Query Name'));
+      userEvent.click(screen.getByText('Another Query Name'));
+      expect(initialData.router.replace).toHaveBeenCalledWith({
+        query: {query: 1},
+      });
+      // Need to manually set the new router location and rerender to simulate the dropdown selection click
+      initialData.router.location.query = {query: ['1']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(screen.getByText('Another Query Name')).toBeInTheDocument();
+    });
+
+    it('renders the correct discover query link when there are multiple queries in a widget', function () {
+      // Rerender with a different selected query from the default
+      initialData.router.location.query = {query: ['1']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Widget&query=&statsPeriod=14d&yAxis=count%28%29'
       );
     });
   });
@@ -258,18 +328,16 @@ describe('Modals -> WidgetViewerModal', function () {
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {modalSort: ['-count']};
       rerender(
-        <div style={{padding: space(4)}}>
-          <WidgetViewerModal
-            Header={stubEl}
-            Footer={stubEl as ModalRenderProps['Footer']}
-            Body={stubEl as ModalRenderProps['Body']}
-            CloseButton={stubEl}
-            closeModal={() => undefined}
-            organization={initialData.organization}
-            widget={mockWidget}
-            onEdit={() => undefined}
-          />
-        </div>,
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
         {
           context: initialData.routerContext,
           organization: initialData.organization,
