@@ -4,11 +4,11 @@ import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLi
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import AlertRulesList from 'sentry/views/alerts/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-jest.mock('sentry/utils/analytics');
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
@@ -69,7 +69,7 @@ describe('OrganizationRuleList', () => {
   afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
-    trackAnalyticsEvent.mockClear();
+    trackAdvancedAnalyticsEvent.mockClear();
   });
 
   it('displays list', async () => {
@@ -86,12 +86,12 @@ describe('OrganizationRuleList', () => {
 
     expect(screen.getAllByTestId('badge-display-name')[0]).toHaveTextContent('earth');
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'alert_rules.viewed',
-      eventName: 'Alert Rules: Viewed',
-      organization_id: '3',
-      sort: 'incident_status,date_triggered',
-    });
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'alert_rules.viewed',
+      expect.objectContaining({
+        sort: 'incident_status,date_triggered',
+      })
+    );
   });
 
   it('displays empty state', async () => {

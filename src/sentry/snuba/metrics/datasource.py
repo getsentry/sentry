@@ -8,7 +8,6 @@ efficient, we only look at the past 24 hours.
 
 __all__ = (
     "get_metrics",
-    "get_single_metric",
     "get_tags",
     "get_tag_values",
     "get_series",
@@ -16,71 +15,37 @@ __all__ = (
 
 from collections import defaultdict
 from copy import copy
-from datetime import datetime, timedelta
 from operator import itemgetter
 from typing import Any, List, Mapping, Optional, Sequence
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.utils.snuba import raw_snql_query
-
-from .helpers import (
+from sentry.snuba.dataset import EntityKey
+from sentry.snuba.metrics.fields import run_metrics_query
+from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
-    AVAILABLE_OPERATIONS,
-    METRIC_TYPE_TO_ENTITY,
-    TS_COL_QUERY,
-    MetricMeta,
-    MetricMetaWithTagKeys,
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
-    Tag,
-    TagValue,
     get_intervals,
     parse_field,
 )
-
-_GRANULARITY = 24 * 60 * 60  # coarsest granularity
-
-
-def _get_data(
-    *,
-    entity_key: EntityKey,
-    select: List[Column],
-    where: List[Condition],
-    groupby: List[Column],
-    projects,
-    org_id,
-    referrer: str,
-) -> Mapping[str, Any]:
-    # Round timestamp to minute to get cache efficiency:
-    now = datetime.now().replace(second=0, microsecond=0)
-
-    query = Query(
-        dataset=Dataset.Metrics.value,
-        match=Entity(entity_key.value),
-        select=select,
-        groupby=groupby,
-        where=[
-            Condition(Column("org_id"), Op.EQ, org_id),
-            Condition(Column("project_id"), Op.IN, [p.id for p in projects]),
-            Condition(Column(TS_COL_QUERY), Op.GTE, now - timedelta(hours=24)),
-            Condition(Column(TS_COL_QUERY), Op.LT, now),
-        ]
-        + where,
-        granularity=Granularity(_GRANULARITY),
-    )
-    result = raw_snql_query(query, referrer, use_cache=True)
-    return result["data"]
+from sentry.snuba.metrics.utils import (
+    AVAILABLE_OPERATIONS,
+    METRIC_TYPE_TO_ENTITY,
+    MetricMeta,
+    Tag,
+    TagValue,
+)
+from sentry.utils.snuba import raw_snql_query
 
 
 def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[str, Any]:
-    return _get_data(
+    return run_metrics_query(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
@@ -118,43 +83,6 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     )
 
 
-def get_single_metric(projects: Sequence[Project], metric_name: str) -> MetricMetaWithTagKeys:
-    """Get metadata for a single metric, without tag values"""
-    assert projects
-
-    metric_id = indexer.resolve(metric_name)
-
-    if metric_id is None:
-        raise InvalidParams
-
-    for metric_type in ("counter", "set", "distribution"):
-        # TODO: What if metric_id exists for multiple types / units?
-        entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-        data = _get_data(
-            entity_key=entity_key,
-            select=[Column("metric_id"), Column("tags.key")],
-            where=[Condition(Column("metric_id"), Op.EQ, metric_id)],
-            groupby=[Column("metric_id"), Column("tags.key")],
-            referrer="snuba.metrics.meta.get_single_metric",
-            projects=projects,
-            org_id=projects[0].organization_id,
-        )
-        if data:
-            tag_ids = {tag_id for row in data for tag_id in row["tags.key"]}
-            return {
-                "name": metric_name,
-                "type": metric_type,
-                "operations": AVAILABLE_OPERATIONS[entity_key.value],
-                "tags": sorted(
-                    ({"key": reverse_resolve(tag_id)} for tag_id in tag_ids),
-                    key=itemgetter("key"),
-                ),
-                "unit": None,
-            }
-
-    raise InvalidParams
-
-
 def _get_metrics_filter(metric_names: Optional[Sequence[str]]) -> Optional[List[Condition]]:
     """Add a condition to filter by metrics. Return None if a name cannot be resolved."""
     where = []
@@ -185,7 +113,7 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
     for metric_type in ("counter", "set", "distribution"):
         # TODO: What if metric_id exists for multiple types / units?
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-        rows = _get_data(
+        rows = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id"), Column("tags.key")],
             where=where,
@@ -230,7 +158,7 @@ def get_tag_values(
     for metric_type in ("counter", "set", "distribution"):
         # TODO: What if metric_id exists for multiple types / units?
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-        rows = _get_data(
+        rows = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id"), Column(column_name)],
             where=where,

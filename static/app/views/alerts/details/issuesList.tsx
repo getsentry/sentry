@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import random from 'lodash/random';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -13,17 +13,24 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
+import {IssueAlertRule} from 'sentry/types/alerts';
 import {getMessage, getTitle} from 'sentry/utils/events';
+
+type GroupHistory = {
+  count: number;
+  group: Group;
+};
 
 type Props = AsyncComponent['props'] &
   DateTimeObject & {
     organization: Organization;
     project: Project;
+    rule: IssueAlertRule;
     cursor?: string;
   };
 
 type State = AsyncComponent['state'] & {
-  issues: Group[] | null;
+  groupHistory: GroupHistory[] | null;
 };
 
 class AlertRuleIssuesList extends AsyncComponent<Props, State> {
@@ -48,22 +55,20 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      issues: null,
+      groupHistory: null,
     };
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {project, organization, period, start, end, utc, cursor} = this.props;
+    const {project, rule, organization, period, start, end, utc, cursor} = this.props;
     return [
       [
-        'issues',
-        `/organizations/${organization.slug}/issues/`,
+        'groupHistory',
+        `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/group-history/`,
         {
           query: {
-            query: 'is:unresolved',
-            limit: '10',
-            project: project.id,
-            statsPeriod: period,
+            per_page: 10,
+            ...(period && {statsPeriod: period}),
             start,
             end,
             utc,
@@ -80,12 +85,14 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {loading, issues, issuesPageLinks} = this.state;
+    const {loading, groupHistory, groupHistoryPageLinks} = this.state;
 
     return (
       <Fragment>
         <StyledPanelTable
           isLoading={loading}
+          isEmpty={groupHistory?.length === 0}
+          emptyMessage={t('No issues exist for the current query.')}
           headers={[
             t('Issue'),
             <AlignRight key="alerts">{t('Alerts')}</AlignRight>,
@@ -93,7 +100,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
             t('Last Triggered'),
           ]}
         >
-          {issues?.map(issue => {
+          {groupHistory?.map(({group: issue, count}) => {
             const message = getMessage(issue);
             const {title} = getTitle(issue);
 
@@ -106,10 +113,10 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                   <MessageWrapper>{message}</MessageWrapper>
                 </TitleWrapper>
                 <AlignRight>
-                  <Count value={random(1, 200)} />
+                  <Count value={count} />
                 </AlignRight>
                 <AlignRight>
-                  <Count value={random(1, 2000)} />
+                  <Count value={issue.count} />
                 </AlignRight>
                 <div>
                   <StyledDateTime date={issue.lastSeen} />
@@ -119,7 +126,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
           })}
         </StyledPanelTable>
         <PaginationWrapper>
-          <StyledPagination pageLinks={issuesPageLinks} size="xsmall" />
+          <StyledPagination pageLinks={groupHistoryPageLinks} size="xsmall" />
         </PaginationWrapper>
       </Fragment>
     );
@@ -133,9 +140,13 @@ const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(1.5)};
 
-  & > div {
-    padding: ${space(1)} ${space(2)};
-  }
+  ${p =>
+    !p.isEmpty &&
+    css`
+      & > div {
+        padding: ${space(1)} ${space(2)};
+      }
+    `}
 `;
 
 const AlignRight = styled('div')`
