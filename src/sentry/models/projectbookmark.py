@@ -8,8 +8,7 @@ from sentry.models import Project
 
 class ProjectBookmark(Model):
     """
-    Identifies a bookmark relationship between a user and an
-    aggregated event (Group).
+    Identifies a bookmark relationship between a user and a project
     """
 
     __include_in_export__ = True
