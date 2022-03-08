@@ -35,7 +35,14 @@ const styles = (theme: Theme, isDark: boolean) => css`
   pre,
   code {
     background-color: ${theme.backgroundSecondary};
+  }
+
+  pre {
     color: ${theme.textColor};
+  }
+
+  code {
+    background-color: transparent;
   }
 
   /**
