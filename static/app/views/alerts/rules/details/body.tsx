@@ -10,6 +10,7 @@ import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
+import DateTime from 'sentry/components/dateTime';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import Duration from 'sentry/components/duration';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -53,20 +54,6 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
-  getMetricText(): React.ReactNode {
-    const {rule} = this.props;
-
-    if (!rule) {
-      return '';
-    }
-
-    const {aggregate} = rule;
-
-    return tct('[metric]', {
-      metric: aggregate,
-    });
-  }
-
   getTimeWindow(): React.ReactNode {
     const {rule} = this.props;
 
@@ -211,16 +198,6 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <React.Fragment>
         <SidebarGroup>
-          <Heading>{t('Metric')}</Heading>
-          <RuleText>{this.getMetricText()}</RuleText>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <Heading>{t('Environment')}</Heading>
-          <RuleText>{rule.environment ?? 'All'}</RuleText>
-        </SidebarGroup>
-
-        <SidebarGroup>
           <Heading>{t('Thresholds')}</Heading>
           {typeof criticalTrigger?.alertThreshold === 'number' &&
             this.renderTrigger(
@@ -239,12 +216,18 @@ export default class DetailsBody extends React.Component<Props> {
         </SidebarGroup>
 
         <SidebarGroup>
-          <Heading>{t('Other Details')}</Heading>
+          <Heading>{t('Alert Rule Details')}</Heading>
           <KeyValueTable>
             <KeyValueTableRow
-              keyName={t('Team')}
+              keyName={t('Date created')}
               value={
-                teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
+                <DateTime
+                  date={getDynamicText({
+                    value: rule.dateCreated,
+                    fixed: new Date('2021-04-20'),
+                  })}
+                  format="ll"
+                />
               }
             />
 
@@ -261,6 +244,13 @@ export default class DetailsBody extends React.Component<Props> {
                 value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
               />
             )}
+
+            <KeyValueTableRow
+              keyName={t('Team')}
+              value={
+                teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
+              }
+            />
           </KeyValueTable>
         </SidebarGroup>
       </React.Fragment>
@@ -439,7 +429,7 @@ export default class DetailsBody extends React.Component<Props> {
 }
 
 const SidebarGroup = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const DetailWrapper = styled('div')`
@@ -531,10 +521,6 @@ const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
 
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
-`;
-
-const RuleText = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const TriggerConditionContainer = styled('div')`
