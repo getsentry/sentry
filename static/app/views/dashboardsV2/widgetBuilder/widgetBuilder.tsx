@@ -81,6 +81,7 @@ import {ColumnFields} from './columnFields';
 import {DashboardSelector} from './dashboardSelector';
 import {DisplayTypeSelector} from './displayTypeSelector';
 import {Footer} from './footer';
+import {GroupBy} from './groupBy';
 import {Header} from './header';
 import {
   DataSet,
@@ -163,6 +164,7 @@ type State = {
   dashboards: DashboardListItem[];
   dataSet: DataSet;
   displayType: Widget['displayType'];
+  groupBy: any;
   interval: Widget['interval'];
   loading: boolean;
   queries: Widget['queries'];
@@ -223,6 +225,7 @@ function WidgetBuilder({
         dashboards: [],
         userHasModified: false,
         dataSet: DataSet.EVENTS,
+        groupBy: null,
       };
     }
 
@@ -238,6 +241,7 @@ function WidgetBuilder({
       dataSet: widgetToBeUpdated.widgetType
         ? WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType]
         : DataSet.EVENTS,
+      groupBy: null,
     };
   });
 
@@ -953,14 +957,26 @@ function WidgetBuilder({
                       )}
                     </div>
                   </BuildStep>
-                  <BuildStep
-                    title={t('Group your results')}
-                    description={t(
-                      'This is how you can group your data result by tag or field. For a full list, read the docs.'
-                    )}
-                  >
-                    Hello world
-                  </BuildStep>
+                  {/* TODO: Add feature flag{organization.features.includes('new-widget-builder-design') && ( */}
+                  {[
+                    DisplayType.TABLE,
+                    DisplayType.BAR,
+                    DisplayType.LINE,
+                    DisplayType.AREA,
+                  ].includes(state.displayType) && (
+                    <BuildStep
+                      title={t('Group your results')}
+                      description={t(
+                        'This is how you can group your data result by tag or field. For a full list, read the docs.'
+                      )}
+                    >
+                      <Measurements>
+                        {({measurements}) => (
+                          <GroupBy fieldOptions={getAmendedFieldOptions(measurements)} />
+                        )}
+                      </Measurements>
+                    </BuildStep>
+                  )}
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <BuildStep
                       title={t('Sort by a column')}
