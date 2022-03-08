@@ -68,7 +68,10 @@ function WidgetViewerModal(props: Props) {
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
-  const [cursor, setCursor] = React.useState<string>();
+  const [pagination, setPagination] = React.useState<{page: number; cursor?: string}>({
+    cursor: undefined,
+    page: 0,
+  });
 
   // Use sort if provided by location query to sort table
   const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
@@ -151,7 +154,7 @@ function WidgetViewerModal(props: Props) {
                   ? FULL_TABLE_ITEM_LIMIT
                   : HALF_TABLE_ITEM_LIMIT
               }
-              cursor={cursor}
+              cursor={pagination.cursor}
             >
               {({transformedResults, loading, pageLinks}) => {
                 return (
@@ -178,8 +181,19 @@ function WidgetViewerModal(props: Props) {
                     />
                     <StyledPagination
                       pageLinks={pageLinks}
-                      onCursor={newCursor => {
-                        setCursor(newCursor);
+                      onCursor={(nextCursor, _path, _query, delta) => {
+                        let nextPage: number | undefined = isNaN(pagination.page)
+                          ? delta
+                          : pagination.page + delta;
+                        let newCursor = nextCursor;
+                        // unset cursor and page when we navigate back to the first page
+                        // also reset cursor if somehow the previous button is enabled on
+                        // first page and user attempts to go backwards
+                        if (nextPage <= 0) {
+                          newCursor = undefined;
+                          nextPage = 0;
+                        }
+                        setPagination({cursor: newCursor, page: nextPage});
                       }}
                     />
                   </React.Fragment>
@@ -198,7 +212,7 @@ function WidgetViewerModal(props: Props) {
                   : HALF_TABLE_ITEM_LIMIT
               }
               pagination
-              cursor={cursor}
+              cursor={pagination.cursor}
             >
               {({tableResults, loading, pageLinks}) => {
                 const isFirstPage = pageLinks
@@ -232,7 +246,7 @@ function WidgetViewerModal(props: Props) {
                     <StyledPagination
                       pageLinks={pageLinks}
                       onCursor={newCursor => {
-                        setCursor(newCursor);
+                        setPagination({cursor: newCursor, page: 0});
                       }}
                     />
                   </React.Fragment>
