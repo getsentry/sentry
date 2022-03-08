@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, Dict, MutableMapping, Optional, Sequence
 
 import msgpack
@@ -48,25 +49,27 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     }
 
     if profile["platform"] == "android":
-        normalized_profile = {
-            **normalized_profile,
-            **{
+        normalized_profile.update(
+            {
                 "android_api_level": profile["android_api_level"],
                 "profile": profile["stacktrace"],
                 "symbols": profile["android_trace"],
-            },
-        }
+            }
+        )
     elif profile["platform"] == "ios":
-        normalized_profile = {
-            **normalized_profile,
-            **{
+        normalized_profile.update(
+            {
                 "device_os_build_number": profile["device_os_build_number"],
                 "profile": profile["sampled_profile"],
                 "symbols": profile["debug_meta"],
-            },
-        }
+            }
+        )
 
     return normalized_profile
+
+
+def _validate_ios_profile(profile: MutableMapping[str, Any]) -> bool:
+    return "sampled_profile" in profile and "samples" in profile["sampled_profile"]
 
 
 class ProfilesWorker(AbstractBatchWorker):  # type: ignore
@@ -74,14 +77,21 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         self.__producer = producer
         self.__producer_topic = "processed-profiles"
 
-    def _validate_message(self, profile: MutableMapping[str, Any]) -> bool:
-        return "sampled_profile" in profile and "samples" in profile["sampled_profile"]
-
     def process_message(self, message: Any) -> MutableMapping[str, Any]:
-        profile = msgpack.unpackb(message.value(), use_list=False)
-        if not self._validate_profile(profile):
-            return None
+        message = msgpack.unpackb(message.value(), use_list=False)
+        profile = json.loads(message["payload"])
+
+        profile.update(
+            {
+                "organization_id": message["organization_id"],
+                "project_id": message["project_id"],
+                "received": datetime.utcnow().isoformat(),
+            }
+        )
+
         if profile["platform"] == "ios":
+            if not _validate_ios_profile(profile):
+                return None
             profile = self.symbolicate(profile)
         return _normalize(profile)
 
