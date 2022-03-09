@@ -1159,5 +1159,13 @@ describe('WidgetBuilder', function () {
       // Only one f(x) field set in the y-axis selector
       expect(screen.getByText('f(x)')).toBeInTheDocument();
     });
+
+    it.only('adds more fields when Add Group is clicked', async function () {
+      renderTestComponent({query: {displayType: 'line'}});
+
+      await screen.findByText('Group your results');
+      userEvent.click(screen.getByText('Add Group'));
+      expect(screen.getAllByText('Select group')).toHaveLength(2);
+    });
   });
 });

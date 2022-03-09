@@ -425,14 +425,12 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
-    for (const index in state.queries) {
-      const queryIndex = Number(index);
-      const query = state.queries[queryIndex];
-
+    state.queries.forEach((query, index) => {
       const descending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.fields.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
+
       newQuery.fields = fieldStrings;
       const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
       newQuery.aggregates = aggregates;
@@ -453,8 +451,8 @@ function WidgetBuilder({
         }
       }
 
-      handleQueryChange(queryIndex, newQuery);
-    }
+      handleQueryChange(index, newQuery);
+    });
   }
 
   function handleDelete() {
@@ -977,7 +975,16 @@ function WidgetBuilder({
                               groupByOptions[nonAggregateKey] =
                                 fieldOptions[nonAggregateKey];
                             });
-                          return <GroupBy fieldOptions={groupByOptions} />;
+                          return (
+                            <GroupBy
+                              columns={state.queries[0].columns?.map(field =>
+                                explodeField({field})
+                              )}
+                              fields={explodedFields}
+                              fieldOptions={groupByOptions}
+                              onChange={handleYAxisOrColumnFieldChange}
+                            />
+                          );
                         }}
                       </Measurements>
                     </BuildStep>
