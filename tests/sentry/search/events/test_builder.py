@@ -24,8 +24,12 @@ from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
 class QueryBuilderTest(TestCase):
     def setUp(self):
-        self.start = datetime.datetime.now() - datetime.timedelta(days=1)
-        self.end = datetime.datetime.now()
+        self.start = datetime.datetime.now(tz=timezone.utc).replace(
+            hour=10, minute=15, second=0, microsecond=0
+        ) - datetime.timedelta(days=1)
+        self.end = datetime.datetime.now(tz=timezone.utc).replace(
+            hour=10, minute=15, second=0, microsecond=0
+        )
         self.projects = [1, 2, 3]
         self.params = {
             "project_id": self.projects,
