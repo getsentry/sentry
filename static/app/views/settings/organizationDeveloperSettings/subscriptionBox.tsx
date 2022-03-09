@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
+import FeatureBadge from 'sentry/components/featureBadge';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -20,6 +21,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   checked: boolean;
   disabledFromPermissions: boolean;
+  isNew: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
   organization: Organization;
   resource: Resource;
@@ -37,7 +39,7 @@ export class SubscriptionBox extends React.Component<Props> {
   };
 
   render() {
-    const {resource, organization, webhookDisabled, checked} = this.props;
+    const {resource, organization, webhookDisabled, checked, isNew} = this.props;
     const features = new Set(organization.features);
 
     let disabled = this.props.disabledFromPermissions || webhookDisabled;
@@ -57,7 +59,10 @@ export class SubscriptionBox extends React.Component<Props> {
           <Tooltip disabled={!disabled} title={message}>
             <SubscriptionGridItem disabled={disabled}>
               <SubscriptionInfo>
-                <SubscriptionTitle>{t(`${resource}`)}</SubscriptionTitle>
+                <SubscriptionTitle>
+                  {t(`${resource}`)}
+                  {isNew && <FeatureBadge type="new" />}
+                </SubscriptionTitle>
                 <SubscriptionDescription>
                   {t(`${DESCRIPTIONS[resource]}`)}
                 </SubscriptionDescription>

@@ -66,9 +66,13 @@ export const VisuallyCompleteWithData = ({
         });
       });
     });
-    observer.observe({entryTypes: ['longtask']});
+    if (observer && observer.observe) {
+      observer.observe({entryTypes: ['longtask']});
+    }
     return () => {
-      observer.disconnect();
+      if (observer && observer.disconnect) {
+        observer.disconnect();
+      }
     };
   }, []);
 

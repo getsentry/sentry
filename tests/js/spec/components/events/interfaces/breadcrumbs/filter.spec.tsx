@@ -121,9 +121,7 @@ describe('SearchBarActionFilter', () => {
     expect(firstItem.find('Description').text()).toBe(options.Types[0].description);
 
     // Check Item
-    expect(
-      firstItem.find('[role="checkbox"]').find('CheckboxFancyContent').props().isChecked
-    ).toBeTruthy();
+    expect(firstItem.find('CheckboxFancy').props().isChecked).toBeTruthy();
     firstItem.simulate('click');
 
     expect(handleFilter).toHaveBeenCalledTimes(1);
@@ -153,9 +151,7 @@ describe('SearchBarActionFilter', () => {
     expect(firstItem.text()).toBe('Info');
 
     // Check Item
-    expect(
-      firstItem.find('[role="checkbox"]').find('CheckboxFancyContent').props().isChecked
-    ).toBeTruthy();
+    expect(firstItem.find('CheckboxFancy').props().isChecked).toBeTruthy();
 
     firstItem.simulate('click');
 
