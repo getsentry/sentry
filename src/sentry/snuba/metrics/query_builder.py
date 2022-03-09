@@ -39,6 +39,7 @@ from sentry.snuba.metrics.utils import (
     TS_COL_GROUP,
     TS_COL_QUERY,
     DerivedMetricParseException,
+    MetricDoesNotExistException,
     TimeRange,
 )
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
@@ -356,7 +357,10 @@ class SnubaQueryBuilder:
             # `get_entity` is called the first, to fetch the entities, and validate especially in
             # the case of SingularEntityDerivedMetric that it is actually composed of metrics in
             # the same entity
-            entity = metric_field_obj.get_entity(projects=self._projects)
+            try:
+                entity = metric_field_obj.get_entity(projects=self._projects)
+            except MetricDoesNotExistException:
+                continue
 
             if not entity:
                 # ToDo(ahmed): When we get to an instance of a MetricFieldBase where entity is
@@ -454,35 +458,39 @@ class SnubaResultConverter:
 
         for op, metric_name in self._query_definition.fields.values():
             key = f"{op}({metric_name})" if op else metric_name
-            try:
-                value = data[key]
-            except KeyError:
-                # This could occur when we have derived metrics that are generated from post
-                # query operations, and so don't have a direct mapping to the query results
-                continue
-
-            if op in _OPERATIONS_PERCENTILES:
-                value = value[0]
-            cleaned_value = finite_or_none(value)
-
-            if bucketed_time is None:
-                tag_data["totals"][key] = cleaned_value
 
             default_null_value = metric_object_factory(
                 op, metric_name
             ).generate_default_null_values()
 
-            if bucketed_time is not None or cleaned_value == default_null_value:
+            try:
+                value = data[key]
+            except KeyError:
+                # This could occur when we have derived metrics that are generated from post
+                # query operations, and so don't have a direct mapping to the query results
+                # or also from raw_metrics that don't exist in clickhouse yet
+                cleaned_value = default_null_value
+            else:
+                if op in _OPERATIONS_PERCENTILES:
+                    value = value[0]
+                cleaned_value = finite_or_none(value)
+
+            if bucketed_time is None:
+                # Only update the value, when either key does not exist or its a default
+                if key not in tag_data["totals"] or tag_data["totals"][key] == default_null_value:
+                    tag_data["totals"][key] = cleaned_value
+
+            if bucketed_time is not None or tag_data["totals"][key] == default_null_value:
                 empty_values = len(self._intervals) * [default_null_value]
                 series = tag_data["series"].setdefault(key, empty_values)
 
                 if bucketed_time is not None:
                     series_index = self._timestamp_index[bucketed_time]
-                    series[series_index] = cleaned_value
+                    if series[series_index] == default_null_value:
+                        series[series_index] = cleaned_value
 
     def translate_results(self):
         groups = {}
-
         for entity, subresults in self._results.items():
             totals = subresults["totals"]["data"]
             for data in totals:

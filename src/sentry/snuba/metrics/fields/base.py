@@ -40,6 +40,7 @@ from sentry.snuba.metrics.utils import (
     TS_COL_QUERY,
     UNIT_TO_TYPE,
     DerivedMetricParseException,
+    MetricDoesNotExistException,
     MetricEntity,
     MetricMetaWithTagKeys,
 )
@@ -110,7 +111,7 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
                 "unit": None,
             }
 
-    raise InvalidParams
+    raise InvalidParams(f"Raw metric {metric_name} does not exit")
 
 
 @dataclass
@@ -255,9 +256,12 @@ class SingularEntityDerivedMetric(DerivedMetric):
             return self._entity
         if not projects:
             self.__raise_entity_validation_exception("get_entity")
-        entities = self.__recursively_get_all_entities_in_derived_metric_dependency_tree(
-            derived_metric_name=self.metric_name, projects=projects
-        )
+        try:
+            entities = self.__recursively_get_all_entities_in_derived_metric_dependency_tree(
+                derived_metric_name=self.metric_name, projects=projects
+            )
+        except InvalidParams:
+            raise MetricDoesNotExistException()
         if len(entities) != 1 or entities == {None}:
             raise DerivedMetricParseException(
                 f"Derived Metric {self.metric_name} cannot be calculated from a single entity"

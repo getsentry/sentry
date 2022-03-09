@@ -1036,10 +1036,12 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count
+                "count_unique(sentry.transactions.user)": 0,
+                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
             }
             assert group["series"] == {
-                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count]
+                "count_unique(sentry.transactions.user)": [0],
+                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count],
             }
 
     @with_feature(FEATURE_FLAG)
@@ -1256,6 +1258,21 @@ class DerivedMetricsDataTest(SessionMetricsTestCase, APITestCase):
         assert group["by"]["release"] == "foobar@1.0"
         assert group["totals"]["session.crash_free_rate"] == 50
         assert group["series"]["session.crash_free_rate"] == [None, None, 50, 50, 50, 50]
+
+    def test_crash_free_rate_when_no_session_metrics_data_exist(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            field=["session.crash_free_rate", "sum(sentry.sessions.session)"],
+            statsPeriod="6m",
+            interval="6m",
+            orderBy="-session.crash_free_rate",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.crash_free_rate"] is None
+        assert group["totals"]["sum(sentry.sessions.session)"] == 0
+        assert group["series"]["sum(sentry.sessions.session)"] == [0]
+        assert group["series"]["session.crash_free_rate"] == [None]
 
     @with_feature(FEATURE_FLAG)
     def test_incorrect_crash_free_rate(self):

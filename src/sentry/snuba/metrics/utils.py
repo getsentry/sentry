@@ -141,6 +141,10 @@ class DerivedMetricParseException(Exception):
     ...
 
 
+class MetricDoesNotExistException(Exception):
+    ...
+
+
 class TimeRange(Protocol):
     start: datetime
     end: datetime
