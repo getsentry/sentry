@@ -116,7 +116,7 @@ describe('AlertRuleDetails', () => {
     });
   });
 
-  it('should show the time since last triggered', async () => {
+  it('should show the time since last triggered in sidebar', async () => {
     createWrapper();
 
     expect(await screen.findAllByText('Last Triggered')).toHaveLength(2);
