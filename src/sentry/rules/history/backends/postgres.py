@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import TYPE_CHECKING, Sequence, TypedDict
 
 import pytz
 from django.db.models import Count, Max
@@ -16,7 +16,13 @@ if TYPE_CHECKING:
     from sentry.utils.cursors import Cursor, CursorResult
 
 
-def convert_results(results: Sequence[Mapping[str, int]]) -> Sequence[RuleGroupHistory]:
+class _Result(TypedDict):
+    group: int
+    count: int
+    last_triggered: datetime
+
+
+def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
     group_lookup = {g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])}
     return [
         RuleGroupHistory(group_lookup[r["group"]], r["count"], r["last_triggered"]) for r in results
