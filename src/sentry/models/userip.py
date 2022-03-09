@@ -41,5 +41,5 @@ class UserIP(Model):
         if geo:
             values.update({"country_code": geo["country_code"], "region_code": geo["region"]})
 
-        UserIP.objects.create_or_update(user=user, ip_address=ip_address, values=values)
+        UserIP.objects.update_or_create(user=user, ip_address=ip_address, defaults=values)
         cache.set(cache_key, 1, 300)
