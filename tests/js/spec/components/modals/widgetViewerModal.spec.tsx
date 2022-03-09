@@ -165,6 +165,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['error.type', 'count()'],
+      aggregates: ['count()'],
+      columns: ['error.type'],
       id: '1',
       name: 'Query Name',
       orderby: '',

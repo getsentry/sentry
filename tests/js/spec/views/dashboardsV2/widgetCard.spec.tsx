@@ -30,12 +30,16 @@ describe('Dashboards > WidgetCard', function () {
       {
         conditions: 'event.type:error',
         fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
         name: 'errors',
         orderby: '',
       },
       {
         conditions: 'event.type:default',
         fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
         name: 'default',
         orderby: '',
       },
@@ -443,6 +447,8 @@ describe('Dashboards > WidgetCard', function () {
         {
           conditions: '',
           fields: ['transaction', 'count()'],
+          columns: ['transaction'],
+          aggregates: ['count()'],
           name: 'Table',
           orderby: '',
         },

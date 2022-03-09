@@ -48,6 +48,8 @@ describe('IssueWidgetQueries', function () {
         {
           name: '',
           fields: ['issue', 'assignee', 'title', 'culprit', 'status'],
+          columns: ['issue', 'assignee', 'title', 'culprit', 'status'],
+          aggregates: [],
           conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
           orderby: '',
         },

@@ -19,12 +19,16 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       {
         conditions: '',
         fields: [`sum(${SessionMetric.SESSION})`],
+        aggregates: [`sum(${SessionMetric.SESSION})`],
+        columns: [],
         name: 'sessions',
         orderby: '',
       },
       {
         conditions: 'environment:prod',
         fields: [`sum(${SessionMetric.SESSION})`],
+        aggregates: [`sum(${SessionMetric.SESSION})`],
+        columns: [],
         name: 'users',
         orderby: '',
       },
@@ -39,6 +43,8 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       {
         conditions: '',
         fields: [`count_unique(${SessionMetric.USER})`],
+        aggregates: [`count_unique(${SessionMetric.USER})`],
+        columns: [],
         name: 'sessions',
         orderby: '',
       },
