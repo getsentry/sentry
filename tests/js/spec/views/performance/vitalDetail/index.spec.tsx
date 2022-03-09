@@ -8,7 +8,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {WebVital} from 'sentry/utils/discover/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
-import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
 import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
@@ -35,21 +34,17 @@ const {
   },
 });
 
-function TestComponent(props: {isMetricsData?: boolean; router?: InjectedRouter} = {}) {
+function TestComponent(props: {router?: InjectedRouter} = {}) {
   return (
-    <MetricsSwitchContext.Provider
-      value={{isMetricsData: props.isMetricsData ?? false, setIsMetricsData: jest.fn()}}
-    >
-      <VitalDetail
-        api={api}
-        location={props.router?.location ?? router.location}
-        router={props.router ?? router}
-        params={{}}
-        route={{}}
-        routes={[]}
-        routeParams={{}}
-      />
-    </MetricsSwitchContext.Provider>
+    <VitalDetail
+      api={api}
+      location={props.router?.location ?? router.location}
+      router={props.router ?? router}
+      params={{}}
+      route={{}}
+      routes={[]}
+      routeParams={{}}
+    />
   );
 }
 
@@ -260,15 +255,6 @@ describe('Performance > VitalDetail', function () {
     ProjectsStore.reset();
   });
 
-  it('MetricsSwitch is visible if feature flag enabled', async () => {
-    mountWithTheme(<TestComponent isMetricsData />, {
-      context: routerContext,
-      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
-    });
-
-    expect(await screen.findByText('Metrics Data')).toBeInTheDocument();
-  });
-
   it('renders basic UI elements', async function () {
     mountWithTheme(<TestComponent />, {
       context: routerContext,
@@ -294,59 +280,10 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('something').closest('td')).toBeInTheDocument();
   });
 
-  it('renders basic UI elements - metrics based', async function () {
-    mountWithTheme(<TestComponent isMetricsData />, {
-      context: routerContext,
-      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
-    });
-
-    // It shows a search bar
-    expect(await screen.findByLabelText('Search events')).toBeInTheDocument();
-
-    // It shows the vital card
-    expect(
-      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 534ms'))
-    ).toBeInTheDocument();
-
-    expect(screen.getByText('Good 28%')).toBeInTheDocument();
-    expect(screen.getByText('Meh 40%')).toBeInTheDocument();
-    expect(screen.getByText('Poor 32%')).toBeInTheDocument();
-
-    // It shows a chart
-    expect(screen.getByText('Duration p75')).toBeInTheDocument();
-
-    // The table is still a TODO
-    expect(screen.getByText('TODO')).toBeInTheDocument();
-  });
-
   it('triggers a navigation on search', async function () {
     mountWithTheme(<TestComponent />, {
       context: routerContext,
       organization: org,
-    });
-
-    // Fill out the search box, and submit it.
-    userEvent.type(
-      await screen.findByLabelText('Search events'),
-      'user.email:uhoh*{enter}'
-    );
-
-    // Check the navigation.
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {
-        project: 1,
-        statsPeriod: '14d',
-        query: 'user.email:uhoh*',
-      },
-    });
-  });
-
-  it('triggers a navigation on search - metrics based', async function () {
-    mountWithTheme(<TestComponent isMetricsData />, {
-      context: routerContext,
-      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
     });
 
     // Fill out the search box, and submit it.
@@ -473,43 +410,6 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
   });
 
-  it('Check CLS - metrics based', async function () {
-    const newRouter = {
-      ...router,
-      location: {
-        ...router.location,
-        query: {
-          project: 1,
-          query: 'anothertag:value',
-          vitalName: 'measurements.cls',
-        },
-      },
-    };
-
-    const context = TestStubs.routerContext([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
-    mountWithTheme(<TestComponent router={newRouter} isMetricsData />, {
-      context,
-      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
-    });
-
-    expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
-
-    expect(
-      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 534.30'))
-    ).toBeInTheDocument();
-
-    // The table is still a TODO
-    expect(screen.getByText('TODO')).toBeInTheDocument();
-  });
-
   it('can switch vitals with dropdown menu', async function () {
     const newRouter = {
       ...router,
@@ -568,42 +468,6 @@ describe('Performance > VitalDetail', function () {
     ).toBeInTheDocument();
 
     expect(screen.getByText('4.50s').closest('td')).toBeInTheDocument();
-  });
-
-  it('Check LCP vital renders correctly - Metrics based', async function () {
-    const newRouter = {
-      ...router,
-      location: {
-        ...router.location,
-        query: {
-          project: 1,
-          query: 'tag:value',
-        },
-      },
-    };
-
-    const context = TestStubs.routerContext([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
-    mountWithTheme(<TestComponent router={newRouter} isMetricsData />, {
-      context,
-      organization: {...org, features: [...org.features, 'metrics-performance-ui']},
-    });
-
-    expect(await screen.findByText('Largest Contentful Paint')).toBeInTheDocument();
-
-    expect(
-      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 534ms'))
-    ).toBeInTheDocument();
-
-    // The table is still a TODO
-    expect(screen.getByText('TODO')).toBeInTheDocument();
   });
 
   it('correctly renders which browsers support LCP', async function () {
