@@ -2,7 +2,7 @@ import logging
 import threading
 import weakref
 from contextlib import contextmanager
-from typing import Any, Generator, Generic, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Generator, Generic, Mapping, MutableMapping, Optional, Sequence
 
 from django.conf import settings
 from django.db import router
@@ -12,7 +12,6 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 
 from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.models.query import create_or_update
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text
@@ -409,9 +408,6 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             self.__post_save(instance=instance)
 
         return final_results
-
-    def create_or_update(self, **kwargs: Any) -> Tuple[Any, bool]:
-        return create_or_update(self.model, **kwargs)
 
     def uncache_object(self, instance_id: int) -> None:
         pk_name = self.model._meta.pk.name
