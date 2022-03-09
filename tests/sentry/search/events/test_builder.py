@@ -1301,27 +1301,27 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert result["data"] == [
             {
-                "time": "2015-01-01T10:15:00+00:00",
+                "time": self.start.isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
             {
-                "time": "2015-01-01T10:30:00+00:00",
+                "time": (self.start + datetime.timedelta(minutes=15)).isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
             {
-                "time": "2015-01-01T10:45:00+00:00",
+                "time": (self.start + datetime.timedelta(minutes=30)).isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
             {
-                "time": "2015-01-01T11:00:00+00:00",
+                "time": (self.start + datetime.timedelta(minutes=45)).isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
             {
-                "time": "2015-01-01T11:15:00+00:00",
+                "time": (self.start + datetime.timedelta(minutes=60)).isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
