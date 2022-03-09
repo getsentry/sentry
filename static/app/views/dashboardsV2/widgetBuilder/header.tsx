@@ -10,13 +10,13 @@ import {t} from 'sentry/locale';
 
 import {DashboardDetails} from '../types';
 
-type Props = {
+interface Props {
   dashboardTitle: DashboardDetails['title'];
   goBackLocation: React.ComponentProps<typeof Link>['to'];
   onChangeTitle: (title: string) => void;
   orgSlug: string;
   title: string;
-};
+}
 
 export function Header({
   title,

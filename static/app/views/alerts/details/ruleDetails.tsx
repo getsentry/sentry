@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import AlertChart from './alertChart';
 import AlertRuleIssuesList from './issuesList';
@@ -45,6 +46,14 @@ const PAGE_QUERY_PARAMS = [
 
 class AlertRuleDetails extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
+
+  componentDidMount() {
+    const {organization, params} = this.props;
+    trackAdvancedAnalyticsEvent('issue_alert_rule_details.viewed', {
+      organization,
+      rule_id: parseInt(params.ruleId, 10),
+    });
+  }
 
   componentDidUpdate(prevProps: Props) {
     const {params: prevParams} = prevProps;
@@ -188,6 +197,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         forceEnvironment={rule.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
+        skipLoadLastUsed
       >
         <Layout.Header>
           <Layout.HeaderContent>
@@ -203,6 +213,12 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             <Button
               icon={<IconEdit />}
               to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
+                  organization,
+                  rule_id: parseInt(ruleId, 10),
+                })
+              }
             >
               {t('Edit Rule')}
             </Button>
@@ -231,6 +247,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             <AlertRuleIssuesList
               organization={organization}
               project={project}
+              rule={rule}
               period={period ?? ''}
               start={start ?? null}
               end={end ?? null}

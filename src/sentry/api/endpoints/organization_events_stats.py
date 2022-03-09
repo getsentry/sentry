@@ -13,7 +13,7 @@ from sentry.models import Organization
 from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.utils.snuba import SnubaTSResult
 
-METRICS_ENHANCE_REFERRERS: Set[str] = {
+METRICS_ENHANCED_REFERRERS: Set[str] = {
     "api.performance.homepage.widget-chart",
     "api.performance.generic-widget-chart.duration-histogram",
     "api.performance.generic-widget-chart.lcp-histogram",
@@ -128,7 +128,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             referrer = request.GET.get("referrer")
             referrer = (
                 referrer
-                if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCE_REFERRERS)
+                if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
                 else "api.organization-event-stats"
             )
             batch_features = self.get_features(organization, request)
@@ -140,7 +140,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 "organizations:performance-use-metrics", False
             )
 
-            metrics_enhanced = referrer in METRICS_ENHANCE_REFERRERS and performance_use_metrics
+            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
             sentry_sdk.set_tag("performance.use_metrics", metrics_enhanced)
 
         def get_event_stats(

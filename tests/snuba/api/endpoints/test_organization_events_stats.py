@@ -918,8 +918,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "organizations:performance-use-metrics": True,
             "organizations:discover-use-snql": True,
         }
-        # referrer is used so we know when we can enable MEP or not
-        self.referrer = "api.performance.homepage.widget-chart"
 
     def do_request(self, data, url=None, features=None):
         if features is None:
@@ -944,7 +942,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "referrer": self.referrer,
+                    "metricsEnhanced": "1",
                 },
             )
             assert response.status_code == 200, response.content
@@ -971,7 +969,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "24h",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "referrer": self.referrer,
+                    "metricsEnhanced": "1",
                 },
             )
             assert response.status_code == 200, response.content
@@ -998,7 +996,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "referrer": self.referrer,
+                    "metricsEnhanced": "1",
                 },
             )
             assert response.status_code == 200, response.content
@@ -1027,7 +1025,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "1m",
                     "yAxis": axis,
                     "project": self.project.id,
-                    "referrer": self.referrer,
+                    "metricsEnhanced": "1",
                 },
             )
             assert response.status_code == 200, response.content
@@ -1055,7 +1053,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": ["failure_rate()"],
                 "project": self.project.id,
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
             },
         )
         assert response.status_code == 200, response.content
@@ -1084,7 +1082,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": ["p75(measurements.lcp)", "p75(transaction.duration)"],
                 "project": self.project.id,
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
             },
         )
         assert response.status_code == 200, response.content
@@ -1108,7 +1106,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
                 "yAxis": ["epm()", "eps()", "tpm()", "p50(transaction.duration)"],
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
             },
         )
 
@@ -1123,7 +1121,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
                 "yAxis": "count_unique(user)",
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
             },
         )
         assert response.status_code == 200, response.content
@@ -1140,7 +1138,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "interval": "1h",
                     "query": query,
                     "yAxis": ["epm()"],
-                    "referrer": self.referrer,
+                    "metricsEnhanced": "1",
                 },
             )
             assert response.status_code == 200, response.content
@@ -1157,6 +1155,22 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert get_mep(
             "event.type:transaction OR transaction:foo_transaction"
         ), "boolean with mep filter"
+
+    def test_explicit_not_mep(self):
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                # Should be a mep able query
+                "query": "",
+                "yAxis": ["epm()"],
+                "metricsEnhanced": "0",
+            },
+        )
+        assert response.status_code == 200, response.content
+        return not response.data["isMetricsData"]
 
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
