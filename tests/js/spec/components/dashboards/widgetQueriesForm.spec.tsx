@@ -15,6 +15,8 @@ describe('WidgetQueriesForm', function () {
     {
       conditions: 'event.type:',
       fields: ['count()', 'release'],
+      columns: ['release'],
+      aggregates: ['count()'],
       name: '',
       orderby: '-count',
     },

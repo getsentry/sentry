@@ -12,6 +12,7 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {
   explodeField,
   generateFieldAsString,
@@ -168,7 +169,13 @@ class WidgetQueriesForm extends React.Component<Props> {
     } = this.props;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
-    const explodedFields = queries[0].fields.map(field => explodeField({field}));
+    const query = queries[0];
+    const explodedFields = defined(query.fields)
+      ? query.fields.map(field => explodeField({field}))
+      : [
+          ...query.columns.map(field => explodeField({field})),
+          ...query.aggregates.map(field => explodeField({field})),
+        ];
 
     return (
       <QueryWrapper>
@@ -241,9 +248,10 @@ class WidgetQueriesForm extends React.Component<Props> {
             queries.forEach((widgetQuery, queryIndex) => {
               const descending = widgetQuery.orderby.startsWith('-');
               const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
-              const prevAggregateAliasFieldStrings = widgetQuery.fields.map(field =>
-                getAggregateAlias(field)
-              );
+              const prevAggregateAliasFieldStrings = [
+                ...widgetQuery.columns,
+                ...widgetQuery.aggregates,
+              ].map(field => getAggregateAlias(field));
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
               const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
@@ -282,7 +290,8 @@ class WidgetQueriesForm extends React.Component<Props> {
               name="orderby"
               options={generateOrderOptions({
                 widgetType,
-                ...getColumnsAndAggregates(queries[0].fields),
+                columns: queries[0].columns,
+                aggregates: queries[0].aggregates,
               })}
               onChange={(option: SelectValue<string>) =>
                 this.handleFieldChange(0, 'orderby')(option.value)

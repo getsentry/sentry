@@ -69,6 +69,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()', 'failure_count()'],
+      aggregates: ['count()', 'failure_count()'],
+      columns: [],
       id: '1',
       name: 'Query Name',
       orderby: '',

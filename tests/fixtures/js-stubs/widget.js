@@ -3,6 +3,8 @@ const DEFAULT_QUERIES = {
     {
       name: 'Known Users',
       fields: [],
+      columns: [],
+      aggregates: ['count()'],
       conditions: [['user.email', 'IS NOT NULL', null]],
       aggregations: [['uniq', 'user.email', 'Known Users']],
       limit: 1000,
@@ -14,6 +16,8 @@ const DEFAULT_QUERIES = {
     {
       name: 'Anonymous Users',
       fields: [],
+      columns: [],
+      aggregates: ['count()'],
       conditions: [['user.email', 'IS NULL', null]],
       aggregations: [['count()', null, 'Anonymous Users']],
       limit: 1000,

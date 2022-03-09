@@ -193,7 +193,7 @@ export function YAxisSelector({
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
             otherColumns={aggregates}
           />
-          {fields.length > 1 &&
+          {aggregates.length > 1 &&
             (canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
               <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
             )}

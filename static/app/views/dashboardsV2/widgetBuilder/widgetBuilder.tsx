@@ -884,7 +884,7 @@ function WidgetBuilder({
                           <YAxisSelector
                             widgetType={widgetType}
                             displayType={state.displayType}
-                            fields={explodedAggregates}
+                            aggregates={explodedAggregates}
                             fieldOptions={getAmendedFieldOptions(measurements)}
                             onChange={handleYAxisChange}
                             errors={state.errors?.queries}

@@ -14,6 +14,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -88,7 +89,10 @@ function WidgetViewerModal(props: Props) {
       ...cloneDeep({...widget, queries: sortedQueries}),
       displayType: DisplayType.TABLE,
     };
-    const fields = tableWidget.queries[0].fields;
+    const query = tableWidget.queries[0];
+    const fields = defined(query.fields)
+      ? query.fields
+      : [...query.columns, ...query.aggregates];
 
     // World Map view should always have geo.country in the table chart
     if (

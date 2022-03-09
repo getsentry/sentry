@@ -13,6 +13,7 @@ import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
 import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -216,7 +217,11 @@ export function getWidgetDiscoverUrl(
 
   // Equation fields need to have their terms explicitly selected as columns in the discover table
   const fields = discoverLocation.query.field;
-  const equationFields = getFieldsFromEquations(widget.queries[0].fields);
+  const query = widget.queries[0];
+  const queryFields = defined(query.fields)
+    ? query.fields
+    : [...query.columns, ...query.aggregates];
+  const equationFields = getFieldsFromEquations(queryFields);
   // Updates fields by adding any individual terms from equation fields as a column
   equationFields.forEach(term => {
     if (Array.isArray(fields) && !fields.includes(term)) {

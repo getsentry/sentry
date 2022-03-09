@@ -33,6 +33,7 @@ import {
   SelectValue,
   TagCollection,
 } from 'sentry/types';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
@@ -419,12 +420,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
-              query.fields = [...defaultWidgetQuery.fields];
-              const {columns, aggregates} = getColumnsAndAggregates([
-                ...defaultWidgetQuery.fields,
-              ]);
-              query.aggregates = aggregates;
-              query.columns = columns;
+              query.aggregates = [...defaultWidgetQuery.aggregates];
+              query.columns = [...defaultWidgetQuery.columns];
+              query.fields = [
+                ...(defined(defaultWidgetQuery.fields)
+                  ? [...defaultWidgetQuery.fields]
+                  : [...defaultWidgetQuery.columns, ...defaultWidgetQuery.aggregates]),
+              ];
               query.orderby = defaultWidgetQuery.orderby;
             });
           }

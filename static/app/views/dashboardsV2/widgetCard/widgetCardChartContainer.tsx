@@ -12,6 +12,7 @@ import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartDataZoomHandler} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 
@@ -73,11 +74,16 @@ function WidgetCardChartContainer({
       return <LoadingPlaceholder height="200px" />;
     }
 
+    const query = widget.queries[0];
+    const queryFields = defined(query.fields)
+      ? query.fields
+      : [...query.columns, ...query.aggregates];
+
     return (
       <StyledSimpleTableChart
         location={location}
         title=""
-        fields={widget.queries[0].fields}
+        fields={queryFields}
         loading={loading}
         metadata={ISSUE_FIELDS}
         data={transformedResults}
