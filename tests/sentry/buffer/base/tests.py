@@ -63,8 +63,8 @@ class BufferTest(TestCase):
         release_project_ = ReleaseProject.objects.get(id=release_project.id)
         assert release_project_.new_groups == 1
 
-    @mock.patch("sentry.models.Group.objects.create_or_update")
-    def test_signal_only(self, create_or_update):
+    @mock.patch("sentry.models.Group.objects.update_or_create")
+    def test_signal_only(self, update_or_create):
         group = Group.objects.create(project=Project(id=1))
         columns = {"times_seen": 1}
         filters = {"id": group.id, "project_id": 1}

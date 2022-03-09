@@ -9,7 +9,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
@@ -29,6 +29,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.db.models.query import update_or_create
 from sentry.eventstore.models import Event
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.types.activity import ActivityType
@@ -204,6 +205,9 @@ def get_oldest_or_latest_event_for_environments(
 
 class GroupManager(BaseManager):
     use_for_related_fields = True
+
+    def update_or_create(self, **kwargs: Any) -> tuple[Model, bool]:
+        return update_or_create(self.model, **kwargs)
 
     def by_qualified_short_id(self, organization_id: int, short_id: str):
         return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
