@@ -2513,3 +2513,13 @@ SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRul
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
 
 SUPERUSER_ORG_ID = 1
+
+SUPERUSER_ACCESS_CATEGORIES = [
+    "development",
+    "debugging",
+    "_admin_actions",
+    "organization_setting_change",
+    "account_review",
+    "onboarding_setup",
+    "other",
+]

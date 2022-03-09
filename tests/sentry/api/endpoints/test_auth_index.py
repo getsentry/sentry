@@ -161,7 +161,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 data={
-                    "superuserAccessCategory": "for testing",
+                    "superuserAccessCategory": "debugging",
                     "superuserReason": "for testing",
                 },
             )

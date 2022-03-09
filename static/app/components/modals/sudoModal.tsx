@@ -118,7 +118,6 @@ class SudoModal extends React.Component<Props, State> {
     const {error, isFirstStep, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
-    // const TestSUCategory = SuperuserAccessCategoryHooks['superuser-accountability:access-category'];
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>

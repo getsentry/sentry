@@ -74,7 +74,7 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user)
         request._body = json.dumps(
             {
-                "superuserAccessCategory": "Edit organization settings",
+                "superuserAccessCategory": "debugging",
                 "superuserReason": "Edit organization settings",
             }
         )
@@ -101,7 +101,7 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user)
         request._body = json.dumps(
             {
-                "superuserAccessCategory": "Edit organization settings",
+                "superuserAccessCategory": "debugging",
                 "superuserReason": "Edit organization settings",
             }
         )
@@ -169,7 +169,7 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user, method="PUT")
         request._body = json.dumps(
             {
-                "superuserAccessCategory": "Edit organization settings",
+                "superuserAccessCategory": "debugging",
                 "superuserReason": "Edit organization settings",
             }
         )
@@ -210,7 +210,7 @@ class SuperuserTestCase(TestCase):
         request = self.make_request()
         request._body = json.dumps(
             {
-                "superuserAccessCategory": "Edit organization settings",
+                "superuserAccessCategory": "debugging",
                 "superuserReason": "Edit organization settings",
             }
         )
