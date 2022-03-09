@@ -164,7 +164,6 @@ type State = {
   dashboards: DashboardListItem[];
   dataSet: DataSet;
   displayType: Widget['displayType'];
-  groupBy: any;
   interval: Widget['interval'];
   loading: boolean;
   queries: Widget['queries'];
@@ -225,7 +224,6 @@ function WidgetBuilder({
         dashboards: [],
         userHasModified: false,
         dataSet: DataSet.EVENTS,
-        groupBy: null,
       };
     }
 
@@ -241,7 +239,6 @@ function WidgetBuilder({
       dataSet: widgetToBeUpdated.widgetType
         ? WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType]
         : DataSet.EVENTS,
-      groupBy: null,
     };
   });
 
