@@ -168,6 +168,9 @@ class AuthIndexEndpoint(Endpoint):
             # only give superuser access when going through superuser modal
             if request.user.is_superuser and request.data.get("isSuperuserModal"):
                 request.superuser.set_logged_in(request.user)
+                request.user = request._request.user
+
+                return self.get(request)
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
@@ -176,6 +179,8 @@ class AuthIndexEndpoint(Endpoint):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        self._reauthenticate_with_sso(request)
 
         request.user = request._request.user
 
