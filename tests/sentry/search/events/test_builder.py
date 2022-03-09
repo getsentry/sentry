@@ -643,22 +643,33 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         ]
 
     def setup_orderby_data(self):
-        self.store_metric(100, tags={"transaction": "foo_transaction"})
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         self.store_metric(
             1,
             metric="user",
             tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(50, tags={"transaction": "bar_transaction"})
+        self.store_metric(
+            50,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         self.store_metric(
             1,
             metric="user",
             tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
         )
         self.store_metric(
             2,
             metric="user",
             tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
         )
 
 
@@ -856,7 +867,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert get_granularity(start, end) == 60, "less than a minute"
 
     def test_run_query(self):
-        self.store_metric(100, tags={"transaction": "foo_transaction"})
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
@@ -880,11 +895,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_run_query_multiple_tables(self):
-        self.store_metric(100, tags={"transaction": "foo_transaction"})
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         self.store_metric(
             1,
             metric="user",
             tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
         )
         query = MetricsQueryBuilder(
             self.params,
@@ -1011,8 +1031,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_failure_rate(self):
         for _ in range(3):
-            self.store_metric(100, tags={"transaction.status": "internal_error"})
-            self.store_metric(100, tags={"transaction.status": "ok"})
+            self.store_metric(
+                100,
+                tags={"transaction.status": "internal_error"},
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                100,
+                tags={"transaction.status": "ok"},
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
         query = MetricsQueryBuilder(
             self.params,
             "",
@@ -1030,7 +1058,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions
         first which will have it, and then just not find a unique count in the second"""
         self.setup_orderby_data()
-        self.store_metric(200, tags={"transaction": "baz_transaction"})
+        self.store_metric(
+            200,
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
