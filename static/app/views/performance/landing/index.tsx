@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -12,6 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageHeading from 'sentry/components/pageHeading';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -19,6 +21,7 @@ import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -35,6 +38,7 @@ import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
+import SamplingModal, {modalCss} from './widgets/SamplingModal';
 import {
   getDefaultDisplayForPlatform,
   getLandingDisplayFromParam,
@@ -107,6 +111,26 @@ export function PerformanceLanding(props: Props) {
 
   const ViewComponent = fieldToViewMap[landingDisplay.field];
 
+  const {isMEPEnabled, setMEPEnabled} = useMEPSettingContext();
+
+  const fnOpenModal = () => {
+    openModal(
+      modalProps => (
+        <SamplingModal
+          {...modalProps}
+          organization={organization}
+          eventView={eventView}
+          projects={projects}
+          isMEPEnabled={isMEPEnabled}
+          onApply={value => {
+            setMEPEnabled(value);
+          }}
+        />
+      ),
+      {modalCss, backdrop: 'static'}
+    );
+  };
+
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
       <PageErrorProvider>
@@ -125,6 +149,12 @@ export function PerformanceLanding(props: Props) {
                 >
                   {t('View Trends')}
                 </Button>
+                <Button
+                  onClick={() => fnOpenModal()}
+                  icon={<IconSettings />}
+                  aria-label={t('Settings')}
+                  data-test-id="set-transaction-threshold"
+                />
               </ButtonBar>
             )}
           </Layout.HeaderActions>

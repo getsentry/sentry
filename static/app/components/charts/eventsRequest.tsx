@@ -46,9 +46,15 @@ type LoadingStatus = {
   errorMessage?: string;
 };
 
+// Can hold additional data from the root an events stat object (eg. start, end, order, isMetricsData).
+interface AdditionalSeriesInfo {
+  isMetricsData?: boolean;
+}
+
 export type RenderProps = LoadingStatus &
   TimeSeriesData & {
     results?: Series[]; // Chart with multiple series.
+    seriesAdditionalInfo?: Record<string, AdditionalSeriesInfo>;
   };
 
 type DefaultProps = {
@@ -428,7 +434,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   }
 
   processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
-    const {data, totals} = response;
+    const {data, isMetricsData, totals} = response;
     const {
       includeTransformedData,
       includeTimeAggregation,
@@ -478,6 +484,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       allData: data,
       originalData: current,
       totals,
+      isMetricsData,
       originalPreviousData: previous,
       previousData,
       timeAggregatedData,
@@ -501,23 +508,35 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
       let timeframe: {end: number; start: number} | undefined = undefined;
+      const seriesAdditionalInfo: Record<string, AdditionalSeriesInfo> = {};
       const sortedTimeseriesData = Object.keys(timeseriesData)
-        .map((seriesName: string, index: number): [number, Series, Series | null] => {
-          const seriesData: EventsStats = timeseriesData[seriesName];
-          const processedData = this.processData(
-            seriesData,
-            index,
-            stripEquationPrefix(seriesName)
-          );
-          if (!timeframe) {
-            timeframe = processedData.timeframe;
+        .map(
+          (
+            seriesName: string,
+            index: number
+          ): [number, Series, Series | null, AdditionalSeriesInfo] => {
+            const seriesData: EventsStats = timeseriesData[seriesName];
+            const processedData = this.processData(
+              seriesData,
+              index,
+              stripEquationPrefix(seriesName)
+            );
+            if (!timeframe) {
+              timeframe = processedData.timeframe;
+            }
+            if (processedData.isMetricsData) {
+              seriesAdditionalInfo[seriesName] = {
+                isMetricsData: processedData.isMetricsData,
+              };
+            }
+            return [
+              seriesData.order || 0,
+              processedData.data[0],
+              processedData.previousData,
+              {isMetricsData: processedData.isMetricsData},
+            ];
           }
-          return [
-            seriesData.order || 0,
-            processedData.data[0],
-            processedData.previousData,
-          ];
-        })
+        )
         .sort((a, b) => a[0] - b[0]);
       const results: Series[] = sortedTimeseriesData.map(item => {
         return item[1];
@@ -538,6 +557,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         results,
         timeframe,
         previousTimeseriesData,
+        seriesAdditionalInfo,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
@@ -553,13 +573,20 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         previousData: previousTimeseriesData,
         timeAggregatedData,
         timeframe,
+        isMetricsData,
       } = this.processData(timeseriesData);
+
+      const seriesAdditionalInfo = {
+        [this.props.currentSeriesNames?.[0] ?? 'current']: {isMetricsData},
+      };
 
       return children({
         loading,
         reloading,
         errored,
         errorMessage,
+        // meta data,
+        seriesAdditionalInfo,
         // timeseries data
         timeseriesData: transformedTimeseriesData,
         comparisonTimeseriesData: transformedComparisonTimeseriesData,
