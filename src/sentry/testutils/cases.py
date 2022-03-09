@@ -1338,7 +1338,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         }
         self.geo_errors_query = {
             "name": "Errors by Geo",
-            "fields": ["count()"],
+            "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
             "columns": ["geo.country_code"],
             "conditions": "has:geo.country_code",
