@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, transaction
@@ -52,6 +56,13 @@ class OnboardingTaskStatus:
 
 
 class OrganizationOnboardingTaskManager(BaseManager):
+    def update_or_create(self, **kwargs: Any) -> tuple[Model | None, bool]:
+        defaults = kwargs.pop("defaults", {})
+        try:
+            return super().update_or_create(defaults=defaults, **kwargs)
+        except IntegrityError:
+            return None, False
+
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
         if cache.get(cache_key) is None:
