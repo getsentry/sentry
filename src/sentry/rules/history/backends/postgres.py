@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Mapping, Sequence
 
 import pytz
-from django.db.models import Count
+from django.db.models import Count, Max
 from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
@@ -18,7 +18,9 @@ if TYPE_CHECKING:
 
 def convert_results(results: Sequence[Mapping[str, int]]) -> Sequence[RuleGroupHistory]:
     group_lookup = {g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])}
-    return [RuleGroupHistory(group_lookup[r["group"]], r["count"]) for r in results]
+    return [
+        RuleGroupHistory(group_lookup[r["group"]], r["count"], r["last_triggered"]) for r in results
+    ]
 
 
 class PostgresRuleHistoryBackend(RuleHistoryBackend):
@@ -41,10 +43,10 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
             )
             .select_related("group")
             .values("group")
-            .annotate(count=Count("id"))
+            .annotate(count=Count("id"), last_triggered=Max("date_added"))
         )
         return OffsetPaginator(
-            qs, order_by=("-count", "group"), on_results=convert_results
+            qs, order_by=("-count", "-last_triggered"), on_results=convert_results
         ).get_result(per_page, cursor)
 
     def fetch_rule_hourly_stats(
