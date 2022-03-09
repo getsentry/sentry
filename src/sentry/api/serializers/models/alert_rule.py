@@ -3,6 +3,7 @@ from collections import defaultdict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.incidents.endpoints.utils import translate_threshold
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import (
@@ -194,7 +195,11 @@ class CombinedRuleSerializer(Serializer):
                 incident_map[incident.id] = serialize(incident, user=user)
 
         serialized_alert_rules = serialize(alert_rules, user=user)
-        rules = serialize([x for x in item_list if isinstance(x, Rule)], user=user)
+        rules = serialize(
+            [x for x in item_list if isinstance(x, Rule)],
+            user=user,
+            serializer=RuleSerializer(expand=self.expand),
+        )
 
         for item in item_list:
             if isinstance(item, AlertRule):
