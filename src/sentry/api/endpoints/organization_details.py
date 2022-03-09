@@ -6,6 +6,8 @@ from django.db import models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from bitfield.types import BitHandler
 from sentry import roles
@@ -445,10 +447,6 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         return super().save(*args, **kwargs)
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """
@@ -586,12 +584,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
 
 def flag_has_changed(org, flag_name):
-    "Returns ``True`` if ``flag`` has changed since initialization."
+    """Returns ``True`` if ``flag`` has changed since initialization."""
     return getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name)
 
 
 def update_tracked_data(model):
-    "Updates a local copy of attributes values"
+    """Updates a local copy of attributes values"""
     if model.id:
         data = {}
         for f in model._meta.fields:
@@ -621,7 +619,7 @@ def get_field_value(model, field):
 
 
 def has_changed(model, field_name):
-    "Returns ``True`` if ``field`` has changed since initialization."
+    """Returns ``True`` if ``field`` has changed since initialization."""
     if model.__data is UNSAVED:
         return False
     field = model._meta.get_field(field_name)
@@ -632,7 +630,7 @@ def has_changed(model, field_name):
 
 
 def old_value(model, field_name):
-    "Returns the previous value of ``field``"
+    """Returns the previous value of ``field``"""
     if model.__data is UNSAVED:
         return None
     value = model.__data.get(field_name)

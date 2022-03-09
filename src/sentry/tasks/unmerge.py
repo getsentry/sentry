@@ -275,7 +275,7 @@ def truncate_denormalizations(project, group):
 
 
 def collect_group_environment_data(events):
-    """\
+    """
     Find the first release for a each group and environment pair from a
     date-descending sorted list of events.
     """

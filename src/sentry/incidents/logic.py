@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -32,7 +34,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Integration, PagerDutyService, Project, SentryApp
+from sentry.models import Integration, PagerDutyService, Project, SentryApp, User
 from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
@@ -181,10 +183,8 @@ def update_incident_status(
         return incident
 
 
-def set_incident_seen(incident, user=None):
-    """
-    Updates the incident to be seen
-    """
+def set_incident_seen(incident: Incident, user: User | None = None) -> IncidentSeen | None:
+    """Updates the incident to be seen."""
 
     is_org_member = incident.organization.has_access(user)
 
@@ -203,7 +203,7 @@ def set_incident_seen(incident, user=None):
             )
             return incident_seen
 
-    return False
+    return None
 
 
 @transaction.atomic

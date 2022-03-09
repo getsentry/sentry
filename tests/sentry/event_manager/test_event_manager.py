@@ -157,7 +157,8 @@ class EventManagerTest(TestCase):
         with self.tasks():
             event2 = manager.save(project.id)
 
-        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
+        # Make sure that events did get into same group because of fallback
+        # grouping, not because of hashes which come from primary grouping only.
         assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
         assert event.group_id == event2.group_id
 
@@ -226,7 +227,8 @@ class EventManagerTest(TestCase):
         # Switching to newstyle grouping changes hashes as 123 will be removed
         event2 = save_event(2)
 
-        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
+        # Make sure that events did get into same group because of fallback
+        # grouping, not because of hashes which come from primary grouping only.
         assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
         assert event.group_id == event2.group_id
 
@@ -683,7 +685,7 @@ class EventManagerTest(TestCase):
             linked_type=GroupLink.LinkedType.issue,
             linked_id=external_issue.id,
             relationship=GroupLink.Relationship.references,
-        )[0]
+        )
 
         group.update(status=GroupStatus.RESOLVED)
 

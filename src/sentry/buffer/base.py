@@ -1,6 +1,9 @@
-import logging
+from __future__ import annotations
 
-from django.db.models import F
+import logging
+from typing import Any, Mapping
+
+from django.db.models import F, Model
 
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
@@ -57,7 +60,14 @@ class Buffer(Service, metaclass=BufferMount):
     def process_pending(self, partition=None):
         return []
 
-    def process(self, model, columns, filters, extra=None, signal_only=None):
+    def process(
+        self,
+        model: Model,
+        columns: Mapping[str, Any],
+        filters: Mapping[str, Any],
+        extra: Mapping[str, Any] | None = None,
+        signal_only: bool | None = None,
+    ) -> None:
         from sentry.event_manager import ScoreClause
         from sentry.models import Group
 
