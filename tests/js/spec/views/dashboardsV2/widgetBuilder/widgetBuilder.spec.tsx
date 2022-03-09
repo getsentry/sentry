@@ -1036,7 +1036,7 @@ describe('WidgetBuilder', function () {
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
-      // "sortAscOrDesc" selector
+      // "sortDirection" selector
       expect(screen.getByText('Low to high')).toBeInTheDocument();
 
       // "sortBy" selector
@@ -1059,7 +1059,7 @@ describe('WidgetBuilder', function () {
       // Now count_unique(id) is selected in the "sortBy" selector
       expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
 
-      // Click on the "sortAscOrDesc" selector
+      // Click on the "sortDirection" selector
       userEvent.click(screen.getByText('Low to high'));
 
       // Select the other option
@@ -1102,7 +1102,7 @@ describe('WidgetBuilder', function () {
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
-      // "sortAscOrDesc" selector
+      // "sortDirection" selector
       expect(screen.getByText('Low to high')).toBeInTheDocument();
 
       // "sortBy" selector
