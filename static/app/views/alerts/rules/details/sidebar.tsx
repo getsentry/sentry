@@ -65,11 +65,12 @@ export default class Sidebar extends PureComponent<Props> {
 
     const defaultAction = t('Change alert status to %s', status);
 
-    const thresholdTypeText = (
+    const aboveThreshold =
       label === AlertRuleTriggerType.RESOLVE
         ? rule.thresholdType === AlertRuleThresholdType.BELOW
-        : rule.thresholdType === AlertRuleThresholdType.ABOVE
-    )
+        : rule.thresholdType === AlertRuleThresholdType.ABOVE;
+
+    const thresholdTypeText = aboveThreshold
       ? rule.comparisonDelta
         ? t('higher')
         : t('above')
