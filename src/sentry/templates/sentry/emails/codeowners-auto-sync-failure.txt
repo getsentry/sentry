@@ -1,0 +1,6 @@
+Action Required
+---------------
+
+We failed to fetch the latest CODEOWNERS file from your source code provider. Your Code Owners are out of sync with your CODEOWNERS for {{project_name}}. You can still manually sync the Code Owners in the project.
+
+{{ url }}

@@ -4,7 +4,6 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 
 from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, FlexibleForeignKey
-from sentry.tasks.code_owners import update_code_owners_schema
 from sentry.types.integrations import ExternalProviders
 
 logger = logging.getLogger(__name__)
@@ -48,17 +47,21 @@ class ExternalActor(DefaultFieldsModel):
         return super().delete(**kwargs)
 
 
-post_save.connect(
-    lambda instance, **kwargs: update_code_owners_schema.apply_async(
+def process_resource_change(instance, **kwargs):
+    from sentry.tasks.codeowners import update_code_owners_schema
+
+    return update_code_owners_schema.apply_async(
         kwargs={"organization": instance.organization, "integration": instance.integration}
-    ),
+    )
+
+
+post_save.connect(
+    lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=ExternalActor,
     weak=False,
 )
 post_delete.connect(
-    lambda instance, **kwargs: update_code_owners_schema.apply_async(
-        kwargs={"organization": instance.organization, "integration": instance.integration}
-    ),
+    lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=ExternalActor,
     weak=False,
 )

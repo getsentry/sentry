@@ -16,7 +16,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.tasks.code_owners import update_code_owners_schema
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
@@ -97,14 +96,14 @@ class TeamManager(BaseManager):
         return results
 
     def post_save(self, instance, **kwargs):
-        update_code_owners_schema.apply_async(
-            kwargs={
-                "organization": instance.organization,
-                "projects": instance.get_projects(),
-            }
-        )
+        self.process_resource_change(instance, **kwargs)
 
     def post_delete(self, instance, **kwargs):
+        self.process_resource_change(instance, **kwargs)
+
+    def process_resource_change(self, instance, **kwargs):
+        from sentry.tasks.codeowners import update_code_owners_schema
+
         update_code_owners_schema.apply_async(
             kwargs={
                 "organization": instance.organization,
