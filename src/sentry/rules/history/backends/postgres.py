@@ -74,8 +74,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         existing_data = {row["bucket"]: TimeSeriesValue(row["bucket"], row["count"]) for row in qs}
 
         results = []
-        current = start.replace(minute=0, second=0, microsecond=0)
-        while current < end.replace(minute=0, second=0, microsecond=0):
+        current = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        while current <= end.replace(minute=0, second=0, microsecond=0):
             results.append(existing_data.get(current, TimeSeriesValue(current, 0)))
             current += timedelta(hours=1)
         return results
