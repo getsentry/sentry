@@ -32,22 +32,23 @@ class Sidebar extends PureComponent<Props> {
           </ConditionsBadge>
         ))
       : '';
-    const actions = rule.actions.length
-      ? rule.actions.map(action => {
-          let name = action.name;
-          if (
-            action.id ===
-            'sentry.integrations.slack.notify_action.SlackNotifyServiceAction'
-          ) {
-            // Remove (optionally, an ID: XXX) from slack action
-            name = name.replace(/\(optionally.*\)/, '');
-            // Remove tags if they aren't used
-            name = name.replace(' and show tags [] in notification', '');
-          }
+    const actions = rule.actions.length ? (
+      rule.actions.map(action => {
+        let name = action.name;
+        if (
+          action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction'
+        ) {
+          // Remove (optionally, an ID: XXX) from slack action
+          name = name.replace(/\(optionally.*\)/, '');
+          // Remove tags if they aren't used
+          name = name.replace(' and show tags [] in notification', '');
+        }
 
-          return <ConditionsBadge key={action.id}>{name}</ConditionsBadge>;
-        })
-      : '';
+        return <ConditionsBadge key={action.id}>{name}</ConditionsBadge>;
+      })
+    ) : (
+      <ConditionsBadge>{t('Do nothing')}</ConditionsBadge>
+    );
 
     return (
       <PanelBody>
@@ -107,8 +108,6 @@ class Sidebar extends PureComponent<Props> {
 
   render() {
     const {rule} = this.props;
-    // TODO: update this with rule's dateTriggered and dateModified when api updates
-    const dateTriggered = new Date(0);
 
     const ownerId = rule.owner?.split(':')[1];
     const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
@@ -119,8 +118,8 @@ class Sidebar extends PureComponent<Props> {
           <HeaderItem>
             <Heading noMargin>{t('Last Triggered')}</Heading>
             <Status>
-              {dateTriggered ? (
-                <TimeSince date={dateTriggered} />
+              {rule.lastTriggered ? (
+                <TimeSince date={rule.lastTriggered} />
               ) : (
                 t('No alerts triggered')
               )}

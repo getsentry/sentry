@@ -26,10 +26,8 @@ class QueryBuilderTest(TestCase):
     def setUp(self):
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
             hour=10, minute=15, second=0, microsecond=0
-        ) - datetime.timedelta(days=1)
-        self.end = datetime.datetime.now(tz=timezone.utc).replace(
-            hour=10, minute=15, second=0, microsecond=0
-        )
+        ) - datetime.timedelta(days=2)
+        self.end = self.start + datetime.timedelta(days=1)
         self.projects = [1, 2, 3]
         self.params = {
             "project_id": self.projects,
