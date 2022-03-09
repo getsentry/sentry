@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import moment from 'moment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -48,7 +49,12 @@ describe('AlertRuleDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/stats/`,
-      body: [],
+      body: [
+        {date: moment().subtract(3, 'day').unix(), count: 4},
+        {date: moment().subtract(2, 'day').unix(), count: 0},
+        {date: moment().subtract(1, 'day').unix(), count: 5},
+        {date: moment().unix(), count: 0},
+      ],
     });
 
     MockApiClient.addMockResponse({
@@ -110,5 +116,12 @@ describe('AlertRuleDetails', () => {
         pageUtc: undefined,
       },
     });
+  });
+
+  it('should show most recent stat date with positive alert count', async () => {
+    createWrapper();
+
+    expect(await screen.findByText('Last Triggered')).toBeInTheDocument();
+    expect(screen.getByText('a day ago')).toBeInTheDocument();
   });
 });

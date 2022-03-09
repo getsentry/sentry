@@ -108,8 +108,6 @@ class Sidebar extends PureComponent<Props> {
 
   render() {
     const {rule} = this.props;
-    // TODO: update this with rule's dateTriggered and dateModified when api updates
-    const dateTriggered = new Date(0);
 
     const ownerId = rule.owner?.split(':')[1];
     const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
@@ -120,8 +118,8 @@ class Sidebar extends PureComponent<Props> {
           <HeaderItem>
             <Heading noMargin>{t('Last Triggered')}</Heading>
             <Status>
-              {dateTriggered ? (
-                <TimeSince date={dateTriggered} />
+              {rule.lastTriggered ? (
+                <TimeSince date={rule.lastTriggered} />
               ) : (
                 t('No alerts triggered')
               )}
