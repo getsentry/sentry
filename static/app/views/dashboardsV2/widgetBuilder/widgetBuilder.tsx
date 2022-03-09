@@ -198,10 +198,7 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
-  const widgetBuilderNewDesign = organization.features.includes(
-    'new-widget-builder-experience-design'
-  );
-
+  const widgetBuilderNewDesign = true;
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
   const pageFilters: PageFilters = statsPeriod
@@ -1031,6 +1028,7 @@ function WidgetBuilder({
                                   )
                             }
                             values={{
+                              sortLimit: 5, // TODO: make this dynamic as soon as we have the groupby field
                               sortDirection:
                                 orderBy[0] === '-'
                                   ? SortDirection.HIGH_TO_LOW

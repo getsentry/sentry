@@ -11,6 +11,8 @@ import {
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+export const SORT_LIMIT = 10;
+
 export enum DisplayType {
   AREA = 'area',
   BAR = 'bar',
