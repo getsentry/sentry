@@ -14,6 +14,12 @@ from .utils import resolve_combined_expression
 __all__ = ("update", "create_or_update")
 
 
+def _handle_value(instance: Model, value: Any) -> Any:
+    if isinstance(value, CombinedExpression):
+        return resolve_combined_expression(instance, value)
+    return value
+
+
 def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
     """
     Updates specified attributes on the current instance.
@@ -30,9 +36,7 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
         int, instance.__class__._base_manager.using(using).filter(pk=instance.pk).update(**kwargs)
     )
     for k, v in kwargs.items():
-        if isinstance(v, CombinedExpression):
-            v = resolve_combined_expression(instance, v)
-        setattr(instance, k, v)
+        setattr(instance, k, _handle_value(instance, v))
     if affected == 1:
         post_save.send(sender=instance.__class__, instance=instance, created=False)
         return affected
