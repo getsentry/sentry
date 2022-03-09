@@ -5,49 +5,42 @@ type IssueStream = {
 };
 
 export type IssueEventParameters = {
-  'event_cause.viewed': {
-    project_id?: string;
-    platform?: string;
-  };
+  'event_cause.dismissed': {};
   'event_cause.docs_clicked': {};
   'event_cause.snoozed': {};
-  'event_cause.dismissed': {};
-  'issue_error_banner.viewed': {
-    error_type: string[];
-    error_message: string[];
-    group?: string;
+  'event_cause.viewed': {
     platform?: string;
-  };
-  'issues_tab.viewed': {
-    tab: string;
-    num_issues: number;
-  };
-  'issue_search.failed': {
-    search_type: string;
-    search_source: string;
-    error: string;
-  };
-  'search.searched': {
-    query: string;
-    search_type: string;
-    search_source: string;
-  };
-  'organization_saved_search.selected': {
-    search_type: string;
-    id: number;
-  };
-  'issue.search_sidebar_clicked': {};
-  'issue.create_dashboard_widget_from_histogram': {
-    stats_period: string;
+    project_id?: string;
   };
   'inbox_tab.issue_clicked': {
     group_id: string;
   };
-  'issues_stream.issue_clicked': IssueStream;
+  'issue.search_sidebar_clicked': {};
+  'issue.shared_publicly': {};
+  'issue_error_banner.viewed': {
+    error_message: string[];
+    error_type: string[];
+    group?: string;
+    platform?: string;
+  };
+  'issue_search.failed': {
+    error: string;
+    search_source: string;
+    search_type: string;
+  };
   'issues_stream.issue_assigned': IssueStream & {
-    did_assign_suggestion: boolean;
     assigned_type: string;
+    did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
+  };
+  'issues_stream.issue_clicked': IssueStream;
+  'issues_tab.viewed': {
+    num_issues: number;
+    tab: string;
+  };
+  resolve_issue: {release: string};
+  'tag.clicked': {
+    is_clickable: boolean;
   };
 };
 
@@ -61,13 +54,11 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issues_tab.viewed': 'Viewed Issues Tab', // high volume but send to our secondary event store anyways
   'issue_search.failed': 'Issue Search: Failed',
-  'search.searched': 'Search: Performed search',
-  'organization_saved_search.selected':
-    'Organization Saved Search: Selected saved search',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
-  'issue.create_dashboard_widget_from_histogram':
-    'Issue Create Dashboard Widget from Histogram',
   'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
   'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
+  'issue.shared_publicly': 'Issue Shared Publicly',
+  resolve_issue: 'Resolve Issue',
+  'tag.clicked': 'Tag: Clicked',
 };

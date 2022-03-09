@@ -109,7 +109,7 @@ def build_installation_confirmation_message(organization):
         "text": "Now that setup is complete, you can continue by configuring alerts.",
         "wrap": True,
     }
-    alert_rule_url = absolute_uri(f"organizations/{organization.slug}/rules/")
+    alert_rule_url = absolute_uri(f"organizations/{organization.slug}/alerts/rules/")
     alert_rule_button = {
         "type": "Action.OpenUrl",
         "title": "Add Alert Rules",
@@ -682,8 +682,8 @@ def build_unlinked_card():
     }
 
 
-def build_incident_attachment(action, incident, metric_value=None, method=None):
-    data = incident_attachment_info(incident, metric_value, action=action, method=method)
+def build_incident_attachment(incident, new_status, metric_value=None):
+    data = incident_attachment_info(incident, new_status, metric_value)
 
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 

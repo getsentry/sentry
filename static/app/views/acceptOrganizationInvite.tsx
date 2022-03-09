@@ -1,4 +1,4 @@
-import {Fragment, MouseEvent} from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
@@ -16,25 +16,27 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
-  orgSlug: string;
-  needsAuthentication: boolean;
-  needs2fa: boolean;
-  needsEmailVerification: boolean;
-  needsSso: boolean;
-  requireSso: boolean;
   existingMember: boolean;
+  hasAuthProvider: boolean;
+  needs2fa: boolean;
+  needsAuthentication: boolean;
+  needsEmailVerification: boolean;
+  orgSlug: string;
+  requireSso: boolean;
   ssoProvider?: string;
 };
 
 type Props = RouteComponentProps<{memberId: string; token: string}, {}>;
 
 type State = AsyncView['state'] & {
-  inviteDetails: InviteDetails;
-  accepting: boolean | undefined;
   acceptError: boolean | undefined;
+  accepting: boolean | undefined;
+  inviteDetails: InviteDetails;
 };
 
 class AcceptOrganizationInvite extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {memberId, token} = this.props.params;
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
@@ -48,7 +50,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     return `${path}?${urlEncode({next: window.location.pathname})}`;
   }
 
-  handleLogout = async (e: MouseEvent) => {
+  handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     await logout(this.api);
     window.location.replace(this.makeNextUrl('/auth/login/'));
@@ -105,7 +107,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           </p>
         )}
 
-        {inviteDetails.needsSso && (
+        {inviteDetails.hasAuthProvider && (
           <p data-test-id="action-info-sso">
             {inviteDetails.requireSso
               ? tct(
@@ -131,9 +133,9 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
 
         <Actions>
           <ActionsLeft>
-            {inviteDetails.needsSso && (
+            {inviteDetails.hasAuthProvider && (
               <Button
-                label="sso-login"
+                aria-label="sso-login"
                 priority="primary"
                 href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
               >
@@ -142,7 +144,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
             )}
             {!inviteDetails.requireSso && (
               <Button
-                label="create-account"
+                aria-label="create-account"
                 priority="primary"
                 href={this.makeNextUrl('/auth/register/')}
               >
@@ -208,16 +210,43 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     const {inviteDetails, accepting} = this.state;
 
     return (
-      <Actions>
-        <Button
-          label="join-organization"
-          priority="primary"
-          disabled={accepting}
-          onClick={this.handleAcceptInvite}
-        >
-          {t('Join the %s organization', inviteDetails.orgSlug)}
-        </Button>
-      </Actions>
+      <Fragment>
+        {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
+          <p data-test-id="action-info-sso">
+            {tct(
+              `Note that [orgSlug] has enabled Single Sign-On (SSO) using
+               [authProvider]. You may join the organization by authenticating with
+               the organization's SSO provider or via your standard account authentication.`,
+              {
+                orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
+                authProvider: inviteDetails.ssoProvider,
+              }
+            )}
+          </p>
+        )}
+        <Actions>
+          <ActionsLeft>
+            {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
+              <Button
+                aria-label="sso-login"
+                priority="primary"
+                href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
+              >
+                {t('Join with %s', inviteDetails.ssoProvider)}
+              </Button>
+            )}
+
+            <Button
+              aria-label="join-organization"
+              priority="primary"
+              disabled={accepting}
+              onClick={this.handleAcceptInvite}
+            >
+              {t('Join the %s organization', inviteDetails.orgSlug)}
+            </Button>
+          </ActionsLeft>
+        </Actions>
+      </Fragment>
     );
   }
 
@@ -255,7 +284,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           ? this.warning2fa
           : inviteDetails.needsEmailVerification
           ? this.warningEmailVerification
-          : inviteDetails.needsSso
+          : inviteDetails.requireSso
           ? this.authenticationActions
           : this.acceptActions}
       </NarrowLayout>

@@ -1,10 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import MetricField from 'sentry/views/alerts/incidentRules/metricField';
 import {Dataset} from 'sentry/views/alerts/incidentRules/types';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormModel from 'sentry/views/settings/components/forms/model';
 
 function openSelectMenu(text) {
   const placeholder = screen.getByText(text);

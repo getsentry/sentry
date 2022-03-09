@@ -7,10 +7,10 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import space from 'sentry/styles/space';
 
 type MetaDataProps = {
-  headingText: string;
-  tooltipText: string;
   bodyText: React.ReactNode;
+  headingText: string;
   subtext: React.ReactNode;
+  tooltipText: string;
   badge?: 'alpha' | 'beta' | 'new';
 };
 

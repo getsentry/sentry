@@ -37,8 +37,7 @@ describe('OrganizationProjects', function () {
 
   it('should render the projects in the store', function () {
     const wrapper = mountWithTheme(
-      <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />,
-      routerContext
+      <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />
     );
     expect(wrapper).toSnapshot();
 

@@ -4,7 +4,15 @@ import {assignToActor, assignToUser} from 'sentry/actionCreators/group';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'sentry/types';
+import {
+  Actor,
+  CodeOwner,
+  Committer,
+  Group,
+  Organization,
+  Project,
+  RepositoryProjectPathConfig,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
@@ -20,16 +28,17 @@ type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];
 
 type Props = {
   api: Client;
+  event: Event;
+  group: Group;
   organization: Organization;
   project: Project;
-  group: Group;
-  event: Event;
   committers?: Committer[];
 } & AsyncComponent['props'];
 
 type State = {
-  event_owners: {rules: Rules; owners: Array<Actor>};
+  codeMappings: RepositoryProjectPathConfig[];
   codeowners: CodeOwner[];
+  event_owners: {owners: Array<Actor>; rules: Rules};
   isDismissed: boolean;
 } & AsyncComponent['state'];
 
@@ -40,6 +49,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       event: {rules: [], owners: []},
       codeowners: [],
       isDismissed: true,
+      codeMappings: [],
     };
   }
 
@@ -49,6 +59,11 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       [
         'event_owners',
         `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
+      ],
+      [
+        'codeMappings',
+        `/organizations/${organization.slug}/code-mappings/`,
+        {query: {project: -1}},
       ],
     ];
     if (organization.features.includes('integrations-codeowners')) {
@@ -61,7 +76,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     return endpoints as ReturnType<AsyncComponent['getEndpoints']>;
   }
 
-  async componentDidMount() {
+  async onLoadAllEndpointsSuccess() {
     await this.checkCodeOwnersPrompt();
   }
 
@@ -82,10 +97,13 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
 
   async checkCodeOwnersPrompt() {
     const {api, organization, project} = this.props;
+    const {codeMappings} = this.state;
 
-    if (!organization.features.includes('integrations-codeowners')) {
+    // Show CTA to all orgs that have Stack Trace Linking setup.
+    if (!codeMappings.length) {
       return;
     }
+    this.setState({loading: true});
     // check our prompt backend
     const promptData = await promptsCheck(api, {
       organizationId: organization.id,
@@ -93,7 +111,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       feature: 'code_owners',
     });
     const isDismissed = promptIsDismissed(promptData, 30);
-    this.setState({isDismissed}, () => {
+    this.setState({isDismissed, loading: false}, () => {
       if (!isDismissed) {
         // now record the results
         trackIntegrationAnalytics(

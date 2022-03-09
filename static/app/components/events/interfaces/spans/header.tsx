@@ -46,16 +46,16 @@ import {
 } from './utils';
 
 type PropType = {
-  organization: Organization;
-  minimapInteractiveRef: React.RefObject<HTMLDivElement>;
-  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
-  trace: ParsedTraceType;
   event: EventTransaction;
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   operationNameFilters: ActiveOperationFilter;
+  organization: Organization;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  trace: ParsedTraceType;
+  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
 };
 
 type State = {
@@ -94,8 +94,8 @@ class TraceViewHeader extends React.Component<PropType, State> {
     mouseLeft,
   }: {
     cursorGuideHeight: number;
-    showCursorGuide: boolean;
     mouseLeft: number | undefined;
+    showCursorGuide: boolean;
   }) {
     if (!showCursorGuide || !mouseLeft) {
       return null;
@@ -185,8 +185,8 @@ class TraceViewHeader extends React.Component<PropType, State> {
     showCursorGuide,
     mouseLeft,
   }: {
-    showCursorGuide: boolean;
     mouseLeft: number | undefined;
+    showCursorGuide: boolean;
   }) {
     if (!showCursorGuide || !mouseLeft) {
       return null;
@@ -304,8 +304,8 @@ class TraceViewHeader extends React.Component<PropType, State> {
     showCursorGuide,
     mouseLeft,
   }: {
-    showCursorGuide: boolean;
     mouseLeft: number | undefined;
+    showCursorGuide: boolean;
   }) {
     return (
       <TimeAxis>
@@ -511,10 +511,10 @@ class TraceViewHeader extends React.Component<PropType, State> {
 }
 
 class ActualMinimap extends React.PureComponent<{
-  spans: EnhancedProcessedSpanType[];
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   dividerPosition: number;
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   rootSpan: RawSpanType;
+  spans: EnhancedProcessedSpanType[];
 }> {
   renderRootSpan(): React.ReactNode {
     const {spans, generateBounds} = this.props;
@@ -663,10 +663,10 @@ const TickMarker = styled('div')`
 `;
 
 const TickLabel = (props: {
-  style: React.CSSProperties;
-  hideTickMarker?: boolean;
-  align?: TickAlignment;
   duration: number;
+  style: React.CSSProperties;
+  align?: TickAlignment;
+  hideTickMarker?: boolean;
 }) => {
   const {style, duration, hideTickMarker = false, align = TickAlignment.Center} = props;
 
@@ -782,9 +782,9 @@ const Handle = ({
   onMouseDown,
   isDragging,
 }: {
+  isDragging: boolean;
   left: number;
   onMouseDown: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  isDragging: boolean;
 }) => (
   <ViewHandleContainer
     style={{

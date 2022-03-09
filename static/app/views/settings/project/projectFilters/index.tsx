@@ -16,7 +16,7 @@ import ProjectFiltersSettings from 'sentry/views/settings/project/projectFilters
 
 type Props = {
   project: Project;
-} & RouteComponentProps<{projectId: string; orgId: string; filterType: string}, {}>;
+} & RouteComponentProps<{filterType: string; orgId: string; projectId: string}, {}>;
 
 class ProjectFilters extends Component<Props> {
   render() {

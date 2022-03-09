@@ -8,11 +8,11 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 type Props = {
   name: string;
   className?: string;
-  style?: React.CSSProperties;
   disabled?: boolean;
+  placeholder?: string;
   required?: boolean;
 
-  placeholder?: string;
+  style?: React.CSSProperties;
   value?: string;
 } & React.DOMAttributes<HTMLInputElement>;
 
@@ -200,8 +200,8 @@ const Wrapper = styled('div')`
   vertical-align: text-bottom;
 `;
 const Input = styled('div')<{
-  isHovering?: boolean;
   isDisabled?: boolean;
+  isHovering?: boolean;
 }>`
   min-width: 40px;
   margin: 0;

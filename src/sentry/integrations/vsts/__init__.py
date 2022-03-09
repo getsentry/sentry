@@ -3,7 +3,5 @@ from sentry.utils.imports import import_submodules
 
 from .notify_action import AzureDevopsCreateTicketAction
 
-path = __path__  # type: ignore
-import_submodules(globals(), __name__, path)
-
 rules.add(AzureDevopsCreateTicketAction)
+import_submodules(globals(), __name__, __path__)  # type: ignore

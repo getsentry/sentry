@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -7,7 +8,7 @@ from sentry.models.auditlogentry import AuditLogEntryEvent
 
 
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
-    def put(self, request, project, filter_id):
+    def put(self, request: Request, project, filter_id) -> Response:
         """
         Update a filter
 
@@ -34,6 +35,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
         audit_log_state = AuditLogEntryEvent.PROJECT_ENABLE
 
+        returned_state = None
         if filter_id == "legacy-browsers":
             if isinstance(current_state, bool) or isinstance(new_state, bool):
                 returned_state = new_state

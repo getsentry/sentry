@@ -1,10 +1,10 @@
 from random import randint
 
+from sentry import ratelimits
 from sentry.models import ApiToken, Organization, User
 from sentry.testutils import TestCase
-from sentry.utils import ratelimits
 
-# Produce faster tests by reducing the limits so we don't have to generate so amny
+# Produce faster tests by reducing the limits so we don't have to generate so many.
 RELAXED_CONFIG = {
     "members:invite-by-user": {"limit": 5, "window": 3600 * 24},
     "members:invite-by-org": {"limit": 5, "window": 3600 * 24},

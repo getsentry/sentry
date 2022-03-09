@@ -33,23 +33,23 @@ steps:
       ]
     timeout: 300s
   - name: 'gcr.io/$PROJECT_ID/docker-compose'
-    id: get-onpremise-repo
+    id: get-self-hosted-repo
     waitFor: ['-']
     entrypoint: 'bash'
     args:
       - '-e'
       - '-c'
       - |
-        mkdir onpremise && cd onpremise
-        curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
+        mkdir self-hosted && cd self-hosted
+        curl -L "https://github.com/getsentry/self-hosted/archive/master.tar.gz" | tar xzf - --strip-components=1
         echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
   - name: 'gcr.io/$PROJECT_ID/docker-compose'
     id: e2e-test
     waitFor:
       - runtime-image
-      - get-onpremise-repo
+      - get-self-hosted-repo
     entrypoint: 'bash'
-    dir: onpremise
+    dir: self-hosted
     args:
       - '-e'
       - '-c'
@@ -93,8 +93,8 @@ artifacts:
     location: 'gs://sentryio-cloudbuild-opensource/getsentry/sentry/$COMMIT_SHA/'
     paths: ['dist/*.whl']
 options:
-  # We need more memory for Webpack builds & e2e onpremise tests
-  machineType: 'N1_HIGHCPU_8'
+  # We need more memory for Webpack builds & e2e self-hosted tests
+  machineType: 'E2_HIGHCPU_8'
   env:
     - 'CI=1'
     - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'

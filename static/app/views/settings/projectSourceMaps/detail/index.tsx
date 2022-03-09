@@ -29,7 +29,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
-type RouteParams = {orgId: string; projectId: string; name: string};
+type RouteParams = {name: string; orgId: string; projectId: string};
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -142,6 +142,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
           onDelete={this.handleArtifactDelete}
           downloadUrl={`${artifactApiUrl}${artifact.id}/?download=1`}
           downloadRole={organization.debugFilesRole}
+          orgSlug={organization.slug}
         />
       );
     });
@@ -188,7 +189,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
                       <Button
                         icon={<IconDelete size="sm" />}
                         title={t('Remove All Artifacts')}
-                        label={t('Remove All Artifacts')}
+                        aria-label={t('Remove All Artifacts')}
                         disabled={!hasAccess}
                       />
                     </Confirm>

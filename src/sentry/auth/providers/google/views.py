@@ -1,5 +1,8 @@
 import logging
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.auth.view import AuthView, ConfigureView
 from sentry.utils import json
 from sentry.utils.compat import map
@@ -16,7 +19,7 @@ class FetchUser(AuthView):
         self.version = version
         super().__init__(*args, **kwargs)
 
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         data = helper.fetch_state("data")
 
         try:
@@ -63,7 +66,7 @@ class FetchUser(AuthView):
 
 
 class GoogleConfigureView(ConfigureView):
-    def dispatch(self, request, organization, auth_provider):
+    def dispatch(self, request: Request, organization, auth_provider):
         config = auth_provider.config
         if config.get("domain"):
             domains = [config["domain"]]

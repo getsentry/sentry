@@ -25,8 +25,8 @@ describe('SettingsIndex', function () {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('has different links for on premise users', function () {
-    ConfigStore.set('isOnPremise', true);
+  it('has different links for self-hosted users', function () {
+    ConfigStore.set('isSelfHosted', true);
 
     wrapper = mountWithTheme(
       <SettingsIndex
@@ -62,11 +62,8 @@ describe('SettingsIndex', function () {
       api = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/`,
       });
-      ConfigStore.config.isOnPremise = false;
-      wrapper = mountWithTheme(
-        <SettingsIndex router={TestStubs.router()} params={{}} />,
-        TestStubs.routerContext()
-      );
+      ConfigStore.config.isSelfHosted = false;
+      wrapper = mountWithTheme(<SettingsIndex router={TestStubs.router()} params={{}} />);
     });
 
     it('fetches org details for SidebarDropdown', function () {

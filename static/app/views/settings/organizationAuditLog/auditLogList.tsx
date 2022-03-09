@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DateTime from 'sentry/components/dateTime';
-import SelectField from 'sentry/components/forms/selectField';
+import SelectField from 'sentry/components/deprecatedforms/selectField';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -21,12 +21,12 @@ const avatarStyle = {
 };
 
 type Props = {
-  isLoading: boolean;
   entries: AuditLog[] | null;
-  pageLinks: string | null;
   eventType: string;
   eventTypes: string[];
+  isLoading: boolean;
   onEventSelect: (value: string) => void;
+  pageLinks: string | null;
 };
 
 const AuditLogList = ({
@@ -156,7 +156,7 @@ const MonoDetail = styled('code')`
 const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

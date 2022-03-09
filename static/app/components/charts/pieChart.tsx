@@ -1,9 +1,11 @@
 import * as React from 'react';
+import {withTheme} from '@emotion/react';
 import type {PieSeriesOption} from 'echarts';
 
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import theme from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
+import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
 import BaseChart from './baseChart';
 
@@ -12,8 +14,9 @@ type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 export type PieChartSeries = Series & Omit<PieSeriesOption, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
-  selectOnRender?: boolean;
   series: PieChartSeries[];
+  theme: Theme;
+  selectOnRender?: boolean;
 };
 
 class PieChart extends React.Component<Props> {
@@ -61,7 +64,7 @@ class PieChart extends React.Component<Props> {
   };
 
   // echarts Legend does not have access to percentages (but tooltip does :/)
-  getSeriesPercentages = series => {
+  getSeriesPercentages = (series: PieChartSeries) => {
     const total = series.data.reduce((acc, {value}) => acc + value, 0);
     return series.data
       .map(({name, value}) => [name, Math.round((value / total) * 10000) / 100])
@@ -75,7 +78,7 @@ class PieChart extends React.Component<Props> {
   };
 
   render() {
-    const {series, ...props} = this.props;
+    const {series, theme, ...props} = this.props;
     if (!series || !series.length) {
       return null;
     }
@@ -122,20 +125,31 @@ class PieChart extends React.Component<Props> {
           this.isInitialSelected = false;
         }}
         {...props}
-        options={{
-          legend: {
-            orient: 'vertical',
-            align: 'left',
-            show: true,
-            left: 10,
-            top: 10,
-            bottom: 10,
-            formatter: name =>
-              `${name} ${
-                typeof seriesPercentages[name] !== 'undefined'
-                  ? `(${seriesPercentages[name]}%)`
-                  : ''
-              }`,
+        legend={Legend({
+          theme,
+          orient: 'vertical',
+          align: 'left',
+          show: true,
+          left: 10,
+          top: 10,
+          bottom: 10,
+          formatter: name =>
+            `${name} ${
+              typeof seriesPercentages[name] !== 'undefined'
+                ? `(${seriesPercentages[name]}%)`
+                : ''
+            }`,
+        })}
+        tooltip={{
+          formatter: data => {
+            return [
+              '<div class="tooltip-series">',
+              `<div><span class="tooltip-label">${data.marker}<strong>${data.name}</strong></span> ${data.percent}%</div>`,
+              '</div>',
+              `<div class="tooltip-date">${data.value}</div>`,
+              '</div>',
+              '<div class="tooltip-arrow"></div>',
+            ].join('');
           },
         }}
         series={[
@@ -144,28 +158,19 @@ class PieChart extends React.Component<Props> {
             data: firstSeries.data,
             avoidLabelOverlap: false,
             label: {
-              normal: {
-                formatter: ({name, percent}) => `${name}\n${percent}%`,
-                show: false,
-                position: 'center',
-              },
-              emphasis: {
+              formatter: ({name, percent}) => `${name}\n${percent}%`,
+              show: false,
+              position: 'center',
+              fontSize: '18',
+            },
+            emphasis: {
+              label: {
                 show: true,
-                textStyle: {
-                  fontSize: '18',
-                },
               },
-            } as any,
-            itemStyle: {
-              normal: {
-                label: {
-                  show: false,
-                },
-                labelLine: {
-                  show: false,
-                },
-              },
-            } as any,
+            },
+            labelLine: {
+              show: false,
+            },
           }),
         ]}
         xAxis={null}
@@ -175,4 +180,4 @@ class PieChart extends React.Component<Props> {
   }
 }
 
-export default PieChart;
+export default withTheme(PieChart);

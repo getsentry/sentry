@@ -6,19 +6,22 @@ import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import SelectControl from 'sentry/components/forms/selectControl';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   AppOrProviderOrPlugin,
-  DocumentIntegration,
+  DocIntegration,
   Integration,
   IntegrationProvider,
   Organization,
@@ -26,12 +29,12 @@ import {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
   getSentryAppInstallStatus,
-  isDocumentIntegration,
+  isDocIntegration,
   isPlugin,
   isSentryApp,
   trackIntegrationAnalytics,
@@ -40,8 +43,13 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {documentIntegrations, POPULARITY_WEIGHT} from './constants';
+import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
+
+const FirstPartyIntegrationAlert = HookOrDefault({
+  hookName: 'component:first-party-integration-alert',
+  defaultComponent: () => null,
+});
 
 const fuseOptions = {
   threshold: 0.3,
@@ -52,23 +60,24 @@ const fuseOptions = {
 };
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
-  organization: Organization;
   hideHeader: boolean;
+  organization: Organization;
 };
 
 type State = {
-  integrations: Integration[] | null;
-  plugins: PluginWithProjectList[] | null;
   appInstalls: SentryAppInstallation[] | null;
-  orgOwnedApps: SentryApp[] | null;
-  publishedApps: SentryApp[] | null;
   config: {providers: IntegrationProvider[]} | null;
-  extraApp?: SentryApp;
-  searchInput: string;
-  list: AppOrProviderOrPlugin[];
   displayedList: AppOrProviderOrPlugin[];
+  docIntegrations: DocIntegration[] | null;
+  integrations: Integration[] | null;
+  list: AppOrProviderOrPlugin[];
+  orgOwnedApps: SentryApp[] | null;
+  plugins: PluginWithProjectList[] | null;
+  publishedApps: SentryApp[] | null;
+  searchInput: string;
   selectedCategory: string;
-  fuzzy?: Fuse<AppOrProviderOrPlugin, typeof fuseOptions>;
+  extraApp?: SentryApp;
+  fuzzy?: Fuse<AppOrProviderOrPlugin>;
 };
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
@@ -93,7 +102,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   onLoadAllEndpointsSuccess() {
-    const {publishedApps, orgOwnedApps, extraApp, plugins} = this.state;
+    const {publishedApps, orgOwnedApps, extraApp, plugins, docIntegrations} = this.state;
     const published = publishedApps || [];
     // If we have an extra app in state from query parameter, add it as org owned app
     if (orgOwnedApps !== null && extraApp) {
@@ -118,7 +127,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       .concat(orgOwned ?? [])
       .concat(this.providers)
       .concat(plugins ?? [])
-      .concat(Object.values(documentIntegrations));
+      .concat(docIntegrations ?? []);
 
     const list = this.sortIntegrations(combined);
 
@@ -173,6 +182,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
       ['plugins', `/organizations/${orgId}/plugins/configs/`],
+      ['docIntegrations', '/doc-integrations/'],
     ];
     /**
      * optional app to load for super users
@@ -217,7 +227,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       return 0;
     }
 
-    if (isDocumentIntegration(integration)) {
+    if (isDocIntegration(integration)) {
       return 0;
     }
 
@@ -225,11 +235,10 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
-    return (
-      this.state.publishedApps?.find(i => i === integration)?.popularity ??
-      POPULARITY_WEIGHT[integration.slug] ??
-      1
-    );
+    if (isSentryApp(integration) || isDocIntegration(integration)) {
+      return integration?.popularity ?? 1;
+    }
+    return POPULARITY_WEIGHT[integration.slug] ?? 1;
   };
 
   sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
@@ -284,10 +293,10 @@ export class IntegrationListDirectory extends AsyncComponent<
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
   /**
-   * Get filter parameters and guard against `queryString.parse` returning arrays.
+   * Get filter parameters and guard against `qs.parse` returning arrays.
    */
   getFilterParameters = (): {searchInput: string; selectedCategory: string} => {
-    const {category, search} = queryString.parse(this.props.location.search);
+    const {category, search} = qs.parse(this.props.location.search);
 
     const selectedCategory = Array.isArray(category) ? category[0] : category || '';
     const searchInput = Array.isArray(search) ? search[0] : search || '';
@@ -301,8 +310,8 @@ export class IntegrationListDirectory extends AsyncComponent<
   updateQueryString = () => {
     const {searchInput, selectedCategory} = this.state;
 
-    const searchString = queryString.stringify({
-      ...queryString.parse(this.props.location.search),
+    const searchString = qs.stringify({
+      ...qs.parse(this.props.location.search),
       search: searchInput ? searchInput : undefined,
       category: selectedCategory ? selectedCategory : undefined,
     });
@@ -383,6 +392,9 @@ export class IntegrationListDirectory extends AsyncComponent<
         categories={getCategoriesForIntegration(provider)}
         alertText={getAlertText(integrations)}
         resolveText={t('Update Now')}
+        customAlert={
+          <FirstPartyIntegrationAlert integrations={integrations} wrapWithContainer />
+        }
       />
     );
   };
@@ -430,22 +442,25 @@ export class IntegrationListDirectory extends AsyncComponent<
         publishStatus={app.status}
         configurations={0}
         categories={categories}
+        customIcon={<SentryAppIcon sentryApp={app} size={36} />}
       />
     );
   };
 
-  renderDocumentIntegration = (integration: DocumentIntegration) => {
+  renderDocIntegration = (doc: DocIntegration) => {
     const {organization} = this.props;
     return (
       <IntegrationRow
-        key={`doc-int-${integration.slug}`}
+        key={`doc-int-${doc.slug}`}
+        data-test-id="integration-row"
         organization={organization}
-        type="documentIntegration"
-        slug={integration.slug}
-        displayName={integration.name}
+        type="docIntegration"
+        slug={doc.slug}
+        displayName={doc.name}
         publishStatus="published"
         configurations={0}
-        categories={getCategoriesForIntegration(integration)}
+        categories={getCategoriesForIntegration(doc)}
+        customIcon={<DocIntegrationAvatar docIntegration={doc} size={36} />}
       />
     );
   };
@@ -457,8 +472,8 @@ export class IntegrationListDirectory extends AsyncComponent<
     if (isPlugin(integration)) {
       return this.renderPlugin(integration);
     }
-    if (isDocumentIntegration(integration)) {
-      return this.renderDocumentIntegration(integration);
+    if (isDocIntegration(integration)) {
+      return this.renderDocIntegration(integration);
     }
     return this.renderProvider(integration);
   };
@@ -496,6 +511,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                   onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
                   width="25em"
+                  data-test-id="search-bar"
                 />
               </ActionContainer>
             }
@@ -504,7 +520,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
         <PermissionAlert access={['org:integrations']} />
         <Panel>
-          <PanelBody>
+          <PanelBody data-test-id="integration-panel">
             {displayedList.length ? (
               displayedList.map(this.renderIntegration)
             ) : (
@@ -536,7 +552,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 const ActionContainer = styled('div')`
   display: grid;
   grid-template-columns: 240px max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const EmptyResultsContainer = styled('div')`

@@ -2,7 +2,7 @@ import Cookies from 'js-cookie';
 
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('Role', function () {
@@ -89,6 +89,24 @@ describe('Role', function () {
         hasRole: false,
       });
       ConfigStore.config.user = user;
+    });
+
+    it('updates if user changes', function () {
+      const user = {...ConfigStore.config.user};
+      ConfigStore.config.user = undefined;
+      const {rerender} = mountWithTheme(<Role role="member">{childrenMock}</Role>, {
+        context: routerContext,
+      });
+
+      expect(childrenMock).toHaveBeenCalledWith({
+        hasRole: false,
+      });
+      ConfigStore.config.user = user;
+
+      rerender(<Role role="member">{childrenMock}</Role>);
+      expect(childrenMock).toHaveBeenCalledWith({
+        hasRole: true,
+      });
     });
 
     it('handles no availableRoles', function () {

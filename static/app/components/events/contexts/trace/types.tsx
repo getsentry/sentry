@@ -8,9 +8,9 @@ export enum TraceKnownDataType {
 }
 
 export type TraceKnownData = {
-  trace_id?: string;
-  span_id?: string;
-  parent_span_id?: string;
   op?: string;
+  parent_span_id?: string;
+  span_id?: string;
   status?: string;
+  trace_id?: string;
 };

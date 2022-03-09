@@ -2,12 +2,13 @@ import * as React from 'react';
 
 import ModalActions from 'sentry/actions/modalActions';
 import type {ModalTypes} from 'sentry/components/globalModal';
-import type {DashboardIssueWidgetModalOptions} from 'sentry/components/modals/addDashboardIssueWidgetModal';
 import type {DashboardWidgetModalOptions} from 'sentry/components/modals/addDashboardWidgetModal';
 import {DashboardWidgetLibraryModalOptions} from 'sentry/components/modals/dashboardWidgetLibraryModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
+import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
+import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {
   Group,
   IssueOwnership,
@@ -41,20 +42,20 @@ export function closeModal() {
 
 type OpenSudoModalOptions = {
   onClose?: () => void;
-  superuser?: boolean;
-  sudo?: boolean;
   retryRequest?: () => Promise<any>;
+  sudo?: boolean;
+  superuser?: boolean;
 };
 
 type emailVerificationModalOptions = {
-  onClose?: () => void;
-  emailVerified?: boolean;
   actionMessage?: string;
+  emailVerified?: boolean;
+  onClose?: () => void;
 };
 
 type inviteMembersModalOptions = {
-  onClose?: () => void;
   initialData?: Partial<InviteRow>[];
+  onClose?: () => void;
   source?: string;
 };
 
@@ -76,10 +77,10 @@ export async function openEmailVerification({
 }
 
 type OpenDiffModalOptions = {
-  targetIssueId: string;
-  project: Project;
   baseIssueId: Group['id'];
   orgId: Organization['id'];
+  project: Project;
+  targetIssueId: string;
   baseEventId?: Event['id'];
   targetEventId?: string;
 };
@@ -96,11 +97,11 @@ type CreateTeamModalOptions = {
    * The organization to create a team for
    */
   organization: Organization;
+  onClose?: (team: Team) => void;
   /**
    * An initial project to add the team to. This may be deprecated soon as we may add a project selection inside of the modal flow
    */
   project?: Project;
-  onClose?: (team: Team) => void;
 };
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {
@@ -111,6 +112,7 @@ export async function openCreateTeamModal(options: CreateTeamModalOptions) {
 }
 
 type CreateOwnershipRuleModalOptions = {
+  issueId: string;
   /**
    * The organization to create a rules for
    */
@@ -119,14 +121,13 @@ type CreateOwnershipRuleModalOptions = {
    * The project to create a rules for
    */
   project: Project;
-  issueId: string;
 };
 
 export type EditOwnershipRulesModalOptions = {
-  organization: Organization;
-  project: Project;
-  ownership: IssueOwnership;
   onSave: (text: string | null) => void;
+  organization: Organization;
+  ownership: IssueOwnership;
+  project: Project;
 };
 
 export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
@@ -163,8 +164,8 @@ export async function openRecoveryOptions(options: RecoveryModalOptions) {
 
 export type TeamAccessRequestModalOptions = {
   memberId: string;
-  teamId: string;
   orgId: string;
+  teamId: string;
 };
 
 export async function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
@@ -194,16 +195,18 @@ export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
 }
 
 export type SentryAppDetailsModalOptions = {
-  sentryApp: SentryApp;
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
+  sentryApp: SentryApp;
   onCloseModal?: () => void; // used for analytics
 };
 
 type DebugFileSourceModalOptions = {
-  sourceType: CustomRepoType;
+  appStoreConnectSourcesQuantity: number;
   onSave: (data: Record<string, any>) => Promise<void>;
+  organization: Organization;
+  sourceType: CustomRepoType;
   appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;
@@ -239,13 +242,11 @@ export async function openAddDashboardWidgetModal(options: DashboardWidgetModalO
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
-export async function openAddDashboardIssueWidgetModal(
-  options: DashboardIssueWidgetModalOptions
+export async function openWidgetBuilderOverwriteModal(
+  options: OverwriteWidgetModalProps
 ) {
-  const issuesModal = await import(
-    'sentry/components/modals/addDashboardIssueWidgetModal'
-  );
-  const {default: Modal, modalCss} = issuesModal;
+  const mod = await import('sentry/components/modals/widgetBuilder/overwriteWidgetModal');
+  const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
@@ -284,4 +285,18 @@ export async function openDashboardWidgetLibraryModal(
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
+export async function openWidgetViewerModal({
+  onClose,
+  ...options
+}: WidgetViewerModalOptions & {onClose?: () => void}) {
+  const mod = await import('sentry/components/modals/widgetViewerModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {
+    backdrop: 'static',
+    modalCss,
+    onClose,
+  });
 }

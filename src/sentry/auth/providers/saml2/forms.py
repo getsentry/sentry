@@ -3,6 +3,7 @@ from django.forms.utils import ErrorList
 from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
+from requests.exceptions import SSLError
 
 from sentry.http import safe_urlopen
 
@@ -72,6 +73,12 @@ def process_metadata(form_cls, request, helper):
 
     try:
         data = form_cls.processor(form)
+    except SSLError:
+        errors = form._errors.setdefault("__all__", ErrorList())
+        errors.append(
+            "Could not verify SSL certificate. Ensure that your IdP instance has a valid SSL certificate that is linked to a trusted root certificate."
+        )
+        return form
     except Exception:
         errors = form._errors.setdefault("__all__", ErrorList())
         errors.append("Failed to parse provided SAML2 metadata")

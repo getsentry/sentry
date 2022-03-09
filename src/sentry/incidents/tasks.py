@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -6,7 +7,9 @@ from django.urls import reverse
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
     INCIDENT_STATUS,
+    AlertRule,
     AlertRuleStatus,
+    AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
@@ -25,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
 INCIDENT_SNAPSHOT_BATCH_SIZE = 50
+SUBSCRIPTION_METRICS_LOGGER = "subscription_metrics_logger"
 
 
 @instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")
@@ -99,6 +103,37 @@ def build_activity_context(activity, user):
     }
 
 
+@register_subscriber(SUBSCRIPTION_METRICS_LOGGER)
+def handle_subscription_metrics_logger(subscription_update, subscription):
+    """
+    Logs results from a `QuerySubscription`.
+    :param subscription_update: dict formatted according to schemas in
+    sentry.snuba.json_schemas.SUBSCRIPTION_PAYLOAD_VERSIONS
+    :param subscription: The `QuerySubscription` that this update is for
+    """
+    from sentry.incidents.subscription_processor import SubscriptionProcessor
+
+    try:
+        processor = SubscriptionProcessor(subscription)
+        processor.alert_rule = AlertRule()
+        aggregation_value = int(processor.get_aggregation_value(subscription_update))
+        processor.alert_rule.comparison_delta = int(timedelta(days=7).total_seconds())
+        comparison_value = processor.get_aggregation_value(subscription_update)
+        tags = {
+            "project_id": subscription.project_id,
+            "project_slug": subscription.project.slug,
+            "subscription_id": subscription.id,
+            "time_window": subscription.snuba_query.time_window,
+        }
+        metrics.incr("subscriptions.result.value", aggregation_value, tags=tags, sample_rate=1.0)
+        if comparison_value is not None:
+            metrics.incr(
+                "subscriptions.result.comparison", int(comparison_value), tags=tags, sample_rate=1.0
+            )
+    except Exception:
+        logger.exception("Failed to log subscription results")
+
+
 @register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)
 def handle_snuba_query_update(subscription_update, subscription):
     """
@@ -121,6 +156,8 @@ def handle_snuba_query_update(subscription_update, subscription):
     max_retries=5,
 )
 def handle_trigger_action(action_id, incident_id, project_id, method, metric_value=None, **kwargs):
+    from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
+
     try:
         action = AlertRuleTriggerAction.objects.select_related(
             "alert_rule_trigger", "alert_rule_trigger__alert_rule"
@@ -146,7 +183,28 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
             AlertRuleTriggerAction.Type(action.type).name.lower(), method
         )
     )
-    getattr(action, method)(action, incident, project, metric_value=metric_value)
+    if method == "resolve":
+        if (
+            action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
+            and AlertRuleTrigger.objects.filter(
+                alert_rule=action.alert_rule_trigger.alert_rule,
+                label=WARNING_TRIGGER_LABEL,
+            ).exists()
+        ):
+            # If we're resolving a critical trigger and a warning exists then we want to treat this
+            # as if firing a warning, rather than resolving this trigger
+            new_status = IncidentStatus.WARNING
+        else:
+            new_status = IncidentStatus.CLOSED
+    else:
+        if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL:
+            new_status = IncidentStatus.CRITICAL
+        else:
+            new_status = IncidentStatus.WARNING
+
+    getattr(action, method)(
+        action, incident, project, metric_value=metric_value, new_status=new_status
+    )
 
 
 @instrumented_task(

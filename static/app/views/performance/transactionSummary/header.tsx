@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -19,7 +20,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
+import {MetricsSwitch} from '../metricsSwitch';
 
+import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
@@ -52,21 +55,25 @@ const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
     eventKey: 'performance_views.spans.spans_tab_clicked',
     eventName: 'Performance Views: Spans tab clicked',
   },
+  [Tab.Anomalies]: {
+    eventKey: 'performance_views.anomalies.anomalies_tab_clicked',
+    eventName: 'Performance Views: Anomalies tab clicked',
+  },
 };
 
 type Props = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  projects: Project[];
-  projectId: string;
-  transactionName: string;
   currentTab: Tab;
-  hasWebVitals: 'maybe' | 'yes' | 'no';
-  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
+  eventView: EventView;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  hasWebVitals: 'maybe' | 'yes' | 'no';
+  location: Location;
+  organization: Organization;
+  projectId: string;
+  projects: Project[];
+  transactionName: string;
+  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
 class TransactionHeader extends React.Component<Props> {
@@ -116,6 +123,7 @@ class TransactionHeader extends React.Component<Props> {
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={this.handleCreateAlertSuccess}
         referrer="performance"
+        aria-label={t('Create Alert')}
       />
     );
   }
@@ -211,6 +219,17 @@ class TransactionHeader extends React.Component<Props> {
     }
   }
 
+  handleSwitchMetrics = () => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: undefined,
+      },
+    });
+  };
+
   render() {
     const {organization, location, projectId, transactionName, currentTab} = this.props;
 
@@ -225,6 +244,7 @@ class TransactionHeader extends React.Component<Props> {
     const tagsTarget = tagsRouteWithQuery(routeQuery);
     const eventsTarget = eventsRouteWithQuery(routeQuery);
     const spansTarget = spansRouteWithQuery(routeQuery);
+    const anomaliesTarget = anomaliesRouteWithQuery(routeQuery);
 
     return (
       <Layout.Header>
@@ -242,6 +262,7 @@ class TransactionHeader extends React.Component<Props> {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            <MetricsSwitch onSwitch={this.handleSwitchMetrics} />
             <Feature organization={organization} features={['incidents']}>
               {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
             </Feature>
@@ -257,7 +278,13 @@ class TransactionHeader extends React.Component<Props> {
             >
               {t('Overview')}
             </ListLink>
-            {this.renderWebVitalsTab()}
+            <ListLink
+              to={eventsTarget}
+              isActive={() => currentTab === Tab.Events}
+              onClick={this.trackTabClick(Tab.Events)}
+            >
+              {t('All Events')}
+            </ListLink>
             <ListLink
               to={tagsTarget}
               isActive={() => currentTab === Tab.Tags}
@@ -265,15 +292,6 @@ class TransactionHeader extends React.Component<Props> {
             >
               {t('Tags')}
             </ListLink>
-            <Feature features={['organizations:performance-events-page']}>
-              <ListLink
-                to={eventsTarget}
-                isActive={() => currentTab === Tab.Events}
-                onClick={this.trackTabClick(Tab.Events)}
-              >
-                {t('All Events')}
-              </ListLink>
-            </Feature>
             <Feature
               organization={organization}
               features={['organizations:performance-suspect-spans-view']}
@@ -285,9 +303,24 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTabClick(Tab.Spans)}
               >
                 {t('Spans')}
+                <FeatureBadge type="new" noTooltip />
+              </ListLink>
+            </Feature>
+            <Feature
+              organization={organization}
+              features={['organizations:performance-anomaly-detection-ui']}
+            >
+              <ListLink
+                data-test-id="anomalies-tab"
+                to={anomaliesTarget}
+                isActive={() => currentTab === Tab.Anomalies}
+                onClick={this.trackTabClick(Tab.Anomalies)}
+              >
+                {t('Anomalies')}
                 <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>
+            {this.renderWebVitalsTab()}
           </StyledNavTabs>
         </React.Fragment>
       </Layout.Header>

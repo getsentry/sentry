@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 from collections import defaultdict
+from datetime import datetime
 from typing import (
+    TYPE_CHECKING,
     AbstractSet,
     Any,
     Iterable,
+    List,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -12,9 +17,11 @@ from typing import (
 )
 
 from django.db.models import Count
+from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -28,9 +35,17 @@ from sentry.models import (
     TeamAvatar,
     User,
 )
+
+if TYPE_CHECKING:
+    from sentry.api.serializers import (
+        ExternalActorResponse,
+        OrganizationSerializerResponse,
+        ProjectSerializerResponse,
+        SCIMMeta,
+    )
+
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.compat import zip
-from sentry.utils.json import JSONData
 from sentry.utils.query import RangeQuerySetWrapper
 
 
@@ -83,6 +98,24 @@ def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Te
             ).values_list("team", flat=True)
         )
     return frozenset()
+
+
+class _TeamSerializerResponseOptional(TypedDict, total=False):
+    externalTeams: list[ExternalActorResponse]
+    organization: OrganizationSerializerResponse
+    projects: ProjectSerializerResponse
+
+
+class TeamSerializerResponse(_TeamSerializerResponseOptional):
+    id: str
+    slug: str
+    name: str
+    dateCreated: datetime
+    isMember: bool
+    hasAccess: bool
+    isPending: bool
+    memberCount: int
+    avatar: SerializedAvatarFields
 
 
 @register(Team)
@@ -173,16 +206,16 @@ class TeamSerializer(Serializer):  # type: ignore
 
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> TeamSerializerResponse:
         if attrs.get("avatar"):
-            avatar = {
+            avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
 
-        result = {
+        result: TeamSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
@@ -231,6 +264,22 @@ def get_scim_teams_members(
     return member_map
 
 
+class SCIMTeamMemberListItem(TypedDict):
+    value: str
+    display: str
+
+
+class OrganizationTeamSCIMSerializerRequired(TypedDict):
+    schemas: List[str]
+    id: str
+    displayName: str
+    meta: SCIMMeta
+
+
+class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequired, total=False):
+    members: List[SCIMTeamMemberListItem]
+
+
 class TeamSCIMSerializer(Serializer):  # type: ignore
     def __init__(
         self,
@@ -253,8 +302,8 @@ class TeamSCIMSerializer(Serializer):  # type: ignore
 
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
-        result = {
+    ) -> OrganizationTeamSCIMSerializerResponse:
+        result: OrganizationTeamSCIMSerializerResponse = {
             "schemas": [SCIM_SCHEMA_GROUP],
             "id": str(obj.id),
             "displayName": obj.name,

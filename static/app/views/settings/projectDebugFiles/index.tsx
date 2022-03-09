@@ -19,7 +19,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import DebugFileRow from './debugFileRow';
-import ExternalSources from './externalSources';
+import Sources from './sources';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -28,8 +28,8 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 
 type State = AsyncView['state'] & {
   debugFiles: DebugFile[] | null;
-  showDetails: boolean;
   project: Project;
+  showDetails: boolean;
   builtinSymbolSources?: BuiltinSymbolSource[] | null;
 };
 
@@ -157,6 +157,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           downloadRole={organization.debugFilesRole}
           onDelete={this.handleDelete}
           key={debugFile.id}
+          orgSlug={organization.slug}
         />
       );
     });
@@ -166,7 +167,6 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     const {organization, project, router, location} = this.props;
     const {loading, showDetails, builtinSymbolSources, debugFiles, debugFilesPageLinks} =
       this.state;
-    const {features} = organization;
 
     return (
       <Fragment>
@@ -180,10 +180,11 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           `)}
         </TextBlock>
 
-        {features.includes('symbol-sources') && (
+        {organization.features.includes('symbol-sources') && (
           <Fragment>
             <PermissionAlert />
-            <ExternalSources
+
+            <Sources
               api={this.api}
               location={location}
               router={router}
@@ -196,6 +197,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               }
               builtinSymbolSources={project.builtinSymbolSources ?? []}
               builtinSymbolSourceOptions={builtinSymbolSources ?? []}
+              isLoading={loading}
             />
           </Fragment>
         )}
@@ -250,7 +252,7 @@ const Actions = styled('div')`
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-gap: ${space(4)};
+  gap: ${space(4)};
   align-items: center;
   margin-top: ${space(4)};
   margin-bottom: ${space(1)};
@@ -264,7 +266,7 @@ const Filters = styled('div')`
   grid-template-columns: min-content minmax(200px, 400px);
   align-items: center;
   justify-content: flex-end;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: min-content 1fr;
   }

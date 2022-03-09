@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Search from 'sentry/components/search';
+import {Search} from 'sentry/components/search';
 import SearchResult from 'sentry/components/search/searchResult';
 import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
 import HelpSource from 'sentry/components/search/sources/helpSource';
@@ -62,7 +62,7 @@ const HelpSearch = props => (
 const SectionHeading = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
   padding: ${space(1)} ${space(2)};

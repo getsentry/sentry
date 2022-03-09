@@ -1,4 +1,5 @@
 import sentry_sdk
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -36,7 +37,7 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
         except IndexError:
             return None
 
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """Get the current release in the group's project.
 
         Find the most recent release in the project associated with the issue

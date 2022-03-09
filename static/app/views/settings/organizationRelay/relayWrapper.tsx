@@ -28,8 +28,8 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = {
-  relays: Array<Relay>;
   relayActivities: Array<RelayActivity>;
+  relays: Array<Relay>;
 } & AsyncView['state'];
 
 class RelayWrapper extends AsyncView<Props, State> {

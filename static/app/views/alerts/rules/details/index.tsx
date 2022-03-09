@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -7,19 +7,17 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client, ResponseMeta} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import DateTime from 'sentry/components/dateTime';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {DateString, Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
-import {
-  IncidentRule,
-  TimePeriod,
-  TimeWindow,
-} from 'sentry/views/alerts/incidentRules/types';
+import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {makeRuleDetailsQuery} from 'sentry/views/alerts/list/row';
 
 import {Incident} from '../../types';
@@ -31,16 +29,16 @@ import DetailsHeader from './header';
 
 type Props = {
   api: Client;
-  organization: Organization;
   location: Location;
-} & RouteComponentProps<{ruleId: string; orgId: string}, {}>;
+  organization: Organization;
+} & RouteComponentProps<{orgId: string; ruleId: string}, {}>;
 
 type State = {
-  isLoading: boolean;
-  hasError: boolean;
   error: ResponseMeta | null;
-  rule?: IncidentRule;
+  hasError: boolean;
+  isLoading: boolean;
   incidents?: Incident[];
+  rule?: IncidentRule;
   selectedIncident?: Incident | null;
 };
 
@@ -69,10 +67,8 @@ class AlertRuleDetails extends Component<Props, State> {
   trackView() {
     const {params, organization, location} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'alert_rule_details.viewed',
-      eventName: 'Alert Rule Details: Viewed',
-      organization_id: organization ? organization.id : null,
+    trackAdvancedAnalyticsEvent('alert_rule_details.viewed', {
+      organization,
       rule_id: parseInt(params.ruleId, 10),
       alert: location.query.alert ?? '',
     });
@@ -80,13 +76,7 @@ class AlertRuleDetails extends Component<Props, State> {
 
   getTimePeriod(): TimePeriodType {
     const {location} = this.props;
-    const {rule} = this.state;
-
-    const defaultPeriod =
-      rule?.timeWindow && rule?.timeWindow > TimeWindow.ONE_HOUR
-        ? TimePeriod.SEVEN_DAYS
-        : TimePeriod.ONE_DAY;
-    const period = location.query.period ?? defaultPeriod;
+    const period = location.query.period ?? TimePeriod.SEVEN_DAYS;
 
     if (location.query.start && location.query.end) {
       return {
@@ -156,40 +146,17 @@ class AlertRuleDetails extends Component<Props, State> {
       this.setState({selectedIncident: null});
     }
 
+    const timePeriod = this.getTimePeriod();
+    const {start, end} = timePeriod;
     try {
-      const rule = await fetchAlertRule(orgId, ruleId);
-      this.setState({rule});
-
-      const timePeriod = this.getTimePeriod();
-      const {start, end} = timePeriod;
-
-      const incidents = await fetchIncidentsForRule(orgId, ruleId, start, end);
-      this.setState({incidents});
-
-      this.setState({isLoading: false, hasError: false});
+      const [incidents, rule] = await Promise.all([
+        fetchIncidentsForRule(orgId, ruleId, start, end),
+        fetchAlertRule(orgId, ruleId),
+      ]);
+      this.setState({incidents, rule, isLoading: false, hasError: false});
     } catch (error) {
       this.setState({isLoading: false, hasError: true, error});
     }
-  };
-
-  handleTimePeriodChange = (value: string) => {
-    browserHistory.push({
-      pathname: this.props.location.pathname,
-      query: {
-        period: value,
-      },
-    });
-  };
-
-  handleZoom = (start: DateString, end: DateString) => {
-    const {location} = this.props;
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        start,
-        end,
-      },
-    });
   };
 
   renderError() {
@@ -208,7 +175,7 @@ class AlertRuleDetails extends Component<Props, State> {
 
   render() {
     const {rule, incidents, hasError, selectedIncident} = this.state;
-    const {params} = this.props;
+    const {params, organization} = this.props;
     const timePeriod = this.getTimePeriod();
 
     if (hasError) {
@@ -216,24 +183,42 @@ class AlertRuleDetails extends Component<Props, State> {
     }
 
     return (
-      <Fragment>
-        <SentryDocumentTitle title={rule?.name ?? ''} />
+      <Projects orgId={organization.slug} slugs={rule?.projects}>
+        {({projects, fetching}) => {
+          const project = projects.find(({slug}) => slug === rule?.projects[0]) as
+            | Project
+            | undefined;
+          const isGlobalSelectionReady = project !== undefined && !fetching;
 
-        <DetailsHeader
-          hasIncidentRuleDetailsError={hasError}
-          params={params}
-          rule={rule}
-        />
-        <DetailsBody
-          {...this.props}
-          rule={rule}
-          incidents={incidents}
-          timePeriod={timePeriod}
-          selectedIncident={selectedIncident}
-          handleTimePeriodChange={this.handleTimePeriodChange}
-          handleZoom={this.handleZoom}
-        />
-      </Fragment>
+          return (
+            <PageFiltersContainer
+              isGlobalSelectionReady={isGlobalSelectionReady}
+              shouldForceProject={isGlobalSelectionReady}
+              forceProject={project}
+              forceEnvironment={rule?.environment ?? ''}
+              lockedMessageSubject={t('alert rule')}
+              showDateSelector={false}
+              skipLoadLastUsed
+            >
+              <SentryDocumentTitle title={rule?.name ?? ''} />
+
+              <DetailsHeader
+                hasIncidentRuleDetailsError={hasError}
+                params={params}
+                rule={rule}
+              />
+              <DetailsBody
+                {...this.props}
+                rule={rule}
+                project={project}
+                incidents={incidents}
+                timePeriod={timePeriod}
+                selectedIncident={selectedIncident}
+              />
+            </PageFiltersContainer>
+          );
+        }}
+      </Projects>
     );
   }
 }

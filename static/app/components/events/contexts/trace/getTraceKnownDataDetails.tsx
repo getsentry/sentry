@@ -130,7 +130,7 @@ const ButtonWrapper = styled('div')`
 
 const StyledButton = styled(Button)`
   position: absolute;
-  top: ${space(0.75)};
+  top: ${space(0.5)};
   right: ${space(0.5)};
 `;
 

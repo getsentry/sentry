@@ -36,7 +36,7 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.snapshot("project settings - tags")
 
         self.browser.wait_until_test_id("tag-row")

@@ -2,13 +2,15 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Choices, IssueConfigField, Organization} from 'sentry/types';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
 import AsyncView from 'sentry/views/asyncView';
-import Form from 'sentry/views/settings/components/forms/form';
+
+const IGNORED_FIELDS = ['Sprint'];
 
 type Props = {
   // Comes from the in-code definition of a `TicketEventAction`.
@@ -16,12 +18,12 @@ type Props = {
   index: number;
   // The AlertRuleAction from DB.
   instance: IssueAlertRuleAction;
-  link?: string;
   onSubmitAction: (
     data: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   organization: Organization;
+  link?: string;
   ticketType?: string;
 } & AbstractExternalIssueForm['props'];
 
@@ -75,7 +77,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
   getEndPointString(): string {
     const {instance, organization} = this.props;
-    return `/organizations/${organization.slug}/integrations/${instance.integration}/`;
+    return `/organizations/${organization.slug}/integrations/${instance.integration}/?ignored=${IGNORED_FIELDS}`;
   }
 
   /**
@@ -84,15 +86,15 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   cleanData = (data: {
     [key: string]: string;
   }): {
-    integration?: string | number;
     [key: string]: any;
+    integration?: string | number;
   } => {
     const {instance} = this.props;
     const {issueConfigFieldsCache} = this.state;
     const names: string[] = this.getValidAndSavableFieldNames();
     const formData: {
-      integration?: string | number;
       [key: string]: any;
+      integration?: string | number;
     } = {};
     if (instance?.hasOwnProperty('integration')) {
       formData.integration = instance.integration;

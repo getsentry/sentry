@@ -20,8 +20,8 @@ import {
 import {SidebarSection} from './styles';
 
 type Props = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
   project?: Project;
 };
 

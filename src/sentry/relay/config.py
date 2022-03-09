@@ -1,11 +1,13 @@
+import logging
 import uuid
 from datetime import datetime
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
 from sentry import features, quotas, utils
+from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -16,15 +18,20 @@ from sentry.ingest.inbound_filters import (
     get_filter_key,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.models import Project, ProjectKeyStatus
+from sentry.models import Project
+from sentry.models.transaction_threshold import TRANSACTION_METRICS as TRANSACTION_THRESHOLD_KEYS
 from sentry.relay.utils import to_camel_case_name
+from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
     "organizations:metrics-extraction",
+    "organizations:profiling",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def get_exposed_features(project: Project) -> List[str]:
@@ -32,15 +39,21 @@ def get_exposed_features(project: Project) -> List[str]:
     active_features = []
     for feature in EXPOSABLE_FEATURES:
         if feature.startswith("organizations:"):
-            if features.has(feature, project.organization):
-                active_features.append(feature)
-
+            has_feature = features.has(feature, project.organization)
         elif feature.startswith("projects:"):
-            if features.has(feature, project):
-                active_features.append(feature)
-
+            has_feature = features.has(feature, project)
         else:
             raise RuntimeError("EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'")
+
+        if has_feature:
+            metrics.incr(
+                "sentry.relay.config.features", tags={"outcome": "enabled", "feature": feature}
+            )
+            active_features.append(feature)
+        else:
+            metrics.incr(
+                "sentry.relay.config.features", tags={"outcome": "disabled", "feature": feature}
+            )
 
     return active_features
 
@@ -57,7 +70,12 @@ def get_public_key_configs(project, full_config, project_keys=None):
         key = {
             "publicKey": project_key.public_key,
             "numericId": project_key.id,
-            "isEnabled": project_key.status == ProjectKeyStatus.ACTIVE,
+            # Disabled keys are omitted from the config, this is just there so
+            # old Relays don't break (we haven't investigated whether there are
+            # actual relays relying on this value)
+            #
+            # Removed that value in https://github.com/getsentry/relay/pull/778/files#diff-e66f275002251930fbfc361b4cca64ab41ff2435029f65c2fd6ffb729129909dL372
+            "isEnabled": True,
         }
 
         if full_config:
@@ -351,28 +369,81 @@ def _filter_option_to_config_setting(flt, setting):
     return ret_val
 
 
-ALL_MEASUREMENT_METRICS = frozenset(
+#: Top-level metrics for transactions
+TRANSACTION_METRICS = frozenset(
     [
-        "measurements.fp",
-        "measurements.fcp",
-        "measurements.lcp",
-        "measurements.fid",
-        "measurements.cls",
-        "measurements.ttfb",
-        "measurements.ttfb.requesttime",
-        "measurements.app_start_cold",
-        "measurements.app_start_warm",
-        "measurements.frames_total",
-        "measurements.frames_slow",
-        "measurements.frames_frozen",
-        "measurements.frames_slow_rate",
-        "measurements.frames_frozen_rate",
-        "measurements.stall_count",
-        "measurements.stall_total_time",
-        "measurements.stall_longest_time",
-        "measurements.stall_percentage",
+        "sentry.transactions.user",
+        "sentry.transactions.transaction.duration",
     ]
 )
+
+
+ALL_MEASUREMENT_METRICS = frozenset(
+    [
+        "sentry.transactions.measurements.fp",
+        "sentry.transactions.measurements.fcp",
+        "sentry.transactions.measurements.lcp",
+        "sentry.transactions.measurements.fid",
+        "sentry.transactions.measurements.cls",
+        "sentry.transactions.measurements.ttfb",
+        "sentry.transactions.measurements.ttfb.requesttime",
+        "sentry.transactions.measurements.app_start_cold",
+        "sentry.transactions.measurements.app_start_warm",
+        "sentry.transactions.measurements.frames_total",
+        "sentry.transactions.measurements.frames_slow",
+        "sentry.transactions.measurements.frames_frozen",
+        "sentry.transactions.measurements.frames_slow_rate",
+        "sentry.transactions.measurements.frames_frozen_rate",
+        "sentry.transactions.measurements.stall_count",
+        "sentry.transactions.measurements.stall_total_time",
+        "sentry.transactions.measurements.stall_longest_time",
+        "sentry.transactions.measurements.stall_percentage",
+    ]
+)
+
+
+class _TransactionThreshold(TypedDict):
+    metric: Optional[str]  # Either 'duration' or 'lcp'
+    threshold: float
+
+
+class _TransactionThresholdConfig(TypedDict):
+    #: The project-wide threshold to apply (see `ProjectTransactionThreshold`)
+    projectThreshold: _TransactionThreshold
+    #: Transaction-specific overrides of the project-wide threshold
+    #: (see `ProjectTransactionThresholdOverride`)
+    transactionThresholds: Mapping[str, _TransactionThreshold]
+
+
+def _get_satisfaction_thresholds(project: Project) -> _TransactionThresholdConfig:
+    # Always start with the default threshold, so we do not have to maintain
+    # A separate default in Relay
+    project_threshold: _TransactionThreshold = {
+        "metric": DEFAULT_THRESHOLD["metric"],
+        "threshold": float(DEFAULT_THRESHOLD["threshold"]),
+    }
+
+    # Apply custom project threshold
+    for i, threshold in enumerate(project.projecttransactionthreshold_set.all()):
+        if i > 0:
+            logger.error("More than one transaction threshold exists for project")
+            break
+        project_threshold = {
+            "metric": TRANSACTION_THRESHOLD_KEYS[threshold.metric],
+            "threshold": threshold.threshold,
+        }
+
+    # Apply transaction-specific override
+    return {
+        "projectThreshold": project_threshold,
+        "transactionThresholds": {
+            threshold.transaction: {
+                "metric": TRANSACTION_THRESHOLD_KEYS[threshold.metric],
+                "threshold": threshold.threshold,
+            }
+            for threshold in project.projecttransactionthresholdoverride_set.all()
+        },
+    }
 
 
 def get_transaction_metrics_settings(
@@ -382,6 +453,7 @@ def get_transaction_metrics_settings(
     custom_tags = []
 
     if features.has("organizations:transaction-metrics-extraction", project.organization):
+        metrics.extend(sorted(TRANSACTION_METRICS))
         # TODO: for now let's extract all known measurements. we might want to
         # be more fine-grained in the future once we know which measurements we
         # really need (or how that can be dynamically determined)
@@ -397,7 +469,7 @@ def get_transaction_metrics_settings(
                     assert breakdown_config["type"] == "spanOperations"
 
                     for op_name in breakdown_config["matches"]:
-                        metrics.append(f"breakdown.{breakdown_name}.{op_name}")
+                        metrics.append(f"sentry.transactions.breakdowns.{breakdown_name}.{op_name}")
             except Exception:
                 capture_exception()
 
@@ -413,4 +485,5 @@ def get_transaction_metrics_settings(
     return {
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
+        "satisfactionThresholds": _get_satisfaction_thresholds(project),
     }

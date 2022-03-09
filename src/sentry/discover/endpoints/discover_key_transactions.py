@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import KeyTransactionBase
@@ -27,7 +28,7 @@ class KeyTransactionPermission(OrganizationPermission):
 class KeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -46,7 +47,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         return Response(serialize(list(key_teams)), status=200)
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """Create a Key Transaction"""
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -101,7 +102,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         return Response(serializer.errors, status=400)
 
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization) -> Response:
         """Remove a Key transaction for a user"""
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -133,7 +134,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 class KeyTransactionListEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

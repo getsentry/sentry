@@ -2,7 +2,7 @@ import {chart, doZoom, mockZoomRange} from 'sentry-test/charts';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import * as globalSelection from 'sentry/actionCreators/globalSelection';
+import * as globalSelection from 'sentry/actionCreators/pageFilters';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import WorldMapChart from 'sentry/components/charts/worldMapChart';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';

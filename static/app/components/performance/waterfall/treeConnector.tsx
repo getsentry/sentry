@@ -14,9 +14,9 @@ const TREE_TOGGLE_CONTAINER_WIDTH = 40;
 export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
-  top: -5px;
+  border-left: 2px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
   position: absolute;
+  top: 0;
 `;
 
 type TogglerTypes = OmitHtmlDivProps<{
@@ -25,41 +25,44 @@ type TogglerTypes = OmitHtmlDivProps<{
 }>;
 
 export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
-  height: ${p => (p.isLast ? ROW_HEIGHT / 2 : ROW_HEIGHT)}px;
+  height: ${p => (p.isLast ? ROW_HEIGHT / 2 + 1 : ROW_HEIGHT)}px;
   width: 100%;
-  border-left: ${p => {
-    return `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border}`;
-  }};
+  border-left: ${p => `2px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border};`};
   position: absolute;
   top: 0;
 
-  &:before {
-    content: '';
-    height: 1px;
-    border-bottom: ${p =>
-      `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border};`};
-    left: 0;
-    width: 100%;
-    position: absolute;
-    bottom: ${p => (p.isLast ? '0' : '50%')};
-  }
+  ${p =>
+    p.isLast
+      ? `
+      border-bottom: 2px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border};
+      border-bottom-left-radius: ${p.theme.borderRadius};`
+      : `
+      &:before {
+        content: '';
+        height: 2px;
+        left: -2px;
+        border-bottom: 2px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border};
+        width: calc(100% - 2px);
+        position: absolute;
+        bottom: calc(50% - 1px);
+      }`}
 
   &:after {
     content: '';
     background-color: ${p => p.theme.border};
-    border-radius: 4px;
-    height: 3px;
-    width: 3px;
+    border-radius: 50%;
+    height: 6px;
+    width: 6px;
     position: absolute;
     right: 0;
-    top: ${ROW_HEIGHT / 2 - 2}px;
+    top: ${ROW_HEIGHT / 2 - 3}px;
   }
 `;
 
 type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
-  isExpanded: boolean;
   disabled: boolean;
   errored: boolean;
+  isExpanded: boolean;
   isSpanGroupToggler?: boolean;
 }>;
 
@@ -76,6 +79,7 @@ export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`
   font-size: 10px;
   line-height: 0;
   z-index: 1;
+  box-shadow: ${p => p.theme.dropShadowLightest};
 
   ${p => getToggleTheme(p)}
 `;

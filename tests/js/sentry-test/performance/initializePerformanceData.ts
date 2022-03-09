@@ -9,12 +9,14 @@ import {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
-export function initializeData(settings?: {
-  query?: {};
+export interface initializeDataSettings {
   features?: string[];
-  projects?: Project[];
   project?: Project;
-}) {
+  projects?: Project[];
+  query?: {};
+}
+
+export function initializeData(settings?: initializeDataSettings) {
   const _defaultProject = TestStubs.Project();
   const _settings = {
     query: {},
@@ -23,21 +25,22 @@ export function initializeData(settings?: {
     project: _defaultProject,
     ...settings,
   };
-  const {query, features} = _settings;
-
-  const projects = [TestStubs.Project()];
-  const [project] = projects;
+  const {query, features, projects, project} = _settings;
 
   const organization = TestStubs.Organization({
     features,
     projects,
   });
-  const router = {
-    location: {
-      query: {
-        ...query,
-      },
+  const routerLocation: {query: {project?: number}} = {
+    query: {
+      ...query,
     },
+  };
+  if (settings?.project) {
+    routerLocation.query.project = project;
+  }
+  const router = {
+    location: routerLocation,
   };
   const initialData = initializeOrg({organization, projects, project, router});
   const location = initialData.router.location;
@@ -50,6 +53,7 @@ export const SAMPLE_SPANS = [
   {
     op: 'op1',
     group: 'aaaaaaaaaaaaaaaa',
+    description: 'span-1',
     examples: [
       {
         id: 'abababababababab',
@@ -61,21 +65,32 @@ export const SAMPLE_SPANS = [
         description: 'span-2',
         spans: [{id: 'acacac11'}, {id: 'acacac22'}],
       },
+      {
+        id: 'adadadadadadadad',
+        description: 'span-3',
+        spans: [{id: 'adadad11'}, {id: 'adadad22'}],
+      },
     ],
   },
   {
     op: 'op2',
     group: 'bbbbbbbbbbbbbbbb',
+    description: 'span-4',
     examples: [
       {
         id: 'bcbcbcbcbcbcbcbc',
-        description: 'span-3',
+        description: 'span-4',
         spans: [{id: 'bcbcbc11'}, {id: 'bcbcbc11'}],
       },
       {
         id: 'bdbdbdbdbdbdbdbd',
-        description: 'span-4',
+        description: 'span-5',
         spans: [{id: 'bdbdbd11'}, {id: 'bdbdbd22'}],
+      },
+      {
+        id: 'bebebebebebebebe',
+        description: 'span-6',
+        spans: [{id: 'bebebe11'}, {id: 'bebebe22'}],
       },
     ],
   },
@@ -86,15 +101,16 @@ type SpanOpt = {
 };
 
 type ExampleOpt = {
-  id: string;
   description: string;
+  id: string;
   spans: SpanOpt[];
 };
 
 type SuspectOpt = {
-  op: string;
-  group: string;
+  description: string;
   examples: ExampleOpt[];
+  group: string;
+  op: string;
 };
 
 function makeSpan(opt: SpanOpt): ExampleSpan {
@@ -119,33 +135,42 @@ function makeExample(opt: ExampleOpt): ExampleTransaction {
   };
 }
 
-function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
-  const {op, group, examples} = opt;
+export function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
+  const {op, group, description, examples} = opt;
   return {
-    projectId: 1,
-    project: 'bar',
-    transaction: 'transaction-1',
     op,
     group,
+    description,
     frequency: 1,
     count: 1,
     avgOccurrences: 1,
-    sumExclusiveTime: 1,
+    sumExclusiveTime: 5,
     p50ExclusiveTime: 1,
-    p75ExclusiveTime: 1,
-    p95ExclusiveTime: 1,
-    p99ExclusiveTime: 1,
+    p75ExclusiveTime: 2,
+    p95ExclusiveTime: 3,
+    p99ExclusiveTime: 4,
     examples: examples.map(makeExample),
   };
 }
 
-export function generateSuspectSpansResponse(opts?: {examples?: number}) {
-  const {examples} = opts ?? {};
+export function generateSuspectSpansResponse(opts?: {
+  examples?: number;
+  examplesOnly?: boolean;
+}) {
+  const {examples, examplesOnly} = opts ?? {};
   return SAMPLE_SPANS.map(sampleSpan => {
     const span = {...sampleSpan};
     if (defined(examples)) {
       span.examples = span.examples.slice(0, examples);
     }
-    return makeSuspectSpan(span);
+    const suspectSpans = makeSuspectSpan(span);
+    if (examplesOnly) {
+      return {
+        op: suspectSpans.op,
+        group: suspectSpans.group,
+        examples: suspectSpans.examples,
+      };
+    }
+    return suspectSpans;
   });
 }

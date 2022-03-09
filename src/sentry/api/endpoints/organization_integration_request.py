@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import integrations
@@ -8,6 +9,7 @@ from sentry.models import SentryApp
 from sentry.notifications.notifications.organization_request.integration_request import (
     IntegrationRequestNotification,
 )
+from sentry.notifications.utils.tasks import async_send_notification
 from sentry.plugins.base import plugins
 
 
@@ -37,7 +39,7 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
 
 
 class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Email the organization owners asking them to install an integration.
         ````````````````````````````````````````````````````````````````````
@@ -62,8 +64,14 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
         if not provider_name:
             return Response({"detail": f"Provider {provider_slug} not found"}, status=400)
 
-        IntegrationRequestNotification(
-            organization, requester, provider_type, provider_slug, provider_name, message_option
-        ).send()
+        async_send_notification(
+            IntegrationRequestNotification,
+            organization,
+            requester,
+            provider_type,
+            provider_slug,
+            provider_name,
+            message_option,
+        )
 
         return Response(status=201)

@@ -30,29 +30,29 @@ import {transformCrumbs} from './utils';
 type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options'];
 
 type FilterTypes = {
-  id: BreadcrumbType;
-  symbol: React.ReactElement;
-  isChecked: boolean;
   description: string;
+  id: BreadcrumbType;
+  isChecked: boolean;
   levels: BreadcrumbLevelType[];
+  symbol: React.ReactElement;
 };
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
-  event: Event;
-  organization: Organization;
-  type: string;
   data: {
     values: Array<RawCrumb>;
   };
+  event: Event;
+  organization: Organization;
+  type: string;
 };
 
 type State = {
-  searchTerm: string;
   breadcrumbs: Crumb[];
+  displayRelativeTime: boolean;
+  filterOptions: FilterOptions;
   filteredByFilter: Crumb[];
   filteredBySearch: Crumb[];
-  filterOptions: FilterOptions;
-  displayRelativeTime: boolean;
+  searchTerm: string;
   relativeTime?: string;
 };
 

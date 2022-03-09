@@ -35,8 +35,7 @@ describe('OrganizationSettingsForm', function () {
         access={new Set('org:admin')}
         initialData={TestStubs.Organization()}
         onSave={onSave}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const input = wrapper.find('input[name="name"]');
@@ -100,8 +99,7 @@ describe('OrganizationSettingsForm', function () {
         access={new Set('org:admin')}
         initialData={TestStubs.Organization()}
         onSave={onSave}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     wrapper

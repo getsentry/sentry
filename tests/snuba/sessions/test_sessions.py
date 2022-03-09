@@ -5,12 +5,44 @@ import pytz
 from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
+from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
+
+
+def parametrize_backend(cls):
+    """
+    hack to parametrize test-classes by backend. Ideally we'd move
+    over to pytest-style tests so we can use `pytest.mark.parametrize`, but
+    hopefully we won't have more than one backend in the future.
+    """
+
+    assert not hasattr(cls, "backend")
+    cls.backend = SessionsReleaseHealthBackend()
+
+    class MetricsTest(SessionMetricsTestCase, cls):
+        __doc__ = f"Repeat tests from {cls} with metrics"
+        backend = MetricsReleaseHealthBackend()
+
+    MetricsTest.__name__ = f"{cls.__name__}Metrics"
+
+    globals()[MetricsTest.__name__] = MetricsTest
+
+    class DuplexTest(cls):
+        __doc__ = f"Repeat tests from {cls} with duplex backend"
+        backend = DuplexReleaseHealthBackend(
+            metrics_start=datetime.now(pytz.utc) - timedelta(days=120)
+        )
+
+    DuplexTest.__name__ = f"{cls.__name__}Duplex"
+
+    globals()[DuplexTest.__name__] = DuplexTest
+
+    return cls
 
 
 def format_timestamp(dt):
@@ -23,13 +55,8 @@ def make_24h_stats(ts):
     return _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
 
 
-class ReleaseHealthMetricsTestCase(SessionMetricsTestCase):
-    backend = MetricsReleaseHealthBackend()
-
-
+@parametrize_backend
 class SnubaSessionsTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-
     def setUp(self):
         super().setUp()
         self.received = time.time()
@@ -444,21 +471,15 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             )
         )
 
-        if isinstance(self.backend, MetricsReleaseHealthBackend):
-            truncation = {"second": 0}
-        else:
-            truncation = {"minute": 0}
-
         expected_formatted_lower_bound = (
             datetime.utcfromtimestamp(self.session_started - 3600 * 2)
-            .replace(**truncation)
+            .replace(minute=0)
             .isoformat()[:19]
             + "Z"
         )
 
         expected_formatted_upper_bound = (
-            datetime.utcfromtimestamp(self.session_started).replace(**truncation).isoformat()[:19]
-            + "Z"
+            datetime.utcfromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
         )
 
         # Test for self.session_release
@@ -880,14 +901,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
 
 
-class SnubaSessionsTestMetrics(ReleaseHealthMetricsTestCase, SnubaSessionsTest):
-    """
-    Same tests as in SnunbaSessionsTest but using the Metrics backend
-    """
-
-    pass
-
-
+@parametrize_backend
 class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
     """
     TestClass that tests that `get_current_and_previous_crash_free_rates` returns the correct
@@ -906,8 +920,6 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         In the last 24h -> 0 Sessions -> None
         In the previous 24h (>24h & <48h) -> 4 Exited + 1 Crashed / 5 Total Sessions -> 80%
     """
-
-    backend = SessionsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()
@@ -987,7 +999,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             )
 
     def test_get_current_and_previous_crash_free_rates(self):
-        now = timezone.now()
+        now = timezone.now().replace(minute=15, second=23)
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
 
@@ -998,7 +1010,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             current_end=now,
             previous_start=last_48h_start,
             previous_end=last_24h_start,
-            rollup=86400,
+            rollup=3600,
         )
 
         assert data == {
@@ -1011,7 +1023,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
-        now = timezone.now()
+        now = timezone.now().replace(minute=15, second=23)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
         last_96h_start = now - 4 * 24 * timedelta(hours=1)
@@ -1023,7 +1035,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             current_end=last_48h_start,
             previous_start=last_96h_start,
             previous_end=last_72h_start,
-            rollup=86400,
+            rollup=3600,
         )
 
         assert data == {
@@ -1034,13 +1046,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
 
-class GetCrashFreeRateTestCaseMetrics(ReleaseHealthMetricsTestCase, GetCrashFreeRateTestCase):
-    """Repeat tests with metrics backend"""
-
-
+@parametrize_backend
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-
     def test_empty(self):
         # Test no errors when no session data
         org = self.create_organization()
@@ -1105,13 +1112,8 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
         )
 
 
-class GetProjectReleasesCountTestMetrics(ReleaseHealthMetricsTestCase, GetProjectReleasesCountTest):
-    """Repeat tests with metric backend"""
-
-
+@parametrize_backend
 class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-
     def run_test(self, expected, projects, releases, start=None, end=None):
         if not start:
             start = datetime.now() - timedelta(days=1)
@@ -1153,17 +1155,8 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
         self.run_test([release_1, release_2], [self.project, other_project], [release_1, release_2])
 
 
-class CheckReleasesHaveHealthDataTestMetrics(
-    ReleaseHealthMetricsTestCase, CheckReleasesHaveHealthDataTest
-):
-    """Repeat tests with metrics backend"""
-
-    pass
-
-
+@parametrize_backend
 class CheckNumberOfSessions(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-
     def setUp(self):
         super().setUp()
         self.dev_env = self.create_environment(name="development", project=self.project)
@@ -1381,15 +1374,15 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             end=self.now_dt,
         )
 
-        assert len(actual) == 2
+        assert set(actual) == {(p1.id, 3), (p2.id, 1)}
 
-        for t in [(p1.id, 3), (p2.id, 1)]:
-            assert t in actual
+        for eids in ([], None):
+            actual = self.backend.get_num_sessions_per_project(
+                project_ids=[self.project.id, self.another_project.id],
+                environment_ids=eids,
+                rollup=60,
+                start=self._2_h_ago_dt,
+                end=self.now_dt,
+            )
 
-
-class CheckNumberOfSessionsMetrics(ReleaseHealthMetricsTestCase, CheckNumberOfSessions):
-    """
-    Repeat CheckNumberOfSessions tests with the release backend
-    """
-
-    pass
+            assert set(actual) == {(p1.id, 4), (p2.id, 2)}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -10,17 +10,17 @@ type Props = {
   children: (
     openDialog: (urlParams?: {[key: string]: string}) => void
   ) => React.ReactNode;
-  provider: IntegrationProvider;
   onInstall: (data: IntegrationWithConfig) => void;
-  account?: string;
-  organization: Organization; // for analytics
+  organization: Organization;
+  provider: IntegrationProvider;
+  account?: string; // for analytics
   analyticsParams?: {
+    already_installed: boolean;
     view:
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
       | 'onboarding'
       | 'project_creation';
-    already_installed: boolean;
   };
   modalParams?: {[key: string]: string};
 };
@@ -85,7 +85,7 @@ export default class AddIntegration extends React.Component<Props> {
       query = {...query, ...modalParams};
     }
 
-    const installUrl = `${url}?${queryString.stringify(query)}`;
+    const installUrl = `${url}?${qs.stringify(query)}`;
     const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
 
     this.dialog = window.open(installUrl, name, opts);

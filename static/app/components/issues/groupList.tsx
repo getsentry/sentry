@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -39,12 +38,9 @@ const defaultProps = {
 
 type Props = WithRouterProps & {
   api: Client;
-  query: string;
-  orgId: string;
   endpointPath: string;
-  renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
-  queryParams?: Record<string, number | string | string[] | undefined | null>;
+  orgId: string;
+  query: string;
   customStatsPeriod?: TimePeriodType;
   onFetchSuccess?: (
     groupListState: State,
@@ -56,13 +52,16 @@ type Props = WithRouterProps & {
     ) => void
   ) => void;
   queryFilterDescription?: string;
+  queryParams?: Record<string, number | string | string[] | undefined | null>;
+  renderEmptyMessage?: () => React.ReactNode;
+  renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
 } & Partial<typeof defaultProps>;
 
 type State = {
-  loading: boolean;
   error: boolean;
   errorData: {detail: string} | null;
   groups: Group[];
+  loading: boolean;
   pageLinks: string | null;
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
@@ -115,7 +114,7 @@ class GroupList extends React.Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
   private _streamManager = new StreamManager(GroupStore);
 
-  fetchData = () => {
+  fetchData = async () => {
     GroupStore.loadInitialData([]);
     const {api, orgId, queryParams} = this.props;
     api.clear();
@@ -150,26 +149,27 @@ class GroupList extends React.Component<Props, State> {
       return;
     }
 
-    api.request(endpoint, {
-      success: (data, _, resp) => {
-        this._streamManager.push(data);
-        this.setState(
-          {
-            error: false,
-            errorData: null,
-            loading: false,
-            pageLinks: resp?.getResponseHeader('Link') ?? null,
-          },
-          () => {
-            this.props.onFetchSuccess?.(this.state, this.handleCursorChange);
-          }
-        );
-      },
-      error: err => {
-        Sentry.captureException(err);
-        this.setState({error: true, errorData: err.responseJSON, loading: false});
-      },
-    });
+    try {
+      const [data, , jqXHR] = await api.requestPromise(endpoint, {
+        includeAllArgs: true,
+      });
+
+      this._streamManager.push(data);
+
+      this.setState(
+        {
+          error: false,
+          errorData: null,
+          loading: false,
+          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+        },
+        () => {
+          this.props.onFetchSuccess?.(this.state, this.handleCursorChange);
+        }
+      );
+    } catch (error) {
+      this.setState({error: true, errorData: error.responseJSON, loading: false});
+    }
   };
 
   getGroupListEndpoint() {

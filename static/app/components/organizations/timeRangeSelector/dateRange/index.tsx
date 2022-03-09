@@ -34,7 +34,7 @@ function isRangeSelection(maybe: OnChangeProps): maybe is RangeSelection {
   return (maybe as RangeSelection).selection !== undefined;
 }
 
-type ChangeData = {start?: Date; end?: Date; hasDateRangeErrors?: boolean};
+type ChangeData = {end?: Date; hasDateRangeErrors?: boolean; start?: Date};
 
 const defaultProps = {
   showAbsolute: true,
@@ -46,7 +46,20 @@ const defaultProps = {
 };
 
 type Props = WithRouterProps & {
-  theme: Theme;
+  /**
+   * End date value for absolute date selector
+   */
+  end: Date | null;
+  /**
+   * Callback when value changes
+   */
+  onChange: (data: ChangeData) => void;
+
+  /**
+   * handle UTC checkbox change
+   */
+  onChangeUtc: () => void;
+
   /**
    * Just used for metrics
    */
@@ -57,20 +70,7 @@ type Props = WithRouterProps & {
    */
   start: Date | null;
 
-  /**
-   * End date value for absolute date selector
-   */
-  end: Date | null;
-
-  /**
-   * handle UTC checkbox change
-   */
-  onChangeUtc: () => void;
-
-  /**
-   * Callback when value changes
-   */
-  onChange: (data: ChangeData) => void;
+  theme: Theme;
 
   className?: string;
   /**
@@ -85,8 +85,8 @@ type Props = WithRouterProps & {
 } & Partial<typeof defaultProps>;
 
 type State = {
-  hasStartErrors: boolean;
   hasEndErrors: boolean;
+  hasStartErrors: boolean;
 };
 
 class BaseDateRange extends React.Component<Props, State> {

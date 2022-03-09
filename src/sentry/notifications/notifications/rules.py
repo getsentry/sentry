@@ -5,9 +5,10 @@ from typing import Any, Iterable, Mapping, MutableMapping
 
 import pytz
 
+from sentry import features
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
     get_commits,
     get_integration_link,
@@ -27,8 +28,9 @@ logger = logging.getLogger(__name__)
 
 class AlertRuleNotification(ProjectNotification):
     message_builder = "IssueNotificationMessageBuilder"
-    fine_tuning_key = "alerts"
+    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
     metrics_key = "issue_alert"
+    referrer_base = "alert-rule"
 
     def __init__(
         self,
@@ -85,6 +87,9 @@ class AlertRuleNotification(ProjectNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
+        alert_status_page_enabled = features.has(
+            "organizations:alert-rule-status-page", self.project.organization
+        )
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
@@ -97,6 +102,7 @@ class AlertRuleNotification(ProjectNotification):
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
             "has_alert_integration": has_alert_integration(self.project),
+            "alert_status_page_enabled": alert_status_page_enabled,
         }
 
         # if the organization has enabled enhanced privacy controls we don't send

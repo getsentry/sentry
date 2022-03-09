@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
@@ -54,7 +54,7 @@ class Monitors extends AsyncView<Props, State> {
     const {location, router} = this.props;
     router.push({
       pathname: location.pathname,
-      query: getParams({
+      query: normalizeDateTimeParams({
         ...(location.query || {}),
         query,
       }),
@@ -71,20 +71,19 @@ class Monitors extends AsyncView<Props, State> {
             <div>
               {t('Monitors')} <FeatureBadge type="beta" />
             </div>
-            <NewMonitorButton
+            <Button
               to={`/organizations/${organization.slug}/monitors/create/`}
               priority="primary"
-              size="xsmall"
             >
               {t('New Monitor')}
-            </NewMonitorButton>
+            </Button>
           </HeaderTitle>
-          <StyledSearchBar
-            query={decodeScalar(qs.parse(location.search)?.query, '')}
-            placeholder={t('Search for monitors.')}
-            onSearch={this.handleSearch}
-          />
         </PageHeader>
+        <StyledSearchBar
+          query={decodeScalar(qs.parse(location.search)?.query, '')}
+          placeholder={t('Search for monitors.')}
+          onSearch={this.handleSearch}
+        />
         <Panel>
           <PanelBody>
             {monitorList?.map(monitor => (
@@ -120,11 +119,7 @@ const HeaderTitle = styled(PageHeading)`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  flex: 1;
-`;
-
-const NewMonitorButton = styled(Button)`
-  margin-right: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 const PanelItemCentered = styled(PanelItem)`

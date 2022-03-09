@@ -11,6 +11,7 @@ import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
@@ -42,6 +43,10 @@ const slowList = [
   PerformanceWidgetSetting.SLOW_DB_OPS,
   PerformanceWidgetSetting.SLOW_BROWSER_OPS,
   PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+];
+
+// Most N Frames, low population, and count vs. duration so treated separately from 'slow' widgets.
+const framesList = [
   PerformanceWidgetSetting.MOST_SLOW_FRAMES,
   PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
 ];
@@ -49,21 +54,25 @@ const slowList = [
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions} = props;
+  const pageError = usePageError();
+
+  const field = props.fields[0];
 
   if (props.fields.length !== 1) {
     throw new Error(
       `Line chart list widget can only accept a single field (${props.fields})`
     );
   }
-  const field = props.fields[0];
 
   const isSlowestType = slowList.includes(props.chartSetting);
+  const isFramesType = framesList.includes(props.chartSetting);
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
       fields: field,
       component: provided => {
         const eventView = provided.eventView.clone();
+
         eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
@@ -80,13 +89,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
           eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
           eventView.query = mutableSearch.formatString();
-        } else if (isSlowestType) {
+        } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
           eventView.fields = [
             {field: 'transaction'},
             {field: 'project.id'},
             {field: 'epm()'},
-            {field},
+            ...props.fields.map(f => ({field: f})),
           ];
         } else {
           // Most related errors
@@ -164,6 +173,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               },
               'medium'
             )}
+            hideError
+            onError={pageError.setPageError}
           />
         );
       },
@@ -231,7 +242,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   orgSlug: props.organization.slug,
                   projectID: listItem['project.id'] as string,
                   transaction,
-                  query: props.eventView.getGlobalSelectionQuery(),
+                  query: props.eventView.getPageFiltersQuery(),
                   additionalQuery,
                 });
 
@@ -243,13 +254,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   slowest: getPerformanceDuration(listItem[fieldString] as number),
                 };
                 const rightValue =
-                  valueMap[isSlowestType ? 'slowest' : props.chartSetting];
+                  valueMap[isSlowestType ? 'slowest' : props.chartSetting] ??
+                  listItem[fieldString];
 
                 switch (props.chartSetting) {
                   case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget} className="truncate">
+                        <GrowLink to={transactionTarget}>
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>
@@ -270,7 +282,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget} className="truncate">
+                        <GrowLink to={transactionTarget}>
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>
@@ -285,9 +297,27 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       </Fragment>
                     );
                   default:
+                    if (typeof rightValue === 'number') {
+                      return (
+                        <Fragment>
+                          <GrowLink to={transactionTarget}>
+                            <Truncate value={transaction} maxLength={40} />
+                          </GrowLink>
+                          <RightAlignedCell>
+                            <Count value={rightValue} />
+                          </RightAlignedCell>
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        </Fragment>
+                      );
+                    }
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget} className="truncate">
+                        <GrowLink to={transactionTarget}>
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>{rightValue}</RightAlignedCell>

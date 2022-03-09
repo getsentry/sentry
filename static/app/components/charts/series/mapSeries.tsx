@@ -5,10 +5,11 @@ import type {MapSeriesOption} from 'echarts';
 export default function MapSeries(props: MapSeriesOption = {map: ''}): MapSeriesOption {
   return {
     roam: true,
-    itemStyle: {
-      emphasis: {label: {show: false}},
-    },
     ...props,
+    emphasis: {
+      label: {show: false},
+      ...props.emphasis,
+    },
     type: 'map',
-  } as MapSeriesOption;
+  };
 }

@@ -10,11 +10,11 @@ type IncidentImpact = SentryServiceStatus['indicator'];
  */
 type StatuspageIncident = {
   id: string;
-  name: string;
-  status: string;
   impact: IncidentImpact;
-  shortlink: string;
   incident_updates: {body: string}[];
+  name: string;
+  shortlink: string;
+  status: string;
 };
 
 function getIncidentsFromIncidentResponse(statuspageIncidents: StatuspageIncident[]): {
@@ -46,14 +46,21 @@ function getIncidentsFromIncidentResponse(statuspageIncidents: StatuspageInciden
 
 export async function loadIncidents(): Promise<SentryServiceStatus | null> {
   const cfg = ConfigStore.get('statuspage');
+  let response: Response | undefined = undefined;
   if (!cfg || !cfg.id) {
     return null;
   }
-  const response = await fetch(
-    `https://${cfg.id}.${cfg.api_host}/api/v2/incidents/unresolved.json`
-  );
+  try {
+    response = await fetch(
+      `https://${cfg.id}.${cfg.api_host}/api/v2/incidents/unresolved.json`
+    );
+  } catch (err) {
+    // No point in capturing this as we can't make statuspage come back.
+    return null;
+  }
 
   if (!response.ok) {
+    // Sometimes statuspage responds with a 500
     return null;
   }
 

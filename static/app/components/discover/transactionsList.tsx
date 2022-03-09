@@ -15,7 +15,6 @@ import {Organization} from 'sentry/types';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
-import BaselineQuery from 'sentry/utils/performance/baseline/baselineQuery';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -33,6 +32,10 @@ const DEFAULT_TRANSACTION_LIMIT = 5;
 
 export type DropdownOption = {
   /**
+   * The label to display in the dropdown
+   */
+  label: string;
+  /**
    * The sort to apply to the eventView when this is selected.
    */
   sort: Sort;
@@ -41,54 +44,49 @@ export type DropdownOption = {
    */
   value: string;
   /**
-   * The label to display in the dropdown
+   * override the eventView query
    */
-  label: string;
+  query?: [string, string][];
   /**
    * Included if the option is for a trend
    */
   trendType?: TrendChangeType;
-  /**
-   * override the eventView query
-   */
-  query?: [string, string][];
 };
 
 type Props = {
-  location: Location;
+  /**
+   * The name of the url parameter that contains the cursor info.
+   */
+  cursorName: string;
   eventView: EventView;
-  trendView?: TrendView;
-  organization: Organization;
-  /**
-   * The currently selected option on the dropdown.
-   */
-  selected: DropdownOption;
-  /**
-   * The available options for the dropdown.
-   */
-  options: DropdownOption[];
   /**
    * The callback for when the dropdown option changes.
    */
   handleDropdownChange: (k: string) => void;
   /**
-   * The callback to generate a cell action handler for a column
-   */
-  handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
-  /**
-   * The name of the url parameter that contains the cursor info.
-   */
-  cursorName: string;
-  /**
    * The limit to the number of results to fetch.
    */
   limit: number;
+  location: Location;
   /**
-   * A list of preferred table headers to use over the field names.
+   * The available options for the dropdown.
    */
-  titles?: string[];
+  options: DropdownOption[];
+  organization: Organization;
+  /**
+   * The currently selected option on the dropdown.
+   */
+  selected: DropdownOption;
+  breakdown?: SpanOperationBreakdownFilter;
+  /**
+   * Show a loading indicator instead of the table, used for transaction summary p95.
+   */
+  forceLoading?: boolean;
+  /**
+   * Optional callback function to generate an alternative EventView object to be used
+   * for generating the Discover query.
+   */
+  generateDiscoverEventView?: () => EventView;
   /**
    * A map of callbacks to generate a link for a column based on the title.
    */
@@ -100,34 +98,27 @@ type Props = {
       query: Query
     ) => LocationDescriptor
   >;
+  generatePerformanceTransactionEventsView?: () => EventView;
   /**
-   * The name of the transaction to find a baseline for.
+   * The callback to generate a cell action handler for a column
    */
-  baseline?: string;
-  /**
-   * The callback for when a baseline cell is clicked.
-   */
-  handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
-  /**
-   * The callback for when Open in Discover is clicked.
-   */
-  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  handleCellAction?: (
+    c: TableColumn<React.ReactText>
+  ) => (a: Actions, v: React.ReactText) => void;
   /**
    * The callback for when View All Events is clicked.
    */
   handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
   /**
-   * Show a loading indicator instead of the table, used for transaction summary p95.
+   * The callback for when Open in Discover is clicked.
    */
-  forceLoading?: boolean;
-  /**
-   * Optional callback function to generate an alternative EventView object to be used
-   * for generating the Discover query.
-   */
-  generateDiscoverEventView?: () => EventView;
-  generatePerformanceTransactionEventsView?: () => EventView;
+  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
   showTransactions?: TransactionFilterOptions;
-  breakdown?: SpanOperationBreakdownFilter;
+  /**
+   * A list of preferred table headers to use over the field names.
+   */
+  titles?: string[];
+  trendView?: TrendView;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -186,13 +177,12 @@ class TransactionsList extends React.Component<Props> {
       <React.Fragment>
         <div>
           <DropdownControl
-            data-test-id="filter-transactions"
             button={({isOpen, getActorProps}) => (
               <StyledDropdownButton
                 {...getActorProps()}
                 isOpen={isOpen}
                 prefix={t('Filter')}
-                size="small"
+                size="xsmall"
               >
                 {selected.label}
               </StyledDropdownButton>
@@ -223,7 +213,7 @@ class TransactionsList extends React.Component<Props> {
                     breakdown,
                   }
                 )}
-                size="small"
+                size="xsmall"
                 data-test-id="transaction-events-open"
               >
                 {t('View All Events')}
@@ -236,7 +226,7 @@ class TransactionsList extends React.Component<Props> {
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
                   organization.slug
                 )}
-                size="small"
+                size="xsmall"
                 data-test-id="discover-open"
               >
                 {t('Open in Discover')}
@@ -256,7 +246,6 @@ class TransactionsList extends React.Component<Props> {
       limit,
       titles,
       generateLink,
-      baseline,
       forceLoading,
     } = this.props;
 
@@ -264,20 +253,14 @@ class TransactionsList extends React.Component<Props> {
     const columnOrder = eventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
 
-    const baselineTransactionName = organization.features.includes(
-      'transaction-comparison'
-    )
-      ? baseline ?? null
-      : null;
-
-    let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => (
+    const tableRenderer = ({isLoading, pageLinks, tableData}) => (
       <React.Fragment>
         <Header>
           {this.renderHeader()}
           <StyledPagination
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
-            size="small"
+            size="xsmall"
           />
         </Header>
         <TransactionsTable
@@ -286,11 +269,9 @@ class TransactionsList extends React.Component<Props> {
           location={location}
           isLoading={isLoading}
           tableData={tableData}
-          baselineData={baselineData ?? null}
           columnOrder={columnOrder}
           titles={titles}
           generateLink={generateLink}
-          baselineTransactionName={baselineTransactionName}
           handleCellAction={handleCellAction}
         />
       </React.Fragment>
@@ -301,24 +282,7 @@ class TransactionsList extends React.Component<Props> {
         isLoading: true,
         pageLinks: null,
         tableData: null,
-        baselineData: null,
       });
-    }
-
-    if (baselineTransactionName) {
-      const orgTableRenderer = tableRenderer;
-      tableRenderer = ({isLoading, pageLinks, tableData}) => (
-        <BaselineQuery eventView={eventView} orgSlug={organization.slug}>
-          {baselineQueryProps => {
-            return orgTableRenderer({
-              isLoading: isLoading || baselineQueryProps.isLoading,
-              pageLinks,
-              tableData,
-              baselineData: baselineQueryProps.results,
-            });
-          }}
-        </BaselineQuery>
-      );
     }
 
     return (
@@ -373,7 +337,6 @@ class TransactionsList extends React.Component<Props> {
               location={location}
               isLoading={isLoading}
               tableData={trendsData}
-              baselineData={null}
               titles={['transaction', 'percentage', 'difference']}
               columnOrder={decodeColumnOrder([
                 {field: 'transaction'},
@@ -381,7 +344,6 @@ class TransactionsList extends React.Component<Props> {
                 {field: 'trend_difference()'},
               ])}
               generateLink={generateLink}
-              baselineTransactionName={null}
             />
           </React.Fragment>
         )}
@@ -407,6 +369,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
+  align-items: center;
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`

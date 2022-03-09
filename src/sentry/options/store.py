@@ -45,7 +45,7 @@ class OptionsStore:
 
     @cached_property
     def model(self):
-        from sentry.models.option import Option
+        from sentry.models.options import Option
 
         return Option
 

@@ -1,12 +1,14 @@
 from django.http import Http404
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import OrganizationIntegration, Project, Repository, RepositoryProjectPathConfig
-from sentry.utils.compat import map
 
 
 def gen_path_regex_field():
@@ -118,25 +120,20 @@ class OrganizationIntegrationMixin:
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Get the list of repository project path configs
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
-        :queryparam int integrationId: the optional integration id.
-        :queryparam int projectId: the optional project id.
+        :qparam int integrationId: the optional integration id.
+        :qparam int project: Optional. Pass "-1" to filter to 'all projects user has access to'. Omit to filter for 'all projects user is a member of'.
+        :qparam int per_page: Pagination size.
+        :qparam string cursor: Pagination cursor.
         :auth: required
         """
 
         integration_id = request.GET.get("integrationId")
-        project_id = request.GET.get("projectId")
-
-        if not integration_id and not project_id:
-            return self.respond(
-                {"detail": 'Missing valid "projectId" or "integrationId"'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         queryset = RepositoryProjectPathConfig.objects.all()
 
@@ -144,18 +141,19 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             # get_organization_integration will raise a 404 if no org_integration is found
             org_integration = self.get_organization_integration(organization, integration_id)
             queryset = queryset.filter(organization_integration=org_integration)
+        else:
+            # Filter by project
+            projects = self.get_projects(request, organization)
+            queryset = queryset.filter(project__in=projects)
 
-        if project_id:
-            # Check that the project is apart of the organization. get_project will raise 404 if project not found.
-            project = self.get_project(organization, project_id)
-            queryset = queryset.filter(project=project)
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            on_results=lambda x: serialize(x, request.user),
+            paginator_cls=OffsetPaginator,
+        )
 
-        # front end handles ordering
-        # TODO: Add pagination
-        data = map(lambda x: serialize(x, request.user), queryset)
-        return self.respond(data)
-
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create a new repository project path config
         ``````````````````

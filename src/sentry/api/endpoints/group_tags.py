@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -7,7 +8,7 @@ from sentry.api.serializers import serialize
 
 
 class GroupTagsEndpoint(GroupEndpoint):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
 
         # optional queryparam `key` can be used to get results
         # only for specific keys.

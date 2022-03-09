@@ -1,5 +1,8 @@
 from collections import OrderedDict
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry import tsdb
 from sentry.api.base import StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
@@ -8,7 +11,7 @@ from sentry.models import ServiceHook
 
 
 class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
-    def get(self, request, project, hook_id):
+    def get(self, request: Request, project, hook_id) -> Response:
         try:
             hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:

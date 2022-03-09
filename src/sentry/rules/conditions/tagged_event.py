@@ -1,38 +1,12 @@
-from collections import OrderedDict
+from __future__ import annotations
+
+from typing import Any
 
 from django import forms
 
 from sentry import tagstore
+from sentry.rules import MATCH_CHOICES, MatchType
 from sentry.rules.conditions.base import EventCondition
-
-
-class MatchType:
-    EQUAL = "eq"
-    NOT_EQUAL = "ne"
-    STARTS_WITH = "sw"
-    NOT_STARTS_WITH = "nsw"
-    ENDS_WITH = "ew"
-    NOT_ENDS_WITH = "new"
-    CONTAINS = "co"
-    NOT_CONTAINS = "nc"
-    IS_SET = "is"
-    NOT_SET = "ns"
-
-
-MATCH_CHOICES = OrderedDict(
-    [
-        (MatchType.EQUAL, "equals"),
-        (MatchType.NOT_EQUAL, "does not equal"),
-        (MatchType.STARTS_WITH, "starts with"),
-        (MatchType.NOT_STARTS_WITH, "does not start with"),
-        (MatchType.ENDS_WITH, "ends with"),
-        (MatchType.NOT_ENDS_WITH, "does not end with"),
-        (MatchType.CONTAINS, "contains"),
-        (MatchType.NOT_CONTAINS, "does not contain"),
-        (MatchType.IS_SET, "is set"),
-        (MatchType.NOT_SET, "is not set"),
-    ]
-)
 
 
 class TaggedEventForm(forms.Form):
@@ -40,7 +14,7 @@ class TaggedEventForm(forms.Form):
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()), widget=forms.Select())
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         super().clean()
 
         match = self.cleaned_data.get("match")

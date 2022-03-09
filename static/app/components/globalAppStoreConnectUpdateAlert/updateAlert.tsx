@@ -9,10 +9,10 @@ import {Organization, Project} from 'sentry/types';
 
 type Props = {
   organization: Organization;
-  project?: Project;
   Wrapper?: React.ComponentType;
-  isCompact?: boolean;
   className?: string;
+  isCompact?: boolean;
+  project?: Project;
 };
 
 function UpdateAlert({Wrapper, project, className}: Props) {
@@ -52,7 +52,7 @@ export default UpdateAlert;
 
 const Notices = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   margin-bottom: ${space(3)};
 `;
 
@@ -63,5 +63,5 @@ const NoMarginBottomAlert = styled(Alert)`
 const AlertContent = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;

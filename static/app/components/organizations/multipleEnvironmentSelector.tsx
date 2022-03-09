@@ -8,14 +8,17 @@ import {Client} from 'sentry/api';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
-import GlobalSelectionHeaderRow from 'sentry/components/globalSelectionHeaderRow';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import Highlight from 'sentry/components/highlight';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
+import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -31,10 +34,7 @@ type DefaultProps = {
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  projects: Project[];
   loadingProjects: boolean;
-  selectedProjects: number[];
   /**
    * Handler whenever selector values are changed
    */
@@ -42,7 +42,18 @@ type Props = WithRouterProps & {
   /**
    * When menu is closed
    */
-  onUpdate: () => void;
+  onUpdate: (selectedEnvs?: string[]) => void;
+  organization: Organization;
+  projects: Project[];
+  selectedProjects: number[];
+  customDropdownButton?: (config: {
+    getActorProps: GetActorPropsFn;
+    isOpen: boolean;
+    summary: string;
+  }) => React.ReactElement;
+  customLoadingIndicator?: React.ReactNode;
+  detached?: boolean;
+  forceEnvironment?: string;
 } & DefaultProps;
 
 type State = {
@@ -84,9 +95,11 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
   /**
    * Checks if "onUpdate" is callable. Only calls if there are changes
+   * @param selectedEnvs optional parameter passed to onUpdate representing
+   * an array containing a directly selected environment (not multi-selected)
    */
-  doUpdate = () => {
-    this.setState({hasChanges: false}, this.props.onUpdate);
+  doUpdate = (selectedEnvs?: string[]) => {
+    this.setState({hasChanges: false}, () => this.props.onUpdate(selectedEnvs));
   };
 
   /**
@@ -171,13 +184,18 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       org_id: parseInt(this.props.organization.id, 10),
     });
 
-    this.setState(() => {
-      this.doChange([environment]);
+    const envSelection = [environment];
 
-      return {
-        selectedEnvs: new Set([environment]),
-      };
-    }, this.doUpdate);
+    this.setState(
+      () => {
+        this.doChange(envSelection);
+
+        return {
+          selectedEnvs: new Set(envSelection),
+        };
+      },
+      () => this.doUpdate(envSelection)
+    );
   };
 
   /**
@@ -215,26 +233,47 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {value, loadingProjects} = this.props;
+    const {
+      value,
+      loadingProjects,
+      customDropdownButton,
+      customLoadingIndicator,
+      forceEnvironment,
+      detached,
+    } = this.props;
     const environments = this.getEnvironments();
+
+    const hasNewPageFilters =
+      this.props.organization.features.includes('selection-filters-v2');
 
     const validatedValue = value.filter(env => environments.includes(env));
     const summary = validatedValue.length
       ? `${validatedValue.join(', ')}`
       : t('All Environments');
 
-    return loadingProjects ? (
+    return forceEnvironment !== undefined ? (
       <StyledHeaderItem
         data-test-id="global-header-environment-selector"
         icon={<IconWindow />}
-        loading={loadingProjects}
-        hasChanges={false}
-        hasSelected={false}
         isOpen={false}
-        locked={false}
+        locked
       >
-        {t('Loading\u2026')}
+        {forceEnvironment ? forceEnvironment : t('All Environments')}
       </StyledHeaderItem>
+    ) : loadingProjects ? (
+      customLoadingIndicator ?? (
+        <StyledHeaderItem
+          data-test-id="global-header-environment-selector"
+          icon={<IconWindow />}
+          loading={loadingProjects}
+          hasChanges={false}
+          hasSelected={false}
+          isOpen={false}
+          locked={false}
+        >
+          {t('Loading\u2026')}
+        </StyledHeaderItem>
+      )
     ) : (
       <ClassNames>
         {({css}) => (
@@ -243,6 +282,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
             allowActorToggle
             closeOnSelect
             blendCorner={false}
+            detached={detached}
             searchPlaceholder={t('Filter environments')}
             onSelect={this.handleSelect}
             onClose={this.handleClose}
@@ -250,13 +290,17 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
             rootClassName={css`
               position: relative;
               display: flex;
-              left: -1px;
             `}
             inputProps={{style: {padding: 8, paddingLeft: 14}}}
             emptyMessage={t('You have no environments')}
             noResultsMessage={t('No environments found')}
             virtualizedHeight={theme.headerSelectorRowHeight}
             emptyHidesInput
+            inputActions={
+              hasNewPageFilters ? (
+                <StyledPinButton size="xsmall" filter="environments" />
+              ) : undefined
+            }
             menuFooter={({actions}) =>
               this.state.hasChanges ? (
                 <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
@@ -275,21 +319,25 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
               ),
             }))}
           >
-            {({isOpen, getActorProps}) => (
-              <StyledHeaderItem
-                data-test-id="global-header-environment-selector"
-                icon={<IconWindow />}
-                isOpen={isOpen}
-                hasSelected={value && !!value.length}
-                onClear={this.handleClear}
-                hasChanges={false}
-                locked={false}
-                loading={false}
-                {...getActorProps()}
-              >
-                {summary}
-              </StyledHeaderItem>
-            )}
+            {({isOpen, getActorProps}) =>
+              customDropdownButton ? (
+                customDropdownButton({isOpen, getActorProps, summary})
+              ) : (
+                <StyledHeaderItem
+                  data-test-id="global-header-environment-selector"
+                  icon={<IconWindow />}
+                  isOpen={isOpen}
+                  hasSelected={value && !!value.length}
+                  onClear={this.handleClear}
+                  hasChanges={false}
+                  locked={false}
+                  loading={false}
+                  {...getActorProps()}
+                >
+                  {summary}
+                </StyledHeaderItem>
+              )
+            }
           </StyledDropdownAutoComplete>
         )}
       </ClassNames>
@@ -301,6 +349,7 @@ export default withApi(withRouter(MultipleEnvironmentSelector));
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
+  width: 100%;
 `;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
@@ -308,10 +357,17 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   border: 1px solid ${p => p.theme.border};
   position: absolute;
   top: 100%;
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: ${p => p.theme.borderRadiusBottom};
-  margin-top: 0;
-  min-width: 100%;
+
+  ${p =>
+    !p.detached &&
+    `
+    margin-top: 0;
+    border-radius: ${p.theme.borderRadiusBottom};
+  `};
+`;
+
+const StyledPinButton = styled(PageFilterPinButton)`
+  margin: 0 ${space(1)};
 `;
 
 type EnvironmentSelectorItemProps = {
@@ -335,13 +391,13 @@ class EnvironmentSelectorItem extends React.PureComponent<EnvironmentSelectorIte
   render() {
     const {environment, inputValue, isChecked} = this.props;
     return (
-      <GlobalSelectionHeaderRow
+      <PageFilterRow
         data-test-id={`environment-${environment}`}
         checked={isChecked}
         onCheckClick={this.handleClick}
       >
         <Highlight text={inputValue}>{environment}</Highlight>
-      </GlobalSelectionHeaderRow>
+      </PageFilterRow>
     );
   }
 }

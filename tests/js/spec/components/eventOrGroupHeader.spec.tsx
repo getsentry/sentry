@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
-import {getByTextContent} from 'sentry-test/utils';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'sentry/types';
@@ -32,15 +32,14 @@ const event = TestStubs.Event({
 });
 
 describe('EventOrGroupHeader', function () {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
       const {container} = mountWithTheme(
-        <EventOrGroupHeader organization={organization} data={group} {...router} />,
-        {context: routerContext}
+        <EventOrGroupHeader organization={organization} data={group} {...router} />
       );
 
       expect(container).toSnapshot();
@@ -55,8 +54,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(container).toSnapshot();
@@ -75,8 +73,7 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(container).toSnapshot();
@@ -91,8 +88,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(screen.getByText('metadata value')).toBeInTheDocument();
@@ -111,11 +107,12 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
-      expect(getByTextContent('in path/to/file.swift')).toBeInTheDocument();
+      expect(
+        screen.getByText(textWithMarkupMatcher('in path/to/file.swift'))
+      ).toBeInTheDocument();
     });
   });
 
@@ -129,8 +126,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
@@ -144,8 +140,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
@@ -163,8 +158,7 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
@@ -184,8 +178,7 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });

@@ -49,8 +49,7 @@ describe('OrganizationDetails', function () {
         includeSidebar={false}
       >
         <div />
-      </OrganizationDetails>,
-      {context: TestStubs.routerContext()}
+      </OrganizationDetails>
     );
 
     expect(getTeamsMock).toHaveBeenCalled();
@@ -73,8 +72,7 @@ describe('OrganizationDetails', function () {
       mountWithTheme(
         <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
           <div />
-        </OrganizationDetails>,
-        {context: TestStubs.routerContext()}
+        </OrganizationDetails>
       );
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
@@ -102,8 +100,7 @@ describe('OrganizationDetails', function () {
       mountWithTheme(
         <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
           <div />
-        </OrganizationDetails>,
-        {context: TestStubs.routerContext()}
+        </OrganizationDetails>
       );
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
@@ -132,8 +129,7 @@ describe('OrganizationDetails', function () {
     mountWithTheme(
       <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
         <div />
-      </OrganizationDetails>,
-      {context: TestStubs.routerContext()}
+      </OrganizationDetails>
     );
 
     const inProgress = await screen.findByText(

@@ -82,8 +82,8 @@ const FilterToken = ({
   filter,
   cursor,
 }: {
-  filter: TokenResult<Token.Filter>;
   cursor: number;
+  filter: TokenResult<Token.Filter>;
 }) => {
   const isActive = isWithinToken(filter, cursor);
 
@@ -168,8 +168,8 @@ const ListToken = ({
   token,
   cursor,
 }: {
-  token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
   cursor: number;
+  token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
 }) => (
   <InList>
     {token.items.map(({value, separator}) => [

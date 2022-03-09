@@ -5,13 +5,13 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type Props = {
-  id: number;
   details: ThreadInfo;
+  id: number;
 };
 
 type ThreadInfo = {
-  label?: string;
   filename?: string;
+  label?: string;
 };
 
 const SelectedOption = ({id, details}: Props) => (

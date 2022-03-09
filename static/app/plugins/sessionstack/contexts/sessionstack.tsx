@@ -11,8 +11,8 @@ type Props = {
 
 type State = {
   showIframe: boolean;
-  width?: number;
   height?: number;
+  width?: number;
 };
 
 class SessionStackContextType extends Component<Props, State> {

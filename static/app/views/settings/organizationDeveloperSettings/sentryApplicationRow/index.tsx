@@ -5,8 +5,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
 import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPublishRequestModal';
 import {PanelItem} from 'sentry/components/panels';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 
@@ -14,8 +14,8 @@ import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 
 type Props = {
   app: SentryApp;
-  organization: Organization;
   onRemoveApp: (app: SentryApp) => void;
+  organization: Organization;
 };
 
 export default class SentryApplicationRow extends PureComponent<Props> {
@@ -47,7 +47,7 @@ export default class SentryApplicationRow extends PureComponent<Props> {
     return (
       <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
-          <PluginIcon size={36} pluginId={app.slug} />
+          <SentryAppIcon sentryApp={app} size={36} />
           <SentryAppBox>
             <SentryAppName hideStatus={this.hideStatus()}>
               <Link to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}>

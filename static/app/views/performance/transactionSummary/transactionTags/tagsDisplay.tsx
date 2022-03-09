@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
@@ -28,7 +28,7 @@ type Props = {
 
 const HISTOGRAM_TAG_KEY_LIMIT = 8;
 const HISTOGRAM_BUCKET_LIMIT = 40;
-const TAG_PAGE_TABLE_CURSOR = 'tableCursor';
+export const TAG_PAGE_TABLE_CURSOR = 'tableCursor';
 
 export type TagsTableColumnKeys =
   | 'key'
@@ -134,9 +134,9 @@ const TagsDisplay = (props: Props) => {
   );
 
   return (
-    <React.Fragment>
+    <Fragment>
       {tagKey ? (
-        <React.Fragment>
+        <Fragment>
           <TagKeyHistogramQuery
             eventView={eventView}
             orgSlug={organization.slug}
@@ -186,9 +186,9 @@ const TagsDisplay = (props: Props) => {
               );
             }}
           </SegmentExplorerQuery>
-        </React.Fragment>
+        </Fragment>
       ) : (
-        <React.Fragment>
+        <Fragment>
           <TagsHeatMap
             {...props}
             aggregateColumn={aggregateColumn}
@@ -202,9 +202,9 @@ const TagsDisplay = (props: Props) => {
             tableData={null}
             isLoading={false}
           />
-        </React.Fragment>
+        </Fragment>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

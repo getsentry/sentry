@@ -1,3 +1,5 @@
 import Reflux from 'reflux';
 
-export default Reflux.createActions(['mapTitle', 'trimMappings']);
+const SettingsBreadcrumbActions = Reflux.createActions(['mapTitle', 'trimMappings']);
+
+export default SettingsBreadcrumbActions;

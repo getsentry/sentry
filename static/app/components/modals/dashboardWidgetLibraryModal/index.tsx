@@ -3,35 +3,28 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps, openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
-import Tag from 'sentry/components/tagDeprecated';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  Widget,
-} from 'sentry/views/dashboardsV2/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
+import {DashboardDetails, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
 import ButtonBar from '../../buttonBar';
 
 import DashboardWidgetLibraryTab from './libraryTab';
+import {TAB, TabsButtonBar} from './tabsButtonBar';
 
 export type DashboardWidgetLibraryModalOptions = {
-  organization: Organization;
   dashboard: DashboardDetails;
-  initialSelectedWidgets?: WidgetTemplate[];
-  customWidget?: Widget;
   onAddWidget: (widgets: Widget[]) => void;
+  organization: Organization;
+  customWidget?: Widget;
+  initialSelectedWidgets?: WidgetTemplate[];
 };
-
-export enum TAB {
-  Library = 'library',
-  Custom = 'custom',
-}
 
 type Props = ModalRenderProps & DashboardWidgetLibraryModalOptions;
 
@@ -52,33 +45,26 @@ function DashboardWidgetLibraryModal({
   const [errored, setErrored] = useState(false);
 
   function handleSubmit() {
-    onAddWidget([...dashboard.widgets, ...selectedWidgets]);
+    onAddWidget([...dashboard.widgets, ...selectedWidgets.map(assignTempId)]);
     closeModal();
   }
+
+  const overLimit = dashboard.widgets.length + selectedWidgets.length > MAX_WIDGETS;
 
   return (
     <React.Fragment>
       <Header closeButton>
-        <h4>{t('Add Widget')}</h4>
+        <h4>{t('Add Widget(s)')}</h4>
       </Header>
       <Body>
-        <StyledButtonBar>
-          <Button
-            barId={TAB.Custom}
-            onClick={() => {
-              openAddDashboardWidgetModal({
-                organization,
-                dashboard,
-                selectedWidgets,
-                widget: customWidget,
-                source: DashboardWidgetSource.LIBRARY,
-                onAddLibraryWidget: onAddWidget,
-              });
-            }}
-          >
-            {t('Custom')}
-          </Button>
-        </StyledButtonBar>
+        <TabsButtonBar
+          activeTab={TAB.Library}
+          organization={organization}
+          dashboard={dashboard}
+          selectedWidgets={selectedWidgets}
+          customWidget={customWidget}
+          onAddWidget={onAddWidget}
+        />
         <DashboardWidgetLibraryTab
           selectedWidgets={selectedWidgets}
           errored={errored}
@@ -87,34 +73,56 @@ function DashboardWidgetLibraryModal({
         />
       </Body>
       <Footer>
-        <FooterButtonbar gap={1}>
+        <ButtonBar gap={1}>
           <Button
             external
-            href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+            href="https://docs.sentry.io/product/dashboards/widget-library/"
           >
             {t('Read the docs')}
           </Button>
-          <div>
-            <SelectedBadge data-test-id="selected-badge">
-              {`${selectedWidgets.length} Selected`}
-            </SelectedBadge>
-            <Button
+          <Tooltip
+            title={tct(
+              'Exceeds max widgets ([maxWidgets]) per dashboard. Plese unselect [unselectWidgets] widget(s).',
+              {
+                maxWidgets: MAX_WIDGETS,
+                unselectWidgets:
+                  dashboard.widgets.length + selectedWidgets.length - MAX_WIDGETS,
+              }
+            )}
+            disabled={!!!overLimit}
+          >
+            <StyledButton
               data-test-id="confirm-widgets"
               priority="primary"
+              disabled={overLimit}
               type="button"
-              onClick={(event: React.FormEvent) => {
-                event.preventDefault();
+              onClick={() => {
                 if (!!!selectedWidgets.length) {
                   setErrored(true);
                   return;
                 }
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_library.add', {
+                  organization,
+                  num_widgets: selectedWidgets.length,
+                });
+                selectedWidgets.forEach(selectedWidget => {
+                  trackAdvancedAnalyticsEvent(
+                    'dashboards_views.widget_library.add_widget',
+                    {
+                      organization,
+                      title: selectedWidget.title,
+                    }
+                  );
+                });
                 handleSubmit();
               }}
             >
-              {t('Confirm')}
-            </Button>
-          </div>
-        </FooterButtonbar>
+              {selectedWidgets.length
+                ? tct('Add ([numWidgets])', {numWidgets: selectedWidgets.length})
+                : t('Add')}
+            </StyledButton>
+          </Tooltip>
+        </ButtonBar>
       </Footer>
     </React.Fragment>
   );
@@ -126,22 +134,8 @@ export const modalCss = css`
   margin: 70px auto;
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
-  margin-bottom: ${space(1)};
-`;
-
-const FooterButtonbar = styled(ButtonBar)`
-  justify-content: space-between;
-  width: 100%;
-`;
-
-const SelectedBadge = styled(Tag)`
-  padding: 3px ${space(0.75)};
-  display: inline-flex;
-  align-items: center;
-  margin-left: ${space(1)};
-  margin-right: ${space(1)};
-  top: -1px;
+const StyledButton = styled(Button)`
+  min-width: 90px;
 `;
 
 export default DashboardWidgetLibraryModal;

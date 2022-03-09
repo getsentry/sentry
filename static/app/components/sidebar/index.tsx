@@ -3,25 +3,29 @@ import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
 import {
-  IconActivity,
+  extractSelectionParameters,
+  getPathsWithNewFilters,
+} from 'sentry/components/organizations/pageFilters/utils';
+import {
   IconChevron,
-  IconGraph,
+  IconDashboard,
   IconIssues,
   IconLab,
   IconLightning,
+  IconList,
   IconProject,
   IconReleases,
   IconSettings,
   IconSiren,
+  IconSpan,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -52,8 +56,8 @@ const SidebarOverride = HookOrDefault({
 });
 
 type Props = {
-  organization?: Organization;
   location?: Location;
+  organization?: Organization;
 };
 
 function Sidebar({location, organization}: Props) {
@@ -102,12 +106,21 @@ function Sidebar({location, organization}: Props) {
   }, [location?.hash]);
 
   /**
-   * Navigate to a path, but keep the global selection query strings.
+   * Navigate to a path, but keep the page filter query strings.
    */
-  const navigateWithGlobalSelection = (
+  const navigateWithPageFilters = (
     pathname: string,
     evt: React.MouseEvent<HTMLAnchorElement>
   ) => {
+    // XXX(epurkhiser): No need to navigate w/ the page filters in the world
+    // of new page filter selection. You must pin your filters in which case
+    // they will persist anyway.
+    if (organization) {
+      if (getPathsWithNewFilters(organization).includes(pathname)) {
+        return;
+      }
+    }
+
     const globalSelectionRoutes = [
       'alerts',
       'alerts/rules',
@@ -122,11 +135,11 @@ function Sidebar({location, organization}: Props) {
 
     // Only keep the querystring if the current route matches one of the above
     if (globalSelectionRoutes.includes(pathname)) {
-      const query = extractSelectionParameters(location?.query);
+      const query = extractSelectionParameters(location?.query ?? {});
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
-        const q = queryString.stringify(query);
+        const q = qs.stringify(query);
         evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
         return;
       }
@@ -161,7 +174,7 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) =>
-        navigateWithGlobalSelection(`/organizations/${organization.slug}/issues/`, evt)
+        navigateWithPageFilters(`/organizations/${organization.slug}/issues/`, evt)
       }
       icon={<IconIssues size="md" />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
@@ -179,7 +192,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         onClick={(_id, evt) =>
-          navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
+          navigateWithPageFilters(getDiscoverLandingUrl(organization), evt)
         }
         icon={<IconTelescope size="md" />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
@@ -200,7 +213,7 @@ function Sidebar({location, organization}: Props) {
           <SidebarItem
             {...sidebarItemProps}
             onClick={(_id, evt) =>
-              navigateWithGlobalSelection(
+              navigateWithPageFilters(
                 `/organizations/${organization.slug}/performance/`,
                 evt
               )
@@ -220,7 +233,7 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) =>
-        navigateWithGlobalSelection(`/organizations/${organization.slug}/releases/`, evt)
+        navigateWithPageFilters(`/organizations/${organization.slug}/releases/`, evt)
       }
       icon={<IconReleases size="md" />}
       label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
@@ -233,10 +246,7 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) =>
-        navigateWithGlobalSelection(
-          `/organizations/${organization.slug}/user-feedback/`,
-          evt
-        )
+        navigateWithPageFilters(`/organizations/${organization.slug}/user-feedback/`, evt)
       }
       icon={<IconSupport size="md" />}
       label={t('User Feedback')}
@@ -249,10 +259,7 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) =>
-        navigateWithGlobalSelection(
-          `/organizations/${organization.slug}/alerts/rules/`,
-          evt
-        )
+        navigateWithPageFilters(`/organizations/${organization.slug}/alerts/rules/`, evt)
       }
       icon={<IconSiren size="md" />}
       label={t('Alerts')}
@@ -266,10 +273,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         onClick={(_id, evt) =>
-          navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/monitors/`,
-            evt
-          )
+          navigateWithPageFilters(`/organizations/${organization.slug}/monitors/`, evt)
         }
         icon={<IconLab size="md" />}
         label={t('Monitors')}
@@ -290,12 +294,9 @@ function Sidebar({location, organization}: Props) {
         {...sidebarItemProps}
         index
         onClick={(_id, evt) =>
-          navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/dashboards/`,
-            evt
-          )
+          navigateWithPageFilters(`/organizations/${organization.slug}/dashboards/`, evt)
         }
-        icon={<IconGraph size="md" />}
+        icon={<IconDashboard size="md" />}
         label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
@@ -303,10 +304,31 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const profiling = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:profiling-sidebar-item"
+      features={['profiling']}
+      organization={organization}
+      requireAll={false}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        index
+        onClick={(_id, evt) =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/profiling/`, evt)
+        }
+        icon={<IconSpan size="md" />}
+        label={t('Profiling')}
+        to={`/organizations/${organization.slug}/profiling/`}
+        id="profiling"
+      />
+    </Feature>
+  );
+
   const activity = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconActivity size="md" />}
+      icon={<IconList size="md" />}
       label={t('Activity')}
       to={`/organizations/${organization.slug}/activity/`}
       id="activity"
@@ -358,6 +380,7 @@ function Sidebar({location, organization}: Props) {
                 {alerts}
                 {discover2}
                 {dashboards}
+                {profiling}
               </SidebarSection>
 
               <SidebarSection>{monitors}</SidebarSection>
@@ -444,12 +467,11 @@ const responsiveFlex = css`
 `;
 
 export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
-  background: ${p => p.theme.sidebar.background};
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
-  width: ${p => p.theme.sidebar.expandedWidth};
+  width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
@@ -458,7 +480,6 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   z-index: ${p => p.theme.zIndex.sidebar};
   border-right: solid 1px ${p => p.theme.sidebarBorder};
   ${responsiveFlex};
-  ${p => p.collapsed && `width: ${p.theme.sidebar.collapsedWidth};`};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     top: 0;

@@ -4,19 +4,20 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 
-import {barAxisLabel, convertDaySeriesToWeeks} from './utils';
+import {barAxisLabel, sortSeriesByDay} from './utils';
 
-type TimeToResolution = Record<string, {count: number; avg: number}>;
+type TimeToResolution = Record<string, {avg: number; count: number}>;
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   teamSlug: string;
+  environment?: string;
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
@@ -34,7 +35,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, start, end, period, utc, teamSlug} = this.props;
+    const {organization, start, end, period, utc, teamSlug, environment} = this.props;
     const datetime = {start, end, period, utc};
 
     return [
@@ -43,11 +44,27 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/time-to-resolution/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
+            environment,
           },
         },
       ],
     ];
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    const {start, end, period, utc, teamSlug, environment} = this.props;
+
+    if (
+      prevProps.start !== start ||
+      prevProps.end !== end ||
+      prevProps.period !== period ||
+      prevProps.utc !== utc ||
+      prevProps.teamSlug !== teamSlug ||
+      prevProps.environment !== environment
+    ) {
+      this.remountComponent();
+    }
   }
 
   renderLoading() {
@@ -64,7 +81,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
       value: avg,
       name: new Date(bucket).getTime(),
     }));
-    const seriesData = convertDaySeriesToWeeks(data);
+    const seriesData = sortSeriesByDay(data);
 
     return (
       <ChartWrapper>
@@ -96,6 +113,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
               seriesName: t('Time to Resolution'),
               data: seriesData,
               silent: true,
+              barCategoryGap: '5%',
             },
           ]}
         />

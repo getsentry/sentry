@@ -114,9 +114,9 @@ export function updateQuery(
 }
 
 type Props = {
+  children: React.ReactNode;
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
-  children: React.ReactNode;
   handleCellAction: (action: Actions, value: React.ReactText) => void;
 
   // allow list of actions to display on the context menu
@@ -448,6 +448,9 @@ const Container = styled('div')`
   position: relative;
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const MenuRoot = styled('div')`

@@ -15,9 +15,9 @@ import {EntryRequest, Event} from 'sentry/types/event';
 import {isUrl} from 'sentry/utils';
 
 type Props = {
+  data: EntryRequest['data'];
   event: Event;
   type: string;
-  data: EntryRequest['data'];
 };
 
 type State = {
@@ -140,12 +140,12 @@ const Header = styled('h3')`
 const StyledIconOpen = styled(IconOpen)`
   transition: 0.1s linear color;
   margin: 0 ${space(0.5)};
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.subText};
   position: relative;
   top: 1px;
 
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.textColor};
   }
 `;
 

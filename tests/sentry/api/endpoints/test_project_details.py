@@ -534,6 +534,14 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:store_crash_reports") == 10
         assert resp.data["storeCrashReports"] == 10
 
+    def test_store_crash_reports_exceeded(self):
+        # NB: Align with test_organization_details.py
+        data = {"storeCrashReports": 101}
+
+        resp = self.get_error_response(self.org_slug, self.proj_slug, status_code=400, **data)
+        assert self.project.get_option("sentry:store_crash_reports") is None
+        assert b"storeCrashReports" in resp.content
+
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'
         resp = self.get_valid_response(self.org_slug, self.proj_slug, relayPiiConfig=value)
@@ -849,7 +857,7 @@ class ProjectUpdateTest(APITestCase):
             )
             assert response.status_code == 400
             assert json.loads(response.content) == {
-                "symbolSources": ["Sources contain unknown hidden secret"]
+                "symbolSources": ["Hidden symbol source secret is missing a value"]
             }
 
     def symbol_sources(self):

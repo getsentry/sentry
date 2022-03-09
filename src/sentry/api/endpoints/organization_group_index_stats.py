@@ -1,25 +1,31 @@
 from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
-from sentry.api.helpers.group_index import (
-    build_query_params_from_request,
-    calculate_stats_period,
-    rate_limit_endpoint,
-)
+from sentry.api.helpers.group_index import build_query_params_from_request, calculate_stats_period
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.models import Group
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.compat import map
 
 
 class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
+    enforce_rate_limit = True
 
-    @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request, organization):
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(10, 1),
+            RateLimitCategory.USER: RateLimit(10, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
+        }
+    }
+
+    def get(self, request: Request, organization) -> Response:
         """
         Get the stats on an Organization's Issues
         `````````````````````````````

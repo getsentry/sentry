@@ -17,15 +17,15 @@ import theme from 'sentry/utils/theme';
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
 type Props = {
-  organization: Organization;
-  projectSlug: string;
-  projectId: string;
-  hasRelease: boolean;
-  title: string;
   date: RelaxedDateType;
   dateGlobal: RelaxedDateType;
-  release?: Release;
+  hasRelease: boolean;
+  organization: Organization;
+  projectId: string;
+  projectSlug: string;
+  title: string;
   environment?: string;
+  release?: Release;
 };
 
 class SeenInfo extends React.Component<Props> {

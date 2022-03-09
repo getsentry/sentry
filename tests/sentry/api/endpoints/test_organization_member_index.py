@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 from django.core import mail
-from django.urls import reverse
 
 from sentry import roles
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
@@ -59,149 +58,149 @@ class OrganizationMemberSerializerTest(TestCase):
         assert serializer.errors == {"role": ["You do not have permission to invite that role."]}
 
 
-class OrganizationMemberListTest(APITestCase):
+class OrganizationMemberListTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-index"
 
     def setUp(self):
-        self.owner_user = self.create_user("foo@localhost", username="foo")
-        self.user_2 = self.create_user("bar@localhost", username="bar")
+        self.user2 = self.create_user("bar@localhost", username="bar")
+        self.create_member(organization=self.organization, user=self.user2)
+        self.external_user = self.create_external_user(self.user2, self.organization)
+
         self.create_user("baz@localhost", username="baz")
 
-        self.org = self.create_organization(owner=self.owner_user)
-        self.org.member_set.create(user=self.user_2)
-        self.team = self.create_team(organization=self.org)
-        self.external_user = self.create_external_user(self.user_2, self.org)
+        self.login_as(self.user)
 
-        self.login_as(user=self.owner_user)
 
-        self.url = reverse(
-            "sentry-api-0-organization-member-index", kwargs={"organization_slug": self.org.slug}
-        )
-
+class OrganizationMemberListTest(OrganizationMemberListTestBase):
     def test_simple(self):
-        response = self.client.get(self.url)
+        response = self.get_success_response(self.organization.slug)
 
-        assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["email"] == self.user_2.email
-        assert response.data[1]["email"] == self.owner_user.email
-        assert response.data[0]["pending"] is False
-        assert response.data[0]["expired"] is False
+        assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == self.user2.email
+        assert not response.data[0]["pending"]
+        assert not response.data[0]["expired"]
 
     def test_empty_query(self):
-        response = self.client.get(self.url + "?query=")
+        response = self.get_success_response(self.organization.slug, qs_params={"query": ""})
 
-        assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["email"] == self.user_2.email
-        assert response.data[1]["email"] == self.owner_user.email
+        assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == self.user2.email
 
     def test_query(self):
-        response = self.client.get(self.url + "?query=bar")
+        response = self.get_success_response(self.organization.slug, qs_params={"query": "bar"})
 
-        assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["email"] == "bar@localhost"
+        assert response.data[0]["email"] == self.user2.email
 
     def test_query_null_user(self):
-        OrganizationMember.objects.create(email="billy@localhost", organization=self.org)
-        response = self.client.get(self.url + "?query=bill")
+        OrganizationMember.objects.create(email="billy@localhost", organization=self.organization)
+        response = self.get_success_response(self.organization.slug, qs_params={"query": "bill"})
 
-        assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["email"] == "billy@localhost"
 
     def test_email_query(self):
-        response = self.client.get(self.url + "?query=email:foo@localhost")
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": self.user.email}
+        )
 
-        assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["email"] == self.owner_user.email
+        assert response.data[0]["email"] == self.user.email
 
     def test_user_email_email_query(self):
-        self.create_useremail(self.owner_user, "baz@localhost")
-        response = self.client.get(self.url + "?query=email:baz@localhost")
+        self.create_useremail(self.user, "baz@localhost")
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "email:baz@localhost"}
+        )
 
-        assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["email"] == self.owner_user.email
+        assert response.data[0]["email"] == self.user.email
 
     def test_scope_query(self):
-        response = self.client.get(self.url + '?query=scope:"invalid:scope"')
-
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": 'scope:"invalid:scope"'}
+        )
         assert len(response.data) == 0
 
-        response = self.client.get(self.url + '?query=scope:"org:admin"')
-
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": 'scope:"org:admin"'}
+        )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == self.owner_user.email
+        assert response.data[0]["email"] == self.user.email
 
     def test_role_query(self):
-        response = self.client.get(self.url + "?query=role:member")
-
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "role:member"}
+        )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == self.user_2.email
+        assert response.data[0]["email"] == self.user2.email
 
-        response = self.client.get(self.url + "?query=role:owner")
-
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "role:owner"}
+        )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == self.owner_user.email
+        assert response.data[0]["email"] == self.user.email
 
     def test_is_invited_query(self):
-        response = self.client.get(self.url + "?query=isInvited:true")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "isInvited:true"}
+        )
         assert len(response.data) == 0
 
         invited_member = self.create_member(
-            organization=self.org,
+            organization=self.organization,
             email="invited-member@example.com",
             invite_status=InviteStatus.APPROVED.value,
         )
 
-        response = self.client.get(self.url + "?query=isInvited:true")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "isInvited:true"}
+        )
         assert len(response.data) == 1
         assert response.data[0]["email"] == invited_member.email
 
-        response = self.client.get(self.url + "?query=isInvited:false")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "isInvited:false"}
+        )
         assert len(response.data) == 2
 
     def test_sso_linked_query(self):
-        response = self.client.get(self.url + "?query=ssoLinked:true")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "ssoLinked:true"}
+        )
         assert len(response.data) == 0
 
         user = self.create_user("morty@localhost", username="morty")
         sso_member = self.create_member(
-            organization=self.org,
+            organization=self.organization,
             user=user,
             email=user.email,
             invite_status=InviteStatus.APPROVED.value,
             flags=OrganizationMember.flags["sso:linked"],
         )
 
-        response = self.client.get(self.url + "?query=ssoLinked:true")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "ssoLinked:true"}
+        )
         assert len(response.data) == 1
         assert response.data[0]["email"] == sso_member.email
 
-        response = self.client.get(self.url + "?query=ssoLinked:false")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "ssoLinked:false"}
+        )
         assert len(response.data) == 2
 
     def test_2fa_enabled_query(self):
-        response = self.client.get(self.url + "?query=has2fa:true")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "has2fa:true"}
+        )
         assert len(response.data) == 0
 
         user = self.create_user("morty@localhost", username="morty")
         member_2fa = self.create_member(
-            organization=self.org,
+            organization=self.organization,
             user=user,
             email=user.email,
             invite_status=InviteStatus.APPROVED.value,
@@ -211,75 +210,74 @@ class OrganizationMemberListTest(APITestCase):
         Authenticator.objects.create(user=member_2fa.user, type=1)
         Authenticator.objects.create(user=member_2fa.user, type=2)
 
-        response = self.client.get(self.url + "?query=has2fa:true")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "has2fa:true"}
+        )
         assert len(response.data) == 1
         assert response.data[0]["email"] == member_2fa.email
 
-        response = self.client.get(self.url + "?query=has2fa:false")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "has2fa:false"}
+        )
         assert len(response.data) == 2
 
     def test_has_external_users_query(self):
-        response = self.client.get(self.url + "?query=hasExternalUsers:true")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "hasExternalUsers:true"}
+        )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == self.user_2.email
+        assert response.data[0]["email"] == self.user2.email
 
-        response = self.client.get(self.url + "?query=hasExternalUsers:false")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "hasExternalUsers:false"}
+        )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == self.owner_user.email
+        assert response.data[0]["email"] == self.user.email
 
     def test_cannot_get_unapproved_invites(self):
         join_request = "test@email.com"
         invite_request = "test@gmail.com"
 
         self.create_member(
-            organization=self.org,
+            organization=self.organization,
             email=join_request,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
 
         self.create_member(
-            organization=self.org,
+            organization=self.organization,
             email=invite_request,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
-        response = self.client.get(self.url)
-        assert response.status_code == 200
+        response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 2
-        assert response.data[0]["email"] == self.user_2.email
-        assert response.data[1]["email"] == self.owner_user.email
+        assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == self.user2.email
 
-        response = self.client.get(self.url + f"?query=email:{join_request}")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"email:{join_request}"}
+        )
         assert response.data == []
 
-        response = self.client.get(self.url + f"?query=email:{invite_request}")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"email:{invite_request}"}
+        )
         assert response.data == []
 
     def test_owner_invites(self):
-        self.login_as(user=self.owner_user)
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
-        )
-
-        assert response.status_code == 201
+        data = {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
+        response = self.get_success_response(self.organization.slug, method="post", **data)
         assert response.data["email"] == "eric@localhost"
 
     def test_valid_for_invites(self):
-        self.login_as(user=self.owner_user)
-
+        data = {"email": "foo@example.com", "role": "admin", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
-            resp = self.client.post(
-                self.url, {"email": "foo@example.com", "role": "admin", "teams": [self.team.slug]}
-            )
-        assert resp.status_code == 201
+            self.get_success_response(self.organization.slug, method="post", **data)
 
-        member = OrganizationMember.objects.get(organization=self.org, email="foo@example.com")
+        member = OrganizationMember.objects.get(
+            organization=self.organization, email="foo@example.com"
+        )
 
         assert member.user is None
         assert member.role == "admin"
@@ -291,24 +289,19 @@ class OrganizationMemberListTest(APITestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ["foo@example.com"]
-        assert mail.outbox[0].subject == f"Join {self.org.name} in using Sentry"
+        assert mail.outbox[0].subject == f"Join {self.organization.name} in using Sentry"
 
     def test_existing_user_for_invite(self):
-        self.login_as(user=self.owner_user)
-
         user = self.create_user("foobar@example.com")
+        member = OrganizationMember.objects.create(
+            organization=self.organization, user=user, role="member"
+        )
 
-        member = OrganizationMember.objects.create(organization=self.org, user=user, role="member")
-
+        data = {"email": user.email, "role": "member", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True):
-            resp = self.client.post(
-                self.url, {"email": user.email, "role": "member", "teams": [self.team.slug]}
-            )
-
-        assert resp.status_code == 400
+            self.get_error_response(self.organization.slug, method="post", **data, status_code=400)
 
         member = OrganizationMember.objects.get(id=member.id)
-
         assert member.email is None
         assert member.role == "member"
 
@@ -317,186 +310,142 @@ class OrganizationMemberListTest(APITestCase):
         org = self.create_organization(slug="diff-org")
         OrganizationMember.objects.create(email=email, organization=org)
 
+        data = {"email": email, "role": "member", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
-            resp = self.client.post(
-                self.url, {"email": email, "role": "member", "teams": [self.team.slug]}
-            )
+            self.get_success_response(self.organization.slug, method="post", **data)
 
-        assert resp.status_code == 201
-
-        member = OrganizationMember.objects.get(organization=self.org, email=email)
+        member = OrganizationMember.objects.get(organization=self.organization, email=email)
         assert len(mail.outbox) == 1
         assert member.role == "member"
 
     def test_valid_for_direct_add(self):
-        self.login_as(user=self.owner_user)
-
         user = self.create_user("baz@example.com")
 
+        data = {"email": user.email, "role": "member", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=False):
-            resp = self.client.post(
-                self.url, {"email": user.email, "role": "member", "teams": [self.team.slug]}
-            )
+            self.get_success_response(self.organization.slug, method="post", **data)
 
-        assert resp.status_code == 201
-
-        member = OrganizationMember.objects.get(organization=self.org, email=user.email)
+        member = OrganizationMember.objects.get(organization=self.organization, email=user.email)
         assert len(mail.outbox) == 0
         assert member.role == "member"
 
     def test_invalid_user_for_direct_add(self):
-        self.login_as(user=self.owner_user)
-
+        data = {"email": "notexisting@example.com", "role": "admin", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=False):
-            resp = self.client.post(
-                self.url,
-                {"email": "notexisting@example.com", "role": "admin", "teams": [self.team.slug]},
-            )
-
-        assert resp.status_code == 201
+            self.get_success_response(self.organization.slug, method="post", **data)
 
         member = OrganizationMember.objects.get(
-            organization=self.org, email="notexisting@example.com"
+            organization=self.organization, email="notexisting@example.com"
         )
         assert len(mail.outbox) == 0
         # todo(maxbittker) this test is a false positive, need to figure out why
         assert member.role == "admin"
 
-    # permission role stuff:
+
+class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
+    method = "post"
+
     def test_manager_invites(self):
         manager_user = self.create_user("manager@localhost")
-        self.manager = self.create_member(user=manager_user, organization=self.org, role="manager")
+        self.manager = self.create_member(
+            user=manager_user, organization=self.organization, role="manager"
+        )
         self.login_as(user=manager_user)
 
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
-        )
+        data = {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
+        self.get_error_response(self.organization.slug, **data, status_code=400)
 
-        assert response.status_code == 400
+        data = {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
+        self.get_success_response(self.organization.slug, **data)
 
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
-        )
-        assert response.status_code == 201
-
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
-        )
-
-        assert response.status_code == 400
+        data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+        self.get_error_response(self.organization.slug, **data, status_code=400)
 
     def test_admin_invites(self):
         admin_user = self.create_user("admin22@localhost")
-        self.admin = self.create_member(user=admin_user, organization=self.org, role="admin")
-
+        self.create_member(user=admin_user, organization=self.organization, role="admin")
         self.login_as(user=admin_user)
 
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
-        )
+        data = {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
+        self.get_error_response(self.organization.slug, **data, status_code=403)
 
-        assert response.status_code == 403
+        data = {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
+        self.get_error_response(self.organization.slug, **data, status_code=403)
 
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
-        )
-
-        assert response.status_code == 403
-
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
-        )
-
-        assert response.status_code == 403  # is this one right?
+        data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+        self.get_error_response(self.organization.slug, **data, status_code=403)
 
     def test_member_invites(self):
         member_user = self.create_user("member@localhost")
-        self.admin = self.create_member(user=member_user, organization=self.org, role="member")
-
+        self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(user=member_user)
 
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
-        )
+        data = {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
+        self.get_error_response(self.organization.slug, **data, status_code=403)
 
-        assert response.status_code == 403
+        data = {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
+        self.get_error_response(self.organization.slug, **data, status_code=403)
 
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
-        )
-
-        assert response.status_code == 403
-
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
-        )
-
-        assert response.status_code == 403
+        data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+        self.get_error_response(self.organization.slug, **data, status_code=403)
 
     def test_respects_feature_flag(self):
-        self.login_as(user=self.owner_user)
-
         user = self.create_user("baz@example.com")
 
         with Feature({"organizations:invite-members": False}):
-            resp = self.client.post(
-                self.url, {"email": user.email, "role": "member", "teams": [self.team.slug]}
-            )
-
-        assert resp.status_code == 403
+            data = {"email": user.email, "role": "member", "teams": [self.team.slug]}
+            self.get_error_response(self.organization.slug, **data, status_code=403)
 
     def test_no_team_invites(self):
-        self.login_as(user=self.owner_user)
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "owner", "teams": []}
-        )
-
-        assert response.status_code == 201
+        data = {"email": "eric@localhost", "role": "owner", "teams": []}
+        response = self.get_success_response(self.organization.slug, **data)
         assert response.data["email"] == "eric@localhost"
 
     def test_can_invite_member_with_pending_invite_request(self):
-        self.login_as(user=self.owner_user)
         email = "test@gmail.com"
 
         invite_request = OrganizationMember.objects.create(
             email=email,
-            organization=self.org,
+            organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
+        data = {"email": email, "role": "member", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
-            resp = self.client.post(
-                self.url, {"email": email, "role": "member", "teams": [self.team.slug]}
-            )
+            self.get_success_response(self.organization.slug, **data)
 
-        assert resp.status_code == 201
         assert not OrganizationMember.objects.filter(id=invite_request.id).exists()
-        assert OrganizationMember.objects.filter(organization=self.org, email=email).exists()
+        assert OrganizationMember.objects.filter(
+            organization=self.organization, email=email
+        ).exists()
         assert len(mail.outbox) == 1
 
     def test_can_invite_member_with_pending_join_request(self):
-        self.login_as(user=self.owner_user)
         email = "test@gmail.com"
 
         join_request = OrganizationMember.objects.create(
-            email=email, organization=self.org, invite_status=InviteStatus.REQUESTED_TO_JOIN.value
+            email=email,
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
 
+        data = {"email": email, "role": "member", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
-            resp = self.client.post(
-                self.url, {"email": email, "role": "member", "teams": [self.team.slug]}
-            )
+            self.get_success_response(self.organization.slug, **data)
 
-        assert resp.status_code == 201
         assert not OrganizationMember.objects.filter(id=join_request.id).exists()
-        assert OrganizationMember.objects.filter(organization=self.org, email=email).exists()
+        assert OrganizationMember.objects.filter(
+            organization=self.organization, email=email
+        ).exists()
         assert len(mail.outbox) == 1
 
     def test_user_has_external_user_association(self):
-        response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
+        response = self.get_success_response(
+            self.organization.slug, method="get", qs_params={"expand": "externalUsers"}
+        )
         assert len(response.data) == 2
         organization_member = next(
-            filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data)
+            filter(lambda x: x["user"]["id"] == str(self.user2.id), response.data)
         )
         assert organization_member
         assert len(organization_member["externalUsers"]) == 1
@@ -506,18 +455,19 @@ class OrganizationMemberListTest(APITestCase):
         )
 
     def test_user_has_external_user_associations_across_multiple_orgs(self):
-        self.org_2 = self.create_organization(owner=self.user_2)
-        self.integration_2 = Integration.objects.create(
+        organization = self.create_organization(owner=self.user2)
+        integration = Integration.objects.create(
             provider="github", name="GitHub", external_id="github:2"
         )
-        self.integration_2.add_organization(self.org_2, self.user_2)
-        self.external_user_2 = self.create_external_user(
-            self.user_2, self.org_2, integration=self.integration_2
+        integration.add_organization(organization, self.user2)
+        self.create_external_user(self.user2, organization, integration=integration)
+
+        response = self.get_success_response(
+            self.organization.slug, method="get", qs_params={"expand": "externalUsers"}
         )
-        response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
         assert len(response.data) == 2
         organization_member = next(
-            filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data)
+            filter(lambda x: x["user"]["id"] == str(self.user2.id), response.data)
         )
         assert organization_member
         assert len(organization_member["externalUsers"]) == 1
@@ -527,75 +477,61 @@ class OrganizationMemberListTest(APITestCase):
         )
 
 
-class OrganizationMemberListPostTest(APITestCase):
-    endpoint = "sentry-api-0-organization-member-index"
+class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
     method = "post"
 
-    def setUp(self):
-        self.owner_user = self.create_user("foo@localhost", username="foo")
-        self.org = self.create_organization(owner=self.owner_user)
-        self.team = self.create_team(organization=self.org)
-        self.login_as(user=self.owner_user)
-
     def test_forbid_qq(self):
-        resp = self.get_response(
-            self.org.slug, email="1234@qq.com", role="member", teams=[self.team.slug]
-        )
-        assert resp.status_code == 400
-        assert resp.data["email"][0] == "Enter a valid email address."
+        data = {"email": "1234@qq.com", "role": "member", "teams": [self.team.slug]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert response.data["email"][0] == "Enter a valid email address."
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_simple(self, mock_send_invite_email):
-        resp = self.get_response(
-            self.org.slug, email="jane@gmail.com", role="member", teams=[self.team.slug]
-        )
-        assert resp.status_code == 201
-        om = OrganizationMember.objects.get(id=resp.data["id"])
+        data = {"email": "jane@gmail.com", "role": "member", "teams": [self.team.slug]}
+        response = self.get_success_response(self.organization.slug, **data)
+
+        om = OrganizationMember.objects.get(id=response.data["id"])
         assert om.user_id is None
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
-        assert om.inviter == self.owner_user
+        assert om.inviter == self.user
 
         mock_send_invite_email.assert_called_once_with()
 
     def test_no_teams(self):
-        resp = self.get_response(self.org.slug, email="jane@gmail.com", role="member")
-        assert resp.status_code == 201
-        om = OrganizationMember.objects.get(id=resp.data["id"])
+        data = {"email": "jane@gmail.com", "role": "member"}
+        response = self.get_success_response(self.organization.slug, **data)
+
+        om = OrganizationMember.objects.get(id=response.data["id"])
         assert om.user_id is None
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == []
-        assert om.inviter == self.owner_user
+        assert om.inviter == self.user
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_no_email(self, mock_send_invite_email):
-        resp = self.get_response(
-            self.org.slug,
-            email="jane@gmail.com",
-            role="member",
-            teams=[self.team.slug],
-            sendInvite=False,
-        )
-        assert resp.status_code == 201
-        om = OrganizationMember.objects.get(id=resp.data["id"])
+        data = {
+            "email": "jane@gmail.com",
+            "role": "member",
+            "teams": [self.team.slug],
+            "sendInvite": False,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        om = OrganizationMember.objects.get(id=response.data["id"])
         assert om.user_id is None
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
-        assert om.inviter == self.owner_user
+        assert om.inviter == self.user
 
         assert not mock_send_invite_email.mock_calls
 
-    @patch("sentry.utils.ratelimits.for_organization_member_invite")
+    @patch("sentry.ratelimits.for_organization_member_invite")
     def test_rate_limited(self, mock_rate_limit):
         mock_rate_limit.return_value = True
 
-        resp = self.get_response(
-            self.org.slug,
-            email="jane@gmail.com",
-            role="member",
-        )
-        assert resp.status_code == 429
+        data = {"email": "jane@gmail.com", "role": "member"}
+        self.get_error_response(self.organization.slug, **data, status_code=429)
         assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()

@@ -6,10 +6,10 @@ import overflowEllipsisLeft from 'sentry/styles/overflowEllipsisLeft';
 
 type Props = {
   children: React.ReactNode;
-  isParagraph?: boolean;
-  ellipsisDirection?: 'left' | 'right';
-  ['data-test-id']?: string;
   className?: string;
+  ['data-test-id']?: string;
+  ellipsisDirection?: 'left' | 'right';
+  isParagraph?: boolean;
 };
 
 const TextOverflow = styled(

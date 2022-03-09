@@ -99,12 +99,13 @@ class UserManager(BaseManager, DjangoUserManager):
             .filter(row_count=1)
         )
 
-    def get_for_email(self, email: str) -> Sequence["User"]:
-        return self.filter(
-            emails__email=email,
-            emails__is_verified=True,
-            is_active=True,
-        )
+    def get_for_email(self, email: str, case_sensitive: bool = True) -> Sequence["User"]:
+        if not case_sensitive:
+            kwargs = dict(emails__email__iexact=email)
+        else:
+            kwargs = dict(emails__email=email)
+
+        return self.filter(emails__is_verified=True, is_active=True, **kwargs)
 
 
 class User(BaseModel, AbstractBaseUser):

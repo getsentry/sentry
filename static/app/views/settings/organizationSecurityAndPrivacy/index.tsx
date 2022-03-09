@@ -3,14 +3,14 @@ import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import organizationSecurityAndPrivacyGroups from 'sentry/data/forms/organizationSecurityAndPrivacyGroups';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import DataScrubbing from '../components/dataScrubbing';

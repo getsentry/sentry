@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -6,11 +6,11 @@ import {Location} from 'history';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
+import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {IconChevron, IconList} from 'sentry/icons';
+import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -22,22 +22,21 @@ import DiscoverQuery, {
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Color} from 'sentry/utils/theme';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
 
 type TeamMiseryProps = {
-  organization: Organization;
-  location: Location;
-  projects: Project[];
-  periodTableData: TableData | null;
-  weekTableData: TableData | null;
   isLoading: boolean;
-  period?: string;
+  location: Location;
+  organization: Organization;
+  periodTableData: TableData | null;
+  projects: Project[];
+  weekTableData: TableData | null;
   error?: Error | null;
+  period?: string | null;
 };
-
-/** The number of elements to display before collapsing */
-const COLLAPSE_COUNT = 5;
 
 function TeamMisery({
   organization,
@@ -49,13 +48,8 @@ function TeamMisery({
   period,
   error,
 }: TeamMiseryProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const miseryRenderer =
     periodTableData?.meta && getFieldRenderer('user_misery', periodTableData.meta);
-
-  function expandResults() {
-    setIsExpanded(true);
-  }
 
   // Calculate trend, so we can sort based on it
   const sortedTableData = (periodTableData?.data ?? [])
@@ -83,109 +77,110 @@ function TeamMisery({
   }
 
   return (
-    <Fragment>
-      <StyledPanelTable
-        isEmpty={projects.length === 0 || periodTableData?.data.length === 0}
-        emptyMessage={t('No key Transactions Starred By This Team')}
-        emptyAction={
-          <Button
-            size="small"
-            external
-            href="https://docs.sentry.io/product/performance/transaction-summary/#starring-key-transactions"
+    <CollapsePanel items={groupedData.length}>
+      {({isExpanded, showMoreButton}) => (
+        <Fragment>
+          <StyledPanelTable
+            isEmpty={projects.length === 0 || periodTableData?.data.length === 0}
+            emptyMessage={t('No key transactions starred by this team')}
+            emptyAction={
+              <Button
+                size="small"
+                external
+                href="https://docs.sentry.io/product/performance/transaction-summary/#starring-key-transactions"
+              >
+                {t('Learn More')}
+              </Button>
+            }
+            headers={[
+              <FlexCenter key="transaction">
+                <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
+              </FlexCenter>,
+              t('Project'),
+              tct('Last [period]', {period}),
+              t('Last 7 Days'),
+              <RightAligned key="change">{t('Change')}</RightAligned>,
+            ]}
+            isLoading={isLoading}
           >
-            {t('Learn More')}
-          </Button>
-        }
-        headers={[
-          t('Key transaction'),
-          t('Project'),
-          tct('Last [period]', {period}),
-          t('Last 7 Days'),
-          <RightAligned key="change">{t('Change')}</RightAligned>,
-        ]}
-        isLoading={isLoading}
-      >
-        {groupedData.map((dataRow, idx) => {
-          const project = projects.find(({slug}) => dataRow.project === slug);
-          const {trend, project: projectId, transaction} = dataRow;
+            {groupedData.map((dataRow, idx) => {
+              const project = projects.find(({slug}) => dataRow.project === slug);
+              const {trend, project: projectId, transaction} = dataRow;
 
-          const weekRow = weekTableData?.data.find(
-            row => row.project === projectId && row.transaction === transaction
-          );
-          if (!weekRow || trend === null) {
-            return null;
-          }
+              const weekRow = weekTableData?.data.find(
+                row => row.project === projectId && row.transaction === transaction
+              );
+              if (!weekRow || trend === null) {
+                return null;
+              }
 
-          const periodMisery = miseryRenderer?.(dataRow, {organization, location});
-          const weekMisery =
-            weekRow && miseryRenderer?.(weekRow, {organization, location});
-          const trendValue = Math.round(Math.abs(trend));
+              const periodMisery = miseryRenderer?.(dataRow, {organization, location});
+              const weekMisery =
+                weekRow && miseryRenderer?.(weekRow, {organization, location});
+              const trendValue = Math.round(Math.abs(trend));
 
-          if (idx >= COLLAPSE_COUNT && !isExpanded) {
-            return null;
-          }
+              if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                return null;
+              }
 
-          const linkEventView = EventView.fromSavedQuery({
-            id: undefined,
-            name: dataRow.transaction as string,
-            projects: [Number(project?.id)],
-            query: `transaction.duration:<15m transaction:${dataRow.transaction}`,
-            version: 2 as SavedQueryVersions,
-            range: '7d',
-            fields: ['id', 'title', 'event.type', 'project', 'user.display', 'timestamp'],
-          });
-
-          return (
-            <Fragment key={idx}>
-              <TransactionWrapper>
-                <Link to={linkEventView.getResultsViewUrlTarget(organization.slug)}>
-                  {dataRow.transaction}
-                </Link>
-              </TransactionWrapper>
-              <ProjectBadgeContainer>
-                {project && <ProjectBadge avatarSize={18} project={project} />}
-              </ProjectBadgeContainer>
-              <div>{periodMisery}</div>
-              <div>{weekMisery ?? '\u2014'}</div>
-              <ScoreWrapper>
-                {trendValue === 0 ? (
-                  <SubText>
-                    {`0\u0025 `}
-                    {t('change')}
-                  </SubText>
-                ) : (
-                  <TrendText color={trend >= 0 ? 'green300' : 'red300'}>
-                    {`${trendValue}\u0025 `}
-                    {trend >= 0 ? t('better') : t('worse')}
-                  </TrendText>
-                )}
-              </ScoreWrapper>
-            </Fragment>
-          );
-        })}
-      </StyledPanelTable>
-      {groupedData.length >= COLLAPSE_COUNT && !isExpanded && !isLoading && (
-        <ShowMore onClick={expandResults}>
-          <ShowMoreText>
-            <StyledIconList color="gray300" />
-            {tct('Show [count] More', {count: groupedData.length - 1 - COLLAPSE_COUNT})}
-          </ShowMoreText>
-
-          <IconChevron color="gray300" direction="down" />
-        </ShowMore>
+              return (
+                <Fragment key={idx}>
+                  <KeyTransactionTitleWrapper>
+                    <div>
+                      <StyledIconStar isSolid color="yellow300" />
+                    </div>
+                    <TransactionWrapper>
+                      <Link
+                        to={transactionSummaryRouteWithQuery({
+                          orgSlug: organization.slug,
+                          transaction: dataRow.transaction as string,
+                          projectID: project?.id,
+                          query: {query: 'transaction.duration:<15m'},
+                        })}
+                      >
+                        {dataRow.transaction}
+                      </Link>
+                    </TransactionWrapper>
+                  </KeyTransactionTitleWrapper>
+                  <FlexCenter>
+                    <ProjectBadgeContainer>
+                      {project && <ProjectBadge avatarSize={18} project={project} />}
+                    </ProjectBadgeContainer>
+                  </FlexCenter>
+                  <FlexCenter>{periodMisery}</FlexCenter>
+                  <FlexCenter>{weekMisery ?? '\u2014'}</FlexCenter>
+                  <ScoreWrapper>
+                    {trendValue === 0 ? (
+                      <SubText>
+                        {`0\u0025 `}
+                        {t('change')}
+                      </SubText>
+                    ) : (
+                      <TrendText color={trend >= 0 ? 'green300' : 'red300'}>
+                        {`${trendValue}\u0025 `}
+                        {trend >= 0 ? t('better') : t('worse')}
+                      </TrendText>
+                    )}
+                  </ScoreWrapper>
+                </Fragment>
+              );
+            })}
+          </StyledPanelTable>
+          {!isLoading && showMoreButton}
+        </Fragment>
       )}
-    </Fragment>
+    </CollapsePanel>
   );
 }
 
 type Props = AsyncComponent['props'] & {
-  organization: Organization;
-  teamId: string;
-  projects: Project[];
   location: Location;
-  period?: string;
-  start?: string;
+  organization: Organization;
+  projects: Project[];
+  teamId: string;
   end?: string;
+  period?: string | null;
+  start?: string;
 } & DateTimeObject;
 
 function TeamMiseryWrapper({
@@ -230,7 +225,7 @@ function TeamMiseryWrapper({
   const periodEventView = EventView.fromSavedQuery({
     ...commonEventView,
     name: 'periodMisery',
-    range: period,
+    range: period ?? undefined,
     start,
     end,
   });
@@ -274,7 +269,7 @@ function TeamMiseryWrapper({
 export default TeamMiseryWrapper;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
-  grid-template-columns: 1fr 0.5fr 112px 112px 0.25fr;
+  grid-template-columns: 1.25fr 0.5fr 112px 112px 0.25fr;
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
   margin-bottom: 0;
@@ -294,12 +289,21 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
     `}
 `;
 
-const ProjectBadgeContainer = styled('div')`
+const FlexCenter = styled('div')`
   display: flex;
+  align-items: center;
 `;
 
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
+const KeyTransactionTitleWrapper = styled('div')`
+  ${overflowEllipsis};
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconStar = styled(IconStar)`
+  display: block;
+  margin-right: ${space(1)};
+  margin-bottom: ${space(0.5)};
 `;
 
 const TransactionWrapper = styled('div')`
@@ -323,24 +327,4 @@ const SubText = styled('div')`
 
 const TrendText = styled('div')<{color: Color}>`
   color: ${p => p.theme[p.color]};
-`;
-
-const ShowMore = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-  cursor: pointer;
-  border-top: 1px solid ${p => p.theme.border};
-`;
-
-const StyledIconList = styled(IconList)`
-  margin-right: ${space(1)};
-`;
-
-const ShowMoreText = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
 `;

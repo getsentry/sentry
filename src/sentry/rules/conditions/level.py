@@ -1,27 +1,16 @@
 from collections import OrderedDict
+from typing import Callable, Tuple
 
 from django import forms
 
 from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
+from sentry.rules import LEVEL_MATCH_CHOICES as MATCH_CHOICES
+from sentry.rules import MatchType
 from sentry.rules.conditions.base import EventCondition
 
+key: Callable[[Tuple[str, str]], str] = lambda x: x[0]
 LEVEL_CHOICES = OrderedDict(
-    [(f"{k}", v) for k, v in sorted(LOG_LEVELS.items(), key=lambda x: x[0], reverse=True)]
-)
-
-
-class MatchType:
-    EQUAL = "eq"
-    LESS_OR_EQUAL = "lte"
-    GREATER_OR_EQUAL = "gte"
-
-
-MATCH_CHOICES = OrderedDict(
-    [
-        (MatchType.EQUAL, "equal to"),
-        (MatchType.LESS_OR_EQUAL, "less than or equal to"),
-        (MatchType.GREATER_OR_EQUAL, "greater than or equal to"),
-    ]
+    [(f"{k}", v) for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)]
 )
 
 

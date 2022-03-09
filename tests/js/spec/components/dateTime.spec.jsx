@@ -63,7 +63,7 @@ describe('DateTime', () => {
 
     it('renders a date', () => {
       mountWithTheme(<DateTime date={new Date()} />);
-      expect(screen.getByText('Oct 16, 2017 19:41')).toBeInTheDocument();
+      expect(screen.getByText('Oct 16, 2017 19:41:20')).toBeInTheDocument();
     });
 
     it('renders timeonly', () => {
@@ -78,7 +78,7 @@ describe('DateTime', () => {
 
     it('renders date with forced utc', () => {
       mountWithTheme(<DateTime date={new Date()} utc />);
-      expect(screen.getByText('Oct 17, 2017 02:41')).toBeInTheDocument();
+      expect(screen.getByText('Oct 17, 2017 02:41:20')).toBeInTheDocument();
     });
   });
 });

@@ -22,9 +22,9 @@ type Props = {
 } & RouteComponentProps<{groupId: string; orgId: string}, {}>;
 
 type State = {
+  error: string | false;
   eventList: Event[];
   loading: boolean;
-  error: string | false;
   pageLinks: string;
   query: string;
 };

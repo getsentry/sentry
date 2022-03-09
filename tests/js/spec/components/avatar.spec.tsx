@@ -185,5 +185,57 @@ describe('Avatar', function () {
         `platform-icon-${project.platform}`
       );
     });
+
+    it('renders the correct SentryApp depending on its props', async function () {
+      const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload', color: true};
+      const simpleAvatar = {avatarUuid: 'def', avatarType: 'upload', color: false};
+
+      const sentryApp = TestStubs.SentryApp({
+        avatars: [colorAvatar, simpleAvatar],
+      });
+
+      const avatar1 = mountWithTheme(<AvatarComponent sentryApp={sentryApp} isColor />);
+      expect(await screen.findByRole('img')).toHaveAttribute(
+        'src',
+        `/sentry-app-avatar/${colorAvatar.avatarUuid}/?s=120`
+      );
+      avatar1.unmount();
+
+      const avatar2 = mountWithTheme(
+        <AvatarComponent sentryApp={sentryApp} isColor={false} />
+      );
+      expect(await screen.findByRole('img')).toHaveAttribute(
+        'src',
+        `/sentry-app-avatar/${simpleAvatar.avatarUuid}/?s=120`
+      );
+      avatar2.unmount();
+
+      mountWithTheme(<AvatarComponent sentryApp={sentryApp} isDefault />);
+      expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
+    });
+
+    it('renders the correct fallbacks for SentryAppAvatars', async function () {
+      const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload', color: true};
+      const sentryApp = TestStubs.SentryApp({avatars: []});
+
+      // No existing avatars
+      const avatar1 = mountWithTheme(<AvatarComponent sentryApp={sentryApp} isColor />);
+      expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
+      avatar1.unmount();
+
+      // No provided `isColor` attribute
+      sentryApp.avatars.push(colorAvatar);
+      const avatar2 = mountWithTheme(<AvatarComponent sentryApp={sentryApp} />);
+      expect(await screen.findByRole('img')).toHaveAttribute(
+        'src',
+        `/sentry-app-avatar/${colorAvatar.avatarUuid}/?s=120`
+      );
+      avatar2.unmount();
+
+      // avatarType of `default`
+      sentryApp.avatars[0].avatarType = 'default';
+      mountWithTheme(<AvatarComponent sentryApp={sentryApp} isColor />);
+      expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
+    });
   });
 });

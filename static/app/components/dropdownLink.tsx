@@ -14,7 +14,7 @@ const getRootCss = (theme: Theme) => css`
       &:hover,
       &:focus {
         color: inherit;
-        background-color: ${theme.focus};
+        background-color: ${theme.hover};
       }
     }
 
@@ -29,7 +29,7 @@ const getRootCss = (theme: Theme) => css`
 
   .dropdown-submenu:hover > span {
     color: ${theme.textColor};
-    background: ${theme.focus};
+    background: ${theme.hover};
   }
 `;
 
@@ -43,27 +43,27 @@ type Props = Omit<
 > &
   Partial<typeof DropdownMenu.defaultProps> & {
     children: React.ReactNode;
-    title?: React.ReactNode;
-    customTitle?: React.ReactNode;
-    /**
-     * display dropdown caret
-     */
-    caret?: boolean;
-    disabled?: boolean;
-    /**
-     * Anchors menu to the right
-     */
-    anchorRight?: boolean;
-    anchorMiddle?: boolean;
     /**
      * Always render children of dropdown menu, this is included to support menu
      * items that open a confirm modal. Otherwise when dropdown menu hides, the
      * modal also gets unmounted
      */
     alwaysRenderMenu?: boolean;
-    topLevelClasses?: string;
-    menuClasses?: string;
+    anchorMiddle?: boolean;
+    /**
+     * Anchors menu to the right
+     */
+    anchorRight?: boolean;
+    /**
+     * display dropdown caret
+     */
+    caret?: boolean;
     className?: string;
+    customTitle?: React.ReactNode;
+    disabled?: boolean;
+    menuClasses?: string;
+    title?: React.ReactNode;
+    topLevelClasses?: string;
   };
 
 function DropdownLink({
@@ -99,6 +99,10 @@ function DropdownLink({
           open: isOpen,
         });
 
+        const {onClick: onClickActor, ...actorProps} = getActorProps({
+          className: cx,
+        });
+
         return (
           <span
             css={getRootCss(theme)}
@@ -106,11 +110,7 @@ function DropdownLink({
               className: topLevelCx,
             })}
           >
-            <a
-              {...getActorProps({
-                className: cx,
-              })}
-            >
+            <a onClick={disabled ? undefined : onClickActor} {...actorProps}>
               {customTitle || (
                 <div className="dropdown-actor-title">
                   {title}

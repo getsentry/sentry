@@ -99,8 +99,8 @@ describe('IncidentsList', function () {
     expect(within(items[0]).getByText('First incident')).toBeInTheDocument();
     expect(within(items[1]).getByText('Second incident')).toBeInTheDocument();
 
-    // GlobalSelectionHeader loads projects + the Projects render-prop
-    // component to load projects for all rows.
+    // PageFiltersContainer loads projects + the Projects render-prop component
+    // to load projects for all rows.
     expect(projectMock).toHaveBeenCalledTimes(2);
 
     expect(projectMock).toHaveBeenLastCalledWith(
@@ -219,7 +219,7 @@ describe('IncidentsList', function () {
     };
 
     createWrapper({organization: noAccessOrg});
-    expect(screen.getByLabelText('Create Alert Rule')).toHaveAttribute(
+    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -229,7 +229,7 @@ describe('IncidentsList', function () {
     // Enabled with access
     createWrapper();
 
-    expect(screen.getByLabelText('Create Alert Rule')).toHaveAttribute(
+    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'false'
     );

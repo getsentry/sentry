@@ -69,6 +69,10 @@ describe('ApiSource', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shortids/foo-t/',
       body: [],
     });
@@ -80,8 +84,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     expect(orgsMock).toHaveBeenCalled();
@@ -97,8 +100,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="test-">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -131,6 +133,7 @@ describe('ApiSource', function () {
               to: '/org-slug/project-slug/issues/1/',
             }),
             score: 1,
+            refIndex: 0,
           },
         ],
       })
@@ -142,8 +145,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="1234567890123456789012345678901">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -177,6 +179,7 @@ describe('ApiSource', function () {
               to: '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
             }),
             score: 1,
+            refIndex: 0,
           },
         ],
       })
@@ -188,8 +191,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     expect(orgsMock).toHaveBeenCalled();
@@ -203,8 +205,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} organization={org} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -277,7 +278,7 @@ describe('ApiSource', function () {
 
     // The return values here are because of fuzzy search matching.
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(6);
+    expect(mock.mock.calls[1][0].results).toHaveLength(5);
   });
 
   it('render function is called with correct results when API requests partially succeed', async function () {
@@ -291,8 +292,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -326,7 +326,7 @@ describe('ApiSource', function () {
 
     // The return values here are because of fuzzy search matching.
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(4);
+    expect(mock.mock.calls[1][0].results).toHaveLength(3);
   });
 
   it('render function is updated as query changes', async function () {
@@ -334,8 +334,7 @@ describe('ApiSource', function () {
     wrapper = mountWithTheme(
       <ApiSource params={{orgId: org.slug}} query="foo">
         {mock}
-      </ApiSource>,
-      TestStubs.routerContext()
+      </ApiSource>
     );
 
     await tick();
@@ -343,7 +342,7 @@ describe('ApiSource', function () {
 
     // The return values here are because of fuzzy search matching.
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(6);
+    expect(mock.mock.calls[1][0].results).toHaveLength(5);
     expect(mock.mock.calls[1][0].results[0].item.model.slug).toBe('foo-org');
 
     mock.mockClear();
@@ -363,8 +362,7 @@ describe('ApiSource', function () {
       wrapper = mountWithTheme(
         <ApiSource params={{orgId: org.slug}} query="">
           {mock}
-        </ApiSource>,
-        TestStubs.routerContext()
+        </ApiSource>
       );
     });
 

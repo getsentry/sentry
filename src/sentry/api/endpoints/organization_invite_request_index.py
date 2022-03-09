@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import Q
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -10,6 +11,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.app import locks
 from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
+from sentry.notifications.utils.tasks import async_send_notification
 from sentry.utils.retries import TimedRetryPolicy
 
 from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
@@ -25,7 +27,7 @@ class InviteRequestPermissions(OrganizationPermission):
 class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     permission_classes = (InviteRequestPermissions,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         queryset = OrganizationMember.objects.filter(
             Q(user__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
@@ -45,7 +47,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Add a invite request to Organization
         ````````````````````````````````````
@@ -91,6 +93,6 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 event=AuditLogEntryEvent.INVITE_REQUEST_ADD,
             )
 
-        InviteRequestNotification(om, request.user).send()
+        async_send_notification(InviteRequestNotification, om, request.user)
 
         return Response(serialize(om), status=201)

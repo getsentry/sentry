@@ -5,8 +5,11 @@ from django.conf import settings
 from django.core import mail
 from django.db.models import F
 from django.utils import timezone
+from fido2.ctap2 import AuthenticatorData
+from fido2.utils import sha256
 
 from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
+from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.models import Authenticator, Organization, User
 from sentry.testutils import APITestCase
 
@@ -34,6 +37,50 @@ def get_auth(user: "User") -> Authenticator:
                     },
                     "name": "Sentry",
                     "ts": 1512505334,
+                },
+            ]
+        },
+    )
+
+
+def get_auth_webauthn(user: "User") -> Authenticator:
+    return Authenticator.objects.create(
+        type=3,  # u2f
+        user=user,
+        config={
+            "devices": [
+                {
+                    "binding": {
+                        "publicKey": "aowekroawker",
+                        "keyHandle": "devicekeyhandle",
+                        "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                    },
+                    "name": "Amused Beetle",
+                    "ts": 1512505334,
+                },
+                {
+                    "binding": {
+                        "publicKey": "publickey",
+                        "keyHandle": "aowerkoweraowerkkro",
+                        "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                    },
+                    "name": "Sentry",
+                    "ts": 1512505334,
+                },
+                {
+                    "name": "Alert Escargot",
+                    "ts": 1512505334,
+                    "binding": AuthenticatorData.create(
+                        sha256(b"test"),
+                        0x41,
+                        1,
+                        create_credential_object(
+                            {
+                                "publicKey": "webauthn",
+                                "keyHandle": "webauthn",
+                            }
+                        ),
+                    ),
                 },
             ]
         },
@@ -94,6 +141,14 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
 
         authenticator = Authenticator.objects.get(id=auth.id)
         assert authenticator.interface.get_device_name("devicekeyhandle") == "for testing"
+
+    def test_rename_webauthn_device(self):
+        data = {"name": "for testing"}
+        auth = get_auth_webauthn(self.user)
+        self.get_success_response(self.user.id, auth.id, "webauthn", **data, method="put")
+
+        authenticator = Authenticator.objects.get(id=auth.id)
+        assert authenticator.interface.get_device_name("webauthn") == "for testing"
 
     def test_rename_device_not_found(self):
         data = {"name": "for testing"}

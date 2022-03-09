@@ -1,22 +1,21 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
 import GroupDetails from './groupDetails';
-import SampleEventAlert from './sampleEventAlert';
 
 type Props = {
-  selection: GlobalSelection;
+  children: React.ReactNode;
   isGlobalSelectionReady: boolean;
   organization: Organization;
   projects: Project[];
-  children: React.ReactNode;
-} & RouteComponentProps<{orgId: string; groupId: string}, {}>;
+  selection: PageFilters;
+} & RouteComponentProps<{groupId: string; orgId: string}, {}>;
 
 class OrganizationGroupDetails extends React.Component<Props> {
   componentDidMount() {
@@ -29,19 +28,13 @@ class OrganizationGroupDetails extends React.Component<Props> {
   render() {
     const {selection, ...props} = this.props;
     return (
-      <React.Fragment>
-        <SampleEventAlert />
-
-        <GroupDetails
-          key={`${this.props.params.groupId}-envs:${selection.environments.join(',')}`}
-          environments={selection.environments}
-          {...props}
-        />
-      </React.Fragment>
+      <GroupDetails
+        key={`${this.props.params.groupId}-envs:${selection.environments.join(',')}`}
+        environments={selection.environments}
+        {...props}
+      />
     );
   }
 }
 
-export default withOrganization(
-  withProjects(withGlobalSelection(OrganizationGroupDetails))
-);
+export default withOrganization(withProjects(withPageFilters(OrganizationGroupDetails)));

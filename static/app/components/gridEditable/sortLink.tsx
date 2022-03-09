@@ -11,11 +11,11 @@ export type Directions = 'desc' | 'asc' | undefined;
 
 type Props = {
   align: Alignments;
-  title: React.ReactNode;
-  direction: Directions;
   canSort: boolean;
-
+  direction: Directions;
   generateSortLink: () => LocationDescriptorObject | undefined;
+
+  title: React.ReactNode;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 };
 

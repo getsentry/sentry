@@ -21,13 +21,13 @@ class InvalidParams(Exception):
 def get_datetime_from_stats_period(stats_period, now=None):
     if now is None:
         now = timezone.now()
-    stats_period = parse_stats_period(stats_period)
-    if stats_period is None:
-        raise InvalidParams("Invalid statsPeriod")
+    parsed_stats_period = parse_stats_period(stats_period)
+    if parsed_stats_period is None:
+        raise InvalidParams(f"Invalid statsPeriod: {stats_period!r}")
     try:
-        return now - stats_period
+        return now - parsed_stats_period
     except OverflowError:
-        raise InvalidParams("Invalid statsPeriod")
+        raise InvalidParams(f"Invalid statsPeriod: {stats_period!r}")
 
 
 def default_start_end_dates(now=None):

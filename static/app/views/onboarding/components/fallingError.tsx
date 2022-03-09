@@ -5,8 +5,8 @@ import testableTransition from 'sentry/utils/testableTransition';
 
 type RenderProps = {
   fallCount: number;
-  triggerFall: (countIt?: boolean) => void;
   fallingError: React.ReactNode;
+  triggerFall: (countIt?: boolean) => void;
 };
 
 type Props = {
@@ -15,8 +15,8 @@ type Props = {
 };
 
 type State = {
-  isFalling: boolean;
   fallCount: number;
+  isFalling: boolean;
 };
 
 class FallingError extends React.Component<Props, State> {

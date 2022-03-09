@@ -9,8 +9,8 @@ const Context = styled('div')`
 `;
 
 type Props = {
-  line: [number, string];
   isActive: boolean;
+  line: [number, string];
   className?: string;
 } & React.ComponentProps<typeof React.Fragment>;
 

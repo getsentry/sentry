@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
@@ -12,7 +12,7 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   project: Project;
 };
 
-class ProjectPerformanceContainer extends React.Component<Props> {
+class ProjectPerformanceContainer extends Component<Props> {
   render() {
     return (
       <Feature features={['performance-view']}>

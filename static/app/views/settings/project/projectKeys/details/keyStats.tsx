@@ -26,12 +26,12 @@ type Props = {
 >;
 
 type State = {
+  emptyStats: boolean;
+  error: boolean;
+  loading: boolean;
+  series: Series[];
   since: number;
   until: number;
-  loading: boolean;
-  error: boolean;
-  series: Series[];
-  emptyStats: boolean;
 };
 
 const getInitialState = (): State => {

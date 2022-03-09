@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 import {Query} from 'history';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
@@ -21,12 +21,12 @@ const iconStyle = css`
 `;
 
 type Props = {
-  tag: EventTag;
-  streamPath: string;
-  releasesPath: string;
-  query: Query;
   organization: Organization;
   projectId: string;
+  query: Query;
+  releasesPath: string;
+  streamPath: string;
+  tag: EventTag;
 };
 
 const EventTagsPill = ({
@@ -37,7 +37,7 @@ const EventTagsPill = ({
   streamPath,
   releasesPath,
 }: Props) => {
-  const locationSearch = `?${queryString.stringify(query)}`;
+  const locationSearch = `?${qs.stringify(query)}`;
   const {key, value} = tag;
   const isRelease = key === 'release';
   const name = !key ? <AnnotatedText value={key} meta={getMeta(tag, 'key')} /> : key;

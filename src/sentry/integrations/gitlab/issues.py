@@ -1,8 +1,9 @@
 import re
+from typing import Sequence
 
 from django.urls import reverse
 
-from sentry.integrations.issues import IssueBasicMixin
+from sentry.integrations.mixins import IssueBasicMixin
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -18,7 +19,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         project, issue_id = match.group(1), match.group(2)
         return "{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project"]
 
     def get_projects_and_default(self, group, **kwargs):
@@ -58,8 +59,9 @@ class GitlabIssueBasic(IssueBasicMixin):
                 "choices": project_choices,
                 "defaultValue": default_project,
                 "required": True,
-            }
-        ] + fields
+            },
+            *fields,
+        ]
 
     def create_issue(self, data, **kwargs):
         client = self.get_client()

@@ -12,8 +12,8 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  orgId: string;
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
+  orgId: string;
   requestList: AccessRequest[];
 };
 
@@ -22,10 +22,10 @@ type State = {
 };
 
 type HandleOpts = {
+  errorMessage: string;
   id: string;
   isApproved: boolean;
   successMessage: string;
-  errorMessage: string;
 };
 
 class OrganizationAccessRequests extends React.Component<Props, State> {
@@ -138,7 +138,7 @@ class OrganizationAccessRequests extends React.Component<Props, State> {
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: auto max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 `;
 

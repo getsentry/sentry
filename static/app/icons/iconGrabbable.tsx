@@ -1,13 +1,8 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon>;
-
-const IconGrabbable = React.forwardRef(function IconGrabbable(
-  props: Props,
-  ref: React.Ref<SVGSVGElement>
-) {
+const IconGrabbable = React.forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
     <SvgIcon {...props} ref={ref}>
       <circle cx="4.73" cy="8" r="1.31" />

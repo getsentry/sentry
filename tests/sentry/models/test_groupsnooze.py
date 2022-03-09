@@ -14,6 +14,10 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 class GroupSnoozeTest(TestCase, SnubaTestCase):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 
+    def setUp(self):
+        super().setUp()
+        self.group.times_seen_pending = 0
+
     def test_until_not_reached(self):
         snooze = GroupSnooze.objects.create(
             group=self.group, until=timezone.now() + timedelta(days=1)
@@ -39,6 +43,14 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
         snooze = GroupSnooze.objects.create(group=self.group, count=100, state={"times_seen": 0})
         self.group.update(times_seen=100)
         assert not snooze.is_valid()
+
+    def test_delta_reached_pending(self):
+        snooze = GroupSnooze.objects.create(group=self.group, count=100, state={"times_seen": 0})
+        self.group.update(times_seen=90)
+        assert snooze.is_valid(use_pending_data=True)
+
+        self.group.times_seen_pending = 10
+        assert not snooze.is_valid(use_pending_data=True)
 
     def test_user_delta_not_reached(self):
         snooze = GroupSnooze.objects.create(

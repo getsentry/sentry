@@ -10,9 +10,9 @@ import space from 'sentry/styles/space';
 
 type BadgeProps = {
   type: 'alpha' | 'beta' | 'new';
-  variant?: 'indicator' | 'badge';
-  title?: string;
   noTooltip?: boolean;
+  title?: string;
+  variant?: 'indicator' | 'badge';
 };
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;

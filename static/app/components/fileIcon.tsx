@@ -4,8 +4,8 @@ import theme from 'sentry/utils/theme';
 
 type Props = {
   fileName: string;
-  size?: string;
   className?: string;
+  size?: string;
 };
 
 const FileIcon = ({fileName, size: providedSize = 'sm', className}: Props) => {

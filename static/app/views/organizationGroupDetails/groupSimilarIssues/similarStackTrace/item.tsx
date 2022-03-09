@@ -10,7 +10,7 @@ import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels';
 import ScoreBar from 'sentry/components/scoreBar';
 import SimilarScoreCard from 'sentry/components/similarScoreCard';
@@ -22,19 +22,19 @@ import {Group, Organization, Project} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
-  issue: Group;
-  project: Project;
-  orgId: Organization['id'];
   groupId: Group['id'];
+  issue: Group;
+  orgId: Organization['id'];
+  project: Project;
   v2: boolean;
+  aggregate?: {
+    exception: number;
+    message: number;
+  };
   score?: Record<string, any>;
   scoresByInterface?: {
     exception: Array<[string, number | null]>;
     message: Array<[string, any | null]>;
-  };
-  aggregate?: {
-    exception: number;
-    message: number;
   };
 };
 

@@ -1,11 +1,11 @@
-import React from 'react';
+import {Component, createContext} from 'react';
 
 export type AnchorLinkManagerChildrenProps = {
   registerScrollFn: (id: string, fn: () => void) => void;
   scrollToHash: (hash: string) => void;
 };
 
-const AnchorLinkManagerContext = React.createContext<AnchorLinkManagerChildrenProps>({
+const AnchorLinkManagerContext = createContext<AnchorLinkManagerChildrenProps>({
   registerScrollFn: () => () => undefined,
   scrollToHash: () => undefined,
 });
@@ -14,7 +14,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-export class Provider extends React.Component<Props> {
+export class Provider extends Component<Props> {
   componentDidMount() {
     this.scrollToHash(location.hash);
   }

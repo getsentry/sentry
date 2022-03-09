@@ -67,6 +67,7 @@ class OrganizationRules extends Component<Props, State> {
             }
             icon={<IconChevron size="xs" direction={isCollapsed ? 'down' : 'up'} />}
             size="xsmall"
+            aria-label={t('Toggle Organization Rules')}
           />
         </Header>
         <Content>
@@ -94,7 +95,7 @@ const Header = styled('div')`
   padding: ${space(1)} ${space(2)};
 `;
 
-const Wrapper = styled('div')<{isCollapsed?: boolean; contentHeight?: string}>`
+const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`
   color: ${p => p.theme.gray200};
   background: ${p => p.theme.backgroundSecondary};
   ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};

@@ -1,5 +1,8 @@
 from functools import reduce
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
@@ -8,7 +11,7 @@ from sentry.models import Activity, OrganizationMemberTeam, Project
 
 
 class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
-    def get(self, request, organization, member):
+    def get(self, request: Request, organization, member) -> Response:
         # There is an activity record created for both sides of the unmerge
         # operation, so we only need to include one of them here to avoid
         # showing the same entry twice.

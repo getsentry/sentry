@@ -1,5 +1,4 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import PropTypes from 'prop-types';
@@ -7,8 +6,9 @@ import PropTypes from 'prop-types';
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
@@ -23,6 +23,7 @@ import withApi from 'sentry/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
+import SampleEventAlert from './sampleEventAlert';
 import {Tab} from './types';
 import {
   fetchGroupEvent,
@@ -35,21 +36,21 @@ type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
 type Props = {
   api: Client;
+  children: React.ReactNode;
+  environments: string[];
+  isGlobalSelectionReady: boolean;
   organization: Organization;
   projects: Project[];
-  environments: string[];
-  children: React.ReactNode;
-  isGlobalSelectionReady: boolean;
-} & RouteComponentProps<{orgId: string; groupId: string; eventId?: string}, {}>;
+} & RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}>;
 
 type State = {
+  error: boolean;
+  errorType: Error;
+  eventError: boolean;
   group: Group | null;
   loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
-  error: boolean;
-  eventError: boolean;
-  errorType: Error;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
   event?: Event;
 };
@@ -155,7 +156,7 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
-  getCurrentRouteInfo(group: Group): {currentTab: Tab; baseUrl: string} {
+  getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
     const {routes, organization} = this.props;
     const {event} = this.state;
 
@@ -544,22 +545,29 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   render() {
-    const {project} = this.state;
+    const {project, group} = this.state;
+    const {organization} = this.props;
+    const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
 
     return (
-      <DocumentTitle title={this.getTitle()}>
-        <GlobalSelectionHeader
-          skipLoadLastUsed
-          forceProject={project}
-          showDateSelector={false}
-          shouldForceProject
-          lockedMessageSubject={t('issue')}
-          showIssueStreamLink
-          showProjectSettingsLink
-        >
-          <PageContent>{this.renderPageContent()}</PageContent>
-        </GlobalSelectionHeader>
-      </DocumentTitle>
+      <React.Fragment>
+        {isSampleError && project && (
+          <SampleEventAlert project={project} organization={organization} />
+        )}
+        <SentryDocumentTitle noSuffix title={this.getTitle()}>
+          <PageFiltersContainer
+            skipLoadLastUsed
+            forceProject={project}
+            showDateSelector={false}
+            shouldForceProject
+            lockedMessageSubject={t('issue')}
+            showIssueStreamLink
+            showProjectSettingsLink
+          >
+            <PageContent>{this.renderPageContent()}</PageContent>
+          </PageFiltersContainer>
+        </SentryDocumentTitle>
+      </React.Fragment>
     );
   }
 }

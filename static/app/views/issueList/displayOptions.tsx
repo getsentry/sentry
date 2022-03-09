@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -9,10 +9,10 @@ import {t} from 'sentry/locale';
 import {getDisplayLabel, IssueDisplayOptions} from 'sentry/views/issueList/utils';
 
 type Props = {
-  onDisplayChange: (display: string) => void;
   display: IssueDisplayOptions;
-  hasSessions: boolean;
   hasMultipleProjectsSelected: boolean;
+  hasSessions: boolean;
+  onDisplayChange: (display: string) => void;
 };
 
 const IssueListDisplayOptions = ({
@@ -81,10 +81,10 @@ const IssueListDisplayOptions = ({
             : getDisplayLabel(display)
         }
       >
-        <React.Fragment>
+        <Fragment>
           {getMenuItem(IssueDisplayOptions.EVENTS)}
           {getMenuItem(IssueDisplayOptions.SESSIONS)}
-        </React.Fragment>
+        </Fragment>
       </StyledDropdownControl>
     </GuideAnchor>
   );

@@ -1,7 +1,5 @@
 from exam import mock
 
-from sentry import features
-from sentry.features import OrganizationFeature
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
 from tests.acceptance.page_objects.organization_integration_settings import (
@@ -17,7 +15,6 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
     def setUp(self):
         super().setUp()
-        features.add("organizations:integrations-feature-flag-integration", OrganizationFeature)
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
@@ -25,7 +22,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_example_installation(self):
         self.provider = mock.Mock()
@@ -70,5 +67,8 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         detail_view_page = OrganizationIntegrationDetailViewPage(browser=self.browser)
         assert self.browser.element_exists('[aria-label="Configure"]')
         detail_view_page.uninstall()
-        assert not self.browser.element_exists('[aria-label="Configure"]')
+
+        assert (
+            self.browser.element('[data-test-id="integration-status"]').text == "Pending Deletion"
+        )
         self.browser.snapshot(name="integrations - integration detail no configurations")

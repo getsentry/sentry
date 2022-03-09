@@ -147,7 +147,7 @@ function GenericCards(props: GenericCardsProps) {
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
-  const globalSelection = eventView.getGlobalSelection();
+  const globalSelection = eventView.getPageFilters();
   const start = globalSelection.datetime.start
     ? getUtcToLocalDateObject(globalSelection.datetime.start)
     : undefined;
@@ -319,8 +319,8 @@ function SparklineChart(props: SparklineChartProps) {
 }
 
 type SparklineContainerProps = {
-  width: number;
   height: number;
+  width: number;
 };
 
 const SparklineContainer = styled('div')<SparklineContainerProps>`
@@ -345,17 +345,17 @@ const VitalsContainer = styled('div')`
 `;
 
 type VitalBarProps = {
-  isLoading: boolean;
   data: VitalsData | null;
+  isLoading: boolean;
   vital: WebVital | WebVital[];
-  value?: string;
-  showBar?: boolean;
-  showStates?: boolean;
-  showDurationDetail?: boolean;
-  showVitalPercentNames?: boolean;
-  showDetail?: boolean;
-  showTooltip?: boolean;
   barHeight?: number;
+  showBar?: boolean;
+  showDetail?: boolean;
+  showDurationDetail?: boolean;
+  showStates?: boolean;
+  showTooltip?: boolean;
+  showVitalPercentNames?: boolean;
+  value?: string;
 };
 
 export function VitalBar(props: VitalBarProps) {
@@ -428,7 +428,7 @@ export function VitalBar(props: VitalBarProps) {
       {showDetail && (
         <BarDetail>
           {showDurationDetail && p75 && (
-            <div data-test-id="vital-bar-p75">
+            <div>
               {t('The p75 for all transactions is ')}
               <strong>{p75}</strong>
             </div>
@@ -451,13 +451,13 @@ const EmptyVitalBar = styled(EmptyStateWarning)`
 `;
 
 type VitalCardProps = {
+  chart: React.ReactNode;
   title: string;
   tooltip: string;
   value: string | number;
-  chart: React.ReactNode;
-  minHeight?: number;
   horizontal?: boolean;
   isNotInteractive?: boolean;
+  minHeight?: number;
 };
 
 function VitalCard(props: VitalCardProps) {
@@ -504,8 +504,8 @@ function getP75(data: VitalData | null, vitalName: WebVital): string {
 }
 
 type Percent = {
-  vitalState: VitalState;
   percent: number;
+  vitalState: VitalState;
 };
 
 function getPercentsFromCounts({poor, meh, good, total}) {

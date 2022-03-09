@@ -118,7 +118,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
         mock_send_invite_email.assert_called_once_with()
 
-    @patch("sentry.utils.ratelimits.for_organization_member_invite")
+    @patch("sentry.ratelimits.for_organization_member_invite")
     @patch("sentry.models.OrganizationMember.send_invite_email")
     def test_rate_limited(self, mock_send_invite_email, mock_rate_limit):
         mock_rate_limit.return_value = True
@@ -440,6 +440,22 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         self.get_error_response(self.organization.slug, join_request.id, status_code=404)
         self.get_error_response(self.organization.slug, invite_request.id, status_code=404)
+
+    def test_disabled_member_can_remove(self):
+        other_user = self.create_user("bar@example.com")
+        self.create_member(
+            organization=self.organization,
+            role="member",
+            user=other_user,
+            flags=OrganizationMember.flags["member-limit:restricted"],
+        )
+
+        self.login_as(other_user)
+        self.get_success_response(self.organization.slug, "me")
+
+        assert not OrganizationMember.objects.filter(
+            user=other_user, organization=self.organization
+        ).exists()
 
 
 class ResetOrganizationMember2faTest(APITestCase):

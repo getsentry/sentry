@@ -19,14 +19,14 @@ type StatsGroup = Record<string, TimeseriesValue[]>;
 type Props = {
   group: Group;
   statsPeriod: string;
-  title: React.ReactNode;
+  title: string;
   className?: string;
+  environment?: string;
+  environmentStats?: StatsGroup;
   firstSeen?: string;
   lastSeen?: string;
-  environment?: string;
   release?: Release;
   releaseStats?: StatsGroup;
-  environmentStats?: StatsGroup;
 };
 
 function GroupReleaseChart(props: Props) {

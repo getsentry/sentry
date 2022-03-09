@@ -1,6 +1,6 @@
 import {LocationDescriptor, Query} from 'history';
 
-import {PAGE_URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {OrganizationSummary} from 'sentry/types';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {reduceTrace} from 'sentry/utils/performance/quickTrace/utils';

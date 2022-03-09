@@ -5,13 +5,13 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {GlobalSelection} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 
 type Props = {
-  selection: GlobalSelection;
-  statsPeriod: string;
-  onSelectStatsPeriod: (statsPeriod: string) => void;
   isReprocessingQuery: boolean;
+  onSelectStatsPeriod: (statsPeriod: string) => void;
+  selection: PageFilters;
+  statsPeriod: string;
   anySelected?: boolean;
 };
 

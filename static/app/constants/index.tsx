@@ -1,10 +1,11 @@
 /* global process */
+
+import {t} from 'sentry/locale';
+import {DataCategory, Scope} from 'sentry/types';
+
 /**
  * Common constants here
  */
-
-import {t} from 'sentry/locale';
-import {Scope} from 'sentry/types';
 
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
@@ -83,15 +84,15 @@ export type PermissionChoice = {
   scopes: Scope[];
 };
 type PermissionObj = {
-  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
-  help: string;
-  label?: string;
   choices: {
+    admin: PermissionChoice;
     'no-access': PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
-    admin: PermissionChoice;
   };
+  help: string;
+  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+  label?: string;
 };
 
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
@@ -166,25 +167,15 @@ export const DEFAULT_DEBOUNCE_DURATION = 300;
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
-// See http://fusejs.io/ for more information
-export const DEFAULT_FUSE_OPTIONS = {
-  includeScore: true,
-  includeMatches: true,
-  threshold: 0.4,
-  location: 0,
-  distance: 75,
-  maxPatternLength: 24,
-  minMatchCharLength: 2,
-  // tokenize: true,
-  // findAllMatches: true,
-};
-
 // Maps a `type: string` -> `url-prefix: string`
 export const AVATAR_URL_MAP = {
   team: 'team-avatar',
   organization: 'organization-avatar',
   project: 'project-avatar',
   user: 'avatar',
+  sentryAppColor: 'sentry-app-avatar',
+  sentryAppSimple: 'sentry-app-avatar',
+  docIntegration: 'doc-integration-avatar',
 };
 
 export const MENU_CLOSE_DELAY = 200;
@@ -204,6 +195,20 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
   '90d': t('Last 90 days'),
+};
+
+export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
+  '1h': t('1H'),
+  '24h': t('24H'),
+  '7d': t('7D'),
+  '14d': t('14D'),
+  '30d': t('30D'),
+};
+
+export const DATA_CATEGORY_NAMES = {
+  [DataCategory.ERRORS]: t('Errors'),
+  [DataCategory.TRANSACTIONS]: t('Transactions'),
+  [DataCategory.ATTACHMENTS]: t('Attachments'),
 };
 
 // Special Search characters

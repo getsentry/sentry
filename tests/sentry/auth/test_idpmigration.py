@@ -5,6 +5,7 @@ from django.urls import reverse
 import sentry.auth.idpmigration as idpmigration
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class IDPMigrationTests(TestCase):
@@ -15,17 +16,40 @@ class IDPMigrationTests(TestCase):
         self.email = "test@example.com"
         self.org = self.create_organization()
         self.provider = AuthProvider.objects.create(organization=self.org, provider="dummy")
-        OrganizationMember.objects.create(organization=self.org, user=self.user)
+
+    IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 
     def test_send_one_time_account_confirm_link(self):
+        om = OrganizationMember.objects.create(organization=self.org, user=self.user)
         link = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, "drgUQCLzOyfHxmTyVs0G"
+            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )
         assert re.match(r"auth:one-time-key:\w{32}", link.verification_key)
 
+        value = json.loads(idpmigration.get_redis_cluster().get(link.verification_key))
+        assert value["user_id"] == self.user.id
+        assert value["email"] == self.email
+        assert value["member_id"] == om.id
+        assert value["organization_id"] == self.org.id
+        assert value["identity_id"] == self.IDENTITY_ID
+        assert value["provider"] == "dummy"
+
+    def test_send_without_org_membership(self):
+        link = idpmigration.send_one_time_account_confirm_link(
+            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+        )
+
+        value = json.loads(idpmigration.get_redis_cluster().get(link.verification_key))
+        assert value["user_id"] == self.user.id
+        assert value["email"] == self.email
+        assert value["member_id"] is None
+        assert value["organization_id"] == self.org.id
+        assert value["identity_id"] == self.IDENTITY_ID
+        assert value["provider"] == "dummy"
+
     def test_verify_account(self):
         link = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, "drgUQCLzOyfHxmTyVs0G"
+            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )
         path = reverse(
             "sentry-idp-email-verification",
@@ -39,7 +63,7 @@ class IDPMigrationTests(TestCase):
 
     def test_verify_account_wrong_key(self):
         idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, "drgUQCLzOyfHxmTyVs0G"
+            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )
         path = reverse(
             "sentry-idp-email-verification",

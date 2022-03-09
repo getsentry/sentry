@@ -1,5 +1,6 @@
 from django.db.models import Case, When
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -20,7 +21,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-query", organization, actor=request.user)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List saved queries for organization
         """
@@ -101,7 +102,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             default_per_page=25,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create a saved query
         """

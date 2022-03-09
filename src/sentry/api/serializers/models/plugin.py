@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.utils.text import slugify
 
 from sentry import features
@@ -14,8 +16,19 @@ SHADOW_DEPRECATED_PLUGINS = {
 
 
 def is_plugin_deprecated(plugin, project: Project) -> bool:
-    return plugin.slug in SHADOW_DEPRECATED_PLUGINS and not features.has(
-        SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
+    """
+    Determines whether or not a plugin has been deprecated.
+    If it is past the `deprecation_date` this will always be True.
+    If not, it checks the `SHADOW_DEPRECATED_PLUGINS` map and will return True only if
+    the plugin slug is present and the organization doesn't have the override feature.
+    """
+    deprecation_date = getattr(plugin, "deprecation_date", None)
+    is_past_deprecation_date = datetime.today() > deprecation_date if deprecation_date else False
+    return is_past_deprecation_date or (
+        plugin.slug in SHADOW_DEPRECATED_PLUGINS
+        and not features.has(
+            SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
+        )
     )
 
 
@@ -77,18 +90,9 @@ class PluginSerializer(Serializer):
         if obj.author:
             d["author"] = {"name": str(obj.author), "url": str(obj.author_url)}
 
-        # TODO(Leander): Convert this field to:
-        # d["isDeprecated"] = obj.slug in SHADOW_DEPRECATED_PLUGINS or datetime.today() > deprecation_date
-        # but we are late on deprecating right now
-        d["isDeprecated"] = obj.slug in SHADOW_DEPRECATED_PLUGINS
+        d["isDeprecated"] = is_plugin_deprecated(obj, self.project)
 
-        d["isHidden"] = (
-            not features.has(
-                SHADOW_DEPRECATED_PLUGINS.get(obj.slug), getattr(self.project, "organization", None)
-            )
-            if d["isDeprecated"]
-            else d.get("enabled", False) is False and obj.is_hidden()
-        )
+        d["isHidden"] = d["isDeprecated"] or (not d.get("enabled", False) and obj.is_hidden())
 
         if obj.description:
             d["description"] = str(obj.description)
@@ -136,19 +140,10 @@ def serialize_field(project, plugin, field):
         "readonly": field.get("readonly", False),
         "defaultValue": field.get("default"),
         "value": None,
-        # TODO(Leander): Convert this field to:
-        # "isDeprecated": obj.slug in SHADOW_DEPRECATED_PLUGINS or datetime.today() > deprecation_date
-        # but we are late on deprecating right now
-        "isDeprecated": plugin.slug in SHADOW_DEPRECATED_PLUGINS,
+        "isDeprecated": is_plugin_deprecated(plugin, project),
     }
 
-    data["isHidden"] = (
-        not features.has(
-            SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
-        )
-        if data["isDeprecated"]
-        else plugin.is_hidden()
-    )
+    data["isHidden"] = data["isDeprecated"] or plugin.is_hidden()
     if field.get("type") != "secret":
         data["value"] = plugin.get_option(field["name"], project)
     else:

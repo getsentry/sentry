@@ -14,8 +14,8 @@ export const OpBreakdownFilterProvider = ({
   filter,
   children,
 }: {
-  filter?: SpanOperationBreakdownFilter;
   children: React.ReactNode;
+  filter?: SpanOperationBreakdownFilter;
 }) => {
   const [opBreakdownFilter, setOpBreakdownFilter] = useState(filter);
   return (

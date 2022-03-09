@@ -22,7 +22,7 @@ class IssueOccurrencesFilter(EventFilter):
         except (TypeError, ValueError):
             return False
 
-        # This value is slightly delayed due to us batching writes to times_seen
-        # which can cause the filter to be delayed or occasionally not work as expected.
-        issue_occurrences = event.group.times_seen
+        # This value is slightly delayed due to us batching writes to times_seen. We attempt to work
+        # around this by including pending updates from buffers to improve accuracy.
+        issue_occurrences = event.group.times_seen_with_pending
         return issue_occurrences >= value

@@ -60,13 +60,13 @@ type ContentOpts = {
 
 type PositioningStrategyOpts = {
   /**
-   * The main container component rect.
-   */
-  mainRect: DOMRect;
-  /**
    * The anchor reference component in the backgrounds rect.
    */
   anchorRect: DOMRect;
+  /**
+   * The main container component rect.
+   */
+  mainRect: DOMRect;
   /**
    * The wrapper being positioned Rect.
    */
@@ -74,16 +74,14 @@ type PositioningStrategyOpts = {
 };
 
 type Props = {
+  /**
+   * When a background with an anchorRef is provided, you can customize the
+   * positioning strategy for the wrapper by passing in a custom function here
+   * that resolves the X and Y position.
+   */
+  positioningStrategy: (opts: PositioningStrategyOpts) => {x: number; y: number};
   text: (opts: ContentOpts) => React.ReactNode;
   animateDelay?: number;
-  /**
-   * If special sizing of the details block is required you can use a custom
-   * wrapper passed in here.
-   *
-   * This must forward its ref if you are using a background that provides an
-   * anchor
-   */
-  customWrapper?: React.ComponentType;
   /**
    * Instead of rendering children with an animated gradient fly-in, render a
    * background component.
@@ -97,11 +95,13 @@ type Props = {
     | React.ComponentType
     | React.ComponentType<{anchorRef: React.Ref<SVGForeignObjectElement>}>;
   /**
-   * When a background with an anchorRef is provided, you can customize the
-   * positioning strategy for the wrapper by passing in a custom function here
-   * that resolves the X and Y position.
+   * If special sizing of the details block is required you can use a custom
+   * wrapper passed in here.
+   *
+   * This must forward its ref if you are using a background that provides an
+   * anchor
    */
-  positioningStrategy: (opts: PositioningStrategyOpts) => {x: number; y: number};
+  customWrapper?: React.ComponentType;
 };
 
 type DefaultProps = Pick<Props, 'positioningStrategy'>;

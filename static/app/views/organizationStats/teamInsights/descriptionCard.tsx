@@ -1,12 +1,11 @@
-import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
 type Props = {
+  children: React.ReactNode;
+  description: React.ReactNode;
   title: string;
-  description: ReactNode;
-  children: ReactNode;
 };
 
 function DescriptionCard({title, description, children}: Props) {

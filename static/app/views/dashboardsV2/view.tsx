@@ -1,5 +1,6 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
@@ -17,9 +18,14 @@ import OrgDashboards from './orgDashboards';
 import {DashboardState, Widget} from './types';
 import {constructWidgetFromQuery} from './utils';
 
-type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
-  organization: Organization;
+const ALLOWED_PARAMS = ['start', 'end', 'utc', 'period', 'project', 'environment'];
+
+type Props = RouteComponentProps<
+  {dashboardId: string; orgId: string; widgetId?: number},
+  {}
+> & {
   children: React.ReactNode;
+  organization: Organization;
 };
 
 function ViewEditDashboard(props: Props) {
@@ -37,9 +43,12 @@ function ViewEditDashboard(props: Props) {
 
     const constructedWidget = constructWidgetFromQuery(location.query);
     setNewWidget(constructedWidget);
-    // Clean up url after constructing widget from query string
+    // Clean up url after constructing widget from query string, only allow GHS params
     if (constructedWidget) {
-      browserHistory.replace(location.pathname);
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: pick(location.query, ALLOWED_PARAMS),
+      });
     }
   }, [api, orgSlug, dashboardId]);
 
@@ -51,7 +60,7 @@ function ViewEditDashboard(props: Props) {
         params={params}
         organization={organization}
       >
-        {({dashboard, dashboards, error, reloadData}) => {
+        {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
           ) : dashboard ? (
@@ -60,12 +69,7 @@ function ViewEditDashboard(props: Props) {
               initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              reloadData={(...args) => {
-                if (newWidget) {
-                  setNewWidget(undefined);
-                }
-                return reloadData(...args);
-              }}
+              onDashboardUpdate={onDashboardUpdate}
               newWidget={newWidget}
             />
           ) : (
@@ -80,8 +84,8 @@ function ViewEditDashboard(props: Props) {
 export default withOrganization(ViewEditDashboard);
 
 type FeatureProps = {
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 };
 
 export const DashboardBasicFeature = ({organization, children}: FeatureProps) => {

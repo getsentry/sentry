@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Form from 'sentry/components/forms/form';
+import NumberField from 'sentry/components/forms/numberField';
+import RadioField from 'sentry/components/forms/radioField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
-import Form from 'sentry/views/settings/components/forms/form';
-import NumberField from 'sentry/views/settings/components/forms/numberField';
-import RadioField from 'sentry/views/settings/components/forms/radioField';
 
 const impacts = [
   tct(
@@ -135,7 +135,7 @@ const Introduction = styled('p')`
 `;
 
 const StyledList = styled(List)`
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-bottom: ${space(4)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

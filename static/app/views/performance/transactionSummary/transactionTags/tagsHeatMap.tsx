@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Popper} from 'react-popper';
 import styled from '@emotion/styled';
@@ -16,6 +16,7 @@ import {Content} from 'sentry/components/dropdownControl';
 import DropdownMenu from 'sentry/components/dropdownMenu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
@@ -36,16 +37,16 @@ import {TableData as TagTableData} from 'sentry/utils/performance/segmentExplore
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {getPerformanceDuration, PerformanceDuration} from '../../utils';
+import {getPerformanceDuration} from '../../utils';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
 import {generateTransactionLink} from '../utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
 type Props = {
+  aggregateColumn: string;
   eventView: EventView;
   location: Location;
-  aggregateColumn: string;
   organization: Organization;
   projects: Project[];
   transactionName: string;
@@ -86,8 +87,8 @@ const getPortal = memoize((): HTMLElement => {
 
 const TagsHeatMap = (
   props: Props & {
-    tableData: TagTableData | null;
     isLoading: boolean;
+    tableData: TagTableData | null;
   }
 ) => {
   const {
@@ -313,7 +314,7 @@ const TagsHeatMap = (
             };
 
             return (
-              <React.Fragment>
+              <Fragment>
                 {ReactDOM.createPortal(
                   <div>
                     {chartElement ? (
@@ -359,7 +360,7 @@ const TagsHeatMap = (
                                           },
                                         });
                                     return (
-                                      <React.Fragment>
+                                      <Fragment>
                                         {isTransactionsLoading ? (
                                           <LoadingContainer>
                                             <LoadingIndicator size={40} hideMessage />
@@ -412,7 +413,7 @@ const TagsHeatMap = (
                                             ) : null}
                                           </div>
                                         )}
-                                      </React.Fragment>
+                                      </Fragment>
                                     );
                                   }}
                                 </TagTransactionsQuery>
@@ -438,7 +439,7 @@ const TagsHeatMap = (
                   ),
                   fixed: <Placeholder height="290px" testId="skeleton-ui" />,
                 })}
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </DropdownMenu>

@@ -27,7 +27,7 @@ const SidebarOrgSummary = ({organization, projectCount}: Props) => (
 const OrgSummary = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   padding: ${space(1)} ${p => p.theme.sidebar.menuSpacing};
   overflow: hidden;

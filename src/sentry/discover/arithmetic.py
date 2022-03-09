@@ -302,6 +302,8 @@ def parse_arithmetic(
         raise ArithmeticValidationError("Cannot mix functions and fields in arithmetic")
     if visitor.terms <= 1:
         raise ArithmeticValidationError("Arithmetic expression must contain at least 2 terms")
+    if visitor.operators == 0:
+        raise ArithmeticValidationError("Arithmetic expression must contain at least 1 operator")
     return result, list(visitor.fields), list(visitor.functions)
 
 

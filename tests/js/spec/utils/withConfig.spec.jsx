@@ -4,8 +4,9 @@ import ConfigStore from 'sentry/stores/configStore';
 import withConfig from 'sentry/utils/withConfig';
 
 describe('withConfig HoC', function () {
-  it('adds config prop', async function () {
+  it('adds config prop', function () {
     ConfigStore.init();
+
     const MyComponent = ({config}) => <div>{config.test}</div>;
     const Container = withConfig(MyComponent);
 
@@ -13,6 +14,6 @@ describe('withConfig HoC', function () {
 
     act(() => void ConfigStore.set('test', 'foo'));
 
-    expect(screen.queryByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
   });
 });

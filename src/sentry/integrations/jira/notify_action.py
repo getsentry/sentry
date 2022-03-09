@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models.integration import Integration
+from sentry.models import Integration
 from sentry.rules.actions.base import TicketEventAction
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -18,7 +21,7 @@ class JiraCreateTicketAction(TicketEventAction):
     provider = "jira"
     integration_key = "integration"
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
 
         integration = cleaned_data.get(self.integration_key)

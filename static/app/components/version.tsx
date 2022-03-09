@@ -17,46 +17,46 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   /**
-   * Raw version (canonical release identifier)
-   */
-  version: string;
-  /**
    *  Organization injected by withOrganization HOC
    */
   organization: Organization;
   /**
+   * Raw version (canonical release identifier)
+   */
+  version: string;
+  /**
    * Should the version be a link to the release page
    */
   anchor?: boolean;
+  className?: string;
   /**
-   * Should link to release page preserve user's global selection values
+   * Should link to release page preserve user's page filter values
    */
-  preserveGlobalSelection?: boolean;
+  preservePageFilters?: boolean;
+  /**
+   * Will add project ID to the linked url (can be overridden by preservePageFilters).
+   * If not provided and user does not have global-views enabled, it will try to take it from current url query.
+   */
+  projectId?: string;
   /**
    * Should there be a tooltip with raw version on hover
    */
   tooltipRawVersion?: boolean;
   /**
-   * Should we also show package name
-   */
-  withPackage?: boolean;
-  /**
-   * Will add project ID to the linked url (can be overridden by preserveGlobalSelection).
-   * If not provided and user does not have global-views enabled, it will try to take it from current url query.
-   */
-  projectId?: string;
-  /**
    * Ellipsis on overflow
    */
   truncate?: boolean;
-  className?: string;
+  /**
+   * Should we also show package name
+   */
+  withPackage?: boolean;
 };
 
 const Version = ({
   version,
   organization,
   anchor = true,
-  preserveGlobalSelection,
+  preservePageFilters,
   tooltipRawVersion,
   withPackage,
   projectId,
@@ -68,7 +68,7 @@ const Version = ({
 
   let releaseDetailProjectId: null | undefined | string | string[];
   if (projectId) {
-    // we can override preserveGlobalSelection's project id
+    // we can override preservePageFilters's project id
     releaseDetailProjectId = projectId;
   } else if (!organization?.features.includes('global-views')) {
     // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
@@ -86,7 +86,7 @@ const Version = ({
         },
         className,
       };
-      if (preserveGlobalSelection) {
+      if (preservePageFilters) {
         return (
           <GlobalSelectionLink {...props}>
             <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
@@ -117,7 +117,7 @@ const Version = ({
 
       <Clipboard value={version}>
         <TooltipClipboardIconWrapper>
-          <IconCopy size="xs" color="white" />
+          <IconCopy size="xs" />
         </TooltipClipboardIconWrapper>
       </Clipboard>
     </TooltipContent>

@@ -14,8 +14,8 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   eventView: EventView;
-  organization: Organization;
   location: Location;
+  organization: Organization;
 };
 
 class DiscoverBreadcrumb extends Component<Props> {
@@ -32,7 +32,7 @@ class DiscoverBreadcrumb extends Component<Props> {
           query: {
             ...location.query,
             ...eventView.generateBlankQueryStringObject(),
-            ...eventView.getGlobalSelectionQuery(),
+            ...eventView.getPageFiltersQuery(),
           },
         }
       : null;

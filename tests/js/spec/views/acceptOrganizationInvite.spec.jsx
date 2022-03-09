@@ -20,17 +20,16 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: false,
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
 
     expect(joinButton.exists()).toBe(true);
     expect(joinButton.text()).toBe('Join the test-org organization');
@@ -42,7 +41,9 @@ describe('AcceptOrganizationInvite', function () {
 
     joinButton.simulate('click');
     expect(acceptMock).toHaveBeenCalled();
-    expect(wrapper.find('Button[label="join-organization"]').props().disabled).toBe(true);
+    expect(wrapper.find('Button[aria-label="join-organization"]').props().disabled).toBe(
+      true
+    );
 
     await tick();
     expect(browserHistory.replace).toHaveBeenCalledWith('/test-org/');
@@ -53,24 +54,23 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: false,
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(false);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(false);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(false);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
@@ -79,24 +79,23 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: false,
       existingMember: false,
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
@@ -105,24 +104,23 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: true,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: true,
       existingMember: false,
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(false);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
   });
 
@@ -131,24 +129,23 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: true,
       existingMember: false,
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(false);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
   });
 
@@ -157,14 +154,13 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: true,
+      hasAuthProvider: true,
       requireSso: true,
       existingMember: true,
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const existingMember = wrapper.find('[data-test-id="existing-member"]');
@@ -184,19 +180,39 @@ describe('AcceptOrganizationInvite', function () {
     window.location.replace = replace;
   });
 
+  it('shows right options for logged in user and optional SSO', async function () {
+    addMock({
+      orgSlug: 'test-org',
+      needsAuthentication: false,
+      needs2fa: false,
+      hasAuthProvider: true,
+      requireSso: false,
+      existingMember: false,
+    });
+
+    const wrapper = mountWithTheme(
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
+    );
+
+    const ssoLink = wrapper.find('[data-test-id="action-info-sso"]');
+    expect(ssoLink.exists()).toBe(true);
+
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
+    expect(joinButton.exists()).toBe(true);
+  });
+
   it('shows a logout button for existing members', async function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: false,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: true,
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const existingMember = wrapper.find('[data-test-id="existing-member"]');
@@ -221,14 +237,13 @@ describe('AcceptOrganizationInvite', function () {
       orgSlug: 'test-org',
       needsAuthentication: false,
       needs2fa: true,
-      needsSso: false,
+      hasAuthProvider: false,
       requireSso: false,
       existingMember: false,
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     expect(wrapper.find('[data-test-id="2fa-warning"]').exists()).toBe(true);

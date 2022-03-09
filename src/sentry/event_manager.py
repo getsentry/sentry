@@ -14,7 +14,17 @@ from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
 
-from sentry import buffer, eventstore, eventstream, eventtypes, features, options, quotas, tsdb
+from sentry import (
+    buffer,
+    eventstore,
+    eventstream,
+    eventtypes,
+    features,
+    options,
+    quotas,
+    reprocessing2,
+    tsdb,
+)
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
@@ -67,11 +77,7 @@ from sentry.models import (
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.plugins.base import plugins
-from sentry.reprocessing2 import (
-    delete_old_primary_hash,
-    is_reprocessed_event,
-    save_unprocessed_event,
-)
+from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
@@ -515,7 +521,16 @@ class EventManager:
                 )
 
         if is_reprocessed:
-            safe_execute(delete_old_primary_hash, job["event"], _with_transaction=False)
+            safe_execute(
+                reprocessing2.buffered_delete_old_primary_hash,
+                project_id=job["event"].project_id,
+                group_id=reprocessing2.get_original_group_id(job["event"]),
+                event_id=job["event"].event_id,
+                datetime=job["event"].datetime,
+                old_primary_hash=reprocessing2.get_original_primary_hash(job["event"]),
+                current_primary_hash=job["event"].get_primary_hash(),
+                _with_transaction=False,
+            )
 
         _eventstream_insert_many(jobs)
 
@@ -1124,10 +1139,16 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
 
     is_new = False
 
-    if root_hierarchical_hash is not None:
-        new_hashes = []
-    else:
+    if root_hierarchical_grouphash is None:
+        # No hierarchical grouping was run, only consider flat hashes
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
+    elif root_hierarchical_grouphash.group_id is None:
+        # The root hash is not assigned to a group.
+        # We ran multiple grouping algorithms
+        # (see secondary grouping), and the hierarchical hash is new
+        new_hashes = [root_hierarchical_grouphash]
+    else:
+        new_hashes = []
 
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
@@ -1181,6 +1202,11 @@ def _find_existing_grouphash(
             for h in GroupHash.objects.filter(project=project, hash__in=hierarchical_hashes)
         }
 
+        # Look for splits:
+        # 1. If we find a hash with SPLIT state at `n`, we want to use
+        #    `n + 1` as the root hash.
+        # 2. If we find a hash associated to a group that is more specific
+        #    than the primary hash, we want to use that hash as root hash.
         for hash in reversed(hierarchical_hashes):
             group_hash = hierarchical_grouphashes.get(hash)
 
@@ -1192,6 +1218,13 @@ def _find_existing_grouphash(
 
             if group_hash is not None:
                 all_grouphashes.append(group_hash)
+
+                if group_hash.group_id is not None:
+                    # Even if we did not find a hash with SPLIT state, we want to use
+                    # the most specific hierarchical hash as root hash if it was already
+                    # associated to a group.
+                    # See `move_all_events` test case
+                    break
 
         if root_hierarchical_hash is None:
             # All hashes were split, so we group by most specific hash. This is
@@ -1279,6 +1312,8 @@ def _handle_regression(group, event, release):
     group.status = GroupStatus.UNRESOLVED
 
     if is_regression and release:
+        resolution = None
+
         # resolutions are only valid if the state of the group is still
         # resolved -- if it were to change the resolution should get removed
         try:
@@ -1291,13 +1326,15 @@ def _handle_regression(group, event, release):
             cursor.execute("DELETE FROM sentry_groupresolution WHERE id = %s", [resolution.id])
             affected = cursor.rowcount > 0
 
-        if affected:
+        if affected and resolution:
             # if we had to remove the GroupResolution (i.e. we beat the
             # the queue to handling this) then we need to also record
             # the corresponding event
             try:
                 activity = Activity.objects.filter(
-                    group=group, type=Activity.SET_RESOLVED_IN_RELEASE, ident=resolution.id
+                    group=group,
+                    type=Activity.SET_RESOLVED_IN_RELEASE,
+                    ident=resolution.id,
                 ).order_by("-datetime")[0]
             except IndexError:
                 # XXX: handle missing data, as its not overly important
@@ -1713,6 +1750,8 @@ def _calculate_span_grouping(jobs, projects):
 
             groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
+
+            metrics.timing("save_event.transaction.span_count", len(groupings.results))
         except Exception:
             sentry_sdk.capture_exception()
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import Organization, Project
 from sentry.notifications.types import GroupSubscriptionReason
@@ -36,7 +38,7 @@ def get_issues_data(uuids: Sequence[str] | None = None) -> Sequence[Mapping[str,
 class DebugNewProcessingIssuesEmailView(View):
     reprocessing_active = True
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         from sentry.notifications.utils import summarize_issues
 
         org = Organization(id=1, slug="organization", name="My Company")

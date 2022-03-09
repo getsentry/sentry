@@ -8,7 +8,7 @@ import type {
 import moment from 'moment';
 import * as qs from 'query-string';
 
-import {updateDateTime} from 'sentry/actionCreators/globalSelection';
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import {DateString} from 'sentry/types';
@@ -25,9 +25,9 @@ const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
 type Period = {
-  period: string;
-  start: DateString;
   end: DateString;
+  period: string | null;
+  start: DateString;
 };
 
 const ZoomPropKeys = [
@@ -40,31 +40,31 @@ const ZoomPropKeys = [
 ] as const;
 
 export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
-  utc?: boolean;
-  start?: Date;
+  dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
   showTimeInTooltip?: boolean;
-  dataZoom?: DataZoomComponentOption[];
+  start?: Date;
   toolBox?: ToolboxComponentOption;
+  utc?: boolean;
 };
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
-  router?: InjectedRouter;
   disabled?: boolean;
-  xAxis?: XAXisComponentOption;
-  xAxisIndex?: number | number[];
-  start?: DateString;
   end?: DateString;
-  period?: string;
-  utc?: boolean | null;
   onChartReady?: EChartChartReadyHandler;
   onDataZoom?: EChartDataZoomHandler;
   onFinished?: EChartFinishedHandler;
   onRestore?: EChartRestoreHandler;
   onZoom?: (period: Period) => void;
+  period?: string | null;
+  router?: InjectedRouter;
+  start?: DateString;
   usePageDate?: boolean;
+  utc?: boolean | null;
+  xAxis?: XAXisComponentOption;
+  xAxisIndex?: number | number[];
 };
 
 /**

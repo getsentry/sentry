@@ -7,20 +7,20 @@ import {MemberRole} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 
 type OptionType = {
+  description: string;
+  disabled: boolean;
   label: string;
   value: string;
-  disabled: boolean;
-  description: string;
 };
 
 type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
-  roles: MemberRole[];
   disableUnallowed: boolean;
-  value?: string;
+  roles: MemberRole[];
   /**
    * Narrower type than SelectControl because there is no empty value
    */
   onChange?: (value: OptionType) => void;
+  value?: string;
 };
 
 function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
@@ -67,7 +67,7 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
 const RoleItem = styled('div')`
   display: grid;
   grid-template-columns: 80px 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 
   h1,
   div {

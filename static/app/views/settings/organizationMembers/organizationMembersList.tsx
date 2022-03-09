@@ -37,10 +37,10 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
+  inviteRequests: Member[];
+  invited: {[key: string]: 'loading' | 'success' | null};
   member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
-  invited: {[key: string]: 'loading' | 'success' | null};
-  inviteRequests: Member[];
 };
 
 const MemberListHeader = HookOrDefault({
@@ -390,7 +390,7 @@ const StyledMembersFilter = styled(MembersFilter)`
 const StyledPanelItem = styled('div')`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
   width: 100%;
 `;

@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment, MouseEvent} from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -20,9 +20,9 @@ const defaultProps = {
 };
 
 type Props = {
+  onChange: (value: string[]) => void;
   options: (SelectValue<string> & {checkboxHidden?: boolean})[];
   selected: string[];
-  onChange: (value: string[]) => void;
   title: string;
 } & typeof defaultProps;
 
@@ -80,7 +80,7 @@ class OptionCheckboxSelector extends Component<Props, State> {
     return disabled || (selected.length > 2 && !selected.includes(value));
   }
 
-  handleCheckboxClick(event: MouseEvent, opt: SelectValue<string>) {
+  handleCheckboxClick(event: React.MouseEvent, opt: SelectValue<string>) {
     const {onChange} = this.props;
     event.stopPropagation();
     if (!this.shouldBeDisabled(opt)) {
@@ -196,7 +196,6 @@ const MenuContainer = styled('div')`
 
 const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};
-  font-weight: normal;
   z-index: ${p => (p.isOpen ? p.theme.zIndex.dropdownAutocomplete.actor : 'auto')};
 `;
 

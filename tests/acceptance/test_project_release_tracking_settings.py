@@ -25,5 +25,5 @@ class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.browser.get(self.path1)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.snapshot("project settings - release tracking")

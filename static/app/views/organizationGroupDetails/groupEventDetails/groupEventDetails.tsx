@@ -36,20 +36,20 @@ import {
 } from '../utils';
 
 type Props = RouteComponentProps<
-  {orgId: string; groupId: string; eventId?: string},
+  {groupId: string; orgId: string; eventId?: string},
   {}
 > & {
   api: Client;
-  group: Group;
-  project: Project;
-  organization: Organization;
   environments: Environment[];
+  eventError: boolean;
+  group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   loadingEvent: boolean;
-  eventError: boolean;
   onRetry: () => void;
-  event?: Event;
+  organization: Organization;
+  project: Project;
   className?: string;
+  event?: Event;
 };
 
 type State = {
@@ -122,7 +122,7 @@ class GroupEventDetails extends Component<Props, State> {
     );
     fetchSentryAppInstallations(api, orgSlug);
 
-    // TODO(marcos): Sometimes GlobalSelectionStore cannot pick a project.
+    // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
     if (projectId) {
       fetchSentryAppComponents(api, orgSlug, projectId);
     } else {

@@ -1,6 +1,9 @@
 import {Component} from 'react';
 import pick from 'lodash/pick';
 
+import {FieldFromConfig} from 'sentry/components/forms';
+import Form from 'sentry/components/forms/form';
+import {Field} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {
   Integration,
@@ -10,17 +13,14 @@ import {
   RepositoryProjectPathConfig,
 } from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {FieldFromConfig} from 'sentry/views/settings/components/forms';
-import Form from 'sentry/views/settings/components/forms/form';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
 type Props = {
-  organization: Organization;
   integration: Integration;
+  onCancel: Form['props']['onCancel'];
+  onSubmitSuccess: Form['props']['onSubmitSuccess'];
+  organization: Organization;
   projects: Project[];
   repos: Repository[];
-  onSubmitSuccess: Form['props']['onSubmitSuccess'];
-  onCancel: Form['props']['onCancel'];
   existingConfig?: RepositoryProjectPathConfig;
 };
 

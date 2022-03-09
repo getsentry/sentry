@@ -1,5 +1,6 @@
 import sentry_sdk
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -41,7 +42,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -66,6 +67,9 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
                         max_value=data.get("max"),
                         data_filter=data.get("dataFilter"),
                         referrer="api.organization-events-histogram",
+                        use_snql=features.has(
+                            "organizations:performance-use-snql", organization, actor=request.user
+                        ),
                     )
 
                 return Response(results)

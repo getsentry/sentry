@@ -26,10 +26,10 @@ export type Error = ErrorItem['props']['error'];
 
 type Props = {
   api: Client;
-  orgSlug: Organization['slug'];
-  projectSlug: Project['slug'];
-  proGuardErrors: Array<Error>;
   event: Event;
+  orgSlug: Organization['slug'];
+  proGuardErrors: Array<Error>;
+  projectSlug: Project['slug'];
 };
 
 type State = {
@@ -150,6 +150,7 @@ class Errors extends Component<Props, State> {
           <StyledButton
             data-test-id="event-error-toggle"
             priority="link"
+            size="zero"
             onClick={this.toggle}
           >
             {isOpen ? t('Hide') : t('Show')}
@@ -211,6 +212,7 @@ const linkStyle = ({theme}: {theme: Theme}) => css`
 
 const StyledButton = styled(Button)`
   ${linkStyle}
+  align-self: center;
 `;
 
 const StyledBanner = styled(BannerContainer)`

@@ -17,10 +17,10 @@ type Props = DefaultProps & {
   // To add context for better UX
   className?: string;
   customComponent?: React.ReactNode;
-  message?: React.ReactNode;
-
   // To add context for better error reporting
   errorTag?: Record<string, string>;
+
+  message?: React.ReactNode;
 };
 
 type State = {

@@ -7,10 +7,10 @@ import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import Count from 'sentry/components/count';
-import DeviceName from 'sentry/components/deviceName';
+import {DeviceName} from 'sentry/components/deviceName';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
@@ -21,8 +21,8 @@ import {percent} from 'sentry/utils';
 
 type Props = AsyncComponent['props'] & {
   baseUrl: string;
-  group: Group;
   environments: string[];
+  group: Group;
 } & RouteComponentProps<{}, {}>;
 
 type State = AsyncComponent['state'] & {

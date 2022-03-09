@@ -135,8 +135,8 @@ class Fixtures:
             project = self.project
         return Factories.create_project_rule(
             project=project,
-            action_match=action_match,
-            condition_match=condition_match,
+            action_data=action_match,
+            condition_data=condition_match,
             *args,
             **kwargs,
         )
@@ -250,6 +250,9 @@ class Fixtures:
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
 
+    def create_stacktrace_link_schema(self, *args, **kwargs):
+        return Factories.create_stacktrace_link_schema(*args, **kwargs)
+
     def create_issue_link_schema(self, *args, **kwargs):
         return Factories.create_issue_link_schema(*args, **kwargs)
 
@@ -258,6 +261,15 @@ class Fixtures:
 
     def create_sentry_app_feature(self, *args, **kwargs):
         return Factories.create_sentry_app_feature(*args, **kwargs)
+
+    def create_doc_integration(self, *args, **kwargs):
+        return Factories.create_doc_integration(*args, **kwargs)
+
+    def create_doc_integration_features(self, *args, **kwargs):
+        return Factories.create_doc_integration_features(*args, **kwargs)
+
+    def create_doc_integration_avatar(self, *args, **kwargs):
+        return Factories.create_doc_integration_avatar(*args, **kwargs)
 
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
@@ -374,7 +386,12 @@ class Fixtures:
         return Factories.create_identity_provider(*args, **kwargs)
 
     def create_group_history(self, *args, **kwargs):
+        if "actor" not in kwargs:
+            kwargs["actor"] = self.user.actor
         return Factories.create_group_history(*args, **kwargs)
+
+    def create_comment(self, *args, **kwargs):
+        return Factories.create_comment(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

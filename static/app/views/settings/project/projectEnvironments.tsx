@@ -27,9 +27,9 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
+  environments: null | Environment[];
   isLoading: boolean;
   project: null | Project;
-  environments: null | Environment[];
 };
 
 class ProjectEnvironments extends Component<Props, State> {
@@ -216,10 +216,10 @@ class ProjectEnvironments extends Component<Props, State> {
 type RowProps = {
   environment: Environment;
   name: string;
-  onHide?: (env: Environment, isHidden: boolean) => void;
-  isHidden?: boolean;
   actionText?: string;
+  isHidden?: boolean;
   isSystemRow?: boolean;
+  onHide?: (env: Environment, isHidden: boolean) => void;
   shouldShowAction?: boolean;
 };
 

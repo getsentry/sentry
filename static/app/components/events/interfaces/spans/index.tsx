@@ -64,8 +64,8 @@ class SpansInterface extends PureComponent<Props, State> {
     errors,
     parsedTrace,
   }: {
-    isLoading: boolean;
     errors: TraceError[] | undefined;
+    isLoading: boolean;
     parsedTrace: ParsedTraceType;
   }) {
     if (isLoading) {
@@ -76,15 +76,19 @@ class SpansInterface extends PureComponent<Props, State> {
       return null;
     }
 
-    const label = tn(
-      'There is an error event associated with this transaction event.',
-      `There are %s error events associated with this transaction event.`,
-      errors.length
-    );
+    // This is intentional as unbalanced string formatters in `tn()` are problematic
+    const label =
+      errors.length === 1
+        ? t('There is an error event associated with this transaction event.')
+        : tn(
+            `There are %s error events associated with this transaction event.`,
+            `There are %s error events associated with this transaction event.`,
+            errors.length
+          );
 
     // mapping from span ids to the span op and the number of errors in that span
     const errorsMap: {
-      [spanId: string]: {operation: string; errorsCount: number};
+      [spanId: string]: {errorsCount: number; operation: string};
     } = {};
 
     errors.forEach(error => {
@@ -122,7 +126,7 @@ class SpansInterface extends PureComponent<Props, State> {
               <List symbol="bullet">
                 {Object.entries(errorsMap).map(([spanId, {operation, errorsCount}]) => (
                   <ListItem key={spanId}>
-                    {tct('[errors] in [link]', {
+                    {tct('[errors] [link]', {
                       errors: tn('%s error in ', '%s errors in ', errorsCount),
                       link: (
                         <ErrorLink

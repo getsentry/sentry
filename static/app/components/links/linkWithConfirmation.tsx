@@ -1,16 +1,16 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import Button from 'sentry/components/button';
+import {ButtonProps} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 
 type Props = {
   message: React.ReactNode;
-  title: string;
   onConfirm: () => void;
-  disabled?: boolean;
+  title: string;
   className?: string;
-  priority?: React.ComponentProps<typeof Button>['priority'];
+  disabled?: boolean;
+  priority?: ButtonProps['priority'];
 };
 
 /**

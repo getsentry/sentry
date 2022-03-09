@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Input from 'sentry/components/forms/input';
+import Input from 'sentry/components/deprecatedforms/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -11,30 +11,12 @@ import useTeams from 'sentry/utils/useTeams';
 
 import Filter from './filter';
 
-const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
-
 type Props = {
-  selectedTeams: Set<string>;
   handleChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
-  showStatus?: boolean;
+  selectedTeams: Set<string>;
   selectedStatus?: Set<string>;
+  showStatus?: boolean;
 };
-
-export function getTeamParams(team?: string | string[]): string[] {
-  if (team === undefined) {
-    return ALERT_LIST_QUERY_DEFAULT_TEAMS;
-  }
-
-  if (team === '') {
-    return [];
-  }
-
-  if (Array.isArray(team)) {
-    return team;
-  }
-
-  return [team];
-}
 
 function TeamFilter({
   selectedTeams,

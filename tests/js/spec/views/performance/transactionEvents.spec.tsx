@@ -4,7 +4,9 @@ import {act} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {Organization} from 'sentry/types';
 import {WebVital} from 'sentry/utils/discover/fields';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 type Data = {
@@ -40,10 +42,27 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
   return initialData;
 }
 
+const WrappedComponent = ({
+  organization,
+  ...props
+}: Omit<React.ComponentProps<typeof TransactionEvents>, 'organization'> & {
+  organization: Organization;
+}) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <TransactionEvents organization={organization} {...props} />
+    </OrganizationContext.Provider>
+  );
+};
+
 describe('Performance > TransactionSummary', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -133,14 +152,18 @@ describe('Performance > TransactionSummary', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
+
     act(() => ProjectsStore.reset());
     jest.clearAllMocks();
   });
 
-  it('renders basic UI elements when feature flagged', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
+  it('renders basic UI elements', async function () {
+    const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -160,31 +183,10 @@ describe('Performance > TransactionSummary', function () {
     expect(wrapper.find('TransactionHeader')).toHaveLength(1);
   });
 
-  it('renders alert when not feature flagged', async function () {
+  it('renders relative span breakdown header when no filter selected', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionEvents
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Alert').props().type).toEqual('warning');
-    expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
-    expect(wrapper.find('SearchBar')).toHaveLength(0);
-    expect(wrapper.find('TransactionsTable')).toHaveLength(0);
-    expect(wrapper.find('Pagination')).toHaveLength(0);
-    expect(wrapper.find('EventsContent')).toHaveLength(0);
-    expect(wrapper.find('TransactionHeader')).toHaveLength(0);
-  });
-
-  it('renders relative span breakdown header when no filter selected', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
-    const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -200,9 +202,9 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders event column results correctly', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
+    const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -236,11 +238,10 @@ describe('Performance > TransactionSummary', function () {
 
   it('renders additional Web Vital column', async function () {
     const initialData = initializeData({
-      features: ['performance-events-page'],
       query: {webVital: WebVital.LCP},
     });
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,

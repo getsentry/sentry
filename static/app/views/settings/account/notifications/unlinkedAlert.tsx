@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -10,8 +10,8 @@ type Props = {
   organizations: OrganizationSummary[];
 };
 
-class UnlinkedAlert extends React.Component<Props> {
-  render = () => {
+class UnlinkedAlert extends Component<Props> {
+  render() {
     const {organizations} = this.props;
     return (
       <StyledAlert type="warning" icon={<IconWarning />}>
@@ -25,7 +25,7 @@ class UnlinkedAlert extends React.Component<Props> {
         </ul>
       </StyledAlert>
     );
-  };
+  }
 }
 const StyledAlert = styled(Alert)`
   margin: 20px 0px;

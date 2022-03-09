@@ -24,9 +24,9 @@ import {findActiveTasks, findCompleteTasks, findUpcomingTasks, taskIsDone} from 
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
+  onClose: () => void;
   organization: Organization;
   projects: Project[];
-  onClose: () => void;
 };
 
 /**
@@ -192,7 +192,7 @@ AnimatedTaskItem.defaultProps = {
 const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin: ${space(1)} ${space(4)} ${space(4)} ${space(4)};
 `;
 

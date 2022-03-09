@@ -36,22 +36,22 @@ const recordAnalytics = (
   });
 
 type Props = WithRouterProps & {
-  /**
-   * Task to render
-   */
-  task: OnboardingTask;
-  /**
-   * Fired when the task has been skipped
-   */
-  onSkip: (taskKey: OnboardingTaskKey) => void;
+  forwardedRef: React.Ref<HTMLDivElement>;
   /**
    * Fired when a task is completed. This will typically happen if there is a
    * supplemental component with the ability to complete a task
    */
   onMarkComplete: (taskKey: OnboardingTaskKey) => void;
+  /**
+   * Fired when the task has been skipped
+   */
+  onSkip: (taskKey: OnboardingTaskKey) => void;
 
-  forwardedRef: React.Ref<HTMLDivElement>;
   organization: Organization;
+  /**
+   * Task to render
+   */
+  task: OnboardingTask;
 };
 
 function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}: Props) {
@@ -165,7 +165,7 @@ const TaskCard = styled(Card)`
 const IncompleteTitle = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-weight: 600;
 `;
@@ -211,7 +211,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const StyledIconClose = styled(IconClose)`

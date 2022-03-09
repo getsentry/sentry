@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import responses
 
 from sentry.utils.compat import zip
@@ -22,6 +24,7 @@ __all__ = (
     "OrganizationDashboardWidgetTestCase",
     "SCIMTestCase",
     "SCIMAzureTestCase",
+    "MetricsEnhancedPerformanceTestCase",
 )
 
 import hashlib
@@ -31,6 +34,7 @@ import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Dict, List, Optional
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -55,6 +59,7 @@ from django.utils.functional import cached_property
 from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
+from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -96,7 +101,10 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
+from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -111,7 +119,7 @@ from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
-from .skips import requires_snuba, requires_snuba_metrics
+from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -966,7 +974,6 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
-@requires_snuba_metrics
 class SessionMetricsTestCase(SnubaTestCase):
     """Store metrics instead of sessions"""
 
@@ -985,29 +992,41 @@ class SessionMetricsTestCase(SnubaTestCase):
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            self._push_metric(session, "counter", "session", {"session.status": "init"}, +1)
+            self._push_metric(
+                session, "counter", SessionMetricKey.SESSION, {"session.status": "init"}, +1
+            )
             if not user_is_nil:
-                self._push_metric(session, "set", "user", {"session.status": "init"}, user)
+                self._push_metric(
+                    session, "set", SessionMetricKey.USER, {"session.status": "init"}, user
+                )
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            self._push_metric(session, "set", "session.error", {}, session["session_id"])
+            self._push_metric(
+                session, "set", SessionMetricKey.SESSION_ERROR, {}, session["session_id"]
+            )
             if not user_is_nil:
-                self._push_metric(session, "set", "user", {"session.status": "errored"}, user)
+                self._push_metric(
+                    session, "set", SessionMetricKey.USER, {"session.status": "errored"}, user
+                )
 
         if status in ("abnormal", "crashed"):  # fatal
-            self._push_metric(session, "counter", "session", {"session.status": status}, +1)
+            self._push_metric(
+                session, "counter", SessionMetricKey.SESSION, {"session.status": status}, +1
+            )
             if not user_is_nil:
-                self._push_metric(session, "set", "user", {"session.status": status}, user)
+                self._push_metric(
+                    session, "set", SessionMetricKey.USER, {"session.status": status}, user
+                )
 
         if status != "ok":  # terminal
             if session["duration"] is not None:
                 self._push_metric(
                     session,
                     "distribution",
-                    "session.duration",
+                    SessionMetricKey.SESSION_DURATION,
                     {"session.status": status},
                     session["duration"],
                 )
@@ -1017,10 +1036,10 @@ class SessionMetricsTestCase(SnubaTestCase):
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, name, tags, value):
-        def metric_id(name):
-            res = indexer.record(name)
-            assert res is not None, name
+    def _push_metric(cls, session, type, key: SessionMetricKey, tags, value):
+        def metric_id(key: SessionMetricKey):
+            res = indexer.record(key.value)
+            assert res is not None, key
             return res
 
         def tag_key(name):
@@ -1052,7 +1071,7 @@ class SessionMetricsTestCase(SnubaTestCase):
         msg = {
             "org_id": session["org_id"],
             "project_id": session["project_id"],
-            "metric_id": metric_id(name),
+            "metric_id": metric_id(key),
             "timestamp": session["started"],
             "tags": {**base_tags, **extra_tags},
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
@@ -1070,6 +1089,79 @@ class SessionMetricsTestCase(SnubaTestCase):
                 data=json.dumps(buckets),
             ).status_code
             == 200
+        )
+
+
+class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
+    TYPE_MAP = {
+        "metrics_distributions": "d",
+        "metrics_sets": "s",
+        "metrics_counters": "c",
+    }
+    ENTITY_MAP = {
+        "transaction.duration": "metrics_distributions",
+        "measurements.lcp": "metrics_distributions",
+        "measurements.fcp": "metrics_distributions",
+        "measurements.fid": "metrics_distributions",
+        "measurements.cls": "metrics_distributions",
+        "user": "metrics_sets",
+    }
+    METRIC_STRINGS = []
+    DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
+
+    def setUp(self):
+        super().setUp()
+        self._index_metric_strings()
+
+    def _index_metric_strings(self):
+        PGStringIndexer().bulk_record(
+            strings=[
+                "transaction",
+                "environment",
+                "http.status",
+                "transaction.status",
+                *self.METRIC_STRINGS,
+                *list(SPAN_STATUS_NAME_TO_CODE.keys()),
+                *list(METRICS_MAP.values()),
+            ]
+        )
+
+    def store_metric(
+        self,
+        value: List[int] | int,
+        metric: str = "transaction.duration",
+        tags: Optional[Dict[str, str]] = None,
+        timestamp: Optional[datetime] = None,
+    ):
+        internal_metric = METRICS_MAP[metric]
+        entity = self.ENTITY_MAP[metric]
+        if tags is None:
+            tags = {}
+        else:
+            tags = {indexer.resolve(key): indexer.resolve(value) for key, value in tags.items()}
+
+        if timestamp is None:
+            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
+        else:
+            metric_timestamp = timestamp.timestamp()
+
+        if not isinstance(value, list):
+            value = [value]
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.resolve(internal_metric),
+                    "timestamp": metric_timestamp,
+                    "tags": tags,
+                    "type": self.TYPE_MAP[entity],
+                    "value": value,
+                    "retention_days": 90,
+                }
+            ],
+            entity=entity,
         )
 
 
@@ -1287,6 +1379,10 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["conditions"] == widget_data_source.conditions
         if "orderby" in data:
             assert data["orderby"] == widget_data_source.orderby
+        if "aggregates" in data:
+            assert data["aggregates"] == widget_data_source.aggregates
+        if "columns" in data:
+            assert data["columns"] == widget_data_source.columns
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
@@ -1302,6 +1398,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
                 expected_widget.display_type
             )
+        if "layout" in data:
+            assert data["layout"] == expected_widget.detail["layout"]
 
     def create_user_member_role(self):
         self.user = self.create_user(is_superuser=False)
@@ -1354,9 +1452,8 @@ class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
         self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
-        with self.feature({"organizations:sso-scim": True}):
-            self.auth_provider.enable_scim(self.user)
-            self.auth_provider.save()
+        self.auth_provider.enable_scim(self.user)
+        self.auth_provider.save()
         self.login_as(user=self.user)
 
 

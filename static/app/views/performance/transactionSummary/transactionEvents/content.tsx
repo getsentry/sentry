@@ -6,9 +6,8 @@ import omit from 'lodash/omit';
 import Button from 'sentry/components/button';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import SearchBar from 'sentry/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -23,18 +22,27 @@ import EventsTable from './eventsTable';
 import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
 type Props = {
-  location: Location;
-  organization: Organization;
   eventView: EventView;
-  transactionName: string;
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-  onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   eventsDisplayFilterName: EventsDisplayFilterName;
+  location: Location;
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
+  onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  organization: Organization;
+  setError: SetStateAction<string | undefined>;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  transactionName: string;
   percentileValues?: Record<EventsDisplayFilterName, number>;
   webVital?: WebVital;
-  setError: SetStateAction<string | undefined>;
 };
+
+const transactionsListTitles = [
+  t('event id'),
+  t('user'),
+  t('operation duration'),
+  t('total duration'),
+  t('trace id'),
+  t('timestamp'),
+];
 
 function EventsContent(props: Props) {
   const {
@@ -48,15 +56,6 @@ function EventsContent(props: Props) {
   } = props;
 
   const eventView = originalEventView.clone();
-
-  const transactionsListTitles = [
-    t('event id'),
-    t('user'),
-    t('operation duration'),
-    t('total duration'),
-    t('trace id'),
-    t('timestamp'),
-  ];
 
   if (webVital) {
     transactionsListTitles.splice(3, 0, t(webVital));
@@ -102,7 +101,7 @@ function Search(props: Props) {
   } = props;
 
   const handleSearch = (query: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });
@@ -180,19 +179,9 @@ const StyledTable = styled('div')`
   flex-grow: 1;
 `;
 
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
-  }
-`;
-
 const SearchRowMenuItem = styled('div')`
   margin-left: ${space(1)};
   flex-grow: 0;
 `;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 export default EventsContent;

@@ -7,8 +7,8 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
 type Props = {
-  project: Project;
   organization: Organization;
+  project: Project;
 };
 
 type State = {

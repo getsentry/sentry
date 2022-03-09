@@ -7,7 +7,7 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import ResultsChart from 'sentry/views/eventsV2/resultsChart';
 
 describe('EventsV2 > ResultsChart', function () {
-  const features = ['discover-basic', 'connect-discover-and-dashboards'];
+  const features = ['discover-basic'];
   const location = TestStubs.location({
     query: {query: 'tag:value'},
     pathname: '/',

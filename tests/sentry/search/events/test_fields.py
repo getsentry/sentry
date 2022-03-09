@@ -6,12 +6,12 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry import eventstore
+from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import (
     COMBINATORS,
     FUNCTIONS,
     FunctionDetails,
     InvalidSearchQuery,
-    QueryFields,
     get_json_meta_type,
     parse_arguments,
     parse_combinator,
@@ -143,10 +143,6 @@ def test_get_json_meta_type(field_alias, snuba_type, function, expected):
             ("count_at_least", ["transaction.duration", "200"], None),
         ),
         ("min(measurements.foo)", ("min", ["measurements.foo"], None)),
-        (
-            "absolute_delta(transaction.duration, 400)",
-            ("absolute_delta", ["transaction.duration", "400"], None),
-        ),
         (
             "avg_range(transaction.duration, 0.5, 2020-03-13T15:14:15, 2020-03-14T15:14:15) AS p",
             (
@@ -337,7 +333,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == [
             "title",
             "issue.id",
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.id", "user.ip"], "user.display"],
             "message",
             ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
             ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
@@ -355,7 +351,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.id", "user.ip"], "user.display"],
             "message",
             ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
             ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
@@ -367,12 +363,12 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
             "event.type",
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.id", "user.ip"], "user.display"],
         ]
         assert result["aggregations"] == [["uniq", "title", "count_unique_title"]]
         assert result["groupby"] == [
             "event.type",
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.id", "user.ip"], "user.display"],
         ]
 
     def test_aggregate_function_expansion(self):
@@ -395,7 +391,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "uniq",
-                [["coalesce", ["user.email", "user.username", "user.ip"]]],
+                [["coalesce", ["user.email", "user.username", "user.id", "user.ip"]]],
                 "count_unique_user_display",
             ],
         ]
@@ -646,42 +642,6 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "tpm"],
         ]
         assert result["groupby"] == []
-
-    def test_absolute_delta_function(self):
-        fields = ["absolute_delta(transaction.duration,100)", "id"]
-        result = resolve_field_list(fields, eventstore.Filter())
-        assert result["selected_columns"] == [
-            [
-                "abs",
-                [["minus", ["transaction.duration", 100.0]]],
-                "absolute_delta_transaction_duration_100",
-            ],
-            "id",
-            "project.id",
-            [
-                "transform",
-                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
-                "`project.name`",
-            ],
-        ]
-        assert result["aggregations"] == []
-        assert result["groupby"] == []
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["absolute_delta(transaction,100)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "absolute_delta(transaction,100): column argument invalid: transaction is not a duration column"
-            in str(err)
-        )
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["absolute_delta(transaction.duration,blah)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "absolute_delta(transaction.duration,blah): target argument invalid: blah is not a number"
-            in str(err)
-        )
 
     def test_eps_function(self):
         fields = ["eps(3600)"]
@@ -1281,7 +1241,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["user.display"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-user.display"))
         assert result["selected_columns"] == [
-            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            ["coalesce", ["user.email", "user.username", "user.id", "user.ip"], "user.display"],
             "id",
             "project.id",
             [
@@ -1632,7 +1592,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
 
 def resolve_snql_fieldlist(fields):
-    return QueryFields(Dataset.Discover, {}).resolve_select(fields, [])
+    return UnresolvedQuery(Dataset.Discover, {}).resolve_select(fields, [])
 
 
 @pytest.mark.parametrize(
@@ -1703,7 +1663,7 @@ def test_range_funtions(field, expected):
 
 @pytest.mark.parametrize("combinator", COMBINATORS)
 def test_combinator_names_are_reserved(combinator):
-    fields = QueryFields(dataset=Dataset.Discover, params={})
+    fields = UnresolvedQuery(dataset=Dataset.Discover, params={})
     for function in fields.function_converter:
         assert not function.endswith(
             combinator.kind

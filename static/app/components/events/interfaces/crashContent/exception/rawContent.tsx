@@ -15,19 +15,19 @@ import withOrganization from 'sentry/utils/withOrganization';
 import rawStacktraceContent from '../stackTrace/rawContent';
 
 type Props = {
-  projectId: Project['id'];
   api: Client;
-  type: 'original' | 'minified';
-  platform: PlatformType;
   eventId: Event['id'];
+  platform: PlatformType;
+  projectId: Project['id'];
+  type: 'original' | 'minified';
   // XXX: Organization is NOT available for Shared Issues!
   organization?: Organization;
 } & Pick<ExceptionType, 'values'>;
 
 type State = {
-  loading: boolean;
-  error: boolean;
   crashReport: string;
+  error: boolean;
+  loading: boolean;
 };
 
 class RawContent extends React.Component<Props, State> {

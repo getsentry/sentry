@@ -19,11 +19,11 @@ import {SingleAxisChart} from './singleAxisChart';
 import {getAxisOrBackupAxis, getBackupAxes} from './utils';
 
 type Props = {
+  axisOptions: AxisOption[];
+  eventView: EventView;
+  leftAxis: AxisOption;
   location: Location;
   organization: Organization;
-  eventView: EventView;
-  axisOptions: AxisOption[];
-  leftAxis: AxisOption;
   rightAxis: AxisOption;
 };
 
@@ -103,7 +103,7 @@ function DoubleAxisDisplay(props: Props) {
 const DoubleChartContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   min-height: 282px;
 `;
 

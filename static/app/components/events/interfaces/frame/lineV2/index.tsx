@@ -33,9 +33,9 @@ type Props = Omit<
     React.ComponentProps<typeof Default>,
     'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
   > & {
+    components: Array<SentryAppComponent>;
     event: Event;
     registers: Record<string, string>;
-    components: Array<SentryAppComponent>;
     emptySourceNotation?: boolean;
     isOnlyFrame?: boolean;
     nativeV2?: boolean;

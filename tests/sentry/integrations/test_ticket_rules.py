@@ -4,11 +4,9 @@ from unittest import mock
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
+from sentry.eventstore.models import Event
 from sentry.integrations.jira import JiraCreateTicketAction
-from sentry.models.externalissue import ExternalIssue
-from sentry.models.grouplink import GroupLink
-from sentry.models.integration import Integration
-from sentry.models.rule import Rule
+from sentry.models import ExternalIssue, Integration, Rule
 from sentry.testutils import RuleTestCase
 from tests.fixtures.integrations.jira import MockJira
 
@@ -51,15 +49,10 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
-    def get_key(self, event):
-        return ExternalIssue.objects.filter(
-            id__in=GroupLink.objects.filter(
-                project_id=self.project.id,
-                group_id=event.group.id,
-                linked_type=GroupLink.LinkedType.issue,
-            ).values_list("linked_id", flat=True),
-            integration_id=self.integration.id,
-        ).values_list("key", flat=True)[0]
+    def get_key(self, event: Event):
+        return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
+            "key", flat=True
+        )[0]
 
     def test_ticket_rules(self):
         with mock.patch(

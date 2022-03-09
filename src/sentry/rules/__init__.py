@@ -1,8 +1,20 @@
-from .base import *  # NOQA
-from .registry import RuleRegistry  # NOQA
+from .base import EventState, RuleBase, RuleDescriptor
+from .match import LEVEL_MATCH_CHOICES, MATCH_CHOICES, MatchType
+from .registry import RuleRegistry
+
+__all__ = (
+    "EventState",
+    "init_registry",
+    "LEVEL_MATCH_CHOICES",
+    "MATCH_CHOICES",
+    "MatchType",
+    "RuleBase",
+    "RuleDescriptor",
+    "rules",
+)
 
 
-def init_registry():
+def init_registry() -> RuleRegistry:
     from sentry.constants import _SENTRY_RULES
     from sentry.plugins.base import plugins
     from sentry.utils.imports import import_string

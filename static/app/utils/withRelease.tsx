@@ -14,12 +14,12 @@ type DependentProps = {
 };
 
 type InjectedProps = {
-  release?: Release;
-  releaseLoading?: boolean;
-  releaseError?: Error;
   deploys?: Array<Deploy>;
-  deploysLoading?: boolean;
   deploysError?: Error;
+  deploysLoading?: boolean;
+  release?: Release;
+  releaseError?: Error;
+  releaseLoading?: boolean;
 };
 
 function withRelease<P extends DependentProps>(WrappedComponent: React.ComponentType<P>) {

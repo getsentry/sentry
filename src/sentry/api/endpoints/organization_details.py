@@ -20,7 +20,11 @@ from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
-from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
+from sentry.lang.native.utils import (
+    STORE_CRASH_REPORTS_DEFAULT,
+    STORE_CRASH_REPORTS_MAX,
+    convert_crashreport_count,
+)
 from sentry.models import (
     AuditLogEntryEvent,
     Authenticator,
@@ -141,7 +145,9 @@ class OrganizationSerializer(serializers.Serializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
+    storeCrashReports = serializers.IntegerField(
+        min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False
+    )
     attachmentsRole = serializers.CharField(required=True)
     debugFilesRole = serializers.CharField(required=True)
     eventsMemberAdmin = serializers.BooleanField(required=False)
@@ -439,8 +445,12 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         return super().save(*args, **kwargs)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Retrieve an Organization
         ````````````````````````
@@ -463,7 +473,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         return self.respond(context)
 
-    def put(self, request, organization):
+    def put(self, request: Request, organization) -> Response:
         """
         Update an Organization
         ``````````````````````
@@ -521,7 +531,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def handle_delete(self, request, organization):
+    def handle_delete(self, request: Request, organization):
         """
         This method exists as a way for getsentry to override this endpoint with less duplication.
         """
@@ -555,7 +565,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context, status=202)
 
     @sudo_required
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization) -> Response:
         """
         Delete an Organization
         ``````````````````````

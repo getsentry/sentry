@@ -25,18 +25,14 @@ describe('ProjectKeys', function () {
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
-    const routerContext = TestStubs.routerContext();
 
     wrapper = mountWithTheme(
       <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />,
       {
-        ...routerContext,
         context: {
-          ...routerContext.context,
           project: TestStubs.Project(),
         },
         childContextTypes: {
-          ...routerContext.childContextTypes,
           project: PropTypes.object,
         },
       }
@@ -52,8 +48,7 @@ describe('ProjectKeys', function () {
     });
 
     wrapper = mountWithTheme(
-      <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);

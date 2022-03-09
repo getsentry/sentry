@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {MultiControlProps} from 'sentry/components/forms/multiSelectControl';
+import {MultiControlProps} from 'sentry/components/deprecatedforms/multiSelectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {PanelItem} from 'sentry/components/panels';
@@ -16,13 +16,13 @@ import space from 'sentry/styles/space';
 import {Member, MemberRole, Organization} from 'sentry/types';
 
 type Props = {
+  allRoles: MemberRole[];
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
-  organization: Organization;
   onApprove: (inviteRequest: Member) => void;
   onDeny: (inviteRequest: Member) => void;
   onUpdate: (data: Partial<Member>) => void;
-  allRoles: MemberRole[];
+  organization: Organization;
 };
 
 const InviteModalHook = HookOrDefault({
@@ -173,7 +173,7 @@ const JoinRequestIndicator = styled(Tag)`
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 `;
 
@@ -206,7 +206,7 @@ const TeamSelectControl = styled(TeamSelector)`
 const ButtonGroup = styled('div')`
   display: inline-grid;
   grid-template-columns: repeat(2, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 export default InviteRequestRow;

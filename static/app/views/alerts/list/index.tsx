@@ -11,21 +11,21 @@ import Button from 'sentry/components/button';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
-import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import TeamFilter, {getTeamParams} from '../rules/teamFilter';
+import FilterBar from '../filterBar';
 import {Incident} from '../types';
+import {getQueryStatus, getTeamParams} from '../utils';
 
 import AlertHeader from './header';
 import Onboarding from './onboarding';
@@ -41,15 +41,15 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 type State = {
   incidentList: Incident[];
   /**
-   * Is there at least one alert rule configured for the currently selected
-   * projects?
-   */
-  hasAlertRule?: boolean;
-  /**
    * User has not yet seen the 'alert_stream' welcome prompt for this
    * organization.
    */
   firstVisitShown?: boolean;
+  /**
+   * Is there at least one alert rule configured for the currently selected
+   * projects?
+   */
+  hasAlertRule?: boolean;
 };
 
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
@@ -57,7 +57,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const {params, location} = this.props;
     const {query} = location;
 
-    const status = this.getQueryStatus(query.status);
+    const status = getQueryStatus(query.status);
     // Filtering by one status, both does nothing
     if (status.length === 1) {
       query.status = status;
@@ -67,18 +67,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     query.expand = ['original_alert_rule'];
 
     return [['incidentList', `/organizations/${params?.orgId}/incidents/`, {query}]];
-  }
-
-  getQueryStatus(status: string | string[]): string[] {
-    if (Array.isArray(status)) {
-      return status;
-    }
-
-    if (status === '') {
-      return [];
-    }
-
-    return ['open', 'closed'].includes(status) ? [status] : [];
   }
 
   /**
@@ -173,28 +161,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     });
   };
 
-  renderFilterBar() {
-    const {location} = this.props;
-    const selectedTeams = new Set(getTeamParams(location.query.team));
-    const selectedStatus = new Set(this.getQueryStatus(location.query.status));
-
-    return (
-      <FilterWrapper>
-        <TeamFilter
-          showStatus
-          selectedStatus={selectedStatus}
-          selectedTeams={selectedTeams}
-          handleChangeFilter={this.handleChangeFilter}
-        />
-        <StyledSearchBar
-          placeholder={t('Search by name')}
-          query={location.query?.name}
-          onSearch={this.handleChangeSearch}
-        />
-      </FilterWrapper>
-    );
-  }
-
   tryRenderOnboarding() {
     const {firstVisitShown} = this.state;
     const {organization} = this.props;
@@ -215,7 +181,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           priority="primary"
           referrer="alert_stream"
         >
-          {t('Create Alert Rule')}
+          {t('Create Alert')}
         </CreateAlertButton>
       </Fragment>
     );
@@ -288,12 +254,16 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderBody() {
-    const {params, organization, router} = this.props;
+    const {params, organization, router, location} = this.props;
     const {orgId} = params;
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <GlobalSelectionHeader organization={organization} showDateSelector={false}>
+        <PageFiltersContainer
+          organization={organization}
+          showDateSelector={false}
+          hideGlobalHeader={organization.features.includes('selection-filters-v2')}
+        >
           <AlertHeader organization={organization} router={router} activeTab="stream" />
           <StyledLayoutBody>
             <Layout.Main fullWidth>
@@ -302,13 +272,20 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                   <StyledAlert icon={<IconInfo />}>
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
-                  {this.renderFilterBar()}
+                  <FilterBar
+                    organization={organization}
+                    location={location}
+                    onChangeFilter={this.handleChangeFilter}
+                    onChangeSearch={this.handleChangeSearch}
+                    hasStatusFilters
+                    hasEnvironmentFilter
+                  />
                 </Fragment>
               )}
               {this.renderList()}
             </Layout.Main>
           </StyledLayoutBody>
-        </GlobalSelectionHeader>
+        </PageFiltersContainer>
       </SentryDocumentTitle>
     );
   }
@@ -328,10 +305,8 @@ class IncidentsListContainer extends Component<Props> {
   trackView() {
     const {organization} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'alert_stream.viewed',
-      eventName: 'Alert Stream: Viewed',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('alert_stream.viewed', {
+      organization,
     });
   }
 
@@ -363,16 +338,6 @@ class IncidentsListContainer extends Component<Props> {
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
-`;
-
-const FilterWrapper = styled('div')`
-  display: flex;
-  margin-bottom: ${space(1.5)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-  margin-left: ${space(1.5)};
 `;
 
 const StyledLayoutBody = styled(Layout.Body)`

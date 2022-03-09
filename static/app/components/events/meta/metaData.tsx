@@ -6,14 +6,14 @@ import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {Meta} from 'sentry/types';
 
 type Props<Values, K extends Extract<keyof Values, string>> = {
-  object: Values;
-  prop: K;
   /**
    * Render prop that is called with these args:
    *  value: The actual value,
    *  meta: metadata object if it exists, otherwise undefined,
    */
   children: (value: Values[K], meta?: Meta) => React.ReactNode;
+  object: Values;
+  prop: K;
   required: boolean;
 };
 

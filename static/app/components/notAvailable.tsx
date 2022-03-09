@@ -5,8 +5,8 @@ import Tooltip from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 
 type Props = {
-  tooltip?: React.ReactNode;
   className?: string;
+  tooltip?: React.ReactNode;
 };
 
 function NotAvailable({tooltip, className}: Props) {

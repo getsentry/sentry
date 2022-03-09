@@ -60,9 +60,9 @@ function getImageStatusDetails(status: Status) {
 
 type Props = {
   image: DebugImageType;
-  showDetails: boolean;
   organization: Organization;
   projectId: Project['id'];
+  showDetails: boolean;
   style?: React.CSSProperties;
 };
 
@@ -128,7 +128,7 @@ const DebugImage = React.memo(
     const debugFile = image.debug_file && getFileName(image.debug_file);
 
     // The debug file is only realistically set on Windows. All other platforms
-    // either leave it empty or set it to a filename thats equal to the code
+    // either leave it empty or set it to a filename that's equal to the code
     // file name. In this case, do not show it.
     const showDebugFile = debugFile && codeFile !== debugFile;
 
@@ -247,13 +247,13 @@ const DebugImage = React.memo(
 
             return (
               <ImageActions>
-                <Tooltip title={t('Search for debug files in settings')}>
-                  <Button
-                    size="xsmall"
-                    icon={<IconSearch size="xs" />}
-                    to={settingsUrl}
-                  />
-                </Tooltip>
+                <Button
+                  size="xsmall"
+                  icon={<IconSearch size="xs" />}
+                  to={settingsUrl}
+                  title={t('Search for debug files in settings')}
+                  aria-label={t('Search for debug files in settings')}
+                />
               </ImageActions>
             );
           }}
@@ -269,7 +269,7 @@ const DebugImageItem = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeSmall};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
-    grid-gap: ${space(1)};
+    gap: ${space(1)};
     position: relative;
   }
 `;

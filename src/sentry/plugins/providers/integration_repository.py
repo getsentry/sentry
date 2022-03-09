@@ -5,6 +5,7 @@ import logging
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
@@ -47,7 +48,7 @@ class IntegrationRepositoryProvider:
         installation: IntegrationInstallation = integration_model.get_installation(organization_id)
         return installation
 
-    def dispatch(self, request, organization, **kwargs):
+    def dispatch(self, request: Request, organization, **kwargs):
         try:
             config = self.get_repository_data(organization, request.data)
             result = self.build_repository_config(organization=organization, data=config)

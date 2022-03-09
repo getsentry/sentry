@@ -18,14 +18,11 @@ import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import DiscoverQuery, {
-  TableData,
-  TableDataRow,
-} from 'sentry/utils/discover/discoverQuery';
+import DiscoverOrMetricsQuery from 'sentry/utils/discover/discoverOrMetricsQuery';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
@@ -33,7 +30,10 @@ import TransactionThresholdModal, {
   modalCss,
   TransactionThresholdMetric,
 } from './transactionSummary/transactionThresholdModal';
-import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
+import {
+  normalizeSearchConditionsWithTransactionName,
+  transactionSummaryRouteWithQuery,
+} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
 
 export function getProjectID(
@@ -57,20 +57,19 @@ export function getProjectID(
 
 type Props = {
   eventView: EventView;
-  organization: Organization;
   location: Location;
-  setError: (msg: string | undefined) => void;
-  summaryConditions?: string;
-
+  organization: Organization;
   projects: Project[];
+  setError: (msg: string | undefined) => void;
   columnTitles?: string[];
+  summaryConditions?: string;
 };
 
 type State = {
-  widths: number[];
   transaction: string | undefined;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
+  widths: number[];
 };
 class _Table extends React.Component<Props, State> {
   state: State = {
@@ -128,10 +127,9 @@ class _Table extends React.Component<Props, State> {
         return;
       }
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditionsWithTransactionName(
+        eventView.query
+      );
 
       updateQuery(searchConditions, action, column, value);
 
@@ -193,7 +191,11 @@ class _Table extends React.Component<Props, State> {
           handleCellAction={this.handleCellAction(column, dataRow)}
           allowActions={allowActions}
         >
-          <Link to={target} onClick={this.handleSummaryClick}>
+          <Link
+            to={target}
+            onClick={this.handleSummaryClick}
+            style={{display: `block`, width: `100%`}}
+          >
             {rendered}
           </Link>
         </CellAction>
@@ -392,7 +394,7 @@ class _Table extends React.Component<Props, State> {
 
     return (
       <div>
-        <DiscoverQuery
+        <DiscoverOrMetricsQuery
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
@@ -421,7 +423,7 @@ class _Table extends React.Component<Props, State> {
               <Pagination pageLinks={pageLinks} />
             </React.Fragment>
           )}
-        </DiscoverQuery>
+        </DiscoverOrMetricsQuery>
       </div>
     );
   }

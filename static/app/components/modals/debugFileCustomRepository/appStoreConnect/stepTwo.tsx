@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
+import SelectField from 'sentry/components/forms/selectField';
 import {t} from 'sentry/locale';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {AppStoreApp, StepTwoData} from './types';
 
 type Props = {
   appStoreApps: AppStoreApp[];
-  stepTwoData: StepTwoData;
   onSetStepTwoData: (stepTwoData: StepTwoData) => void;
+  stepTwoData: StepTwoData;
 };
 
 function StepTwo({stepTwoData, onSetStepTwoData, appStoreApps}: Props) {

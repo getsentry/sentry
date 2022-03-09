@@ -113,43 +113,27 @@ install-py-dev() {
         # This saves having to install postgresql on the Developer's machine + using flags
         # https://github.com/psycopg/psycopg2/issues/1286
         pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
+        # The CPATH is needed for confluent-kakfa --> https://github.com/confluentinc/confluent-kafka-python/issues/1190
+        export CPATH="$(brew --prefix librdkafka)/include"
+        # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
+        export LDFLAGS="-L$(brew --prefix gettext)/lib"
     fi
 
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
     SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
+    patch-selenium
+}
 
+patch-selenium() {
+    # XXX: getsentry repo calls this!
     # This hack is until we can upgrade to a newer version of Selenium
     fx_profile=.venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py
     # Remove this block when upgrading the selenium package
     if grep -q "or setting is" "${fx_profile}"; then
         echo "We are patching ${fx_profile}. You will see this message only once."
         patch -p0 <scripts/patches/firefox_profile.diff
-    fi
-}
-
-setup-apple-m1() {
-    ! query-apple-m1 && return
-
-    zshrc_path="${HOME}/.zshrc"
-    header="# Apple M1 environment variables"
-    # The CPATH is needed for confluent-kakfa --> https://github.com/confluentinc/confluent-kafka-python/issues/1190
-    # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
-    body="
-$header
-export CPATH=/opt/homebrew/Cellar/librdkafka/1.8.2/include
-export LDFLAGS=-L/opt/homebrew/Cellar/gettext/0.21/lib"
-    if [ "$SHELL" == "/bin/zsh" ]; then
-        if ! grep -qF "${header}" "${zshrc_path}"; then
-            echo "Added the following to ${zshrc_path}"
-            cp "${zshrc_path}" "${zshrc_path}.bak"
-            echo -e "$body" >> "${zshrc_path}"
-            echo -e "$body"
-        fi
-    else
-        echo "You are not using a supported shell. Please add these variables where appropiate."
-        echo -e "$body"
     fi
 }
 
@@ -232,7 +216,6 @@ build-platform-assets() {
 }
 
 bootstrap() {
-    setup-apple-m1
     develop
     init-config
     run-dependent-services

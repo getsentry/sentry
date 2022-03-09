@@ -165,3 +165,12 @@ export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
     type: measurementType(MobileVital.StallPercentage),
   },
 };
+
+export enum Browser {
+  CHROME = 'Chrome',
+  EDGE = 'Edge',
+  OPERA = 'Opera',
+  FIREFOX = 'Firefox',
+  SAFARI = 'Safari',
+  IE = 'IE',
+}

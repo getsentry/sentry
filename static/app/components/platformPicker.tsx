@@ -22,31 +22,31 @@ const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as co
 
 const PlatformList = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
   margin-bottom: ${space(2)};
 `;
 
 type Category = typeof PLATFORM_CATEGORIES[number]['id'];
 
-type Props = {
+interface PlatformPickerProps {
   setPlatform: (key: PlatformKey | null) => void;
+  defaultCategory?: Category;
+  listClassName?: string;
+  listProps?: React.HTMLAttributes<HTMLDivElement>;
+  noAutoFilter?: boolean;
+  organization?: Organization;
   platform?: string | null;
   showOther?: boolean;
-  listClassName?: string;
-  listProps?: React.ComponentProps<typeof PlatformList>;
-  noAutoFilter?: boolean;
-  defaultCategory?: Category;
-  organization?: Organization;
   source?: string;
-};
+}
 
 type State = {
   category: Category;
   filter: string;
 };
 
-class PlatformPicker extends React.Component<Props, State> {
+class PlatformPicker extends React.Component<PlatformPickerProps, State> {
   static defaultProps = {
     showOther: true,
   };
@@ -176,7 +176,7 @@ class PlatformPicker extends React.Component<Props, State> {
 const NavContainer = styled('div')`
   margin-bottom: ${space(2)};
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: 1fr minmax(0, 300px);
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
@@ -251,7 +251,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
     />
 
     <h3>{platform.name}</h3>
-    {selected && <ClearButton onClick={onClear} />}
+    {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
   </div>
 ))`
   position: relative;

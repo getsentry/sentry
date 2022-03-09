@@ -7,8 +7,9 @@ from uuid import uuid4
 import pytz
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
+from sentry.spans.grouping.utils import hash_values
 from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_timestamp
@@ -277,6 +278,7 @@ def create_sample_event(
     trace=None,
     span_id=None,
     spans=None,
+    tagged=False,
     **kwargs,
 ):
     if not platform and not default:
@@ -295,14 +297,19 @@ def create_sample_event(
 
     if not data:
         return
-    if "parent_span_id" in kwargs:
-        data["contexts"]["trace"]["parent_span_id"] = kwargs.pop("parent_span_id")
+    for key in ["parent_span_id", "hash", "exclusive_time"]:
+        if key in kwargs:
+            data["contexts"]["trace"][key] = kwargs.pop(key)
 
     data.update(kwargs)
-    return create_sample_event_basic(data, project.id, raw=raw)
+    return create_sample_event_basic(data, project.id, raw=raw, tagged=tagged)
 
 
-def create_sample_event_basic(data, project_id, raw=True, skip_send_first_transaction=False):
+def create_sample_event_basic(
+    data, project_id, raw=True, skip_send_first_transaction=False, tagged=False
+):
+    if tagged:
+        set_tag(data, "sample_event", "yes")
     manager = EventManager(data)
     manager.normalize()
     return manager.save(
@@ -319,17 +326,23 @@ def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_i
     new_end = timestamp - timedelta(milliseconds=random_normal(50, 25, 10))
     for child in data["children"]:
         span_id = uuid4().hex[:16]
+        description = f"GET {child['transaction']}"
+        duration = random_normal((new_end - new_start).total_seconds(), 0.25, 0.01)
         spans.append(
             {
                 "same_process_as_parent": True,
                 "op": "http",
-                "description": f"GET {child['transaction']}",
+                "description": description,
                 "data": {
-                    "duration": random_normal((new_end - new_start).total_seconds(), 0.25, 0.01),
+                    "duration": duration,
                     "offset": 0.02,
                 },
                 "span_id": span_id,
                 "trace_id": trace_id,
+                "hash": hash_values([description]),
+                # not the best but just set the exclusive time
+                # equal to the duration to get some span data
+                "exclusive_time": duration,
             }
         )
         create_trace(
@@ -376,6 +389,10 @@ def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_i
         span_id=current_span_id,
         trace=trace_id,
         spans=spans,
+        hash=hash_values([data["transaction"]]),
+        # not the best but just set the exclusive time
+        # equal to the duration to get some span data
+        exclusive_time=(timestamp - start_timestamp).total_seconds(),
     )
     # try to give clickhouse some breathing room
     if slow:

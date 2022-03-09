@@ -7,6 +7,7 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import InputField from 'sentry/components/forms/inputField';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Integration, Organization, Project} from 'sentry/types';
@@ -16,7 +17,6 @@ import {
 } from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
-import InputField from 'sentry/views/settings/components/forms/inputField';
 
 type Props = ModalRenderProps & {
   api: Client;
@@ -177,18 +177,18 @@ class StacktraceLinkModal extends Component<Props, State> {
 const SourceCodeInput = styled('div')`
   display: grid;
   grid-template-columns: 5fr 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const ManualSetup = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-items: center;
 `;
 
 const ModalContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   code {
     word-break: break-word;

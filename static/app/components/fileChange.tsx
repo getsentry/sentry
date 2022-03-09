@@ -8,8 +8,8 @@ import space from 'sentry/styles/space';
 import {AvatarUser, CommitAuthor} from 'sentry/types';
 
 type Props = {
-  filename: string;
   authors: CommitAuthor[];
+  filename: string;
   className?: string;
 };
 
@@ -34,7 +34,7 @@ const FileItem = styled(ListGroupItem)`
 const Filename = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-right: ${space(3)};
   align-items: center;
   grid-template-columns: max-content 1fr;

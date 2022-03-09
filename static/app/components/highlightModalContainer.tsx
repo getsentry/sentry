@@ -5,9 +5,9 @@ import BottomLeft from 'sentry-images/pattern/highlight-bottom-left.svg';
 import TopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
 type Props = {
-  topWidth: string;
   bottomWidth: string;
   children: React.ReactNode;
+  topWidth: string;
 };
 
 export default function HighlightModalContainer({

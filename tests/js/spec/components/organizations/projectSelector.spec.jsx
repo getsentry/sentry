@@ -48,6 +48,7 @@ describe('ProjectSelector', function () {
           id: 'org',
           slug: 'org-slug',
           access: [],
+          features: [],
         }}
       />,
       routerContext
@@ -68,6 +69,7 @@ describe('ProjectSelector', function () {
           id: 'org',
           slug: 'org-slug',
           access: ['project:write'],
+          features: [],
         }}
       />,
       routerContext
@@ -157,7 +159,7 @@ describe('ProjectSelector', function () {
     openMenu(wrapper);
 
     // Select first project
-    wrapper.find('CheckboxHitbox').first().simulate('click');
+    wrapper.find('MultiselectCheckbox').first().simulate('click');
 
     // onSelect callback should NOT be called
     expect(mock).not.toHaveBeenCalled();

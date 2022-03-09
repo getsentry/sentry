@@ -1,19 +1,9 @@
-import * as React from 'react';
+import {Field} from 'sentry/components/forms/type';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
-import {t} from 'sentry/locale';
-
-export type NotificationSettingField = {
-  name: string;
-  type: 'select' | 'blank' | 'boolean';
-  label: string;
-  choices?: string[][];
-  defaultValue?: string;
-  defaultFieldName?: string;
-  help?: string;
-  confirm?: {[key: string]: React.ReactNode | string};
-};
-
-export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingField> = {
+export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   alerts: {
     name: 'alerts',
     type: 'select',
@@ -66,6 +56,16 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
     ],
     help: t('Notifications from teammates that require review or approval.'),
   },
+  quota: {
+    name: 'quota',
+    type: 'select',
+    label: t('Quota'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('Error, transaction, and attachment quota limits.'),
+  },
   reports: {
     name: 'weekly reports',
     type: 'blank',
@@ -80,14 +80,76 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
   },
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
-    type: 'boolean',
+    type: 'select',
     label: t('My Own Activity'),
+    choices: [
+      [true as any, t('On')],
+      [false as any, t('Off')],
+    ],
     help: t('Notifications about your own actions on Sentry.'),
   },
   selfAssignOnResolve: {
     name: 'selfAssignOnResolve',
-    type: 'boolean',
+    type: 'select',
     label: t('Claim Unassigned Issues I’ve Resolved'),
+    choices: [
+      [true as any, t('On')],
+      [false as any, t('Off')],
+    ],
     help: t('You’ll receive notifications about any changes that happen afterwards.'),
   },
 };
+
+// partial field definition for quota sub-categories
+export const QUOTA_FIELDS = [
+  {
+    name: 'quotaWarnings',
+    label: t('Set Quota Limit'),
+    help: t(
+      'Receive notifications when your organization exceeeds the following limits.'
+    ),
+    choices: [
+      ['always', t('100% and 80%')],
+      ['never', t('100%')],
+    ] as const,
+  },
+  {
+    name: 'quotaErrors',
+    label: t('Errors'),
+    help: tct('Receive notifications about your error quotas. [learnMore:Learn more]', {
+      learnMore: <ExternalLink href={getDocsLinkForEventType('error')} />,
+    }),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
+    name: 'quotaTransactions',
+    label: t('Transactions'),
+    help: tct(
+      'Receive notifications about your transaction quota. [learnMore:Learn more]',
+      {
+        learnMore: <ExternalLink href={getDocsLinkForEventType('transaction')} />,
+      }
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
+    name: 'quotaAttachments',
+    label: t('Attachments'),
+    help: tct(
+      'Receive notifications about your attachment quota. [learnMore:Learn more]',
+      {
+        learnMore: <ExternalLink href={getDocsLinkForEventType('attachment')} />,
+      }
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+];

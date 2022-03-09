@@ -7,8 +7,8 @@ import GroupingComponentFrames from './groupingComponentFrames';
 import {groupingComponentFilter} from './utils';
 
 type FrameGroup = {
-  key: string;
   data: EventGroupComponent[];
+  key: string;
 };
 
 type Props = {

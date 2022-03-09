@@ -7,13 +7,13 @@ import {getIncidentRuleDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentR
 
 type PresetCta = {
   /**
-   * The location to direct to upon clicking the CTA.
-   */
-  to: React.ComponentProps<typeof Link>['to'];
-  /**
    * The CTA text
    */
   buttonText: string;
+  /**
+   * The location to direct to upon clicking the CTA.
+   */
+  to: React.ComponentProps<typeof Link>['to'];
   /**
    * The tooltip title for the CTA button, may be empty.
    */
@@ -23,10 +23,11 @@ type PresetCta = {
 type PresetCtaOpts = {
   orgSlug: string;
   projects: Project[];
-  rule?: IncidentRule;
-  eventType?: string;
-  start?: string;
   end?: string;
+  eventType?: string;
+  fields?: string[];
+  rule?: IncidentRule;
+  start?: string;
 };
 
 /**
@@ -39,6 +40,7 @@ export function makeDefaultCta({
   eventType,
   start,
   end,
+  fields,
 }: PresetCtaOpts): PresetCta {
   if (!rule) {
     return {
@@ -61,6 +63,7 @@ export function makeDefaultCta({
       start,
       end,
       extraQueryParams,
+      fields,
     }),
   };
 }

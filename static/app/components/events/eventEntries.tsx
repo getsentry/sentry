@@ -1,4 +1,4 @@
-import React, {memo, useEffect, useState} from 'react';
+import {memo, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -8,7 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventContexts from 'sentry/components/events/contexts';
-import EventContextSummary from 'sentry/components/events/contextSummary/contextSummary';
+import EventContextSummary from 'sentry/components/events/contextSummary';
 import EventDevice from 'sentry/components/events/device';
 import EventErrors, {Error} from 'sentry/components/events/errors';
 import EventAttachments from 'sentry/components/events/eventAttachments';
@@ -59,20 +59,20 @@ const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
 type ProGuardErrors = Array<Error>;
 
 type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> & {
+  api: Client;
+  location: Location;
   /**
    * The organization can be the shared view on a public issue view.
    */
   organization: Organization | SharedViewOrganization;
   project: Project;
-  location: Location;
-  api: Client;
+  className?: string;
   event?: Event;
   group?: Group;
+  isBorderless?: boolean;
   isShare?: boolean;
   showExampleCommit?: boolean;
   showTagSummary?: boolean;
-  isBorderless?: boolean;
-  className?: string;
 };
 
 const EventEntries = memo(

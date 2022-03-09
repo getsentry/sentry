@@ -2,13 +2,13 @@ import flatMap from 'lodash/flatMap';
 import flatten from 'lodash/flatten';
 
 import FormSearchActions from 'sentry/actions/formSearchActions';
+import {Field, JsonFormObject} from 'sentry/components/forms/type';
 import {FormSearchField} from 'sentry/stores/formSearchStore';
-import {Field, JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 type Params = {
-  route: string;
-  formGroups: JsonFormObject[];
   fields: Record<string, Field>;
+  formGroups: JsonFormObject[];
+  route: string;
 };
 /**
  * Creates a list of objects to be injected by a search source

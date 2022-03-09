@@ -1,4 +1,6 @@
 from django.http import HttpResponse, StreamingHttpResponse
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
@@ -8,7 +10,7 @@ from sentry.utils.safe import get_path
 
 
 class EventAppleCrashReportEndpoint(ProjectEndpoint):
-    def get(self, request, project, event_id):
+    def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve an Apple Crash Report from an event
         `````````````````````````````````````````````

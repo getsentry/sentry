@@ -17,6 +17,10 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
+import Form from 'sentry/components/forms/form';
+import SelectField from 'sentry/components/forms/selectField';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -34,7 +38,8 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
-import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {metric} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -45,10 +50,6 @@ import {
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/changeAlerts/constants';
 import AsyncView from 'sentry/views/asyncView';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Field from 'sentry/views/settings/components/forms/field';
-import Form from 'sentry/views/settings/components/forms/form';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import RuleNodeList from './ruleNodeList';
 import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
@@ -93,27 +94,27 @@ type ConditionOrActionProperty = 'conditions' | 'actions' | 'filters';
 
 type RuleTaskResponse = {
   status: 'pending' | 'failed' | 'success';
-  rule?: IssueAlertRule;
   error?: string;
+  rule?: IssueAlertRule;
 };
 
 type Props = {
-  project: Project;
   organization: Organization;
+  project: Project;
   userTeamIds: string[];
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
+  configs: {
+    actions: IssueAlertRuleActionTemplate[];
+    conditions: IssueAlertRuleConditionTemplate[];
+    filters: IssueAlertRuleConditionTemplate[];
+  } | null;
   detailedError: null | {
     [key: string]: string[];
   };
   environments: Environment[] | null;
-  configs: {
-    actions: IssueAlertRuleActionTemplate[];
-    filters: IssueAlertRuleConditionTemplate[];
-    conditions: IssueAlertRuleConditionTemplate[];
-  } | null;
   uuid: null | string;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
@@ -175,6 +176,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
   }
 
+  onLoadAllEndpointsSuccess() {
+    const {rule} = this.state;
+    if (rule) {
+      ((rule as IssueAlertRule)?.errors || []).map(({detail}) =>
+        addErrorMessage(detail, {append: true})
+      );
+    }
+  }
   pollHandler = async (quitTime: number) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
@@ -241,10 +250,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     metric.endTransaction({name: 'saveAlertRule'});
 
-    router.push({
-      pathname: `/organizations/${organization.slug}/alerts/rules/`,
-      query: {project: project.id},
-    });
+    router.push(
+      organization.features.includes('alert-rule-status-page')
+        ? {
+            pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
+          }
+        : {
+            pathname: `/organizations/${organization.slug}/alerts/rules/`,
+            query: {project: project.id},
+          }
+    );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
@@ -442,10 +457,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
 
     const {organization, project} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'edit_alert_rule.add_row',
-      eventName: 'Edit Alert Rule: Add Row',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('edit_alert_rule.add_row', {
+      organization,
       project_id: project.id,
       type,
       name: id,
@@ -527,7 +540,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return owner && owner.split(':')[1];
   };
 
-  handleOwnerChange = ({value}: {value: string; label: string}) => {
+  handleOwnerChange = ({value}: {label: string; value: string}) => {
     const ownerValue = value && `team:${value}`;
     this.handleChange('owner', ownerValue);
   };
@@ -727,6 +740,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             <RuleNodeList
                               nodes={this.getConditions()}
                               items={conditions ?? []}
+                              selectType="grouped"
                               placeholder={
                                 hasFeature
                                   ? t('Add optional trigger...')
@@ -945,7 +959,7 @@ const StepConnector = styled('div')`
   height: 100%;
   top: 28px;
   left: 19px;
-  border-right: 1px ${p => p.theme.gray300} dashed;
+  border-right: 1px ${p => p.theme.gray200} dashed;
 `;
 
 const StepLead = styled('div')`

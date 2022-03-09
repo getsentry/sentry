@@ -1,16 +1,14 @@
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
 from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.api.helpers.group_index import (
-    ValidationError,
-    rate_limit_endpoint,
-    validate_search_filter_permissions,
-)
+from sentry.api.helpers.group_index import ValidationError, validate_search_filter_permissions
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.snuba import discover
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -19,7 +17,18 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
-    def _count(self, request, query, organization, projects, environments, extra_query_kwargs=None):
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(10, 1),
+            RateLimitCategory.USER: RateLimit(10, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
+        }
+    }
+
+    def _count(
+        self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
+    ):
         query_kwargs = {"projects": projects}
 
         query = query.strip()
@@ -41,8 +50,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
         result = search.query(**query_kwargs)
         return result.hits
 
-    @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
         try:
             start, end = get_date_range_from_params(request.GET)

@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -45,7 +46,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             "organizations:performance-view", project.organization, actor=request.user
         )
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -68,7 +69,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             status.HTTP_200_OK,
         )
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -111,7 +112,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
-    def delete(self, request, project):
+    def delete(self, request: Request, project) -> Response:
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 

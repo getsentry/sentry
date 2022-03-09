@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -7,11 +7,11 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
 import {generatePerformanceEventView} from '../data';
@@ -20,9 +20,9 @@ import TrendsContent from './content';
 
 type Props = RouteComponentProps<{}, {}> & {
   api: Client;
-  selection: GlobalSelection;
   organization: Organization;
   projects: Project[];
+  selection: PageFilters;
 };
 
 type State = {
@@ -30,7 +30,7 @@ type State = {
   error?: string;
 };
 
-class TrendsSummary extends React.Component<Props, State> {
+class TrendsSummary extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
@@ -56,13 +56,14 @@ class TrendsSummary extends React.Component<Props, State> {
   };
 
   renderContent() {
-    const {organization, location} = this.props;
+    const {organization, location, projects} = this.props;
     const {eventView} = this.state;
     return (
       <TrendsContent
         organization={organization}
         location={location}
         eventView={eventView}
+        projects={projects}
       />
     );
   }
@@ -82,9 +83,7 @@ class TrendsSummary extends React.Component<Props, State> {
   }
 }
 
-export default withOrganization(
-  withProjects(withGlobalSelection(withApi(TrendsSummary)))
-);
+export default withOrganization(withProjects(withPageFilters(withApi(TrendsSummary))));
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;

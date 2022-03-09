@@ -9,11 +9,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -23,10 +23,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import NoGroupsHandler from '../issueList/noGroupsHandler';
 
 type Props = {
-  organization: Organization;
-  location: Location;
-  projectId: number;
   api: Client;
+  location: Location;
+  organization: Organization;
+  projectId: number;
   query?: string;
 };
 
@@ -64,7 +64,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         sort: ['-count'],
         query: ['event.type:error error.unhandled:true', query].join(' ').trim(),
         display: 'top5',
-        ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
+        ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
       },
     };
   }
@@ -73,7 +73,9 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const issueQuery = ['is:unresolved error.unhandled:true ', query].join(' ').trim();
   const queryParams = {
     limit: 5,
-    ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor'])),
+    ...normalizeDateTimeParams(
+      pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
+    ),
     query: issueQuery,
     sort: 'freq',
   };
@@ -118,7 +120,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         <ButtonBar gap={1}>
           <Button
             data-test-id="issues-open"
-            size="small"
+            size="xsmall"
             to={issueSearch}
             onClick={handleOpenInIssuesClick}
           >
@@ -127,11 +129,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
           <DiscoverButton
             onClick={handleOpenInDiscoverClick}
             to={getDiscoverUrl()}
-            size="small"
+            size="xsmall"
           >
             {t('Open in Discover')}
           </DiscoverButton>
-          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
+          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xsmall" />
         </ButtonBar>
       </ControlsWrapper>
 

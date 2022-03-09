@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {SelectField} from 'sentry/components/forms';
+import {SelectField} from 'sentry/components/deprecatedforms';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import AsyncView from 'sentry/views/asyncView';
@@ -12,12 +12,12 @@ const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
 type TimeWindow = typeof TIME_WINDOWS[number];
 
 type State = AsyncView['state'] & {
-  timeWindow: TimeWindow;
-  since: number;
-  resolution: string;
-  taskName: string;
   activeTask: string;
+  resolution: string;
+  since: number;
   taskList: string[];
+  taskName: string;
+  timeWindow: TimeWindow;
 };
 
 export default class AdminQueue extends AsyncView<{}, State> {
@@ -62,7 +62,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
     return (
       <div>
         <Header>
-          <h3 className="no-border">Queue Overview</h3>
+          <h3>Queue Overview</h3>
 
           <ButtonBar merged active={this.state.timeWindow}>
             {TIME_WINDOWS.map(r => (
@@ -85,7 +85,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
           </PanelBody>
         </Panel>
 
-        <h3 className="no-border">Task Details</h3>
+        <h3>Task Details</h3>
 
         <div>
           <div className="m-b-1">

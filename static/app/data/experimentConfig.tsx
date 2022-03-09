@@ -26,13 +26,19 @@ export const experimentList = [
     assignments: [0, 1],
   },
   {
-    key: 'TargetedUpsellModalExperimentV3',
+    key: 'ContactSalesOnCheckoutExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
   },
   {
-    key: 'OrgStatsBannerExperiment',
+    key: 'TargetedFeaturesOnCheckoutExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+  {
+    key: 'TrialTagsOnCheckoutExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],

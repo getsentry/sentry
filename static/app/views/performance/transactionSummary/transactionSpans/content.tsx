@@ -4,31 +4,31 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField} from 'sentry/utils/discover/fields';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useProjects from 'sentry/utils/useProjects';
 
 import {SetStateAction} from '../types';
-import {generateTransactionLink} from '../utils';
 
 import OpsFilter from './opsFilter';
 import {Actions} from './styles';
-import SuspectSpanCard from './suspectSpanCard';
-import {SpansTotalValues} from './types';
-import {getSuspectSpanSortFromEventView, SPAN_SORT_OPTIONS} from './utils';
+import SuspectSpansTable from './suspectSpansTable';
+import {SpanSort, SpansTotalValues} from './types';
+import {
+  getSuspectSpanSortFromEventView,
+  getTotalsView,
+  SPAN_SORT_OPTIONS,
+  SPAN_SORT_TO_FIELDS,
+} from './utils';
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
@@ -44,22 +44,23 @@ const ANALYTICS_VALUES = {
 };
 
 type Props = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
+  projectId: string;
   setError: SetStateAction<string | undefined>;
   transactionName: string;
 };
 
 function SpansContent(props: Props) {
-  const {location, organization, eventView, setError, transactionName} = props;
+  const {location, organization, eventView, projectId, transactionName} = props;
   const query = decodeScalar(location.query.query, '');
 
   function handleChange(key: string) {
     return function (value: string | undefined) {
       ANALYTICS_VALUES[key]?.(organization, value);
 
-      const queryParams = getParams({
+      const queryParams = normalizeDateTimeParams({
         ...(location.query || {}),
         [key]: value,
       });
@@ -79,8 +80,12 @@ function SpansContent(props: Props) {
   }
 
   const spanOp = decodeScalar(location.query.spanOp);
+  const spanGroup = decodeScalar(location.query.spanGroup);
   const sort = getSuspectSpanSortFromEventView(eventView);
+  const spansView = getSpansEventView(eventView, sort.field);
   const totalsView = getTotalsView(eventView);
+
+  const {projects} = useProjects();
 
   return (
     <Layout.Main fullWidth>
@@ -122,52 +127,31 @@ function SpansContent(props: Props) {
       >
         {({tableData}) => {
           const totals: SpansTotalValues | null = tableData?.data?.[0] ?? null;
-
           return (
             <SuspectSpansQuery
               location={location}
               orgSlug={organization.slug}
-              eventView={eventView}
+              eventView={spansView}
+              limit={10}
+              perSuspect={0}
               spanOps={defined(spanOp) ? [spanOp] : []}
+              spanGroups={defined(spanGroup) ? [spanGroup] : []}
             >
-              {({suspectSpans, isLoading, error, pageLinks}) => {
-                if (error) {
-                  setError(error);
-                  return null;
-                }
-
-                // make sure to clear the clear the error message
-                setError(undefined);
-
-                if (isLoading) {
-                  return <LoadingIndicator />;
-                }
-
-                if (!suspectSpans?.length) {
-                  return (
-                    <EmptyStateWarning>
-                      <p>{t('No span data found')}</p>
-                    </EmptyStateWarning>
-                  );
-                }
-
-                return (
-                  <Fragment>
-                    {suspectSpans.map(suspectSpan => (
-                      <SuspectSpanCard
-                        key={`${suspectSpan.op}-${suspectSpan.group}`}
-                        location={location}
-                        organization={organization}
-                        suspectSpan={suspectSpan}
-                        generateTransactionLink={generateTransactionLink(transactionName)}
-                        eventView={eventView}
-                        totals={totals}
-                      />
-                    ))}
-                    <Pagination pageLinks={pageLinks} />
-                  </Fragment>
-                );
-              }}
+              {({suspectSpans, isLoading, pageLinks}) => (
+                <Fragment>
+                  <SuspectSpansTable
+                    location={location}
+                    organization={organization}
+                    transactionName={transactionName}
+                    project={projects.find(p => p.id === projectId)}
+                    isLoading={isLoading}
+                    suspectSpans={suspectSpans ?? []}
+                    totals={totals}
+                    sort={sort.field}
+                  />
+                  <Pagination pageLinks={pageLinks ?? null} />
+                </Fragment>
+              )}
             </SuspectSpansQuery>
           );
         }}
@@ -176,29 +160,11 @@ function SpansContent(props: Props) {
   );
 }
 
-/**
- * For the totals view, we want to get some transaction level stats like
- * the number of transactions and the sum of the transaction duration.
- * This requires the removal of any aggregate conditions as they can result
- * in unexpected empty responses.
- */
-function getTotalsView(eventView: EventView): EventView {
-  const totalsView = eventView.withColumns([
-    {kind: 'function', function: ['count', '', undefined, undefined]},
-    {kind: 'function', function: ['sum', 'transaction.duration', undefined, undefined]},
-  ]);
-
-  const conditions = new MutableSearch(eventView.query);
-
-  // filter out any aggregate conditions
-  Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) {
-      conditions.removeFilter(field);
-    }
-  });
-
-  totalsView.query = conditions.formatString();
-  return totalsView;
+function getSpansEventView(eventView: EventView, sort: SpanSort): EventView {
+  eventView = eventView.clone();
+  const fields = SPAN_SORT_TO_FIELDS[sort];
+  eventView.fields = fields ? fields.map(field => ({field})) : [];
+  return eventView;
 }
 
 export default SpansContent;

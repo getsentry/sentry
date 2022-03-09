@@ -1,34 +1,35 @@
 export type ExampleSpan = {
+  exclusiveTime: number;
+  finishTimestamp: number;
   id: string;
   startTimestamp: number;
-  finishTimestamp: number;
-  exclusiveTime: number;
 };
 
 export type ExampleTransaction = {
-  id: string;
   description: string | null;
-  startTimestamp: number;
   finishTimestamp: number;
+  id: string;
   nonOverlappingExclusiveTime: number;
   spans: ExampleSpan[];
+  startTimestamp: number;
 };
 
-export type SuspectSpan = {
-  projectId: number;
-  project: string;
-  transaction: string;
-  op: string;
-  group: string;
-  frequency: number;
-  count: number;
-  avgOccurrences: number;
-  sumExclusiveTime: number;
-  p50ExclusiveTime: number;
-  p75ExclusiveTime: number;
-  p95ExclusiveTime: number;
-  p99ExclusiveTime: number;
+export type SpanExample = {
+  description: string | null;
   examples: ExampleTransaction[];
+  group: string;
+  op: string;
+};
+
+export type SuspectSpan = SpanExample & {
+  avgOccurrences?: number;
+  count?: number;
+  frequency?: number;
+  p50ExclusiveTime?: number;
+  p75ExclusiveTime?: number;
+  p95ExclusiveTime?: number;
+  p99ExclusiveTime?: number;
+  sumExclusiveTime?: number;
 };
 
 export type SuspectSpans = SuspectSpan[];
@@ -38,3 +39,8 @@ export type SpanOp = {
 };
 
 export type SpanOps = SpanOp[];
+
+export type SpanSlug = {
+  group: string;
+  op: string;
+};

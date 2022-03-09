@@ -1,7 +1,10 @@
+import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 
@@ -44,6 +47,17 @@ function initialize(project, query, additionalFeatures: string[] = []) {
     eventView,
   };
 }
+
+const WrappedComponent = ({
+  organization,
+  ...props
+}: React.ComponentProps<typeof SummaryContent>) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <SummaryContent organization={organization} {...props} />
+    </OrganizationContext.Provider>
+  );
+};
 
 describe('Transaction Summary Content', function () {
   beforeEach(function () {
@@ -106,7 +120,7 @@ describe('Transaction Summary Content', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
-      <SummaryContent
+      <WrappedComponent
         location={location}
         organization={organization}
         eventView={eventView}
@@ -125,53 +139,7 @@ describe('Transaction Summary Content', function () {
     wrapper.update();
 
     expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
-    expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
-    expect(wrapper.find('TransactionsList')).toHaveLength(1);
-    expect(wrapper.find('UserStats')).toHaveLength(1);
-    expect(wrapper.find('StatusBreakdown')).toHaveLength(1);
-    expect(wrapper.find('SidebarCharts')).toHaveLength(1);
-    expect(wrapper.find('DiscoverQuery')).toHaveLength(2);
-
-    const transactionListProps = wrapper.find('TransactionsList').first().props();
-    expect(transactionListProps.generateDiscoverEventView).toBeDefined();
-    expect(transactionListProps.handleOpenInDiscoverClick).toBeDefined();
-    expect(transactionListProps.generatePerformanceTransactionEventsView).toBeUndefined();
-    expect(transactionListProps.handleOpenAllEventsClick).toBeUndefined();
-  });
-
-  it('Renders with generatePerformanceTransactionEventsView instead when feature flagged', async function () {
-    const project = TestStubs.Project();
-    const {
-      organization,
-      location,
-      eventView,
-      spanOperationBreakdownFilter,
-      transactionName,
-    } = initialize(project, {}, ['performance-events-page']);
-    const routerContext = TestStubs.routerContext([{organization}]);
-
-    const wrapper = mountWithTheme(
-      <SummaryContent
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        projectId={project.id}
-        transactionName={transactionName}
-        isLoading={false}
-        totalValues={null}
-        spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-        error={null}
-        onChangeFilter={() => {}}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
+    expect(wrapper.find('SearchBar')).toHaveLength(1);
     expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
     expect(wrapper.find('TransactionsList')).toHaveLength(1);
     expect(wrapper.find('UserStats')).toHaveLength(1);
@@ -186,7 +154,7 @@ describe('Transaction Summary Content', function () {
     expect(transactionListProps.handleOpenAllEventsClick).toBeDefined();
   });
 
-  it('Renders TransactionSummaryCharts withoutZerofill when feature flagged', async function () {
+  it('Renders TransactionSummaryCharts withoutZerofill', async function () {
     const project = TestStubs.Project();
     const {
       organization,
@@ -194,14 +162,11 @@ describe('Transaction Summary Content', function () {
       eventView,
       spanOperationBreakdownFilter,
       transactionName,
-    } = initialize(project, {}, [
-      'performance-events-page',
-      'performance-chart-interpolation',
-    ]);
+    } = initialize(project, {}, ['performance-chart-interpolation']);
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
-      <SummaryContent
+      <WrappedComponent
         location={location}
         organization={organization}
         eventView={eventView}

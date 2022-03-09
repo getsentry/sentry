@@ -8,7 +8,7 @@ from pytz import UTC
 
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
-from sentry.constants import APDEX_THRESHOLD_DEFAULT, RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
@@ -144,11 +144,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert len(response.data["onboardingTasks"]) == 1
         assert response.data["onboardingTasks"][0]["task"] == "create_project"
 
-    def test_apdex_threshold_default(self):
-        response = self.get_success_response(self.organization.slug)
-
-        assert response.data["apdexThreshold"] == APDEX_THRESHOLD_DEFAULT
-
     def test_trusted_relays_info(self):
         AuditLogEntry.objects.filter(organization=self.organization).delete()
 
@@ -241,7 +236,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "apdexThreshold": 450,
         }
 
         # needed to set require2FA
@@ -272,7 +266,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
-        assert options.get("sentry:apdex_threshold") == 450
 
         # log created
         log = AuditLogEntry.objects.get(organization=org)
@@ -295,7 +288,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
-        assert "to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
 
     def test_setting_trusted_relays_forbidden(self):
         data = {
@@ -618,6 +610,18 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:relay_pii_config") == value
         assert response.data["relayPiiConfig"] == value
+
+    def test_store_crash_reports_exceeded(self):
+        # Uses a hard-coded number of MAX + 1 for regression testing.
+        #
+        # DO NOT INCREASE this number without checking the logic in event
+        # manager's ``get_stored_crashreports`` function. Increasing this number
+        # causes more load on postgres during ingestion.
+        data = {"storeCrashReports": 101}
+
+        resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert self.organization.get_option("sentry:store_crash_reports") is None
+        assert b"storeCrashReports" in resp.content
 
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):

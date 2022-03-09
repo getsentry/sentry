@@ -4,6 +4,7 @@ import {AggregationKey, LooseFieldKey} from 'sentry/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {
   AlertRuleThresholdType,
+  AlertRuleTriggerType,
   Dataset,
   Datasource,
   EventTypes,
@@ -114,7 +115,7 @@ export const transactionFieldConfig: OptionConfig = {
   measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };
 
-export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
+export function createDefaultTrigger(label: AlertRuleTriggerType): Trigger {
   return {
     label,
     alertThreshold: '',
@@ -130,8 +131,12 @@ export function createDefaultRule(
     eventTypes: [EventTypes.ERROR],
     aggregate: DEFAULT_AGGREGATE,
     query: '',
-    timeWindow: 1,
-    triggers: [createDefaultTrigger('critical'), createDefaultTrigger('warning')],
+    timeWindow: 60,
+    thresholdPeriod: 1,
+    triggers: [
+      createDefaultTrigger(AlertRuleTriggerType.CRITICAL),
+      createDefaultTrigger(AlertRuleTriggerType.WARNING),
+    ],
     projects: [],
     environment: null,
     resolveThreshold: '',
@@ -148,15 +153,21 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
   const datasetAndEventtypes = parsedQuery
     ? DATA_SOURCE_TO_SET_AND_EVENT_TYPES[parsedQuery.source]
     : DATA_SOURCE_TO_SET_AND_EVENT_TYPES.error;
+
+  let aggregate = eventView.getYAxis();
+  if (
+    datasetAndEventtypes.dataset === 'transactions' &&
+    /^p\d{2,3}\(\)/.test(eventView.getYAxis())
+  ) {
+    // p95() -> p95(transaction.duration)
+    aggregate = eventView.getYAxis().slice(0, 3) + '(transaction.duration)';
+  }
+
   return {
     ...createDefaultRule(),
     ...datasetAndEventtypes,
     query: parsedQuery?.query ?? eventView.query,
-    // If creating a metric alert for transactions, default to the p95 metric
-    aggregate:
-      datasetAndEventtypes.dataset === 'transactions'
-        ? 'p95(transaction.duration)'
-        : eventView.getYAxis(),
+    aggregate,
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }
@@ -170,6 +181,10 @@ export function createRuleFromWizardTemplate(
   if (isSessionAggregate(aggregate)) {
     defaultRuleOptions.thresholdType = AlertRuleThresholdType.BELOW;
     defaultRuleOptions.timeWindow = TimeWindow.ONE_HOUR;
+  }
+
+  if (aggregate.includes('apdex')) {
+    defaultRuleOptions.thresholdType = AlertRuleThresholdType.BELOW;
   }
 
   return {

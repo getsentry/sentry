@@ -30,26 +30,33 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
 
     @fixture
     def old_valid_wrapper(self):
-        return {"version": 1, "payload": self.old_payload}
+        return {"version": 2, "payload": self.old_payload}
 
     @fixture
     def old_payload(self):
         return {
             "subscription_id": self.subscription_id,
-            "values": {"data": [{"hello": 50}]},
+            "result": {"data": [{"hello": 50}]},
+            "request": {"some": "data"},
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
     @fixture
     def valid_wrapper(self):
-        return {"version": 2, "payload": self.valid_payload}
+        return {"version": 3, "payload": self.valid_payload}
 
     @fixture
     def valid_payload(self):
         return {
-            "subscription_id": self.subscription_id,
+            "subscription_id": "1234",
             "result": {"data": [{"hello": 50}]},
-            "request": {"some": "data"},
+            "request": {
+                "some": "data",
+                "query": """MATCH (metrics_counters) SELECT sum(value) AS value BY
+                        tags[3] WHERE org_id = 1 AND project_id IN tuple(1) AND metric_id = 16
+                        AND tags[3] IN tuple(13, 4)""",
+            },
+            "entity": "metrics_counters",
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
@@ -123,6 +130,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         consumer.run()
 
         payload = self.old_payload
+        payload["values"] = payload["result"]
         payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
         mock_callback.assert_called_once_with(payload, sub)
 

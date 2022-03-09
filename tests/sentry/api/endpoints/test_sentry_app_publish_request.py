@@ -25,12 +25,12 @@ class SentryAppPublishRequestTest(APITestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         )
         self.url = reverse("sentry-api-0-sentry-app-publish-request", args=[self.sentry_app.slug])
+        self.login_as(user=self.user)
 
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_request(self, send_mail):
         self.upload_logo()
         self.upload_issue_link_logo()
-        self.login_as(user=self.user)
         response = self.client.post(
             self.url,
             format="json",
@@ -59,7 +59,6 @@ class SentryAppPublishRequestTest(APITestCase):
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_already_published(self, send_mail):
         self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
-        self.login_as(user=self.user)
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert response.data["detail"] == "Cannot publish already published integration."
@@ -68,7 +67,6 @@ class SentryAppPublishRequestTest(APITestCase):
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_internal(self, send_mail):
         self.sentry_app.update(status=SentryAppStatus.INTERNAL)
-        self.login_as(user=self.user)
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert response.data["detail"] == "Cannot publish internal integration."
@@ -76,22 +74,43 @@ class SentryAppPublishRequestTest(APITestCase):
 
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_no_logo(self, send_mail):
-        self.login_as(user=self.user)
-        with self.feature("organizations:sentry-app-logo-upload"):
-            response = self.client.post(self.url, format="json")
+        response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert response.data["detail"] == "Must upload a logo for the integration."
         send_mail.asssert_not_called()
 
     @mock.patch("sentry.utils.email.send_mail")
     def test_publish_no_issue_link_logo(self, send_mail):
+        """Test that you cannot submit a publication request for an issue link
+        integration without having uploaded a black icon."""
         self.upload_logo()
-        self.login_as(user=self.user)
-        with self.feature("organizations:sentry-app-logo-upload"):
-            response = self.client.post(self.url, format="json")
+        response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == "Must upload a black and white logo for issue linking integrations."
+            == "Must upload an icon for issue and stack trace linking integrations."
+        )
+        send_mail.asssert_not_called()
+
+    @mock.patch("sentry.utils.email.send_mail")
+    def test_publish_no_stacktrace_link_logo(self, send_mail):
+        """Test that you cannot submit a publication request for a stacktrace link
+        integration without having uploaded a black icon."""
+        stacktrace_link_sentry_app = self.create_sentry_app(
+            name="Meowin",
+            organization=self.org,
+            schema={"elements": [self.create_stacktrace_link_schema()]},
+        )
+        SentryAppAvatar.objects.create(
+            sentry_app=stacktrace_link_sentry_app, avatar_type=1, color=True
+        )
+        url = reverse(
+            "sentry-api-0-sentry-app-publish-request", args=[stacktrace_link_sentry_app.slug]
+        )
+        response = self.client.post(url, format="json")
+        assert response.status_code == 400
+        assert (
+            response.data["detail"]
+            == "Must upload an icon for issue and stack trace linking integrations."
         )
         send_mail.asssert_not_called()

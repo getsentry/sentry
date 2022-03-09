@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import {ResponseMeta} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
@@ -19,6 +19,7 @@ import {
   RepositoryProjectPathConfigWithIntegration,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
@@ -31,10 +32,10 @@ import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
 
 type Props = AsyncComponent['props'] & {
-  frame: Frame;
   event: Event;
-  organization: Organization;
+  frame: Frame;
   lineNo: number;
+  organization: Organization;
   projects: Project[];
 };
 
@@ -46,15 +47,15 @@ export type StacktraceErrorMessage =
 // format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   integrations: Integration[];
-  config?: RepositoryProjectPathConfigWithIntegration;
-  sourceUrl?: string;
-  error?: StacktraceErrorMessage;
   attemptedUrl?: string;
+  config?: RepositoryProjectPathConfigWithIntegration;
+  error?: StacktraceErrorMessage;
+  sourceUrl?: string;
 };
 
 type State = AsyncComponent['state'] & {
-  match: StacktraceResultItem;
   isDismissed: boolean;
+  match: StacktraceResultItem;
   promptLoaded: boolean;
 };
 
@@ -145,11 +146,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     ];
   }
 
-  onRequestError(error, args) {
-    Sentry.withScope(scope => {
-      scope.setExtra('errorInfo', args);
-      Sentry.captureException(new Error(error));
-    });
+  onRequestError(resp: ResponseMeta) {
+    handleXhrErrorResponse('Unable to fetch stack trace link')(resp);
   }
 
   getDefaultState(): State {
@@ -328,7 +326,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
         <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
-          {getIntegrationIcon(config.provider.key)}
+          <StyledIconWrapper>{getIntegrationIcon(config.provider.key)}</StyledIconWrapper>
           <OpenInName>{config.provider.name}</OpenInName>
         </OpenInLink>
       </OpenInContainer>
@@ -359,6 +357,11 @@ export {StacktraceLink};
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
+`;
+
+const StyledIconWrapper = styled('span')`
+  color: inherit;
+  line-height: 0;
 `;
 
 const StyledIconClose = styled(IconClose)`

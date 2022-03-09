@@ -9,17 +9,6 @@ body {
     }
   }
 
-  /* Discover has a 100% height based layout with no footer */
-  &.body-discover {
-    padding-top: 0;
-    padding-bottom: 0;
-    overflow: hidden;
-
-    footer {
-      display: none;
-    }
-  }
-
   &.scroll-lock {
     overflow: hidden;
     position: fixed;
@@ -266,6 +255,9 @@ body.auth {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+
+  // Necessary for the correct positioning of dropdown menus/overlays
+  position: relative;
 }
 
 .container {

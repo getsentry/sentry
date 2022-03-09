@@ -1,17 +1,17 @@
 import {ComponentType, Fragment} from 'react';
-import {withTheme} from '@emotion/react';
+import {css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 import moment from 'moment';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
 import BarChart from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -20,19 +20,20 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Color, Theme} from 'sentry/utils/theme';
 
-import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
 
 type Props = AsyncComponent['props'] & {
-  theme: Theme;
   organization: Organization;
-  teamSlug: string;
   projects: Project[];
+  teamSlug: string;
+  theme: Theme;
 } & DateTimeObject;
 
 type ProjectReleaseCount = {
+  last_week_totals: Record<string, number>;
   project_avgs: Record<string, number>;
   release_counts: Record<string, number>;
-  last_week_totals: Record<string, number>;
 };
 
 type State = AsyncComponent['state'] & {
@@ -64,7 +65,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/release-count/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -185,7 +186,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         name: new Date(bucket).getTime(),
       })
     );
-    const seriesData = convertDaySeriesToWeeks(data);
+    const seriesData = sortSeriesByDay(data);
 
     const averageValues = Object.values(periodReleases?.project_avgs ?? {});
     const projectAvgSum = averageValues.reduce(
@@ -218,6 +219,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                     show: false,
                   },
                 }),
+                barCategoryGap: '5%',
               },
             ]}
             tooltip={{
@@ -236,7 +238,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                   `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                   '</div>',
                   `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
-                  getTooltipArrow(),
+                  '<div class="tooltip-arrow"></div>',
                 ].join('');
               },
             }}
@@ -244,8 +246,18 @@ class TeamReleases extends AsyncComponent<Props, State> {
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={projects.length === 0}
+          emptyMessage={t('No releases were setup for this team’s projects')}
+          emptyAction={
+            <Button
+              size="small"
+              external
+              href="https://docs.sentry.io/product/releases/setup/"
+            >
+              {t('Learn More')}
+            </Button>
+          }
           headers={[
-            t('Project'),
+            t('Releases Per Project'),
             <RightAligned key="last">
               {tct('Last [period] Average', {period})}
             </RightAligned>,
@@ -256,7 +268,14 @@ class TeamReleases extends AsyncComponent<Props, State> {
           {groupedProjects.map(({project}) => (
             <Fragment key={project.id}>
               <ProjectBadgeContainer>
-                <ProjectBadge avatarSize={18} project={project} />
+                <ProjectBadge
+                  avatarSize={18}
+                  project={project}
+                  to={{
+                    pathname: `/organizations/${organization.slug}/releases/`,
+                    query: {project: project.id},
+                  }}
+                />
               </ProjectBadgeContainer>
 
               <ScoreWrapper>{this.renderReleaseCount(project.id, 'period')}</ScoreWrapper>
@@ -286,7 +305,7 @@ const ChartWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
   white-space: nowrap;
   margin-bottom: 0;
@@ -297,6 +316,14 @@ const StyledPanelTable = styled(PanelTable)`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
+
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
 `;
 
 const RightAligned = styled('span')`
@@ -316,12 +343,4 @@ const PaddedIconArrow = styled(IconArrow)`
 
 const SubText = styled('div')<{color: Color}>`
   color: ${p => p.theme[p.color]};
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;

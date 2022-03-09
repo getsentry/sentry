@@ -21,10 +21,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
-  location: Location;
   eventView: EventView;
-  organization: Organization;
   handleOpChange: (op: string | undefined) => void;
+  location: Location;
+  organization: Organization;
   transactionName: string;
 };
 
@@ -54,7 +54,7 @@ export default function OpsFilter(props: Props) {
           isOpen={isOpen}
         >
           <Fragment>
-            <IconFilter size="xs" />
+            <IconFilter />
             <FilterLabel>
               {defined(currentOp) ? tct('Filter - [op]', {op: currentOp}) : t('Filter')}
             </FilterLabel>

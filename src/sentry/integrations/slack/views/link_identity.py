@@ -1,11 +1,10 @@
 from django.core.signing import BadSignature, SignatureExpired
-from django.db import IntegrityError
-from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity, IdentityStatus, Integration
+from sentry.models import Identity, Integration, NotificationSetting
+from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
@@ -58,23 +57,16 @@ class SlackLinkIdentityView(BaseView):  # type: ignore
                 context={"organization": organization, "provider": integration.get_provider()},
             )
 
-        # TODO(epurkhiser): We could do some fancy slack querying here to
-        # render a nice linking page with info about the user their linking.
-
-        # Link the user with the identity. Handle the case where the user is linked to a
-        # different identity or the identity is linked to a different user.
-        defaults = {"status": IdentityStatus.VALID, "date_verified": timezone.now()}
-        try:
-            identity, created = Identity.objects.get_or_create(
-                idp=idp, user=request.user, external_id=params["slack_id"], defaults=defaults
-            )
-            if not created:
-                identity.update(**defaults)
-        except IntegrityError:
-            Identity.objects.reattach(idp, params["slack_id"], request.user, defaults)
+        Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["slack_id"])
 
         send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
+        if not NotificationSetting.objects.has_any_provider_settings(
+            request.user, ExternalProviders.SLACK
+        ):
+            IntegrationNudgeNotification(organization, request.user, ExternalProviders.SLACK).send()
 
+        # TODO(epurkhiser): We could do some fancy slack querying here to
+        #  render a nice linking page with info about the user their linking.
         return render_to_response(
             "sentry/integrations/slack/linked.html",
             request=request,

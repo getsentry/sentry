@@ -16,13 +16,14 @@ import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 export function getIncidentRuleDiscoverUrl(opts: {
   orgSlug: string;
   projects: Project[];
-  rule?: IncidentRule;
-  eventType?: string;
-  start?: string;
   end?: string;
+  eventType?: string;
   extraQueryParams?: Partial<NewQuery>;
+  fields?: string[];
+  rule?: IncidentRule;
+  start?: string;
 }) {
-  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams} = opts;
+  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams, fields} = opts;
   const eventTypeTagFilter = eventType && rule?.query ? eventType : '';
 
   if (!projects || !projects.length || !rule || (!start && !end)) {
@@ -41,10 +42,11 @@ export function getIncidentRuleDiscoverUrl(opts: {
       .filter(({slug}) => rule.projects.includes(slug))
       .map(({id}) => Number(id)),
     version: 2,
-    fields:
-      rule.dataset === Dataset.ERRORS
-        ? ['issue', 'count()', 'count_unique(user)']
-        : ['transaction', rule.aggregate],
+    fields: fields
+      ? fields
+      : rule.dataset === Dataset.ERRORS
+      ? ['issue', 'count()', 'count_unique(user)']
+      : ['transaction', rule.aggregate],
     start,
     end,
     ...extraQueryParams,

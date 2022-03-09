@@ -37,6 +37,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "isActive": True,
             "dateCreated": None,
             "lastUpdated": None,
+            "codeownersAutoSync": True,
         }
 
     def test_update(self):
@@ -47,6 +48,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is True
 
         resp = self.client.put(self.path, {"fallthrough": False})
         assert resp.status_code == 200
@@ -55,6 +57,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is True
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200
@@ -63,6 +66,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is True
 
         resp = self.client.put(self.path, {"raw": "..."})
         assert resp.status_code == 400
@@ -74,6 +78,16 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is True
+
+        resp = self.client.put(self.path, {"codeownersAutoSync": False})
+        assert resp.status_code == 200
+        assert resp.data["fallthrough"] is False
+        assert resp.data["autoAssignment"] is True
+        assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is False
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200

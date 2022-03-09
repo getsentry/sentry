@@ -1,17 +1,15 @@
 import {browserHistory} from 'react-router';
-import {Location, LocationDescriptor, Query} from 'history';
+import {Location} from 'history';
 
-import Duration from 'sentry/components/duration';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {
-  GlobalSelection,
   Organization,
   OrganizationSummary,
+  PageFilters,
   Project,
   ReleaseProject,
 } from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -22,6 +20,15 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {DEFAULT_MAX_DURATION} from './trends/utils';
+
+export const QUERY_KEYS = [
+  'environment',
+  'project',
+  'query',
+  'start',
+  'end',
+  'statsPeriod',
+] as const;
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
@@ -35,8 +42,10 @@ export enum PROJECT_PERFORMANCE_TYPE {
   MOBILE = 'mobile',
 }
 
+// The native SDK is equally used on clients and end-devices as on
+// backend, the default view should be "All Transactions".
 const FRONTEND_PLATFORMS: string[] = [...frontend];
-const BACKEND_PLATFORMS: string[] = [...backend];
+const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
@@ -46,9 +55,11 @@ export function platformToPerformanceType(
   if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
+
   const selectedProjects = projects.filter(p =>
     projectIds.includes(parseInt(`${p.id}`, 10))
   );
+
   if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
@@ -95,6 +106,7 @@ export function platformAndConditionsToPerformanceType(
       return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
     }
   }
+
   return performanceType;
 }
 
@@ -156,8 +168,8 @@ export function trendsTargetRoute({
 }: {
   location: Location;
   organization: Organization;
-  initialConditions?: MutableSearch;
   additionalQuery?: {[x: string]: string};
+  initialConditions?: MutableSearch;
 }) {
   const newQuery = {
     ...location.query,
@@ -220,29 +232,7 @@ export function removeTracingKeysFromSearch(
   return currentFilter;
 }
 
-export function getTransactionComparisonUrl({
-  organization,
-  baselineEventSlug,
-  regressionEventSlug,
-  transaction,
-  query,
-}: {
-  organization: OrganizationSummary;
-  baselineEventSlug: string;
-  regressionEventSlug: string;
-  transaction: string;
-  query: Query;
-}): LocationDescriptor {
-  return {
-    pathname: `/organizations/${organization.slug}/performance/compare/${baselineEventSlug}/${regressionEventSlug}/`,
-    query: {
-      ...query,
-      transaction,
-    },
-  };
-}
-
-export function addRoutePerformanceContext(selection: GlobalSelection) {
+export function addRoutePerformanceContext(selection: PageFilters) {
   const transaction = getCurrentSentryReactTransaction();
   const days = statsPeriodToDays(
     selection.datetime.period,
@@ -270,28 +260,6 @@ export function getTransactionName(location: Location): string | undefined {
   const {transaction} = location.query;
 
   return decodeScalar(transaction);
-}
-
-type DurationProps = {abbreviation?: boolean};
-type SecondsProps = {seconds: number} & DurationProps;
-type MillisecondsProps = {milliseconds: number} & DurationProps;
-type PerformanceDurationProps = SecondsProps | MillisecondsProps;
-const hasMilliseconds = (props: PerformanceDurationProps): props is MillisecondsProps => {
-  return defined((props as MillisecondsProps).milliseconds);
-};
-export function PerformanceDuration(props: SecondsProps);
-export function PerformanceDuration(props: MillisecondsProps);
-export function PerformanceDuration(props: PerformanceDurationProps) {
-  const normalizedSeconds = hasMilliseconds(props)
-    ? props.milliseconds / 1000
-    : props.seconds;
-  return (
-    <Duration
-      abbreviation={props.abbreviation}
-      seconds={normalizedSeconds}
-      fixedDigits={2}
-    />
-  );
 }
 
 export function getPerformanceDuration(milliseconds: number) {

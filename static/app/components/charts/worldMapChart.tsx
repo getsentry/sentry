@@ -10,7 +10,6 @@ import {Theme} from 'sentry/utils/theme';
 import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';
 import BaseChart from './baseChart';
-import {getTooltipArrow} from './utils';
 
 type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
@@ -27,17 +26,17 @@ type MapChartSeries = Omit<Series, 'data'> & {
 type Props = Omit<ChartProps, 'series'> & {
   series: MapChartSeries[];
   theme: Theme;
-  seriesOptions?: MapSeriesOption;
   fromDiscover?: boolean;
   fromDiscoverQueryList?: boolean;
+  seriesOptions?: MapSeriesOption;
 };
 
 type JSONResult = Record<string, any>;
 
 type State = {
+  codeToCountryMap: JSONResult | null;
   countryToCodeMap: JSONResult | null;
   map: JSONResult | null;
-  codeToCountryMap: JSONResult | null;
 };
 
 const DEFAULT_ZOOM = 1.3;
@@ -60,7 +59,8 @@ class WorldMapChart extends React.Component<Props, State> {
       import('sentry/data/world.json'),
     ]);
 
-    echarts.registerMap('sentryWorld', worldMap.default as any);
+    // Echarts not available in tests
+    echarts.registerMap?.('sentryWorld', worldMap.default as any);
 
     // eslint-disable-next-line
     this.setState({
@@ -101,15 +101,15 @@ class WorldMapChart extends React.Component<Props, State> {
         itemStyle: {
           areaColor: theme.gray200,
           borderColor: theme.backgroundSecondary,
-          emphasis: {
+        },
+        emphasis: {
+          itemStyle: {
             areaColor: theme.pink300,
           },
-        } as any, // TODO(ts): Echarts types aren't correct for these colors as they don't allow for basic strings
-        label: {
-          emphasis: {
+          label: {
             show: false,
           },
-        } as any,
+        },
         data,
         silent: fromDiscoverQueryList,
         roam: !fromDiscoverQueryList,
@@ -136,7 +136,7 @@ class WorldMapChart extends React.Component<Props, State> {
         `<div class="tooltip-series tooltip-series-solo">
                  <div><span class="tooltip-label">${marker} <strong>${countryOrCode}</strong></span> ${formattedValue}</div>
               </div>`,
-        getTooltipArrow(),
+        '<div class="tooltip-arrow"></div>',
       ].join('');
     };
 

@@ -20,19 +20,19 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  organization: Organization;
   eventView: EventView;
+  generateUrl: (key: string, value: string) => LocationDescriptor;
   location: Location;
+  organization: Organization;
   totalValues: null | number;
   confirmedQuery?: boolean;
-  generateUrl: (key: string, value: string) => LocationDescriptor;
 };
 
 type State = {
+  error: string;
   loading: boolean;
   tags: Tag[];
   totalValues: null | number;
-  error: string;
 };
 
 class Tags extends Component<Props, State> {

@@ -6,7 +6,7 @@ from django.http.request import HttpRequest
 
 from sentry.incidents.models import Incident, User
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
-from sentry.models.integration import Integration
+from sentry.models import Integration
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
@@ -45,10 +45,7 @@ def unfurl_incidents(
         return {}
 
     return {
-        link.url: build_incident_attachment(
-            action=None,
-            incident=results[link.args["incident_id"]],
-        )
+        link.url: build_incident_attachment(results[link.args["incident_id"]])
         for link in links
         if link.args["incident_id"] in results
     }

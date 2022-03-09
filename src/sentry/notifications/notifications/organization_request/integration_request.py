@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
-from sentry import analytics
+from sentry.notifications.class_manager import register
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
+from sentry.notifications.notifications.strategies.owner_recipient_strategy import (
+    OwnerRecipientStrategy,
+)
 from sentry.notifications.utils.actions import MessageAction
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -32,7 +34,12 @@ def get_url(organization: Organization, provider_type: str, provider_slug: str) 
     return url
 
 
+@register()
 class IntegrationRequestNotification(OrganizationRequestNotification):
+    # TODO: switch to a strategy based on the integration write scope
+    RoleBasedRecipientStrategyClass = OwnerRecipientStrategy
+    referrer_base = "integration-request"
+
     def __init__(
         self,
         organization: Organization,
@@ -76,31 +83,16 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_type(self) -> str:
         return "organization.integration.request"
 
-    def build_attachment_title(self) -> str:
+    def build_attachment_title(self, recipient: Team | User) -> str:
         return "Request to Install"
 
-    def get_message_description(self) -> str:
+    def get_message_description(self, recipient: Team | User) -> str:
         requester_name = self.requester.get_display_name()
         optional_message = (
             f" They've included this message `{self.message}`" if self.message else ""
         )
         return f"{requester_name} is requesting to install the {self.provider_name} integration into {self.organization.name}.{optional_message}"
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+        # TODO: update referrer
         return [MessageAction(name="Check it out", url=self.integration_link)]
-
-    def determine_recipients(self) -> Iterable[Team | User]:
-        # Explicitly typing to satisfy mypy.
-        recipients: Iterable[Team | User] = self.organization.get_owners()
-        return recipients
-
-    def record_notification_sent(
-        self, recipient: Team | User, provider: ExternalProviders, **kwargs: Any
-    ) -> None:
-        # TODO: refactor since this is identical to ProjectNotification.record_notification_sent
-        analytics.record(
-            f"integrations.{provider.name}.notification_sent",
-            category=self.get_category(),
-            **self.get_log_params(recipient),
-            **kwargs,
-        )

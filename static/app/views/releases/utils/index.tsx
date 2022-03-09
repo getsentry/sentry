@@ -5,8 +5,8 @@ import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
-import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {Release, ReleaseStatus} from 'sentry/types';
@@ -127,7 +127,7 @@ export const getReleaseHandledIssuesUrl = (
 export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.Archived;
 
-export type ReleaseBounds = {releaseStart?: string | null; releaseEnd?: string | null};
+export type ReleaseBounds = {releaseEnd?: string | null; releaseStart?: string | null};
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
   const {lastEvent, currentProjectMeta, dateCreated} = release || {};
@@ -171,7 +171,7 @@ type GetReleaseParams = {
 };
 
 export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
-  const params = getParams(
+  const params = normalizeDateTimeParams(
     pick(location.query, [
       ...Object.values(URL_PARAM),
       ...Object.values(PAGE_URL_PARAM),
@@ -200,7 +200,7 @@ const adoptionStagesLink = (
 
 export const ADOPTION_STAGE_LABELS: Record<
   string,
-  {name: string; tooltipTitle: JSX.Element; type: keyof Theme['tag']}
+  {name: string; tooltipTitle: React.ReactNode; type: keyof Theme['tag']}
 > = {
   low_adoption: {
     name: t('Low Adoption'),

@@ -23,6 +23,7 @@ class GroupAssigneeManager(BaseManager):
         group: Group,
         assigned_to: Team | User,
         acting_user: User | None = None,
+        create_only: bool = False,
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
@@ -48,11 +49,9 @@ class GroupAssigneeManager(BaseManager):
         )
 
         if not created:
-            affected = (
-                self.filter(group=group)
-                .exclude(**{assignee_type: assigned_to})
-                .update(**{assignee_type: assigned_to, other_type: None, "date_added": now})
-            )
+            affected = not create_only and self.filter(group=group).exclude(
+                **{assignee_type: assigned_to}
+            ).update(**{assignee_type: assigned_to, other_type: None, "date_added": now})
         else:
             affected = True
             issue_assigned.send_robust(

@@ -9,15 +9,15 @@ import {t} from 'sentry/locale';
 type KeyValueListData = React.ComponentProps<typeof ContextBlock>['data'];
 
 type StateDescription = {
-  type?: string;
   value: Record<string, any>;
+  type?: string;
 };
 
 type Props = {
   alias: string;
   data: {
-    state: StateDescription;
     [state: string]: StateDescription;
+    state: StateDescription;
   };
 };
 

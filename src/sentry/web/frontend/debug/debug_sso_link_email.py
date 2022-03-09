@@ -13,8 +13,12 @@ def get_context(request):
     return {"organization": org, "actor": request.user, "provider": provider}
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class DebugSsoLinkedEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         context = get_context(request)
 
         return MailPreview(
@@ -24,8 +28,12 @@ class DebugSsoLinkedEmailView(View):
         ).render(request)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class DebugSsoUnlinkedEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         context = get_context(request)
         context["has_password"] = True
 
@@ -36,8 +44,12 @@ class DebugSsoUnlinkedEmailView(View):
         ).render(request)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class DebugSsoUnlinkedNoPasswordEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         context = get_context(request)
         context["has_password"] = False
 

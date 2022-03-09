@@ -6,8 +6,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type Props = {
-  type: 'stack_unwinding' | 'symbolication';
   icon: React.ReactElement;
+  type: 'stack_unwinding' | 'symbolication';
   className?: string;
 };
 

@@ -5,10 +5,10 @@ import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import Tag from 'sentry/components/tag';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {IntegrationFeature, Organization, SentryApp} from 'sentry/types';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
@@ -21,10 +21,10 @@ import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
   closeModal: () => void;
-  sentryApp: SentryApp;
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
+  sentryApp: SentryApp;
 } & AsyncComponent['props'];
 
 type State = {
@@ -157,17 +157,14 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     return (
       <React.Fragment>
         <Heading>
-          <PluginIcon pluginId={sentryApp.slug} size={50} />
-
+          <SentryAppIcon sentryApp={sentryApp} size={50} />
           <HeadingInfo>
             <Name>{sentryApp.name}</Name>
             {!!features.length && <Features>{this.featureTags(features)}</Features>}
           </HeadingInfo>
         </Heading>
-
         <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
         <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
-
         <IntegrationFeatures {...featureProps}>
           {({disabled, disabledReason}) => (
             <React.Fragment>
@@ -209,7 +206,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 const Heading = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   margin-bottom: ${space(2)};
 `;
@@ -226,8 +223,6 @@ const Name = styled('div')`
 `;
 
 const Description = styled('div')`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
   margin-bottom: ${space(2)};
 
   li {

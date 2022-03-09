@@ -20,14 +20,14 @@ export enum DisplayOption {
 }
 
 type Props = {
-  platform: PlatformType;
   activeDisplayOptions: DisplayOption[];
-  onChange: (activeDisplayOptions: DisplayOption[]) => void;
+  hasAbsoluteAddresses: boolean;
+  hasAbsoluteFilePaths: boolean;
+  hasAppOnlyFrames: boolean;
   hasMinified: boolean;
   hasVerboseFunctionNames: boolean;
-  hasAbsoluteFilePaths: boolean;
-  hasAbsoluteAddresses: boolean;
-  hasAppOnlyFrames: boolean;
+  onChange: (activeDisplayOptions: DisplayOption[]) => void;
+  platform: PlatformType;
   raw: boolean;
 };
 
@@ -265,7 +265,7 @@ const OptionsButton = styled(DropdownButton)`
 `;
 
 const OptionList = styled(List)`
-  grid-gap: 0;
+  gap: 0;
 `;
 
 const ItemContent = styled('div')<{isChecked: boolean; isDisabled: boolean}>`

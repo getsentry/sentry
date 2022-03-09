@@ -12,13 +12,13 @@ import SentryAppExternalForm, {
 } from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
-  group: Group;
-  sentryAppInstallation: SentryAppInstallation;
+  action: 'create' | 'link';
   appName: string;
   config: SchemaFormConfig;
-  action: 'create' | 'link';
   event: Event;
+  group: Group;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
+  sentryAppInstallation: SentryAppInstallation;
 };
 
 export class SentryAppExternalIssueForm extends Component<Props> {

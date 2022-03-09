@@ -1,3 +1,5 @@
+import {Layout} from 'react-grid-layout';
+
 import {User} from 'sentry/types';
 
 // Max widgets per dashboard we are currently willing
@@ -5,6 +7,8 @@ import {User} from 'sentry/types';
 // parallel requests. Somewhat arbitrary
 // limit that can be changed if necessary.
 export const MAX_WIDGETS = 30;
+
+export const DEFAULT_TABLE_LIMIT = 5;
 
 export enum DisplayType {
   AREA = 'area',
@@ -20,22 +24,37 @@ export enum DisplayType {
 export enum WidgetType {
   DISCOVER = 'discover',
   ISSUE = 'issue',
+  METRICS = 'metrics',
 }
 
 export type WidgetQuery = {
-  name: string;
-  fields: string[];
   conditions: string;
+  fields: string[];
+  name: string;
   orderby: string;
+  aggregates?: string[];
+  columns?: string[];
 };
 
 export type Widget = {
-  id?: string;
-  title: string;
   displayType: DisplayType;
   interval: string;
   queries: WidgetQuery[];
+  title: string;
+  id?: string;
+  layout?: WidgetLayout | null;
+  tempId?: string;
   widgetType?: WidgetType;
+};
+
+// We store an explicit set of keys in the backend now
+export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
+  minH: number;
+};
+
+export type WidgetPreview = {
+  displayType: DisplayType;
+  layout: WidgetLayout | null;
 };
 
 /**
@@ -44,19 +63,20 @@ export type Widget = {
 export type DashboardListItem = {
   id: string;
   title: string;
-  dateCreated?: string;
-  createdBy?: User;
   widgetDisplay: DisplayType[];
+  widgetPreview: WidgetPreview[];
+  createdBy?: User;
+  dateCreated?: string;
 };
 
 /**
  * Saved dashboard with widgets
  */
 export type DashboardDetails = {
+  dateCreated: string;
+  id: string;
   title: string;
   widgets: Widget[];
-  id: string;
-  dateCreated: string;
   createdBy?: User;
 };
 
@@ -65,6 +85,7 @@ export enum DashboardState {
   EDIT = 'edit',
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
+  PREVIEW = 'preview',
 }
 
 // where we launch the dashboard widget from

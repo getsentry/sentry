@@ -1,6 +1,8 @@
 import datetime
 
 from django.core.cache import cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
@@ -19,7 +21,7 @@ from sentry.utils.safe import get_path
 
 
 class GroupingLevelNewIssuesEndpoint(GroupEndpoint):
-    def get(self, request, id: str, group: Group):
+    def get(self, request: Request, id: str, group: Group) -> Response:
         """
         Retrieve information about a particular grouping level, including a
         list of issues it would create.

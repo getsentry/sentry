@@ -10,85 +10,85 @@ import {Deploy, Release} from './release';
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
-  platform?: PlatformKey;
   id?: string | number;
+  platform?: PlatformKey;
 };
 
 export type Project = {
-  id: string;
   dateCreated: string;
-  isMember: boolean;
-  teams: Team[];
-  features: string[];
-  organization: Organization;
-
-  isBookmarked: boolean;
-  isInternal: boolean;
-  hasUserReports?: boolean;
-  hasAccess: boolean;
-  hasSessions: boolean;
-  firstEvent: 'string' | null;
-  firstTransactionEvent: boolean;
-  subjectTemplate: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
-  environments: string[];
-  eventProcessing: {
-    symbolicationDegraded: boolean;
-  };
-
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
     next_id: number;
     rules: DynamicSamplingRules;
   } | null;
+  environments: string[];
+  eventProcessing: {
+    symbolicationDegraded: boolean;
+  };
+
+  features: string[];
+  firstEvent: 'string' | null;
+  firstTransactionEvent: boolean;
+  groupingConfig: string;
+  hasAccess: boolean;
+  hasSessions: boolean;
+  id: string;
+  isBookmarked: boolean;
+  isInternal: boolean;
+  isMember: boolean;
+  organization: Organization;
   plugins: Plugin[];
+
   processingIssues: number;
   relayPiiConfig: string;
-  groupingConfig: string;
-  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
+  subjectTemplate: string;
+  teams: Team[];
   builtinSymbolSources?: string[];
-  symbolSources?: string;
-  stats?: TimeseriesValue[];
-  transactionStats?: TimeseriesValue[];
+  hasUserReports?: boolean;
+  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: Release;
   options?: Record<string, boolean | string>;
   sessionStats?: {
     currentCrashFreeRate: number | null;
-    previousCrashFreeRate: number | null;
     hasHealthData: boolean;
+    previousCrashFreeRate: number | null;
   };
+  stats?: TimeseriesValue[];
+  symbolSources?: string;
+  transactionStats?: TimeseriesValue[];
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
 export type ProjectKey = {
-  id: string;
-  name: string;
-  label: string;
-  public: string;
-  secret: string;
-  projectId: string;
-  isActive: boolean;
-  rateLimit: {
-    window: string;
-    count: number;
-  } | null;
-  dsn: {
-    secret: string;
-    public: string;
-    csp: string;
-    security: string;
-    minidump: string;
-    unreal: string;
-    cdn: string;
-  };
-  browserSdkVersion: string;
   browserSdk: {
     choices: [key: string, value: string][];
   };
+  browserSdkVersion: string;
   dateCreated: string;
+  dsn: {
+    cdn: string;
+    csp: string;
+    minidump: string;
+    public: string;
+    secret: string;
+    security: string;
+    unreal: string;
+  };
+  id: string;
+  isActive: boolean;
+  label: string;
+  name: string;
+  projectId: string;
+  public: string;
+  rateLimit: {
+    count: number;
+    window: string;
+  } | null;
+  secret: string;
 };
 
 export type ProjectSdkUpdates = {
@@ -99,8 +99,8 @@ export type ProjectSdkUpdates = {
 };
 
 export type Environment = {
-  id: string;
   displayName: string;
+  id: string;
   name: string;
 
   // XXX: Provided by the backend but unused due to `getUrlRoutingName()`
@@ -111,8 +111,8 @@ export type TeamWithProjects = Team & {projects: Project[]};
 
 export type PlatformIntegration = {
   id: string;
-  type: string;
   language: string;
   link: string | null;
   name: string;
+  type: string;
 };

@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options, roles
@@ -25,7 +26,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
     permission_classes = [RelaxedProjectPermission]
 
     @sudo_required
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Transfer a Project
         ````````````````

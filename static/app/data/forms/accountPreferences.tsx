@@ -1,7 +1,7 @@
+import {JsonFormObject} from 'sentry/components/forms/type';
 import languages from 'sentry/data/languages';
 import timezones from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
-import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/details/';

@@ -1,4 +1,5 @@
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.fields import AvatarField
@@ -25,25 +26,12 @@ class AvatarSerializer(serializers.Serializer):
         return attrs
 
 
-class SentryAppLogoSerializer(serializers.Serializer):
-    avatar_photo = AvatarField(required=False)
-    avatar_type = serializers.ChoiceField(choices=(("default", "default"), ("upload", "upload")))
-    color = serializers.BooleanField(required=True)
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-
-        if attrs.get("avatar_type") == "upload" and not attrs.get("avatar_photo"):
-            raise serializers.ValidationError({"avatar_photo": "A logo is required."})
-
-        return attrs
-
-
 class AvatarMixin:
     object_type = None
     model = None
+    serializer_cls = AvatarSerializer
 
-    def get(self, request, **kwargs):
+    def get(self, request: Request, **kwargs) -> Response:
         obj = kwargs.pop(self.object_type, None)
         return Response(serialize(obj, request.user, **kwargs))
 
@@ -53,14 +41,12 @@ class AvatarMixin:
     def get_avatar_filename(self, obj):
         return f"{obj.id}.png"
 
-    def put(self, request, **kwargs):
+    def put(self, request: Request, **kwargs) -> Response:
         obj = kwargs.pop(self.object_type, None)
 
-        SerializerCls = AvatarSerializer
-        if self.object_type == "sentry_app":
-            SerializerCls = SentryAppLogoSerializer
-
-        serializer = SerializerCls(data=request.data, context=self.get_serializer_context(obj))
+        serializer = self.serializer_cls(
+            data=request.data, context=self.get_serializer_context(obj)
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

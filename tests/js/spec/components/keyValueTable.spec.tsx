@@ -1,20 +1,21 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 
 describe('KeyValueTable', function () {
   it('basic', function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <KeyValueTable>
         <KeyValueTableRow keyName="Coffee" value="Black hot drink" />
         <KeyValueTableRow keyName="Milk" value={<a href="#">White cold drink</a>} />
       </KeyValueTable>
     );
 
-    expect(wrapper.find('dl').exists()).toBeTruthy();
-    expect(wrapper.find('dt').at(0).text()).toBe('Coffee');
-    expect(wrapper.find('dd').at(0).text()).toBe('Black hot drink');
-    expect(wrapper.find('dt').at(1).text()).toBe('Milk');
-    expect(wrapper.find('dd a').text()).toBe('White cold drink');
+    const terms = screen.getAllByRole('term');
+    const definitions = screen.getAllByRole('definition');
+    expect(terms[0]).toHaveTextContent('Coffee');
+    expect(definitions[0]).toHaveTextContent('Black hot drink');
+    expect(terms[1]).toHaveTextContent('Milk');
+    expect(definitions[1]).toHaveTextContent('White cold drink');
   });
 });

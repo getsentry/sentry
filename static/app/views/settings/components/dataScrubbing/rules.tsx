@@ -12,9 +12,9 @@ import {getMethodLabel, getRuleLabel} from './utils';
 
 type Props = {
   rules: Array<Rule>;
-  onEditRule?: (id: Rule['id']) => () => void;
-  onDeleteRule?: (id: Rule['id']) => () => void;
   disabled?: boolean;
+  onDeleteRule?: (id: Rule['id']) => () => void;
+  onEditRule?: (id: Rule['id']) => () => void;
 };
 
 const getListItemDescription = (rule: Rule) => {
@@ -50,7 +50,7 @@ const Rules = React.forwardRef(function RulesList(
             <TextOverflow>{getListItemDescription(rule)}</TextOverflow>
             {onEditRule && (
               <Button
-                label={t('Edit Rule')}
+                aria-label={t('Edit Rule')}
                 size="small"
                 onClick={onEditRule(id)}
                 icon={<IconEdit />}
@@ -59,7 +59,7 @@ const Rules = React.forwardRef(function RulesList(
             )}
             {onDeleteRule && (
               <Button
-                label={t('Delete Rule')}
+                aria-label={t('Delete Rule')}
                 size="small"
                 onClick={onDeleteRule(id)}
                 icon={<IconDelete />}

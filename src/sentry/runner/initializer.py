@@ -314,7 +314,7 @@ def initialize_app(config, skip_service_validation=False):
         warnings.warn(
             "Sentry is configured to run asynchronous tasks in-process. "
             "This is not recommended within production environments. "
-            "See https://docs.sentry.io/on-premise/server/queue/ for more information."
+            "See https://develop.sentry.dev/services/queue/ for more information."
         )
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
@@ -530,7 +530,7 @@ def apply_legacy_settings(settings):
             DeprecatedSettingWarning(
                 "SENTRY_USE_QUEUE",
                 "CELERY_ALWAYS_EAGER",
-                "https://docs.sentry.io/on-premise/server/queue/",
+                "https://develop.sentry.dev/services/queue/",
             )
         )
         settings.CELERY_ALWAYS_EAGER = not settings.SENTRY_USE_QUEUE

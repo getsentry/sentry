@@ -15,8 +15,8 @@ import {DashboardBasicFeature} from './view';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   api: Client;
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 };
 
 function DashboardsV2Container(props: Props) {
@@ -34,7 +34,7 @@ function DashboardsV2Container(props: Props) {
         params={params}
         organization={organization}
       >
-        {({dashboard, dashboards, error, reloadData}) => {
+        {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
           ) : dashboard ? (
@@ -43,7 +43,7 @@ function DashboardsV2Container(props: Props) {
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              reloadData={reloadData}
+              onDashboardUpdate={onDashboardUpdate}
             />
           ) : (
             <LoadingIndicator />

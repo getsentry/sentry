@@ -13,21 +13,22 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
+import {assignTempId} from './layoutUtils';
 import {DashboardDetails, DashboardListItem} from './types';
 
 type OrgDashboardsChildrenProps = {
   dashboard: DashboardDetails | null;
   dashboards: DashboardListItem[];
   error: boolean;
-  reloadData: () => void;
+  onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
 };
 
 type Props = {
   api: Client;
+  children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
+  location: Location;
   organization: Organization;
   params: {orgId: string; dashboardId?: string};
-  location: Location;
-  children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
 };
 
 type State = {
@@ -75,6 +76,10 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
+  onDashboardUpdate(updatedDashboard: DashboardDetails) {
+    this.setState({selectedDashboard: updatedDashboard});
+  }
+
   getDashboards(): DashboardListItem[] {
     const {dashboards} = this.state;
 
@@ -83,6 +88,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
   onRequestSuccess({stateKey, data}) {
     const {params, organization, location} = this.props;
+
     if (params.dashboardId || stateKey === 'selectedDashboard') {
       return;
     }
@@ -108,14 +114,29 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {children} = this.props;
+    const {children, organization} = this.props;
     const {selectedDashboard, error} = this.state;
+    let dashboard = selectedDashboard;
+
+    if (organization.features.includes('dashboard-grid-layout')) {
+      // Ensure there are always tempIds for grid layout
+      // This is needed because there are cases where the dashboard
+      // renders before the onRequestSuccess setState is processed
+      // and will caused stacked widgets because of missing tempIds
+      dashboard = selectedDashboard
+        ? {
+            ...selectedDashboard,
+            widgets: selectedDashboard.widgets.map(assignTempId),
+          }
+        : null;
+    }
 
     return children({
       error,
-      dashboard: selectedDashboard,
+      dashboard,
       dashboards: this.getDashboards(),
-      reloadData: this.reloadData.bind(this),
+      onDashboardUpdate: (updatedDashboard: DashboardDetails) =>
+        this.onDashboardUpdate(updatedDashboard),
     });
   }
 
@@ -128,7 +149,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       return <NotFound />;
     }
 
-    return super.renderError(error, true, true);
+    return super.renderError(error, true);
   }
 
   renderComponent() {
@@ -147,7 +168,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     return (
       <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-        {super.renderComponent()}
+        {super.renderComponent() as React.ReactChild}
       </SentryDocumentTitle>
     );
   }

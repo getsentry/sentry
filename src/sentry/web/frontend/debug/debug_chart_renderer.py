@@ -1,4 +1,6 @@
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
@@ -279,7 +281,7 @@ discover_empty = {
 
 
 class DebugChartRendererView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         charts = []
 
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, discover_total_period))

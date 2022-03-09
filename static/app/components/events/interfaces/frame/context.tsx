@@ -20,18 +20,19 @@ import {OpenInContextLine} from './openInContextLine';
 import StacktraceLink from './stacktraceLink';
 
 type Props = {
-  frame: Frame;
-  event: Event;
-  organization?: Organization;
-  registers: {[key: string]: string};
   components: Array<SentryAppComponent>;
-  isExpanded?: boolean;
+  event: Event;
+  frame: Frame;
+  registers: {[key: string]: string};
+  className?: string;
+  emptySourceNotation?: boolean;
+  expandable?: boolean;
+  hasAssembly?: boolean;
+  hasContextRegisters?: boolean;
   hasContextSource?: boolean;
   hasContextVars?: boolean;
-  hasContextRegisters?: boolean;
-  emptySourceNotation?: boolean;
-  hasAssembly?: boolean;
-  expandable?: boolean;
+  isExpanded?: boolean;
+  organization?: Organization;
 };
 
 const Context = ({
@@ -47,6 +48,7 @@ const Context = ({
   frame,
   event,
   organization,
+  className,
 }: Props) => {
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
@@ -69,7 +71,10 @@ const Context = ({
   const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
 
   return (
-    <ol start={startLineNo} className={`context ${isExpanded ? 'expanded' : ''}`}>
+    <ol
+      start={startLineNo}
+      className={`${className} context ${isExpanded ? 'expanded' : ''}`}
+    >
       {defined(frame.errors) && (
         <li className={expandable ? 'expandable error' : 'error'} key="errors">
           {frame.errors.join(', ')}

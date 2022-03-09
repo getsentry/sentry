@@ -1,8 +1,9 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 
@@ -42,13 +43,13 @@ type Props = {
 
 function AdminLayout({children, ...props}: Props) {
   return (
-    <DocumentTitle title="Sentry Admin">
+    <SentryDocumentTitle noSuffix title={t('Sentry Admin')}>
       <Page>
         <SettingsLayout renderNavigation={AdminNavigation} {...props}>
           {children}
         </SettingsLayout>
       </Page>
-    </DocumentTitle>
+    </SentryDocumentTitle>
   );
 }
 

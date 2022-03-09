@@ -1,10 +1,11 @@
-import React, {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
+import RangeSlider, {Slider} from 'sentry/components/forms/controls/rangeSlider';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -17,9 +18,6 @@ import {BaseGroup, Group, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withApi from 'sentry/utils/withApi';
-import RangeSlider, {
-  Slider,
-} from 'sentry/views/settings/components/forms/controls/rangeSlider';
 
 import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
@@ -28,11 +26,11 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   api: Client;
-  organization: Organization;
   groupId: Group['id'];
+  location: Location<{cursor?: string; level?: number}>;
+  organization: Organization;
   projSlug: Project['slug'];
   router: InjectedRouter;
-  location: Location<{level?: number; cursor?: string}>;
 };
 
 type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
@@ -95,7 +93,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
     fetchGroupingLevelDetails();
   }, [activeGroupingLevel, cursor]);
 
-  function handleRouteLeave(newLocation: Location<{level?: number; cursor?: string}>) {
+  function handleRouteLeave(newLocation: Location<{cursor?: string; level?: number}>) {
     if (
       newLocation.pathname === location.pathname ||
       (newLocation.pathname !== location.pathname &&
@@ -211,7 +209,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   if (error) {
     return (
-      <React.Fragment>
+      <Fragment>
         <ErrorMessage
           onRetry={fetchGroupingLevels}
           groupId={groupId}
@@ -221,7 +219,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           hasProjectWriteAccess={organization.access.includes('project:write')}
         />
         <LinkFooter />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -323,7 +321,7 @@ const Footer = styled('p')`
 
 const Body = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -362,7 +360,7 @@ const Content = styled('div')<{isReloading: boolean}>`
 
 const SliderWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   grid-template-columns: max-content max-content;
   justify-content: space-between;
   align-items: flex-start;

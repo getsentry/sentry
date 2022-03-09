@@ -8,8 +8,8 @@ type Value = {
 };
 
 type Props = {
-  value: Value;
   onRemove: (value: Value) => void;
+  value: Value;
 };
 
 export default class ValueComponent extends Component<Props> {

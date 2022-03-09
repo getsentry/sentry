@@ -137,5 +137,5 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
                 }
             )
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
         assert response["status"]

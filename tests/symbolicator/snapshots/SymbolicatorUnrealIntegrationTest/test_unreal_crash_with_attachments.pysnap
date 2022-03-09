@@ -1,5 +1,5 @@
 ---
-created: '2021-01-05T09:42:55.087777Z'
+created: '2021-12-02T13:53:08.216475Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -169,6 +169,26 @@ threads:
       frames:
       - data:
           orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff7548229e5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff754814ea9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
+        trust: scan
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe10066c86'
@@ -180,6 +200,26 @@ threads:
         in_app: false
         instruction_addr: '0x7ffe100fed3d'
         package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff754814ea9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff754814ea9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
         trust: scan
       - data:
           orig_in_app: -1
@@ -1312,6 +1352,16 @@ threads:
         trust: scan
       - data:
           orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff75482017a'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
+        trust: scan
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe0ca99252'
@@ -1361,6 +1411,16 @@ threads:
         trust: scan
       - data:
           orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff75482017a'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
+        trust: scan
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe0ca99252'
@@ -1407,6 +1467,16 @@ threads:
         in_app: false
         instruction_addr: '0x7ffe0fd53034'
         package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff75482017a'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
         trust: scan
       - data:
           orig_in_app: -1
@@ -1652,6 +1722,16 @@ threads:
         in_app: false
         instruction_addr: '0x7ffe0fd53034'
         package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff754b6efc5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
         trust: scan
       - data:
           orig_in_app: -1
@@ -2299,6 +2379,16 @@ threads:
         trust: scan
       - data:
           orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff7549e3f3c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
+        trust: scan
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe0ca99252'
@@ -2345,6 +2435,16 @@ threads:
         in_app: false
         instruction_addr: '0x7ffe0fd53034'
         package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff7549e3f3c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
         trust: scan
       - data:
           orig_in_app: -1
@@ -2397,6 +2497,16 @@ threads:
         trust: scan
       - data:
           orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff7549e3f3c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
+        trust: scan
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe0ca99252'
@@ -2443,6 +2553,16 @@ threads:
         in_app: false
         instruction_addr: '0x7ffe0fd53034'
         package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff7549e3f3c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
         trust: scan
       - data:
           orig_in_app: -1
@@ -2495,6 +2615,16 @@ threads:
         trust: scan
       - data:
           orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff7549e3f3c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
+        trust: scan
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe0ca99252'
@@ -2541,6 +2671,16 @@ threads:
         in_app: false
         instruction_addr: '0x7ffe0fd53034'
         package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff7549e3f3c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
         trust: scan
       - data:
           orig_in_app: -1
@@ -2593,6 +2733,16 @@ threads:
         trust: scan
       - data:
           orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff7549e3f3c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
+        trust: scan
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe0ca99252'
@@ -2639,6 +2789,16 @@ threads:
         in_app: false
         instruction_addr: '0x7ffe0fd53034'
         package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: truncated
+        in_app: false
+        instruction_addr: '0x7ff7549e3f3c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: <truncated>
+        symbol: <truncated>
         trust: scan
       - data:
           orig_in_app: -1

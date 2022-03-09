@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {getInterval} from 'sentry/components/charts/utils';
+import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 
@@ -21,7 +22,8 @@ type DataType = {
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const {ContainerActions} = props;
-  const globalSelection = props.eventView.getGlobalSelection();
+  const globalSelection = props.eventView.getPageFilters();
+  const pageError = usePageError();
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -42,7 +44,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               includeTransformedData
               partial
               currentSeriesNames={[field]}
-              previousSeriesNames={[`previous ${field}`]}
+              previousSeriesNames={[getPreviousSeriesName(field)]}
               query={provided.eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {
@@ -52,6 +54,8 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
                 },
                 'medium'
               )}
+              hideError
+              onError={pageError.setPageError}
             />
           )}
         </QueryBatchNode>
@@ -94,6 +98,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               {...provided}
               disableMultiAxis
               disableXAxis
+              definedAxisTicks={4}
               chartColors={props.chartColor ? [props.chartColor] : undefined}
             />
           ),
@@ -105,13 +110,13 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
-const DurationChart = withRouter(_DurationChart);
-const Subtitle = styled('span')`
+export const DurationChart = withRouter(_DurationChart);
+export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const HighlightNumber = styled('div')<{color?: string}>`
+export const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

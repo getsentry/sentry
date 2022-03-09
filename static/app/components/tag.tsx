@@ -9,37 +9,25 @@ import {IconClose, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme, {Color, Theme} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
 
 type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
-   * Dictates color scheme of the tag.
+   * Makes the tag clickable. Use for external links.
+   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
    */
-  type?: keyof Theme['tag'];
+  href?: string;
   /**
    * Icon on the left side.
    */
   icon?: React.ReactNode;
   /**
-   * Text to show up on a hover.
-   */
-  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
-  /**
-   * Makes the tag clickable. Use for internal links handled by react router.
-   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
-   */
-  to?: React.ComponentProps<typeof Link>['to'];
-  /**
    * Triggered when the item is clicked
    */
   onClick?: (eventKey: any) => void;
-  /**
-   * Makes the tag clickable. Use for external links.
-   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
-   */
-  href?: string;
   /**
    * Shows clickable IconClose on the right side.
    */
@@ -48,6 +36,19 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
    * Max width of the tag's text
    */
   textMaxWidth?: number;
+  /**
+   * Makes the tag clickable. Use for internal links handled by react router.
+   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
+   */
+  to?: React.ComponentProps<typeof Link>['to'];
+  /**
+   * Text to show up on a hover.
+   */
+  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
+  /**
+   * Dictates color scheme of the tag.
+   */
+  type?: keyof Theme['tag'];
 };
 
 function Tag({
@@ -81,7 +82,7 @@ function Tag({
             onClick={handleDismiss}
             size="zero"
             priority="link"
-            label={t('Dismiss')}
+            aria-label={t('Dismiss')}
           >
             <IconClose isCircled {...iconsProps} />
           </DismissButton>
@@ -94,6 +95,13 @@ function Tag({
     event.preventDefault();
     onDismiss?.();
   }
+
+  const trackClickEvent = () => {
+    trackAdvancedAnalyticsEvent('tag.clicked', {
+      is_clickable: defined(onClick) || defined(to) || defined(href),
+      organization: null,
+    });
+  };
 
   function tagIcon() {
     if (React.isValidElement(icon)) {
@@ -130,7 +138,11 @@ function Tag({
     return tag;
   }
 
-  return <TagWrapper {...props}>{tagWithParent()}</TagWrapper>;
+  return (
+    <TagWrapper {...props} onClick={trackClickEvent}>
+      {tagWithParent()}
+    </TagWrapper>
+  );
 }
 
 const TagWrapper = styled('span')`
@@ -143,6 +155,7 @@ export const Background = styled('div')<{type: keyof Theme['tag']}>`
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
+  border: solid 1px ${p => p.theme.tag[p.type].border};
   padding: 0 ${space(1)};
 `;
 
@@ -152,7 +165,10 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
-  color: ${p => (['black', 'focus'].includes(p.type) ? p.theme.white : p.theme.gray500)};
+  color: ${p =>
+    ['black', 'white'].includes(p.type)
+      ? p.theme.tag[p.type].iconColor
+      : p.theme.textColor};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;

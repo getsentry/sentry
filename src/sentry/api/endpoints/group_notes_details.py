@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
@@ -7,6 +8,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.models import Activity
+from sentry.signals import comment_deleted, comment_updated
 
 
 class GroupNotesDetailsEndpoint(GroupEndpoint):
@@ -14,7 +16,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     # since an ApiKey is bound to the Organization, not
     # an individual. Not sure if we'd want to allow an ApiKey
     # to delete/update other users' comments
-    def delete(self, request, group, note_id):
+    def delete(self, request: Request, group, note_id) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
@@ -25,11 +27,26 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
 
+        webhook_data = {
+            "comment_id": note.id,
+            "timestamp": note.datetime,
+            "comment": note.data.get("text"),
+            "project_slug": note.project.slug,
+        }
+
         note.delete()
+
+        comment_deleted.send_robust(
+            project=group.project,
+            user=request.user,
+            group=group,
+            data=webhook_data,
+            sender="delete",
+        )
 
         return Response(status=204)
 
-    def put(self, request, group, note_id):
+    def put(self, request: Request, group, note_id) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
 
@@ -55,6 +72,21 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
             if note.data.get("external_id"):
                 self.update_external_comment(request, group, note)
+
+            webhook_data = {
+                "comment_id": note.id,
+                "timestamp": note.datetime,
+                "comment": note.data.get("text"),
+                "project_slug": note.project.slug,
+            }
+
+            comment_updated.send_robust(
+                project=group.project,
+                user=request.user,
+                group=group,
+                data=webhook_data,
+                sender="put",
+            )
             return Response(serialize(note, request.user), status=200)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

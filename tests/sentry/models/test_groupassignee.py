@@ -59,6 +59,35 @@ class GroupAssigneeTestCase(TestCase):
         assert activity.data["assigneeEmail"] is None
         assert activity.data["assigneeType"] == "team"
 
+    def test_create_only(self):
+        result = GroupAssignee.objects.assign(self.group, self.user)
+        assert result == {"new_assignment": True, "updated_assignment": False}
+
+        assert GroupAssignee.objects.filter(
+            project=self.group.project, group=self.group, user=self.user, team__isnull=True
+        ).exists()
+        activity = Activity.objects.get(
+            project=self.group.project, group=self.group, type=Activity.ASSIGNED
+        )
+        assert activity.data["assignee"] == str(self.user.id)
+        assert activity.data["assigneeEmail"] == self.user.email
+        assert activity.data["assigneeType"] == "user"
+
+        other_user = self.create_user()
+        result = GroupAssignee.objects.assign(self.group, other_user, create_only=True)
+        assert result == {"new_assignment": False, "updated_assignment": False}
+        # Assignee should not have changed
+        assert GroupAssignee.objects.filter(
+            project=self.group.project, group=self.group, user=self.user, team__isnull=True
+        ).exists()
+        # Should be no new activity rows
+        activity = Activity.objects.get(
+            project=self.group.project, group=self.group, type=Activity.ASSIGNED
+        )
+        assert activity.data["assignee"] == str(self.user.id)
+        assert activity.data["assigneeEmail"] == self.user.email
+        assert activity.data["assigneeType"] == "user"
+
     def test_reassign_user_to_team(self):
         GroupAssignee.objects.assign(self.group, self.user)
 
@@ -223,6 +252,16 @@ class GroupAssigneeTestCase(TestCase):
             # w permissions
             groups_updated = sync_group_assignee_inbound(
                 integration, user_w_access.email, "APP-123"
+            )
+
+            assert groups_updated[0] == group
+            assert GroupAssignee.objects.filter(
+                project=group.project, group=group, user=user_w_access, team__isnull=True
+            ).exists()
+
+            # confirm capitalization doesn't affect syncing
+            groups_updated = sync_group_assignee_inbound(
+                integration, user_w_access.email.title(), "APP-123"
             )
 
             assert groups_updated[0] == group

@@ -2,6 +2,7 @@ import logging
 
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
@@ -21,7 +22,7 @@ class ProjectCodeOwnersDetailsEndpoint(
     ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin
 ):
     def convert_args(
-        self, request, organization_slug, project_slug, codeowners_id, *args, **kwargs
+        self, request: Request, organization_slug, project_slug, codeowners_id, *args, **kwargs
     ):
         args, kwargs = super().convert_args(
             request, organization_slug, project_slug, *args, **kwargs
@@ -35,7 +36,7 @@ class ProjectCodeOwnersDetailsEndpoint(
 
         return (args, kwargs)
 
-    def put(self, request, project, codeowners):
+    def put(self, request: Request, project, codeowners) -> Response:
         """
         Update a CodeOwners
         `````````````
@@ -82,7 +83,7 @@ class ProjectCodeOwnersDetailsEndpoint(
         self.track_response_code("update", status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, project, codeowners):
+    def delete(self, request: Request, project, codeowners) -> Response:
         """
         Delete a CodeOwners
         """

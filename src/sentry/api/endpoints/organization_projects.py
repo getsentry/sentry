@@ -1,4 +1,5 @@
 from django.db.models import Q
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -13,7 +14,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '
 
 
 class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Projects
         ```````````````````````````````
@@ -78,10 +79,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
                 elif key == "team":
-                    team_list = list(Team.objects.filter(slug__in=value))
+                    team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.filter(teams__in=team_list)
                 elif key == "!team":
-                    team_list = list(Team.objects.filter(slug__in=value))
+                    team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
                 elif key == "is_member":
                     queryset = queryset.filter(teams__organizationmember__user=request.user)
@@ -123,7 +124,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
 
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()

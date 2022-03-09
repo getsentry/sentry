@@ -1,10 +1,10 @@
+import Field from 'sentry/components/forms/field';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {ProjectKey} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import Field from 'sentry/views/settings/components/forms/field';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 
 const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
 

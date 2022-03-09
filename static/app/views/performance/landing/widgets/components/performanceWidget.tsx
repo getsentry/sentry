@@ -134,12 +134,12 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             />
           </ContentContainer>
         ))}
-        loadingComponent={<Placeholder height={`${totalHeight}px`} />}
+        loadingComponent={<PerformanceWidgetPlaceholder height={`${totalHeight}px`} />}
         emptyComponent={
           EmptyComponent ? (
             <EmptyComponent />
           ) : (
-            <Placeholder height={`${totalHeight}px`} />
+            <PerformanceWidgetPlaceholder height={`${totalHeight}px`} />
           )
         }
       />
@@ -161,14 +161,21 @@ const defaultGrid = {
   left: space(0),
   right: space(0),
   top: space(2),
-  bottom: space(0),
+  bottom: space(1),
 };
 
-const ContentContainer = styled('div')<{noPadding?: boolean; bottomPadding?: boolean}>`
+const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boolean}>`
   padding-left: ${p => (p.noPadding ? space(0) : space(2))};
   padding-right: ${p => (p.noPadding ? space(0) : space(2))};
   padding-bottom: ${p => (p.bottomPadding ? space(1) : space(0))};
 `;
+
+const PerformanceWidgetPlaceholder = styled(Placeholder)`
+  border-color: transparent;
+  border-bottom-right-radius: inherit;
+  border-bottom-left-radius: inherit;
+`;
+
 GenericPerformanceWidget.defaultProps = {
   containerType: 'panel',
   chartHeight: 200,

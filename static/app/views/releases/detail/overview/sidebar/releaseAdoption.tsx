@@ -1,9 +1,7 @@
-import {ComponentProps} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LineChart from 'sentry/components/charts/lineChart';
@@ -42,14 +40,14 @@ const axisIndexToSessionsField = {
 };
 
 type Props = {
-  release: ReleaseWithHealth;
-  project: ReleaseProject;
-  environment: string[];
-  releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
-  loading: boolean;
-  reloading: boolean;
+  environment: string[];
   errored: boolean;
+  loading: boolean;
+  project: ReleaseProject;
+  release: ReleaseWithHealth;
+  releaseSessions: SessionApiResponse | null;
+  reloading: boolean;
 } & WithRouterProps;
 
 function ReleaseAdoption({
@@ -144,7 +142,7 @@ function ReleaseAdoption({
     },
   };
 
-  const chartOptions: Omit<ComponentProps<typeof LineChart>, 'series' | 'ref'> = {
+  const chartOptions: Omit<React.ComponentProps<typeof LineChart>, 'series' | 'ref'> = {
     height: hasUsers ? 280 : 140,
     grid: [
       {
@@ -197,7 +195,7 @@ function ReleaseAdoption({
         return label && Object.values(releaseMarkLinesLabels).includes(label)
           ? ''
           : `<span>${formatAbbreviatedNumber(absoluteCount)} <span style="color: ${
-              theme.white
+              theme.textColor
             };margin-left: ${space(0.5)}">${value}%</span></span>`;
       },
       filter: (_, seriesParam: any) => {
@@ -231,37 +229,35 @@ function ReleaseAdoption({
   return (
     <div>
       {isMobileRelease(project.platform) && (
-        <Feature features={['release-adoption-stage']}>
-          <SidebarSection
-            title={t('Adoption Stage')}
-            icon={
-              multipleEnvironments && (
-                <QuestionTooltip
-                  position="top"
-                  title={t(
-                    'See if a release has low adoption, been adopted by users, or replaced by another release. Select an environment above to view the stage this release is in.'
-                  )}
-                  size="sm"
-                />
-              )
-            }
-          >
-            {adoptionStageLabel && !multipleEnvironments ? (
-              <div>
-                <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
-                </Tooltip>
-                <AdoptionEnvironment>
-                  {tct(`in [environment]`, {environment})}
-                </AdoptionEnvironment>
-              </div>
-            ) : (
-              <NotAvailableWrapper>
-                <NotAvailable />
-              </NotAvailableWrapper>
-            )}
-          </SidebarSection>
-        </Feature>
+        <SidebarSection
+          title={t('Adoption Stage')}
+          icon={
+            multipleEnvironments && (
+              <QuestionTooltip
+                position="top"
+                title={t(
+                  'See if a release has low adoption, been adopted by users, or replaced by another release. Select an environment above to view the stage this release is in.'
+                )}
+                size="sm"
+              />
+            )
+          }
+        >
+          {adoptionStageLabel && !multipleEnvironments ? (
+            <div>
+              <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+              </Tooltip>
+              <AdoptionEnvironment>
+                {tct(`in [environment]`, {environment})}
+              </AdoptionEnvironment>
+            </div>
+          ) : (
+            <NotAvailableWrapper>
+              <NotAvailable />
+            </NotAvailableWrapper>
+          )}
+        </SidebarSection>
       )}
       <RelativeBox>
         <ChartLabel top="0px">
@@ -313,7 +309,12 @@ function ReleaseAdoption({
               xAxisIndex={[sessionsAxisIndex, usersAxisIndex]}
             >
               {zoomRenderProps => (
-                <LineChart {...chartOptions} {...zoomRenderProps} series={getSeries()} />
+                <LineChart
+                  {...chartOptions}
+                  {...zoomRenderProps}
+                  series={getSeries()}
+                  transformSinglePointToLine
+                />
               )}
             </ChartZoom>
           </TransitionChart>

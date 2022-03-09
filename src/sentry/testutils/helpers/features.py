@@ -55,9 +55,19 @@ def Feature(names):
                 logger.info("Flag defaulting to %s: %s", default_value, repr(name))
             return default_value
 
+    def batch_features_override(_feature_names, projects=None, organization=None, *args, **kwargs):
+        if projects:
+            feature_names = {name: True for name in names if name.startswith("project")}
+            return {f"project:{project.id}": feature_names for project in projects}
+        elif organization:
+            feature_names = {name: True for name in names if name.startswith("organization")}
+            return {f"organization:{organization.id}": feature_names}
+
     with patch("sentry.features.has") as features_has:
         features_has.side_effect = features_override
-        yield
+        with patch("sentry.features.batch_has") as features_batch_has:
+            features_batch_has.side_effect = batch_features_override
+            yield
 
 
 def with_feature(feature):

@@ -7,15 +7,14 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 type InjectedLatestContextProps = {
-  organizations?: OrganizationSummary[];
   organization?: Organization | null;
+  organizations?: OrganizationSummary[];
   project?: Project | null;
-  lastRoute?: string | null;
 };
 
 type HocProps = {
-  organization?: Organization | null;
   organizations: OrganizationSummary[];
+  organization?: Organization | null;
 };
 
 type State = {
@@ -25,7 +24,6 @@ type State = {
 const fallbackContext: State['latestContext'] = {
   organization: null,
   project: null,
-  lastRoute: null,
 };
 
 function withLatestContext<P extends InjectedLatestContextProps>(
@@ -52,7 +50,7 @@ function withLatestContext<P extends InjectedLatestContextProps>(
     render() {
       const {organizations} = this.props;
       const {latestContext} = this.state;
-      const {organization, project, lastRoute} = latestContext || fallbackContext;
+      const {organization, project} = latestContext || fallbackContext;
 
       // Even though org details exists in LatestContextStore,
       // fetch organization from OrganizationsStore so that we can
@@ -71,7 +69,6 @@ function withLatestContext<P extends InjectedLatestContextProps>(
       return (
         <WrappedComponent
           project={project as Project}
-          lastRoute={lastRoute}
           {...(this.props as P)}
           organization={(this.props.organization || latestOrganization) as Organization}
         />

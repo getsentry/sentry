@@ -1,6 +1,7 @@
 import logging
 
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -11,7 +12,7 @@ logger = logging.getLogger("sentry.integrations.cloudflare")
 class CloudflareMetadataEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         logger.info("cloudflare.metadata", extra={"user_id": request.user.id})
         return Response(
             {

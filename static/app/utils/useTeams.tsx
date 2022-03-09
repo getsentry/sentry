@@ -15,23 +15,23 @@ import useApi from 'sentry/utils/useApi';
 
 type State = {
   /**
-   * Reflects whether or not the initial fetch for the requested teams was
-   * fulfilled
+   * The error that occurred if fetching failed
    */
-  initiallyLoaded: boolean;
+  fetchError: null | RequestError;
   /**
    * This is state for when fetching data from API
    */
   fetching: boolean;
   /**
-   * The error that occurred if fetching failed
-   */
-  fetchError: null | RequestError;
-  /**
    * Indicates that Team results (from API) are paginated and there are more
    * Teams that are not in the initial response.
    */
   hasMore: null | boolean;
+  /**
+   * Reflects whether or not the initial fetch for the requested teams was
+   * fulfilled
+   */
+  initiallyLoaded: boolean;
   /**
    * The last query we searched. Used to validate the cursor
    */
@@ -44,9 +44,10 @@ type State = {
 
 export type Result = {
   /**
-   * The loaded teams list
+   * This is an action provided to consumers for them to request more teams
+   * to be loaded. Additional teams will be fetched and loaded into the store.
    */
-  teams: Team[];
+  loadMore: (searchTerm?: string) => Promise<void>;
   /**
    * This is an action provided to consumers for them to update the current
    * teams result set using a simple search query.
@@ -54,35 +55,39 @@ export type Result = {
    * Will always add new options into the store.
    */
   onSearch: (searchTerm: string) => Promise<void>;
+  /**
+   * The loaded teams list
+   */
+  teams: Team[];
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
 type Options = {
-  /**
-   * Number of teams to return when not using `props.slugs`
-   */
-  limit?: number;
-  /**
-   * When provided, fetches specified teams by slug if necessary and only provides those teams.
-   */
-  slugs?: string[];
   /**
    * When provided, fetches specified teams by id if necessary and only provides those teams.
    */
   ids?: string[];
   /**
+   * Number of teams to return when not using `props.slugs`
+   */
+  limit?: number;
+  /**
    * When true, fetches user's teams if necessary and only provides user's
    * teams (isMember = true).
    */
   provideUserTeams?: boolean;
+  /**
+   * When provided, fetches specified teams by slug if necessary and only provides those teams.
+   */
+  slugs?: string[];
 };
 
 type FetchTeamOptions = {
-  slugs?: string[];
-  ids?: string[];
-  limit?: Options['limit'];
   cursor?: State['nextCursor'];
-  search?: State['lastSearch'];
+  ids?: string[];
   lastSearch?: State['lastSearch'];
+  limit?: Options['limit'];
+  search?: State['lastSearch'];
+  slugs?: string[];
 };
 
 /**
@@ -94,9 +99,9 @@ async function fetchTeams(
   {slugs, ids, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
 ) {
   const query: {
-    query?: string;
     cursor?: typeof cursor;
     per_page?: number;
+    query?: string;
   } = {};
 
   if (slugs !== undefined && slugs.length > 0) {
@@ -131,7 +136,7 @@ async function fetchTeams(
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
-    hasMore = paginationObject?.next?.results || paginationObject?.previous?.results;
+    hasMore = paginationObject?.next?.results;
     nextCursor = paginationObject?.next?.cursor;
   }
 
@@ -175,9 +180,9 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
   const [state, setState] = useState<State>({
     initiallyLoaded,
     fetching: false,
-    hasMore: null,
+    hasMore: store.hasMore,
     lastSearch: null,
-    nextCursor: null,
+    nextCursor: store.cursor,
     fetchError: null,
   });
 
@@ -247,16 +252,30 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
   }
 
   async function handleSearch(search: string) {
-    const {lastSearch} = state;
-    const cursor = state.nextCursor;
-
     if (search === '') {
+      // Reset pagination state to match store if doing an empty search
+      if (state.hasMore !== store.hasMore || state.nextCursor !== store.cursor) {
+        setState({
+          ...state,
+          lastSearch: search,
+          hasMore: store.hasMore,
+          nextCursor: store.cursor,
+        });
+      }
+
       return;
     }
+    handleFetchAdditionalTeams(search);
+  }
+
+  async function handleFetchAdditionalTeams(search?: string) {
+    const {lastSearch} = state;
+    // Use the store cursor if there is no search keyword provided
+    const cursor = search ? state.nextCursor : store.cursor;
 
     if (orgId === undefined) {
       // eslint-disable-next-line no-console
-      console.error('Cannot use useTeam.onSearch without an organization in context');
+      console.error('Cannot fetch teams without an organization in context');
       return;
     }
 
@@ -273,16 +292,21 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
       const fetchedTeams = uniqBy([...store.teams, ...results], ({slug}) => slug);
 
-      // Only update the store if we have more items
-      if (fetchedTeams.length > store.teams.length) {
-        TeamActions.loadTeams(fetchedTeams);
+      if (search) {
+        // Only update the store if we have more items
+        if (fetchedTeams.length > store.teams.length) {
+          TeamActions.loadTeams(fetchedTeams);
+        }
+      } else {
+        // If we fetched a page of teams without a search query, add cursor data to the store
+        TeamActions.loadTeams(fetchedTeams, hasMore, nextCursor);
       }
 
       setState({
         ...state,
-        hasMore,
+        hasMore: hasMore && store.hasMore,
         fetching: false,
-        lastSearch: search,
+        lastSearch: search ?? null,
         nextCursor,
       });
     } catch (err) {
@@ -320,8 +344,9 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     fetching: state.fetching || store.loading,
     initiallyLoaded: state.initiallyLoaded,
     fetchError: state.fetchError,
-    hasMore: state.hasMore,
+    hasMore: state.hasMore ?? store.hasMore,
     onSearch: handleSearch,
+    loadMore: handleFetchAdditionalTeams,
   };
 
   return result;

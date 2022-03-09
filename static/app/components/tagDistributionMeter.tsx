@@ -13,25 +13,25 @@ import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
 type DefaultProps = {
-  isLoading: boolean;
-  showReleasePackage: boolean;
   hasError: boolean;
-  renderLoading: () => React.ReactNode;
+  isLoading: boolean;
   renderEmpty: () => React.ReactNode;
   renderError: () => React.ReactNode;
+  renderLoading: () => React.ReactNode;
+  showReleasePackage: boolean;
 };
 
 type Props = DefaultProps & {
-  title: string;
   segments: TagSegment[];
+  title: string;
   totalValues: number;
   onTagClick?: (title: string, value: TagSegment) => void;
 };
 
 type SegmentValue = {
-  to: LocationDescriptor;
-  onClick: () => void;
   index: number;
+  onClick: () => void;
+  to: LocationDescriptor;
 };
 
 export default class TagDistributionMeter extends React.Component<Props> {
@@ -146,9 +146,7 @@ export default class TagDistributionMeter extends React.Component<Props> {
             index,
             to: value.url,
             onClick: () => {
-              if (onTagClick) {
-                onTagClick(title, value);
-              }
+              onTagClick?.(title, value);
             },
           };
 
@@ -159,7 +157,17 @@ export default class TagDistributionMeter extends React.Component<Props> {
               style={{width: pct + '%'}}
             >
               <Tooltip title={tooltipHtml} containerDisplayMode="block">
-                {value.isOther ? <OtherSegment /> : <Segment {...segmentProps} />}
+                {value.isOther ? (
+                  <OtherSegment />
+                ) : (
+                  <Segment
+                    aria-label={t(
+                      'Add the %s segment tag to the search query',
+                      value.value
+                    )}
+                    {...segmentProps}
+                  />
+                )}
               </Tooltip>
             </div>
           );

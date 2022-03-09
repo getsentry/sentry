@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -7,7 +8,7 @@ from sentry.models import Activity
 
 
 class GroupActivitiesEndpoint(GroupEndpoint, EnvironmentMixin):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """
         Retrieve all the Activities for a Group
         """

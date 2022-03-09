@@ -13,19 +13,19 @@ import {
 } from 'sentry/types';
 
 type NotifyOptions = {
-  stackView?: STACK_VIEW;
   stackType?: STACK_TYPE;
+  stackView?: STACK_VIEW;
 };
 
 type Props = {
   hasHierarchicalGrouping: boolean;
-  stackView?: STACK_VIEW;
-  stackType?: STACK_TYPE;
-  platform?: string;
-  stacktrace?: ExceptionValue['stacktrace'];
-  thread?: Thread;
   exception?: ExceptionType;
   onChange?: (notifyOptions: NotifyOptions) => void;
+  platform?: string;
+  stackType?: STACK_TYPE;
+  stackView?: STACK_VIEW;
+  stacktrace?: ExceptionValue['stacktrace'];
+  thread?: Thread;
 };
 
 const CrashActions = ({

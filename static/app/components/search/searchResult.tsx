@@ -2,6 +2,8 @@ import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
+import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import IdBadge from 'sentry/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
@@ -25,7 +27,7 @@ class SearchResult extends Component<Props> {
     if (matches) {
       // TODO(ts) Type this better.
       const HighlightedMarker = (p: any) => (
-        <HighlightMarker highlighted={highlighted} {...p} />
+        <HighlightMarker data-test-id="highlight" highlighted={highlighted} {...p} />
       );
 
       const matchedTitle = matches && matches.find(({key}) => key === 'title');
@@ -73,28 +75,22 @@ class SearchResult extends Component<Props> {
     const {item} = this.props;
     const {resultType, model} = item;
 
-    const isSettings = resultType === 'settings';
-    const isField = resultType === 'field';
-    const isRoute = resultType === 'route';
-    const isIntegration = resultType === 'integration';
-
-    if (isSettings) {
-      return <IconSettings />;
+    switch (resultType) {
+      case 'settings':
+        return <IconSettings />;
+      case 'field':
+        return <IconInput />;
+      case 'route':
+        return <IconLink />;
+      case 'integration':
+        return <StyledPluginIcon pluginId={model.slug} />;
+      case 'sentryApp':
+        return <SentryAppAvatar sentryApp={model} />;
+      case 'docIntegration':
+        return <DocIntegrationAvatar docIntegration={model} />;
+      default:
+        return null;
     }
-
-    if (isField) {
-      return <IconInput />;
-    }
-
-    if (isRoute) {
-      return <IconLink />;
-    }
-
-    if (isIntegration) {
-      return <StyledPluginIcon pluginId={model.slug} />;
-    }
-
-    return null;
   }
 
   render() {

@@ -5,12 +5,13 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 type Options = {
-  routes: RouteWithName[];
-
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
   params: {[key: string]: string | undefined};
 
+  routes: RouteWithName[];
+
+  location?: Location;
   /**
    * The number of routes to to pop off of `routes
    * Must be < 0
@@ -18,7 +19,6 @@ type Options = {
    * There's no ts type for negative numbers so we are arbitrarily specifying -1-9
    */
   stepBack?: -1 | -2 | -3 | -4 | -5 | -6 | -7 | -8 | -9;
-  location?: Location;
 };
 
 /**

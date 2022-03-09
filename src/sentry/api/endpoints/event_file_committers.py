@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -7,7 +8,7 @@ from sentry.utils.committers import get_serialized_event_file_committers
 
 
 class EventFileCommittersEndpoint(ProjectEndpoint):
-    def get(self, request, project, event_id):
+    def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve Committer information for an event
         ```````````````````````````````````````````

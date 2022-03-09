@@ -1,7 +1,9 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
@@ -22,16 +24,15 @@ import {
   SearchWrapper,
 } from 'sentry/views/settings/components/defaultSearchBar';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
 type Props = {
-  notificationType: string;
   notificationSettings: NotificationSettingsObject;
+  notificationType: string;
   onChange: (
     changedData: NotificationSettingsByProviderObject,
     parentId: string
   ) => NotificationSettingsObject;
+  onSubmitSuccess: () => void;
 } & AsyncComponent['props'];
 
 type State = {
@@ -74,7 +75,8 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {notificationType, notificationSettings, onChange} = this.props;
+    const {notificationType, notificationSettings, onChange, onSubmitSuccess} =
+      this.props;
     const {projects, projectsPageLinks} = this.state;
 
     const canSearch = this.getProjectCount() >= MIN_PROJECTS_FOR_SEARCH;
@@ -85,7 +87,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         {canSearch &&
           this.renderSearchInput({
             stateKey: 'projects',
@@ -98,6 +100,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
           apiMethod="PUT"
           apiEndpoint="/users/me/notification-settings/"
           initialData={getParentData(notificationType, notificationSettings, projects)}
+          onSubmitSuccess={onSubmitSuccess}
         >
           {projects.length === 0 ? (
             <EmptyMessage>{t('No projects found')}</EmptyMessage>
@@ -117,7 +120,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
         {canSearch && shouldPaginate && (
           <Pagination pageLinks={projectsPageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,15 +1,20 @@
 import logging
 
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.search.events.fields import is_function
-from sentry.snuba import discover
+from sentry.snuba import discover, metrics_enhanced_performance
 
 logger = logging.getLogger(__name__)
+
+METRICS_ENHANCED_REFERRERS = {
+    "api.performance.landing-table",
+}
 
 ALLOWED_EVENTS_V2_REFERRERS = {
     "api.organization-events-v2",
@@ -37,7 +42,7 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -47,12 +52,17 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             return Response([])
 
         referrer = request.GET.get("referrer")
+        performance_use_metrics = features.has(
+            "organizations:performance-use-metrics", organization=organization, actor=request.user
+        )
+        metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
         )
 
         def data_fn(offset, limit):
-            return discover.query(
+            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
+            return dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=request.GET.get("query"),
                 params=params,
@@ -91,10 +101,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
 
 class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
-    def has_feature(self, request, organization):
+    def has_feature(self, request: Request, organization):
         return features.has("organizations:dashboards-basic", organization, actor=request.user)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(request, organization):
             return Response(status=404)
 

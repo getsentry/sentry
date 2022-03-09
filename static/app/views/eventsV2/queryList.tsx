@@ -1,18 +1,18 @@
-import {MouseEvent} from 'react';
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
+import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
-import {resetGlobalSelection} from 'sentry/actionCreators/globalSelection';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import Button from 'sentry/components/button';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import MenuItem from 'sentry/components/menuItem';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
@@ -26,7 +26,11 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
-import {DashboardWidgetSource, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
 
 import {
   displayModeToDisplayType,
@@ -39,12 +43,13 @@ import {getPrebuiltQueries} from './utils';
 
 type Props = {
   api: Client;
-  organization: Organization;
   location: Location;
-  savedQueries: SavedQuery[];
-  renderPrebuilt: boolean;
-  pageLinks: string;
   onQueryChange: () => void;
+  organization: Organization;
+  pageLinks: string;
+  renderPrebuilt: boolean;
+  router: InjectedRouter;
+  savedQueries: SavedQuery[];
   savedQuerySearchQuery: string;
 };
 
@@ -54,13 +59,10 @@ class QueryList extends React.Component<Props> {
      * We need to reset global selection here because the saved queries can define their own projects
      * in the query. This can lead to mismatched queries for the project
      */
-    resetGlobalSelection();
+    resetPageFilters();
   }
 
-  handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
-    event.preventDefault();
-    event.stopPropagation();
-
+  handleDeleteQuery = (eventView: EventView) => {
     const {api, organization, onQueryChange, location, savedQueries} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
@@ -75,62 +77,79 @@ class QueryList extends React.Component<Props> {
     });
   };
 
-  handleDuplicateQuery =
-    (eventView: EventView, yAxis: string[]) => (event: React.MouseEvent<Element>) => {
-      event.preventDefault();
-      event.stopPropagation();
+  handleDuplicateQuery = (eventView: EventView, yAxis: string[]) => {
+    const {api, location, organization, onQueryChange} = this.props;
 
-      const {api, location, organization, onQueryChange} = this.props;
+    eventView = eventView.clone();
+    eventView.name = `${eventView.name} copy`;
 
-      eventView = eventView.clone();
-      eventView.name = `${eventView.name} copy`;
-
-      handleCreateQuery(api, organization, eventView, yAxis).then(() => {
-        onQueryChange();
-        browserHistory.push({
-          pathname: location.pathname,
-          query: {},
-        });
+    handleCreateQuery(api, organization, eventView, yAxis).then(() => {
+      onQueryChange();
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {},
       });
+    });
+  };
+
+  handleAddQueryToDashboard = (eventView: EventView, savedQuery?: SavedQuery) => {
+    const {organization, router, location} = this.props;
+
+    const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+    const defaultTableColumns = eventView.fields.map(({field}) => field);
+    const sort = eventView.sorts[0];
+    const defaultWidgetQuery: WidgetQuery = {
+      name: '',
+      fields: [
+        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+        ...(typeof savedQuery?.yAxis === 'string'
+          ? [savedQuery?.yAxis]
+          : savedQuery?.yAxis ?? ['count()']),
+      ],
+      conditions: eventView.query,
+      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
 
-  handleAddQueryToDashboard =
-    (eventView: EventView, savedQuery?: SavedQuery) =>
-    (event: React.MouseEvent<Element>) => {
-      const {organization} = this.props;
-      event.preventDefault();
-      event.stopPropagation();
+    trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+      organization,
+      saved_query: !!savedQuery,
+    });
 
-      const sort = eventView.sorts[0];
-      const defaultWidgetQuery: WidgetQuery = {
-        name: '',
-        fields:
-          typeof savedQuery?.yAxis === 'string'
-            ? [savedQuery?.yAxis]
-            : savedQuery?.yAxis ?? ['count()'],
-        conditions: eventView.query,
-        orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
-      };
+    const defaultTitle =
+      savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
 
-      trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
-        organization,
-        saved_query: !!savedQuery,
+    if (organization.features.includes('new-widget-builder-experience')) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DISCOVERV2,
+          start: eventView.start,
+          end: eventView.end,
+          statsPeriod: eventView.statsPeriod,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          defaultTableColumns,
+          defaultTitle,
+          displayType,
+        },
       });
+      return;
+    }
 
-      openAddDashboardWidgetModal({
-        organization,
-        start: eventView.start,
-        end: eventView.end,
-        statsPeriod: eventView.statsPeriod,
-        source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery,
-        defaultTableColumns: eventView.fields.map(({field}) => field),
-        defaultTitle:
-          savedQuery?.name ??
-          (eventView.name !== 'All Events' ? eventView.name : undefined),
-        displayType: displayModeToDisplayType(eventView.display as DisplayModes),
-      });
-    };
+    openAddDashboardWidgetModal({
+      organization,
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+      source: DashboardWidgetSource.DISCOVERV2,
+      defaultWidgetQuery,
+      defaultTableColumns,
+      defaultTitle:
+        savedQuery?.name ??
+        (eventView.name !== 'All Events' ? eventView.name : undefined),
+      displayType,
+    });
+  };
 
   renderQueries() {
     const {pageLinks, renderPrebuilt} = this.props;
@@ -153,6 +172,33 @@ class QueryList extends React.Component<Props> {
     }
 
     return cards;
+  }
+
+  renderDropdownMenu(items: MenuItemProps[]) {
+    return (
+      <DropdownMenuControlV2
+        items={items}
+        trigger={({props: triggerProps, ref: triggerRef}) => (
+          <DropdownTrigger
+            ref={triggerRef}
+            {...triggerProps}
+            aria-label={t('Query actions')}
+            size="xsmall"
+            borderless
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+
+              triggerProps.onClick?.(e);
+            }}
+            icon={<IconEllipsis direction="down" size="sm" />}
+            data-test-id="menu-trigger"
+          />
+        )}
+        placement="bottom right"
+        offset={4}
+      />
+    );
   }
 
   renderPrebuiltQueries() {
@@ -184,6 +230,14 @@ class QueryList extends React.Component<Props> {
 
       const to = eventView.getResultsViewUrlTarget(organization.slug);
 
+      const menuItems = [
+        {
+          key: 'add-to-dashboard',
+          label: t('Add to Dashboard'),
+          onAction: () => this.handleAddQueryToDashboard(eventView),
+        },
+      ];
+
       return (
         <QueryCard
           key={`${index}-${eventView.name}`}
@@ -209,23 +263,9 @@ class QueryList extends React.Component<Props> {
             });
           }}
           renderContextMenu={() => (
-            <Feature
-              organization={organization}
-              features={['connect-discover-and-dashboards', 'dashboards-edit']}
-            >
+            <Feature organization={organization} features={['dashboards-edit']}>
               {({hasFeature}) => {
-                return (
-                  hasFeature && (
-                    <ContextMenu>
-                      <StyledMenuItem
-                        data-test-id="add-query-to-dashboard"
-                        onClick={this.handleAddQueryToDashboard(eventView)}
-                      >
-                        {t('Add to Dashboard')}
-                      </StyledMenuItem>
-                    </ContextMenu>
-                  )
-                );
+                return hasFeature && this.renderDropdownMenu(menuItems);
               }}
             </Feature>
           )}
@@ -255,6 +295,30 @@ class QueryList extends React.Component<Props> {
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
+      const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
+        ...(canAddToDashboard
+          ? [
+              {
+                key: 'add-to-dashboard',
+                label: t('Add to Dashboard'),
+                onAction: () => this.handleAddQueryToDashboard(eventView, savedQuery),
+              },
+            ]
+          : []),
+        {
+          key: 'duplicate',
+          label: t('Duplicate Query'),
+          onAction: () =>
+            this.handleDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
+        },
+        {
+          key: 'delete',
+          label: t('Delete Query'),
+          priority: 'danger',
+          onAction: () => this.handleDeleteQuery(eventView),
+        },
+      ];
+
       return (
         <QueryCard
           key={`${index}-${eventView.id}`}
@@ -272,58 +336,22 @@ class QueryList extends React.Component<Props> {
             });
           }}
           renderGraph={() => (
-            <Feature
+            <MiniGraph
+              location={location}
+              eventView={eventView}
               organization={organization}
-              features={['connect-discover-and-dashboards']}
-            >
-              {({hasFeature}) => (
-                <MiniGraph
-                  location={location}
-                  eventView={eventView}
-                  organization={organization}
-                  referrer={referrer}
-                  yAxis={
-                    hasFeature && savedQuery.yAxis && savedQuery.yAxis.length
-                      ? savedQuery.yAxis
-                      : ['count()']
-                  }
-                />
-              )}
-            </Feature>
+              referrer={referrer}
+              yAxis={
+                savedQuery.yAxis && savedQuery.yAxis.length
+                  ? savedQuery.yAxis
+                  : ['count()']
+              }
+            />
           )}
           renderContextMenu={() => (
-            <ContextMenu>
-              <Feature
-                organization={organization}
-                features={['connect-discover-and-dashboards', 'dashboards-edit']}
-              >
-                {({hasFeature}) =>
-                  hasFeature && (
-                    <StyledMenuItem
-                      data-test-id="add-query-to-dashboard"
-                      onClick={this.handleAddQueryToDashboard(eventView, savedQuery)}
-                    >
-                      {t('Add to Dashboard')}
-                    </StyledMenuItem>
-                  )
-                }
-              </Feature>
-              <MenuItem
-                data-test-id="delete-query"
-                onClick={this.handleDeleteQuery(eventView)}
-              >
-                {t('Delete Query')}
-              </MenuItem>
-              <MenuItem
-                data-test-id="duplicate-query"
-                onClick={this.handleDuplicateQuery(
-                  eventView,
-                  decodeList(savedQuery.yAxis)
-                )}
-              >
-                {t('Duplicate Query')}
-              </MenuItem>
-            </ContextMenu>
+            <Feature organization={organization} features={['dashboards-edit']}>
+              {({hasFeature}) => this.renderDropdownMenu(menuItems(hasFeature))}
+            </Feature>
           )}
         />
       );
@@ -365,7 +393,7 @@ const PaginationRow = styled(Pagination)`
 const QueryGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
@@ -376,58 +404,12 @@ const QueryGrid = styled('div')`
   }
 `;
 
-const ContextMenu = ({children}) => (
-  <DropdownMenu>
-    {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-      const topLevelCx = classNames('dropdown', {
-        'anchor-right': true,
-        open: isOpen,
-      });
-
-      return (
-        <MoreOptions
-          {...getRootProps({
-            className: topLevelCx,
-          })}
-        >
-          <DropdownTarget
-            {...getActorProps<HTMLDivElement>({
-              onClick: (event: MouseEvent) => {
-                event.stopPropagation();
-                event.preventDefault();
-              },
-            })}
-          >
-            <IconEllipsis data-test-id="context-menu" size="md" />
-          </DropdownTarget>
-          {isOpen && (
-            <ul {...getMenuProps({})} className={classNames('dropdown-menu')}>
-              {children}
-            </ul>
-          )}
-        </MoreOptions>
-      );
-    }}
-  </DropdownMenu>
-);
-
-const MoreOptions = styled('span')`
-  display: flex;
-  color: ${p => p.theme.textColor};
+const DropdownTrigger = styled(Button)`
+  transform: translateX(${space(1)});
 `;
 
-const DropdownTarget = styled('div')`
-  display: flex;
-`;
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   grid-column: 1 / 4;
-`;
-
-const StyledMenuItem = styled(MenuItem)`
-  white-space: nowrap;
-  span {
-    align-items: baseline;
-  }
 `;
 
 export default withApi(QueryList);

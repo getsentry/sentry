@@ -1,10 +1,8 @@
-import {ComponentProps} from 'react';
-
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import Tooltip from 'sentry/components/tooltip';
 
 type DropdownItemProps = Pick<
-  ComponentProps<typeof DropdownItem>,
+  React.ComponentProps<typeof DropdownItem>,
   'disabled' | 'title'
 > & {
   label: string;
@@ -13,9 +11,9 @@ type DropdownItemProps = Pick<
 
 type Props = {
   label: string;
+  onSelect: (key: string) => void;
   options: Record<string, DropdownItemProps>;
   selected: string;
-  onSelect: (key: string) => void;
   className?: string;
 };
 

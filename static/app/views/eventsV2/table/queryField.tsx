@@ -4,6 +4,7 @@ import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
@@ -21,12 +22,11 @@ import {
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import ArithmeticInput from './arithmeticInput';
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
 
-type FieldValueOption = SelectValue<FieldValue>;
+export type FieldValueOption = SelectValue<FieldValue>;
 
 type FieldOptions = Record<string, FieldValueOption>;
 
@@ -34,37 +34,38 @@ type FieldOptions = Record<string, FieldValueOption>;
 // data with the AggregateParameter type.
 type ParameterDescription =
   | {
-      kind: 'value';
-      value: string;
       dataType: ColumnType;
+      kind: 'value';
       required: boolean;
+      value: string;
       placeholder?: string;
     }
   | {
       kind: 'column';
-      value: FieldValue | null;
       options: FieldValueOption[];
       required: boolean;
+      value: FieldValue | null;
     }
   | {
-      kind: 'dropdown';
-      value: string;
-      options: SelectValue<string>[];
       dataType: string;
+      kind: 'dropdown';
+      options: SelectValue<string>[];
       required: boolean;
+      value: string;
       placeholder?: string;
     };
 
 type Props = {
-  className?: string;
-  takeFocus?: boolean;
-  fieldValue: QueryFieldValue;
   fieldOptions: FieldOptions;
+  fieldValue: QueryFieldValue;
+  onChange: (fieldValue: QueryFieldValue) => void;
+  className?: string;
+  disabled?: boolean;
+  error?: string;
   /**
-   * The number of columns to render. Columns that do not have a parameter will
-   * render an empty parameter placeholder. Leave blank to avoid adding spacers.
+   * Function to filter the options that are used as parameters for function/aggregate.
    */
-  gridColumns?: number;
+  filterAggregateParameters?: (option: FieldValueOption) => boolean;
   /**
    * Filter the options in the primary selector. Useful if you only want to
    * show a subset of selectable items.
@@ -74,24 +75,27 @@ type Props = {
    */
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   /**
-   * Function to filter the options that are used as parameters for function/aggregate.
+   * The number of columns to render. Columns that do not have a parameter will
+   * render an empty parameter placeholder. Leave blank to avoid adding spacers.
    */
-  filterAggregateParameters?: (option: FieldValueOption) => boolean;
+  gridColumns?: number;
+  hideParameterSelector?: boolean;
+  hidePrimarySelector?: boolean;
   /**
    * Whether or not to add labels inside of the input fields, currently only
    * used for the metric alert builder.
    */
   inFieldLabels?: boolean;
   /**
+   * This will be displayed in the select if there are no fields
+   */
+  noFieldsMessage?: string;
+  otherColumns?: Column[];
+  /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
-  onChange: (fieldValue: QueryFieldValue) => void;
-  error?: string;
-  disabled?: boolean;
-  hidePrimarySelector?: boolean;
-  hideParameterSelector?: boolean;
-  otherColumns?: Column[];
+  takeFocus?: boolean;
 };
 
 // Type for completing generics in react-select
@@ -105,8 +109,12 @@ class QueryField extends React.Component<Props> {
     Option: ({label, data, ...props}: OptionProps<OptionType>) => {
       return (
         <components.Option label={label} data={data} {...props}>
-          <span data-test-id="label">{label}</span>
-          {data.value && this.renderTag(data.value.kind, label)}
+          <InnerWrap isFocused={props.isFocused}>
+            <OptionLabelWrapper data-test-id="label">
+              {label}
+              {data.value && this.renderTag(data.value.kind, label)}
+            </OptionLabelWrapper>
+          </InnerWrap>
         </components.Option>
       );
     },
@@ -191,6 +199,7 @@ class QueryField extends React.Component<Props> {
             (field.kind === FieldValueKind.FIELD ||
               field.kind === FieldValueKind.TAG ||
               field.kind === FieldValueKind.MEASUREMENT ||
+              field.kind === FieldValueKind.METRICS ||
               field.kind === FieldValueKind.BREAKDOWN) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
           ) {
@@ -349,6 +358,7 @@ class QueryField extends React.Component<Props> {
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT ||
+                    value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
@@ -513,12 +523,12 @@ class QueryField extends React.Component<Props> {
         tagType = 'success';
         break;
       case FieldValueKind.MEASUREMENT:
-        text = 'measure';
-        tagType = 'info';
+        text = 'field';
+        tagType = 'highlight';
         break;
       case FieldValueKind.BREAKDOWN:
-        text = 'breakdown';
-        tagType = 'error';
+        text = 'field';
+        tagType = 'highlight';
         break;
       case FieldValueKind.TAG:
         text = kind;
@@ -546,6 +556,7 @@ class QueryField extends React.Component<Props> {
       hidePrimarySelector,
       gridColumns,
       otherColumns,
+      noFieldsMessage,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -561,6 +572,7 @@ class QueryField extends React.Component<Props> {
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
+      noOptionsMessage: () => noFieldsMessage,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -584,6 +596,7 @@ class QueryField extends React.Component<Props> {
             value={fieldValue.field}
             onUpdate={this.handleEquationChange}
             options={otherColumns}
+            placeholder={t('Equation')}
           />
           {error ? (
             <ArithmeticError title={error}>
@@ -624,7 +637,7 @@ function validateColumnTypes(
     return columnTypes({name: input.meta.name, dataType: input.meta.dataType});
   }
 
-  return columnTypes.includes(input.meta.dataType);
+  return (columnTypes as string[]).includes(input.meta.dataType);
 }
 
 const Container = styled('div')<{
@@ -637,16 +650,16 @@ const Container = styled('div')<{
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
       : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 
   flex-grow: 1;
 `;
 
-type InputProps = React.HTMLProps<HTMLInputElement> & {
+interface BufferedInputProps extends React.HTMLProps<HTMLInputElement> {
   onUpdate: (value: string) => void;
   value: string;
-};
+}
 type InputState = {value: string};
 
 /**
@@ -657,8 +670,8 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends React.Component<InputProps, InputState> {
-  constructor(props: InputProps) {
+class BufferedInput extends React.Component<BufferedInputProps, InputState> {
+  constructor(props: BufferedInputProps) {
     super(props);
     this.input = React.createRef();
   }
@@ -695,7 +708,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
   };
 
   render() {
-    const {onUpdate: _, ...props} = this.props;
+    const {onUpdate: _, as: _as, ...props} = this.props;
     return (
       <StyledInput
         {...props}
@@ -710,7 +723,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 }
 
 // Set a min-width to allow shrinkage in grid.
-const StyledInput = styled(Input)`
+const StyledInput = styled(Input)<InputProps>`
   /* Match the height of the select boxes */
   height: 41px;
   min-width: 50px;
@@ -737,6 +750,22 @@ const ArithmeticError = styled(Tooltip)`
   color: ${p => p.theme.red300};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
+`;
+
+const InnerWrap = styled('div')<{isFocused: boolean}>`
+  display: flex;
+  padding: 0 ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  box-sizing: border-box;
+  width: 100%;
+  ${p => p.isFocused && `background: ${p.theme.hover};`}
+`;
+
+const OptionLabelWrapper = styled('span')`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: ${space(1)} 0;
 `;
 
 export {QueryField};

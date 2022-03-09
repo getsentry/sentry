@@ -1,4 +1,4 @@
-import DeviceName from 'sentry/components/deviceName';
+import {DeviceName} from 'sentry/components/deviceName';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
@@ -8,8 +8,8 @@ import {defined} from 'sentry/utils';
 
 type Props = {
   isRelease: boolean;
-  streamPath: string;
   locationSearch: string;
+  streamPath: string;
   tag: EventTag;
   meta?: Meta;
 };

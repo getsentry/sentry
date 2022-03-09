@@ -8,6 +8,8 @@ from django.core.validators import URLValidator
 from django.urls import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations import (
     FeatureDescription,
@@ -16,6 +18,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.jira import JiraIntegration
+from sentry.models import Identity
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.decorators import classproperty
@@ -134,7 +137,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -159,7 +162,7 @@ class OAuthLoginView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -191,7 +194,7 @@ class OAuthCallbackView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         config = pipeline.fetch_state("installation_data")
         client = JiraServerSetupClient(
             config.get("url"),
@@ -226,7 +229,10 @@ class JiraServerIntegration(JiraIntegration):
 
     def get_client(self):
         if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+            try:
+                self.default_identity = self.get_default_identity()
+            except Identity.DoesNotExist:
+                raise IntegrationError("Identity not found.")
 
         return JiraServerClient(
             self.model.metadata["base_url"],

@@ -22,6 +22,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.data = load_data("transaction")
+        self.features = {}
 
     def populate_events(self, specs):
         start = before_now(minutes=5)
@@ -60,6 +61,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def do_request(self, query, features=None):
         if features is None:
             features = {"organizations:performance-view": True}
+        features.update(self.features)
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-histogram",
@@ -1015,3 +1017,11 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (0, 1, [("transaction.duration", 0)]),
         ]
         assert response.data == self.as_response_data(expected)
+
+
+class OrganizationEventsHistogramEndpointTestWithSnql(OrganizationEventsHistogramEndpointTest):
+    def setUp(self):
+        super().setUp()
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.data = load_data("transaction")
+        self.features["organizations:performance-use-snql"] = True

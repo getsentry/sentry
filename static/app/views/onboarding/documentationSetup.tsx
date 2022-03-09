@@ -38,9 +38,9 @@ type Props = StepProps & {
 };
 
 type State = {
-  platformDocs: {html: string; link: string} | null;
-  loadedPlatform: PlatformKey | null;
   hasError: boolean;
+  loadedPlatform: PlatformKey | null;
+  platformDocs: {html: string; link: string} | null;
 };
 
 class DocumentationSetup extends React.Component<Props, State> {
@@ -205,7 +205,7 @@ const Content = styled(motion.div)`
 
   .alert h5 {
     font-size: 1em;
-    margin-bottom: 1rem;
+    margin-bottom: 0.625rem;
   }
 
   /**

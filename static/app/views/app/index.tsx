@@ -1,4 +1,4 @@
-import {lazy, Suspense, useEffect, useRef} from 'react';
+import {lazy, Profiler, Suspense, useEffect, useRef} from 'react';
 import {useHotkeys} from 'react-hotkeys-hook';
 import styled from '@emotion/styled';
 
@@ -20,6 +20,7 @@ import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 
 import SystemAlerts from './systemAlerts';
@@ -88,7 +89,7 @@ function App({children}: Props) {
       const {id, message, url} = problem;
       const type = problem.severity === 'critical' ? 'error' : 'warning';
 
-      AlertActions.addAlert({id, message, type, url});
+      AlertActions.addAlert({id, message, type, url, opaque: true});
     });
   }
 
@@ -159,16 +160,18 @@ function App({children}: Props) {
   const mainContainerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <MainContainer tabIndex={-1} ref={mainContainerRef}>
-      <GlobalModal onClose={() => mainContainerRef.current?.focus?.()} />
-      <SystemAlerts className="messages-container" />
-      <GlobalNotifications
-        className="notifications-container messages-container"
-        organization={organization ?? undefined}
-      />
-      <Indicators className="indicators-container" />
-      <ErrorBoundary>{renderBody()}</ErrorBoundary>
-    </MainContainer>
+    <Profiler id="App" onRender={onRenderCallback}>
+      <MainContainer tabIndex={-1} ref={mainContainerRef}>
+        <GlobalModal onClose={() => mainContainerRef.current?.focus?.()} />
+        <SystemAlerts className="messages-container" />
+        <GlobalNotifications
+          className="notifications-container messages-container"
+          organization={organization ?? undefined}
+        />
+        <Indicators className="indicators-container" />
+        <ErrorBoundary>{renderBody()}</ErrorBoundary>
+      </MainContainer>
+    </Profiler>
   );
 }
 

@@ -23,27 +23,27 @@ import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/iss
 import RuleNode from './ruleNode';
 
 type Props = {
-  project: Project;
-  organization: Organization;
-  /**
-   * All available actions or conditions
-   */
-  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
+  disabled: boolean;
+  error: React.ReactNode;
   /**
    * actions/conditions that have been added to the rule
    */
   items: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
   /**
+   * All available actions or conditions
+   */
+  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
+  onAddRow: (value: string) => void;
+  onDeleteRow: (ruleIndex: number) => void;
+  onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
+  onResetRow: (ruleIndex: number, name: string, value: string) => void;
+  organization: Organization;
+  /**
    * Placeholder for select control
    */
   placeholder: string;
-  disabled: boolean;
-  error: React.ReactNode;
+  project: Project;
   selectType?: 'grouped';
-  onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
-  onAddRow: (value: string) => void;
-  onResetRow: (ruleIndex: number, name: string, value: string) => void;
-  onDeleteRow: (ruleIndex: number) => void;
 };
 
 class RuleNodeList extends React.Component<Props> {
@@ -147,6 +147,14 @@ class RuleNodeList extends React.Component<Props> {
     const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
       actions.map(node => {
         const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+
+        if (node.id.includes('NotifyEmailAction')) {
+          return {
+            value: node.id,
+            label: t('Issue Owners, Team, or Member'),
+          };
+        }
+
         return {
           value: node.id,
           label: (
@@ -165,6 +173,17 @@ class RuleNodeList extends React.Component<Props> {
         (acc, curr) => {
           if (curr.actionType === 'ticket') {
             acc.ticket.push(curr);
+          } else if (curr.id.includes('event_frequency')) {
+            acc.frequency.push(curr);
+          } else if (
+            curr.id.includes('sentry.rules.conditions') &&
+            !curr.id.includes('event_frequency')
+          ) {
+            acc.change.push(curr);
+          } else if (curr.id.includes('sentry.integrations')) {
+            acc.notifyIntegration.push(curr);
+          } else if (curr.id.includes('notify_event')) {
+            acc.notifyIntegration.push(curr);
           } else {
             acc.notify.push(curr);
           }
@@ -172,19 +191,25 @@ class RuleNodeList extends React.Component<Props> {
         },
         {
           notify: [] as IssueAlertRuleActionTemplate[],
+          notifyIntegration: [] as IssueAlertRuleActionTemplate[],
           ticket: [] as IssueAlertRuleActionTemplate[],
+          change: [] as IssueAlertRuleConditionTemplate[],
+          frequency: [] as IssueAlertRuleConditionTemplate[],
         }
       );
 
       options = Object.entries(grouped)
         .filter(([_, values]) => values.length)
         .map(([key, values]) => {
-          const label =
-            key === 'ticket'
-              ? t('Create new\u{2026}')
-              : t('Send notification to\u{2026}');
+          const label = {
+            notify: t('Send notification to\u{2026}'),
+            notifyIntegration: t('Notify integration\u{2026}'),
+            ticket: t('Create new\u{2026}'),
+            change: t('Issue state change'),
+            frequency: t('Issue frequency'),
+          };
 
-          return {label, options: createSelectOptions(values)};
+          return {label: label[key], options: createSelectOptions(values)};
         });
     }
 
@@ -228,7 +253,7 @@ const StyledSelectControl = styled(SelectControl)`
 const RuleNodes = styled('div')`
   display: grid;
   margin-bottom: ${space(1)};
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     grid-auto-flow: row;

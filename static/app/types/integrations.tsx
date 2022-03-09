@@ -1,13 +1,14 @@
 import Alert from 'sentry/components/alert';
+import {Field} from 'sentry/components/forms/type';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {
+  DISABLED as DISABLED_STATUS,
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
 } from 'sentry/views/organizationIntegrations/constants';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
-import {Choices, ObjectStatus, Scope} from './core';
+import {Avatar, Choices, ObjectStatus, Scope} from './core';
 import {BaseRelease} from './release';
 import {User} from './user';
 
@@ -23,27 +24,37 @@ export type Permissions = {
 };
 
 export type ExternalActorMapping = {
-  id: string;
   externalName: string;
-  userId?: string;
-  teamId?: string;
+  id: string;
   sentryName: string;
+  teamId?: string;
+  userId?: string;
 };
 
-export type ExternalUser = {
-  id: string;
-  memberId: string;
+export type ExternalActorSuggestion = {
   externalName: string;
-  provider: string;
+  teamId?: string;
+  userId?: string;
+};
+
+export type ExternalActorMappingOrSuggestion =
+  | ExternalActorMapping
+  | ExternalActorSuggestion;
+
+export type ExternalUser = {
+  externalName: string;
+  id: string;
   integrationId: string;
+  memberId: string;
+  provider: string;
 };
 
 export type ExternalTeam = {
-  id: string;
-  teamId: string;
   externalName: string;
-  provider: string;
+  id: string;
   integrationId: string;
+  provider: string;
+  teamId: string;
 };
 
 /**
@@ -69,12 +80,12 @@ export type Repository = {
 };
 
 export type Commit = {
+  dateCreated: string;
   id: string;
   message: string | null;
-  dateCreated: string;
   releases: BaseRelease[];
-  repository?: Repository;
   author?: User;
+  repository?: Repository;
 };
 
 export type Committer = {
@@ -88,20 +99,20 @@ export type CommitAuthor = {
 };
 
 export type CommitFile = {
-  id: string;
   author: CommitAuthor;
   commitMessage: string;
   filename: string;
+  id: string;
   orgId: number;
   repoName: string;
   type: string;
 };
 
 export type PullRequest = {
-  id: string;
-  title: string;
   externalUrl: string;
+  id: string;
   repository: Repository;
+  title: string;
 };
 
 /**
@@ -110,17 +121,17 @@ export type PullRequest = {
 export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
 
 export type SentryAppSchemaIssueLink = {
-  type: 'issue-link';
   create: {
-    uri: string;
     required_fields: any[];
+    uri: string;
     optional_fields?: any[];
   };
   link: {
-    uri: string;
     required_fields: any[];
+    uri: string;
     optional_fields?: any[];
   };
+  type: 'issue-link';
 };
 
 export type SentryAppSchemaStacktraceLink = {
@@ -135,78 +146,79 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  status: SentryAppStatus;
-  scopes: Scope[];
-  isAlertable: boolean;
-  verifyInstall: boolean;
-  slug: string;
-  name: string;
-  uuid: string;
   author: string;
   events: WebhookEvent[];
+  featureData: IntegrationFeature[];
+  isAlertable: boolean;
+  name: string;
+  overview: string | null;
+  // possible null params
+  popularity: number | null;
+  redirectUrl: string | null;
   schema: {
     elements?: SentryAppSchemaElement[];
   };
-  // possible null params
-  popularity: number | null;
+  scopes: Scope[];
+  slug: string;
+  status: SentryAppStatus;
+  uuid: string;
+  verifyInstall: boolean;
   webhookUrl: string | null;
-  redirectUrl: string | null;
-  overview: string | null;
-  // optional params below
-  datePublished?: string;
+  avatars?: Avatar[];
   clientId?: string;
   clientSecret?: string;
+  // optional params below
+  datePublished?: string;
   owner?: {
     id: number;
     slug: string;
   };
-  featureData: IntegrationFeature[];
+};
+
+// Minimal Sentry App representation for use with avatars
+export type AvatarSentryApp = {
+  name: string;
+  slug: string;
+  uuid: string;
+  avatars?: Avatar[];
 };
 
 export type SentryAppInstallation = {
   app: {
-    uuid: string;
     slug: string;
+    uuid: string;
   };
   organization: {
     slug: string;
   };
-  uuid: string;
   status: 'installed' | 'pending';
+  uuid: string;
   code?: string;
 };
 
 export type SentryAppComponent = {
-  uuid: string;
-  type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
-    uuid: string;
-    slug:
-      | 'calixa'
-      | 'clickup'
-      | 'komodor'
-      | 'linear'
-      | 'rookout'
-      | 'shortcut'
-      | 'spikesh'
-      | 'taskcall'
-      | 'teamwork';
+    avatars: Avatar[];
     name: string;
+    slug: string;
+    uuid: string;
   };
+  type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
+  uuid: string;
 };
 
 export type SentryAppWebhookRequest = {
-  webhookUrl: string;
-  sentryAppSlug: string;
-  eventType: string;
   date: string;
-  organization?: {
-    slug: string;
-    name: string;
-  };
+  eventType: string;
   responseCode: number;
+  sentryAppSlug: string;
+  webhookUrl: string;
   errorUrl?: string;
+  organization?: {
+    name: string;
+    slug: string;
+  };
 };
 
 /**
@@ -217,73 +229,83 @@ export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_ap
 export type IntegrationFeature = {
   description: string;
   featureGate: string;
+  featureId: number;
 };
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
-  | typeof PENDING;
+  | typeof PENDING
+  | typeof DISABLED_STATUS;
 
 type IntegrationDialog = {
   actionText: string;
   body: string;
 };
 
-export type DocumentIntegration = {
-  slug: string;
-  name: string;
+export type DocIntegration = {
   author: string;
-  docUrl: string;
   description: string;
-  features: IntegrationFeature[];
-  resourceLinks: Array<{title: string; url: string}>;
+  isDraft: boolean;
+  name: string;
+  popularity: number;
+  slug: string;
+  url: string;
+  avatar?: Avatar;
+  features?: IntegrationFeature[];
+  resources?: Array<{title: string; url: string}>;
 };
 
 type IntegrationAspects = {
   alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
-  disable_dialog?: IntegrationDialog;
-  removal_dialog?: IntegrationDialog;
-  externalInstall?: {
-    url: string;
-    buttonText: string;
-    noticeText: string;
-  };
   configure_integration?: {
     title: string;
   };
+  disable_dialog?: IntegrationDialog;
+  externalInstall?: {
+    buttonText: string;
+    noticeText: string;
+    url: string;
+  };
+  removal_dialog?: IntegrationDialog;
 };
 
 type BaseIntegrationProvider = {
-  key: string;
-  slug: string;
-  name: string;
   canAdd: boolean;
   canDisable: boolean;
   features: string[];
+  key: string;
+  name: string;
+  slug: string;
 };
 
 export type IntegrationProvider = BaseIntegrationProvider & {
-  setupDialog: {url: string; width: number; height: number};
   metadata: {
+    aspects: IntegrationAspects;
+    author: string;
     description: string;
     features: IntegrationFeature[];
-    author: string;
-    noun: string;
     issue_url: string;
+    noun: string;
     source_url: string;
-    aspects: IntegrationAspects;
   };
+  setupDialog: {height: number; url: string; width: number};
+};
+
+type OrganizationIntegrationProvider = BaseIntegrationProvider & {
+  aspects: IntegrationAspects;
 };
 
 export type Integration = {
+  accountType: string;
+  domainName: string;
+  gracePeriodEnd: string;
+  icon: string;
   id: string;
   name: string;
-  icon: string;
-  domainName: string;
-  accountType: string;
-  scopes?: string[];
+  organizationIntegrationStatus: ObjectStatus;
+  provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
-  provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -292,24 +314,45 @@ export type Integration = {
       uninstallationUrl?: string;
     };
   };
+  scopes?: string[];
+};
+
+type ConfigData = {
+  installationType?: string;
+};
+
+export type OrganizationIntegration = {
+  accountType: string | null;
+  configData: ConfigData | null;
+  configOrganization: Field[];
+  domainName: string | null;
+  externalId: string;
+  gracePeriodEnd: string;
+  icon: string | null;
+  id: string;
+  name: string;
+  organizationId: string;
+  organizationIntegrationStatus: ObjectStatus;
+  provider: OrganizationIntegrationProvider;
+  status: ObjectStatus;
 };
 
 // we include the configOrganization when we need it
 export type IntegrationWithConfig = Integration & {
+  configData: ConfigData;
   configOrganization: Field[];
-  configData: object | null;
 };
 
 /**
  * Integration & External issue links
  */
 export type IntegrationExternalIssue = {
-  id: string;
-  key: string;
-  url: string;
-  title: string;
   description: string;
   displayName: string;
+  id: string;
+  key: string;
+  title: string;
+  url: string;
 };
 
 export type GroupIntegration = Integration & {
@@ -317,10 +360,10 @@ export type GroupIntegration = Integration & {
 };
 
 export type PlatformExternalIssue = {
+  displayName: string;
   id: string;
   issueId: string;
   serviceType: string;
-  displayName: string;
   webUrl: string;
 };
 
@@ -331,49 +374,52 @@ export type PlatformExternalIssue = {
  */
 export type IssueConfigField = Field & {
   name: string;
-  default?: string | number;
   choices?: Choices;
-  url?: string;
+  default?: string | number;
   multiple?: boolean;
+  url?: string;
 };
 
 export type IntegrationIssueConfig = {
-  status: ObjectStatus;
-  name: string;
   domainName: string;
-  linkIssueConfig?: IssueConfigField[];
-  createIssueConfig?: IssueConfigField[];
-  provider: IntegrationProvider;
   icon: string[];
+  name: string;
+  provider: IntegrationProvider;
+  status: ObjectStatus;
+  createIssueConfig?: IssueConfigField[];
+  linkIssueConfig?: IssueConfigField[];
 };
 
 /**
  * Project Plugins
  */
 export type PluginNoProject = {
-  id: string;
-  name: string;
-  slug: string;
-  shortName: string;
-  type: string;
-  canDisable: boolean;
-  isTestable: boolean;
-  hasConfiguration: boolean;
-  metadata: any; // TODO(ts)
-  contexts: any[]; // TODO(ts)
-  status: string;
   assets: Array<{url: string}>;
+  canDisable: boolean;
+  // TODO(ts)
+  contexts: any[];
   doc: string;
-  features: string[];
   featureDescriptions: IntegrationFeature[];
+  features: string[];
+  hasConfiguration: boolean;
+  id: string;
+  isDeprecated: boolean;
   isHidden: boolean;
-  version?: string;
-  author?: {name: string; url: string};
-  description?: string;
-  resourceLinks?: Array<{title: string; url: string}>;
+  isTestable: boolean;
+  metadata: any;
+  name: string;
+  shortName: string;
+  slug: string;
+  // TODO(ts)
+  status: string;
+  type: string;
   altIsSentryApp?: boolean;
+  author?: {name: string; url: string};
   deprecationDate?: string;
+  description?: string;
   firstPartyAlternative?: string;
+  resourceLinks?: Array<{title: string; url: string}>;
+  version?: string;
 };
 
 export type Plugin = PluginNoProject & {
@@ -381,12 +427,12 @@ export type Plugin = PluginNoProject & {
 };
 
 export type PluginProjectItem = {
+  configured: boolean;
+  enabled: boolean;
   projectId: string;
-  projectSlug: string;
   projectName: string;
   projectPlatform: PlatformKey;
-  enabled: boolean;
-  configured: boolean;
+  projectSlug: string;
 };
 
 export type PluginWithProjectList = PluginNoProject & {
@@ -397,17 +443,17 @@ export type AppOrProviderOrPlugin =
   | SentryApp
   | IntegrationProvider
   | PluginWithProjectList
-  | DocumentIntegration;
+  | DocIntegration;
 
 /**
  * Webhooks and servicehooks
  */
-export type WebhookEvent = 'issue' | 'error';
+export type WebhookEvent = 'issue' | 'error' | 'comment';
 
 export type ServiceHook = {
-  id: string;
-  events: string[];
   dateCreated: string;
+  events: string[];
+  id: string;
   secret: string;
   status: string;
   url: string;
@@ -417,14 +463,9 @@ export type ServiceHook = {
  * Codeowners and repository path mappings.
  */
 export type CodeOwner = {
-  id: string;
-  raw: string;
+  codeMappingId: string;
   dateCreated: string;
   dateUpdated: string;
-  provider: 'github' | 'gitlab';
-  codeMapping?: RepositoryProjectPathConfig;
-  codeMappingId: string;
-  ownershipSyntax?: string;
   errors: {
     missing_external_teams: string[];
     missing_external_users: string[];
@@ -432,12 +473,17 @@ export type CodeOwner = {
     teams_without_access: string[];
     users_without_access: string[];
   };
+  id: string;
+  provider: 'github' | 'gitlab';
+  raw: string;
+  codeMapping?: RepositoryProjectPathConfig;
+  ownershipSyntax?: string;
 };
 
 export type CodeownersFile = {
-  raw: string;
   filepath: string;
   html_url: string;
+  raw: string;
 };
 
 export type FilesByRepository = {
@@ -453,8 +499,8 @@ type BaseRepositoryProjectPathConfig = {
   projectSlug: string;
   repoId: string;
   repoName: string;
-  stackRoot: string;
   sourceRoot: string;
+  stackRoot: string;
   defaultBranch?: string;
 };
 
@@ -470,9 +516,9 @@ export type RepositoryProjectPathConfigWithIntegration =
   };
 
 export type ServerlessFunction = {
+  enabled: boolean;
   name: string;
+  outOfDate: boolean;
   runtime: string;
   version: number;
-  outOfDate: boolean;
-  enabled: boolean;
 };

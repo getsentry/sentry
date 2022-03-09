@@ -2,6 +2,7 @@ import {createRef, Fragment, HTMLProps, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import Input from 'sentry/components/forms/controls/input';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -10,19 +11,18 @@ import {
   generateFieldAsString,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 const NONE_SELECTED = -1;
 
 type DropdownOption = {
-  kind: 'field' | 'operator';
   active: boolean;
+  kind: 'field' | 'operator';
   value: string;
 };
 
 type DropdownOptionGroup = {
-  title: string;
   options: DropdownOption[];
+  title: string;
 };
 
 type DefaultProps = {
@@ -36,12 +36,12 @@ type Props = DefaultProps &
   };
 
 type State = {
-  query: string;
-  partialTerm: string | null;
-  rawOptions: Column[];
-  dropdownVisible: boolean;
-  dropdownOptionGroups: DropdownOptionGroup[];
   activeSelection: number;
+  dropdownOptionGroups: DropdownOptionGroup[];
+  dropdownVisible: boolean;
+  partialTerm: string | null;
+  query: string;
+  rawOptions: Column[];
 };
 
 export default class ArithmeticInput extends PureComponent<Props, State> {
@@ -249,7 +249,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   }
 
   render() {
-    const {onUpdate: _onUpdate, options: _options, ...props} = this.props;
+    const {onUpdate: _onUpdate, options: _options, as: _as, ...props} = this.props;
     const {dropdownVisible, dropdownOptionGroups} = this.state;
     return (
       <Container isOpen={dropdownVisible}>
@@ -306,9 +306,9 @@ const StyledInput = styled(Input)`
 `;
 
 type TermDropdownProps = {
+  handleSelect: (option: DropdownOption) => void;
   isOpen: boolean;
   optionGroups: DropdownOptionGroup[];
-  handleSelect: (option: DropdownOption) => void;
 };
 
 function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
@@ -451,7 +451,7 @@ const DropdownListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.focus};
+    background: ${p => p.theme.hover};
   }
 `;
 

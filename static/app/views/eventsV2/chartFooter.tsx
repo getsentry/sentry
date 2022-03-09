@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import Feature from 'sentry/components/acl/feature';
 import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
@@ -14,20 +13,19 @@ import {Organization, SelectValue} from 'sentry/types';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 type Props = {
-  organization: Organization;
-  total: number | null;
-  yAxisValue: string[];
-  yAxisOptions: SelectValue<string>[];
-  onAxisChange: (value: string[]) => void;
   displayMode: string;
   displayOptions: SelectValue<string>[];
+  onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
+  organization: Organization;
   topEvents: string;
+  total: number | null;
+  yAxisOptions: SelectValue<string>[];
+  yAxisValue: string[];
 };
 
 export default function ChartFooter({
-  organization,
   total,
   yAxisValue,
   yAxisOptions,
@@ -66,48 +64,21 @@ export default function ChartFooter({
           onChange={onDisplayChange}
           menuWidth="170px"
         />
-        <Feature organization={organization} features={['discover-top-events']}>
-          {({hasFeature}) => {
-            if (hasFeature && TOP_EVENT_MODES.includes(displayMode)) {
-              return (
-                <OptionSelector
-                  title={t('Limit')}
-                  selected={topEvents}
-                  options={topEventOptions}
-                  onChange={onTopEventsChange}
-                  menuWidth="60px"
-                  featureType="new"
-                />
-              );
-            }
-            return null;
-          }}
-        </Feature>
-        <Feature
-          organization={organization}
-          features={['connect-discover-and-dashboards']}
-        >
-          {({hasFeature}) => {
-            if (hasFeature) {
-              return (
-                <OptionCheckboxSelector
-                  title={t('Y-Axis')}
-                  selected={yAxisValue}
-                  options={yAxisOptions}
-                  onChange={onAxisChange}
-                />
-              );
-            }
-            return (
-              <OptionSelector
-                title={t('Y-Axis')}
-                selected={yAxisValue[0]}
-                options={yAxisOptions}
-                onChange={value => onAxisChange([value])}
-              />
-            );
-          }}
-        </Feature>
+        {TOP_EVENT_MODES.includes(displayMode) && (
+          <OptionSelector
+            title={t('Limit')}
+            selected={topEvents}
+            options={topEventOptions}
+            onChange={onTopEventsChange}
+            menuWidth="60px"
+          />
+        )}
+        <OptionCheckboxSelector
+          title={t('Y-Axis')}
+          selected={yAxisValue}
+          options={yAxisOptions}
+          onChange={onAxisChange}
+        />
       </InlineContainer>
     </ChartControls>
   );

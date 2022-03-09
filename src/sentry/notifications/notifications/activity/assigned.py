@@ -8,6 +8,8 @@ from .base import GroupActivityNotification
 
 
 class AssignedActivityNotification(GroupActivityNotification):
+    referrer_base = "assigned-activity"
+
     def get_activity_name(self) -> str:
         return "Assigned"
 
@@ -68,6 +70,8 @@ class AssignedActivityNotification(GroupActivityNotification):
         else:
             author = "Sentry"
 
+        # TODO: refactor so assignee type doesn't change
+
         # legacy Activity objects from before assignable teams
         if "assigneeType" not in data or data["assigneeType"] == "user":
             author = "themselves"
@@ -89,6 +93,9 @@ class AssignedActivityNotification(GroupActivityNotification):
                 assignee = "an unknown team"
             else:
                 assignee = f"#{assignee_team.slug}"
+        else:
+            # need this case to ensure assignee is bound
+            assignee = "unknown"
         return author, assignee
 
     def get_notification_title(self) -> str:

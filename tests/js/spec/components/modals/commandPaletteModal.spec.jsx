@@ -52,6 +52,10 @@ describe('Command Palette Modal', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {
         problems: [],

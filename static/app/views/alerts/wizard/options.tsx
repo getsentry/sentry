@@ -1,5 +1,3 @@
-import {ComponentProps} from 'react';
-
 import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
@@ -59,7 +57,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
 type AlertWizardCategory = {
   categoryHeading: string;
   options: AlertType[];
-  featureBadgeType?: ComponentProps<typeof FeatureBadge>['type'];
+  featureBadgeType?: React.ComponentProps<typeof FeatureBadge>['type'];
 };
 export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
   {
@@ -95,8 +93,8 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
 
 type PanelContent = {
   description: string;
-  docsLink?: string;
   examples: string[];
+  docsLink?: string;
   illustration?: string;
 };
 
@@ -242,7 +240,7 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.ERROR,
   },
   users_experiencing_errors: {
-    aggregate: 'count_unique(tags[sentry:user])',
+    aggregate: 'count_unique(user)',
     dataset: Dataset.ERRORS,
     eventTypes: EventTypes.ERROR,
   },
@@ -322,7 +320,7 @@ export function getFunctionHelpText(alertType: AlertType): {
   const timeWindowText = t('over');
   if (alertType === 'apdex') {
     return {
-      labelText: t('Select apdex value and time interval'),
+      labelText: t('Select apdex threshold and time interval'),
       timeWindowText,
     };
   }

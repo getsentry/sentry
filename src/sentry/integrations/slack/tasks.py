@@ -7,13 +7,13 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from sentry.auth.access import SystemAccess
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.logic import (
     ChannelLookupTimeoutError,
     InvalidTriggerActionError,
     get_slack_channel_ids,
 )
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
+from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.utils import get_identities_by_user
 from sentry.mediators import project_rules

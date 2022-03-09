@@ -10,8 +10,8 @@ import {IconInfo} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
 type Props = {
-  buttonTo: React.ComponentProps<typeof Link>['to'];
   buttonText: string;
+  buttonTo: React.ComponentProps<typeof Link>['to'];
 };
 
 export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =
@@ -45,7 +45,7 @@ const StyledAlert = styled(Alert)`
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: min-content auto max-content;
   align-items: center;
 `;

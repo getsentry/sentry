@@ -12,13 +12,13 @@ export enum Query {
 }
 
 type OverviewTab = {
-  name: string;
   /** Emitted analytics event tab name  */
   analyticsName: string;
   /** Will fetch a count to display on this tab */
   count: boolean;
   /** Tabs can be disabled via flag */
   enabled: boolean;
+  name: string;
   /** Tooltip text for each tab */
   tooltipTitle: React.ReactNode;
   /** Tooltip text to be hoverable when text has links */
@@ -154,3 +154,18 @@ export function getDisplayLabel(key: IssueDisplayOptions) {
       return t('Event Count');
   }
 }
+
+export const DISCOVER_EXCLUSION_FIELDS: string[] = [
+  'query',
+  'status',
+  'bookmarked_by',
+  'assigned',
+  'assigned_to',
+  'unassigned',
+  'subscribed_by',
+  'active_at',
+  'first_release',
+  'first_seen',
+  'is',
+  '__text',
+];

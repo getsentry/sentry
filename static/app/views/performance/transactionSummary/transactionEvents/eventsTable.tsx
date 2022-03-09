@@ -28,12 +28,15 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {COLUMN_TITLES} from '../../data';
-import {generateTraceLink, generateTransactionLink} from '../utils';
+import {
+  generateTraceLink,
+  generateTransactionLink,
+  normalizeSearchConditions,
+} from '../utils';
 
 import OperationSort, {TitleProps} from './operationSort';
 
@@ -76,11 +79,11 @@ class OperationTitle extends React.Component<TitleProps> {
 
 type Props = {
   eventView: EventView;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   setError: (msg: string | undefined) => void;
-  columnTitles?: string[];
   transactionName: string;
+  columnTitles?: string[];
 };
 
 type State = {
@@ -103,10 +106,7 @@ class EventsTable extends React.Component<Props, State> {
         action,
       });
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, column, value);
 

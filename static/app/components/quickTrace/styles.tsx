@@ -102,9 +102,9 @@ const MenuItemContent = styled('div')`
 
 type DropdownItemProps = {
   children: React.ReactNode;
-  to?: string | LocationDescriptor;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
+  to?: string | LocationDescriptor;
   width?: 'small' | 'large';
 };
 
@@ -144,7 +144,7 @@ export const QuickTraceValue = styled(Truncate)`
 export const ErrorNodeContent = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  grid-gap: ${space(0.25)};
+  gap: ${space(0.25)};
   align-items: center;
 `;
 

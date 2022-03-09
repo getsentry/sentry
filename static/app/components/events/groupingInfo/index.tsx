@@ -15,16 +15,16 @@ import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
 
 type Props = AsyncComponent['props'] & {
+  event: Event;
   organization: Organization;
   projectId: string;
-  event: Event;
   showGroupingConfig: boolean;
 };
 
 type State = AsyncComponent['state'] & {
-  isOpen: boolean;
   configOverride: string | null;
   groupInfo: EventGroupInfo;
+  isOpen: boolean;
 };
 
 class EventGroupingInfo extends AsyncComponent<Props, State> {
@@ -177,8 +177,8 @@ const GroupConfigWrapper = styled('div')`
 `;
 
 export const GroupingConfigItem = styled('span')<{
-  isHidden?: boolean;
   isActive?: boolean;
+  isHidden?: boolean;
 }>`
   font-family: ${p => p.theme.text.familyMono};
   opacity: ${p => (p.isHidden ? 0.5 : null)};

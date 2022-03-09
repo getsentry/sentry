@@ -12,13 +12,13 @@ import {Dataset} from './types';
 
 type PresetCta = {
   /**
-   * The location to direct to upon clicking the CTA.
-   */
-  to: React.ComponentProps<typeof Link>['to'];
-  /**
    * The CTA text
    */
   buttonText: string;
+  /**
+   * The location to direct to upon clicking the CTA.
+   */
+  to: React.ComponentProps<typeof Link>['to'];
   /**
    * The tooltip title for the CTA button, may be empty.
    */
@@ -34,6 +34,14 @@ type PresetCtaOpts = {
 
 type Preset = {
   /**
+   * The default aggregate to use when selecting this preset
+   */
+  default: string;
+  /**
+   * Generates the CTA component
+   */
+  makeCtaParams: (opts: PresetCtaOpts) => PresetCta;
+  /**
    * The regex used to match aggregates to this preset.
    */
   match: RegExp;
@@ -45,14 +53,6 @@ type Preset = {
    * The dataset that this preset applys to.
    */
   validDataset: Dataset[];
-  /**
-   * The default aggregate to use when selecting this preset
-   */
-  default: string;
-  /**
-   * Generates the CTA component
-   */
-  makeCtaParams: (opts: PresetCtaOpts) => PresetCta;
 };
 
 export const PRESET_AGGREGATES: Preset[] = [
@@ -68,9 +68,9 @@ export const PRESET_AGGREGATES: Preset[] = [
   },
   {
     name: t('Users affected'),
-    match: /^count_unique\(tags\[sentry:user\]\)/,
+    match: /^count_unique\(user\)/,
     validDataset: [Dataset.ERRORS],
-    default: 'count_unique(tags[sentry:user])',
+    default: 'count_unique(user)',
     /**
      * Simple "Open in Discover" button
      */

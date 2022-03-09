@@ -1,6 +1,7 @@
 from typing import Mapping, Optional, Sequence
 
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
@@ -14,10 +15,10 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     RuleStatus,
+    SentryAppInstallation,
     Team,
     User,
 )
-from sentry.models.sentryappinstallation import SentryAppInstallation
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
 
@@ -49,7 +50,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     @transaction_start("ProjectRulesEndpoint")
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a project's rules
 
@@ -70,7 +71,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         )
 
     @transaction_start("ProjectRulesEndpoint")
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Create a rule
 

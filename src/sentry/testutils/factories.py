@@ -6,7 +6,7 @@ from binascii import hexlify
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, Optional, Sequence
+from typing import Any, List, Optional, Sequence
 from uuid import uuid4
 
 import petname
@@ -48,6 +48,8 @@ from sentry.models import (
     Commit,
     CommitAuthor,
     CommitFileChange,
+    DocIntegration,
+    DocIntegrationAvatar,
     Environment,
     EventAttachment,
     ExternalActor,
@@ -60,6 +62,7 @@ from sentry.models import (
     IdentityProvider,
     IdentityStatus,
     Integration,
+    IntegrationFeature,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -82,7 +85,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
-from sentry.models.integrationfeature import Feature, IntegrationFeature
+from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
@@ -761,6 +764,10 @@ class Factories:
         return install
 
     @staticmethod
+    def create_stacktrace_link_schema():
+        return {"type": "stacktrace-link", "uri": "/redirect/"}
+
+    @staticmethod
     def create_issue_link_schema():
         return {
             "type": "issue-link",
@@ -858,13 +865,68 @@ class Factories:
             sentry_app = Factories.create_sentry_app()
 
         integration_feature = IntegrationFeature.objects.create(
-            sentry_app=sentry_app, feature=feature or Feature.API
+            target_id=sentry_app.id,
+            target_type=IntegrationTypes.SENTRY_APP.value,
+            feature=feature or Feature.API,
         )
 
         if description:
             integration_feature.update(user_description=description)
 
         return integration_feature
+
+    @staticmethod
+    def _doc_integration_kwargs(**kwargs):
+        _kwargs = {
+            "name": kwargs.get("name", petname.Generate(2, " ", letters=10).title()),
+            "author": kwargs.get("author", "me"),
+            "description": kwargs.get("description", "hi im a description"),
+            "url": kwargs.get("url", "https://sentry.io"),
+            "popularity": kwargs.get("popularity", 1),
+            "is_draft": kwargs.get("is_draft", True),
+            "metadata": kwargs.get("metadata", {}),
+        }
+        _kwargs["slug"] = slugify(_kwargs["name"])
+        _kwargs.update(**kwargs)
+        return _kwargs
+
+    @staticmethod
+    def create_doc_integration(features=None, has_avatar: bool = False, **kwargs) -> DocIntegration:
+        doc = DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
+        if features:
+            Factories.create_doc_integration_features(features=features, doc_integration=doc)
+        if has_avatar:
+            Factories.create_doc_integration_avatar(doc_integration=doc)
+        return doc
+
+    @staticmethod
+    def create_doc_integration_features(
+        features=None, doc_integration=None
+    ) -> List[IntegrationFeature]:
+        if not features:
+            features = [Feature.API]
+        if not doc_integration:
+            doc_integration = Factories.create_doc_integration()
+        return IntegrationFeature.objects.bulk_create(
+            [
+                IntegrationFeature(
+                    target_id=doc_integration.id,
+                    target_type=IntegrationTypes.DOC_INTEGRATION.value,
+                    feature=feature,
+                )
+                for feature in features
+            ]
+        )
+
+    @staticmethod
+    def create_doc_integration_avatar(doc_integration=None, **kwargs) -> DocIntegrationAvatar:
+        if not doc_integration:
+            doc_integration = Factories.create_doc_integration()
+        photo = File.objects.create(name="test.png", type="avatar.file")
+        photo.putfile(io.BytesIO(b"imaginethiswasphotobytes"))
+        return DocIntegrationAvatar.objects.create(
+            doc_integration=doc_integration, avatar_type=0, file_id=photo.id
+        )
 
     @staticmethod
     def create_userreport(group, project=None, event_id=None, **kwargs):
@@ -1128,4 +1190,11 @@ class Factories:
             prev_history=prev_history,
             prev_history_date=prev_history_date,
             **kwargs,
+        )
+
+    @staticmethod
+    def create_comment(issue, project, user, text="hello world"):
+        data = {"text": text}
+        return Activity.objects.create(
+            project=project, group=issue, type=Activity.NOTE, user=user, data=data
         )

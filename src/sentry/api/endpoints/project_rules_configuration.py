@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -7,7 +8,7 @@ from sentry.rules import rules
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Retrieve the list of configuration options for a given project.
         """
@@ -20,9 +21,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
-        has_percent_condition = features.has(
-            "organizations:issue-percent-filters", project.organization
-        )
+
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
@@ -61,12 +60,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
-                if (
-                    has_percent_condition
-                    or context["id"]
-                    != "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
-                ):
-                    condition_list.append(context)
+                condition_list.append(context)
             elif rule_type.startswith("filter/"):
                 filter_list.append(context)
             elif rule_type.startswith("action/"):

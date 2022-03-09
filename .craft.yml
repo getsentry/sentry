@@ -6,7 +6,7 @@ statusProvider:
   name: github
   config:
     contexts:
-      - 'onpremise-builder (sentryio)'
+      - 'self-hosted-builder (sentryio)'
 artifactProvider:
   name: gcs
   config:

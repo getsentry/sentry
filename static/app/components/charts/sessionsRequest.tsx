@@ -13,32 +13,32 @@ const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
 export type SessionsRequestRenderProps = {
+  errored: boolean;
   loading: boolean;
   reloading: boolean;
-  errored: boolean;
   response: SessionApiResponse | null;
 };
 
 type Props = {
   api: Client;
-  organization: Organization;
   children: (renderProps: SessionsRequestRenderProps) => React.ReactNode;
   field: SessionField[];
-  project?: number[];
-  environment?: string[];
-  statsPeriod?: string;
-  start?: string;
+  organization: Organization;
   end?: string;
-  query?: string;
+  environment?: string[];
   groupBy?: string[];
   interval?: string;
   isDisabled?: boolean;
+  project?: number[];
+  query?: string;
   shouldFilterSessionsInTimeWindow?: boolean;
+  start?: string;
+  statsPeriod?: string | null;
 };
 
 type State = {
-  reloading: boolean;
   errored: boolean;
+  reloading: boolean;
   response: SessionApiResponse | null;
 };
 

@@ -1,9 +1,8 @@
 import {useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import MenuItem from 'sentry/components/menuItem';
-import {t} from 'sentry/locale';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -18,23 +17,26 @@ import {_setChartSetting, getChartSetting} from '../utils';
 import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
+import {LineChartListWidgetMetrics} from '../widgets/lineChartListWidgetMetrics';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
+import {SingleFieldAreaWidgetMetrics} from '../widgets/singleFieldAreaWidgetMetrics';
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
+import {VitalWidgetMetrics} from '../widgets/vitalWidgetMetrics';
 
 import {ChartRowProps} from './widgetChartRow';
 
 type Props = {
-  index: number;
-  organization: Organization;
-  defaultChartSetting: PerformanceWidgetSetting;
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
-  chartColor?: string;
+  defaultChartSetting: PerformanceWidgetSetting;
   eventView: EventView;
-  forceDefaultChartSetting?: boolean;
+  index: number;
+  organization: Organization;
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
+  chartColor?: string;
+  forceDefaultChartSetting?: boolean;
 } & ChartRowProps;
 
 function trackChartSettingChange(
@@ -97,7 +99,7 @@ const _WidgetContainer = (props: Props) => {
     setChartSettingState(_chartSetting);
   }, [rest.defaultChartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({organization, isMetricsData})[chartSetting];
   const widgetProps = {
     ...chartDefinition,
     chartSetting,
@@ -113,8 +115,29 @@ const _WidgetContainer = (props: Props) => {
     ),
   };
 
-  if (isMetricsData) {
-    return <h1>{t('Using metrics')}</h1>;
+  if (
+    isMetricsData &&
+    [
+      PerformanceWidgetSetting.DURATION_HISTOGRAM,
+      PerformanceWidgetSetting.LCP_HISTOGRAM,
+      PerformanceWidgetSetting.FCP_HISTOGRAM,
+      PerformanceWidgetSetting.FID_HISTOGRAM,
+      PerformanceWidgetSetting.MOST_IMPROVED,
+      PerformanceWidgetSetting.MOST_REGRESSED,
+      PerformanceWidgetSetting.MOST_RELATED_ERRORS,
+      PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+      PerformanceWidgetSetting.SLOW_HTTP_OPS,
+      PerformanceWidgetSetting.SLOW_DB_OPS,
+      PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+      PerformanceWidgetSetting.SLOW_BROWSER_OPS,
+    ].includes(widgetProps.chartSetting)
+  ) {
+    // TODO(metrics): Remove this once all widgets are converted
+    return (
+      <Panel style={{minHeight: '167px', marginBottom: 0}}>
+        <PanelBody withPadding>TODO: {widgetProps.title}</PanelBody>
+      </Panel>
+    );
   }
 
   const passedProps = pick(props, [
@@ -128,10 +151,25 @@ const _WidgetContainer = (props: Props) => {
     case GenericPerformanceWidgetDataType.trends:
       return <TrendsWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.area:
+      if (isMetricsData) {
+        return <SingleFieldAreaWidgetMetrics {...passedProps} {...widgetProps} />;
+      }
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.vitals:
+      if (isMetricsData) {
+        return <VitalWidgetMetrics {...passedProps} {...widgetProps} />;
+      }
       return <VitalWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.line_list:
+      if (
+        isMetricsData &&
+        [
+          PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+          PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
+        ].includes(widgetProps.chartSetting)
+      ) {
+        return <LineChartListWidgetMetrics {...passedProps} {...widgetProps} />;
+      }
       return <LineChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.histogram:
       return <HistogramWidget {...passedProps} {...widgetProps} />;
@@ -146,10 +184,10 @@ export const WidgetContainerActions = ({
   allowedCharts,
   rowChartSettings,
 }: {
-  chartSetting: PerformanceWidgetSetting;
-  setChartSetting: (setting: PerformanceWidgetSetting) => void;
   allowedCharts: PerformanceWidgetSetting[];
+  chartSetting: PerformanceWidgetSetting;
   rowChartSettings: PerformanceWidgetSetting[];
+  setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) => {
   const organization = useOrganization();
   const menuOptions: React.ReactNode[] = [];
@@ -170,17 +208,8 @@ export const WidgetContainerActions = ({
     );
   }
 
-  return (
-    <ChartActionContainer>
-      <ContextMenu>{menuOptions}</ContextMenu>
-    </ChartActionContainer>
-  );
+  return <ContextMenu>{menuOptions}</ContextMenu>;
 };
-
-const ChartActionContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
 
 const WidgetContainer = withOrganization(_WidgetContainer);
 

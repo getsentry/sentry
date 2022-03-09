@@ -8,9 +8,9 @@ import {t} from 'sentry/locale';
 import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
 
 type Props = {
-  sort: string;
-  query: string;
   onSelect: (sort: string) => void;
+  query: string;
+  sort: string;
 };
 
 export function getSortTooltip(key: IssueSortOptions) {

@@ -47,7 +47,7 @@ type State = {
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string; integrationSlug: string}, {}> &
+} & RouteComponentProps<{integrationSlug: string; orgId: string}, {}> &
   AsyncComponent['props'];
 
 class AbstractIntegrationDetailedView<
@@ -228,6 +228,18 @@ class AbstractIntegrationDetailedView<
     return getCategories(this.featureData);
   }
 
+  renderAlert(): React.ReactNode {
+    return null;
+  }
+
+  renderAdditionalCTA(): React.ReactNode {
+    return null;
+  }
+
+  renderIntegrationIcon() {
+    return <PluginIcon pluginId={this.integrationSlug} size={50} />;
+  }
+
   renderRequestIntegrationButton() {
     return (
       <RequestIntegrationButton
@@ -275,25 +287,30 @@ class AbstractIntegrationDetailedView<
     const tags = this.cleanTags();
 
     return (
-      <Flex>
-        <PluginIcon pluginId={this.integrationSlug} size={50} />
-        <NameContainer>
-          <Flex>
-            <Name>{this.integrationName}</Name>
-            <StatusWrapper>
-              {this.installationStatus && (
-                <IntegrationStatus status={this.installationStatus} />
-              )}
-            </StatusWrapper>
-          </Flex>
-          <Flex>
-            {tags.map(feature => (
-              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
-            ))}
-          </Flex>
-        </NameContainer>
-        {this.renderAddInstallButton()}
-      </Flex>
+      <TopSectionWrapper>
+        <Flex>
+          {this.renderIntegrationIcon()}
+          <NameContainer>
+            <Flex>
+              <Name>{this.integrationName}</Name>
+              <StatusWrapper>
+                {this.installationStatus && (
+                  <IntegrationStatus status={this.installationStatus} />
+                )}
+              </StatusWrapper>
+            </Flex>
+            <Flex>
+              {tags.map(feature => (
+                <StyledTag key={feature}>{startCase(feature)}</StyledTag>
+              ))}
+            </Flex>
+          </NameContainer>
+        </Flex>
+        <Flex>
+          {this.renderAddInstallButton()}
+          {this.renderAdditionalCTA()}
+        </Flex>
+      </TopSectionWrapper>
     );
   }
 
@@ -359,6 +376,7 @@ class AbstractIntegrationDetailedView<
   renderBody() {
     return (
       <React.Fragment>
+        {this.renderAlert()}
         {this.renderTopSection()}
         {this.renderTabs()}
         {this.state.tab === 'overview'
@@ -428,10 +446,6 @@ const FeatureListItem = styled('span')`
 `;
 
 const Description = styled('div')`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-  margin-bottom: ${space(2)};
-
   li {
     margin-bottom: 6px;
   }
@@ -441,7 +455,7 @@ const Metadata = styled(Flex)`
   display: grid;
   grid-auto-rows: max-content;
   grid-auto-flow: row;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   font-size: 0.9em;
   margin-left: ${space(4)};
   margin-right: 100px;
@@ -454,7 +468,7 @@ const AuthorInfo = styled('div')`
 const ExternalLinkContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 
@@ -478,6 +492,11 @@ const CreatedContainer = styled('div')`
   color: ${p => p.theme.gray300};
   font-weight: 600;
   font-size: 12px;
+`;
+
+const TopSectionWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;
 
 export default AbstractIntegrationDetailedView;

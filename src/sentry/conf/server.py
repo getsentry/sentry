@@ -15,7 +15,6 @@ from urllib.parse import urlparse
 from django.conf.global_settings import *  # NOQA
 
 import sentry
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -282,6 +281,7 @@ MIDDLEWARE = (
     "sentry.middleware.env.SentryEnvMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
     "sentry.middleware.stats.RequestTimingMiddleware",
+    "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -328,6 +328,7 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.sessions",
     "django.contrib.sites",
+    "drf_spectacular",
     "crispy_forms",
     "rest_framework",
     "sentry",
@@ -451,7 +452,7 @@ SESSION_COOKIE_NAME = "sentrysid"
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
 SESSION_COOKIE_SAMESITE = None
 
-SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
+SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
@@ -759,6 +760,13 @@ CELERYBEAT_SCHEDULE = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
+    "schedule-verify-weekly-organization-reports": {
+        "task": "sentry.tasks.reports.verify_prepare_reports",
+        "schedule": crontab(
+            minute=0, hour=12, day_of_week="tuesday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60},
+    },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
         "schedule": crontab_with_minute_jitter(hour="*/6"),
@@ -878,10 +886,35 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-CRISPY_TEMPLATE_PACK = "bootstrap3"
 
+if os.environ.get("OPENAPIGENERATE", False):
+    OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
+    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
+
+    SPECTACULAR_SETTINGS = {
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+        "DISABLE_ERRORS_AND_WARNINGS": False,
+        "COMPONENT_SPLIT_REQUEST": False,
+        "COMPONENT_SPLIT_PATCH": False,
+        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
+        "TAGS": OPENAPI_TAGS,
+        "TITLE": "API Reference",
+        "DESCRIPTION": "Sentry Public API",
+        "TOS": "http://sentry.io/terms/",
+        "CONTACT": {"email": "partners@sentry.io"},
+        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "VERSION": "v0",
+        "SERVERS": [{"url": "https://sentry.io/"}],
+        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
+        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
+        "SORT_OPERATION_PARAMETERS": False,
+    }
+
+CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
@@ -891,17 +924,17 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:alert-rule-ui-component": False,
+    # Enable issue alert status page
+    "organizations:alert-rule-status-page": False,
+    # Alert wizard redesign version 3
+    "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
-    # Enable explicit use of AND and OR in search.
-    "organizations:boolean-search": False,
     # Enable the linked event feature in the issue details breadcrumb.
     "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
-    # Enable unfurling charts using the Chartcuterie service
-    "organizations:chart-unfurls": False,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -911,26 +944,24 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable inline preview of attachments.
-    "organizations:event-attachments-viewer": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
     # Enable Dynamic Sampling errors in the org settings
     "organizations:filters-and-sampling-error-rules": False,
-    # Allow organizations to configure built-in symbol sources.
+    # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
-    # Enable the events stream interface.
-    "organizations:events": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable discover top events queries with other & higher options
-    "organizations:discover-top-events": False,
+    # Allows an org to have a larger set of project ownership rules per project
+    "organizations:higher-ownership-limit": False,
     # Enable Performance view
     "organizations:performance-view": True,
+    # Enable profiling
+    "organizations:profiling": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -947,16 +978,18 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable improved syntax highlighting + autocomplete on unified search
-    "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Enable metrics widget (prototype) on Dashboards
+    # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Enable the new widget builder experience on Dashboards
+    "organizations:new-widget-builder-experience": False,
+    # Enable the new widget builder experience "design" on Dashboards
+    "organizations:new-widget-builder-experience-design": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -964,12 +997,13 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
     "organizations:metrics-performance-ui": False,
-    # True if the metrics backend should be checked against the sessions backend
+    # True if release-health related queries should be run against both
+    # backends (sessions and metrics dataset)
     "organizations:release-health-check-metrics": False,
-    # Enable metric aggregate in metric alert rule builder
-    "organizations:metric-alert-builder-aggregate": False,
-    # Enable migrating auth identities between providers automatically
-    "organizations:idp-automatic-migration": False,
+    # True if differences between the metrics and sessions backend should be reported
+    "organizations:release-health-check-metrics-report": False,
+    # Enable threshold period in metric alert rule builder
+    "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -993,8 +1027,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-custom-scm": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
-    # Allow orgs to debug internal/unpublished sentry apps with logging
-    "organizations:sentry-app-debugging": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable react-grid-layout dashboards
@@ -1005,12 +1037,12 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable dashboard widget library
     "organizations:widget-library": False,
+    # Enable metrics in dashboards
+    "organizations:dashboards-metrics": False,
     # Enable issue widgets in dashboards
     "organizations:issues-in-dashboards": False,
-    # Enable navigation features between Discover and Dashboards
-    "organizations:connect-discover-and-dashboards": False,
-    # Enable creating a dashboard widget from the timeseries on an issue detail
-    "organizations:create-dashboard-widget-from-issue": False,
+    # Enable widget viewer modal in dashboards
+    "organizations:widget-viewer-modal": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1019,6 +1051,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable removing issue from issue list if action taken.
+    "organizations:issue-list-removal-action": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1026,23 +1060,21 @@ SENTRY_FEATURES = {
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
-    # Enable views for tag explorer
-    "organizations:performance-tag-explorer": True,
-    # Enable views for tag page
-    "organizations:performance-tag-page": True,
-    # Enable landing improvements for performance
-    "organizations:performance-landing-widgets": False,
-    # Enable views for transaction events page in performance
-    "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
+    # Enable views for anomaly detection
+    "organizations:performance-anomaly-detection-ui": False,
+    # Enable histogram view in span details
+    "organizations:performance-span-histogram-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enables experimental new-style selection filters to replace the GSH
+    "organizations:selection-filters-v2": False,
     # Enable logging for weekly reports
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
@@ -1051,12 +1083,10 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
-    # Enable the sentryapp logo upload feature
-    "organizations:sentry-app-logo-upload": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
-    # Enable sorting+filtering by semantic version of a release
-    "organizations:semver": True,
+    # Enable the UI for the overage alert settings
+    "organizations:slack-overage-notifications": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1064,36 +1094,14 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable Rippling SSO functionality.
-    "organizations:sso-rippling": False,
-    # Enable SCIM Provisioning functionality.
-    "organizations:sso-scim": False,
-    # Enable workaround for migrating IdP instances
-    "organizations:sso-migration": False,
-    # Enable transaction comparison view for performance.
-    "organizations:transaction-comparison": False,
-    # Return unhandled information on the issue level
-    "organizations:unhandled-issue-flag": True,
-    # Enable percent-based conditions on issue rules
-    "organizations:issue-percent-filters": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
-    # Enable the adoption chart in the releases page
-    "organizations:release-adoption-chart": True,
-    # Enable the release adoption stage labels and sorting+filtering by them
-    "organizations:release-adoption-stage": True,
-    # Store release bundles as zip files instead of single files
-    "organizations:release-archives": False,
-    # Enable the new release details experience
-    "organizations:release-comparison": True,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
-    # send organization request notifications through Slack
-    "organizations:slack-requests": False,
     # Enable team insights page
     "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
@@ -1186,6 +1194,9 @@ SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
 
 # sample rate for the relay projectconfig endpoint
 SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
+
+# sample rate for relay's cache invalidation task
+SENTRY_RELAY_TASK_APM_SAMPLING = 0
 
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
@@ -1330,16 +1341,8 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
+SENTRY_RATELIMITER_ENABLED = True
 SENTRY_RATELIMITER_OPTIONS = {}
-# These values were determined from analysis on one week of api access logs
-SENTRY_RATELIMITER_DEFAULT_IP = 1000
-SENTRY_RATELIMITER_DEFAULT_USER = 3230
-SENTRY_RATELIMITER_DEFAULT_ORG = 620
-SENTRY_RATELIMITER_DEFAULTS = {
-    RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),
-    RateLimitCategory.USER: RateLimit(SENTRY_RATELIMITER_DEFAULT_USER, 1),
-    RateLimitCategory.ORGANIZATION: RateLimit(SENTRY_RATELIMITER_DEFAULT_ORG, 1),
-}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -1847,6 +1850,7 @@ SENTRY_DEVSERVICES = {
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
+                "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -1911,6 +1915,9 @@ SENTRY_DEVSERVICES = {
     ),
 }
 
+# Max file size for serialized file uploads in API
+SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
+
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
 
@@ -1921,7 +1928,7 @@ SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
-SENTRY_ONPREMISE = True
+SENTRY_SELF_HOSTED = True
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2181,8 +2188,8 @@ JS_SDK_LOADER_SDK_VERSION = ""
 # This should be the url pointing to the JS SDK
 JS_SDK_LOADER_DEFAULT_SDK_URL = ""
 
-# block domains which are generally used by spammers -- keep this configurable in case an onpremise
-# install wants to allow it
+# block domains which are generally used by spammers -- keep this configurable
+# in case a self-hosted install wants to allow it
 INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
@@ -2202,13 +2209,16 @@ KAFKA_CLUSTERS = {
 
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
+KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
+KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
     "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
 }
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
@@ -2219,6 +2229,9 @@ KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
     KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
+    # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
+    # create a separate producer. Check ``track_outcome`` for details.
+    KAFKA_OUTCOMES_BILLING: None,
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
         "topic": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -2230,6 +2243,10 @@ KAFKA_TOPICS = {
     KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
         "topic": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    },
+    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {
+        "cluster": "default",
+        "topic": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
     },
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
@@ -2458,7 +2475,7 @@ DEMO_MODE = False
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
 
-# paramters that determine how demo events are generated
+# parameters that determine how demo events are generated
 DEMO_DATA_GEN_PARAMS = {}
 
 # parameters for an org when quickly generating them synchronously
@@ -2473,3 +2490,21 @@ SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
+
+# Zero Downtime Migrations settings as defined at
+# https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
+ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+# Note: The docs have this backwards. We set this to False here so that we always add check
+# constraints instead of setting the column to not null.
+ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
+
+ANOMALY_DETECTION_URL = "127.0.0.1:9091"
+ANOMALY_DETECTION_TIMEOUT = 30
+
+# This is the URL to the profiling service
+SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
+
+SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
+SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}

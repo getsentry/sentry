@@ -8,6 +8,8 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.models import Commit, CommitAuthor, Organization, Repository
@@ -111,17 +113,17 @@ class BitbucketWebhookEndpoint(View):
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, organization_id):
+    def post(self, request: Request, organization_id) -> Response:
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
-            logger.error(
+            logger.info(
                 f"{PROVIDER_NAME}.webhook.invalid-organization",
                 extra={"organization_id": organization_id},
             )

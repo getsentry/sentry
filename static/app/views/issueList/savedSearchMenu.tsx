@@ -15,8 +15,8 @@ import {Organization, SavedSearch} from 'sentry/types';
 import {getSortLabel} from './utils';
 
 type MenuItemProps = Omit<Props, 'savedSearchList'> & {
-  search: SavedSearch;
   isLast: boolean;
+  search: SavedSearch;
 };
 
 function SavedSearchMenuItem({
@@ -71,7 +71,7 @@ function SavedSearchMenuItem({
                 borderless
                 title={t('Delete this saved search')}
                 icon={<IconDelete />}
-                label={t('delete')}
+                aria-label={t('delete')}
                 size="zero"
               />
             </Confirm>
@@ -83,10 +83,10 @@ function SavedSearchMenuItem({
 }
 
 type Props = {
-  savedSearchList: SavedSearch[];
-  organization: Organization;
-  onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  onSavedSearchSelect: (savedSearch: SavedSearch) => void;
+  organization: Organization;
+  savedSearchList: SavedSearch[];
   sort: string;
   query?: string;
 };

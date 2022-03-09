@@ -1,9 +1,14 @@
 from collections import defaultdict
+from datetime import datetime
+from typing import Any, Callable, Dict, List, MutableMapping, Optional, Sequence, Union, cast
 
 from django.conf import settings
+from django.db.models import QuerySet
+from typing_extensions import TypedDict
 
 from sentry import experiments
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -20,7 +25,9 @@ from sentry.models import (
 from sentry.utils.avatar import get_gravatar_url
 
 
-def manytoone_to_dict(queryset, key, filter_func=None):
+def manytoone_to_dict(
+    queryset: QuerySet, key: str, filter_func: Optional[Callable[[Any], bool]] = None
+) -> MutableMapping[Any, Any]:
     result = defaultdict(list)
     for row in queryset:
         if filter_func and not filter_func(row):
@@ -29,9 +36,73 @@ def manytoone_to_dict(queryset, key, filter_func=None):
     return result
 
 
+class _UserEmails(TypedDict):
+    id: str
+    email: str
+    is_verified: bool
+
+
+class _Organization(TypedDict):
+    slug: str
+    name: str
+
+
+class _Provider(TypedDict):
+    id: str
+    name: str
+
+
+class _Identity(TypedDict):
+    id: str
+    name: str
+    organization: _Organization
+    provider: _Provider
+    dateVerified: datetime
+    dateSynced: datetime
+
+
+class _UserOptions(TypedDict):
+    theme: str  # TODO: enum/literal for theme options
+    language: str
+    stacktraceOrder: int  # TODO enum/literal
+    timezone: str
+    clock24Hours: bool
+
+
+class UserSerializerResponseOptional(TypedDict, total=False):
+    identities: List[_Identity]
+    avatar: SerializedAvatarFields
+
+
+class UserSerializerResponse(UserSerializerResponseOptional):
+    id: str
+    name: str
+    username: str
+    email: str
+    avatarUrl: str
+    isActive: bool
+    hasPasswordAuth: bool
+    isManaged: bool
+    dateJoined: datetime
+    lastLogin: datetime
+    has2fa: bool
+    lastActive: datetime
+    isSuperuser: bool
+    isStaff: bool
+    experiments: Dict[str, Any]  # TODO
+    emails: List[_UserEmails]
+
+
+class UserSerializerResponseSelf(UserSerializerResponse):
+    options: _UserOptions
+    flags: Any  # TODO
+
+
 @register(User)
-class UserSerializer(Serializer):
-    def _get_identities(self, item_list, user):
+class UserSerializer(Serializer):  # type: ignore
+    def _get_identities(
+        self, item_list: Sequence[User], user: User
+    ) -> Dict[int, List[AuthIdentity]]:
         if not (env.request and is_active_superuser(env.request)):
             item_list = [x for x in item_list if x == user]
 
@@ -39,12 +110,12 @@ class UserSerializer(Serializer):
             "auth_provider", "auth_provider__organization"
         )
 
-        results = {i.id: [] for i in item_list}
+        results: Dict[int, List[AuthIdentity]] = {i.id: [] for i in item_list}
         for item in queryset:
             results[item.user_id].append(item)
         return results
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
         avatars = {a.user_id: a for a in UserAvatar.objects.filter(user__in=item_list)}
         identities = self._get_identities(item_list, user)
 
@@ -61,10 +132,12 @@ class UserSerializer(Serializer):
             }
         return data
 
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: User, attrs: MutableMapping[User, Any], user: User
+    ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
         experiment_assignments = experiments.all(user=user)
 
-        d = {
+        d: UserSerializerResponse = {
             "id": str(obj.id),
             "name": obj.get_display_name(),
             "username": obj.username,
@@ -80,9 +153,14 @@ class UserSerializer(Serializer):
             "isSuperuser": obj.is_superuser,
             "isStaff": obj.is_staff,
             "experiments": experiment_assignments,
+            "emails": [
+                {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
+                for e in attrs["emails"]
+            ],
         }
 
         if obj == user:
+            d = cast(UserSerializerResponseSelf, d)
             options = {
                 o.key: o.value for o in UserOption.objects.filter(user=user, project__isnull=True)
             }
@@ -99,7 +177,7 @@ class UserSerializer(Serializer):
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
 
         if attrs.get("avatar"):
-            avatar = {
+            avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
             }
@@ -127,16 +205,17 @@ class UserSerializer(Serializer):
                 for i in attrs["identities"]
             ]
 
-        d["emails"] = [
-            {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
-            for e in attrs["emails"]
-        ]
-
         return d
 
 
+class DetailedUserSerializerResponse(UserSerializerResponse):
+    permissions: Any
+    authenticators: List[Any]  # TODO
+    canReset2fa: bool
+
+
 class DetailedUserSerializer(UserSerializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
 
         # ignore things that aren't user controlled (like recovery codes)
@@ -166,8 +245,11 @@ class DetailedUserSerializer(UserSerializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user):
-        d = super().serialize(obj, attrs, user)
+    def serialize(
+        self, obj: User, attrs: MutableMapping[User, Any], user: User
+    ) -> DetailedUserSerializerResponse:
+        d = cast(DetailedUserSerializerResponse, super().serialize(obj, attrs, user))
+
         # XXX(dcramer): we don't use is_active_superuser here as we simply
         # want to tell the UI that we're an authenticated superuser, and
         # for requests that require an *active* session, they should prompt

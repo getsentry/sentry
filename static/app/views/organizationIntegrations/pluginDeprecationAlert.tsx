@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -21,7 +21,7 @@ class PluginDeprecationAlert extends Component<Props, State> {
 
     // Short-circuit if not deprecated.
     if (!plugin.deprecationDate) {
-      return <React.Fragment />;
+      return <Fragment />;
     }
     const resource = plugin.altIsSentryApp ? 'sentry-apps' : 'integrations';
     const upgradeUrl = `/settings/${organization.slug}/${resource}/${plugin.firstPartyAlternative}/`;

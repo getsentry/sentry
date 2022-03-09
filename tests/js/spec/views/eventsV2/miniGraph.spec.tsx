@@ -34,7 +34,7 @@ jest.mock('sentry/components/charts/eventsGeoRequest', () =>
 );
 
 describe('EventsV2 > MiniGraph', function () {
-  const features = ['discover-basic', 'connect-discover-and-dashboards'];
+  const features = ['discover-basic'];
   const location = TestStubs.location({
     query: {query: 'tag:value'},
     pathname: '/',

@@ -41,6 +41,11 @@ describe('IssueList', function () {
   const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
 
   beforeEach(function () {
+    // The tests fail because we have a "component update was not wrapped in act" error.
+    // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.clearMockResponses();
     project = TestStubs.ProjectDetails({
       id: '3559',
@@ -544,7 +549,7 @@ describe('IssueList', function () {
       createWrapper();
       await tick();
       await tick();
-      await wrapper.update();
+      wrapper.update();
 
       // Update the search textarea
       wrapper
@@ -552,7 +557,7 @@ describe('IssueList', function () {
         .simulate('change', {target: {value: 'dogs'}});
       // Submit the form
       wrapper.find('IssueListFilters SmartSearchBar form').simulate('submit');
-      await wrapper.update();
+      wrapper.update();
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -597,6 +602,7 @@ describe('IssueList', function () {
       wrapper
         .find('SmartSearchBar textarea')
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
+
       wrapper.find('SmartSearchBar form').simulate('submit');
 
       expect(browserHistory.push.mock.calls[0][0]).toEqual(
@@ -1219,7 +1225,7 @@ describe('IssueList', function () {
     it('fetches members and sets state', async function () {
       const instance = wrapper.instance();
       await instance.componentDidMount();
-      await wrapper.update();
+      wrapper.update();
 
       expect(fetchMembersRequest).toHaveBeenCalled();
 
@@ -1348,7 +1354,7 @@ describe('IssueList', function () {
     it('fetches and displays processing issues', async function () {
       const instance = wrapper.instance();
       instance.componentDidMount();
-      await wrapper.update();
+      wrapper.update();
 
       GroupStore.add([group]);
       wrapper.setState({

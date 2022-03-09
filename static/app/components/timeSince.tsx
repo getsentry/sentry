@@ -30,24 +30,24 @@ type Props = DefaultProps & {
    */
   date: RelaxedDateType;
 
+  className?: string;
+
   /**
    * By default we show tooltip with absolute date on hover, this prop disables that
    */
   disabledAbsoluteTooltip?: boolean;
-
-  /**
-   * For relative time shortens minutes to min, hour to hr etc.
-   */
-  shorten?: boolean;
   /**
    * Shortens the shortened relative time
    * min to m, hr to h
    */
   extraShort?: boolean;
 
-  tooltipTitle?: React.ReactNode;
+  /**
+   * For relative time shortens minutes to min, hour to hr etc.
+   */
+  shorten?: boolean;
 
-  className?: string;
+  tooltipTitle?: React.ReactNode;
 } & TimeProps;
 
 type State = {
@@ -175,8 +175,6 @@ export function getRelativeDate(
   if (suffix === 'ago') {
     return moment(date).fromNow();
   }
-  if (suffix === 'old') {
-    return t('%(time)s old', {time: moment(date).fromNow(true)});
-  }
-  throw new Error('Unsupported time format suffix');
+
+  return t('%(time)s %(suffix)s', {time: moment(date).fromNow(true), suffix});
 }

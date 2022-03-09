@@ -9,8 +9,8 @@ import getTransformedData from './getTransformedData';
 type Data = EntryRequest['data']['data'];
 
 type Props = {
-  title: string;
   data: Data;
+  title: string;
   defaultCollapsed?: boolean;
   isContextData?: boolean;
   meta?: Meta;

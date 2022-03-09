@@ -4,6 +4,7 @@ from urllib.parse import parse_qs, quote_plus, unquote_plus, urlencode, urlsplit
 
 from django.conf import settings
 from django.conf.urls import url
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations import FeatureDescription, IntegrationFeatures
@@ -53,12 +54,12 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         )
         return _patterns
 
-    def is_configured(self, request, project, **kwargs):
+    def is_configured(self, request: Request, project, **kwargs):
         if not self.get_option("default_project", project):
             return False
         return True
 
-    def get_group_description(self, request, group, event):
+    def get_group_description(self, request: Request, group, event):
         # mostly the same as parent class, but change ``` to {code}
         output = [absolute_uri(group.get_absolute_url(params={"referrer": "jira_plugin"}))]
         body = self.get_group_body(request, group, event)
@@ -131,7 +132,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return issue_type_meta
 
-    def get_new_issue_fields(self, request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
 
         jira_project_key = self.get_option("default_project", group.project)
@@ -176,28 +177,24 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        fields = (
-            [
-                {
-                    "name": "project",
-                    "label": "Jira Project",
-                    "choices": ((meta["id"], jira_project_key),),
-                    "default": meta["id"],
-                    "type": "select",
-                    "readonly": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "issuetype",
-                    "label": "Issue Type",
-                    "default": issue_type or issue_type_meta["id"],
-                    "type": "select",
-                    "choices": issue_type_choices,
-                }
-            ]
-        )
+        fields = [
+            {
+                "name": "project",
+                "label": "Jira Project",
+                "choices": ((meta["id"], jira_project_key),),
+                "default": meta["id"],
+                "type": "select",
+                "readonly": True,
+            },
+            *fields,
+            {
+                "name": "issuetype",
+                "label": "Issue Type",
+                "default": issue_type or issue_type_meta["id"],
+                "type": "select",
+                "choices": issue_type_choices,
+            },
+        ]
 
         # title is renamed to summary before sending to JIRA
         standard_fields = [f["name"] for f in fields] + ["summary"]
@@ -209,7 +206,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         dynamic_fields = list(issue_type_meta.get("fields").keys())
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
-        # build up some dynamic fields based on required shit.
+        # Build up some dynamic fields based on what is required.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
                 # don't overwrite the fixed fields for the form.
@@ -230,7 +227,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return fields
 
-    def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -249,19 +246,19 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def link_issue(self, request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group, form_data, **kwargs):
         client = self.get_jira_client(group.project)
         try:
             issue = client.get_issue(form_data["issue_id"])
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_comment(issue["key"], comment)
             except Exception as e:
-                self.raise_error(e)
+                raise self.raise_error(e)
 
         return {"title": issue["fields"]["summary"]}
 
@@ -280,7 +277,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         )
         return {"id": user["name"], "text": display}
 
-    def view_autocomplete(self, request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group, **kwargs):
         query = request.GET.get("autocomplete_query")
         field = request.GET.get("autocomplete_field")
         project = self.get_option("default_project", group.project)
@@ -398,7 +395,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data, **kwargs):
         cleaned_data = {}
 
         # protect against mis-configured plugin submitting a form without an
@@ -472,7 +469,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         return response.get("key")
 
@@ -504,11 +501,11 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             client.get_projects_list()
         except ApiError as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         return config
 
-    def get_configure_plugin_fields(self, request, project, **kwargs):
+    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
         instance = self.get_option("instance_url", project)
         username = self.get_option("username", project)
         pw = self.get_option("password", project)

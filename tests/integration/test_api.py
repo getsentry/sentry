@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
-from sentry.utils.auth import DEPRECATED_SSO_SESSION_KEY, SSO_EXPIRY_TIME, SsoSession
+from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 from sentry.utils.linksign import generate_signed_link
 
 
@@ -47,13 +47,6 @@ class AuthenticationTest(AuthProviderTestCase):
         # superuser should still require SSO as they're a member of the org
         self.user.update(is_superuser=True)
         self._test_paths_with_status(401)
-
-    def test_sso_deprecated_works(self):
-        # XXX(dcramer): using internal API as exposing a request object is hard
-        # now that SSO is marked as complete, we should be able to access dash
-        self.session[DEPRECATED_SSO_SESSION_KEY] = str(self.organization.id)
-        self.save_session()
-        self._test_paths_with_status(200)
 
     def test_sso_with_expiry_valid(self):
         sso_session = SsoSession.create(self.organization.id)

@@ -56,14 +56,14 @@ import {
 const MARGIN_LEFT = 0;
 
 type Props = {
-  event: Readonly<EventTransaction>;
-  treeDepth: number;
-  span: Readonly<ProcessedSpanType>;
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  spanNumber: number;
   continuingTreeDepths: Array<TreeDepthType>;
+  event: Readonly<EventTransaction>;
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
+  spanNumber: number;
   toggleSpanGroup: () => void;
+  treeDepth: number;
 };
 
 class SpanGroupBar extends React.Component<Props> {
@@ -233,7 +233,7 @@ class SpanGroupBar extends React.Component<Props> {
         // which does not exist.
         return null;
       }
-      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
 
       return (
         <ConnectorBar
@@ -247,9 +247,9 @@ class SpanGroupBar extends React.Component<Props> {
     connectorBars.push(
       <ConnectorBar
         style={{
-          right: '16px',
+          right: '15px',
           height: `${ROW_HEIGHT / 2}px`,
-          bottom: `-${ROW_HEIGHT / 2}px`,
+          bottom: `-${ROW_HEIGHT / 2 + 1}px`,
           top: 'auto',
         }}
         key="collapsed-span-group-row-bottom"

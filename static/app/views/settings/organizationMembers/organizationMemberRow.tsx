@@ -17,18 +17,18 @@ import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'sentry/utils/recreateRoute';
 
 type Props = {
-  params: Record<string, string>;
-  routes: PlainRoute[];
+  canAddMembers: boolean;
+  canRemoveMembers: boolean;
+  currentUser: AvatarUser;
   member: Member;
-  onRemove: (member: Member) => void;
+  memberCanLeave: boolean;
   onLeave: (member: Member) => void;
+  onRemove: (member: Member) => void;
   onSendInvite: (member: Member) => void;
   orgName: string;
-  memberCanLeave: boolean;
+  params: Record<string, string>;
   requireLink: boolean;
-  canRemoveMembers: boolean;
-  canAddMembers: boolean;
-  currentUser: AvatarUser;
+  routes: PlainRoute[];
   status: '' | 'loading' | 'success' | 'error' | null;
 };
 
@@ -238,14 +238,14 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: minmax(150px, 2fr) minmax(90px, 1fr) minmax(120px, 1fr) 90px;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 `;
 
 const Section = styled('div')`
   display: inline-grid;
   grid-template-columns: max-content auto;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 

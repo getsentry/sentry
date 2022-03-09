@@ -8,42 +8,42 @@ import GenericDiscoverQuery, {
 import withApi from 'sentry/utils/withApi';
 
 type BaseDataRow = {
-  id: string;
-  project: string;
-  transaction: string;
+  [key: string]: React.ReactText;
   count: number;
   count_unique_user: number;
+  id: string;
+  project: string;
   team_key_transaction: number;
-  [key: string]: React.ReactText;
+  transaction: string;
 };
 
 type LCPDataRow = BaseDataRow & {
+  compare_numeric_aggregate_p75_measurements_lcp_greater_2500: number;
+  compare_numeric_aggregate_p75_measurements_lcp_greater_4000: number;
   p50_measurements_lcp: number;
   p75_measurements_lcp: number;
   p95_measurements_lcp: number;
-  compare_numeric_aggregate_p75_measurements_lcp_greater_2500: number;
-  compare_numeric_aggregate_p75_measurements_lcp_greater_4000: number;
 };
 type FCPDataRow = BaseDataRow & {
+  compare_numeric_aggregate_p75_measurements_fcp_greater_2500: number;
+  compare_numeric_aggregate_p75_measurements_fcp_greater_4000: number;
   p50_measurements_fcp: number;
   p75_measurements_fcp: number;
   p95_measurements_fcp: number;
-  compare_numeric_aggregate_p75_measurements_fcp_greater_2500: number;
-  compare_numeric_aggregate_p75_measurements_fcp_greater_4000: number;
 };
 type CLSDataRow = BaseDataRow & {
+  compare_numeric_aggregate_p75_measurements_cls_greater_2500: number;
+  compare_numeric_aggregate_p75_measurements_cls_greater_4000: number;
   p50_measurements_cls: number;
   p75_measurements_cls: number;
   p95_measurements_cls: number;
-  compare_numeric_aggregate_p75_measurements_cls_greater_2500: number;
-  compare_numeric_aggregate_p75_measurements_cls_greater_4000: number;
 };
 type FIDDataRow = BaseDataRow & {
+  compare_numeric_aggregate_p75_measurements_fid_greater_2500: number;
+  compare_numeric_aggregate_p75_measurements_fid_greater_4000: number;
   p50_measurements_fid: number;
   p75_measurements_fid: number;
   p95_measurements_fid: number;
-  compare_numeric_aggregate_p75_measurements_fid_greater_2500: number;
-  compare_numeric_aggregate_p75_measurements_fid_greater_4000: number;
 };
 
 // TODO(perf): Fix if/once we can send column aliases along with a request

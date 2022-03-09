@@ -1,4 +1,3 @@
-import {ReactText} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
@@ -25,8 +24,8 @@ export const LEFT_AXIS_QUERY_KEY = 'left';
 export const RIGHT_AXIS_QUERY_KEY = 'right';
 
 type LandingDisplay = {
-  label: string;
   field: LandingDisplayField;
+  label: string;
 };
 
 export enum LandingDisplayField {
@@ -43,11 +42,11 @@ export const LANDING_DISPLAYS = [
     field: LandingDisplayField.ALL,
   },
   {
-    label: 'Frontend (Pageload)',
+    label: 'Web Vitals',
     field: LandingDisplayField.FRONTEND_PAGELOAD,
   },
   {
-    label: 'Frontend (Other)',
+    label: 'Frontend',
     field: LandingDisplayField.FRONTEND_OTHER,
   },
   {
@@ -57,13 +56,11 @@ export const LANDING_DISPLAYS = [
   {
     label: 'Mobile',
     field: LandingDisplayField.MOBILE,
-    isShown: (organization: Organization) =>
-      organization.features.includes('performance-mobile-vitals'),
   },
 ];
 
 export function excludeTransaction(
-  transaction: string | ReactText,
+  transaction: string | React.ReactText,
   props: {eventView: EventView; location: Location}
 ) {
   const {eventView, location} = props;
@@ -81,18 +78,14 @@ export function excludeTransaction(
   });
 }
 
-export function getCurrentLandingDisplay(
-  location: Location,
-  projects: Project[],
-  eventView?: EventView
-): LandingDisplay {
+export function getLandingDisplayFromParam(location: Location) {
   const landingField = decodeScalar(location?.query?.landingDisplay);
 
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
-  if (display) {
-    return display;
-  }
+  return display;
+}
 
+export function getDefaultDisplayForPlatform(projects: Project[], eventView?: EventView) {
   const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
 
   const defaultDisplay = LANDING_DISPLAYS.find(
@@ -101,8 +94,21 @@ export function getCurrentLandingDisplay(
   return defaultDisplay || LANDING_DISPLAYS[0];
 }
 
+export function getCurrentLandingDisplay(
+  location: Location,
+  projects: Project[],
+  eventView?: EventView
+): LandingDisplay {
+  const display = getLandingDisplayFromParam(location);
+  if (display) {
+    return display;
+  }
+
+  return getDefaultDisplayForPlatform(projects, eventView);
+}
+
 export function handleLandingDisplayChange(
-  field: string,
+  field: LandingDisplayField,
   location: Location,
   projects: Project[],
   organization: Organization,
@@ -124,7 +130,7 @@ export function handleLandingDisplayChange(
   const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
   const currentDisplay = getCurrentLandingDisplay(location, projects, eventView).field;
 
-  const newQuery =
+  const newQuery: {query: string; landingDisplay?: LandingDisplayField} =
     defaultDisplay === field
       ? {...queryWithConditions}
       : {...queryWithConditions, landingDisplay: field};
@@ -174,9 +180,9 @@ export function getDefaultDisplayFieldForPlatform(
 }
 
 type VitalCardDetail = {
+  formatter: (value: number) => string | number;
   title: string;
   tooltip: string;
-  formatter: (value: number) => string | number;
 };
 
 export const vitalCardDetails = (
@@ -200,7 +206,7 @@ export const vitalCardDetails = (
     },
     'apdex()': {
       title: t('Apdex'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       formatter: value => formatFloat(value, 4),
     },
     'p75(measurements.frames_slow_rate)': {
@@ -244,4 +250,11 @@ export function getDisplayAxes(options: AxisOption[], location: Location) {
     leftAxis,
     rightAxis,
   };
+}
+
+export function checkIsReactNative(eventView) {
+  // only react native should contain the stall percentage column
+  return Boolean(
+    eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
+  );
 }

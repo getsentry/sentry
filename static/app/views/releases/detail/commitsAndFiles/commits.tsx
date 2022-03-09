@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 
-import CommitRow from 'sentry/components/commitRow';
+import {CommitRow} from 'sentry/components/commitRow';
 import {Body, Main} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -21,8 +21,8 @@ import withReleaseRepos from './withReleaseRepos';
 
 type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   location: Location;
-  projectSlug: Project['slug'];
   orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
   release: string;
   releaseRepos: Repository[];
   activeReleaseRepo?: Repository;

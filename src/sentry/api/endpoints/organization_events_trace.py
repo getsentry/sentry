@@ -14,6 +14,7 @@ from typing import (
     Tuple,
     TypedDict,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -208,6 +209,8 @@ def query_trace_data(
     trace_id: str, params: Mapping[str, str], use_snql: bool = False
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     sentry_sdk.set_tag("discover.use_snql", use_snql)
+    transaction_query: Union[QueryBuilder, discover.PreparedQuery]
+    error_query: Union[QueryBuilder, discover.PreparedQuery]
     if use_snql:
         transaction_query = QueryBuilder(
             Dataset.Transactions,
@@ -229,6 +232,7 @@ def query_trace_data(
             # We want to guarantee at least getting the root, and hopefully events near it with timestamp
             # id is just for consistent results
             orderby=["-root", "timestamp", "id"],
+            limit=MAX_TRACE_SIZE,
         )
         error_query = QueryBuilder(
             Dataset.Events,
@@ -248,6 +252,7 @@ def query_trace_data(
             # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
             orderby=["id"],
             auto_fields=False,
+            limit=MAX_TRACE_SIZE,
         )
         results = bulk_snql_query(
             [transaction_query.get_snql_query(), error_query.get_snql_query()],

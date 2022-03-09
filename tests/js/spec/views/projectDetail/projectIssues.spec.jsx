@@ -33,13 +33,17 @@ describe('ProjectDetail > ProjectIssues', function () {
     wrapper.unmount();
   });
 
-  it('renders a list', function () {
+  it('renders a list', async function () {
     wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
 
     expect(wrapper.find('SectionHeading').text()).toBe('Frequent Unhandled Issues');
+
+    await tick();
+    wrapper.update();
+
     expect(wrapper.find('StreamGroup').length).toBe(2);
   });
 

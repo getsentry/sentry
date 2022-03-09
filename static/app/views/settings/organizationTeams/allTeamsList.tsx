@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Organization, Team} from 'sentry/types';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -11,11 +11,11 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import AllTeamsRow from './allTeamsRow';
 
 type Props = {
-  urlPrefix: string;
   access: Record<string, any>;
+  openMembership: boolean;
   organization: Organization;
   teamList: Array<Team>;
-  openMembership: boolean;
+  urlPrefix: string;
 };
 
 function AllTeamsList({
@@ -52,6 +52,7 @@ function AllTeamsList({
                         organization,
                       })
                     }
+                    aria-label={t('Create team')}
                   />
                 ),
               })

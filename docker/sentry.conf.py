@@ -128,9 +128,9 @@ SENTRY_CACHE = "sentry.cache.redis.RedisCache"
 # Queue #
 #########
 
-# See https://docs.getsentry.com/on-premise/server/queue/ for more
-# information on configuring your queue broker and workers. Sentry relies
-# on a Python framework called Celery to manage queues.
+# See https://develop.sentry.dev/services/queue/ for more information on
+# configuring your queue broker and workers. Sentry relies on a Python
+# framework called Celery to manage queues.
 
 rabbitmq = env("SENTRY_RABBITMQ_HOST") or (env("RABBITMQ_PORT_5672_TCP_ADDR") and "rabbitmq")
 

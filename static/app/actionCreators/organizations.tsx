@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
-import {resetGlobalSelection} from 'sentry/actionCreators/globalSelection';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import {Client} from 'sentry/api';
@@ -91,7 +91,7 @@ export function remove(api: Client, {successMessage, errorMessage, orgId}: Remov
 }
 
 export function switchOrganization() {
-  resetGlobalSelection();
+  resetPageFilters();
 }
 
 export function removeAndRedirectToRemainingOrganization(
@@ -158,9 +158,9 @@ export async function fetchOrganizationByMember(
 
 type FetchOrganizationDetailsParams = {
   /**
-   * Should set as active organization?
+   * Should load projects in ProjectsStore
    */
-  setActive?: boolean;
+  loadProjects?: boolean;
 
   /**
    * Should load teams in TeamStore?
@@ -168,9 +168,9 @@ type FetchOrganizationDetailsParams = {
   loadTeam?: boolean;
 
   /**
-   * Should load projects in ProjectsStore
+   * Should set as active organization?
    */
-  loadProjects?: boolean;
+  setActive?: boolean;
 };
 export async function fetchOrganizationDetails(
   orgId: string,
@@ -184,7 +184,7 @@ export async function fetchOrganizationDetails(
   }
 
   if (loadTeam) {
-    TeamStore.loadInitialData(data.teams);
+    TeamStore.loadInitialData(data.teams, false, null);
   }
 
   if (loadProjects) {

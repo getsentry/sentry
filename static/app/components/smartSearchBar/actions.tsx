@@ -22,13 +22,13 @@ type ActionProps = React.ComponentProps<ActionItem['Action']>;
 
 type PinSearchActionOpts = {
   /**
-   * The currently pinned search
-   */
-  pinnedSearch?: SavedSearch;
-  /**
    * The current issue sort
    */
   sort: string;
+  /**
+   * The currently pinned search
+   */
+  pinnedSearch?: SavedSearch;
 };
 
 /**

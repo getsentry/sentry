@@ -2,6 +2,8 @@ import datetime
 
 import pytz
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 from sentry_relay import parse_release
 
 from sentry.models import Commit, CommitAuthor, Deploy, Organization, Project, Release, User
@@ -13,7 +15,7 @@ from .mail import MailPreview
 
 
 class DebugNewReleaseEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="organization", name="My Company")
         projects = [
             Project(id=1, organization=org, slug="project", name="My Project"),

@@ -32,13 +32,17 @@ class CheckInSerializer(serializers.Serializer):
     duration = EmptyIntegerField(required=False, allow_null=True)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class MonitorCheckInDetailsEndpoint(Endpoint):
     authentication_classes = Endpoint.authentication_classes + (DSNAuthentication,)
     permission_classes = (ProjectPermission,)
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
-    def convert_args(self, request, monitor_id, checkin_id, *args, **kwargs):
+    def convert_args(self, request: Request, monitor_id, checkin_id, *args, **kwargs):
         try:
             monitor = Monitor.objects.get(guid=monitor_id)
         except Monitor.DoesNotExist:
@@ -71,7 +75,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         kwargs.update({"checkin": checkin, "monitor": monitor, "project": project})
         return (args, kwargs)
 
-    def get(self, request, project, monitor, checkin):
+    def get(self, request: Request, project, monitor, checkin) -> Response:
         """
         Retrieve a check-in
         ```````````````````
@@ -86,7 +90,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
         return self.respond(serialize(checkin, request.user))
 
-    def put(self, request, project, monitor, checkin):
+    def put(self, request: Request, project, monitor, checkin) -> Response:
         """
         Update a check-in
         `````````````````

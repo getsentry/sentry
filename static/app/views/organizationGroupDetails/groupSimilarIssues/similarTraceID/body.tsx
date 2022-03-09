@@ -5,7 +5,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody} from 'sentry/components/panels';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -16,8 +16,8 @@ import List from './list';
 
 type Props = {
   event: Event;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   traceID?: string;
 };
 

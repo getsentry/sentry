@@ -7,8 +7,8 @@ import space from 'sentry/styles/space';
  */
 
 export const PerformanceLayoutBodyRow = styled('div')<{
-  columns?: number;
   minSize: number;
+  columns?: number;
 }>`
   display: grid;
   grid-template-columns: 1fr;

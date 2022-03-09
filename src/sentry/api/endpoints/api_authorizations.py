@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, SessionAuthentication
@@ -12,7 +13,7 @@ class ApiAuthorizationsEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         queryset = ApiAuthorization.objects.filter(
             user=request.user, application__status=ApiApplicationStatus.active
         ).select_related("application")
@@ -25,7 +26,7 @@ class ApiAuthorizationsEndpoint(Endpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def delete(self, request):
+    def delete(self, request: Request) -> Response:
         authorization = request.data.get("authorization")
         if not authorization:
             return Response({"authorization": ""}, status=400)

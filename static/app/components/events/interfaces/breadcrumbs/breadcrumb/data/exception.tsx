@@ -9,8 +9,8 @@ import {defined} from 'sentry/utils';
 import Summary from './summary';
 
 type Props = {
-  searchTerm: string;
   breadcrumb: BreadcrumbTypeDefault;
+  searchTerm: string;
   linkedEvent?: React.ReactElement;
 };
 

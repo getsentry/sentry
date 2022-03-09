@@ -34,10 +34,10 @@ const MOBILE_USER_AGENTS = ['okhttp', 'CFNetwork', 'Alamofire', 'Dalvik'];
 type MobileEventResult = {browserName: string; clientOsName: string} | null;
 
 type Props = {
-  projects: Project[];
+  api: Client;
   event: Event;
   organization: Organization;
-  api: Client;
+  projects: Project[];
 };
 
 type State = {
@@ -214,7 +214,7 @@ export default withApi(withProjects(SuggestProjectCTA));
 const Content = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const StyledIconClose = styled(IconClose)`

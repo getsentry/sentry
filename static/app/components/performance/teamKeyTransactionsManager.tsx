@@ -1,4 +1,4 @@
-import {Component, createContext, ReactNode} from 'react';
+import {Component, createContext} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -14,17 +14,17 @@ import withApi from 'sentry/utils/withApi';
 export type TeamSelection = {
   action: 'key' | 'unkey';
   project: Project;
-  transactionName: string;
   teamIds: string[];
+  transactionName: string;
 };
 
 export type TeamKeyTransactionManagerChildrenProps = {
-  teams: Team[];
-  isLoading: boolean;
-  error: string | null;
   counts: Map<string, number> | null;
+  error: string | null;
   getKeyedTeams: (project: string, transactionName: string) => Set<string> | null;
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
+  isLoading: boolean;
+  teams: Team[];
 };
 
 const TeamKeyTransactionsManagerContext =
@@ -39,10 +39,10 @@ const TeamKeyTransactionsManagerContext =
 
 type Props = {
   api: Client;
-  children: ReactNode;
+  children: React.ReactNode;
   organization: Organization;
-  teams: Team[];
   selectedTeams: string[];
+  teams: Team[];
   selectedProjects?: string[];
 };
 

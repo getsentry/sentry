@@ -7,8 +7,8 @@ export enum ErrorType {
 }
 
 type Error = {
-  type: ErrorType;
   message: string;
+  type: ErrorType;
 };
 
 type ResponseError = {

@@ -30,10 +30,10 @@ type Props = {
 
 type State = {
   error: boolean;
+  linkedProjects: Project[];
   loading: boolean;
   pageLinks: null | string;
   unlinkedProjects: Project[];
-  linkedProjects: Project[];
 };
 
 type DropdownAutoCompleteProps = React.ComponentProps<typeof DropdownAutoComplete>;

@@ -1,7 +1,7 @@
 import logging
 import re
 from operator import attrgetter
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.urls import reverse
@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models import (
     ExternalIssue,
     IntegrationExternalProject,
@@ -25,6 +25,7 @@ from sentry.models import (
 )
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiHostError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
@@ -310,7 +311,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key, **kwargs):
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issuetype", "priority", "labels"]
 
     def get_persisted_user_default_config_fields(self):
@@ -379,7 +380,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             return self.get_client().search_issues(query)
         except ApiError as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
     def make_choices(self, values):
         if not values:
@@ -628,30 +629,26 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        fields = (
-            [
-                {
-                    "name": "project",
-                    "label": "Jira Project",
-                    "choices": [(p["id"], p["key"]) for p in jira_projects],
-                    "default": meta["id"],
-                    "type": "select",
-                    "updatesForm": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "issuetype",
-                    "label": "Issue Type",
-                    "default": issue_type or issue_type_meta["id"],
-                    "type": "select",
-                    "choices": issue_type_choices,
-                    "updatesForm": True,
-                    "required": bool(issue_type_choices),  # required if we have any type choices
-                }
-            ]
-        )
+        fields = [
+            {
+                "name": "project",
+                "label": "Jira Project",
+                "choices": [(p["id"], p["key"]) for p in jira_projects],
+                "default": meta["id"],
+                "type": "select",
+                "updatesForm": True,
+            },
+            *fields,
+            {
+                "name": "issuetype",
+                "label": "Issue Type",
+                "default": issue_type or issue_type_meta["id"],
+                "type": "select",
+                "choices": issue_type_choices,
+                "updatesForm": True,
+                "required": bool(issue_type_choices),  # required if we have any type choices
+            },
+        ]
 
         # title is renamed to summary before sending to Jira
         standard_fields = [f["name"] for f in fields] + ["summary"]
@@ -672,7 +669,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # Sort based on priority, then field name
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
 
-        # build up some dynamic fields based on required shit.
+        # Build up some dynamic fields based on what is required.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
                 # don't overwrite the fixed fields for the form.
@@ -680,6 +677,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
             mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
             if mb_field:
+                if mb_field["label"] in params.get("ignored", []):
+                    continue
                 mb_field["name"] = field
                 fields.append(mb_field)
 
@@ -825,7 +824,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            return self.raise_error(e)
+            raise self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:
@@ -917,8 +916,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # don't bother updating if it's already the status we'd change it to
         if jira_issue["fields"]["status"]["id"] == jira_status:
             return
-
-        transitions = client.get_transitions(external_issue.key)
+        try:
+            transitions = client.get_transitions(external_issue.key)
+        except ApiHostError:
+            raise IntegrationError("Could not reach host to get transitions.")
 
         try:
             transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]

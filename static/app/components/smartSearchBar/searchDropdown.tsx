@@ -9,11 +9,11 @@ import space from 'sentry/styles/space';
 import {ItemType, SearchGroup, SearchItem} from './types';
 
 type Props = {
-  className?: string;
   items: SearchGroup[];
-  searchSubstring: string;
-  onClick: (value: string, item: SearchItem) => void;
   loading: boolean;
+  onClick: (value: string, item: SearchItem) => void;
+  searchSubstring: string;
+  className?: string;
 };
 
 class SearchDropdown extends PureComponent<Props> {
@@ -115,10 +115,11 @@ const StyledSearchDropdown = styled('div')`
   right: -1px;
   z-index: ${p => p.theme.zIndex.dropdown};
   overflow: hidden;
+  margin-top: ${space(1)};
   background: ${p => p.theme.background};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const LoadingWrapper = styled('div')`
@@ -177,7 +178,7 @@ const SearchListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.focus};
+    background: ${p => p.theme.hover};
   }
 `;
 

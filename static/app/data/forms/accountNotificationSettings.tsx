@@ -1,5 +1,5 @@
+import {Field, JsonFormObject} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
-import {Field, JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 // TODO: cleanup unused fields and exports
 

@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
@@ -72,11 +73,11 @@ class UserNotificationDetailsSerializer(serializers.Serializer):
 
 
 class UserNotificationDetailsEndpoint(UserEndpoint):
-    def get(self, request, user):
+    def get(self, request: Request, user) -> Response:
         serialized = serialize(user, request.user, UserNotificationsSerializer())
         return Response(serialized)
 
-    def put(self, request, user):
+    def put(self, request: Request, user) -> Response:
         serializer = UserNotificationDetailsSerializer(data=request.data)
 
         if not serializer.is_valid():

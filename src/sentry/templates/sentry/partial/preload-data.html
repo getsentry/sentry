@@ -11,7 +11,7 @@
         xhr.onload = function () {
           try {
             this.status >= 200 && this.status < 300
-              ? resolve(JSON.parse(xhr.response))
+              ? resolve([JSON.parse(xhr.response), this.statusText, xhr])
               : reject([this.status, this.statusText]);
           } catch (e) {
             reject();

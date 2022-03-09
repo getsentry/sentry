@@ -26,8 +26,8 @@ import ProjectStatsGraph from './projectStatsGraph';
 const ITEMS_PER_PAGE = 50;
 
 type Props = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type ProjectStats = Record<string, Required<Project['stats']>>;

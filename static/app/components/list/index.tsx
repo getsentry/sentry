@@ -7,10 +7,10 @@ import {getListSymbolStyle, listSymbol} from './utils';
 
 type Props = {
   children: React.ReactNode;
-  symbol?: keyof typeof listSymbol | React.ReactElement;
-  initialCounterValue?: number;
-  'data-test-id'?: string;
   className?: string;
+  'data-test-id'?: string;
+  initialCounterValue?: number;
+  symbol?: keyof typeof listSymbol | React.ReactElement;
 };
 
 const List = styled(
@@ -53,7 +53,7 @@ const List = styled(
   padding: 0;
   list-style: none;
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   ${p =>
     typeof p.symbol === 'string' &&
     listSymbol[p.symbol] &&

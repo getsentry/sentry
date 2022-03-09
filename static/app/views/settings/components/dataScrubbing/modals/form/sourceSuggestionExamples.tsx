@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -40,7 +40,7 @@ const Content = styled('span')`
   display: inline-grid;
   grid-template-columns: repeat(2, max-content);
   align-items: center;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
   text-decoration: underline;

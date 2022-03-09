@@ -14,6 +14,9 @@ class Dataset(Enum):
 
 @unique
 class EntityKey(Enum):
+    Events = "events"
+    Sessions = "sessions"
+    Transactions = "transactions"
     MetricsSets = "metrics_sets"
     MetricsCounters = "metrics_counters"
     MetricsDistributions = "metrics_distributions"

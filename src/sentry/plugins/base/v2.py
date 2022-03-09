@@ -439,7 +439,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> from sentry.plugins.interfaces.releasehook import ReleaseHook
         >>>
         >>> class MyReleaseHook(ReleaseHook):
-        >>>     def handle(self, request):
+        >>>     def handle(self, request: Request) -> Response:
         >>>         self.finish_release(version=request.POST['version'])
 
         >>> def get_release_hook(self, **kwargs):

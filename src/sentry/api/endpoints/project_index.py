@@ -1,6 +1,8 @@
 from django.db.models import Q
 from django.db.models.query import EmptyQuerySet
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -15,7 +17,7 @@ from sentry.search.utils import tokenize_query
 class ProjectIndexEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         """
         List your Projects
         ``````````````````

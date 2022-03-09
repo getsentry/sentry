@@ -26,8 +26,8 @@ type Props = CommonSidebarProps & {
 
 type State = {
   broadcasts: Broadcast[];
-  loading: boolean;
   error: boolean;
+  loading: boolean;
 };
 
 class Broadcasts extends Component<Props, State> {

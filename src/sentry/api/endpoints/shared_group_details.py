@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, EnvironmentMixin
@@ -14,7 +15,7 @@ from sentry.models import Group
 class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
     permission_classes = ()
 
-    def get(self, request, share_id):
+    def get(self, request: Request, share_id) -> Response:
         """
         Retrieve an aggregate
 

@@ -8,8 +8,8 @@ import space from 'sentry/styles/space';
 import {Plugin} from 'sentry/types';
 
 type Props = {
-  plugins: Plugin[];
   onEnablePlugin: (plugin: Plugin) => void;
+  plugins: Plugin[];
 };
 
 const InactivePlugins = ({plugins, onEnablePlugin}: Props) => {

@@ -4,12 +4,13 @@ from celery.task import current
 from django.urls import reverse
 from requests.exceptions import ConnectionError, RequestException, Timeout
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
 from sentry.models import (
+    Activity,
     Group,
     Organization,
     Project,
@@ -19,13 +20,8 @@ from sentry.models import (
     ServiceHookProject,
     User,
 )
-from sentry.models.sentryapp import VALID_EVENTS, track_response_code
-from sentry.shared_integrations.exceptions import (
-    ApiHostError,
-    ApiTimeoutError,
-    ClientError,
-    IgnorableSentryAppError,
-)
+from sentry.models.integrations.sentry_app import VALID_EVENTS, track_response_code
+from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.compat import filter
@@ -42,7 +38,7 @@ TASK_OPTIONS = {
 
 RETRY_OPTIONS = {
     "on": (RequestException, ApiHostError, ApiTimeoutError),
-    "ignore": (IgnorableSentryAppError, ClientError),
+    "ignore": (ClientError),
 }
 
 # We call some models by a different name, publicly, than their class name.
@@ -50,7 +46,7 @@ RETRY_OPTIONS = {
 # Hook events to match what we externally call these primitives.
 RESOURCE_RENAMES = {"Group": "issue"}
 
-TYPES = {"Group": Group, "Error": Event}
+TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
 
 
 def _webhook_event_data(event, group_id, project_id):
@@ -75,7 +71,7 @@ def _webhook_event_data(event, group_id, project_id):
     # a valid URL (it can't know which option to pick). We have to manually
     # create this URL for, that reason.
     event_context["issue_url"] = absolute_uri(f"/api/0/issues/{group_id}/")
-
+    event_context["issue_id"] = str(group_id)
     return event_context
 
 
@@ -156,7 +152,6 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
             return
-
         name = sender.lower()
     else:
         # Some resources are named differently than their model. eg. Group vs Issue.
@@ -186,18 +181,6 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     event = f"{name}.{action}"
 
     if event not in VALID_EVENTS:
-        org_id = Project.objects.get_from_cache(id=instance.project_id).organization_id
-        org = Organization.objects.get_from_cache(id=org_id)
-        if features.has("organizations:sentry-app-debugging", org):
-            logger.info(
-                "_process_resource_change.invalid_event.debug",
-                extra={
-                    "event_type": event,
-                    "organization_id": org_id,
-                    "project_id": instance.project_id,
-                    "valid_events": VALID_EVENTS,
-                },
-            )
         return
 
     org = None
@@ -256,8 +239,47 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
-    extra = {"installation_id": installation_id, "issue_id": issue_id}
+    install, issue, user = get_webhook_data(installation_id, issue_id, user_id)
 
+    data = kwargs.get("data", {})
+    data.update({"issue": serialize(issue)})
+    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+    analytics.record(
+        f"sentry_app.issue.{type}",
+        user_id=user_id,
+        group_id=issue_id,
+        installation_id=installation_id,
+    )
+
+
+@instrumented_task(name="sentry.tasks.sentry_apps.build_comment_webhook", **TASK_OPTIONS)
+@retry(**RETRY_OPTIONS)
+def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwargs):
+    install, _, user = get_webhook_data(installation_id, issue_id, user_id)
+    data = kwargs.get("data", {})
+    project_slug = data.get("project_slug")
+    comment_id = data.get("comment_id")
+    payload = {
+        "comment_id": data.get("comment_id"),
+        "issue_id": issue_id,
+        "project_slug": data.get("project_slug"),
+        "timestamp": data.get("timestamp"),
+        "comment": data.get("comment"),
+    }
+    send_webhooks(installation=install, event=type, data=payload, actor=user)
+    # type is comment.created, comment.updated, or comment.deleted
+    analytics.record(
+        type,
+        user_id=user_id,
+        group_id=issue_id,
+        project_slug=project_slug,
+        installation_id=installation_id,
+        comment_id=comment_id,
+    )
+
+
+def get_webhook_data(installation_id, issue_id, user_id):
+    extra = {"installation_id": installation_id, "issue_id": issue_id}
     try:
         install = SentryAppInstallation.objects.get(
             id=installation_id, status=SentryAppInstallationStatus.INSTALLED
@@ -279,10 +301,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     except User.DoesNotExist:
         logger.info("workflow_notification.missing_user", extra=extra)
 
-    data = kwargs.get("data", {})
-    data.update({"issue": serialize(issue)})
-
-    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
+    return (install, issue, user)
 
 
 @instrumented_task("sentry.tasks.send_process_resource_change_webhook", **TASK_OPTIONS)
@@ -342,15 +361,6 @@ def send_webhooks(installation, event, **kwargs):
         return
 
     if event not in servicehook.events:
-        organization = Organization.objects.get_from_cache(id=installation.organization_id)
-        if features.has("organizations:sentry-app-debugging", organization):
-            logger.info(
-                "send_webhooks.dropped_event.debug",
-                extra={
-                    "event_type": event,
-                    "organization_id": installation.organization_id,
-                },
-            )
         return
 
     # The service hook applies to all projects if there are no
@@ -396,7 +406,7 @@ def ignore_unpublished_app_errors(func):
             if sentry_app.is_published:
                 raise
             else:
-                raise IgnorableSentryAppError("unpublished or internal app")
+                return
 
     return wrapper
 
@@ -421,18 +431,6 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
         resp = safe_urlopen(
             url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
         )
-        organization = Organization.objects.get_from_cache(id=org_id)
-        if features.has("organizations:sentry-app-debugging", organization):
-            project_id = app_platform_event.data["error"].get("project")
-            logger.info(
-                "send_and_save_webhook_request.debug",
-                extra={
-                    "event_type": event,
-                    "organization_id": org_id,
-                    "integration_slug": sentry_app.slug,
-                    "project_id": project_id,
-                },
-            )
     except (Timeout, ConnectionError) as e:
         error_type = e.__class__.__name__.lower()
         logger.info(
@@ -451,19 +449,6 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
 
     else:
         track_response_code(resp.status_code, slug, event)
-        organization = Organization.objects.get_from_cache(id=org_id)
-        if features.has("organizations:sentry-app-debugging", organization):
-            project_id = app_platform_event.data["error"].get("project")
-            logger.info(
-                "send_and_save_webhook_request.error",
-                extra={
-                    "event_type": event,
-                    "organization_id": org_id,
-                    "integration_slug": sentry_app.slug,
-                    "status": resp.status_code,
-                    "project_id": project_id,
-                },
-            )
         buffer.add_request(
             response_code=resp.status_code,
             org_id=org_id,

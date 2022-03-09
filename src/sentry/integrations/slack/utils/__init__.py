@@ -1,5 +1,4 @@
 __all__ = (
-    "build_notification_footer",
     "check_signing_secret",
     "get_channel_id",
     "get_channel_id_with_timeout",
@@ -27,11 +26,7 @@ from .channel import (
     strip_channel_name,
     validate_channel_id,
 )
-from .notifications import (
-    build_notification_footer,
-    send_incident_alert_notification,
-    send_slack_response,
-)
+from .notifications import send_incident_alert_notification, send_slack_response
 from .users import get_slack_data_by_user, get_users
 
 SLACK_RATE_LIMITED_MESSAGE = "Requests to Slack exceeded the rate limit. Please try again later."

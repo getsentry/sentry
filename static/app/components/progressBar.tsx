@@ -10,13 +10,13 @@ type Props = {
    */
   value: number;
   /**
-   * The style of the progressBar
-   */
-  variant?: Variant;
-  /**
    * Styles applied to the component's root
    */
   className?: string;
+  /**
+   * The style of the progressBar
+   */
+  variant?: Variant;
 };
 
 const getVariantStyle = ({

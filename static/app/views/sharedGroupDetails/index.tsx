@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -10,6 +9,7 @@ import Footer from 'sentry/components/footer';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import space from 'sentry/styles/space';
@@ -23,9 +23,9 @@ type Props = RouteComponentProps<{shareId: string}, {}> & {
 };
 
 type State = {
+  error: boolean;
   group: Group | null;
   loading: boolean;
-  error: boolean;
 };
 
 class SharedGroupDetails extends Component<Props, State> {
@@ -80,11 +80,7 @@ class SharedGroupDetails extends Component<Props, State> {
   getTitle() {
     const {group} = this.state;
 
-    if (group) {
-      return group.title;
-    }
-
-    return 'Sentry';
+    return group?.title ?? 'Sentry';
   }
 
   render() {
@@ -107,7 +103,7 @@ class SharedGroupDetails extends Component<Props, State> {
     const title = this.getTitle();
 
     return (
-      <DocumentTitle title={title}>
+      <SentryDocumentTitle noSuffix title={title}>
         <div className="app">
           <div className="pattern-bg" />
           <div className="container">
@@ -143,7 +139,7 @@ class SharedGroupDetails extends Component<Props, State> {
             </div>
           </div>
         </div>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

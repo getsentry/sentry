@@ -1,10 +1,15 @@
 from django.conf import settings
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
+from sentry.api.permissions import SuperuserPermission
 
 
 class UserPermissionsConfigEndpoint(UserEndpoint):
-    def get(self, request, user):
+    permission_classes = (SuperuserPermission,)
+
+    def get(self, request: Request, user) -> Response:
         """
         List all available permissions that can be applied to a user.
         """

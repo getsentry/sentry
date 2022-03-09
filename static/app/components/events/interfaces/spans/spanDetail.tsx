@@ -26,7 +26,7 @@ import {
   generateIssueEventTarget,
   generateTraceTarget,
 } from 'sentry/components/quickTrace/utils';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAnchor, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -39,6 +39,7 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withApi from 'sentry/utils/withApi';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
@@ -50,22 +51,22 @@ const DEFAULT_ERRORS_VISIBLE = 5;
 const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
 
 type TransactionResult = {
-  'project.name': string;
-  transaction: string;
-  'trace.span': string;
   id: string;
+  'project.name': string;
+  'trace.span': string;
+  transaction: string;
 };
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  event: Readonly<EventTransaction>;
-  span: Readonly<ProcessedSpanType>;
-  isRoot: boolean;
-  trace: Readonly<ParsedTraceType>;
   childTransactions: QuickTraceEvent[] | null;
+  event: Readonly<EventTransaction>;
+  isRoot: boolean;
+  organization: Organization;
   relatedErrors: TraceError[] | null;
   scrollToHash: (hash: string) => void;
+  span: Readonly<ProcessedSpanType>;
+  trace: Readonly<ParsedTraceType>;
 };
 
 type State = {
@@ -199,6 +200,30 @@ class SpanDetail extends React.Component<Props, State> {
     return (
       <StyledButton size="xsmall" to={generateTraceTarget(event, organization)}>
         {t('View Trace')}
+      </StyledButton>
+    );
+  }
+
+  renderViewSimilarSpansButton() {
+    const {span, organization, location, event} = this.props;
+
+    if (isGapSpan(span) || !span.op || !span.hash) {
+      return null;
+    }
+
+    const transactionName = event.title;
+
+    const target = spanDetailsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      query: location.query,
+      spanSlug: {op: span.op, group: span.hash},
+      projectID: event.projectID,
+    });
+
+    return (
+      <StyledButton size="xsmall" to={target}>
+        {t('View Similar Spans')}
       </StyledButton>
     );
   }
@@ -343,7 +368,9 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Trace ID" extra={this.renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              <Row title="Description">{span?.description ?? ''}</Row>
+              <Row title="Description" extra={this.renderViewSimilarSpansButton()}>
+                {span?.description ?? ''}
+              </Row>
               <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
                 {getDynamicText({
@@ -381,7 +408,7 @@ class SpanDetail extends React.Component<Props, State> {
                 <Row title="Span Group">
                   {defined(span.hash) ? String(span.hash) : null}
                 </Row>
-                <Row title="Span Exclusive Time">
+                <Row title="Span Self Time">
                   {defined(span.exclusive_time)
                     ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
                     : null}
@@ -510,10 +537,10 @@ export const Row = ({
   children,
   extra = null,
 }: {
-  title: JSX.Element | string | null;
   children: JSX.Element | string | null;
-  keep?: boolean;
+  title: JSX.Element | string | null;
   extra?: React.ReactNode;
+  keep?: boolean;
 }) => {
   if (!keep && !children) {
     return null;

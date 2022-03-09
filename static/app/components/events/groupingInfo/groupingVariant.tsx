@@ -21,8 +21,8 @@ import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';
 
 type Props = {
-  variant: EventGroupVariant;
   showGroupingConfig: boolean;
+  variant: EventGroupVariant;
 };
 
 type State = {
@@ -296,7 +296,7 @@ const TextWithQuestionTooltip = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: max-content min-content;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
 `;
 
 const Hash = styled('span')`

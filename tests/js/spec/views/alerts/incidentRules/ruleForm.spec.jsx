@@ -1,3 +1,5 @@
+import selectEvent from 'react-select-event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -23,7 +25,9 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  const {organization, project, routerContext} = initializeOrg();
+  const {organization, project, routerContext} = initializeOrg({
+    organization: {features: ['metric-alert-threshold-period', 'change-alerts']},
+  });
   const createWrapper = props =>
     mountWithTheme(
       <RuleFormContainer
@@ -102,6 +106,9 @@ describe('Incident Rules Form', () => {
         'Incident Rule'
       );
 
+      // Set thresholdPeriod
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+
       userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenCalledWith(
@@ -111,6 +118,7 @@ describe('Incident Rules Form', () => {
             name: 'Incident Rule',
             projects: ['project-slug'],
             eventTypes: ['default'],
+            thresholdPeriod: 10,
           }),
         })
       );
@@ -161,6 +169,37 @@ describe('Incident Rules Form', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'new name',
+          }),
+        })
+      );
+    });
+
+    it('switches from percent change to count', async () => {
+      createWrapper({
+        ruleId: rule.id,
+        rule: {
+          ...rule,
+          timeWindow: 60,
+          comparisonDelta: 100,
+          eventTypes: ['error'],
+          resolution: 2,
+        },
+      });
+
+      expect(screen.getByLabelText('Select Percent Change')).toBeInTheDocument();
+      expect(screen.getByLabelText('Select Percent Change')).toBeChecked();
+
+      userEvent.click(screen.getByLabelText('Select Count'));
+      await waitFor(() => expect(screen.getByLabelText('Select Count')).toBeChecked());
+
+      userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            // Comparison delta is reset
+            comparisonDelta: null,
           }),
         })
       );

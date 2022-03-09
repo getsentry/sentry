@@ -12,7 +12,10 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
+import {
+  AppStoreConnectStatusData,
+  CustomRepoAppStoreConnect,
+} from 'sentry/types/debugFiles';
 import {unexpectedErrorMessage} from 'sentry/utils/appStoreValidationErrorMessage';
 import withApi from 'sentry/utils/withApi';
 
@@ -21,27 +24,13 @@ import StepTwo from './stepTwo';
 import {AppStoreApp, StepOneData, StepTwoData} from './types';
 import {getAppStoreErrorMessage} from './utils';
 
-type InitialData = {
-  type: string;
-  appId: string;
-  appName: string;
-  appconnectIssuer: string;
-  appconnectKey: string;
-  appconnectPrivateKey: {
-    'hidden-secret': boolean;
-  };
-  bundleId: string;
-  id: string;
-  name: string;
-};
-
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
+  onSubmit: () => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  onSubmit: () => void;
   appStoreConnectStatusData?: AppStoreConnectStatusData;
-  initialData?: InitialData;
+  initialData?: CustomRepoAppStoreConnect;
 };
 
 const steps = [t('App Store Connect credentials'), t('Choose an application')];
@@ -324,7 +313,7 @@ const HeaderContent = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content 1fr;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const NumericSymbol = styled('div')`
@@ -367,7 +356,7 @@ const StyledButton = styled(Button)`
 
 const Alerts = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   margin-bottom: ${space(3)};
 `;
 

@@ -98,7 +98,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Create another project'),
       description: t(
-        'Easy, right? Don’t stop at one. Set up another project to keep things running smoothly in both the frontend and backend.'
+        'Easy, right? Don’t stop at one. Set up another project and send it events to keep things running smoothly in both the frontend and backend.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],

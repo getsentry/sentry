@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
@@ -8,18 +8,19 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {EMPTY_DASHBOARD} from './data';
+import {DASHBOARDS_TEMPLATES, EMPTY_DASHBOARD} from './data';
 import DashboardDetail from './detail';
 import {DashboardState, Widget} from './types';
 import {cloneDashboard, constructWidgetFromQuery} from './utils';
 
-type Props = RouteComponentProps<{orgId: string}, {}> & {
-  organization: Organization;
+type Props = RouteComponentProps<{orgId: string; templateId?: string}, {}> & {
   children: React.ReactNode;
+  organization: Organization;
 };
 
 function CreateDashboard(props: Props) {
-  const {organization, location} = props;
+  const {location} = props;
+  const {templateId} = props.params;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
   function renderDisabled() {
     return (
@@ -29,14 +30,18 @@ function CreateDashboard(props: Props) {
     );
   }
 
-  const dashboard = cloneDashboard(EMPTY_DASHBOARD);
+  const template = templateId
+    ? DASHBOARDS_TEMPLATES.find(dashboardTemplate => dashboardTemplate.id === templateId)
+    : undefined;
+  const dashboard = template ? cloneDashboard(template) : cloneDashboard(EMPTY_DASHBOARD);
+  const initialState = template ? DashboardState.PREVIEW : DashboardState.CREATE;
   useEffect(() => {
     const constructedWidget = constructWidgetFromQuery(location.query);
     setNewWidget(constructedWidget);
     if (constructedWidget) {
       browserHistory.replace(location.pathname);
     }
-  }, [organization.slug]);
+  }, [location.pathname]);
   return (
     <Feature
       features={['dashboards-edit']}
@@ -45,7 +50,7 @@ function CreateDashboard(props: Props) {
     >
       <DashboardDetail
         {...props}
-        initialState={DashboardState.CREATE}
+        initialState={initialState}
         dashboard={dashboard}
         dashboards={[]}
         newWidget={newWidget}

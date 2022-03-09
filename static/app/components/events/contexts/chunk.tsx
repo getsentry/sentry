@@ -13,8 +13,8 @@ type Props = {
   alias: string;
   event: Event;
   type: string;
-  value?: Record<string, any>;
   group?: Group;
+  value?: Record<string, any>;
 };
 
 type State = {

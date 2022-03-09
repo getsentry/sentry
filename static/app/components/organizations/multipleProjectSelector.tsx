@@ -5,36 +5,44 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import PlatformList from 'sentry/components/platformList';
 import Tooltip from 'sentry/components/tooltip';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {growIn} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 import {MinimalProject, Organization, Project} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import ProjectSelector from './projectSelector';
 
 type Props = WithRouterProps & {
-  organization: Organization;
-  value: number[];
-  projects: Project[];
   nonMemberProjects: Project[];
-  onChange: (selected: number[]) => unknown;
-  onUpdate: () => unknown;
-  isGlobalSelectionReady?: boolean;
+  onChange: (selected: number[]) => void;
+  onUpdate: (newProjects?: number[]) => void;
+  organization: Organization;
+  projects: Project[];
+  value: number[];
+  customDropdownButton?: (config: {
+    getActorProps: GetActorPropsFn;
+    isOpen: boolean;
+    selectedProjects: Project[];
+  }) => React.ReactElement;
+  customLoadingIndicator?: React.ReactNode;
+  detached?: boolean;
   disableMultipleProjectSelection?: boolean;
-  shouldForceProject?: boolean;
+  footerMessage?: React.ReactNode;
   forceProject?: MinimalProject | null;
+  isGlobalSelectionReady?: boolean;
+  lockedMessageSubject?: React.ReactNode;
+  shouldForceProject?: boolean;
   showIssueStreamLink?: boolean;
   showProjectSettingsLink?: boolean;
-  lockedMessageSubject?: React.ReactNode;
-  footerMessage?: React.ReactNode;
 };
 
 type State = {
@@ -57,9 +65,12 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     );
   }
 
-  // Reset "hasChanges" state and call `onUpdate` callback
-  doUpdate = () => {
-    this.setState({hasChanges: false}, this.props.onUpdate);
+  /**
+   * Reset "hasChanges" state and call `onUpdate` callback
+   * @param value optional parameter that will be passed to onUpdate callback
+   */
+  doUpdate = (value?: number[]) => {
+    this.setState({hasChanges: false}, () => this.props.onUpdate(value));
   };
 
   /**
@@ -79,14 +90,13 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
    * Should perform an "update" callback
    */
   handleQuickSelect = (selected: Pick<Project, 'id'>) => {
-    analytics('projectselector.direct_selection', {
+    trackAdvancedAnalyticsEvent('projectselector.direct_selection', {
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
-
     const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
     this.props.onChange(value);
-    this.doUpdate();
+    this.doUpdate(value);
   };
 
   /**
@@ -101,10 +111,11 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     }
 
     const {value} = this.props;
-    analytics('projectselector.update', {
+
+    trackAdvancedAnalyticsEvent('projectselector.update', {
       count: value.length,
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
       multi: this.multi,
     });
 
@@ -117,9 +128,9 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
    * Should perform an "update" callback
    */
   handleClear = () => {
-    analytics('projectselector.clear', {
+    trackAdvancedAnalyticsEvent('projectselector.clear', {
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
 
     this.props.onChange([]);
@@ -134,10 +145,10 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   handleMultiSelect = (selected: Project[]) => {
     const {onChange, value} = this.props;
 
-    analytics('projectselector.toggle', {
+    trackAdvancedAnalyticsEvent('projectselector.toggle', {
       action: selected.length > value.length ? 'added' : 'removed',
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
 
     const selectedList = selected.map(({id}) => parseInt(id, 10)).filter(i => i);
@@ -195,6 +206,8 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       forceProject,
       showProjectSettingsLink,
       footerMessage,
+      customDropdownButton,
+      customLoadingIndicator,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -230,13 +243,15 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
         {this.renderProjectName()}
       </StyledHeaderItem>
     ) : !isGlobalSelectionReady ? (
-      <StyledHeaderItem
-        data-test-id="global-header-project-selector-loading"
-        icon={<IconProject />}
-        loading
-      >
-        {t('Loading\u2026')}
-      </StyledHeaderItem>
+      customLoadingIndicator ?? (
+        <StyledHeaderItem
+          data-test-id="global-header-project-selector-loading"
+          icon={<IconProject />}
+          loading
+        >
+          {t('Loading\u2026')}
+        </StyledHeaderItem>
+      )
     ) : (
       <ClassNames>
         {({css}) => (
@@ -261,16 +276,29 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 onShowAllProjects={() => {
                   this.handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
                   actions.close();
+                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                    button_type: 'all',
+                    path: getRouteStringFromRoutes(this.props.router.routes),
+                    organization,
+                  });
                 }}
                 onShowMyProjects={() => {
                   this.handleClear();
                   actions.close();
+                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                    button_type: 'my',
+                    path: getRouteStringFromRoutes(this.props.router.routes),
+                    organization,
+                  });
                 }}
                 message={footerMessage}
               />
             )}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
+              if (customDropdownButton) {
+                return customDropdownButton({getActorProps, selectedProjects, isOpen});
+              }
               const hasSelected = !!selectedProjects.length;
               const title = hasSelected
                 ? selectedProjects.map(({slug}) => slug).join(', ')
@@ -322,14 +350,14 @@ type FeatureRenderProps = {
 };
 
 type ControlProps = {
-  organization: Organization;
   onApply: () => void;
   onShowAllProjects: () => void;
   onShowMyProjects: () => void;
-  selected?: Set<number>;
+  organization: Organization;
   disableMultipleProjectSelection?: boolean;
   hasChanges?: boolean;
   message?: React.ReactNode;
+  selected?: Set<number>;
 };
 
 const SelectorFooterControls = ({
@@ -431,9 +459,14 @@ const FooterMessage = styled('div')`
 const StyledProjectSelector = styled(ProjectSelector)`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  margin: 1px 0 0 -1px;
-  border-radius: ${p => p.theme.borderRadiusBottom};
   width: 100%;
+
+  ${p =>
+    !p.detached &&
+    `
+    margin: 1px 0 0 -1px;
+    border-radius: ${p.theme.borderRadiusBottom};
+  `}
 `;
 
 const StyledHeaderItem = styled(HeaderItem)`

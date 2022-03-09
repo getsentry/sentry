@@ -1,13 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
-import chunk from 'lodash/chunk';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -23,7 +21,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -48,20 +46,20 @@ import {
 import ThresholdsChart from './thresholdsChart';
 
 type Props = {
+  aggregate: IncidentRule['aggregate'];
   api: Client;
+  comparisonType: AlertRuleComparisonType;
+
+  environment: string | null;
   organization: Organization;
   projects: Project[];
-
   query: IncidentRule['query'];
-  timeWindow: IncidentRule['timeWindow'];
-  environment: string | null;
-  aggregate: IncidentRule['aggregate'];
-  triggers: Trigger[];
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
-  comparisonType: AlertRuleComparisonType;
-  header?: React.ReactNode;
+  timeWindow: IncidentRule['timeWindow'];
+  triggers: Trigger[];
   comparisonDelta?: number;
+  header?: React.ReactNode;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -74,56 +72,40 @@ const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
 };
 
 /**
- * If TimeWindow is small we want to limit the stats period
- * If the time window is one day we want to use a larger stats period
+ * Just to avoid repeating it
  */
-const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
+const MOST_TIME_PERIODS: readonly TimePeriod[] = [
+  TimePeriod.ONE_DAY,
+  TimePeriod.THREE_DAYS,
+  TimePeriod.SEVEN_DAYS,
+  TimePeriod.FOURTEEN_DAYS,
+  TimePeriod.THIRTY_DAYS,
+];
+
+/**
+ * TimeWindow determines data available in TimePeriod
+ * If TimeWindow is small, lower TimePeriod to limit data points
+ */
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
   ],
-  [TimeWindow.FIVE_MINUTES]: [
-    TimePeriod.ONE_DAY,
+  [TimeWindow.FIVE_MINUTES]: MOST_TIME_PERIODS,
+  [TimeWindow.TEN_MINUTES]: MOST_TIME_PERIODS,
+  [TimeWindow.FIFTEEN_MINUTES]: MOST_TIME_PERIODS,
+  [TimeWindow.THIRTY_MINUTES]: MOST_TIME_PERIODS,
+  [TimeWindow.ONE_HOUR]: MOST_TIME_PERIODS,
+  [TimeWindow.TWO_HOURS]: MOST_TIME_PERIODS,
+  [TimeWindow.FOUR_HOURS]: [
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
     TimePeriod.FOURTEEN_DAYS,
     TimePeriod.THIRTY_DAYS,
   ],
-  [TimeWindow.TEN_MINUTES]: [
-    TimePeriod.ONE_DAY,
-    TimePeriod.THREE_DAYS,
-    TimePeriod.SEVEN_DAYS,
-    TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
-  ],
-  [TimeWindow.FIFTEEN_MINUTES]: [
-    TimePeriod.THREE_DAYS,
-    TimePeriod.SEVEN_DAYS,
-    TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
-  ],
-  [TimeWindow.THIRTY_MINUTES]: [
-    TimePeriod.SEVEN_DAYS,
-    TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
-  ],
-  [TimeWindow.ONE_HOUR]: [TimePeriod.FOURTEEN_DAYS, TimePeriod.THIRTY_DAYS],
-  [TimeWindow.TWO_HOURS]: [TimePeriod.THIRTY_DAYS],
-  [TimeWindow.FOUR_HOURS]: [TimePeriod.THIRTY_DAYS],
   [TimeWindow.ONE_DAY]: [TimePeriod.THIRTY_DAYS],
-};
-
-const AGGREGATE_FUNCTIONS = {
-  avg: (seriesChunk: SeriesDataUnit[]) =>
-    AGGREGATE_FUNCTIONS.sum(seriesChunk) / seriesChunk.length,
-  sum: (seriesChunk: SeriesDataUnit[]) =>
-    seriesChunk.reduce((acc, series) => acc + series.value, 0),
-  max: (seriesChunk: SeriesDataUnit[]) =>
-    Math.max(...seriesChunk.map(series => series.value)),
-  min: (seriesChunk: SeriesDataUnit[]) =>
-    Math.min(...seriesChunk.map(series => series.value)),
 };
 
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
@@ -139,21 +121,6 @@ const SESSION_AGGREGATE_TO_HEADING = {
   [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
 };
 
-/**
- * Determines the number of datapoints to roll up
- */
-const getBucketSize = (timeWindow: TimeWindow, dataPoints: number): number => {
-  const MAX_DPS = 720;
-  for (const bucketSize of [5, 10, 15, 30, 60, 120, 240]) {
-    const chunkSize = bucketSize / timeWindow;
-    if (dataPoints / chunkSize <= MAX_DPS) {
-      return bucketSize / timeWindow;
-    }
-  }
-
-  return 2;
-};
-
 type State = {
   statsPeriod: TimePeriod;
   totalCount: number | null;
@@ -165,7 +132,7 @@ type State = {
  */
 class TriggersChart extends React.PureComponent<Props, State> {
   state: State = {
-    statsPeriod: TimePeriod.ONE_DAY,
+    statsPeriod: TimePeriod.SEVEN_DAYS,
     totalCount: null,
   };
 
@@ -213,7 +180,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = statsPeriodOptions.includes(statsPeriod)
       ? statsPeriod
-      : statsPeriodOptions[0];
+      : statsPeriodOptions[statsPeriodOptions.length - 1];
     return period;
   };
 
@@ -370,81 +337,41 @@ class TriggersChart extends React.PureComponent<Props, State> {
         }}
       </SessionsRequest>
     ) : (
-      <Feature features={['metric-alert-builder-aggregate']} organization={organization}>
-        {({hasFeature}) => {
-          return (
-            <EventsRequest
-              api={api}
-              organization={organization}
-              query={query}
-              environment={environment ? [environment] : undefined}
-              project={projects.map(({id}) => Number(id))}
-              interval={`${timeWindow}m`}
-              comparisonDelta={comparisonDelta && comparisonDelta * 60}
-              period={period}
-              yAxis={aggregate}
-              includePrevious={false}
-              currentSeriesNames={[aggregate]}
-              partial={false}
-            >
-              {({loading, reloading, timeseriesData, comparisonTimeseriesData}) => {
-                let comparisonMarkLines: LineChartSeries[] = [];
-                if (renderComparisonStats && comparisonTimeseriesData) {
-                  comparisonMarkLines = getComparisonMarkLines(
-                    timeseriesData,
-                    comparisonTimeseriesData,
-                    timeWindow,
-                    triggers,
-                    thresholdType
-                  );
-                }
+      <EventsRequest
+        api={api}
+        organization={organization}
+        query={query}
+        environment={environment ? [environment] : undefined}
+        project={projects.map(({id}) => Number(id))}
+        interval={`${timeWindow}m`}
+        comparisonDelta={comparisonDelta && comparisonDelta * 60}
+        period={period}
+        yAxis={aggregate}
+        includePrevious={false}
+        currentSeriesNames={[aggregate]}
+        partial={false}
+      >
+        {({loading, reloading, timeseriesData, comparisonTimeseriesData}) => {
+          let comparisonMarkLines: LineChartSeries[] = [];
+          if (renderComparisonStats && comparisonTimeseriesData) {
+            comparisonMarkLines = getComparisonMarkLines(
+              timeseriesData,
+              comparisonTimeseriesData,
+              timeWindow,
+              triggers,
+              thresholdType
+            );
+          }
 
-                let timeseriesLength: number | undefined;
-                if (timeseriesData?.[0]?.data !== undefined) {
-                  timeseriesLength = timeseriesData[0].data.length;
-                  if (hasFeature && timeseriesLength > 600) {
-                    const avgData: SeriesDataUnit[] = [];
-                    const minData: SeriesDataUnit[] = [];
-                    const maxData: SeriesDataUnit[] = [];
-                    const chunkSize = getBucketSize(
-                      timeWindow,
-                      timeseriesData[0].data.length
-                    );
-                    chunk(timeseriesData[0].data, chunkSize).forEach(seriesChunk => {
-                      avgData.push({
-                        name: seriesChunk[0].name,
-                        value: AGGREGATE_FUNCTIONS.avg(seriesChunk),
-                      });
-                      minData.push({
-                        name: seriesChunk[0].name,
-                        value: AGGREGATE_FUNCTIONS.min(seriesChunk),
-                      });
-                      maxData.push({
-                        name: seriesChunk[0].name,
-                        value: AGGREGATE_FUNCTIONS.max(seriesChunk),
-                      });
-                    });
-                    timeseriesData = [
-                      timeseriesData[0],
-                      {seriesName: t('Minimum'), data: minData},
-                      {seriesName: t('Average'), data: avgData},
-                      {seriesName: t('Maximum'), data: maxData},
-                    ];
-                  }
-                }
-
-                return this.renderChart(
-                  timeseriesData,
-                  loading,
-                  reloading,
-                  comparisonTimeseriesData,
-                  comparisonMarkLines
-                );
-              }}
-            </EventsRequest>
+          return this.renderChart(
+            timeseriesData,
+            loading,
+            reloading,
+            comparisonTimeseriesData,
+            comparisonMarkLines
           );
         }}
-      </Feature>
+      </EventsRequest>
     );
   }
 }

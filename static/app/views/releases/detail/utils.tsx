@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
   Commit,
@@ -77,8 +77,8 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  perPage?: number;
   activeRepository?: Repository;
+  perPage?: number;
 };
 
 export function getQuery({location, perPage = 40, activeRepository}: GetQueryProps) {
@@ -154,8 +154,8 @@ export const releaseComparisonChartHelp = {
 };
 
 type GenerateReleaseMarklineOptions = {
-  hideLabel?: boolean;
   axisIndex?: number;
+  hideLabel?: boolean;
 };
 
 function generateReleaseMarkLine(

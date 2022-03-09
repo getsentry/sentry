@@ -14,6 +14,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -31,7 +32,6 @@ import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cell
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {
-  PerformanceDuration,
   platformAndConditionsToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
 } from '../../utils';
@@ -40,6 +40,7 @@ import {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import {tagsRouteWithQuery} from '../transactionTags/utils';
+import {normalizeSearchConditions} from '../utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
@@ -172,12 +173,12 @@ export function TagValue(props: TagValueProps) {
 }
 
 type Props = {
+  currentFilter: SpanOperationBreakdownFilter;
   eventView: EventView;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   projects: Project[];
   transactionName: string;
-  currentFilter: SpanOperationBreakdownFilter;
 };
 
 type State = {
@@ -303,10 +304,7 @@ class _TagExplorer extends React.Component<Props> {
         organization_id: parseInt(organization.id, 10),
       });
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
@@ -484,10 +482,10 @@ class _TagExplorer extends React.Component<Props> {
 }
 
 type HeaderProps = {
-  organization: Organization;
-  transactionName: string;
   location: Location;
+  organization: Organization;
   pageLinks: string | null;
+  transactionName: string;
 };
 
 function TagsHeader(props: HeaderProps) {
@@ -529,12 +527,12 @@ function TagsHeader(props: HeaderProps) {
       <Button
         onClick={handleViewAllTagsClick}
         to={viewAllTarget}
-        size="small"
+        size="xsmall"
         data-test-id="tags-explorer-open-tags"
       >
         {t('View All Tags')}
       </Button>
-      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xsmall" />
     </Header>
   );
 }
@@ -542,12 +540,14 @@ function TagsHeader(props: HeaderProps) {
 const AlignRight = styled('div')`
   text-align: right;
   font-variant-numeric: tabular-nums;
+  width: 100%;
 `;
 
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
+  align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`

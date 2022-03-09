@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -8,7 +9,7 @@ from sentry.models import Team, TeamStatus
 
 
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List your Teams In the Current Organization
         ```````````````````````````````````````````

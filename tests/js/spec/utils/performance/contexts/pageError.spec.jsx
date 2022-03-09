@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -18,10 +17,6 @@ function SimpleErrorButton() {
 }
 
 describe('Performance > Contexts > pageError', function () {
-  const {routerContext} = initializeOrg({
-    router: {orgId: 'orgId'},
-  });
-
   it('Check that pageError context will render error alert', async function () {
     mountWithTheme(
       <PageErrorProvider>
@@ -29,8 +24,7 @@ describe('Performance > Contexts > pageError', function () {
           <PageErrorAlert />
         </div>
         <SimpleErrorButton />
-      </PageErrorProvider>,
-      {context: routerContext}
+      </PageErrorProvider>
     );
 
     const button = await screen.findByTestId('pageErrorButton');

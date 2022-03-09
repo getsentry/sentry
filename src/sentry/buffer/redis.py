@@ -142,7 +142,23 @@ class RedisBuffer(Buffer):
         else:
             raise TypeError(f"invalid type: {type_}")
 
-    def incr(self, model, columns, filters, extra=None, signal_only=None):
+    def get(self, model, columns, filters):
+        """
+        Fetches buffered values for a model/filter. Passed columns must be integer columns.
+        """
+        key = self._make_key(model, filters)
+        conn = self.cluster.get_local_client_for_key(key)
+        pipe = conn.pipeline()
+
+        for col in columns:
+            pipe.hget(key, f"i+{col}")
+        results = pipe.execute()
+
+        return {
+            col: (int(results[i]) if results[i] is not None else 0) for i, col in enumerate(columns)
+        }
+
+    def incr(self, model, columns, filters, extra=None, signal_only=None, return_incr_results=True):
         """
         Increment the key by doing the following:
 

@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DateTime from 'sentry/components/dateTime';
-import DeviceName from 'sentry/components/deviceName';
+import {DeviceName} from 'sentry/components/deviceName';
 import FileSize from 'sentry/components/fileSize';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {AvatarUser, Organization, Tag} from 'sentry/types';
@@ -11,13 +11,13 @@ import AttachmentUrl from 'sentry/utils/attachmentUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  hasUser?: boolean;
-  orgId: string;
-  groupId: string;
-  projectId: string;
   event: Event;
-  tagList: Tag[];
+  groupId: string;
+  orgId: string;
   organization: Organization;
+  projectId: string;
+  tagList: Tag[];
+  hasUser?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 class EventsTableRow extends React.Component<Props> {
@@ -37,12 +37,12 @@ class EventsTableRow extends React.Component<Props> {
         attachment={event.crashFile}
       >
         {url =>
-          url && (
+          url ? (
             <small>
               {crashFileType}: <a href={`${url}?download=1`}>{event.crashFile?.name}</a> (
               <FileSize bytes={event.crashFile?.size || 0} />)
             </small>
-          )
+          ) : null
         }
       </AttachmentUrl>
     );

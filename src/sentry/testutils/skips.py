@@ -3,7 +3,6 @@ import socket
 from urllib.parse import urlparse
 
 import pytest
-import requests
 from django.conf import settings
 
 _service_status = {}
@@ -27,16 +26,12 @@ requires_snuba = pytest.mark.skipif(
 )
 
 
-def snuba_metrics_available():
-    try:
-        return requests.get(settings.SENTRY_SNUBA + "/metrics/snql").status_code == 200
-    except requests.ConnectionError:
-        return False
+def is_arm64():
+    return os.uname().machine == "arm64"
 
 
-requires_snuba_metrics = pytest.mark.skipif(
-    not snuba_is_available() or not snuba_metrics_available(),
-    reason="requires snuba server running with metrics enabled",
+requires_not_arm64 = pytest.mark.skipif(
+    is_arm64(), reason="this test fails in our arm64 testing env"
 )
 
 

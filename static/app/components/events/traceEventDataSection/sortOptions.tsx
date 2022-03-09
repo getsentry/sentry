@@ -22,8 +22,8 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 
 type Props = {
   activeSortOption: SortOption;
-  onChange: (sortOption: SortOption) => void;
   disabled: boolean;
+  onChange: (sortOption: SortOption) => void;
 };
 
 function SortOptions({activeSortOption, onChange, disabled}: Props) {

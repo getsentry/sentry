@@ -33,5 +33,5 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert text == f"Issue marked as resolved in {release_name} by {self.name}"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedInReleaseActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved-in-release-activity-slack-user|Notification Settings>"
         )

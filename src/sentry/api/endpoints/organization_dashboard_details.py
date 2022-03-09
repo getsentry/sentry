@@ -2,6 +2,7 @@ import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -19,7 +20,7 @@ READ_FEATURE = "organizations:dashboards-basic"
 class OrganizationDashboardBase(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
-    def convert_args(self, request, organization_slug, dashboard_id, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, dashboard_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug)
 
         try:
@@ -29,7 +30,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
         return (args, kwargs)
 
-    def _get_dashboard(self, request, organization, dashboard_id):
+    def _get_dashboard(self, request: Request, organization, dashboard_id):
         prebuilt = Dashboard.get_prebuilt(dashboard_id)
         sentry_sdk.set_tag("dashboard.is_prebuilt", prebuilt is not None)
         if prebuilt:
@@ -38,7 +39,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
-    def get(self, request, organization, dashboard):
+    def get(self, request: Request, organization, dashboard) -> Response:
         """
         Retrieve an Organization's Dashboard
         ````````````````````````````````````
@@ -57,7 +58,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         return self.respond(serialize(dashboard, request.user))
 
-    def delete(self, request, organization, dashboard):
+    def delete(self, request: Request, organization, dashboard) -> Response:
         """
         Delete an Organization's Dashboard
         ```````````````````````````````````
@@ -89,7 +90,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         return self.respond(status=204)
 
-    def put(self, request, organization, dashboard):
+    def put(self, request: Request, organization, dashboard) -> Response:
         """
         Edit an Organization's Dashboard
         ```````````````````````````````````
@@ -135,7 +136,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
 
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
-    def post(self, request, organization, dashboard):
+    def post(self, request: Request, organization, dashboard) -> Response:
         """
         Update last_visited and increment visits counter
         """

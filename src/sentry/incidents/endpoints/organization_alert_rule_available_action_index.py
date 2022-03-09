@@ -1,15 +1,16 @@
 from collections import defaultdict
 
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationEndpoint
-from sentry.incidents.endpoints.serializers import action_target_type_to_string
 from sentry.incidents.logic import get_available_action_integrations_for_org, get_pagerduty_services
 from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.models import SentryAppInstallation
 
 
@@ -29,7 +30,7 @@ def build_action_response(
     action_response = {
         "type": registered_type.slug,
         "allowedTargetTypes": [
-            action_target_type_to_string.get(target_type)
+            ACTION_TARGET_TYPE_TO_STRING.get(target_type)
             for target_type in registered_type.supported_target_types
         ],
     }
@@ -61,7 +62,7 @@ def build_action_response(
 
 
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization
         """

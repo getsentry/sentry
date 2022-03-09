@@ -31,7 +31,7 @@ issue_search_config = SearchConfig.create_from(
     allow_boolean=False,
     is_filter_translation=is_filter_translation,
     numeric_keys=default_config.numeric_keys | {"times_seen"},
-    date_keys=default_config.date_keys | {"date"},
+    date_keys=default_config.date_keys | {"date", "first_seen", "last_seen"},
     key_mappings={
         "assigned_to": ["assigned"],
         "bookmarked_by": ["bookmarks"],

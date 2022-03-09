@@ -3,38 +3,39 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import Access from 'sentry/components/acl/access';
-import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import Confirm from 'sentry/components/confirm';
+import {openConfirmModal} from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
-import DropdownLink from 'sentry/components/dropdownLink';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
-import {IconArrow, IconDelete, IconEllipsis, IconSettings} from 'sentry/icons';
+import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Color} from 'sentry/utils/theme';
-import {AlertRuleThresholdType} from 'sentry/views/alerts/incidentRules/types';
+import {
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+} from 'sentry/views/alerts/incidentRules/types';
 
-import AlertBadge from '../alertBadge';
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
 type Props = {
-  rule: CombinedMetricIssueAlerts;
-  projects: Project[];
-  projectsLoaded: boolean;
+  onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   orgId: string;
   organization: Organization;
-  onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
+  projects: Project[];
+  projectsLoaded: boolean;
+  rule: CombinedMetricIssueAlerts;
   // Set of team ids that the user belongs to
   userTeams: Set<string>;
 };
@@ -48,6 +49,7 @@ const getProject = memoize((slug: string, projects: Project[]) =>
 
 function RuleListRow({
   rule,
+  organization,
   projectsLoaded,
   projects,
   orgId,
@@ -91,8 +93,12 @@ function RuleListRow({
       return null;
     }
 
-    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+    const criticalTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.CRITICAL
+    );
+    const warningTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.WARNING
+    );
     const resolvedTrigger = rule.resolveThreshold;
     const trigger =
       activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
@@ -108,9 +114,9 @@ function RuleListRow({
 
     if (activeIncident) {
       iconColor =
-        trigger?.label === 'critical'
+        trigger?.label === AlertRuleTriggerType.CRITICAL
           ? 'red300'
-          : trigger?.label === 'warning'
+          : trigger?.label === AlertRuleTriggerType.WARNING
           ? 'yellow300'
           : 'green300';
       iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
@@ -148,8 +154,18 @@ function RuleListRow({
     : null;
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
+  const hasAlertRuleStatusPage = organization.features.includes('alert-rule-status-page');
+  // TODO(workflow): Refactor when removing alert-rule-status-page flag
   const alertLink = isIssueAlert(rule) ? (
-    rule.name
+    hasAlertRuleStatusPage ? (
+      <Link
+        to={`/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`}
+      >
+        {rule.name}
+      </Link>
+    ) : (
+      rule.name
+    )
   ) : (
     <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
   );
@@ -160,6 +176,31 @@ function RuleListRow({
     [IncidentStatus.CLOSED]: t('Resolved'),
     [IncidentStatus.OPENED]: t('Resolved'),
   };
+
+  const actions: MenuItemProps[] = [
+    {
+      key: 'edit',
+      label: t('Edit'),
+      to: editLink,
+    },
+    {
+      key: 'delete',
+      label: t('Delete'),
+      priority: 'danger',
+      onAction: () => {
+        openConfirmModal({
+          onConfirm: () => onDelete(slug, rule),
+          header: t('Delete Alert Rule?'),
+          message: tct(
+            "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
+            {name: rule.name}
+          ),
+          confirmText: t('Delete Rule'),
+          priority: 'danger',
+        });
+      },
+    },
+  ];
 
   return (
     <ErrorBoundary>
@@ -186,7 +227,9 @@ function RuleListRow({
         </FlexCenter>
         <AlertNameAndStatus>
           <AlertName>{alertLink}</AlertName>
-          {!isIssueAlert(rule) && renderLastIncidentDate()}
+          <AlertIncidentDate>
+            {!isIssueAlert(rule) && renderLastIncidentDate()}
+          </AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
@@ -216,78 +259,17 @@ function RuleListRow({
       <ActionsRow>
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
-            <React.Fragment>
-              <StyledDropdownLink>
-                <DropdownLink
-                  anchorRight
-                  caret={false}
-                  title={
-                    <Button
-                      tooltipProps={{
-                        containerDisplayMode: 'flex',
-                      }}
-                      size="small"
-                      type="button"
-                      aria-label={t('Show more')}
-                      icon={<IconEllipsis size="xs" />}
-                    />
-                  }
-                >
-                  <li>
-                    <Link to={editLink}>{t('Edit')}</Link>
-                  </li>
-                  <Confirm
-                    disabled={!hasAccess || !canEdit}
-                    message={tct(
-                      "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
-                      {
-                        name: rule.name,
-                      }
-                    )}
-                    header={t('Delete Alert Rule?')}
-                    priority="danger"
-                    confirmText={t('Delete Rule')}
-                    onConfirm={() => onDelete(slug, rule)}
-                  >
-                    <MenuItemActionLink title={t('Delete')}>
-                      {t('Delete')}
-                    </MenuItemActionLink>
-                  </Confirm>
-                </DropdownLink>
-              </StyledDropdownLink>
-
-              {/* Small screen actions */}
-              <StyledButtonBar gap={1}>
-                <Confirm
-                  disabled={!hasAccess || !canEdit}
-                  message={tct(
-                    "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
-                    {
-                      name: rule.name,
-                    }
-                  )}
-                  header={t('Delete Alert Rule?')}
-                  priority="danger"
-                  confirmText={t('Delete Rule')}
-                  onConfirm={() => onDelete(slug, rule)}
-                >
-                  <Button
-                    type="button"
-                    icon={<IconDelete />}
-                    size="small"
-                    title={t('Delete')}
-                  />
-                </Confirm>
-                <Tooltip title={t('Edit')}>
-                  <Button
-                    size="small"
-                    type="button"
-                    icon={<IconSettings />}
-                    to={editLink}
-                  />
-                </Tooltip>
-              </StyledButtonBar>
-            </React.Fragment>
+            <DropdownMenuControlV2
+              items={actions}
+              placement="bottom right"
+              triggerProps={{
+                'aria-label': t('Show more'),
+                size: 'xsmall',
+                icon: <IconEllipsis size="xs" />,
+                showChevron: false,
+              }}
+              disabledKeys={hasAccess && canEdit ? [] : ['delete']}
+            />
           )}
         </Access>
       </ActionsRow>
@@ -305,12 +287,13 @@ const FlexCenter = styled('div')`
 `;
 
 const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
+  position: relative;
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
 const AlertNameAndStatus = styled('div')`
   ${overflowEllipsis}
-  margin-left: ${space(1.5)};
+  margin-left: ${space(2)};
   line-height: 1.35;
 `;
 
@@ -329,6 +312,10 @@ const AlertName = styled('div')`
   }
 `;
 
+const AlertIncidentDate = styled('div')`
+  color: ${p => p.theme.gray300};
+`;
+
 const ProjectBadgeContainer = styled('div')`
   width: 100%;
 `;
@@ -339,30 +326,13 @@ const ProjectBadge = styled(IdBadge)`
 
 const StyledDateTime = styled(DateTime)`
   font-variant-numeric: tabular-nums;
+  color: ${p => p.theme.gray300};
 `;
 
 const TriggerText = styled('div')`
   margin-left: ${space(1)};
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  display: none;
-  justify-content: flex-start;
-  align-items: center;
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    display: flex;
-  }
-`;
-
-const StyledDropdownLink = styled('div')`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: block;
-  }
 `;
 
 const ActionsRow = styled(FlexCenter)`

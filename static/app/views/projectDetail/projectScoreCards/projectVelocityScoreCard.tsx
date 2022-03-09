@@ -2,33 +2,33 @@ import * as React from 'react';
 
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
-import {shouldFetchPreviousPeriod} from '../utils';
 
 const API_LIMIT = 1000;
 
-type Release = {version: string; date: string};
+type Release = {date: string; version: string};
 
 type Props = AsyncComponent['props'] & {
-  organization: Organization;
-  selection: GlobalSelection;
   isProjectStabilized: boolean;
+  organization: Organization;
+  selection: PageFilters;
   query?: string;
 };
 
 type State = AsyncComponent['state'] & {
   currentReleases: Release[] | null;
-  previousReleases: Release[] | null;
   noReleaseEver: boolean;
+  previousReleases: Release[] | null;
 };
 
 class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
@@ -66,13 +66,19 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
           method: 'GET',
           query: {
             ...commonQuery,
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
     ];
 
-    if (shouldFetchPreviousPeriod(datetime)) {
+    if (
+      shouldFetchPreviousPeriod({
+        start: datetime.start,
+        end: datetime.end,
+        period: datetime.period,
+      })
+    ) {
       const {start: previousStart} = parseStatsPeriod(
         getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
           .statsPeriod!
@@ -157,11 +163,12 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized} = this.props;
+    const {selection, isProjectStabilized, query} = this.props;
 
     if (
       prevProps.selection !== selection ||
-      prevProps.isProjectStabilized !== isProjectStabilized
+      prevProps.isProjectStabilized !== isProjectStabilized ||
+      prevProps.query !== query
     ) {
       this.remountComponent();
     }

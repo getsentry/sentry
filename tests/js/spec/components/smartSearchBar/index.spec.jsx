@@ -26,7 +26,7 @@ describe('SmartSearchBar', function () {
       key: 'firstRelease',
       name: 'firstRelease',
     };
-    organization = TestStubs.Organization({id: '123', features: ['improved-search']});
+    organization = TestStubs.Organization({id: '123'});
 
     location = {
       pathname: '/organizations/org-slug/recent-searches/',
@@ -371,6 +371,30 @@ describe('SmartSearchBar', function () {
       jest.advanceTimersByTime(201); // doesn't close until 200ms
 
       expect(searchBar.state.inputHasFocus).toBe(false);
+    });
+  });
+
+  describe('onPaste()', function () {
+    it('trims pasted content', function () {
+      const onChange = jest.fn();
+      const wrapper = mountWithTheme(
+        <SmartSearchBar
+          organization={organization}
+          location={location}
+          supportedTags={supportedTags}
+          onChange={onChange}
+        />,
+        options
+      );
+      wrapper.setState({inputHasFocus: true});
+
+      const input = ' something ';
+      wrapper
+        .find('textarea')
+        .simulate('paste', {clipboardData: {getData: () => input, value: input}});
+      wrapper.update();
+
+      expect(onChange).toHaveBeenCalledWith('something', expect.anything());
     });
   });
 

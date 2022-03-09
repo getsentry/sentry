@@ -70,29 +70,28 @@ describe('RuleBuilder', function () {
 
   it('renders', async function () {
     const wrapper = mountWithTheme(
-      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />,
-      TestStubs.routerContext()
+      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />
     );
 
     await tick();
     wrapper.update();
 
-    const add = wrapper.find('Button');
+    const add = wrapper.find('AddButton');
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
 
     const text = wrapper.find('BuilderInput');
     text.simulate('change', {target: {value: 'some/path/*'}});
-    expect(wrapper.find('Button').prop('disabled')).toBe(true);
+    expect(wrapper.find('AddButton').prop('disabled')).toBe(true);
 
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
 
     // Select the first item in the list.
     await selectByValueAsync(wrapper, 'user:1', {name: 'owners', control: true});
-    await wrapper.update();
+    wrapper.update();
 
-    expect(wrapper.find('Button').prop('disabled')).toBe(false);
+    expect(wrapper.find('AddButton').prop('disabled')).toBe(false);
     add.simulate('click');
     expect(handleAdd).toHaveBeenCalled();
 
@@ -110,8 +109,7 @@ describe('RuleBuilder', function () {
         onAddRule={handleAdd}
         urls={['example.com/a', 'example.com/a/foo']}
         paths={['a/bar', 'a/foo']}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     // Open the menu so we can do some assertions.
@@ -144,7 +142,7 @@ describe('RuleBuilder', function () {
     wrapper.update();
     expect(wrapper.find(RuleBuilder)).toSnapshot();
 
-    wrapper.find('Button').simulate('click');
+    wrapper.find('AddButton').simulate('click');
     expect(handleAdd).toHaveBeenCalled();
   });
 });

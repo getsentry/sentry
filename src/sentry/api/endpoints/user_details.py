@@ -7,6 +7,7 @@ from django.contrib.auth import logout
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -16,6 +17,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.api.serializers.rest_framework import ListField
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
 from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
 
@@ -95,8 +97,15 @@ class UserSerializer(BaseUserSerializer):
         return super().validate(attrs)
 
 
-class PrivilegedUserSerializer(BaseUserSerializer):
+class SuperuserUserSerializer(BaseUserSerializer):
     isActive = serializers.BooleanField(source="is_active")
+
+    class Meta:
+        model = User
+        fields = ("name", "username", "isActive")
+
+
+class PrivilegedUserSerializer(SuperuserUserSerializer):
     isStaff = serializers.BooleanField(source="is_staff")
     isSuperuser = serializers.BooleanField(source="is_superuser")
 
@@ -113,7 +122,7 @@ class DeleteUserSerializer(serializers.Serializer):
 
 
 class UserDetailsEndpoint(UserEndpoint):
-    def get(self, request, user):
+    def get(self, request: Request, user) -> Response:
         """
         Retrieve User Details
         `````````````````````
@@ -125,7 +134,7 @@ class UserDetailsEndpoint(UserEndpoint):
         """
         return Response(serialize(user, request.user, DetailedUserSerializer()))
 
-    def put(self, request, user):
+    def put(self, request: Request, user) -> Response:
         """
         Update Account Appearance options
         `````````````````````````````````
@@ -143,6 +152,8 @@ class UserDetailsEndpoint(UserEndpoint):
 
         if request.access.has_permission("users.admin"):
             serializer_cls = PrivilegedUserSerializer
+        elif is_active_superuser(request):
+            serializer_cls = SuperuserUserSerializer
         else:
             serializer_cls = UserSerializer
         serializer = serializer_cls(user, data=request.data, partial=True)
@@ -188,7 +199,7 @@ class UserDetailsEndpoint(UserEndpoint):
         return Response(serialize(user, request.user, DetailedUserSerializer()))
 
     @sudo_required
-    def delete(self, request, user):
+    def delete(self, request: Request, user) -> Response:
         """
         Delete User Account
 

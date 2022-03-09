@@ -32,36 +32,36 @@ export enum BreadcrumbType {
 
 type BreadcrumbTypeBase = {
   level: BreadcrumbLevelType;
-  timestamp?: string; // it's recommended
+  // it's recommended
   category?: string | null;
-  message?: string;
   event_id?: string;
+  message?: string;
+  timestamp?: string;
 };
 
 export type BreadcrumbTypeSystem = {
-  type: BreadcrumbType.SYSTEM;
   action: string;
   extras: Record<string, any>;
+  type: BreadcrumbType.SYSTEM;
 } & BreadcrumbTypeBase;
 
 export type BreadcrumbTypeSession = {
-  type: BreadcrumbType.SESSION;
   action: string;
   extras: Record<string, any>;
+  type: BreadcrumbType.SESSION;
 } & BreadcrumbTypeBase;
 
 export type BreadcrumbTypeNavigation = {
   type: BreadcrumbType.NAVIGATION;
   data?: {
-    to?: string;
     from?: string;
+    to?: string;
   };
 } & BreadcrumbTypeBase;
 
 export type BreadcrumbTypeHTTP = {
   type: BreadcrumbType.HTTP;
   data?: {
-    url?: string;
     method?:
       | 'POST'
       | 'PUT'
@@ -72,8 +72,9 @@ export type BreadcrumbTypeHTTP = {
       | 'OPTIONS'
       | 'TRACE'
       | 'PATCH';
-    status_code?: number;
     reason?: string;
+    status_code?: number;
+    url?: string;
   };
 } & BreadcrumbTypeBase;
 
@@ -101,7 +102,7 @@ export type RawCrumb =
   | BreadcrumbTypeDefault;
 
 export type Crumb = RawCrumb & {
-  description: string;
   color: Color;
+  description: string;
   id: number;
 };

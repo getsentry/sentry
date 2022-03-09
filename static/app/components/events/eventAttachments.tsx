@@ -22,12 +22,12 @@ import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNo
 
 type Props = {
   api: Client;
+  attachments: IssueAttachment[];
   event: Event;
+  location: Location;
+  onDeleteAttachment: (attachmentId: IssueAttachment['id']) => void;
   orgId: string;
   projectId: string;
-  location: Location;
-  attachments: IssueAttachment[];
-  onDeleteAttachment: (attachmentId: IssueAttachment['id']) => void;
 };
 
 type State = {

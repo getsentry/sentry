@@ -9,7 +9,7 @@ import {t, tct, tn} from 'sentry/locale';
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';
 
-type ErrorDetail = {name: string; error: string};
+type ErrorDetail = {error: string; name: string};
 
 type Props = {
   lambdaFunctionFailures: ErrorDetail[];

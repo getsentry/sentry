@@ -7,9 +7,12 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import Commit, CommitAuthor, Integration, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
@@ -50,7 +53,10 @@ class PushEventWebhook(Webhook):
         except Integration.DoesNotExist:
             raise Http404()
 
-        client = installation.get_client()
+        try:
+            client = installation.get_client()
+        except IntegrationError:
+            return HttpResponse(status=400)
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
@@ -104,13 +110,13 @@ class BitbucketServerWebhookEndpoint(View):
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, organization_id, integration_id):
+    def post(self, request: Request, organization_id, integration_id) -> Response:
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:

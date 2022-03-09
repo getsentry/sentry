@@ -2,29 +2,38 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {createDashboard} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import {Title} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import {DashboardListItem} from '../types';
+import {DASHBOARDS_TEMPLATES} from '../data';
+import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
+import {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
+import TemplateCard from './templateCard';
+import {setShowTemplates, shouldShowTemplates} from './utils';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Dashboards'), value: 'mydashboards'},
@@ -37,17 +46,25 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 
 type Props = {
   api: Client;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   router: InjectedRouter;
 } & AsyncView['props'];
 
 type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
+  showTemplates: boolean;
 } & AsyncView['state'];
 
 class ManageDashboards extends AsyncView<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      showTemplates: shouldShowTemplates(),
+    };
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
     return [
@@ -77,11 +94,9 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   handleSearch(query: string) {
-    const {location, router} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.search',
-      eventName: 'Dashboards Manager: Search',
-      organization_id: parseInt(this.props.organization.id, 10),
+    const {location, router, organization} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.search', {
+      organization,
     });
 
     router.push({
@@ -91,11 +106,9 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   handleSortChange = (value: string) => {
-    const {location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.change_sort',
-      eventName: 'Dashboards Manager: Sort By Changed',
-      organization_id: parseInt(this.props.organization.id, 10),
+    const {location, organization} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.change_sort', {
+      organization,
       sort: value,
     });
     browserHistory.push({
@@ -108,10 +121,43 @@ class ManageDashboards extends AsyncView<Props, State> {
     });
   };
 
+  toggleTemplates = () => {
+    const {showTemplates} = this.state;
+    const {organization} = this.props;
+
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.toggle', {
+      organization,
+      show_templates: !showTemplates,
+    });
+
+    this.setState({showTemplates: !showTemplates}, () => {
+      setShowTemplates(!showTemplates);
+    });
+  };
+
   getQuery() {
     const {query} = this.props.location.query;
 
     return typeof query === 'string' ? query : undefined;
+  }
+
+  renderTemplates() {
+    const {organization} = this.props;
+    return (
+      <Feature organization={organization} features={['dashboards-template']}>
+        <TemplateContainer>
+          {DASHBOARDS_TEMPLATES.map(dashboard => (
+            <TemplateCard
+              title={dashboard.title}
+              description={dashboard.description}
+              onPreview={() => this.onPreview(dashboard.id)}
+              onAdd={() => this.onAdd(dashboard)}
+              key={dashboard.title}
+            />
+          ))}
+        </TemplateContainer>
+      </Feature>
+    );
   }
 
   renderActions() {
@@ -170,13 +216,47 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   onCreate() {
     const {organization, location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.create.start',
-      eventName: 'Dashboards Manager: Dashboard Create Started',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('dashboards_manage.create.start', {
+      organization,
     });
+
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
+      query: location.query,
+    });
+  }
+
+  async onAdd(dashboard: DashboardDetails) {
+    const {organization, api} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
+      organization,
+      dashboard_id: dashboard.id,
+      dashboard_title: dashboard.title,
+      was_previewed: false,
+    });
+
+    await createDashboard(
+      api,
+      organization.slug,
+      {
+        ...dashboard,
+        widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
+      },
+      true
+    );
+    this.onDashboardsChange();
+    addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
+  }
+
+  onPreview(dashboardId: string) {
+    const {organization, location} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.preview', {
+      organization,
+      dashboard_id: dashboardId,
+    });
+
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
       query: location.query,
     });
   }
@@ -190,6 +270,7 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   renderBody() {
+    const {showTemplates} = this.state;
     const {organization} = this.props;
 
     return (
@@ -203,19 +284,35 @@ class ManageDashboards extends AsyncView<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  {t('Dashboards')}
-                  <Button
-                    data-test-id="dashboard-create"
-                    onClick={event => {
-                      event.preventDefault();
-                      this.onCreate();
-                    }}
-                    priority="primary"
-                    icon={<IconAdd size="xs" isCircled />}
-                  >
-                    {t('Create Dashboard')}
-                  </Button>
+                  <Title>{t('Dashboards')}</Title>
+                  <ButtonBar gap={1.5}>
+                    <Feature
+                      organization={organization}
+                      features={['dashboards-template']}
+                    >
+                      <TemplateSwitch>
+                        {t('Show Templates')}
+                        <Switch
+                          isActive={showTemplates}
+                          size="lg"
+                          toggle={this.toggleTemplates}
+                        />
+                      </TemplateSwitch>
+                    </Feature>
+                    <Button
+                      data-test-id="dashboard-create"
+                      onClick={event => {
+                        event.preventDefault();
+                        this.onCreate();
+                      }}
+                      priority="primary"
+                      icon={<IconAdd isCircled />}
+                    >
+                      {t('Create Dashboard')}
+                    </Button>
+                  </ButtonBar>
                 </StyledPageHeader>
+                {showTemplates && this.renderTemplates()}
                 {this.renderActions()}
                 {this.renderDashboards()}
               </PageContent>
@@ -234,8 +331,6 @@ const StyledPageContent = styled(PageContent)`
 const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
   justify-content: space-between;
   margin-bottom: ${space(2)};
 `;
@@ -243,11 +338,34 @@ const StyledPageHeader = styled('div')`
 const StyledActions = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: auto;
+  }
+`;
+
+const TemplateSwitch = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: grid;
+  align-items: center;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  width: max-content;
+`;
+
+const TemplateContainer = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: repeat(4, minmax(200px, 1fr));
   }
 `;
 

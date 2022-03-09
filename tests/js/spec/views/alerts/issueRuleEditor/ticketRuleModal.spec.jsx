@@ -47,7 +47,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
 
   const addMockConfigsAPICall = (otherFields = {}) => {
     return MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/1/',
+      url: '/organizations/org-slug/integrations/1/?ignored=Sprint',
       method: 'GET',
       body: {
         createIssueConfig: [

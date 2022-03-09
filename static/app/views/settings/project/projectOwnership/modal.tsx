@@ -8,24 +8,24 @@ import {Entry, EventError} from 'sentry/types/event';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
-  raw: string;
-  fallthrough: boolean;
-  dateCreated: string;
-  lastUpdated: string;
-  isActive: boolean;
   autoAssignment: boolean;
+  dateCreated: string;
+  fallthrough: boolean;
+  isActive: boolean;
+  lastUpdated: string;
+  raw: string;
 };
 
 type Props = AsyncComponent['props'] & {
-  organization: Organization;
-  project: Project;
   issueId: string;
   onSave: () => void;
+  organization: Organization;
+  project: Project;
 };
 
 type State = {
-  ownership: null | IssueOwnershipResponse;
   eventData: null | EventError;
+  ownership: null | IssueOwnershipResponse;
   urlTagData: null | TagWithTopValues;
 } & AsyncComponent['state'];
 

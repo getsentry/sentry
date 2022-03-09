@@ -1,7 +1,8 @@
 import * as React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
+import type {LineSeriesOption} from 'echarts';
 import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
@@ -9,28 +10,31 @@ import momentTimezone from 'moment-timezone';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
+import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {SectionHeading} from 'sentry/components/charts/styles';
-import {getTooltipArrow} from 'sentry/components/charts/utils';
+import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
-} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import Truncate from 'sentry/components/truncate';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, DateString, Organization, Project} from 'sentry/types';
+import {DateString, Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   getCrashFreeRateSeries,
@@ -38,10 +42,13 @@ import {
 } from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
-import {alertDetailsLink} from 'sentry/views/alerts/details';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/incidentRules/incidentRulePresets';
-import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {
+  AlertRuleTriggerType,
+  Dataset,
+  IncidentRule,
+} from 'sentry/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
@@ -49,6 +56,7 @@ import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
+  alertDetailsLink,
   alertTooltipValueFormatter,
   isSessionAggregate,
   SESSION_AGGREGATE_TO_FIELD,
@@ -59,22 +67,21 @@ import {TimePeriodType} from './constants';
 
 type Props = WithRouterProps & {
   api: Client;
-  rule: IncidentRule;
-  incidents?: Incident[];
-  timePeriod: TimePeriodType;
-  selectedIncident?: Incident | null;
-  organization: Organization;
-  projects: Project[] | AvatarProject[];
+  filter: string[] | null;
   interval: string;
-  filter: React.ReactNode;
-  query: string;
   orgId: string;
-  handleZoom: (start: DateString, end: DateString) => void;
+  organization: Organization;
+  project: Project;
+  query: string;
+  rule: IncidentRule;
+  timePeriod: TimePeriodType;
+  incidents?: Incident[];
+  selectedIncident?: Incident | null;
 };
 
 type State = {
-  width: number;
   height: number;
+  width: number;
 };
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
@@ -84,7 +91,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   return momentTimezone.tz(date, timezone).format(format);
 }
 
-function createThresholdSeries(lineColor: string, threshold: number): LineChartSeries {
+function createThresholdSeries(lineColor: string, threshold: number): AreaChartSeries {
   return {
     seriesName: 'Threshold Line',
     type: 'line',
@@ -105,7 +112,7 @@ function createStatusAreaSeries(
   startTime: number,
   endTime: number,
   yPosition: number
-): LineChartSeries {
+): AreaChartSeries {
   return {
     seriesName: '',
     type: 'line',
@@ -124,10 +131,10 @@ function createIncidentSeries(
   lineColor: string,
   incidentTimestamp: number,
   incident: Incident,
-  dataPoint?: LineChartSeries['data'][0],
+  dataPoint?: AreaChartSeries['data'][0],
   seriesName?: string,
   aggregate?: string
-): LineChartSeries {
+): AreaChartSeries {
   const formatter = ({value, marker}: any) => {
     const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
     return [
@@ -145,7 +152,7 @@ function createIncidentSeries(
       }`,
       `</div></div>`,
       `<div class="tooltip-date">${time}</div>`,
-      getTooltipArrow(),
+      '<div class="tooltip-arrow"></div>',
     ].join('');
   };
 
@@ -229,7 +236,18 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleChangeSeries = (data: LineChartSeries[]): any[] => {
+  handleZoom = (start: DateString, end: DateString) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        start,
+        end,
+      },
+    });
+  };
+
+  getRuleChangeSeries = (data: AreaChartSeries[]): LineSeriesOption[] => {
     const {dateModified} = this.props.rule || {};
 
     if (!data.length || !data[0].data.length || !dateModified) {
@@ -250,7 +268,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         markLine: MarkLine({
           silent: true,
           lineStyle: {color: theme.gray200, type: 'solid', width: 1},
-          data: [{xAxis: ruleChanged} as any],
+          data: [{xAxis: ruleChanged}],
           label: {
             show: false,
           },
@@ -260,7 +278,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           itemStyle: {
             color: color(theme.gray100).alpha(0.42).rgb().string(),
           },
-          data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]] as any,
+          data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
         }),
         data: [],
       },
@@ -272,14 +290,15 @@ class MetricChart extends React.PureComponent<Props, State> {
     criticalDuration: number,
     warningDuration: number
   ) {
-    const {rule, orgId, projects, timePeriod, query} = this.props;
+    const {rule, orgId, project, timePeriod, query} = this.props;
     const ctaOpts = {
       orgSlug: orgId,
-      projects: projects as Project[],
+      projects: [project],
       rule,
       eventType: query,
       start: timePeriod.start,
       end: timePeriod.end,
+      fields: ['issue', 'title', 'count()', 'count_unique(user)'],
     };
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
@@ -330,27 +349,32 @@ class MetricChart extends React.PureComponent<Props, State> {
       router,
       selectedIncident,
       interval,
-      handleZoom,
       filter,
-      query,
       incidents,
       rule,
       organization,
       timePeriod: {start, end},
     } = this.props;
+    const {width} = this.state;
     const {dateModified, timeWindow, aggregate} = rule;
 
     if (loading || !timeseriesData) {
       return this.renderEmpty();
     }
 
-    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+    const criticalTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.CRITICAL
+    );
+    const warningTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.WARNING
+    );
 
-    const series: LineChartSeries[] = [...timeseriesData];
+    const series: AreaChartSeries[] = [...timeseriesData];
     const areaSeries: any[] = [];
-    // Ensure series data appears above incident lines
-    series[0].z = 100;
+    // Ensure series data appears below incident/mark lines
+    series[0].z = 1;
+    series[0].color = CHART_PALETTE[0][0];
+
     const dataArr = timeseriesData[0].data;
     const maxSeriesValue = dataArr.reduce(
       (currMax, coord) => Math.max(currMax, coord.value),
@@ -519,30 +543,57 @@ class MetricChart extends React.PureComponent<Props, State> {
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
+    if (!rule.comparisonDelta && rule.resolveThreshold) {
+      const resolveThresholdLine = createThresholdSeries(
+        theme.green300,
+        rule.resolveThreshold
+      );
+      series.push(resolveThresholdLine);
+      maxThresholdValue = Math.max(maxThresholdValue, rule.resolveThreshold);
+    }
+
     const comparisonSeriesName = capitalize(
       COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)?.label ||
         ''
     );
 
+    const queryFilter = filter?.join(' ') + t(' over ') + getDuration(timeWindow * 60);
+
+    const percentOfWidth =
+      width >= 1151
+        ? 15
+        : width < 1151 && width >= 700
+        ? 14
+        : width < 700 && width >= 515
+        ? 13
+        : width < 515 && width >= 300
+        ? 12
+        : 8;
+    const truncateWidth = (percentOfWidth / 100) * width;
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
           <ChartHeader>
-            <ChartTitle>
+            <HeaderTitleLegend>
               {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
-            </ChartTitle>
-            {query ? filter : null}
+            </HeaderTitleLegend>
           </ChartHeader>
+          <ChartFilters>
+            <StyledCircleIndicator size={8} />
+            <Filters>{rule.aggregate}</Filters>
+            <Truncate value={queryFilter ?? ''} maxLength={truncateWidth} />
+          </ChartFilters>
           {getDynamicText({
             value: (
               <ChartZoom
                 router={router}
                 start={start}
                 end={end}
-                onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+                onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
               >
                 {zoomRenderProps => (
-                  <LineChart
+                  <AreaChart
                     {...zoomRenderProps}
                     isGroupedByDate
                     showTimeInTooltip
@@ -551,7 +602,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                     grid={{
                       left: space(0.25),
                       right: space(2),
-                      top: space(2),
+                      top: space(3),
                       bottom: 0,
                     }}
                     yAxis={{
@@ -647,9 +698,9 @@ class MetricChart extends React.PureComponent<Props, State> {
                         );
 
                         const changeStatusColor =
-                          changeStatus === 'critical'
+                          changeStatus === AlertRuleTriggerType.CRITICAL
                             ? theme.red300
-                            : changeStatus === 'warning'
+                            : changeStatus === AlertRuleTriggerType.WARNING
                             ? theme.yellow300
                             : theme.green300;
 
@@ -672,7 +723,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                               Math.sign(changePercentage) === 1 ? '+' : '-'
                             }${Math.abs(changePercentage).toFixed(2)}%</span>`,
                           `</div>`,
-                          getTooltipArrow(),
+                          '<div class="tooltip-arrow"></div>',
                         ]
                           .filter(e => e)
                           .join('');
@@ -706,7 +757,7 @@ class MetricChart extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {api, rule, organization, timePeriod, projects, interval, query} = this.props;
+    const {api, rule, organization, timePeriod, project, interval, query} = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
     // If the chart duration isn't as long as the rollup duration the events-stats
@@ -726,7 +777,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       <SessionsRequest
         api={api}
         organization={organization}
-        project={projects.filter(p => p.id).map(p => Number(p.id))}
+        project={project.id ? [Number(project.id)] : []}
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
@@ -764,9 +815,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         organization={organization}
         query={query}
         environment={environment ? [environment] : undefined}
-        project={(projects as Project[])
-          .filter(p => p && p.slug)
-          .map(project => Number(project.id))}
+        project={project.id ? [Number(project.id)] : []}
         interval={interval}
         comparisonDelta={rule.comparisonDelta ? rule.comparisonDelta * 60 : undefined}
         start={viableStartDate}
@@ -795,9 +844,23 @@ const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const ChartTitle = styled('header')`
-  display: flex;
-  flex-direction: row;
+const StyledCircleIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.formText};
+  height: ${space(1)};
+  margin-right: ${space(0.5)};
+`;
+
+const ChartFilters = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.textColor};
+  display: inline-grid;
+  grid-template-columns: repeat(3, max-content);
+  align-items: center;
+`;
+
+const Filters = styled('span')`
+  margin-right: ${space(1)};
 `;
 
 const ChartActions = styled(PanelFooter)`

@@ -31,22 +31,22 @@ type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options
 type ImageCandidates = Image['candidates'];
 
 type Props = {
+  baseUrl: string;
   candidates: ImageCandidates;
+  hasReprocessWarning: boolean;
+  isLoading: boolean;
+  onDelete: (debugId: string) => void;
   organization: Organization;
   projSlug: Project['slug'];
-  baseUrl: string;
-  isLoading: boolean;
-  hasReprocessWarning: boolean;
-  onDelete: (debugId: string) => void;
   eventDateReceived?: string;
   imageStatus?: ImageStatus;
 };
 
 type State = {
-  searchTerm: string;
   filterOptions: FilterOptions;
-  filteredCandidatesBySearch: ImageCandidates;
   filteredCandidatesByFilter: ImageCandidates;
+  filteredCandidatesBySearch: ImageCandidates;
+  searchTerm: string;
 };
 
 class Candidates extends React.Component<Props, State> {
@@ -388,7 +388,7 @@ const Header = styled('div')`
 const Title = styled('div')`
   padding-right: ${space(4)};
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: repeat(2, max-content);
   align-items: center;
   font-weight: 600;

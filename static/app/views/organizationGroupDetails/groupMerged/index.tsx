@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import GroupingActions from 'sentry/actions/groupingActions';
 import Alert from 'sentry/components/alert';
@@ -18,15 +18,15 @@ type Props = RouteComponentProps<
   {groupId: Group['id']; orgId: Organization['slug']},
   {}
 > & {
-  project: Project;
   organization: Organization;
+  project: Project;
 };
 
 type State = {
-  query: string;
-  loading: boolean;
   error: boolean;
+  loading: boolean;
   mergedItems: Array<Fingerprint>;
+  query: string;
   mergedLinks?: string;
 };
 
@@ -84,7 +84,7 @@ class GroupMergedView extends Component<Props, State> {
       query: this.state.query,
     };
 
-    return `/issues/${groupId}/hashes/?${queryString.stringify(queryParams)}`;
+    return `/issues/${groupId}/hashes/?${qs.stringify(queryParams)}`;
   }
 
   fetchData = () => {

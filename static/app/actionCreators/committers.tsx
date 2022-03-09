@@ -4,9 +4,9 @@ import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore
 import {Committer} from 'sentry/types';
 
 type ParamsGet = {
+  eventId: string;
   orgSlug: string;
   projectSlug: string;
-  eventId: string;
 };
 
 export function getCommitters(api: Client, params: ParamsGet) {

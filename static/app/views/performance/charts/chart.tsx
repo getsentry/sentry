@@ -13,19 +13,20 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 type Props = {
   data: Series[];
-  previousData?: Series[];
-  router: InjectedRouter;
-  statsPeriod: string | undefined;
-  start: DateString;
   end: DateString;
+  loading: boolean;
+  router: InjectedRouter;
+  start: DateString;
+  statsPeriod: string | null | undefined;
   utc: boolean;
-  height?: number;
-  grid?: AreaChart['props']['grid'];
+  chartColors?: string[];
+  definedAxisTicks?: number;
   disableMultiAxis?: boolean;
   disableXAxis?: boolean;
-  chartColors?: string[];
-  loading: boolean;
+  grid?: AreaChart['props']['grid'];
+  height?: number;
   isLineChart?: boolean;
+  previousData?: Series[];
 };
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
@@ -69,6 +70,7 @@ function Chart({
   grid,
   disableMultiAxis,
   disableXAxis,
+  definedAxisTicks,
   chartColors,
   isLineChart,
 }: Props) {
@@ -83,6 +85,7 @@ function Chart({
   const durationOnly = data.every(
     value => aggregateOutputType(value.seriesName) === 'duration'
   );
+
   const dataMax = durationOnly ? computeAxisMax(data) : undefined;
 
   const xAxes = disableMultiAxis
@@ -101,6 +104,7 @@ function Chart({
   const yAxes = disableMultiAxis
     ? [
         {
+          splitNumber: definedAxisTicks,
           axisLabel: {
             color: theme.chartLabel,
             formatter(value: number) {

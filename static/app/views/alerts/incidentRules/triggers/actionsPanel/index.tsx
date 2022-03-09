@@ -33,16 +33,16 @@ import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRul
 type Props = {
   availableActions: MetricActionTemplate[] | null;
   currentProject: string;
-  organization: Organization;
-  projects: Project[];
   disabled: boolean;
-  loading: boolean;
   error: boolean;
-
-  triggers: Trigger[];
-  className?: string;
+  hasAlertWizardV3: boolean;
+  loading: boolean;
   onAdd: (triggerIndex: number, action: Action) => void;
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
+  organization: Organization;
+  projects: Project[];
+  triggers: Trigger[];
+  className?: string;
 };
 
 /**
@@ -105,7 +105,7 @@ const getFullActionTitle = ({
   'type' | 'integrationName' | 'sentryAppName' | 'status'
 >) => {
   if (sentryAppName) {
-    if (status) {
+    if (status && status !== 'published') {
       return `${sentryAppName} (${status})`;
     }
     return `${sentryAppName}`;
@@ -247,6 +247,7 @@ class ActionsPanel extends PureComponent<Props> {
       organization,
       projects,
       triggers,
+      hasAlertWizardV3,
     } = this.props;
 
     const project = projects.find(({slug}) => slug === currentProject);
@@ -284,15 +285,19 @@ class ActionsPanel extends PureComponent<Props> {
     return (
       <Fragment>
         <PerformActionsListItem>
-          {t('Perform actions')}
-          <AlertParagraph>
-            {t(
-              'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
-            )}
-          </AlertParagraph>
+          {hasAlertWizardV3 ? t('Set actions') : t('Perform actions')}
+          {!hasAlertWizardV3 && (
+            <AlertParagraph>
+              {t(
+                'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
+              )}
+            </AlertParagraph>
+          )}
         </PerformActionsListItem>
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
+          const actionDisabled =
+            triggers[triggerIndex].actions[actionIdx]?.disabled || disabled;
           return (
             <div key={action.id ?? action.unsavedId}>
               <RuleRowContainer>
@@ -347,6 +352,7 @@ class ActionsPanel extends PureComponent<Props> {
                       <Button
                         icon={<IconSettings />}
                         type="button"
+                        disabled={actionDisabled}
                         onClick={() => {
                           openModal(
                             deps => (

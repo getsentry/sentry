@@ -11,6 +11,7 @@ import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {WebVital} from 'sentry/utils/discover/fields';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -35,8 +36,8 @@ import {eventsRequestQueryProps} from '../utils';
 import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
-  list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
+  list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
 export function transformFieldsWithStops(props: {
@@ -88,6 +89,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, eventView, organization, location} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
+  const pageError = usePageError();
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
     field,
@@ -141,7 +143,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           const _eventView = provided.eventView.clone();
 
           _eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
+            provided.widgetData.list.data[selectedListIndex]?.transaction as string,
           ]);
 
           return (
@@ -161,6 +163,8 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 },
                 'medium'
               )}
+              hideError
+              onError={pageError.setPageError}
             />
           );
         },
@@ -243,10 +247,6 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               {...provided}
               field={field}
               vitalFields={vitalFields}
-              organization={organization}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
               grid={provided.grid}
             />
           ),
@@ -258,7 +258,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
               items={provided.widgetData.list.data.map(listItem => () => {
-                const transaction = listItem.transaction as string;
+                const transaction = listItem?.transaction as string;
                 const _eventView = eventView.clone();
 
                 const initialConditions = new MutableSearch(_eventView.query);
@@ -332,7 +332,7 @@ function getVitalDataForListItem(listItem: TableDataRow) {
   return vitalData;
 }
 
-const VitalBarCell = styled(RightAlignedCell)`
+export const VitalBarCell = styled(RightAlignedCell)`
   width: 120px;
   margin-left: ${space(1)};
   margin-right: ${space(1)};

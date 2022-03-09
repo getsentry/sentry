@@ -2,7 +2,6 @@ import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import NavigationActions from 'sentry/actions/navigationActions';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
@@ -45,8 +44,4 @@ export function navigateTo(
       ? router.push(to.replace(':projectId', projectById.slug))
       : router.push(to);
   }
-}
-
-export function setLastRoute(route: string) {
-  NavigationActions.setLastRoute(route);
 }

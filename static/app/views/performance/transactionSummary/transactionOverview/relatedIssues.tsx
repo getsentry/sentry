@@ -9,7 +9,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
@@ -20,12 +20,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {removeTracingKeysFromSearch} from '../../utils';
 
 type Props = {
-  organization: OrganizationSummary;
   location: Location;
+  organization: OrganizationSummary;
   transaction: string;
-  statsPeriod?: string;
-  start?: string;
   end?: string;
+  start?: string;
+  statsPeriod?: string | null;
 };
 
 class RelatedIssues extends Component<Props> {
@@ -101,7 +101,7 @@ class RelatedIssues extends Component<Props> {
           <SectionHeading>{t('Related Issues')}</SectionHeading>
           <Button
             data-test-id="issues-open"
-            size="small"
+            size="xsmall"
             to={issueSearch}
             onClick={this.handleOpenClick}
           >

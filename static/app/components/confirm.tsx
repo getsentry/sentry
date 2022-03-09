@@ -1,19 +1,19 @@
 import * as React from 'react';
 
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 
 export type ConfirmMessageRenderProps = {
   /**
-   * Confirms the modal
-   */
-  confirm: () => void;
-  /**
    * Closes the modal, if `bypass` is true, will call `onConfirm` callback
    */
   close: (e: React.MouseEvent) => void;
+  /**
+   * Confirms the modal
+   */
+  confirm: () => void;
   /**
    * Set the disabled state of the confirm button
    */
@@ -47,42 +47,17 @@ type ChildrenRenderProps = {
 
 export type OpenConfirmOptions = {
   /**
-   * Callback when user confirms
-   */
-  onConfirm?: () => void;
-  /**
-   * Custom function to render the confirm button
-   */
-  renderConfirmButton?: (props: ConfirmButtonsRenderProps) => React.ReactNode;
-  /**
-   * Custom function to render the cancel button
-   */
-  renderCancelButton?: (props: ConfirmButtonsRenderProps) => React.ReactNode;
-  /**
    * If true, will skip the confirmation modal and call `onConfirm` callback
    */
   bypass?: boolean;
   /**
-   * Message to display to user when asking for confirmation
+   * Text to show in the cancel button
    */
-  message?: React.ReactNode;
+  cancelText?: React.ReactNode;
   /**
-   * Used to render a message instead of using the static `message` prop.
+   * Text to show in the confirmation button
    */
-  renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
-  /**
-   * Callback function when user is in the confirming state called when the
-   * confirm modal is opened
-   */
-  onConfirming?: () => void;
-  /**
-   * User cancels the modal
-   */
-  onCancel?: () => void;
-  /**
-   * Header of modal
-   */
-  header?: React.ReactNode;
+  confirmText?: React.ReactNode;
   /**
    * Disables the confirm button.
    *
@@ -95,17 +70,42 @@ export type OpenConfirmOptions = {
    */
   disableConfirmButton?: boolean;
   /**
+   * Header of modal
+   */
+  header?: React.ReactNode;
+  /**
+   * Message to display to user when asking for confirmation
+   */
+  message?: React.ReactNode;
+  /**
+   * User cancels the modal
+   */
+  onCancel?: () => void;
+  /**
+   * Callback when user confirms
+   */
+  onConfirm?: () => void;
+  /**
+   * Callback function when user is in the confirming state called when the
+   * confirm modal is opened
+   */
+  onConfirming?: () => void;
+  /**
    * Button priority
    */
-  priority?: React.ComponentProps<typeof Button>['priority'];
+  priority?: ButtonProps['priority'];
   /**
-   * Text to show in the cancel button
+   * Custom function to render the cancel button
    */
-  cancelText?: React.ReactNode;
+  renderCancelButton?: (props: ConfirmButtonsRenderProps) => React.ReactNode;
   /**
-   * Text to show in the confirmation button
+   * Custom function to render the confirm button
    */
-  confirmText?: React.ReactNode;
+  renderConfirmButton?: (props: ConfirmButtonsRenderProps) => React.ReactNode;
+  /**
+   * Used to render a message instead of using the static `message` prop.
+   */
+  renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
 };
 
 type Props = OpenConfirmOptions & {
@@ -209,13 +209,13 @@ type ModalProps = ModalRenderProps &
 
 type ModalState = {
   /**
-   * Is confirm button disabled
-   */
-  disableConfirmButton: boolean;
-  /**
    * The callback registered from the rendered message to call
    */
   confirmCallback: null | (() => void);
+  /**
+   * Is confirm button disabled
+   */
+  disableConfirmButton: boolean;
 };
 
 class ConfirmModal extends React.Component<ModalProps, ModalState> {
@@ -301,7 +301,12 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
                 defaultOnClick: this.handleClose,
               })
             ) : (
-              <Button onClick={this.handleClose}>{cancelText}</Button>
+              <Button
+                onClick={this.handleClose}
+                aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
+              >
+                {cancelText ?? t('Cancel')}
+              </Button>
             )}
             {renderConfirmButton ? (
               renderConfirmButton({
@@ -315,8 +320,9 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
                 priority={priority}
                 onClick={this.handleConfirm}
                 autoFocus
+                aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
               >
-                {confirmText}
+                {confirmText ?? t('Confirm')}
               </Button>
             )}
           </ButtonBar>

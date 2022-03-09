@@ -27,27 +27,28 @@ import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'sentry/ty
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
 type SuggestedAssignee = Actor & {
-  suggestedReason: SuggestedOwnerReason;
   assignee: AssignableTeam | User;
+  suggestedReason: SuggestedOwnerReason;
 };
 
 type AssignableTeam = {
-  id: string;
   display: string;
   email: string;
+  id: string;
   team: Team;
 };
 
 type Props = {
   id: string;
-  size?: number;
-  memberList?: User[];
   disabled?: boolean;
+  memberList?: User[];
+  noDropdown?: boolean;
   onAssign?: (
     type: Actor['type'],
     assignee: User | Actor,
     suggestedAssignee?: SuggestedAssignee
   ) => void;
+  size?: number;
 };
 
 type State = {
@@ -384,7 +385,7 @@ class AssigneeSelector extends React.Component<Props, State> {
   }
 
   render() {
-    const {disabled} = this.props;
+    const {disabled, noDropdown} = this.props;
     const {loading, assignedTo} = this.state;
     const memberList = this.memberList();
     const suggestedActors = this.getSuggestedAssignees();
@@ -400,12 +401,77 @@ class AssigneeSelector extends React.Component<Props, State> {
       actor => actor.id === assignedTo?.id
     );
 
+    const avatarElement = assignedTo ? (
+      <ActorAvatar
+        actor={assignedTo}
+        className="avatar"
+        size={24}
+        tooltip={
+          <TooltipWrapper>
+            {tct('Assigned to [name]', {
+              name: assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
+            })}
+            {assignedToSuggestion && (
+              <TooltipSubtext>
+                {suggestedReasons[assignedToSuggestion.suggestedReason]}
+              </TooltipSubtext>
+            )}
+          </TooltipWrapper>
+        }
+      />
+    ) : suggestedActors && suggestedActors.length > 0 ? (
+      <SuggestedAvatarStack
+        size={24}
+        owners={suggestedActors}
+        tooltipOptions={{isHoverable: true}}
+        tooltip={
+          <TooltipWrapper>
+            <div>
+              {tct('Suggestion: [name]', {
+                name:
+                  suggestedActors[0].type === 'team'
+                    ? `#${suggestedActors[0].name}`
+                    : suggestedActors[0].name,
+              })}
+              {suggestedActors.length > 1 &&
+                tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
+            </div>
+            <TooltipSubtext>
+              {suggestedReasons[suggestedActors[0].suggestedReason]}
+            </TooltipSubtext>
+          </TooltipWrapper>
+        }
+      />
+    ) : (
+      <Tooltip
+        isHoverable
+        skipWrapper
+        title={
+          <TooltipWrapper>
+            <div>{t('Unassigned')}</div>
+            <TooltipSubtext>
+              {tct(
+                'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
+                {
+                  issueOwners: (
+                    <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+                  ),
+                }
+              )}
+            </TooltipSubtext>
+          </TooltipWrapper>
+        }
+      >
+        <StyledIconUser size="20px" color="gray400" />
+      </Tooltip>
+    );
+
     return (
       <AssigneeWrapper>
         {loading && (
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
-        {!loading && (
+        {!loading && !noDropdown && (
           <DropdownAutoComplete
             disabled={disabled}
             maxHeight={400}
@@ -453,78 +519,13 @@ class AssigneeSelector extends React.Component<Props, State> {
           >
             {({getActorProps, isOpen}) => (
               <DropdownButton {...getActorProps({})}>
-                {assignedTo ? (
-                  <ActorAvatar
-                    actor={assignedTo}
-                    className="avatar"
-                    size={24}
-                    tooltip={
-                      <TooltipWrapper>
-                        {tct('Assigned to [name]', {
-                          name:
-                            assignedTo.type === 'team'
-                              ? `#${assignedTo.name}`
-                              : assignedTo.name,
-                        })}
-                        {assignedToSuggestion && (
-                          <TooltipSubtext>
-                            {suggestedReasons[assignedToSuggestion.suggestedReason]}
-                          </TooltipSubtext>
-                        )}
-                      </TooltipWrapper>
-                    }
-                  />
-                ) : suggestedActors && suggestedActors.length > 0 ? (
-                  <SuggestedAvatarStack
-                    size={24}
-                    owners={suggestedActors}
-                    tooltipOptions={{isHoverable: true}}
-                    tooltip={
-                      <TooltipWrapper>
-                        <div>
-                          {tct('Suggestion: [name]', {
-                            name:
-                              suggestedActors[0].type === 'team'
-                                ? `#${suggestedActors[0].name}`
-                                : suggestedActors[0].name,
-                          })}
-                          {suggestedActors.length > 1 &&
-                            tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
-                        </div>
-                        <TooltipSubtext>
-                          {suggestedReasons[suggestedActors[0].suggestedReason]}
-                        </TooltipSubtext>
-                      </TooltipWrapper>
-                    }
-                  />
-                ) : (
-                  <Tooltip
-                    isHoverable
-                    skipWrapper
-                    title={
-                      <TooltipWrapper>
-                        <div>{t('Unassigned')}</div>
-                        <TooltipSubtext>
-                          {tct(
-                            'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
-                            {
-                              issueOwners: (
-                                <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-                              ),
-                            }
-                          )}
-                        </TooltipSubtext>
-                      </TooltipWrapper>
-                    }
-                  >
-                    <StyledIconUser size="20px" color="gray400" />
-                  </Tooltip>
-                )}
+                {avatarElement}
                 <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
               </DropdownButton>
             )}
           </DropdownAutoComplete>
         )}
+        {!loading && noDropdown && avatarElement}
       </AssigneeWrapper>
     );
   }
@@ -577,8 +578,8 @@ const IconContainer = styled('div')`
 `;
 
 const MenuItemWrapper = styled('div')<{
-  py?: number;
   disabled?: boolean;
+  py?: number;
 }>`
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   display: flex;

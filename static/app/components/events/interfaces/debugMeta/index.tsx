@@ -49,11 +49,11 @@ type Props = DefaultProps & {
 };
 
 type State = {
-  filter: string;
   debugImages: Array<Image>;
+  filter: string;
   filteredImages: Array<Image>;
-  showUnused: boolean;
   showDetails: boolean;
+  showUnused: boolean;
   foundFrame?: Frame;
   panelBodyHeight?: number;
 };
@@ -282,7 +282,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return tct(
         'No images are referenced in the stack trace. [toggle: Show Unreferenced]',
         {
-          toggle: <Button priority="link" onClick={this.handleShowUnused} />,
+          toggle: (
+            <Button
+              priority="link"
+              onClick={this.handleShowUnused}
+              aria-label={t('Show Unreferenced')}
+            />
+          ),
         }
       );
     }

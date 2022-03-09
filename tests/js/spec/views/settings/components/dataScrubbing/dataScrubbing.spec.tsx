@@ -103,7 +103,7 @@ describe('Data Scrubbing', () => {
       expect(panelBody.find('List').prop('isDisabled')).toEqual(true);
 
       // PanelAction
-      const actionButtons = wrapper.find('PanelAction').find('BaseButton');
+      const actionButtons = wrapper.find('PanelAction').find('StyledButton');
       expect(actionButtons).toHaveLength(2);
       expect(actionButtons.at(0).prop('disabled')).toEqual(false);
       expect(actionButtons.at(1).prop('disabled')).toEqual(true);
@@ -165,7 +165,7 @@ describe('Data Scrubbing', () => {
       expect(panelBody.find('List').prop('isDisabled')).toEqual(true);
 
       // PanelAction
-      const actionButtons = wrapper.find('PanelAction').find('BaseButton');
+      const actionButtons = wrapper.find('PanelAction').find('StyledButton');
       expect(actionButtons).toHaveLength(2);
       expect(actionButtons.at(0).prop('disabled')).toEqual(false);
       expect(actionButtons.at(1).prop('disabled')).toEqual(true);

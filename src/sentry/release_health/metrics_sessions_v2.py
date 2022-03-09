@@ -3,11 +3,14 @@ from the `metrics` dataset instead of `sessions`.
 
 Do not call this module directly. Use the `release_health` service instead. """
 import abc
+import logging
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import (
     Any,
+    Collection,
     Generator,
     List,
     Literal,
@@ -20,11 +23,21 @@ from typing import (
     TypedDict,
     Union,
     cast,
+    get_args,
 )
 
-from snuba_sdk import Column, Condition, Entity, Op, Query
-from snuba_sdk.expressions import Granularity
-from snuba_sdk.function import Function
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+)
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 
@@ -36,55 +49,40 @@ from sentry.release_health.base import (
     SessionsQueryValue,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey as MetricKey
+from sentry.sentry_metrics.utils import (
+    MetricIndexNotFound,
+    resolve_tag_key,
+    reverse_resolve,
+    reverse_resolve_weak,
+)
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
-from sentry.snuba.sessions_v2 import QueryDefinition, finite_or_none
+from sentry.snuba.sessions_v2 import SNUBA_LIMIT, QueryDefinition, finite_or_none, get_timestamps
 from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 #: Referrers for snuba queries
 #: Referrers must be searchable, so no string interpolation here
 REFERRERS = {
-    "user": {
+    MetricKey.USER: {
         "series": "release_health.metrics.sessions_v2.user.series",
         "totals": "release_health.metrics.sessions_v2.user.totals",
     },
-    "session.duration": {
+    MetricKey.SESSION_DURATION: {
         "series": "release_health.metrics.sessions_v2.session.duration.series",
         "totals": "release_health.metrics.sessions_v2.session.duration.totals",
     },
-    "session": {
+    MetricKey.SESSION: {
         "series": "release_health.metrics.sessions_v2.session.series",
         "totals": "release_health.metrics.sessions_v2.session.totals",
     },
-    "session.error": {
+    MetricKey.SESSION_ERROR: {
         "series": "release_health.metrics.sessions_v2.session.error.series",
         "totals": "release_health.metrics.sessions_v2.session.error.totals",
     },
 }
-
-
-def _resolve(name: str) -> Optional[int]:
-    """Wrapper for typing"""
-    return indexer.resolve(name)  # type: ignore
-
-
-def _resolve_ensured(name: str) -> int:
-    """Assume the index entry exists"""
-    index = _resolve(name)
-    assert index is not None
-    return index
-
-
-def _reverse_resolve(index: int) -> Optional[str]:
-    """Wrapper for typing"""
-    return indexer.reverse_resolve(index)  # type: ignore
-
-
-def _reverse_resolve_ensured(index: int) -> str:
-    """Assume the index entry exists"""
-    string = _reverse_resolve(index)
-    assert string is not None
-    return string
 
 
 _SessionStatus = Literal[
@@ -93,6 +91,19 @@ _SessionStatus = Literal[
     "errored",
     "healthy",
 ]
+
+_DURATION_PERCENTILES = (
+    "p50(session.duration)",
+    "p75(session.duration)",
+    "p90(session.duration)",
+    "p95(session.duration)",
+    "p99(session.duration)",
+)
+
+_DURATION_FIELDS = (
+    "avg(session.duration)",
+    "max(session.duration)",
+) + _DURATION_PERCENTILES
 
 
 @dataclass(frozen=True)
@@ -103,59 +114,53 @@ class _SessionStatusValue:
     value: Union[None, float, int]
 
 
-_MetricName = Literal["session", "session.duration", "session.error", "user"]
-
-#: Actual column name in snuba
-_SnubaColumnName = Literal["value", "avg", "max", "percentiles"]
-
 #: "Virtual" column name, almost the same as _SnubaColumnName,
 #: but "percentiles" is expanded into multiple columns later on
 _VirtualColumnName = Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"]
 
 
-def _to_column(query_func: SessionsQueryFunction) -> SelectableExpression:
+def _to_column(
+    query_func: SessionsQueryFunction, column_condition: SelectableExpression = 1
+) -> SelectableExpression:
     """
     Converts query a function into an expression that can be directly plugged into anywhere
     columns are used (like the select argument of a Query)
     """
+
+    parameters = (Column("value"), column_condition)
+
     # distribution columns
-    if query_func in [
-        "p50(session.duration)",
-        "p75(session.duration)",
-        "p90(session.duration)",
-        "p95(session.duration)",
-        "p99(session.duration)",
-    ]:
+    if query_func in _DURATION_PERCENTILES:
         return Function(
             alias="percentiles",
-            function="quantiles(0.5,0.75,0.9,0.95,0.99)",
-            parameters=[Column("value")],
+            function="quantilesIf(0.5,0.75,0.9,0.95,0.99)",
+            parameters=parameters,
         )
     if query_func == "avg(session.duration)":
         return Function(
             alias="avg",
-            function="avg",
-            parameters=[Column("value")],
+            function="avgIf",
+            parameters=parameters,
         )
     if query_func == "max(session.duration)":
         return Function(
             alias="max",
-            function="max",
-            parameters=[Column("value")],
+            function="maxIf",
+            parameters=parameters,
         )
     # counters
     if query_func == "sum(session)":
         return Function(
             alias="sum",
-            function="sum",
-            parameters=[Column("value")],
+            function="sumIf",
+            parameters=parameters,
         )
     # sets
     if query_func == "count_unique(user)":
         return Function(
             alias="count_unique",
-            function="uniq",
-            parameters=[Column("value")],
+            function="uniqIf",
+            parameters=parameters,
         )
 
     raise ValueError("Unmapped metrics column", query_func)
@@ -175,15 +180,15 @@ class _DataPointKey:
 
     would result in data keys
 
-        metric_name=session.duration, column=avg, bucketed_time=<datetime1>
-        metric_name=session.duration, column=max, bucketed_time=<datetime1>
-        metric_name=session.duration, column=avg, bucketed_time=<datetime2>
-        metric_name=session.duration, column=max, bucketed_time=<datetime2>
+        metric_key=MetricKey.SESSION_DURATION, column=avg, bucketed_time=<datetime1>
+        metric_key=MetricKey.SESSION_DURATION, column=max, bucketed_time=<datetime1>
+        metric_key=MetricKey.SESSION_DURATION, column=avg, bucketed_time=<datetime2>
+        metric_key=MetricKey.SESSION_DURATION, column=max, bucketed_time=<datetime2>
         ...
 
     """
 
-    metric_name: _MetricName
+    metric_key: MetricKey
     raw_session_status: Optional[str] = None
     release: Optional[int] = None
     environment: Optional[int] = None
@@ -194,7 +199,7 @@ class _DataPointKey:
 
 _DataPoints = MutableMapping[_DataPointKey, float]
 _SnubaData = Sequence[MutableMapping[str, Any]]
-_SnubaDataByMetric = Sequence[Tuple[_MetricName, _SnubaData]]
+_SnubaDataByMetric = List[Tuple[MetricKey, _SnubaData]]
 
 
 class _OutputField(abc.ABC):
@@ -258,8 +263,12 @@ class _SumSessionField(_OutputField):
             started = int(data_points[key])
             abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
             crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
-            errored_key = replace(key, metric_name="session.error", raw_session_status=None)
-            all_errored = int(data_points.get(errored_key, 0))
+            errored_key = replace(key, metric_key=MetricKey.SESSION_ERROR, raw_session_status=None)
+            individual_errors = int(data_points.get(errored_key, 0))
+            aggregated_errors = int(
+                data_points.get(replace(key, raw_session_status="errored_preaggr"), 0)
+            )
+            all_errored = individual_errors + aggregated_errors
 
             healthy = max(0, started - all_errored)
             errored = max(0, all_errored - abnormal - crashed)
@@ -291,7 +300,10 @@ class _SessionDurationField(_OutputField):
     def get_values(
         self, data_points: _DataPoints, key: _DataPointKey
     ) -> Sequence[_SessionStatusValue]:
-        assert key.raw_session_status is None, key  # session.duration does not have status tag
+        if not (key.raw_session_status is None or key.raw_session_status == "exited"):
+            # Ignore tags other than "healthy"
+            return []
+
         value = 1000.0 * data_points[key]  # sessions backend stores milliseconds
         if self.group_by_status:
             # Only 'healthy' sessions have duration data:
@@ -307,17 +319,75 @@ class _SessionDurationField(_OutputField):
             ]
 
 
+class _LimitState:
+    """Keeps track of how to limit each query
+    Before the first query, limiting_conditions = None, so the first query
+    will apply an ORDER BY ... LIMIT.
+    After that, the groups returned by the first query will be added as a
+    WHERE clause to any secondary query.
+    """
+
+    def __init__(self) -> None:
+        self.initialized = False
+        self.skip_columns: Set[Column] = set()  # Will not be added to limiting conditions
+
+    def update(self, groupby: Collection[Column], snuba_rows: _SnubaData) -> None:
+        if self.initialized:
+            return
+
+        # Only "totals" queries may set the limiting conditions:
+        assert Column(TS_COL_GROUP) not in groupby
+
+        self._groupby = list(groupby)  # Make sure groupby has a fixed order
+        self._groups = [
+            {column.name: row[column.name] for column in self._groupby} for row in snuba_rows
+        ]
+
+        self.initialized = True
+
+    @property
+    def limiting_conditions(self) -> Optional[List[Condition]]:
+        if not self.initialized or not self._groups:
+            # First query may run without limiting conditions
+            # When there are no groups there is nothing to limit
+            return None
+
+        group_columns = [col for col in self._groupby if col not in self.skip_columns]
+
+        if not group_columns:
+            return []
+
+        # Create conditions from the groups in group by
+        group_values = [
+            Function("tuple", [row[column.name] for column in group_columns])
+            for row in self._groups
+        ]
+
+        return [
+            # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
+            Condition(Function("tuple", group_columns), Op.IN, group_values)
+        ] + [
+            # These conditions are redundant but might lead to better query performance
+            # Eg. [release IN [1, 3]], [environment IN [2, 4]]
+            Condition(column, Op.IN, [row[column.name] for row in self._groups])
+            for column in group_columns
+        ]
+
+
 def _get_snuba_query(
     org_id: int,
     query: QueryDefinition,
     entity_key: EntityKey,
     metric_id: int,
-    columns: Sequence[SelectableExpression],
+    columns: List[SelectableExpression],
     series: bool,
+    limit_state: _LimitState,
     extra_conditions: List[Condition],
-    remove_groupby: Set[Column],
-) -> Query:
-    """Build the snuba query"""
+) -> Optional[Query]:
+    """Build the snuba query
+
+    Return None if the results from the initial totals query was empty.
+    """
     conditions = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
@@ -328,50 +398,64 @@ def _get_snuba_query(
     conditions += _get_filter_conditions(org_id, query.conditions)
     conditions += extra_conditions
 
-    groupby_tags = [field for field in query.raw_groupby if field != "project"]
+    groupby = {}
+    for field in query.raw_groupby:
+        if field == "project":
+            groupby["project"] = Column("project_id")
+            continue
 
-    tag_keys = {field: _resolve(field) for field in groupby_tags}
-    groupby = {
-        field: Column(f"tags[{tag_id}]")
-        for field, tag_id in tag_keys.items()
-        if tag_id is not None  # exclude unresolved keys from groupby
-    }
+        try:
+            groupby[field] = Column(resolve_tag_key(field))
+        except MetricIndexNotFound:
+            # exclude unresolved keys from groupby
+            pass
 
-    if "project" in query.raw_groupby:
-        groupby["project"] = Column("project_id")
+    full_groupby = list(set(groupby.values()))
 
-    full_groupby = set(groupby.values()) - remove_groupby
     if series:
-        full_groupby.add(Column(TS_COL_GROUP))
+        full_groupby.append(Column(TS_COL_GROUP))
 
-    return Query(
+    query_args = dict(
         dataset=Dataset.Metrics.value,
         match=Entity(entity_key.value),
-        select=list(columns),
-        groupby=list(full_groupby),
+        select=columns,
+        groupby=full_groupby,
         where=conditions,
         granularity=Granularity(query.rollup),
     )
+
+    # In case of group by, either set a limit or use the groups from the
+    # first query to limit the results:
+    if query.raw_groupby:
+        if not limit_state.initialized:
+            # Set limit and order by to be consistent with sessions_v2
+            max_groups = SNUBA_LIMIT // len(get_timestamps(query))
+            query_args["limit"] = Limit(max_groups)
+            query_args["orderby"] = [OrderBy(columns[0], Direction.DESC)]
+        else:
+            if limit_state.limiting_conditions is None:
+                # Initial query returned no results, no need to run any more queries
+                return None
+
+            query_args["where"] += limit_state.limiting_conditions
+            query_args["limit"] = Limit(SNUBA_LIMIT)
+
+    return Query(**query_args)
 
 
 def _get_snuba_query_data(
     org_id: int,
     query: QueryDefinition,
     entity_key: EntityKey,
-    metric_name: _MetricName,
+    metric_key: MetricKey,
     metric_id: int,
-    columns: Sequence[SelectableExpression],
+    columns: List[SelectableExpression],
+    limit_state: _LimitState,
     extra_conditions: Optional[List[Condition]] = None,
-    remove_groupby: Optional[Set[Column]] = None,
-) -> Generator[Tuple[_MetricName, _SnubaData], None, None]:
+) -> Generator[Tuple[MetricKey, _SnubaData], None, None]:
     """Get data from snuba"""
-    if extra_conditions is None:
-        extra_conditions = []
 
-    if remove_groupby is None:
-        remove_groupby = set()
-
-    for query_type in ("series", "totals"):
+    for query_type in ("totals", "series"):
         snuba_query = _get_snuba_query(
             org_id,
             query,
@@ -379,94 +463,118 @@ def _get_snuba_query_data(
             metric_id,
             columns,
             series=query_type == "series",
-            extra_conditions=extra_conditions,
-            remove_groupby=remove_groupby,
+            limit_state=limit_state,
+            extra_conditions=extra_conditions or [],
         )
-        referrer = REFERRERS[metric_name][query_type]
-        query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
+        referrer = REFERRERS[metric_key][query_type]
+        if snuba_query is None:
+            query_data = []
+        else:
+            query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
+            limit_state.update(snuba_query.groupby, query_data)
 
-        yield (metric_name, query_data)
+        yield (metric_key, query_data)
 
 
 def _fetch_data(
     org_id: int,
     query: QueryDefinition,
-) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[_MetricName, _VirtualColumnName], _OutputField]]:
+) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
     """Build & run necessary snuba queries"""
 
-    # It greatly simplifies code if we just assume that these two tags exist:
-    # TODO: Can we get away with that assumption?
-    tag_key_session_status = _resolve_ensured("session.status")
+    combined_data: _SnubaDataByMetric = []
 
-    data: List[Tuple[_MetricName, _SnubaData]] = []
+    # Find the field that needs a specific column in a specific metric
+    metric_to_output_field: MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField] = {}
 
-    #: Find the field that needs a specific column in a specific metric
-    metric_to_output_field: MutableMapping[
-        Tuple[_MetricName, _VirtualColumnName], _OutputField
-    ] = {}
+    # Prevent fields from being fetched multiple times (only used for percentiles)
+    columns_fetched: Set[SelectableExpression] = set()
 
-    if "count_unique(user)" in query.raw_fields:
-        metric_id = _resolve("user")
+    limit_state = _LimitState()
+
+    for raw_field in query.raw_fields:
+        data, field_map = _fetch_data_for_field(
+            org_id, query, raw_field, limit_state, columns_fetched
+        )
+        combined_data.extend(data)
+        metric_to_output_field.update(field_map)
+
+    return combined_data, metric_to_output_field
+
+
+def _fetch_data_for_field(
+    org_id: int,
+    query: QueryDefinition,
+    raw_field: SessionsQueryFunction,
+    limit_state: _LimitState,
+    columns_fetched: Set[SelectableExpression],  # output param
+) -> Tuple[_SnubaDataByMetric, MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
+    tag_key_session_status = resolve_tag_key("session.status")
+
+    data: _SnubaDataByMetric = []
+
+    # Find the field that needs a specific column in a specific metric
+    metric_to_output_field: MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField] = {}
+
+    if "count_unique(user)" == raw_field:
+        metric_id = indexer.resolve(MetricKey.USER.value)
         if metric_id is not None:
             data.extend(
                 _get_snuba_query_data(
                     org_id,
                     query,
                     EntityKey.MetricsSets,
-                    "user",
+                    MetricKey.USER,
                     metric_id,
                     [Function("uniq", [Column("value")], "value")],
+                    limit_state,
                 )
             )
-            metric_to_output_field[("user", "value")] = _UserField()
+            metric_to_output_field[(MetricKey.USER, "value")] = _UserField()
 
-    duration_fields = [field for field in query.raw_fields if "session.duration" in field]
-    if duration_fields:
-        metric_id = _resolve("session.duration")
+    if raw_field in _DURATION_FIELDS:
+        metric_id = indexer.resolve(MetricKey.SESSION_DURATION.value)
         if metric_id is not None:
 
             def get_virtual_column(field: SessionsQueryFunction) -> _VirtualColumnName:
                 return cast(_VirtualColumnName, field[:3])
 
-            # eliminate duplicate fields (p50...p99) all generate the same field "percentiles"
-            seen_fields = set()
-            snuba_columns = []
-            for field in duration_fields:
-                column = _to_column(field)
-                if column.alias not in seen_fields:
-                    # a new field add it to the columns and remember it
-                    snuba_columns.append(column)
-                    seen_fields.add(column.alias)
+            group_by_status = "session.status" in query.raw_groupby
 
-            # sessions_v2 only exposes healthy session's durations
-            healthy = _resolve("exited")
-            extra_conditions = [
-                Condition(Column(f"tags[{tag_key_session_status}]"), Op.EQ, healthy)
-            ]
-            remove_groupby = {Column(f"tags[{tag_key_session_status}]")}
+            # If we're not grouping by status, we still need to filter down
+            # to healthy sessions, because that's what sessions_v2 exposes:
+            if group_by_status:
+                column_condition = 1
+            else:
+                healthy = indexer.resolve("exited")
+                if healthy is None:
+                    # There are no healthy sessions, return
+                    return [], {}
+                column_condition = Function("equals", (Column(tag_key_session_status), healthy))
 
-            if tag_key_session_status is not None and healthy is not None:
+            snuba_column = _to_column(raw_field, column_condition)
+
+            if snuba_column not in columns_fetched:
                 data.extend(
                     _get_snuba_query_data(
                         org_id,
                         query,
                         EntityKey.MetricsDistributions,
-                        "session.duration",
+                        MetricKey.SESSION_DURATION,
                         metric_id,
-                        snuba_columns,
-                        extra_conditions=extra_conditions,
-                        remove_groupby=remove_groupby,
+                        [snuba_column],
+                        limit_state,
                     )
                 )
-                group_by_status = "session.status" in query.raw_groupby
-                for field in duration_fields:
-                    col = get_virtual_column(field)
-                    metric_to_output_field[("session.duration", col)] = _SessionDurationField(
-                        field, col, group_by_status
-                    )
+                columns_fetched.add(snuba_column)
 
-    if "sum(session)" in query.raw_fields:
-        metric_id = _resolve("session")
+            col = get_virtual_column(raw_field)
+            metric_to_output_field[(MetricKey.SESSION_DURATION, col)] = _SessionDurationField(
+                raw_field, col, group_by_status
+            )
+
+    if "sum(session)" == raw_field:
+        metric_id = indexer.resolve(MetricKey.SESSION.value)
         if metric_id is not None:
             if "session.status" in query.raw_groupby:
                 # We need session counters grouped by status, as well as the number of errored sessions
@@ -477,47 +585,51 @@ def _fetch_data(
                         org_id,
                         query,
                         EntityKey.MetricsCounters,
-                        "session",
+                        MetricKey.SESSION,
                         metric_id,
                         [Function("sum", [Column("value")], "value")],
+                        limit_state,
                     )
                 )
 
                 # 2: session.error
-                error_metric_id = _resolve("session.error")
+                error_metric_id = indexer.resolve(MetricKey.SESSION_ERROR.value)
                 if error_metric_id is not None:
-                    remove_groupby = {Column(f"tags[{tag_key_session_status}]")}
+                    # Should not limit session.error to session.status=X,
+                    # because that tag does not exist for this metric
+                    limit_state.skip_columns.add(Column(tag_key_session_status))
                     data.extend(
                         _get_snuba_query_data(
                             org_id,
                             query,
                             EntityKey.MetricsSets,
-                            "session.error",
+                            MetricKey.SESSION_ERROR,
                             error_metric_id,
                             [Function("uniq", [Column("value")], "value")],
-                            remove_groupby=remove_groupby,
+                            limit_state,
                         )
                     )
+                    # Remove skip_column again:
+                    limit_state.skip_columns.remove(Column(tag_key_session_status))
             else:
                 # Simply count the number of started sessions:
-                init = _resolve("init")
+                init = indexer.resolve("init")
                 if tag_key_session_status is not None and init is not None:
-                    extra_conditions = [
-                        Condition(Column(f"tags[{tag_key_session_status}]"), Op.EQ, init)
-                    ]
+                    extra_conditions = [Condition(Column(tag_key_session_status), Op.EQ, init)]
                     data.extend(
                         _get_snuba_query_data(
                             org_id,
                             query,
                             EntityKey.MetricsCounters,
-                            "session",
+                            MetricKey.SESSION,
                             metric_id,
                             [Function("sum", [Column("value")], "value")],
+                            limit_state,
                             extra_conditions,
                         )
                     )
 
-            metric_to_output_field[("session", "value")] = _SumSessionField()
+            metric_to_output_field[(MetricKey.SESSION, "value")] = _SumSessionField()
 
     return data, metric_to_output_field
 
@@ -528,20 +640,20 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
-    tag_key_release = _resolve_ensured("release")
-    tag_key_environment = _resolve_ensured("environment")
-    tag_key_session_status = _resolve_ensured("session.status")
+    tag_key_release = resolve_tag_key("release")
+    tag_key_environment = resolve_tag_key("environment")
+    tag_key_session_status = resolve_tag_key("session.status")
 
-    for metric_name, metric_data in data:
+    for metric_key, metric_data in data:
         for row in metric_data:
-            raw_session_status = row.pop(f"tags[{tag_key_session_status}]", None)
+            raw_session_status = row.pop(tag_key_session_status, None) or None
             if raw_session_status is not None:
-                raw_session_status = _reverse_resolve_ensured(raw_session_status)
+                raw_session_status = reverse_resolve(raw_session_status)
             flat_key = _DataPointKey(
-                metric_name=metric_name,
+                metric_key=metric_key,
                 raw_session_status=raw_session_status,
-                release=row.pop(f"tags[{tag_key_release}]", None),
-                environment=row.pop(f"tags[{tag_key_environment}]", None),
+                release=row.pop(tag_key_release, None),
+                environment=row.pop(tag_key_environment, None),
                 bucketed_time=row.pop("bucketed_time", None),
                 project_id=row.pop("project_id", None),
             )
@@ -569,11 +681,15 @@ def run_sessions_query(
     span_op: str,
 ) -> SessionsQueryResult:
     """Convert a QueryDefinition to multiple snuba queries and reformat the results"""
-    data, metric_to_output_field = _fetch_data(org_id, query)
+    # This is necessary so that we do not mutate the query object shared between different
+    # backend runs
+    query_clone = deepcopy(query)
+
+    data, metric_to_output_field = _fetch_data(org_id, query_clone)
 
     data_points = _flatten_data(org_id, data)
 
-    intervals = list(get_intervals(query))
+    intervals = list(get_intervals(query_clone))
     timestamp_index = {timestamp.isoformat(): index for index, timestamp in enumerate(intervals)}
 
     def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
@@ -587,42 +703,55 @@ def run_sessions_query(
 
     groups: MutableMapping[GroupKey, Group] = defaultdict(
         lambda: {
-            "totals": {field: default_for(field) for field in query.raw_fields},
-            "series": {field: len(intervals) * [default_for(field)] for field in query.raw_fields},
+            "totals": {field: default_for(field) for field in query_clone.raw_fields},
+            "series": {
+                field: len(intervals) * [default_for(field)] for field in query_clone.raw_fields
+            },
         }
     )
 
-    for key in data_points.keys():
-        try:
-            output_field = metric_to_output_field[key.metric_name, key.column]
-        except KeyError:
-            continue  # secondary metric, like session.error
+    if len(data_points) == 0:
+        # We're only interested in `session.status` group-byes. The rest of the
+        # conditions require work (e.g. getting all environments) that we can't
+        # get without querying the DB.
+        if "session.status" in query_clone.raw_groupby:
+            for status in get_args(_SessionStatus):
+                gkey: GroupKey = (("session.status", status),)
+                groups[gkey]
+    else:
+        for key in data_points.keys():
+            try:
+                output_field = metric_to_output_field[key.metric_key, key.column]
+            except KeyError:
+                continue  # secondary metric, like session.error
 
-        by: MutableMapping[GroupByFieldName, Union[str, int]] = {}
-        if key.release is not None:
-            # Note: If the tag value reverse-resolves to None here, it's a bug in the tag indexer
-            by["release"] = _reverse_resolve_ensured(key.release)
-        if key.environment is not None:
-            by["environment"] = _reverse_resolve_ensured(key.environment)
-        if key.project_id is not None:
-            by["project"] = key.project_id
+            by: MutableMapping[GroupByFieldName, Union[str, int]] = {}
+            if key.release is not None:
+                # Every session has a release, so this should not throw
+                by["release"] = reverse_resolve(key.release)
+            if key.environment is not None:
+                # To match behavior of the old sessions backend, session data
+                # without environment is grouped under the empty string.
+                by["environment"] = reverse_resolve_weak(key.environment) or ""
+            if key.project_id is not None:
+                by["project"] = key.project_id
 
-        for status_value in output_field.get_values(data_points, key):
-            if status_value.session_status is not None:
-                by["session.status"] = status_value.session_status
+            for status_value in output_field.get_values(data_points, key):
+                if status_value.session_status is not None:
+                    by["session.status"] = status_value.session_status  # !
 
-            group_key: GroupKey = tuple(sorted(by.items()))
-            group = groups[group_key]
+                group_key: GroupKey = tuple(sorted(by.items()))
+                group: Group = groups[group_key]
 
-            value = status_value.value
-            if value is not None:
-                value = finite_or_none(value)
+                value = status_value.value
+                if value is not None:
+                    value = finite_or_none(value)
 
-            if key.bucketed_time is None:
-                group["totals"][output_field.get_name()] = value
-            else:
-                index = timestamp_index[key.bucketed_time]
-                group["series"][output_field.get_name()][index] = value
+                if key.bucketed_time is None:
+                    group["totals"][output_field.get_name()] = value
+                else:
+                    index = timestamp_index[key.bucketed_time]
+                    group["series"][output_field.get_name()][index] = value
 
     groups_as_list: List[SessionsQueryGroup] = [
         {
@@ -637,9 +766,9 @@ def run_sessions_query(
         return dt.isoformat().replace("+00:00", "Z")
 
     return {
-        "start": format_datetime(query.start),
-        "end": format_datetime(query.end),
-        "query": query.query,
+        "start": format_datetime(query_clone.start),
+        "end": format_datetime(query_clone.end),
+        "query": query_clone.query,
         "intervals": [format_datetime(dt) for dt in intervals],
         "groups": groups_as_list,
     }
@@ -662,16 +791,14 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
         # Alternative would be:
         #   * if tag key or value does not exist in AND-clause, return no data
         #   * if tag key or value does not exist in OR-clause, remove condition
-        tag_key = _resolve_ensured(input_.name)
-
-        return Column(f"tags[{tag_key}]")
+        return Column(resolve_tag_key(input_.name))
 
     if isinstance(input_, str):
         # Assuming this is the right-hand side, we need to fetch a tag value.
         # It's OK if the tag value resolves to None, the snuba query will then
         # return no results, as is intended behavior
 
-        return _resolve(input_)
+        return indexer.resolve(input_)
 
     if isinstance(input_, Function):
         return Function(
@@ -688,5 +815,5 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
     if isinstance(input_, (int, float)):
         return input_
 
-    assert isinstance(input_, list), input_
+    assert isinstance(input_, (tuple, list)), input_
     return [_translate_conditions(org_id, item) for item in input_]

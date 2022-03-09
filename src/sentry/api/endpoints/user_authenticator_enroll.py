@@ -1,9 +1,11 @@
 import logging
+from base64 import b64encode
 
 import petname
 from django.http import HttpResponse
 from rest_framework import serializers, status
 from rest_framework.fields import SkipField
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
@@ -96,7 +98,7 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     @sudo_required
-    def get(self, request, user, interface_id):
+    def get(self, request: Request, user, interface_id) -> Response:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -138,19 +140,15 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
-            response["challenge"] = interface.start_enrollment()
-            # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
-            # format. Our current js u2f library expects the old format, so
-            # massaging the data to include appId here
-            app_id = response["challenge"]["appId"]
-            for register_request in response["challenge"]["registerRequests"]:
-                register_request["appId"] = app_id
-
+            publicKeyCredentialCreate, state = interface.start_enrollment(user)
+            response["challenge"] = {}
+            response["challenge"]["webAuthnRegisterData"] = b64encode(publicKeyCredentialCreate)
+            request.session["webauthn_register_state"] = state
         return Response(response)
 
     @sudo_required
     @email_verification_required
-    def post(self, request, user, interface_id):
+    def post(self, request: Request, user, interface_id) -> Response:
         """
         Enroll in authenticator interface
         `````````````````````````````````
@@ -224,10 +222,12 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # Try u2f enrollment
         if interface_id == "u2f":
             # What happens when this fails?
+            state = request.session["webauthn_register_state"]
             interface.try_enroll(
                 serializer.data["challenge"],
                 serializer.data["response"],
                 serializer.data["deviceName"],
+                state,
             )
             context.update({"device_name": serializer.data["deviceName"]})
 

@@ -19,28 +19,35 @@ type RouteParams = {
 };
 
 type Props = {
+  eventView: EventView | undefined;
   organization: Organization;
   project: Project;
-  eventView: EventView | undefined;
   userTeamIds: string[];
-  wizardTemplate?: WizardRuleTemplate;
-  sessionId?: string;
   isCustomMetric?: boolean;
+  sessionId?: string;
+  wizardTemplate?: WizardRuleTemplate;
 } & RouteComponentProps<RouteParams, {}>;
 
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.
  */
 function IncidentRulesCreate(props: Props) {
-  function handleSubmitSuccess() {
+  function handleSubmitSuccess(data: any) {
     const {router, project} = props;
     const {orgId} = props.params;
+    const alertRuleId: string | undefined = data
+      ? (data.id as string | undefined)
+      : undefined;
 
     metric.endTransaction({name: 'saveAlertRule'});
-    router.push({
-      pathname: `/organizations/${orgId}/alerts/rules/`,
-      query: {project: project.id},
-    });
+    router.push(
+      alertRuleId
+        ? {pathname: `/organizations/${orgId}/alerts/rules/details/${alertRuleId}/`}
+        : {
+            pathname: `/organizations/${orgId}/alerts/rules/`,
+            query: {project: project.id},
+          }
+    );
   }
 
   const {project, eventView, wizardTemplate, sessionId, userTeamIds, ...otherProps} =

@@ -7,30 +7,30 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
-import {Environment, GlobalSelection, Group, Organization, Project} from 'sentry/types';
+import {Environment, Group, Organization, PageFilters, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ReprocessingStatus} from '../utils';
 
 import GroupEventDetails from './groupEventDetails';
 
 type Props = RouteComponentProps<
-  {orgId: string; groupId: string; eventId?: string},
+  {groupId: string; orgId: string; eventId?: string},
   {}
 > & {
   api: Client;
-  organization: Organization;
-  selection: GlobalSelection;
-  project: Project;
-  group: Group;
   event: Event;
-  loadingEvent: boolean;
-  groupReprocessingStatus: ReprocessingStatus;
   eventError: boolean;
+  group: Group;
+  groupReprocessingStatus: ReprocessingStatus;
+  loadingEvent: boolean;
   onRetry: () => void;
+  organization: Organization;
+  project: Project;
+  selection: PageFilters;
 };
 
 type State = typeof OrganizationEnvironmentsStore['state'];
@@ -80,4 +80,4 @@ export class GroupEventDetailsContainer extends Component<Props, State> {
   }
 }
 
-export default withApi(withOrganization(withGlobalSelection(GroupEventDetailsContainer)));
+export default withApi(withOrganization(withPageFilters(GroupEventDetailsContainer)));

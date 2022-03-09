@@ -11,11 +11,11 @@ type DefaultProps = {
 type Props = DefaultProps & {
   date: moment.MomentInput | momentTimezone.MomentInput;
   dateOnly?: boolean;
-  timeOnly?: boolean;
+  format?: string;
   shortDate?: boolean;
   timeAndDate?: boolean;
+  timeOnly?: boolean;
   utc?: boolean;
-  format?: string;
 };
 
 class DateTime extends Component<Props> {
@@ -57,8 +57,13 @@ class DateTime extends Component<Props> {
       return 'MM/DD/YYYY';
     }
 
-    // Oct 26, 2017 11:30
     if (clock24Hours) {
+      if (seconds) {
+        // Oct 26, 2017 11:30:30
+        return 'MMM D, YYYY HH:mm:ss';
+      }
+
+      // Oct 26, 2017 11:30
       return 'MMM D, YYYY HH:mm';
     }
 

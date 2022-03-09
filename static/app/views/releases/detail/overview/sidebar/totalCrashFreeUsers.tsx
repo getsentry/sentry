@@ -5,9 +5,9 @@ import moment from 'moment';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SidebarSection from 'sentry/components/sidebarSection';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -19,8 +19,8 @@ import {displayCrashFreePercent} from '../../../utils';
 type Props = AsyncComponent['props'] & {
   location: Location;
   organization: Organization;
-  version: string;
   projectSlug: string;
+  version: string;
 };
 
 type State = AsyncComponent['state'] & {
@@ -36,10 +36,12 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
     return [
       [
         'releaseStats',
-        `/projects/${organization.slug}/${projectSlug}/releases/${version}/stats/`,
+        `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
+          version
+        )}/stats/`,
         {
           query: {
-            ...getParams(
+            ...normalizeDateTimeParams(
               pick(location.query, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])
             ),
             type: 'sessions',

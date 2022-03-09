@@ -1,4 +1,4 @@
-import {MouseEvent, MouseEventHandler, useContext} from 'react';
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
@@ -26,13 +26,13 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    onMouseDown?: MouseEventHandler<HTMLDivElement>;
-    onClick?: () => void;
-    isFrameAfterLastNonApp?: boolean;
-    includeSystemFrames?: boolean;
-    prevFrame?: Frame;
     image?: React.ComponentProps<typeof DebugImage>['image'];
+    includeSystemFrames?: boolean;
+    isFrameAfterLastNonApp?: boolean;
     maxLengthOfRelativeAddress?: number;
+    onClick?: () => void;
+    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
+    prevFrame?: Frame;
   };
 
 function Native({
@@ -86,7 +86,7 @@ function Native({
     return addr;
   }
 
-  function scrollToImage(event: MouseEvent<HTMLAnchorElement>) {
+  function scrollToImage(event: React.MouseEvent<HTMLAnchorElement>) {
     event.stopPropagation(); // to prevent collapsing if collapsible
 
     if (instructionAddr) {
@@ -184,7 +184,7 @@ const PackageInfo = styled('span')`
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: auto 1fr;
   align-items: center;
   justify-content: flex-start;

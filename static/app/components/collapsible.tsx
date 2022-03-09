@@ -8,14 +8,14 @@ type CollapseButtonRenderProps = {
 };
 
 type ExpandButtonRenderProps = {
-  onExpand: () => void;
   numberOfHiddenItems: number;
+  onExpand: () => void;
 };
 
 type Props = {
-  maxVisibleItems?: number;
   collapseButton?: (props: CollapseButtonRenderProps) => React.ReactNode;
   expandButton?: (props: ExpandButtonRenderProps) => React.ReactNode;
+  maxVisibleItems?: number;
 };
 
 /**

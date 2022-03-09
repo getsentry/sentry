@@ -2,6 +2,7 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404
 from django.utils.encoding import force_str
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -51,7 +52,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
         return data, project
 
     @sudo_required
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         try:
             data = request.GET["data"]
         except KeyError:
@@ -82,7 +83,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
         )
 
     @sudo_required
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
             data = request.data["data"]
         except KeyError:

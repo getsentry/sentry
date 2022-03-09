@@ -75,35 +75,37 @@ const placeholderSelectStyles: StylesConfig = {
 };
 
 type Props = {
-  organization: Organization;
   onChange: (value: any) => any;
-  /**
-   * Function to control whether a team should be shown in the dropdown
-   */
-  teamFilter?: (team: Team) => boolean;
+  organization: Organization;
+  includeUnassigned?: boolean;
   /**
    * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
    */
   project?: Project;
   /**
+   * Function to control whether a team should be shown in the dropdown
+   */
+  teamFilter?: (team: Team) => boolean;
+  /**
    * Controls whether the value in the dropdown is a team id or team slug
    */
   useId?: boolean;
-  includeUnassigned?: boolean;
 } & ControlProps;
 
 type TeamActor = {
-  type: 'team';
   id: string;
   name: string;
+  type: 'team';
 };
 
 type TeamOption = {
-  value: string | null;
+  actor: TeamActor | null;
   label: React.ReactNode;
   searchKey: string;
-  actor: TeamActor | null;
+  value: string | null;
   disabled?: boolean;
+  trailingItems?: React.ReactNode;
+  trailingItemsSpanFullHeight?: boolean;
 };
 
 function TeamSelector(props: Props) {
@@ -186,24 +188,29 @@ function TeamSelector(props: Props) {
               <IdBadge team={team} />
             </Tooltip>
           </DisabledLabel>
-          <Tooltip
-            title={
-              canAddTeam
-                ? t('Add %s to project', `#${team.slug}`)
-                : t('You do not have permission to add team to project.')
-            }
-          >
-            <AddToProjectButton
-              type="button"
-              size="zero"
-              borderless
-              disabled={!canAddTeam}
-              onClick={() => handleAddTeamToProject(team)}
-              icon={<IconAdd isCircled />}
-            />
-          </Tooltip>
         </TeamOutsideProject>
       ),
+      trailingItems: (
+        <Tooltip
+          title={
+            canAddTeam
+              ? t('Add %s to project', `#${team.slug}`)
+              : t('You do not have permission to add team to project.')
+          }
+          containerDisplayMode="flex"
+        >
+          <AddToProjectButton
+            type="button"
+            size="zero"
+            borderless
+            disabled={!canAddTeam}
+            onClick={() => handleAddTeamToProject(team)}
+            icon={<IconAdd isCircled />}
+            aria-label={t('Add %s to project', `#${team.slug}`)}
+          />
+        </Tooltip>
+      ),
+      trailingItemsSpanFullHeight: true,
     };
   }
 
@@ -244,6 +251,7 @@ function TeamSelector(props: Props) {
         ...(multiple ? {} : placeholderSelectStyles),
         ...(styles ?? {}),
       }}
+      verticallyCenterCheckWrap
       isLoading={fetching}
       {...extraProps}
     />

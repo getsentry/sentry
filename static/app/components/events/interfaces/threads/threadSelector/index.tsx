@@ -14,11 +14,11 @@ import Option from './option';
 import SelectedOption from './selectedOption';
 
 type Props = {
-  threads: Array<Thread>;
   activeThread: Thread;
   event: Event;
-  fullWidth?: boolean;
+  threads: Array<Thread>;
   exception?: Required<ExceptionType>;
+  fullWidth?: boolean;
   onChange?: (thread: Thread) => void;
 };
 

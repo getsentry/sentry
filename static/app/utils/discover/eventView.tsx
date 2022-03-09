@@ -9,11 +9,11 @@ import moment from 'moment';
 
 import {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'sentry/types';
+import {NewQuery, PageFilters, SavedQuery, SelectValue, User} from 'sentry/types';
 import {
   aggregateOutputType,
   Column,
@@ -58,11 +58,11 @@ export type MetaType = Record<string, ColumnType>;
 export type EventData = Record<string, any>;
 
 export type LocationQuery = {
-  start?: string | string[];
-  end?: string | string[];
-  utc?: string | string[];
-  statsPeriod?: string | string[];
-  cursor?: string | string[];
+  cursor?: string | string[] | null;
+  end?: string | string[] | null;
+  start?: string | string[] | null;
+  statsPeriod?: string | string[] | null;
+  utc?: string | string[] | null;
 };
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
@@ -181,7 +181,7 @@ const decodeSorts = (location: Location): Array<Sort> => {
   return fromSorts(sorts);
 };
 
-const encodeSort = (sort: Sort): string => {
+export const encodeSort = (sort: Sort): string => {
   switch (sort.kind) {
     case 'desc': {
       return `-${sort.field}`;
@@ -278,24 +278,24 @@ class EventView {
   additionalConditions: MutableSearch; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
+    additionalConditions: MutableSearch;
+    createdBy: User | undefined;
+    display: string | undefined;
+    end: string | undefined;
+    environment: Readonly<string[]>;
+    fields: Readonly<Field[]>;
     id: string | undefined;
     name: string | undefined;
-    fields: Readonly<Field[]>;
-    sorts: Readonly<Sort[]>;
-    query: string;
-    team: Readonly<('myteams' | number)[]>;
     project: Readonly<number[]>;
+    query: string;
+    sorts: Readonly<Sort[]>;
     start: string | undefined;
-    end: string | undefined;
     statsPeriod: string | undefined;
-    environment: Readonly<string[]>;
-    yAxis: string | undefined;
-    display: string | undefined;
+    team: Readonly<('myteams' | number)[]>;
     topEvents: string | undefined;
-    interval?: string;
+    yAxis: string | undefined;
     expired?: boolean;
-    createdBy: User | undefined;
-    additionalConditions: MutableSearch;
+    interval?: string;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -347,7 +347,7 @@ class EventView {
   }
 
   static fromLocation(location: Location): EventView {
-    const {start, end, statsPeriod} = getParams(location.query);
+    const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
 
     return new EventView({
       id: decodeScalar(location.query.id),
@@ -411,7 +411,7 @@ class EventView {
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
     const fields = EventView.getFields(saved);
     // normalize datetime selection
-    const {start, end, statsPeriod} = getParams({
+    const {start, end, statsPeriod} = normalizeDateTimeParams({
       start: saved.start,
       end: saved.end,
       statsPeriod: saved.range,
@@ -449,7 +449,7 @@ class EventView {
     location: Location
   ): EventView {
     let fields = decodeFields(location);
-    const {start, end, statsPeriod} = getParams(location.query);
+    const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
     const id = decodeScalar(location.query.id);
     const teams = decodeTeams(location);
     const projects = decodeProjects(location);
@@ -499,21 +499,23 @@ class EventView {
   }
 
   isEqualTo(other: EventView): boolean {
-    const keys = [
-      'id',
-      'name',
-      'query',
-      'statsPeriod',
-      'fields',
-      'sorts',
-      'project',
-      'environment',
-      'topEvents',
-    ];
-
+    const defaults = {
+      id: undefined,
+      name: undefined,
+      query: undefined,
+      statsPeriod: undefined,
+      fields: undefined,
+      sorts: undefined,
+      project: undefined,
+      environment: undefined,
+      yAxis: 'count()',
+      display: DisplayModes.DEFAULT,
+      topEvents: '5',
+    };
+    const keys = Object.keys(defaults);
     for (const key of keys) {
-      const currentValue = this[key];
-      const otherValue = other[key];
+      const currentValue = this[key] ?? defaults[key];
+      const otherValue = other[key] ?? defaults[key];
 
       if (!isEqual(currentValue, otherValue)) {
         return false;
@@ -538,21 +540,6 @@ class EventView {
       }
     }
 
-    // compare yAxis selections
-    // undefined yAxis values default to count()
-    const currentYAxisValue = this.yAxis ?? 'count()';
-    const otherYAxisValue = other.yAxis ?? 'count()';
-    if (!isEqual(currentYAxisValue, otherYAxisValue)) {
-      return false;
-    }
-
-    // compare Display Mode selections
-    // undefined Display Mode values default to "default"
-    const currentDisplayMode = this.display ?? DisplayModes.DEFAULT;
-    const otherDisplayMode = other.display ?? DisplayModes.DEFAULT;
-    if (!isEqual(currentDisplayMode, otherDisplayMode)) {
-      return false;
-    }
     return true;
   }
 
@@ -586,28 +573,28 @@ class EventView {
     return newQuery;
   }
 
-  getGlobalSelection(): GlobalSelection {
+  getPageFilters(): PageFilters {
     return {
       projects: this.project as number[],
       environments: this.environment as string[],
       datetime: {
         start: this.start ?? null,
         end: this.end ?? null,
-        period: this.statsPeriod ?? '',
-        // TODO(tony) Add support for the Use UTC option from
-        // the global headers, currently, that option is not
-        // supported and all times are assumed to be UTC
+        period: this.statsPeriod ?? null,
+        // TODO(tony) Add support for the Use UTC option from the global
+        // headers, currently, that option is not supported and all times are
+        // assumed to be UTC
         utc: true,
       },
     };
   }
 
-  getGlobalSelectionQuery(): Query {
+  getPageFiltersQuery(): Query {
     const {
       environments: environment,
       projects,
       datetime: {start, end, period, utc},
-    } = this.getGlobalSelection();
+    } = this.getPageFilters();
     return {
       project: projects.map(proj => proj.toString()),
       environment,
@@ -1096,7 +1083,7 @@ class EventView {
         };
 
     // normalize datetime selection
-    return getParams({
+    return normalizeDateTimeParams({
       ...dateSelection,
       utc: decodeScalar(query.utc),
     });
@@ -1170,8 +1157,8 @@ class EventView {
   getPerformanceTransactionEventsViewUrlTarget(
     slug: string,
     options: {
-      showTransactions?: EventsDisplayFilterName;
       breakdown?: SpanOperationBreakdownFilter;
+      showTransactions?: EventsDisplayFilterName;
       webVital?: WebVital;
     }
   ): {pathname: string; query: Query} {

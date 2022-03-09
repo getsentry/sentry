@@ -3,23 +3,12 @@ import {Organization, Project} from 'sentry/types';
 import {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
+  debugFilesNeedsReview?: boolean;
   organization?: Organization;
   project?: Project;
-  debugFilesNeedsReview?: boolean;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
-
-// Object with the pluginId as the key, and enablingFeature as the value
-const SHADOW_DEPRECATED_PLUGINS = {};
-
-const canViewPlugin = (pluginId: string, organization?: Organization) => {
-  const isDeprecated = SHADOW_DEPRECATED_PLUGINS.hasOwnProperty(pluginId);
-  const hasFeature = organization?.features?.includes(
-    SHADOW_DEPRECATED_PLUGINS[pluginId]
-  );
-  return isDeprecated ? hasFeature : true;
-};
 
 export default function getConfiguration({
   project,
@@ -171,8 +160,7 @@ export default function getConfiguration({
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
-          show: opts =>
-            opts?.access?.has('project:write') && canViewPlugin(plugin.id, organization),
+          show: opts => opts?.access?.has('project:write') && !plugin.isDeprecated,
           id: 'plugin_details',
           recordAnalytics: true,
         })),

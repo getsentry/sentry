@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -20,36 +21,38 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 
+import AlertContainer from './integrationAlertContainer';
 import IntegrationStatus from './integrationStatus';
 import PluginDeprecationAlert from './pluginDeprecationAlert';
 
 type Props = {
-  organization: Organization;
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration';
-  slug: string;
-  displayName: string;
-  status?: IntegrationInstallationStatus;
-  publishStatus: 'unpublished' | 'published' | 'internal';
-  configurations: number;
   categories: string[];
+  configurations: number;
+  displayName: string;
+  organization: Organization;
+  publishStatus: 'unpublished' | 'published' | 'internal';
+  slug: string;
+  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration';
   /**
    * If provided, render an alert message with this text.
    */
   alertText?: string;
+  customAlert?: React.ReactNode;
+  customIcon?: React.ReactNode;
+  plugin?: PluginWithProjectList;
   /**
    * If `alertText` was provided, this text overrides the "Resolve now" message
    * in the alert.
    */
   resolveText?: string;
-
-  plugin?: PluginWithProjectList;
+  status?: IntegrationInstallationStatus;
 };
 
 const urlMap = {
   plugin: 'plugins',
   firstParty: 'integrations',
   sentryApp: 'sentry-apps',
-  documentIntegration: 'document-integrations',
+  docIntegration: 'document-integrations',
 };
 
 const IntegrationRow = (props: Props) => {
@@ -65,6 +68,8 @@ const IntegrationRow = (props: Props) => {
     alertText,
     resolveText,
     plugin,
+    customAlert,
+    customIcon,
   } = props;
 
   const baseUrl =
@@ -95,7 +100,7 @@ const IntegrationRow = (props: Props) => {
   return (
     <PanelRow noPadding data-test-id={slug}>
       <FlexContainer>
-        <PluginIcon size={36} pluginId={slug} />
+        {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <Container>
           <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
           <IntegrationDetails>
@@ -133,6 +138,7 @@ const IntegrationRow = (props: Props) => {
           </Alert>
         </AlertContainer>
       )}
+      {customAlert}
       {plugin?.deprecationDate && (
         <PluginDeprecationAlertWrapper>
           <PluginDeprecationAlert organization={organization} plugin={plugin} />
@@ -235,10 +241,6 @@ const CategoryTag = styled(
 const ResolveNowButton = styled(Button)`
   color: ${p => p.theme.subText};
   float: right;
-`;
-
-const AlertContainer = styled('div')`
-  padding: 0px ${space(3)} 0px 68px;
 `;
 
 export default IntegrationRow;
