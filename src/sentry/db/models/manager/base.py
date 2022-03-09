@@ -221,7 +221,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         class_prepared.connect(self.__class_prepared, sender=model)
 
     def get(self, *args: Any, **kwargs: Any) -> M:
-        # Explicitly typing to satisfy mypy.
+        # TODO(mgaeta): Remove this method once we add django types.
         model: M = super().get(*args, **kwargs)
         return model
 
@@ -264,14 +264,12 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
                     local_cache[cache_key] = result
                 return result
 
-            # If we didn't look up by pk we need to hit the reffed
-            # key
+            # If we didn't look up by pk we need to hit the reffed key.
             if key != pk_name:
                 result = self.get_from_cache(**{pk_name: retval})
                 if local_cache is not None:
                     local_cache[cache_key] = result
                 return result
-
             if not isinstance(retval, self.model):
                 if settings.DEBUG:
                     raise ValueError("Unexpected value type returned from cache")
@@ -415,14 +413,12 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         cache.delete(cache_key, version=self.cache_version)
 
     def post_save(self, instance: M, **kwargs: Any) -> None:
-        """
-        Triggered when a model bound to this manager is saved.
-        """
+        """Triggered when a model bound to this manager is saved."""
+        pass
 
     def post_delete(self, instance: M, **kwargs: Any) -> None:
-        """
-        Triggered when a model bound to this manager is deleted.
-        """
+        """Triggered when a model bound to this manager is deleted."""
+        pass
 
     def get_queryset(self) -> BaseQuerySet:
         """

@@ -190,7 +190,7 @@ class ScoreClause(Func):
 
     def __int__(self):
         # Calculate the score manually when coercing to an int.
-        # This is used within create_or_update and friends
+        # This is used within update_or_create and friends
         return self.group.get_score() if self.group else 0
 
     def as_sql(self, compiler, connection, function=None, template=None):

@@ -38,19 +38,20 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         ):
             return Response(status=422)
 
-        values = {}
-
+        values = {"user": request.user}
         if status:
             values["status"] = status
             values["date_completed"] = timezone.now()
         if completion_seen:
             values["completion_seen"] = timezone.now()
 
-        rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-            organization=organization, task=task_id, values=values, defaults={"user": request.user}
+        task, created = OrganizationOnboardingTask.objects.update_or_create(
+            organization=organization,
+            task=task_id,
+            defaults=values,
         )
 
-        if rows_affected or created:
+        if task or created:
             try_mark_onboarding_complete(organization.id)
 
         return Response(status=204)

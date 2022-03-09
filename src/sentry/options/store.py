@@ -185,10 +185,8 @@ class OptionsStore:
         return self.set_cache(key, value)
 
     def set_store(self, key, value):
-        from sentry.db.models.query import create_or_update
-
-        create_or_update(
-            model=self.model, key=key.name, values={"value": value, "last_updated": timezone.now()}
+        self.model.objects.update_or_create(
+            key=key.name, defaults={"value": value, "last_updated": timezone.now()}
         )
 
     def set_cache(self, key, value):

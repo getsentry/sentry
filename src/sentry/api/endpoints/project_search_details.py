@@ -87,8 +87,8 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
             )
 
         if result.get("isUserDefault"):
-            SavedSearchUserDefault.objects.create_or_update(
-                user=request.user, project=project, values={"savedsearch": search}
+            SavedSearchUserDefault.objects.update_or_create(
+                user=request.user, project=project, defaults={"savedsearch": search}
             )
 
         return Response(serialize(search, request.user))

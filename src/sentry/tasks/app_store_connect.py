@@ -167,8 +167,10 @@ def process_builds(
             if not build_state.fetched:
                 pending_builds.append((build, build_state))
 
-    LatestAppConnectBuildsCheck.objects.create_or_update(
-        project=project, source_id=config.id, values={"last_checked": timezone.now()}
+    LatestAppConnectBuildsCheck.objects.update_or_create(
+        project=project,
+        source_id=config.id,
+        defaults={"last_checked": timezone.now()},
     )
 
     return pending_builds

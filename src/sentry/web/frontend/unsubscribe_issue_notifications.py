@@ -18,6 +18,9 @@ class UnsubscribeIssueNotificationsView(UnsubscribeBaseView):
         return instance.get_absolute_url()
 
     def unsubscribe(self, instance, user):
-        GroupSubscription.objects.create_or_update(
-            group=instance, project=instance.project, user=user, values={"is_active": False}
+        GroupSubscription.objects.update_or_create(
+            group=instance,
+            project=instance.project,
+            user=user,
+            defaults={"is_active": False},
         )

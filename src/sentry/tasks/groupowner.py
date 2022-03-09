@@ -65,7 +65,7 @@ def _process_suspect_commits(
                     :PREFERRED_GROUP_OWNERS
                 ]:
                     try:
-                        go, created = GroupOwner.objects.update_or_create(
+                        _, created = GroupOwner.objects.update_or_create(
                             group_id=group_id,
                             type=GroupOwnerType.SUSPECT_COMMIT.value,
                             user_id=owner_id,

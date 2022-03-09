@@ -40,11 +40,11 @@ class ScheduledDeletion(Model):
     @classmethod
     def schedule(cls, instance, days=30, hours=0, data=None, actor=None):
         model_name = type(instance).__name__
-        record, created = cls.objects.create_or_update(
+        record, created = cls.objects.update_or_create(
             app_label=instance._meta.app_label,
             model_name=model_name,
             object_id=instance.pk,
-            values={
+            defaults={
                 "date_scheduled": timezone.now() + timedelta(days=days, hours=hours),
                 "data": data or {},
                 "actor_id": actor.id if actor else None,

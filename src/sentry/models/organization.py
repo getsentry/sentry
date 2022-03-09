@@ -282,7 +282,7 @@ class Organization(Model):
                     organizationmember=from_member, is_active=True
                 ).select_related()
                 for omt in qs:
-                    OrganizationMemberTeam.objects.create_or_update(
+                    OrganizationMemberTeam.objects.update_or_create(
                         organizationmember=to_member, team=omt.team, defaults={"is_active": True}
                     )
             logger.info(

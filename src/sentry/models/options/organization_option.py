@@ -40,7 +40,7 @@ class OrganizationOptionManager(OptionManager["Organization"]):
         self.reload_cache(organization.id, "organizationoption.unset_value")
 
     def set_value(self, organization: Organization, key: str, value: Value) -> None:
-        self.create_or_update(organization=organization, key=key, values={"value": value})
+        self.update_or_create(organization=organization, key=key, defaults={"value": value})
         self.reload_cache(organization.id, "organizationoption.set_value")
 
     def get_all_values(self, organization: Organization) -> Mapping[str, Value]:

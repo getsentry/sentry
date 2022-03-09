@@ -78,7 +78,7 @@ class Buffer(Service, metaclass=BufferMount):
                     last_seen=update_kwargs["last_seen"],
                 )
 
-            _, created = model.objects.create_or_update(values=update_kwargs, **filters)
+            _, created = model.objects.update_or_create(defaults=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(
             model=model,

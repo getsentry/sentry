@@ -38,7 +38,7 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
                 yield
 
         # Disable transaction isolation just within event manager, but not in
-        # GroupHash.objects.create_or_update
+        # GroupHash.objects.update_or_create
         monkeypatch.setattr("sentry.event_manager.transaction", FakeTransactionModule)
 
         # select_for_update cannot be used outside of transactions
