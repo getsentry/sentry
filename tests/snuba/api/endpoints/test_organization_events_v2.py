@@ -4904,8 +4904,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "organizations:performance-use-metrics": True,
             "organizations:discover-use-snql": True,
         }
-        # referrer is used so we know when we can enable MEP or not
-        self.referrer = "api.performance.landing-table"
 
     def do_request(self, query, features=None):
         if features is None:
@@ -4922,7 +4920,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_no_projects(self):
         response = self.do_request(
             {
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
             }
         )
 
@@ -4937,7 +4935,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "query": "event.type:transaction",
                 "start": iso_format(before_now(days=20)),
                 "end": iso_format(before_now(days=15)),
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
             }
             response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -4948,8 +4946,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["epm()"],
                 "query": "hi \n there",
-                "referrer": self.referrer,
                 "project": self.project.id,
+                "metricsEnhanced": "1",
             }
         )
         assert response.status_code == 400, response.content
@@ -4969,7 +4967,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["project.name", "environment", "epm()"],
                 "query": "event.type:transaction",
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
                 "per_page": 50,
             }
         )
@@ -4997,7 +4995,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "project", "p50(transaction.duration)"],
                 "query": "event.type:transaction p50(transaction.duration):<50",
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
                 "per_page": 50,
             }
         )
@@ -5025,7 +5023,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["transaction", "project", "p50(transaction.duration)"],
                 "query": "event.type:transaction p75(transaction.duration):<50",
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
                 "per_page": 50,
             }
         )
@@ -5047,7 +5045,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": ["test", "p50(transaction.duration)"],
                 "query": "event.type:transaction",
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
                 "per_page": 50,
             }
         )
@@ -5101,7 +5099,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     # "user_misery()",
                 ],
                 "query": "event.type:transaction",
-                "referrer": self.referrer,
+                "metricsEnhanced": "1",
                 "per_page": 50,
             }
         )

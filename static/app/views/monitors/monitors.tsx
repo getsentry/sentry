@@ -71,20 +71,19 @@ class Monitors extends AsyncView<Props, State> {
             <div>
               {t('Monitors')} <FeatureBadge type="beta" />
             </div>
-            <NewMonitorButton
+            <Button
               to={`/organizations/${organization.slug}/monitors/create/`}
               priority="primary"
-              size="xsmall"
             >
               {t('New Monitor')}
-            </NewMonitorButton>
+            </Button>
           </HeaderTitle>
-          <StyledSearchBar
-            query={decodeScalar(qs.parse(location.search)?.query, '')}
-            placeholder={t('Search for monitors.')}
-            onSearch={this.handleSearch}
-          />
         </PageHeader>
+        <StyledSearchBar
+          query={decodeScalar(qs.parse(location.search)?.query, '')}
+          placeholder={t('Search for monitors.')}
+          onSearch={this.handleSearch}
+        />
         <Panel>
           <PanelBody>
             {monitorList?.map(monitor => (
@@ -120,11 +119,7 @@ const HeaderTitle = styled(PageHeading)`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  flex: 1;
-`;
-
-const NewMonitorButton = styled(Button)`
-  margin-right: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 const PanelItemCentered = styled(PanelItem)`

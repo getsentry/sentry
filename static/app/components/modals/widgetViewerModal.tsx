@@ -2,21 +2,23 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {truncate} from '@sentry/utils';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import SelectControl from 'sentry/components/forms/selectControl';
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -32,8 +34,9 @@ import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
+  renderDiscoverGridHeaderCell,
   renderGridBodyCell,
-  renderGridHeaderCell,
+  renderIssueGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -64,10 +67,16 @@ function WidgetViewerModal(props: Props) {
     Header,
     closeModal,
     onEdit,
+    router,
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
-  const [cursor, setCursor] = React.useState<string>();
+  const selectedQueryIndex =
+    decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
+  const [pagination, setPagination] = React.useState<{page: number; cursor?: string}>({
+    cursor: undefined,
+    page: 0,
+  });
 
   // Use sort if provided by location query to sort table
   const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
@@ -85,7 +94,7 @@ function WidgetViewerModal(props: Props) {
 
     // Create Table widget
     const tableWidget = {
-      ...cloneDeep({...widget, queries: sortedQueries}),
+      ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
       displayType: DisplayType.TABLE,
     };
     const fields = tableWidget.queries[0].fields;
@@ -114,8 +123,21 @@ function WidgetViewerModal(props: Props) {
     );
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
+
+    const queryOptions = sortedQueries.map(({name, conditions}, index) => ({
+      label: truncate(name || conditions, 120),
+      value: index,
+    }));
+
     return (
       <React.Fragment>
+        {widget.queries.length > 1 && (
+          <TextContainer>
+            {t(
+              'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+            )}
+          </TextContainer>
+        )}
         {widget.displayType !== DisplayType.TABLE && (
           <Container>
             <WidgetCardChartContainer
@@ -138,6 +160,18 @@ function WidgetViewerModal(props: Props) {
             />
           </Container>
         )}
+        {widget.queries.length > 1 && (
+          <StyledSelectControl
+            value={selectedQueryIndex}
+            options={queryOptions}
+            onChange={(option: SelectValue<number>) =>
+              router.replace({
+                pathname: location.pathname,
+                query: {...location.query, [WidgetViewerQueryField.QUERY]: option.value},
+              })
+            }
+          />
+        )}
         <TableContainer>
           {widget.widgetType === WidgetType.ISSUE ? (
             <IssueWidgetQueries
@@ -150,27 +184,49 @@ function WidgetViewerModal(props: Props) {
                   ? FULL_TABLE_ITEM_LIMIT
                   : HALF_TABLE_ITEM_LIMIT
               }
+              cursor={pagination.cursor}
             >
-              {({transformedResults, loading}) => {
+              {({transformedResults, loading, pageLinks}) => {
                 return (
-                  <GridEditable
-                    isLoading={loading}
-                    data={transformedResults}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      renderHeadCell: renderGridHeaderCell({
-                        ...props,
-                      }) as (
-                        column: GridColumnOrder,
-                        columnIndex: number
-                      ) => React.ReactNode,
-                      renderBodyCell: renderGridBodyCell({
-                        ...props,
-                      }),
-                    }}
-                    location={location}
-                  />
+                  <React.Fragment>
+                    <GridEditable
+                      isLoading={loading}
+                      data={transformedResults}
+                      columnOrder={columnOrder}
+                      columnSortBy={columnSortBy}
+                      grid={{
+                        renderHeadCell: renderIssueGridHeaderCell({
+                          ...props,
+                          widget: tableWidget,
+                        }) as (
+                          column: GridColumnOrder,
+                          columnIndex: number
+                        ) => React.ReactNode,
+                        renderBodyCell: renderGridBodyCell({
+                          ...props,
+                          widget: tableWidget,
+                        }),
+                      }}
+                      location={location}
+                    />
+                    <StyledPagination
+                      pageLinks={pageLinks}
+                      onCursor={(nextCursor, _path, _query, delta) => {
+                        let nextPage = isNaN(pagination.page)
+                          ? delta
+                          : pagination.page + delta;
+                        let newCursor = nextCursor;
+                        // unset cursor and page when we navigate back to the first page
+                        // also reset cursor if somehow the previous button is enabled on
+                        // first page and user attempts to go backwards
+                        if (nextPage <= 0) {
+                          newCursor = undefined;
+                          nextPage = 0;
+                        }
+                        setPagination({cursor: newCursor, page: nextPage});
+                      }}
+                    />
+                  </React.Fragment>
                 );
               }}
             </IssueWidgetQueries>
@@ -186,7 +242,7 @@ function WidgetViewerModal(props: Props) {
                   : HALF_TABLE_ITEM_LIMIT
               }
               pagination
-              cursor={cursor}
+              cursor={pagination.cursor}
             >
               {({tableResults, loading, pageLinks}) => {
                 const isFirstPage = pageLinks
@@ -200,7 +256,7 @@ function WidgetViewerModal(props: Props) {
                       columnOrder={columnOrder}
                       columnSortBy={columnSortBy}
                       grid={{
-                        renderHeadCell: renderGridHeaderCell({
+                        renderHeadCell: renderDiscoverGridHeaderCell({
                           ...props,
                           widget: tableWidget,
                           tableData: tableResults?.[0],
@@ -220,7 +276,7 @@ function WidgetViewerModal(props: Props) {
                     <StyledPagination
                       pageLinks={pageLinks}
                       onCursor={newCursor => {
-                        setCursor(newCursor);
+                        setPagination({cursor: newCursor, page: 0});
                       }}
                     />
                   </React.Fragment>
@@ -250,7 +306,12 @@ function WidgetViewerModal(props: Props) {
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
-      path = getWidgetDiscoverUrl(primaryWidget, modalSelection, organization);
+      path = getWidgetDiscoverUrl(
+        primaryWidget,
+        modalSelection,
+        organization,
+        selectedQueryIndex
+      );
       break;
   }
   return (
@@ -290,6 +351,7 @@ export const modalCss = css`
 
 const headerCss = css`
   margin: -${space(4)} -${space(4)} 0px -${space(4)};
+  line-height: normal;
 `;
 const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
@@ -301,8 +363,16 @@ const Container = styled('div')`
   position: relative;
 
   & > div {
-    padding: 20px 0px;
+    padding: ${space(1.5)} 0px;
   }
+`;
+
+const TextContainer = styled('div')`
+  padding-top: ${space(1.5)};
+`;
+
+const StyledSelectControl = styled(SelectControl)`
+  padding-top: 10px ${space(1.5)};
 `;
 
 // Table Container allows Table display to work around parent padding and fill full modal width

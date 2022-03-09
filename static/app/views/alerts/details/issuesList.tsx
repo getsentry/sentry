@@ -20,6 +20,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 type GroupHistory = {
   count: number;
   group: Group;
+  lastTriggered: string;
 };
 
 type Props = AsyncComponent['props'] &
@@ -85,7 +86,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, rule} = this.props;
     const {loading, groupHistory, groupHistoryPageLinks} = this.state;
 
     return (
@@ -101,14 +102,19 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
             t('Last Triggered'),
           ]}
         >
-          {groupHistory?.map(({group: issue, count}) => {
+          {groupHistory?.map(({group: issue, count, lastTriggered}) => {
             const message = getMessage(issue);
             const {title} = getTitle(issue);
 
             return (
               <Fragment key={issue.id}>
                 <TitleWrapper>
-                  <Link to={`/organizations/${organization.slug}/issues/${issue.id}/`}>
+                  <Link
+                    to={{
+                      pathname: `/organizations/${organization.slug}/issues/${issue.id}/`,
+                      query: rule.environment ? {environment: rule.environment} : {},
+                    }}
+                  >
                     {title}:
                   </Link>
                   <MessageWrapper>{message}</MessageWrapper>
@@ -122,7 +128,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                 <div>
                   <StyledDateTime
                     date={getDynamicText({
-                      value: issue.lastSeen,
+                      value: lastTriggered,
                       fixed: 'Mar 16, 2020 9:10:13 AM UTC',
                     })}
                   />

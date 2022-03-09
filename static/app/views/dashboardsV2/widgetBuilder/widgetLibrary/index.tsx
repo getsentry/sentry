@@ -13,10 +13,10 @@ import {
 
 import {Card} from './card';
 
-type Props = {
+interface Props {
   bypassOverwriteModal: boolean;
   onWidgetSelect: (widget: WidgetTemplate) => void;
-};
+}
 
 export function WidgetLibrary({bypassOverwriteModal, onWidgetSelect}: Props) {
   const theme = useTheme();
