@@ -149,7 +149,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
-    MetricsTagStore.onLoadTagsSuccess(metricsTags);
+    act(() => {
+      MetricsTagStore.onLoadSuccess(metricsTags);
+    });
     MetricsMetaStore.onLoadSuccess(metricsMeta);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
