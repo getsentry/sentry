@@ -620,8 +620,6 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
     def setUp(self):
         super().setUp()
-        # self.start = datetime.datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
-        # self.end = datetime.datetime(2015, 1, 19, 10, 15, 0, tzinfo=timezone.utc)
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
             hour=10, minute=15, second=0, microsecond=0
         ) - datetime.timedelta(days=18)
