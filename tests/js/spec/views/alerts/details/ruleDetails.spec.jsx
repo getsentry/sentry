@@ -57,7 +57,13 @@ describe('AlertRuleDetails', () => {
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/group-history/`,
-      body: [{count: 1, group: TestStubs.Group()}],
+      body: [
+        {
+          count: 1,
+          group: TestStubs.Group(),
+          lastTriggered: moment('Apr 11, 2019 1:08:59 AM UTC').format(),
+        },
+      ],
       headers: {
         Link:
           '<https://sentry.io/api/0/projects/org-slug/project-slug/rules/1/group-history/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
