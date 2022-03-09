@@ -106,6 +106,24 @@ function WidgetViewerModal(props: Props) {
     ) {
       fields.unshift(GEO_COUNTRY_CODE);
     }
+
+    // Default table columns for visualizations that don't have a column setting
+    if (
+      [
+        DisplayType.AREA,
+        DisplayType.LINE,
+        DisplayType.BIG_NUMBER,
+        DisplayType.BAR,
+      ].includes(widget.displayType)
+    ) {
+      tableWidget.queries[0].orderby = tableWidget.queries[0].orderby || '-timestamp';
+      fields.splice(
+        0,
+        fields.length,
+        ...['title', 'event.type', 'project', 'user.display', 'timestamp']
+      );
+    }
+
     if (!isTableWidget) {
       // Updates fields by adding any individual terms from equation fields as a column
       const equationFields = getFieldsFromEquations(fields);

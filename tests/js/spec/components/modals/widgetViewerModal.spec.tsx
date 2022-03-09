@@ -58,6 +58,11 @@ describe('Modals -> WidgetViewerModal', function () {
       project: 1,
       projects: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -65,7 +70,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Discover Area Chart Widget', function () {
-    let container, rerender, eventsMock;
+    let container, rerender, eventsStatsMock, eventsv2Mock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()', 'failure_count()'],
@@ -89,22 +94,33 @@ describe('Modals -> WidgetViewerModal', function () {
 
     beforeEach(function () {
       (ReactEchartsCore as jest.Mock).mockClear();
-      eventsMock = MockApiClient.addMockResponse({
+      eventsStatsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: {},
       });
-      MockApiClient.addMockResponse({
+      eventsv2Mock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
         body: {
           data: [
             {
-              count: 129697,
-              failure_count: 6426,
+              title: '/organizations/:orgId/dashboards/',
+              project: 'test-project',
+              'user.display': 'test@sentry.io',
+              'event.type': 'transaction',
+              timestamp: '2022-03-09T00:00:00+00:00',
+              id: '1',
+              'project.name': 'test-project',
             },
           ],
           meta: {
-            count: 'integer',
-            failure_count: 'integer',
+            title: 'string',
+            project: 'string',
+            'user.display': 'string',
+            'event.type': 'string',
+            timestamp: 'date',
+            id: 'string',
+            'project.name': 'string',
+            isMetricsData: false,
           },
         },
       });
@@ -118,11 +134,23 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     });
 
-    it('renders count() and failure_count() table columns', async function () {
-      expect(await screen.findByText('count()')).toBeInTheDocument();
-      expect(screen.getByText('129k')).toBeInTheDocument();
-      expect(screen.getByText('failure_count()')).toBeInTheDocument();
-      expect(screen.getByText('6.4k')).toBeInTheDocument();
+    it('renders default table columns with default orderby', async function () {
+      expect(await screen.findByText('title')).toBeInTheDocument();
+      expect(screen.getByText('event.type')).toBeInTheDocument();
+      expect(screen.getByText('project')).toBeInTheDocument();
+      expect(screen.getByText('user.display')).toBeInTheDocument();
+      expect(screen.getByText('timestamp')).toBeInTheDocument();
+      expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('test-project')).toBeInTheDocument();
+      expect(screen.getByText('test@sentry.io')).toBeInTheDocument();
+      expect(screen.getByText('Mar 9, 2022 12:00:00 AM UTC')).toBeInTheDocument();
+      expect(eventsv2Mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({sort: ['-timestamp']}),
+        })
+      );
     });
 
     it('renders area chart', async function () {
@@ -155,7 +183,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         });
       });
-      expect(eventsMock).toHaveBeenCalledWith(
+      expect(eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
           query: expect.objectContaining({
