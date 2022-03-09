@@ -67,9 +67,10 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         if serializer.is_valid():
             updated_codeowners = serializer.save()
 
+            user_id = getattr(request.user, "id", None) or None
             analytics.record(
                 "codeowners.updated",
-                user_id=getattr(request.user, "id", None),
+                user_id=user_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 codeowners_id=updated_codeowners.id,
