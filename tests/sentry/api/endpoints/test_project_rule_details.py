@@ -1,7 +1,10 @@
+from datetime import datetime
 from unittest.mock import patch
 
 import responses
 from django.urls import reverse
+from freezegun import freeze_time
+from pytz import UTC
 
 from sentry.models import (
     Environment,
@@ -9,6 +12,7 @@ from sentry.models import (
     Rule,
     RuleActivity,
     RuleActivityType,
+    RuleFireHistory,
     RuleStatus,
     SentryAppComponent,
 )
@@ -17,6 +21,8 @@ from sentry.utils import json
 
 
 class ProjectRuleDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-project-rule-details"
+
     def test_simple(self):
         self.login_as(user=self.user)
 
@@ -211,6 +217,20 @@ class ProjectRuleDetailsTest(APITestCase):
         # Disables the SentryApp
         assert response.data["actions"][0]["sentryAppInstallationUuid"] == self.installation.uuid
         assert response.data["actions"][0]["disabled"] is True
+
+    @freeze_time()
+    def test_last_triggered(self):
+        self.login_as(user=self.user)
+        rule = self.create_project_rule()
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, expand=["lastTriggered"]
+        )
+        assert resp.data["lastTriggered"] is None
+        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, expand=["lastTriggered"]
+        )
+        assert resp.data["lastTriggered"] == datetime.now().replace(tzinfo=UTC)
 
 
 class UpdateProjectRuleTest(APITestCase):

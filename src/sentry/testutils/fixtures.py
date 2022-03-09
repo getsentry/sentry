@@ -135,8 +135,8 @@ class Fixtures:
             project = self.project
         return Factories.create_project_rule(
             project=project,
-            action_match=action_match,
-            condition_match=condition_match,
+            action_data=action_match,
+            condition_data=condition_match,
             *args,
             **kwargs,
         )

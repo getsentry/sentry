@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import trigger_alert_rule_action_creators
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.rule import RuleSerializer
+from sentry.api.serializers.models.rule import RuleSerializer
+from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import (
@@ -35,8 +36,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         # Serialize Rule object
         serialized_rule = serialize(
-            rule,
-            request.user,
+            rule, request.user, RuleSerializer(request.GET.getlist("expand", []))
         )
 
         errors = []
@@ -85,7 +85,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             }}
 
         """
-        serializer = RuleSerializer(
+        serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
             data=request.data,
             partial=True,
