@@ -19,11 +19,10 @@ export function GroupBy({fieldOptions}: Props) {
       <Field inline={false} flexibleControlStateSize stacked>
         <QueryFieldWrapper>
           <QueryField
+            placeholder={t('Select group')}
             fieldValue={{field: '', kind: 'field'}}
             fieldOptions={fieldOptions}
             onChange={() => {}}
-            filterPrimaryOptions={() => true}
-            filterAggregateParameters={() => true}
           />
         </QueryFieldWrapper>
       </Field>

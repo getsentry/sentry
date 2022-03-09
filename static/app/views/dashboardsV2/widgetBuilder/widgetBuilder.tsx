@@ -1017,9 +1017,17 @@ function WidgetBuilder({
                       )}
                     >
                       <Measurements>
-                        {({measurements}) => (
-                          <GroupBy fieldOptions={getAmendedFieldOptions(measurements)} />
-                        )}
+                        {({measurements}) => {
+                          const groupByOptions = {};
+                          const fieldOptions = getAmendedFieldOptions(measurements);
+                          Object.keys(fieldOptions)
+                            .filter(key => !key.startsWith('function'))
+                            .forEach(nonAggregateKey => {
+                              groupByOptions[nonAggregateKey] =
+                                fieldOptions[nonAggregateKey];
+                            });
+                          return <GroupBy fieldOptions={groupByOptions} />;
+                        }}
                       </Measurements>
                     </BuildStep>
                   )}
