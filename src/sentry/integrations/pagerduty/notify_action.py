@@ -1,6 +1,3 @@
-"""
-Used for notifying a *specific* plugin
-"""
 from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
@@ -28,6 +25,8 @@ def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | No
 
 
 class PagerDutyNotifyServiceForm(forms.Form):
+    """Used for notifying a *specific* plugin."""
+
     account = forms.ChoiceField(choices=(), widget=forms.Select())
     service = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
 
@@ -74,7 +73,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
                 params=params,
             )
 
-    def clean(self) -> Mapping[str, Any]:
+    def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
 
         integration_id = _validate_int_field("account", cleaned_data)

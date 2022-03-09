@@ -16,7 +16,7 @@ class IntegrationNotifyServiceForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
-        super(forms.Form, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if integrations:
             self.fields[INTEGRATION_KEY].initial = integrations[0][0]
 

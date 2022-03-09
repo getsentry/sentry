@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
@@ -18,7 +21,7 @@ class JiraCreateTicketAction(TicketEventAction):
     provider = "jira"
     integration_key = "integration"
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
 
         integration = cleaned_data.get(self.integration_key)
