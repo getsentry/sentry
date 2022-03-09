@@ -4,7 +4,6 @@ import pickle
 
 from django.utils import timezone
 
-from sentry.db.models import create_or_update
 from sentry.nodestore.base import NodeStorage
 from sentry.utils.strings import compress, decompress
 
@@ -49,7 +48,9 @@ class DjangoNodeStorage(NodeStorage):
         self._delete_cache_items(id_list)
 
     def _set_bytes(self, id, data, ttl=None):
-        create_or_update(Node, id=id, values={"data": compress(data), "timestamp": timezone.now()})
+        Node.objects.update_or_create(
+            id=id, defaults={"data": compress(data), "timestamp": timezone.now()}
+        )
 
     def cleanup(self, cutoff_timestamp):
         from sentry.db.deletion import BulkDeleteQuery

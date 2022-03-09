@@ -40,12 +40,12 @@ class UserDetailsTest(TestCase):
 class UserMergeToTest(TestCase):
     def test_simple(self):
         from_user = self.create_user("foo@example.com")
-        UserEmail.objects.create_or_update(
-            user=from_user, email=from_user.email, values={"is_verified": True}
+        UserEmail.objects.update_or_create(
+            user=from_user, email=from_user.email, defaults={"is_verified": True}
         )
         to_user = self.create_user("bar@example.com")
-        UserEmail.objects.create_or_update(
-            user=to_user, email=to_user.email, values={"is_verified": True}
+        UserEmail.objects.update_or_create(
+            user=to_user, email=to_user.email, defaults={"is_verified": True}
         )
         auth1 = Authenticator.objects.create(user=from_user, type=1)
         auth2 = Authenticator.objects.create(user=to_user, type=1)

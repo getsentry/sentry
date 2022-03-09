@@ -198,8 +198,8 @@ def set_incident_seen(incident, user=None):
                 break
 
         if is_project_member:
-            incident_seen, created = IncidentSeen.objects.create_or_update(
-                incident=incident, user=user, values={"last_seen": timezone.now()}
+            incident_seen, created = IncidentSeen.objects.update_or_create(
+                incident=incident, user=user, defaults={"last_seen": timezone.now()}
             )
             return incident_seen
 

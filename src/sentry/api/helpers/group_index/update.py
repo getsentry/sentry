@@ -14,7 +14,6 @@ from rest_framework.response import Response
 from sentry import analytics, eventstream, features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.db.models.query import create_or_update
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
@@ -547,9 +546,9 @@ def update_groups(
                             state["times_seen"] = group.times_seen
                         if ignore_user_count and not ignore_user_window:
                             state["users_seen"] = group.count_users_seen()
-                        GroupSnooze.objects.create_or_update(
+                        GroupSnooze.objects.update_or_create(
                             group=group,
-                            values={
+                            defaults={
                                 "until": ignore_until,
                                 "count": ignore_count,
                                 "window": ignore_window,
@@ -707,12 +706,11 @@ def update_groups(
     if result.get("hasSeen"):
         for group in group_list:
             if is_member_map.get(group.project_id):
-                instance, created = create_or_update(
-                    GroupSeen,
+                GroupSeen.objects.update_or_create(
                     group=group,
                     user=acting_user,
                     project=project_lookup[group.project_id],
-                    values={"last_seen": timezone.now()},
+                    defaults={"last_seen": timezone.now()},
                 )
     elif result.get("hasSeen") is False:
         GroupSeen.objects.filter(group__in=group_ids, user=acting_user).delete()
@@ -741,11 +739,11 @@ def update_groups(
             # subscribed" to "you were subscribed due since you were
             # assigned" just by clicking the "subscribe" button (and you
             # may no longer be assigned to the issue anyway.)
-            GroupSubscription.objects.create_or_update(
+            GroupSubscription.objects.update_or_create(
                 user=acting_user,
                 group=group,
                 project=project_lookup[group.project_id],
-                values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
+                defaults={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
             )
 
         result["subscriptionDetails"] = {

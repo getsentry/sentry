@@ -673,9 +673,9 @@ class EventManagerTest(TestCase):
             }
         )
 
-        external_issue = ExternalIssue.objects.get_or_create(
+        external_issue, _ = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
-        )[0]
+        )
 
         GroupLink.objects.get_or_create(
             group_id=group.id,

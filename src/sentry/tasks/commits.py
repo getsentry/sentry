@@ -217,10 +217,10 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                     ).values("deploy_id"),
                     date_finished__gt=date_finished,
                 ).exists():
-                    LatestRepoReleaseEnvironment.objects.create_or_update(
+                    LatestRepoReleaseEnvironment.objects.update_or_create(
                         repository_id=repository_id,
                         environment_id=environment_id,
-                        values={
+                        defaults={
                             "release_id": release.id,
                             "deploy_id": deploy_id,
                             "commit_id": commit_id,

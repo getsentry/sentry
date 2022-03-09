@@ -110,11 +110,11 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             )
 
             for project in projects:
-                ReleaseProjectEnvironment.objects.create_or_update(
+                ReleaseProjectEnvironment.objects.update_or_create(
                     release=release,
                     environment=env,
                     project=project,
-                    values={"last_deploy_id": deploy.id},
+                    defaults={"last_deploy_id": deploy.id},
                 )
 
             Deploy.notify_if_ready(deploy.id)
