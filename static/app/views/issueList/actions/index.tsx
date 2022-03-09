@@ -253,8 +253,6 @@ class IssueListActions extends React.Component<Props, State> {
 
     const numIssues = issues.size;
 
-    const selectedItems = [...issues].map(issue => GroupStore.get(issue));
-
     return (
       <Sticky>
         <StyledFlex>
@@ -274,7 +272,6 @@ class IssueListActions extends React.Component<Props, State> {
               allInQuerySelected={allInQuerySelected}
               anySelected={anySelected}
               multiSelected={multiSelected}
-              selectedItems={selectedItems}
               selectedProjectSlug={selectedProjectSlug}
               onShouldConfirm={this.shouldConfirm}
               onDelete={this.handleDelete}

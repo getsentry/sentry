@@ -31,7 +31,6 @@ type Props = {
   orgSlug: Organization['slug'];
   query: string;
   queryCount: number;
-  selectedItems: Record<string, any>;
   selectedProjectSlug?: string;
 };
 
@@ -42,7 +41,6 @@ function ActionSet({
   allInQuerySelected,
   anySelected,
   multiSelected,
-  selectedItems,
   issues,
   onUpdate,
   onShouldConfirm,
@@ -140,25 +138,25 @@ function ActionSet({
     },
   ];
 
-  const updatedMenuItems = selectedItems.map(item => {
-    switch (item.status) {
+  const updatedMenuItems = selectedIssues.map(issue => {
+    switch (issue?.status) {
       case 'unresolved':
-        if (item.isBookmarked) {
+        if (issue.isBookmarked) {
           return menuItems.filter(
             menuItem => menuItem.key !== 'bookmark' && menuItem.key !== 'unresolve'
           );
         }
-        if (!item.isBookmarked) {
+        if (!issue.isBookmarked) {
           return menuItems.filter(
             menuItem => menuItem.key !== 'remove-bookmark' && menuItem.key !== 'unresolve'
           );
         }
         return menuItems.filter(menuItem => menuItem.key !== 'unresolve');
       case 'resolved':
-        if (item.isBookmarked) {
+        if (issue.isBookmarked) {
           return menuItems.filter(menuItem => menuItem.key !== 'bookmark');
         }
-        if (!item.isBookmarked) {
+        if (!issue.isBookmarked) {
           return menuItems.filter(menuItem => menuItem.key !== 'remove-bookmark');
         }
         return menuItems;
