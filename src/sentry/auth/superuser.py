@@ -306,7 +306,7 @@ class Superuser:
         try:
             su_access_json = json.loads(request.body)
         except AttributeError:
-            su_access_json = []
+            su_access_json = {}
 
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
 

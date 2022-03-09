@@ -40,7 +40,7 @@ class OrganizationPermissionBase(TestCase):
         if is_superuser:
             request._body = json.dumps(
                 {
-                    "superuserAccessCategory": "Edit organization settings",
+                    "superuserAccessCategory": "debugging",
                     "superuserReason": "Edit organization settings",
                 }
             )

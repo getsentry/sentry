@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
+from rest_framework import serializers
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -74,7 +75,7 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user)
         request._body = json.dumps(
             {
-                "superuserAccessCategory": "Edit organization settings",
+                "superuserAccessCategory": "debugging",
                 "superuserReason": "Edit organization settings",
             }
         )
@@ -101,7 +102,7 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user)
         request._body = json.dumps(
             {
-                "superuserAccessCategory": "Edit organization settings",
+                "superuserAccessCategory": "debugging",
                 "superuserReason": "Edit organization settings",
             }
         )
@@ -198,19 +199,16 @@ class SuperuserTestCase(TestCase):
 
         superuser = Superuser(request, org_id=None)
         with self.settings(SENTRY_SELF_HOSTED=False):
-            superuser.set_logged_in(request.user)
-            assert superuser.is_active is True
-            assert logger.info.call_count == 1
-            logger.info.assert_any_call(
-                "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
-            )
+            with self.assertRaises(serializers.ValidationError):
+                superuser.set_logged_in(request.user)
+                assert superuser.is_active is False
 
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)
         request = self.make_request()
         request._body = json.dumps(
             {
-                "superuserAccessCategory": "Edit organization settings",
+                "superuserAccessCategory": "debugging",
                 "superuserReason": "Edit organization settings",
             }
         )
