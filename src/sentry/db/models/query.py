@@ -11,13 +11,26 @@ from django.db.models.signals import post_save
 
 from .utils import resolve_combined_expression
 
-__all__ = ("update", "create_or_update")
+__all__ = (
+    "create_or_update",
+    "update",
+    "update_or_create",
+)
 
 
 def _handle_value(instance: Model, value: Any) -> Any:
     if isinstance(value, CombinedExpression):
         return resolve_combined_expression(instance, value)
     return value
+
+
+def _handle_key(model: Type[Model], key: str, value: Any) -> str:
+    # XXX(dcramer): we want to support column shortcut on create so we can do
+    #  create_or_update(..., {'project': 1})
+    if not isinstance(value, Model):
+        key_: str = model._meta.get_field(key).attname
+        return key_
+    return key
 
 
 def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
@@ -51,6 +64,50 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
 
 
 update.alters_data = True  # type: ignore
+
+
+def update_or_create(
+    model: Type[Model],
+    using: str | None = None,
+    **kwargs: Any,
+) -> tuple[Model, bool]:
+    """
+    Similar to `get_or_create()`, either updates a row or creates it.
+
+    In order to determine if the row exists, this searches on all of the kwargs
+    besides `defaults`. If the row exists, it is updated with the data in
+    `defaults`. If it doesn't, it is created with the data in `defaults` and the
+    remaining kwargs.
+
+    Returns a tuple of (object, created), where object is the created or updated
+    object and created is a boolean specifying whether a new object was created.
+    """
+
+    defaults = kwargs.pop("defaults", {})
+
+    if not using:
+        using = router.db_for_write(model)
+
+    objects = model.objects.using(using)
+
+    affected = objects.filter(**kwargs).update(**defaults)
+    if affected:
+        return affected, False
+
+    create_kwargs = kwargs.copy()
+    instance = objects.model()
+
+    create_kwargs.update(
+        {_handle_key(model, k, v): _handle_value(instance, v) for k, v in defaults.items()}
+    )
+
+    try:
+        with transaction.atomic(using=using):
+            return objects.create(**create_kwargs), True
+    except IntegrityError:
+        pass
+
+    return affected, False
 
 
 def create_or_update(
