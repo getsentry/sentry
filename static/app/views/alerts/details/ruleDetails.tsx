@@ -218,7 +218,16 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               utc={utc ?? null}
               onUpdate={this.handleUpdateDatetime}
             />
-            <AlertChart organization={organization} orgId={orgId} />
+            <AlertChart
+              organization={organization}
+              orgId={orgId}
+              project={project}
+              rule={rule}
+              period={period ?? ''}
+              start={start ?? null}
+              end={end ?? null}
+              utc={utc ?? null}
+            />
             <AlertRuleIssuesList
               organization={organization}
               project={project}

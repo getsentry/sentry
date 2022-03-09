@@ -1383,11 +1383,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       await tick();
 
-      const metricsDataset = screen.getByLabelText('Metrics (Release Health)');
+      const metricsDataset = screen.getByLabelText(/metrics/i);
       expect(metricsDataset).not.toBeChecked();
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
       expect(metricsDataset).toBeChecked();
 
       userEvent.click(screen.getByText('Table'));
@@ -1411,9 +1409,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
 
       expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
@@ -1445,9 +1441,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -1476,9 +1470,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await act(async () =>
-        userEvent.click(screen.getByLabelText('Metrics (Release Health)'))
-      );
+      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));

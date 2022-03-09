@@ -47,6 +47,10 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 watch-api-docs:
 	@node api-docs/watch.js
 
+diff-api-docs:
+	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
+	yarn diff-docs
+
 build: locale
 
 merge-locale-catalogs: build-js-po

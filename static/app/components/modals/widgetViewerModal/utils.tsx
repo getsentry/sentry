@@ -2,3 +2,7 @@
 export enum WidgetViewerQueryField {
   SORT = 'modalSort',
 }
+
+export function isWidgetViewerPath(pathname: string) {
+  return pathname.match(/\/widget\/[0-9]+\/$/);
+}

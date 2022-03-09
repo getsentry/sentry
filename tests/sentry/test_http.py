@@ -2,6 +2,7 @@ import platform
 import tempfile
 from unittest.mock import patch
 
+import brotli
 import pytest
 import responses
 from django.core.exceptions import SuspiciousOperation
@@ -75,6 +76,25 @@ def test_safe_socket_connect():
 def test_fetch_file():
     responses.add(
         responses.GET, "http://example.com", body="foo bar", content_type="application/json"
+    )
+
+    temp = tempfile.TemporaryFile()
+    result = http.fetch_file(url="http://example.com", domain_lock_enabled=False, outfile=temp)
+    temp.seek(0)
+    assert result.body is None
+    assert temp.read() == b"foo bar"
+    temp.close()
+
+
+@responses.activate
+def test_fetch_file_brotli():
+    body = brotli.compress(b"foo bar")
+    responses.add(
+        responses.GET,
+        "http://example.com",
+        body=body,
+        content_type="application/json",
+        adding_headers={"Content-Encoding": "br"},
     )
 
     temp = tempfile.TemporaryFile()

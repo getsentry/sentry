@@ -141,10 +141,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             self.login_as(user)
             response = self.client.put(
                 self.path,
-                data={
-                    "superuserAccessCategory": "for testing",
-                    "superuserReason": "for testing",
-                },
+                data={"password": "admin"},
             )
             assert response.status_code == 401
 
@@ -164,7 +161,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 data={
-                    "superuserAccessCategory": "for testing",
+                    "superuserAccessCategory": "debugging",
                     "superuserReason": "for testing",
                 },
             )
@@ -182,10 +179,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 HTTP_REFERER="http://testserver/bar",
-                data={
-                    "superuserAccessCategory": "for testing",
-                    "superuserReason": "for testing",
-                },
+                data={"password": "admin"},
             )
             assert response.status_code == 401
             assert self.client.session["_next"] == "http://testserver/bar"
@@ -202,10 +196,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 HTTP_REFERER="http://hacktheplanet/bar",
-                data={
-                    "superuserAccessCategory": "for testing",
-                    "superuserReason": "for testing",
-                },
+                data={"password": "admin"},
             )
             assert response.status_code == 401
             assert self.client.session.get("_next") is None

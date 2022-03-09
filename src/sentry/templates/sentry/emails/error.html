@@ -68,6 +68,16 @@
         {% if environment %} in {{ environment }}{% endif %}
     </h2>
 
+    {% if rules and alert_status_page_enabled %}
+        <p class="via">
+            You’re receiving this email because you’re subscribed to notifications for:
+            {% for rule in rules %}
+                <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+    {% endif %}
+
+
     {% if enhanced_privacy %}
       <div class="event">
         <div class="event-id">ID: {{ event.event_id }}</div>
@@ -195,11 +205,11 @@
       {% endif %}
     {% endif %}
 
-    {% if rules %}
+    {% if rules and not alert_status_page_enabled %}
         <p class="via">
             You are receiving this email due to matching rules:
-            {% for rule_label, rule_link in rules %}
-                <a href="{% absolute_uri rule_link %}">{{ rule_label }}</a>{% if not forloop.last %}, {% endif %}
+            {% for rule in rules %}
+                <a href="{% absolute_uri rule.url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
             {% endfor %}
         </p>
     {% endif %}

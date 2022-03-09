@@ -226,6 +226,7 @@
     "webpack-profile": "NO_TS_FORK=1 yarn -s webpack --profile --json > stats.json",
     "install-api-docs": "cd api-docs && yarn install",
     "build-deprecated-docs": "yarn install-api-docs && node api-docs/index.js api-docs/openapi.json tests/apidocs/openapi-deprecated.json",
+    "diff-docs": "yarn install-api-docs && ts-node api-docs/openapi-diff.ts",
     "deref-api-docs": "node api-docs/index.js tests/apidocs/openapi-spectacular.json tests/apidocs/openapi-derefed.json",
     "build-css": "NODE_ENV=production yarn webpack --config=config/webpack.css.config.ts",
     "build-chartcuterie-config": "NODE_ENV=production yarn webpack --config=config/webpack.chartcuterie.config.ts",

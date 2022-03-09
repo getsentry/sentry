@@ -915,7 +915,9 @@ class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
         )
 
         groups = response.data["groups"]
-        assert len(groups) == 0
+        assert len(groups) == 1
+        assert groups[0]["totals"]["sum(sentry.sessions.session)"] == 0
+        assert groups[0]["series"]["sum(sentry.sessions.session)"] == [0]
 
 
 class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase):

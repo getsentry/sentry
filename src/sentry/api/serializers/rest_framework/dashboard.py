@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 
 from django.db.models import Max
@@ -18,6 +19,29 @@ from sentry.models import (
 from sentry.search.events.fields import get_function_alias, resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period
+
+AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
+AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
+EQUATION_PREFIX = "equation|"
+
+
+def is_equation(field: str) -> bool:
+    """check if a public alias is an equation, which start with the equation prefix
+    eg. `equation|5 + 5`
+    """
+    return field.startswith(EQUATION_PREFIX)
+
+
+def is_aggregate(field: str) -> bool:
+    field_match = re.match(AGGREGATE_PATTERN, field)
+    if field_match:
+        return True
+
+    equation_match = re.match(AGGREGATE_BASE, field)
+    if equation_match and is_equation(field):
+        return True
+
+    return False
 
 
 def get_next_dashboard_order(dashboard_id):
@@ -118,6 +142,21 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         # TODO(dam): Use columns and aggregates for validation
         fields = self._get_attr(data, "fields", []).copy()
         equations, fields = categorize_columns(fields)
+
+        # TODO(dam): Temp code while we are sure adoption
+        # of fromtend code that sends this data is high enough
+        columns = self._get_attr(data, "columns", []).copy()
+        aggregates = self._get_attr(data, "aggregates", []).copy()
+
+        if not columns and not aggregates:
+            for field in fields:
+                if is_aggregate(field):
+                    aggregates.append(field)
+                else:
+                    columns.append(field)
+
+            data["columns"] = columns
+            data["aggregates"] = aggregates
 
         if equations is not None:
             try:

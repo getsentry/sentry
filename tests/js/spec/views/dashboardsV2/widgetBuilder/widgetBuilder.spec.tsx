@@ -28,10 +28,12 @@ function renderTestComponent({
   query,
   orgFeatures,
   onSave,
+  params,
 }: {
   dashboard?: WidgetBuilderProps['dashboard'];
   onSave?: WidgetBuilderProps['onSave'];
   orgFeatures?: string[];
+  params?: WidgetBuilderProps['params'];
   query?: Record<string, any>;
   widget?: WidgetBuilderProps['widget'];
 } = {}) {
@@ -75,6 +77,7 @@ function renderTestComponent({
       params={{
         orgId: organization.slug,
         widgetIndex: widget ? 0 : undefined,
+        ...params,
       }}
     />,
     {
@@ -167,6 +170,7 @@ describe('WidgetBuilder', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('no feature access', function () {
@@ -217,7 +221,7 @@ describe('WidgetBuilder', function () {
     );
     expect(screen.getByRole('link', {name: 'Dashboard'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboards/new/?source=dashboards'
+      '/organizations/org-slug/dashboards/new/'
     );
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
@@ -302,7 +306,7 @@ describe('WidgetBuilder', function () {
             queryOrderby: '',
             start: null,
             end: null,
-            period: '24h',
+            statsPeriod: '24h',
             utc: false,
             project: [],
             environment: [],
@@ -347,7 +351,7 @@ describe('WidgetBuilder', function () {
             queryOrderby: '',
             start: null,
             end: null,
-            period: '24h',
+            statsPeriod: '24h',
             utc: false,
             project: [],
             environment: [],
@@ -369,9 +373,6 @@ describe('WidgetBuilder', function () {
 
     // Click the add overlay button
     userEvent.click(screen.getByLabelText('Add Overlay'));
-
-    // Should be another field input.
-    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
 
     userEvent.click(screen.getByText('(Required)'));
     userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
@@ -406,7 +407,6 @@ describe('WidgetBuilder', function () {
     const handleSave = jest.fn();
 
     renderTestComponent({onSave: handleSave});
-
     userEvent.click(await screen.findByText('Table'));
 
     // Select line chart display
@@ -414,9 +414,6 @@ describe('WidgetBuilder', function () {
 
     // Click the add an equation button
     userEvent.click(screen.getByLabelText('Add an Equation'));
-
-    // Should be another field input.
-    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
 
     expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
 
@@ -810,6 +807,55 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
+  it('persists the global selection header period when updating a widget', async () => {
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const {router} = renderTestComponent({
+      dashboard,
+      widget,
+      params: {orgId: 'org-slug', dashboardId: '1'},
+      query: {statsPeriod: '90d'},
+    });
+
+    await screen.findByText('Update Widget');
+    await screen.findByText('Last 90 days');
+
+    userEvent.click(screen.getByText('Update Widget'));
+
+    await waitFor(() => {
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: expect.objectContaining({
+            statsPeriod: '90d',
+          }),
+        })
+      );
+    });
+  });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
@@ -841,7 +887,7 @@ describe('WidgetBuilder', function () {
               queryOrderby: '',
               start: null,
               end: null,
-              period: '24h',
+              statsPeriod: '24h',
               utc: false,
               project: [],
               environment: [],
@@ -874,7 +920,7 @@ describe('WidgetBuilder', function () {
               queryOrderby: '',
               start: null,
               end: null,
-              period: '24h',
+              statsPeriod: '24h',
               utc: false,
               project: [],
               environment: [],
@@ -979,7 +1025,6 @@ describe('WidgetBuilder', function () {
       // Confirm modal doesn't open because no changes were made
       expect(mockModal).not.toHaveBeenCalled();
 
-      expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(3);
       userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
       userEvent.click(screen.getByText('High Throughput Transactions'));
 

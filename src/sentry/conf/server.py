@@ -991,6 +991,8 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable the new widget builder experience on Dashboards
     "organizations:new-widget-builder-experience": False,
+    # Enable the new widget builder experience "design" on Dashboards
+    "organizations:new-widget-builder-experience-design": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -2476,7 +2478,7 @@ DEMO_MODE = False
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
 
-# paramters that determine how demo events are generated
+# parameters that determine how demo events are generated
 DEMO_DATA_GEN_PARAMS = {}
 
 # parameters for an org when quickly generating them synchronously
@@ -2509,3 +2511,13 @@ SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
+
+SUPERUSER_ACCESS_CATEGORIES = [
+    "development",
+    "debugging",
+    "_admin_actions",
+    "organization_setting_change",
+    "account_review",
+    "onboarding_setup",
+    "other",
+]

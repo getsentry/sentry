@@ -169,25 +169,41 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user, method="PUT")
         request._body = json.dumps(
             {
-                "superuserAccessCategory": "Edit organization settings",
+                "superuserAccessCategory": "debugging",
                 "superuserReason": "Edit organization settings",
             }
         )
 
         superuser = Superuser(request, org_id=None)
-        superuser.set_logged_in(request.user)
-        assert superuser.is_active is True
-        assert logger.info.call_count == 2
-        logger.info.assert_any_call(
-            "superuser.superuser_access",
-            extra={
-                "superuser_session_id": superuser.token,
-                "user_id": 10,
-                "user_email": "test@sentry.io",
-                "su_access_category": "Edit organization settings",
-                "reason_for_su": "Edit organization settings",
-            },
-        )
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 2
+            logger.info.assert_any_call(
+                "superuser.superuser_access",
+                extra={
+                    "superuser_token_id": superuser.token,
+                    "user_id": 10,
+                    "user_email": "test@sentry.io",
+                    "su_access_category": "Edit organization settings",
+                    "reason_for_su": "Edit organization settings",
+                },
+            )
+
+    # modify test once https://github.com/getsentry/sentry/pull/32191 is merged
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_su_access_no_request(self, logger):
+        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        request = self.make_request(user=user, method="PUT")
+
+        superuser = Superuser(request, org_id=None)
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 1
+            logger.info.assert_any_call(
+                "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
+            )
 
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)

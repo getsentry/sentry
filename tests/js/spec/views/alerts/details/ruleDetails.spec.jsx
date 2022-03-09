@@ -47,6 +47,11 @@ describe('AlertRuleDetails', () => {
       body: rule,
     });
     MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/stats/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       body: [TestStubs.Group()],
       headers: {

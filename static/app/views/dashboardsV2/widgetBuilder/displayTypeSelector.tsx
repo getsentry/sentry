@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {DisplayType} from 'sentry/views/dashboardsV2/types';
@@ -19,17 +17,13 @@ type Props = {
 
 export function DisplayTypeSelector({displayType, onChange, error}: Props) {
   return (
-    <StyledField error={error} inline={false} flexibleControlStateSize stacked required>
+    <Field error={error} inline={false} flexibleControlStateSize stacked>
       <SelectControl
         name="displayType"
         options={DISPLAY_TYPES_OPTIONS}
         value={displayType}
         onChange={onChange}
       />
-    </StyledField>
+    </Field>
   );
 }
-
-const StyledField = styled(Field)`
-  padding-right: 0;
-`;

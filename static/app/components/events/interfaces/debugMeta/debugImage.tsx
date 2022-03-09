@@ -128,7 +128,7 @@ const DebugImage = React.memo(
     const debugFile = image.debug_file && getFileName(image.debug_file);
 
     // The debug file is only realistically set on Windows. All other platforms
-    // either leave it empty or set it to a filename thats equal to the code
+    // either leave it empty or set it to a filename that's equal to the code
     // file name. In this case, do not show it.
     const showDebugFile = debugFile && codeFile !== debugFile;
 
