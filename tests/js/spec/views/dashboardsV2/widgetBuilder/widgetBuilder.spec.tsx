@@ -679,7 +679,7 @@ describe('WidgetBuilder', function () {
     // Restricting to a single query
     expect(screen.queryByLabelText('Add query')).not.toBeInTheDocument();
 
-    // // Restricting to a single y-axis
+    // Restricting to a single y-axis
     expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
 
     expect(screen.getByText('Choose what to plot in the y-axis')).toBeInTheDocument();
@@ -920,9 +920,9 @@ describe('WidgetBuilder', function () {
         screen.getByText("Choose one of the columns you've created to sort by.")
       ).toBeInTheDocument();
 
-      // Field "sortDirection"
+      // Selector "sortDirection"
       expect(screen.getByText('Low to high')).toBeInTheDocument();
-      // Field "sortBy"
+      // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
     });
 
@@ -979,10 +979,10 @@ describe('WidgetBuilder', function () {
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
-      // Field "sortDirection"
+      // Selector "sortDirection"
       expect(screen.getByText('Low to high')).toBeInTheDocument();
 
-      // Field "sortBy"
+      // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
     });
 
@@ -1036,10 +1036,10 @@ describe('WidgetBuilder', function () {
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
-      // "sortDirection" selector
+      // Selector "sortDirection"
       expect(screen.getByText('Low to high')).toBeInTheDocument();
 
-      // "sortBy" selector
+      // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
 
       // Click on the "sortBy" selector
@@ -1102,10 +1102,10 @@ describe('WidgetBuilder', function () {
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
-      // "sortDirection" selector
+      // Selector "sortDirection"
       expect(screen.getByText('Low to high')).toBeInTheDocument();
 
-      // "sortBy" selector
+      // Selector "sortBy"
       expect(screen.getAllByText('title')).toHaveLength(2);
       userEvent.click(screen.getAllByText('title')[1]);
 
