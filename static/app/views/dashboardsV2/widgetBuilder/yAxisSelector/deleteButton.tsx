@@ -4,9 +4,9 @@ import Button from 'sentry/components/button';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   onDelete: MouseEventHandler<Element>;
-};
+}
 
 export function DeleteButton({onDelete}: Props) {
   return (

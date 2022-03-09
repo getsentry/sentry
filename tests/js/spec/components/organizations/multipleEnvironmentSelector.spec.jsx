@@ -60,7 +60,7 @@ describe('MultipleEnvironmentSelector', function () {
       wrapper
         .find('EnvironmentSelectorItem')
         .at(i)
-        .find('CheckboxHitbox')
+        .find('MultiselectCheckbox')
         .simulate('click', {});
     });
     expect(onChange).toHaveBeenCalledTimes(3);
@@ -76,14 +76,14 @@ describe('MultipleEnvironmentSelector', function () {
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
 
     await wrapper
-      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxHitbox')
+      .find('MultipleEnvironmentSelector AutoCompleteItem MultiselectCheckbox')
       .at(0)
       .simulate('click');
 
     expect(onChange).toHaveBeenLastCalledWith(['production']);
 
     wrapper
-      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxHitbox')
+      .find('MultipleEnvironmentSelector AutoCompleteItem MultiselectCheckbox')
       .at(1)
       .simulate('click');
     expect(onChange).toHaveBeenLastCalledWith(['production', 'staging']);

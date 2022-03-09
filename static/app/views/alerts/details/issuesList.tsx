@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -83,13 +84,15 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, rule} = this.props;
     const {loading, groupHistory, groupHistoryPageLinks} = this.state;
 
     return (
       <Fragment>
         <StyledPanelTable
           isLoading={loading}
+          isEmpty={groupHistory?.length === 0}
+          emptyMessage={t('No issues exist for the current query.')}
           headers={[
             t('Issue'),
             <AlignRight key="alerts">{t('Alerts')}</AlignRight>,
@@ -104,7 +107,12 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
             return (
               <Fragment key={issue.id}>
                 <TitleWrapper>
-                  <Link to={`/organizations/${organization.slug}/issues/${issue.id}/`}>
+                  <Link
+                    to={{
+                      pathname: `/organizations/${organization.slug}/issues/${issue.id}/`,
+                      query: rule.environment ? {environment: rule.environment} : {},
+                    }}
+                  >
                     {title}:
                   </Link>
                   <MessageWrapper>{message}</MessageWrapper>
@@ -137,9 +145,13 @@ const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(1.5)};
 
-  & > div {
-    padding: ${space(1)} ${space(2)};
-  }
+  ${p =>
+    !p.isEmpty &&
+    css`
+      & > div {
+        padding: ${space(1)} ${space(2)};
+      }
+    `}
 `;
 
 const AlignRight = styled('div')`
