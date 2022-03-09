@@ -197,6 +197,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         forceEnvironment={rule.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
+        skipLoadLastUsed
       >
         <Layout.Header>
           <Layout.HeaderContent>

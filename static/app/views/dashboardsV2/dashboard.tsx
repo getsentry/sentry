@@ -138,14 +138,14 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization, api} = this.props;
+    const {isEditing, organization, api, selection} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
     if (organization.features.includes('dashboards-metrics')) {
-      fetchMetricsFields(api, organization.slug);
-      fetchMetricsTags(api, organization.slug);
+      fetchMetricsFields(api, organization.slug, selection.projects);
+      fetchMetricsTags(api, organization.slug, selection.projects);
     }
     // Load organization tags when in edit mode.
     if (isEditing) {
@@ -159,7 +159,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidUpdate(prevProps: Props) {
-    const {isEditing, newWidget} = this.props;
+    const {api, organization, selection, isEditing, newWidget} = this.props;
 
     // Load organization tags when going into edit mode.
     // We use tags on the add widget modal.
@@ -169,8 +169,10 @@ class Dashboard extends Component<Props, State> {
     if (newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
-    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+    if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
+      fetchMetricsFields(api, organization.slug, selection.projects);
+      fetchMetricsTags(api, organization.slug, selection.projects);
     }
   }
 
@@ -347,9 +349,10 @@ class Dashboard extends Component<Props, State> {
       paramDashboardId,
       onSetWidgetToBeUpdated,
       handleAddCustomWidget,
+      isEditing,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience')) {
+    if (organization.features.includes('new-widget-builder-experience') && isEditing) {
       onSetWidgetToBeUpdated(widget);
 
       trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.opened', {

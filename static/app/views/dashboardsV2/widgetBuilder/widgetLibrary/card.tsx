@@ -4,10 +4,10 @@ import space from 'sentry/styles/space';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboardsV2/widgetLibrary/widgetCard';
 
-type CardProps = {
+interface CardProps {
   iconColor: string;
   widget: WidgetTemplate;
-};
+}
 
 export function Card({widget, iconColor}: CardProps) {
   const {title, description, displayType} = widget;

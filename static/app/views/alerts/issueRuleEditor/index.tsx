@@ -253,7 +253,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     router.push(
       organization.features.includes('alert-rule-status-page')
         ? {
-            pathname: `/organizations/sentry/alerts/rules/${project.slug}/${rule.id}/details/`,
+            pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
           }
         : {
             pathname: `/organizations/${organization.slug}/alerts/rules/`,
