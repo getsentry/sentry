@@ -87,6 +87,7 @@ type Props = {
    */
   inFieldLabels?: boolean;
   otherColumns?: Column[];
+  placeholder?: string;
   /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
@@ -552,6 +553,7 @@ class QueryField extends React.Component<Props> {
       hidePrimarySelector,
       gridColumns,
       otherColumns,
+      placeholder,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -562,7 +564,7 @@ class QueryField extends React.Component<Props> {
     const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
       options: Object.values(allFieldOptions),
-      placeholder: t('(Required)'),
+      placeholder: placeholder ?? t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,

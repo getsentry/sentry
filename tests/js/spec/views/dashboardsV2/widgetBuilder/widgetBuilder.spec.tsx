@@ -259,7 +259,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByRole('heading', {name: 'Sort by a column'})).toBeInTheDocument();
   });
 
-  it.only('renders new design', async function () {
+  it('renders new design', async function () {
     renderTestComponent({
       orgFeatures: [
         'new-widget-builder-experience',
@@ -1144,5 +1144,20 @@ describe('WidgetBuilder', function () {
         textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
       )
     ).toBeInTheDocument();
+  });
+
+  describe('group by field', function () {
+    it('does not contain functions as options', async function () {
+      renderTestComponent({query: {displayType: 'line'}});
+
+      await screen.findByText('Group your results');
+
+      expect(screen.getByText('Select group')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Select group'));
+
+      // Only one f(x) field set in the y-axis selector
+      expect(screen.getByText('f(x)')).toBeInTheDocument();
+    });
   });
 });
