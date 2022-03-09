@@ -198,7 +198,9 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
-  const widgetBuilderNewDesign = true;
+  const widgetBuilderNewDesign = organization.features.includes(
+    'new-widget-builder-experience-design'
+  );
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
   const pageFilters: PageFilters = statsPeriod
