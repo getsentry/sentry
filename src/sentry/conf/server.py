@@ -1042,8 +1042,6 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics in dashboards
     "organizations:dashboards-metrics": False,
-    # Enable issue widgets in dashboards
-    "organizations:issues-in-dashboards": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable experimental performance improvements.

@@ -80,7 +80,6 @@ default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, 
 default_manager.add("organizations:issue-percent-display", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, True)
-default_manager.add("organizations:issues-in-dashboards", OrganizationFeature, True)
 default_manager.add("organizations:large-debug-files", OrganizationFeature)
 default_manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, True)
 default_manager.add("organizations:metrics", OrganizationFeature, True)
