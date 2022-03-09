@@ -31,6 +31,7 @@ type Props = {
   orgSlug: Organization['slug'];
   query: string;
   queryCount: number;
+  selectedItems: Record<string, any>;
   selectedProjectSlug?: string;
 };
 
@@ -41,6 +42,7 @@ function ActionSet({
   allInQuerySelected,
   anySelected,
   multiSelected,
+  selectedItems,
   issues,
   onUpdate,
   onShouldConfirm,
@@ -138,6 +140,33 @@ function ActionSet({
     },
   ];
 
+  const updatedMenuItems = selectedItems.map(item => {
+    switch (item.status) {
+      case 'unresolved':
+        if (item.isBookmarked) {
+          return menuItems.filter(
+            menuItem => menuItem.key !== 'bookmark' && menuItem.key !== 'unresolve'
+          );
+        }
+        if (!item.isBookmarked) {
+          return menuItems.filter(
+            menuItem => menuItem.key !== 'remove-bookmark' && menuItem.key !== 'unresolve'
+          );
+        }
+        return menuItems.filter(menuItem => menuItem.key !== 'unresolve');
+      case 'resolved':
+        if (item.isBookmarked) {
+          return menuItems.filter(menuItem => menuItem.key !== 'bookmark');
+        }
+        if (!item.isBookmarked) {
+          return menuItems.filter(menuItem => menuItem.key !== 'remove-bookmark');
+        }
+        return menuItems;
+      default:
+        return menuItems;
+    }
+  });
+
   const disabledMenuItems = [
     ...(mergeDisabled ? ['merge'] : []),
     ...(canMarkReviewed ? ['mark-reviewed'] : []),
@@ -214,7 +243,7 @@ function ActionSet({
         </ActionLink>
       )}
       <DropdownMenuControlV2
-        items={menuItems}
+        items={updatedMenuItems[0]}
         triggerProps={{
           'aria-label': t('More issue actions'),
           icon: <IconEllipsis size="xs" />,
