@@ -24,8 +24,6 @@ from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
 class QueryBuilderTest(TestCase):
     def setUp(self):
-        # self.start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        # self.end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
         self.start = datetime.datetime.now() - datetime.timedelta(days=1)
         self.end = datetime.datetime.now()
         self.projects = [1, 2, 3]
@@ -373,11 +371,14 @@ class QueryBuilderTest(TestCase):
         self.assertCountEqual(query.groupby, [array_join_column])
 
     def test_retention(self):
+        old_start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        old_end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        old_params = {**self.params, "start": old_start, "end": old_end}
         with self.options({"system.event-retention-days": 10}):
             with self.assertRaises(QueryOutsideRetentionError):
                 QueryBuilder(
                     Dataset.Discover,
-                    self.params,
+                    old_params,
                     "",
                     selected_columns=[],
                 )
