@@ -312,7 +312,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     return (
       <ChartActions>
         <ChartSummary>
-          <SummaryText>{t('SUMMARY')}</SummaryText>
+          <SummaryText>{t('Summary')}</SummaryText>
           <SummaryStats>
             <StatItem>
               <IconCheckmark color="green300" isCircled />
@@ -865,14 +865,17 @@ const Filters = styled('span')`
 
 const ChartActions = styled(PanelFooter)`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   padding: ${space(1)} 20px;
+  gap: ${space(1)};
 `;
 
 const ChartSummary = styled('div')`
   display: flex;
   margin-right: auto;
+  gap: ${space(2)};
 `;
 
 const SummaryText = styled(SectionHeading)`
@@ -882,19 +885,20 @@ const SummaryText = styled(SectionHeading)`
   margin: 0;
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeSmall};
+  text-transform: uppercase;
   line-height: 1;
 `;
 
 const SummaryStats = styled('div')`
   display: flex;
   align-items: center;
-  margin: 0 ${space(2)};
+  gap: ${space(2)};
 `;
 
 const StatItem = styled('div')`
   display: flex;
   align-items: center;
-  margin: 0 ${space(2)} 0 0;
+  font-variant-numeric: tabular-nums;
 `;
 
 /* Override padding to make chart appear centered */

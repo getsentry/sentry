@@ -168,6 +168,7 @@ const TitleWrapper = styled('div')`
   ${overflowEllipsis};
   display: flex;
   gap: ${space(0.5)};
+  min-width: 200px;
 `;
 
 const MessageWrapper = styled('span')`
