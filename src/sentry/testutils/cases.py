@@ -1325,16 +1325,22 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.anon_users_query = {
             "name": "Anonymous Users",
             "fields": ["count()"],
+            "aggregates": ["count()"],
+            "columns": [],
             "conditions": "!has:user.email",
         }
         self.known_users_query = {
             "name": "Known Users",
             "fields": ["count_unique(user.email)"],
+            "aggregates": ["count_unique(user.email)"],
+            "columns": [],
             "conditions": "has:user.email",
         }
         self.geo_errors_query = {
             "name": "Errors by Geo",
-            "fields": ["count()", "geo.country_code"],
+            "fields": ["count()"],
+            "aggregates": ["count()"],
+            "columns": ["geo.country_code"],
             "conditions": "has:geo.country_code",
         }
 
