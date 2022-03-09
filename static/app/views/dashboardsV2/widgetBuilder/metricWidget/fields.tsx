@@ -13,6 +13,12 @@ export function generateMetricsWidgetFieldOptions(
   const operations = new Set<MetricsOperation>();
   const knownOperations = Object.keys(METRICS_OPERATIONS);
 
+  // If there are no fields, we do not want to render aggregations, nor tags
+  // Metrics API needs at least one field to be able to return data
+  if (fields.length === 0) {
+    return {};
+  }
+
   fields
     .sort((a, b) => a.name.localeCompare(b.name))
     .forEach(field => {
