@@ -24,6 +24,37 @@ def result_sorted(result):
 
 
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
+    def _template(self):
+        return {
+            "distinct_id": "00000000-0000-0000-0000-000000000000",
+            "status": "exited",
+            "seq": 0,
+            "release": "foo@1.0.0",
+            "environment": "production",
+            "retention_days": 90,
+            "duration": 123.4,
+            "errors": 0,
+            "started": self.session_started,
+            "received": self.received,
+        }
+
+    @staticmethod
+    def _make_duration(kwargs):
+        """Randomish but deterministic duration"""
+        return float(len(str(kwargs)))
+
+    def _make_session(self, project, **kwargs):
+        return self.store_session(
+            dict(
+                self._template(),
+                session_id=uuid4().hex,
+                org_id=project.organization_id,
+                project_id=project.id,
+                duration=self._make_duration(kwargs),
+                **kwargs,
+            )
+        )
+
     def setUp(self):
         super().setUp()
         self.setup_fixture()
@@ -49,55 +80,23 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         self.create_environment(self.project2, name="development")
 
-        template = {
-            "distinct_id": "00000000-0000-0000-0000-000000000000",
-            "status": "exited",
-            "seq": 0,
-            "release": "foo@1.0.0",
-            "environment": "production",
-            "retention_days": 90,
-            "duration": 123.4,
-            "errors": 0,
-            "started": self.session_started,
-            "received": self.received,
-        }
-
-        def make_duration(kwargs):
-            """Randomish but deterministic duration"""
-            return float(len(str(kwargs)))
-
-        def make_session(project, **kwargs):
-            return dict(
-                template,
-                session_id=uuid4().hex,
-                org_id=project.organization_id,
-                project_id=project.id,
-                duration=make_duration(kwargs),
-                **kwargs,
-            )
-
-        self.store_session(make_session(self.project1, started=self.session_started + 12 * 60))
-        self.store_session(
-            make_session(self.project1, started=self.session_started + 24 * 60, release="foo@1.1.0")
+        self._make_session(self.project1, started=self.session_started + 12 * 60)
+        self._make_session(
+            self.project1, started=self.session_started + 24 * 60, release="foo@1.1.0"
         )
-        self.store_session(make_session(self.project1, started=self.session_started - 60 * 60))
-        self.store_session(make_session(self.project1, started=self.session_started - 12 * 60 * 60))
-        self.store_session(make_session(self.project2, status="crashed"))
-        self.store_session(make_session(self.project2, environment="development"))
-        self.store_session(make_session(self.project3, errors=1, release="foo@1.2.0"))
-        self.store_session(
-            make_session(
-                self.project3,
-                distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
-                started=self.session_started - 60 * 60,
-            )
+        self._make_session(self.project1, started=self.session_started - 60 * 60)
+        self._make_session(self.project1, started=self.session_started - 12 * 60 * 60)
+        self._make_session(self.project2, status="crashed")
+        self._make_session(self.project2, environment="development")
+        self._make_session(self.project3, errors=1, release="foo@1.2.0")
+        self._make_session(
+            self.project3,
+            distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
+            started=self.session_started - 60 * 60,
         )
-        self.store_session(
-            make_session(
-                self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
-            )
+        self._make_session(
+            self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
         )
-        self.store_session(make_session(self.project4))
 
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
@@ -621,6 +620,49 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
+    @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_users_groupby_with_healthy(self):
+        """Two healthy sessions, one errored"""
+        project = self.create_project()
+        for user, errors in [(1, 0), (2, 0), (3, 1)]:
+            self._make_session(
+                project, distinct_id=f"39887d89-13b2-4c84-8c23-5d13d200000{user}", errors=errors
+            )
+
+        response = self.do_request(
+            {
+                "project": [project.id],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)"],
+                "groupBy": ["session.status"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"session.status": "abnormal"},
+                "series": {"count_unique(user)": [0]},
+                "totals": {"count_unique(user)": 0},
+            },
+            {
+                "by": {"session.status": "crashed"},
+                "series": {"count_unique(user)": [0]},
+                "totals": {"count_unique(user)": 0},
+            },
+            {
+                "by": {"session.status": "errored"},
+                "series": {"count_unique(user)": [1]},
+                "totals": {"count_unique(user)": 1},
+            },
+            {
+                "by": {"session.status": "healthy"},
+                "series": {"count_unique(user)": [2]},
+                "totals": {"count_unique(user)": 2},
+            },
+        ]
+
     expected_duration_values = {
         "avg(session.duration)": 42375.0,
         "max(session.duration)": 80000.0,
@@ -713,7 +755,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                     "statsPeriod": "3d",
                     "interval": "1d",
                     "field": ["sum(session)", "count_unique(user)"],
-                    "groupBy": ["project", "release", "environment"],
+                    "groupBy": ["project", "release", "environment", "session.status"],
                 }
             )
 
