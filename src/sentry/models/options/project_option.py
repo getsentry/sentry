@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-from django.db import models
+from django.db import IntegrityError, models
 
 from sentry import projectoptions
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
@@ -46,11 +46,16 @@ class ProjectOptionManager(OptionManager["Project"]):
         self.reload_cache(project.id, "projectoption.unset_value")
 
     def set_value(self, project: Project, key: str, value: Value) -> bool:
-        inst, created = self.create_or_update(project=project, key=key, values={"value": value})
+        try:
+            project_option, created = self.update_or_create(
+                project=project, key=key, defaults={"value": value}
+            )
+        except IntegrityError:
+            return False
+
         self.reload_cache(project.id, "projectoption.set_value")
 
-        # Explicitly typing to satisfy mypy.
-        success: bool = created or inst > 0
+        success: bool = project_option or created
         return success
 
     def get_all_values(self, project: Project) -> Mapping[str, Value]:
