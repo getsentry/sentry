@@ -160,7 +160,7 @@ describe('GlobalSelectionHeader', function () {
 
     // Open dropdown and select one project
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
     await tick();
@@ -169,7 +169,10 @@ describe('GlobalSelectionHeader', function () {
 
     // Select environment
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleEnvironmentSelector CheckboxFancy').at(0).simulate('click');
+    wrapper
+      .find('MultipleEnvironmentSelector MultiselectCheckbox')
+      .at(0)
+      .simulate('click');
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
@@ -208,8 +211,8 @@ describe('GlobalSelectionHeader', function () {
 
     // Open dropdown and select both projects
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(0).simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(0).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
     await tick();
@@ -220,7 +223,10 @@ describe('GlobalSelectionHeader', function () {
 
     // Select environment
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleEnvironmentSelector CheckboxFancy').at(1).simulate('click');
+    wrapper
+      .find('MultipleEnvironmentSelector MultiselectCheckbox')
+      .at(1)
+      .simulate('click');
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
@@ -244,7 +250,7 @@ describe('GlobalSelectionHeader', function () {
 
     // Now change projects, first project has no environments
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
 
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
@@ -1308,7 +1314,7 @@ describe('GlobalSelectionHeader', function () {
       const headerItem = wrapper.find('MultipleProjectSelector HeaderItem');
       headerItem.simulate('click');
       wrapper
-        .find('MultipleProjectSelector CheckboxFancy')
+        .find('MultipleProjectSelector MultiselectCheckbox')
         .forEach(project => project.simulate('click'));
       headerItem.simulate('click');
 
