@@ -60,6 +60,14 @@ function ActionSet({
   const canMarkReviewed =
     anySelected && (allInQuerySelected || selectedIssues.some(issue => !!issue?.inbox));
 
+  // determine which ... dropdown options to show based on issue(s) selected
+  const canAddBookmark =
+    allInQuerySelected || selectedIssues.some(issue => !issue?.isBookmarked);
+  const canRemoveBookmark =
+    allInQuerySelected || selectedIssues.some(issue => issue?.isBookmarked);
+  const canSetUnresolved =
+    allInQuerySelected || selectedIssues.some(issue => issue?.status === 'resolved');
+
   // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
   // the dropdown menu based on the current screen size
   const theme = useTheme();
@@ -89,6 +97,7 @@ function ActionSet({
     {
       key: 'bookmark',
       label: t('Add to Bookmarks'),
+      hidden: !canAddBookmark,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.BOOKMARK),
@@ -101,6 +110,7 @@ function ActionSet({
     {
       key: 'remove-bookmark',
       label: t('Remove from Bookmarks'),
+      hidden: !canRemoveBookmark,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNBOOKMARK),
@@ -113,6 +123,7 @@ function ActionSet({
     {
       key: 'unresolve',
       label: t('Set status to: Unresolved'),
+      hidden: !canSetUnresolved,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
@@ -137,33 +148,6 @@ function ActionSet({
       },
     },
   ];
-
-  const updatedMenuItems = selectedIssues.map(issue => {
-    switch (issue?.status) {
-      case 'unresolved':
-        if (issue.isBookmarked) {
-          return menuItems.filter(
-            menuItem => menuItem.key !== 'bookmark' && menuItem.key !== 'unresolve'
-          );
-        }
-        if (!issue.isBookmarked) {
-          return menuItems.filter(
-            menuItem => menuItem.key !== 'remove-bookmark' && menuItem.key !== 'unresolve'
-          );
-        }
-        return menuItems.filter(menuItem => menuItem.key !== 'unresolve');
-      case 'resolved':
-        if (issue.isBookmarked) {
-          return menuItems.filter(menuItem => menuItem.key !== 'bookmark');
-        }
-        if (!issue.isBookmarked) {
-          return menuItems.filter(menuItem => menuItem.key !== 'remove-bookmark');
-        }
-        return menuItems;
-      default:
-        return menuItems;
-    }
-  });
 
   const disabledMenuItems = [
     ...(mergeDisabled ? ['merge'] : []),
@@ -241,7 +225,7 @@ function ActionSet({
         </ActionLink>
       )}
       <DropdownMenuControlV2
-        items={updatedMenuItems[0]}
+        items={menuItems}
         triggerProps={{
           'aria-label': t('More issue actions'),
           icon: <IconEllipsis size="xs" />,
