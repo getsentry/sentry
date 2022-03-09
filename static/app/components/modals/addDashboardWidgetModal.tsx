@@ -804,9 +804,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ) && state.displayType !== DisplayType.WORLD_MAP;
 
     const showIssueDatasetSelector =
-      showDatasetSelector &&
-      organization.features.includes('issues-in-dashboards') &&
-      state.displayType === DisplayType.TABLE;
+      showDatasetSelector && state.displayType === DisplayType.TABLE;
 
     const showMetricsDatasetSelector =
       showDatasetSelector && organization.features.includes('dashboards-metrics');
