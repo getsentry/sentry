@@ -132,7 +132,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         self.__producer.poll(0)
         for profile in profiles:
             self.__producer.produce(
-                self.__producer_topic, json.dumps(profile), callback=self.callback
+                topic=self.__producer_topic, value=json.dumps(profile), callback=self.callback
             )
         self.__producer.flush()
 
@@ -141,4 +141,4 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
 
     def callback(self, error: Any, message: Any) -> None:
         if error is not None:
-            raise Exception(error.str())
+            raise Exception(str(error))
