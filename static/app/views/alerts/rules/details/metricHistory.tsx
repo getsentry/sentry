@@ -104,7 +104,12 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
           threshold: currentTrigger === 'Warning' ? warningThreshold : criticalThreshold,
         })}
       </Cell>
-      <Cell>{threshold}</Cell>
+      <Cell>
+        {getDynamicText({
+          value: threshold,
+          fixed: '30s',
+        })}
+      </Cell>
       <StyledDateTime
         date={getDynamicText({
           value: incident.dateCreated,
