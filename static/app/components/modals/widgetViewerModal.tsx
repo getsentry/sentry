@@ -10,7 +10,10 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
-import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_MINIMUM,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -37,6 +40,7 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
+  renderPrependColumns,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -106,14 +110,13 @@ function WidgetViewerModal(props: Props) {
   }
 
   // Default table columns for visualizations that don't have a column setting
-  if (
-    [
-      DisplayType.AREA,
-      DisplayType.LINE,
-      DisplayType.BIG_NUMBER,
-      DisplayType.BAR,
-    ].includes(widget.displayType)
-  ) {
+  const shouldReplaceTableColumns = [
+    DisplayType.AREA,
+    DisplayType.LINE,
+    DisplayType.BIG_NUMBER,
+    DisplayType.BAR,
+  ].includes(widget.displayType);
+  if (shouldReplaceTableColumns) {
     tableWidget.queries[0].orderby = tableWidget.queries[0].orderby || '-timestamp';
     fields.splice(
       0,
@@ -121,6 +124,10 @@ function WidgetViewerModal(props: Props) {
       ...['title', 'event.type', 'project', 'user.display', 'timestamp']
     );
   }
+
+  const prependColumnWidths = shouldReplaceTableColumns
+    ? [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`]
+    : [];
 
   if (!isTableWidget) {
     // Updates fields by adding any individual terms from equation fields as a column
@@ -286,6 +293,14 @@ function WidgetViewerModal(props: Props) {
                           tableData: tableResults?.[0],
                           isFirstPage,
                         }),
+                        renderPrependColumns: shouldReplaceTableColumns
+                          ? renderPrependColumns({
+                              ...props,
+                              eventView,
+                              tableData: tableResults?.[0],
+                            })
+                          : undefined,
+                        prependColumnWidths,
                       }}
                       location={location}
                     />
