@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+import pytz
 from freezegun import freeze_time
 
 from sentry.models import Rule, RuleFireHistory
@@ -69,14 +72,16 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         )
         RuleFireHistory.objects.bulk_create(history)
 
+        base_triggered_date = before_now(days=1).replace(tzinfo=pytz.UTC)
+
         self.run_test(
             rule,
             before_now(days=6),
             before_now(days=0),
             [
-                RuleGroupHistory(self.group, count=3),
-                RuleGroupHistory(group_3, count=2),
-                RuleGroupHistory(group_2, count=1),
+                RuleGroupHistory(self.group, count=3, last_triggered=base_triggered_date),
+                RuleGroupHistory(group_3, count=2, last_triggered=base_triggered_date),
+                RuleGroupHistory(group_2, count=1, last_triggered=base_triggered_date),
             ],
         )
         result = self.run_test(
@@ -84,7 +89,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             before_now(days=6),
             before_now(days=0),
             [
-                RuleGroupHistory(self.group, count=3),
+                RuleGroupHistory(self.group, count=3, last_triggered=base_triggered_date),
             ],
             per_page=1,
         )
@@ -93,7 +98,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             before_now(days=6),
             before_now(days=0),
             [
-                RuleGroupHistory(group_3, count=2),
+                RuleGroupHistory(group_3, count=2, last_triggered=base_triggered_date),
             ],
             cursor=result.next,
             per_page=1,
@@ -103,7 +108,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             before_now(days=6),
             before_now(days=0),
             [
-                RuleGroupHistory(group_2, count=1),
+                RuleGroupHistory(group_2, count=1, last_triggered=base_triggered_date),
             ],
             cursor=result.next,
             per_page=1,
@@ -114,9 +119,9 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             before_now(days=1),
             before_now(days=0),
             [
-                RuleGroupHistory(self.group, count=1),
-                RuleGroupHistory(group_2, count=1),
-                RuleGroupHistory(group_3, count=1),
+                RuleGroupHistory(self.group, count=1, last_triggered=base_triggered_date),
+                RuleGroupHistory(group_2, count=1, last_triggered=base_triggered_date),
+                RuleGroupHistory(group_3, count=1, last_triggered=base_triggered_date),
             ],
         )
 
@@ -125,7 +130,9 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             before_now(days=3),
             before_now(days=2),
             [
-                RuleGroupHistory(self.group, count=1),
+                RuleGroupHistory(
+                    self.group, count=1, last_triggered=base_triggered_date - timedelta(days=2)
+                ),
             ],
         )
 

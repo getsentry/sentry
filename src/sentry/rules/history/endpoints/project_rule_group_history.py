@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Mapping, MutableMapping, Sequence, TypedDict
 
 from drf_spectacular.utils import OpenApiExample, extend_schema
@@ -17,9 +18,10 @@ from sentry.rules.history import fetch_rule_groups_paginated
 from sentry.rules.history.base import RuleGroupHistory
 
 
-class OrganizationMemberResponse(TypedDict):
+class RuleGroupHistoryResponse(TypedDict):
     group: BaseGroupSerializerResponse
     count: int
+    lastTriggered: datetime
 
 
 class RuleGroupHistorySerializer(Serializer):  # type: ignore
@@ -35,10 +37,11 @@ class RuleGroupHistorySerializer(Serializer):  # type: ignore
 
     def serialize(
         self, obj: RuleGroupHistory, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> OrganizationMemberResponse:
+    ) -> RuleGroupHistoryResponse:
         return {
             "group": attrs["group"],
             "count": obj.count,
+            "lastTriggered": obj.last_triggered,
         }
 
 
