@@ -237,7 +237,8 @@ function WidgetBuilder({
                     generateOrderOptions({
                       widgetType: WidgetType.DISCOVER,
                       widgetBuilderNewDesign,
-                      ...getColumnsAndAggregates(defaultWidgetQuery.fields),
+                      columns: defaultWidgetQuery.columns,
+                      aggregates: defaultWidgetQuery.aggregates,
                     })[0].value,
                 }
               : {...defaultWidgetQuery}
@@ -1103,7 +1104,8 @@ function WidgetBuilder({
                               state.dataSet === DataSet.EVENTS
                                 ? generateOrderOptions({
                                     widgetType,
-                                    ...getColumnsAndAggregates(state.queries[0].fields),
+                                    columns: state.queries[0].columns,
+                                    aggregates: state.queries[0].aggregates,
                                   })
                                 : generateIssueWidgetOrderOptions(
                                     organization.features.includes(

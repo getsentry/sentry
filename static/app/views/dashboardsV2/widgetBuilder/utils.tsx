@@ -2,11 +2,7 @@ import isEqual from 'lodash/isEqual';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {
-  aggregateOutputType,
-  getColumnsAndAggregates,
-  isLegalYAxisType,
-} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -117,7 +113,8 @@ export function normalizeQueries({
           ? generateOrderOptions({
               widgetType,
               widgetBuilderNewDesign,
-              ...getColumnsAndAggregates(queries[0].fields),
+              columns: queries[0].columns,
+              aggregates: queries[0].aggregates,
             })[0].value
           : IssueSortOptions.DATE
       ) as string;
