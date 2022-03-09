@@ -709,10 +709,16 @@ describe('WidgetBuilder', function () {
 
     expect(await screen.findByText('tag:value')).toBeInTheDocument();
 
+    // Table display and column
     expect(screen.getAllByText('count()')).toHaveLength(2);
+    // Table display and column
     expect(screen.getAllByText('failure_count()')).toHaveLength(2);
-    expect(screen.getAllByText(/count_unique/)).toHaveLength(2);
+    // Table display
     expect(screen.getByText('count_unique(user)')).toBeInTheDocument();
+    // Column
+    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+    // Column
+    expect(screen.getByText('user')).toBeInTheDocument();
   });
 
   it('uses displayType if given a displayType', async function () {
@@ -914,10 +920,10 @@ describe('WidgetBuilder', function () {
         screen.getByText("Choose one of the columns you've created to sort by.")
       ).toBeInTheDocument();
 
-      // Field "sortAscOrDesc"
+      // Field "sortDirection"
       expect(screen.getByText('Low to high')).toBeInTheDocument();
       // Field "sortBy"
-      expect(screen.getAllByText(/count/)).toHaveLength(5);
+      expect(screen.getAllByText('count()')).toHaveLength(3);
     });
 
     it('sortBy defaults to the first field value when changing display type to table', async function () {
@@ -973,11 +979,11 @@ describe('WidgetBuilder', function () {
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
-      // Field "sortAscOrDesc"
+      // Field "sortDirection"
       expect(screen.getByText('Low to high')).toBeInTheDocument();
 
       // Field "sortBy"
-      expect(screen.getAllByText(/count/)).toHaveLength(7);
+      expect(screen.getAllByText('count()')).toHaveLength(3);
     });
 
     it('can update selectors values', async function () {

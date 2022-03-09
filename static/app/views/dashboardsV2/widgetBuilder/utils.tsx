@@ -28,14 +28,14 @@ export enum DataSet {
   METRICS = 'metrics',
 }
 
-export enum SortAscOrDescOption {
+export enum SortDirection {
   HIGH_TO_LOW = 'high_to_low',
   LOW_TO_HIGH = 'low_to_high',
 }
 
-export const sortAscOrDescOptions = {
-  [SortAscOrDescOption.HIGH_TO_LOW]: t('High to low'),
-  [SortAscOrDescOption.LOW_TO_HIGH]: t('Low to high'),
+export const sortDirections = {
+  [SortDirection.HIGH_TO_LOW]: t('High to low'),
+  [SortDirection.LOW_TO_HIGH]: t('Low to high'),
 };
 
 export const displayTypes = {

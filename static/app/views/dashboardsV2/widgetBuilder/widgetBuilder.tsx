@@ -89,7 +89,7 @@ import {
   getParsedDefaultWidgetQuery,
   mapErrors,
   normalizeQueries,
-  SortAscOrDescOption,
+  SortDirection,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 import {YAxisSelector} from './yAxisSelector';
@@ -435,9 +435,7 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep({
-        ...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS],
-      });
+      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
@@ -1033,20 +1031,20 @@ function WidgetBuilder({
                                   )
                             }
                             values={{
-                              sortAscOrDesc:
+                              sortDirection:
                                 orderBy[0] === '-'
-                                  ? SortAscOrDescOption.HIGH_TO_LOW
-                                  : SortAscOrDescOption.LOW_TO_HIGH,
+                                  ? SortDirection.HIGH_TO_LOW
+                                  : SortDirection.LOW_TO_HIGH,
                               sortBy:
                                 orderBy[0] === '-'
                                   ? orderBy.substring(1, orderBy.length)
                                   : orderBy,
                             }}
-                            onChange={({sortAscOrDesc, sortBy}) => {
+                            onChange={({sortDirection, sortBy}) => {
                               const newQuery: WidgetQuery = {
                                 ...state.queries[0],
                                 orderby:
-                                  sortAscOrDesc === SortAscOrDescOption.HIGH_TO_LOW
+                                  sortDirection === SortDirection.HIGH_TO_LOW
                                     ? `-${sortBy}`
                                     : sortBy,
                               };

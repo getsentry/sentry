@@ -5,11 +5,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 
-import {SortAscOrDescOption, sortAscOrDescOptions} from './utils';
+import {SortDirection, sortDirections} from './utils';
 
 interface Values {
-  sortAscOrDesc: SortAscOrDescOption;
   sortBy: string;
+  sortDirection: SortDirection;
 }
 
 interface Props {
@@ -22,15 +22,15 @@ export function SortBySelectors({values, sortByOptions, onChange}: Props) {
   return (
     <Wrapper>
       <SelectControl
-        name="sortAscOrDesc"
+        name="sortDirection"
         menuPlacement="auto"
-        options={Object.keys(sortAscOrDescOptions).map(value => ({
-          label: sortAscOrDescOptions[value],
+        options={Object.keys(sortDirections).map(value => ({
+          label: sortDirections[value],
           value,
         }))}
-        value={values.sortAscOrDesc}
-        onChange={(option: SelectValue<SortAscOrDescOption>) => {
-          onChange({sortBy: values.sortBy, sortAscOrDesc: option.value});
+        value={values.sortDirection}
+        onChange={(option: SelectValue<SortDirection>) => {
+          onChange({sortBy: values.sortBy, sortDirection: option.value});
         }}
       />
       <SelectControl
@@ -40,7 +40,7 @@ export function SortBySelectors({values, sortByOptions, onChange}: Props) {
         value={values.sortBy}
         options={sortByOptions}
         onChange={(option: SelectValue<string>) => {
-          onChange({sortBy: option.value, sortAscOrDesc: values.sortAscOrDesc});
+          onChange({sortBy: option.value, sortDirection: values.sortDirection});
         }}
       />
     </Wrapper>
