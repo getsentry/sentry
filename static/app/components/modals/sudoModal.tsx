@@ -7,7 +7,7 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Form from 'sentry/components/forms/form';
 import InputField from 'sentry/components/forms/inputField';
-import SelectField from 'sentry/components/forms/selectField';
+import Hook from 'sentry/components/hook';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -118,10 +118,7 @@ class SudoModal extends React.Component<Props, State> {
     const {error, isFirstStep, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
-    const placeholderForSUCategories = [
-      {value: '1', name: 'a'},
-      {value: '2', name: 'b'},
-    ];
+    // const TestSUCategory = SuperuserAccessCategoryHooks['superuser-accountability:access-category'];
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>
@@ -154,28 +151,7 @@ class SudoModal extends React.Component<Props, State> {
             resetOnError
           >
             {!isSelfHosted && isFirstStep && superuser && (
-              <StyledSelectField
-                name="superuserAccessCategory"
-                label={t('Catergory of Superuser Access')}
-                options={placeholderForSUCategories.map(SUCategory => ({
-                  value: SUCategory.value,
-                  label: SUCategory.name,
-                }))}
-                placeholder={t('Select Catergory')}
-                inline={false}
-                flexibleControlStateSize
-                required
-              />
-            )}
-            {!isSelfHosted && isFirstStep && superuser && (
-              <StyledInputField
-                type="text"
-                inline={false}
-                label={t('Reason for Superuser')}
-                name="superuserReason"
-                flexibleControlStateSize
-                required
-              />
+              <Hook name="component:superuser-access-category" />
             )}
           </Form>
         </React.Fragment>
@@ -217,28 +193,7 @@ class SudoModal extends React.Component<Props, State> {
           resetOnError
         >
           {!isSelfHosted && isFirstStep && superuser && (
-            <StyledSelectField
-              name="superuserAccessCategory"
-              label={t('Catergory of Superuser Access')}
-              options={placeholderForSUCategories.map(SUCategory => ({
-                value: SUCategory.value,
-                label: SUCategory.name,
-              }))}
-              placeholder={t('Select Catergory')}
-              inline={false}
-              flexibleControlStateSize
-              required
-            />
-          )}
-          {!isSelfHosted && isFirstStep && superuser && (
-            <StyledInputField
-              type="text"
-              inline={false}
-              label={t('Reason for Superuser')}
-              name="superuserReason"
-              flexibleControlStateSize
-              required
-            />
+            <Hook name="component:superuser-access-category" />
           )}
           {((!isFirstStep && superuser) || !superuser || isSelfHosted) && (
             <StyledInputField
@@ -278,10 +233,6 @@ const StyledTextBlock = styled(TextBlock)`
 `;
 
 const StyledInputField = styled(InputField)`
-  padding-left: 0;
-`;
-
-const StyledSelectField = styled(SelectField)`
   padding-left: 0;
 `;
 
