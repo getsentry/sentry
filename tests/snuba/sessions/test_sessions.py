@@ -1165,7 +1165,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
         self.another_project = self.create_project()
         self.third_project = self.create_project()
 
-        self.now_dt = datetime(2000, 3, 20, 17, 40, 0)
+        self.now_dt = datetime.now()
         self._5_min_ago_dt = self.now_dt - timedelta(minutes=5)
         self._30_min_ago_dt = self.now_dt - timedelta(minutes=30)
         self._1_h_ago_dt = self.now_dt - timedelta(hours=1)
