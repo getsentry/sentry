@@ -51,6 +51,8 @@ ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTE
 
 ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
 
+SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", [])
+
 UNSET = object()
 
 
@@ -62,7 +64,7 @@ def is_active_superuser(request):
 
 
 class SuperuserAccessSerializer(serializers.Serializer):
-    superuserAccessCategory = serializers.CharField()
+    superuserAccessCategory = serializers.ChoiceField(choices=SUPERUSER_ACCESS_CATEGORIES)
     superuserReason = serializers.CharField(min_length=4, max_length=128)
 
 
