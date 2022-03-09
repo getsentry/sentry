@@ -14,6 +14,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 
 import {Container, FieldShortId, OverflowLink} from '../discover/styles';
 
@@ -87,7 +88,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     },
   },
   assignee: {
-    sortField: 'assignee.name',
+    sortField: null,
     renderFunc: data => {
       const memberList = MemberListStore.getAll();
       return (
@@ -108,12 +109,12 @@ const SPECIAL_FIELDS: SpecialFields = {
       issuesCountRenderer(data, organization, 'lifetimeUsers'),
   },
   events: {
-    sortField: null,
+    sortField: 'freq',
     renderFunc: (data, {organization}) =>
       issuesCountRenderer(data, organization, 'events'),
   },
   users: {
-    sortField: null,
+    sortField: 'user',
     renderFunc: (data, {organization}) =>
       issuesCountRenderer(data, organization, 'users'),
   },
@@ -224,6 +225,20 @@ const getDiscoverUrl = (
   });
   return discoverView.getResultsViewUrlTarget(organization.slug);
 };
+
+export function getSortField(field: string): string | null {
+  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+    return SPECIAL_FIELDS[field as keyof typeof SPECIAL_FIELDS].sortField;
+  }
+  switch (field) {
+    case FieldKey.LAST_SEEN:
+      return 'date';
+    case FieldKey.FIRST_SEEN:
+      return 'new';
+    default:
+      return null;
+  }
+}
 
 const contentStyle = css`
   width: 100%;
