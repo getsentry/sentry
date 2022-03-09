@@ -21,6 +21,16 @@ import FallingError from 'sentry/views/onboarding/components/fallingError';
 
 import WelcomeBackground from './components/welcomeBackground';
 
+const easterEggText = [
+  t('Be careful. She’s barely hanging on as it is.'),
+  t("You know this error's not real, right?"),
+  t("It's that big button, right up there."),
+  t('You could do this all day. But you really shouldn’t.'),
+  tct("Ok, really, that's enough. Click [start:Start].", {start: <em />}),
+  tct("Next time you do that, [bold:we're starting].", {bold: <strong />}),
+  t("We weren't kidding, let's get going."),
+];
+
 const fadeAway: MotionProps = {
   variants: {
     initial: {opacity: 0},
@@ -62,9 +72,18 @@ function TargetedOnboardingWelcome({organization}: Props) {
       source,
     });
   });
+
+  const onComplete = () => {
+    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
+      organization,
+      source,
+    });
+
+    browserHistory.push(`/onboarding/${organization.slug}/select-platform/`);
+  };
   return (
-    <FallingError>
-      {({fallingError}) => (
+    <FallingError onFall={fallCount => fallCount >= easterEggText.length && onComplete()}>
+      {({fallingError, fallCount}) => (
         <Wrapper>
           <WelcomeBackground />
           <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
@@ -84,17 +103,8 @@ function TargetedOnboardingWelcome({organization}: Props) {
                 <React.Fragment>
                   <ButtonWithFill
                     onClick={() => {
-                      trackAdvancedAnalyticsEvent(
-                        'growth.onboarding_clicked_instrument_app',
-                        {
-                          organization,
-                          source,
-                        }
-                      );
-
-                      browserHistory.push(
-                        `/onboarding/${organization.slug}/select-platform/`
-                      );
+                      // triggerFall();
+                      onComplete();
                     }}
                     priority="primary"
                   >
@@ -134,15 +144,19 @@ function TargetedOnboardingWelcome({organization}: Props) {
                 )}
                 src={OnboardingPreview}
                 cta={
-                  <SandboxWithFill scenario="oneIssue" priority="primary" {...{source}}>
+                  <SandboxBtnWithFill
+                    scenario="oneIssue"
+                    priority="primary"
+                    {...{source}}
+                  >
                     {t('Explore')}
-                  </SandboxWithFill>
+                  </SandboxBtnWithFill>
                 }
               />
             </ActionItem>
           )}
           <motion.p style={{margin: 0}}>
-            {t("Gee, I've used Sentry before.")}
+            {[t("Gee, I've used Sentry before."), ...easterEggText][fallCount]}
             <br />
             <Link
               onClick={() =>
@@ -166,9 +180,8 @@ export default withOrganization(TargetedOnboardingWelcome);
 
 const PositionedFallingError = styled('span')`
   display: block;
-  z-index: 0;
   position: absolute;
-  right: 30px;
+  right: 0px;
   top: 30px;
 `;
 
@@ -231,14 +244,6 @@ const SubHeaderText = styled(motion.h6)`
 const ButtonWrapper = styled('div')`
   margin: ${space(1)};
   position: relative;
-  display: flex;
-  flex-diretion: @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    justify-content: center;
-    align-items: center;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    justify-content: flex-end;
-  }
 `;
 
 const ActionImage = styled('img')`
@@ -246,10 +251,11 @@ const ActionImage = styled('img')`
 `;
 
 const ButtonWithFill = styled(Button)`
-  min-width: -webkit-fill-available;
+  width: 100%;
+  position: relative;
   z-index: 1;
 `;
 
-const SandboxWithFill = styled(DemoSandboxButton)`
-  min-width: -webkit-fill-available;
+const SandboxBtnWithFill = styled(DemoSandboxButton)`
+  width: 100%;
 `;
