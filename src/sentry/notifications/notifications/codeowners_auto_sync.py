@@ -20,7 +20,6 @@ class AutoSyncNotification(ProjectNotification):
         return self.organization.get_owners()
 
     def get_reference(self) -> None | Model:
-        super().get_reference
         return None
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
