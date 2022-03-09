@@ -40,7 +40,7 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
-  getColumnsAndAggregates,
+  getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
@@ -498,6 +498,7 @@ function WidgetBuilder({
   function handleYAxisOrColumnFieldChange(newFields: QueryFieldValue[]) {
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
+    const {aggregates, columns} = getColumnsAndAggregatesAsStrings(newFields);
 
     for (const index in state.queries) {
       const queryIndex = Number(index);
@@ -508,7 +509,6 @@ function WidgetBuilder({
       const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
       newQuery.fields = fieldStrings;
-      const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
       newQuery.aggregates = aggregates;
       newQuery.columns = columns;
       if (
@@ -901,9 +901,10 @@ function WidgetBuilder({
                           fieldOptions={generateIssueWidgetFieldOptions()}
                           onChange={newFields => {
                             const fieldStrings = newFields.map(generateFieldAsString);
+                            const splitFields =
+                              getColumnsAndAggregatesAsStrings(newFields);
                             const newQuery = cloneDeep(state.queries[0]);
                             newQuery.fields = fieldStrings;
-                            const splitFields = getColumnsAndAggregates(fieldStrings);
                             newQuery.aggregates = splitFields.aggregates;
                             newQuery.columns = splitFields.columns;
                             handleQueryChange(0, newQuery);
