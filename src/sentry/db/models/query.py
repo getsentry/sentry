@@ -14,27 +14,27 @@ from .utils import resolve_combined_expression
 __all__ = ("update", "create_or_update")
 
 
-def update(self: Model, using: str | None = None, **kwargs: Any) -> int:
+def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
     """
     Updates specified attributes on the current instance.
     """
-    assert self.pk, "Cannot update an instance that has not yet been created."
+    assert instance.pk, "Cannot update an instance that has not yet been created."
 
-    using = using or router.db_for_write(self.__class__, instance=self)
+    using = using or router.db_for_write(instance.__class__, instance=instance)
 
-    for field in self._meta.fields:
+    for field in instance._meta.fields:
         if getattr(field, "auto_now", False) and field.name not in kwargs:
-            kwargs[field.name] = field.pre_save(self, False)
+            kwargs[field.name] = field.pre_save(instance, False)
 
     affected = cast(
-        int, self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
+        int, instance.__class__._base_manager.using(using).filter(pk=instance.pk).update(**kwargs)
     )
     for k, v in kwargs.items():
         if isinstance(v, CombinedExpression):
-            v = resolve_combined_expression(self, v)
-        setattr(self, k, v)
+            v = resolve_combined_expression(instance, v)
+        setattr(instance, k, v)
     if affected == 1:
-        post_save.send(sender=self.__class__, instance=self, created=False)
+        post_save.send(sender=instance.__class__, instance=instance, created=False)
         return affected
     elif affected == 0:
         return affected
