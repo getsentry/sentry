@@ -44,7 +44,7 @@ class SpanTreeModel {
   embeddedChildren: Array<SpanTreeModel> = [];
   showSpanGroup: boolean = false;
   // Entries in this set will follow the format 'op.description'.
-  // Entries will indicate whether a sibling group should be expanded or collapsed
+  // An entry in this set indicates that all siblings with the op and description should be left ungrouped
   ungroupedSiblings: Set<string> = new Set();
 
   constructor(

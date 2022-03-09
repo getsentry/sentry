@@ -504,4 +504,147 @@ describe('SpanTreeModel', () => {
       'error_fetching_embedded_transactions'
     );
   });
+
+  it('automatically groups siblings with the same operation and description', () => {
+    const event2 = {
+      ...event,
+      entries: [
+        {
+          data: [],
+          type: EntryType.SPANS,
+        },
+      ],
+    } as EventTransaction;
+
+    const spanTemplate = {
+      timestamp: 1622079937.20331,
+      start_timestamp: 1622079936.907515,
+      description: 'test_description',
+      op: 'test',
+      span_id: 'a453cc713e5baf9c',
+      parent_span_id: 'a934857184bdf5a6',
+      trace_id: '8cbbc19c0f54447ab702f00263262726',
+      status: 'ok',
+      tags: {
+        'http.status_code': '200',
+      },
+      data: {
+        method: 'GET',
+        type: 'fetch',
+        url: '/api/0/internal/health/',
+      },
+    };
+
+    for (let i = 0; i < 5; i++) {
+      event2.entries[0].data.push(spanTemplate);
+    }
+
+    const parsedTrace = parseTrace(event2);
+    const rootSpan = generateRootSpan(parsedTrace);
+
+    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
+
+    const generateBounds = boundsGenerator({
+      traceStartTimestamp: parsedTrace.traceStartTimestamp,
+      traceEndTimestamp: parsedTrace.traceEndTimestamp,
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    const spans = spanTreeModel.getSpansList({
+      operationNameFilters: {
+        type: 'no_filter',
+      },
+      generateBounds,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      hiddenSpanGroups: new Set(),
+      spanGroups: new Set(),
+      filterSpans: undefined,
+      previousSiblingEndTimestamp: undefined,
+      event,
+      isOnlySibling: true,
+      spanGrouping: undefined,
+      toggleSpanGroup: undefined,
+      showSpanGroup: false,
+      addTraceBounds: () => {},
+      removeTraceBounds: () => {},
+    });
+
+    expect(spans.length).toEqual(2);
+    expect(spans[1].type).toEqual('span_group_sibling');
+    expect(spans[1].spanGrouping.length).toEqual(5);
+  });
+
+  it('does not autogroup similar siblings if there are less than 5 in a row', () => {
+    const event2 = {
+      ...event,
+      entries: [
+        {
+          data: [],
+          type: EntryType.SPANS,
+        },
+      ],
+    } as EventTransaction;
+
+    const spanTemplate = {
+      timestamp: 1622079937.20331,
+      start_timestamp: 1622079936.907515,
+      description: 'test_description',
+      op: 'test',
+      span_id: 'a453cc713e5baf9c',
+      parent_span_id: 'a934857184bdf5a6',
+      trace_id: '8cbbc19c0f54447ab702f00263262726',
+      status: 'ok',
+      tags: {
+        'http.status_code': '200',
+      },
+      data: {
+        method: 'GET',
+        type: 'fetch',
+        url: '/api/0/internal/health/',
+      },
+    };
+
+    for (let i = 0; i < 4; i++) {
+      event2.entries[0].data.push(spanTemplate);
+    }
+
+    const parsedTrace = parseTrace(event2);
+    const rootSpan = generateRootSpan(parsedTrace);
+
+    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
+
+    const generateBounds = boundsGenerator({
+      traceStartTimestamp: parsedTrace.traceStartTimestamp,
+      traceEndTimestamp: parsedTrace.traceEndTimestamp,
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    const spans = spanTreeModel.getSpansList({
+      operationNameFilters: {
+        type: 'no_filter',
+      },
+      generateBounds,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      hiddenSpanGroups: new Set(),
+      spanGroups: new Set(),
+      filterSpans: undefined,
+      previousSiblingEndTimestamp: undefined,
+      event,
+      isOnlySibling: true,
+      spanGrouping: undefined,
+      toggleSpanGroup: undefined,
+      showSpanGroup: false,
+      addTraceBounds: () => {},
+      removeTraceBounds: () => {},
+    });
+
+    expect(spans.length).toEqual(5);
+    spans.forEach(span => expect(span.type).toEqual('span'));
+  });
 });
