@@ -15,6 +15,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -199,6 +200,8 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         showDateSelector={false}
         skipLoadLastUsed
       >
+        <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
+
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs

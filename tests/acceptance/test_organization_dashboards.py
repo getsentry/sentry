@@ -31,8 +31,6 @@ EDIT_FEATURE = ["organizations:dashboards-edit"]
 
 GRID_LAYOUT_FEATURE = ["organizations:dashboard-grid-layout"]
 
-ISSUE_WIDGET_FEATURE = ["organizations:issues-in-dashboards"]
-
 WIDGET_LIBRARY_FEATURE = ["organizations:widget-library"]
 
 
@@ -320,9 +318,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
 
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + ISSUE_WIDGET_FEATURE + GRID_LAYOUT_FEATURE
-        ):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
