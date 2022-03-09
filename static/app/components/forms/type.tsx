@@ -15,6 +15,7 @@ export const FieldType = [
   'boolean',
   'choice_mapper',
   'email',
+  'file',
   'hidden',
   'multichoice',
   'number',
@@ -131,6 +132,10 @@ type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
     value?: Pick<RangeSliderProps, 'value'>;
   };
 
+type FileType = {type: 'file'} & {
+  accept?: string[];
+};
+
 export interface TableType {
   /**
    * A list of column keys for the table, in the order that you want
@@ -193,6 +198,7 @@ export type Field = (
   | SelectAsyncType
   | ChoiceMapperType
   | {type: typeof FieldType[number]}
+  | FileType
 ) &
   BaseField;
 
