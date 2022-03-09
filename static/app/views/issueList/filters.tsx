@@ -94,7 +94,7 @@ function IssueListFilters({
         {hasPageFilters ? (
           <PageFilterBar>
             <ProjectPageFilter />
-            <EnvironmentPageFilter />
+            <EnvironmentPageFilter alignDropdown="right" />
             <DatePageFilter hidePin alignDropdown="right" />
           </PageFilterBar>
         ) : (

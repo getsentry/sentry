@@ -46,6 +46,10 @@ type Props = WithRouterProps & {
   organization: Organization;
   projects: Project[];
   selectedProjects: number[];
+  /**
+   * Aligns dropdown menu to left or right of button
+   */
+  alignDropdown?: 'left' | 'right';
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
     isOpen: boolean;
@@ -239,6 +243,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       customDropdownButton,
       customLoadingIndicator,
       forceEnvironment,
+      alignDropdown,
       detached,
     } = this.props;
     const environments = this.getEnvironments();
@@ -278,10 +283,10 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       <ClassNames>
         {({css}) => (
           <StyledDropdownAutoComplete
-            alignMenu="left"
             allowActorToggle
             closeOnSelect
             blendCorner={false}
+            alignMenu={alignDropdown ?? 'left'}
             detached={detached}
             searchPlaceholder={t('Filter environments')}
             onSelect={this.handleSelect}
