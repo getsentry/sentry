@@ -87,14 +87,30 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard(
           [
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'Default Widget 1',
                 interval: '1d',
               }
             ),
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:transaction',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'Default Widget 2',
                 interval: '1d',
@@ -145,7 +161,15 @@ describe('Dashboards > Detail', function () {
       initialData = initializeOrg({organization});
       widgets = [
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              columns: [],
+              aggregates: ['count()'],
+            },
+          ],
           {
             title: 'Errors',
             interval: '1d',
@@ -153,7 +177,15 @@ describe('Dashboards > Detail', function () {
           }
         ),
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:transaction',
+              fields: ['count()'],
+              columns: [],
+              aggregates: ['count()'],
+            },
+          ],
           {
             title: 'Transactions',
             interval: '1d',
@@ -166,6 +198,8 @@ describe('Dashboards > Detail', function () {
               name: '',
               conditions: 'event.type:transaction transaction:/api/cats',
               fields: ['p50()'],
+              columns: [],
+              aggregates: ['p50()'],
             },
           ],
           {
@@ -342,7 +376,15 @@ describe('Dashboards > Detail', function () {
             id: '1',
             interval: '1d',
             layout: {h: 2, minH: 2, w: 2, x: 0, y: 0},
-            queries: [{conditions: 'event.type:error', fields: ['count()'], name: ''}],
+            queries: [
+              {
+                conditions: 'event.type:error',
+                fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
+                name: '',
+              },
+            ],
             title: 'Errors',
             type: 'line',
           },
@@ -455,7 +497,15 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard(
           [
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'First Widget',
                 interval: '1d',
@@ -464,7 +514,15 @@ describe('Dashboards > Detail', function () {
               }
             ),
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'Second Widget',
                 interval: '1d',
@@ -496,7 +554,15 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard(
           [
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'First Widget',
                 interval: '1d',
@@ -533,7 +599,15 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard(
           [
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'First Widget',
                 interval: '1d',
@@ -569,7 +643,15 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard(
           [
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'First Widget',
                 interval: '1d',
@@ -601,7 +683,15 @@ describe('Dashboards > Detail', function () {
     it('opens the widget viewer modal using the widget id specified in the url', () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       const widget = TestStubs.Widget(
-        [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+        [
+          {
+            name: '',
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
+          },
+        ],
         {
           title: 'First Widget',
           interval: '1d',
@@ -660,7 +750,15 @@ describe('Dashboards > Detail', function () {
 
     it('opens the edit widget modal when clicking the edit button', async () => {
       const widget = TestStubs.Widget(
-        [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+        [
+          {
+            name: '',
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            columns: [],
+            aggregates: ['count()'],
+          },
+        ],
         {
           title: 'First Widget',
           interval: '1d',
