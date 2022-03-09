@@ -16,7 +16,9 @@ describe('AlertRuleDetails', () => {
   });
   const organization = context.organization;
   const project = TestStubs.Project();
-  const rule = TestStubs.ProjectAlertRule();
+  const rule = TestStubs.ProjectAlertRule({
+    lastTriggered: moment().subtract(2, 'day').format(),
+  });
 
   const createWrapper = (props = {}) => {
     const params = {
@@ -46,15 +48,11 @@ describe('AlertRuleDetails', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
       body: rule,
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/stats/`,
-      body: [
-        {date: moment().subtract(3, 'day').unix(), count: 4},
-        {date: moment().subtract(2, 'day').unix(), count: 0},
-        {date: moment().subtract(1, 'day').unix(), count: 5},
-        {date: moment().unix(), count: 0},
-      ],
+      body: [],
     });
 
     MockApiClient.addMockResponse({
@@ -118,10 +116,10 @@ describe('AlertRuleDetails', () => {
     });
   });
 
-  it('should show most recent stat date with positive alert count', async () => {
+  it('should show the time since last triggered', async () => {
     createWrapper();
 
-    expect(await screen.findByText('Last Triggered')).toBeInTheDocument();
-    expect(screen.getByText('a day ago')).toBeInTheDocument();
+    expect(await screen.findAllByText('Last Triggered')).toHaveLength(2);
+    expect(screen.getByText('2 days ago')).toBeInTheDocument();
   });
 });
