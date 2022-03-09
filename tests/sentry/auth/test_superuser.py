@@ -186,7 +186,7 @@ class SuperuserTestCase(TestCase):
                     "superuser_token_id": superuser.token,
                     "user_id": 10,
                     "user_email": "test@sentry.io",
-                    "su_access_category": "Edit organization settings",
+                    "su_access_category": "debugging",
                     "reason_for_su": "Edit organization settings",
                 },
             )
