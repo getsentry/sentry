@@ -82,12 +82,14 @@ import {DashboardSelector} from './dashboardSelector';
 import {DisplayTypeSelector} from './displayTypeSelector';
 import {Footer} from './footer';
 import {Header} from './header';
+import {SortBySelectors} from './sortBySelectors';
 import {
   DataSet,
   DisplayType,
   getParsedDefaultWidgetQuery,
   mapErrors,
   normalizeQueries,
+  SortDirection,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 import {YAxisSelector} from './yAxisSelector';
@@ -100,32 +102,34 @@ const DATASET_CHOICES: [DataSet, string][] = [
   // [DataSet.METRICS, t('Metrics (Release Health)')],
 ];
 
-const QUERIES: Record<DataSet, WidgetQuery> = {
-  [DataSet.EVENTS]: {
-    name: '',
-    fields: ['count()'],
-    columns: [],
-    aggregates: ['count()'],
-    conditions: '',
-    orderby: '',
-  },
-  [DataSet.ISSUES]: {
-    name: '',
-    fields: ['issue', 'assignee', 'title'] as string[],
-    columns: ['issue', 'assignee', 'title'],
-    aggregates: [],
-    conditions: '',
-    orderby: '',
-  },
-  [DataSet.METRICS]: {
-    name: '',
-    fields: [`sum(${SessionMetric.SESSION})`],
-    columns: [],
-    aggregates: [`sum(${SessionMetric.SESSION})`],
-    conditions: '',
-    orderby: '',
-  },
-};
+function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
+  return {
+    [DataSet.EVENTS]: {
+      name: '',
+      fields: ['count()'],
+      columns: [],
+      aggregates: ['count()'],
+      conditions: '',
+      orderby: widgetBuilderNewDesign ? 'count' : '',
+    },
+    [DataSet.ISSUES]: {
+      name: '',
+      fields: ['issue', 'assignee', 'title'] as string[],
+      columns: ['issue', 'assignee', 'title'],
+      aggregates: [],
+      conditions: '',
+      orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
+    },
+    [DataSet.METRICS]: {
+      name: '',
+      fields: [`sum(${SessionMetric.SESSION})`],
+      columns: [],
+      aggregates: [`sum(${SessionMetric.SESSION})`],
+      conditions: '',
+      orderby: '',
+    },
+  };
+}
 
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
@@ -133,20 +137,20 @@ const WIDGET_TYPE_TO_DATA_SET = {
   // [WidgetType.METRICS]: DataSet.METRICS,
 };
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   dashboardId?: string;
   widgetIndex?: number;
-};
+}
 
-type QueryData = {
+interface QueryData {
   queryAggregates: string[];
   queryColumns: string[];
   queryConditions: string[];
   queryNames: string[];
   queryOrderby: string;
   queryFields?: string[];
-};
+}
 
 interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
@@ -161,7 +165,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   widget?: Widget;
 }
 
-type State = {
+interface State {
   dashboards: DashboardListItem[];
   dataSet: DataSet;
   displayType: Widget['displayType'];
@@ -172,7 +176,7 @@ type State = {
   userHasModified: boolean;
   errors?: Record<string, any>;
   selectedDashboard?: SelectValue<string>;
-};
+}
 
 function WidgetBuilder({
   dashboard,
@@ -197,6 +201,9 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
+  const widgetBuilderNewDesign = organization.features.includes(
+    'new-widget-builder-experience-design'
+  );
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -220,7 +227,22 @@ function WidgetBuilder({
         title: defaultTitle ?? t('Custom Widget'),
         displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
-        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...QUERIES.events}],
+        queries: [
+          defaultWidgetQuery
+            ? widgetBuilderNewDesign
+              ? {
+                  ...defaultWidgetQuery,
+                  orderby:
+                    defaultWidgetQuery.orderby ||
+                    generateOrderOptions({
+                      widgetType: WidgetType.DISCOVER,
+                      widgetBuilderNewDesign,
+                      ...getColumnsAndAggregates(defaultWidgetQuery.fields),
+                    })[0].value,
+                }
+              : {...defaultWidgetQuery}
+            : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+        ],
         errors: undefined,
         loading: !!notDashboardsOrigin,
         dashboards: [],
@@ -233,7 +255,12 @@ function WidgetBuilder({
       title: widgetToBeUpdated.title,
       displayType: widgetToBeUpdated.displayType,
       interval: widgetToBeUpdated.interval,
-      queries: normalizeQueries(widgetToBeUpdated.displayType, widgetToBeUpdated.queries),
+      queries: normalizeQueries({
+        displayType: widgetToBeUpdated.displayType,
+        queries: widgetToBeUpdated.queries,
+        widgetType: widgetToBeUpdated.widgetType ?? WidgetType.DISCOVER,
+        widgetBuilderNewDesign,
+      }),
       errors: undefined,
       loading: false,
       dashboards: [],
@@ -279,7 +306,13 @@ function WidgetBuilder({
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const normalized = normalizeQueries(newDisplayType, prevState.queries);
+      const normalized = normalizeQueries({
+        displayType: newDisplayType,
+        queries: prevState.queries,
+        widgetType:
+          prevState.dataSet === DataSet.EVENTS ? WidgetType.DISCOVER : WidgetType.ISSUE,
+        widgetBuilderNewDesign,
+      });
 
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
@@ -293,7 +326,16 @@ function WidgetBuilder({
       ) {
         // World Map display type only supports Events Dataset
         // so set state to default events query.
-        set(newState, 'queries', normalizeQueries(newDisplayType, [{...QUERIES.events}]));
+        set(
+          newState,
+          'queries',
+          normalizeQueries({
+            displayType: newDisplayType,
+            queries: [{...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]}],
+            widgetType: WidgetType.DISCOVER,
+            widgetBuilderNewDesign,
+          })
+        );
         set(newState, 'dataSet', DataSet.EVENTS);
         return {...newState, errors: undefined};
       }
@@ -328,7 +370,9 @@ function WidgetBuilder({
               ];
               query.aggregates = [...defaultWidgetQuery.aggregates];
               query.columns = [...defaultWidgetQuery.columns];
-              query.orderby = defaultWidgetQuery.orderby;
+              if (!!defaultWidgetQuery.orderby) {
+                query.orderby = defaultWidgetQuery.orderby;
+              }
             });
           }
         }
@@ -380,7 +424,7 @@ function WidgetBuilder({
         ...(widgetToBeUpdated?.widgetType &&
         WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
           ? widgetToBeUpdated.queries
-          : [QUERIES[newDataSet]])
+          : [{...getDataSetQuery(widgetBuilderNewDesign)[newDataSet]}])
       );
 
       set(newState, 'userHasModified', true);
@@ -391,7 +435,7 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(QUERIES.events);
+      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
@@ -480,6 +524,10 @@ function WidgetBuilder({
         } else {
           newQuery.orderby = '';
         }
+      }
+
+      if (widgetBuilderNewDesign && queryIndex === 0) {
+        newQuery.orderby = aggregateAliasFieldStrings[0];
       }
 
       handleQueryChange(queryIndex, newQuery);
@@ -714,6 +762,7 @@ function WidgetBuilder({
   const explodedColumns = columns.map(field => explodeField({field}));
   const explodedAggregates = aggregates.map(field => explodeField({field}));
   const explodedFields = [...explodedColumns, ...explodedAggregates];
+  const orderBy = state.queries[0].orderby;
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -782,7 +831,7 @@ function WidgetBuilder({
                         state.displayType !== DisplayType.TABLE
                           ? [
                               [
-                                DATASET_CHOICES[1][0],
+                                DataSet.ISSUES,
                                 t(
                                   'This data set is restricted to the table visualization.'
                                 ),
@@ -1000,24 +1049,43 @@ function WidgetBuilder({
                     >
                       <Field
                         inline={false}
+                        error={state.errors?.orderby}
                         flexibleControlStateSize
                         stacked
-                        error={state.errors?.orderby}
                       >
-                        {state.dataSet === DataSet.EVENTS ? (
-                          <SelectControl
-                            menuPlacement="auto"
-                            value={state.queries[0].orderby}
-                            name="orderby"
-                            options={generateOrderOptions({
-                              widgetType,
-                              columns: state.queries[0].columns,
-                              aggregates: state.queries[0].aggregates,
-                            })}
-                            onChange={(option: SelectValue<string>) => {
+                        {widgetBuilderNewDesign ? (
+                          <SortBySelectors
+                            sortByOptions={
+                              state.dataSet === DataSet.EVENTS
+                                ? generateOrderOptions({
+                                    widgetType,
+                                    widgetBuilderNewDesign: true,
+                                    columns: state.queries[0].columns,
+                                    aggregates: state.queries[0].aggregates,
+                                  })
+                                : generateIssueWidgetOrderOptions(
+                                    organization.features.includes(
+                                      'issue-list-trend-sort'
+                                    )
+                                  )
+                            }
+                            values={{
+                              sortDirection:
+                                orderBy[0] === '-'
+                                  ? SortDirection.HIGH_TO_LOW
+                                  : SortDirection.LOW_TO_HIGH,
+                              sortBy:
+                                orderBy[0] === '-'
+                                  ? orderBy.substring(1, orderBy.length)
+                                  : orderBy,
+                            }}
+                            onChange={({sortDirection, sortBy}) => {
                               const newQuery: WidgetQuery = {
                                 ...state.queries[0],
-                                orderby: option.value,
+                                orderby:
+                                  sortDirection === SortDirection.HIGH_TO_LOW
+                                    ? `-${sortBy}`
+                                    : sortBy,
                               };
                               handleQueryChange(0, newQuery);
                             }}
@@ -1025,11 +1093,24 @@ function WidgetBuilder({
                         ) : (
                           <SelectControl
                             menuPlacement="auto"
-                            value={state.queries[0].orderby || IssueSortOptions.DATE}
+                            value={
+                              state.dataSet === DataSet.EVENTS
+                                ? state.queries[0].orderby
+                                : state.queries[0].orderby || IssueSortOptions.DATE
+                            }
                             name="orderby"
-                            options={generateIssueWidgetOrderOptions(
-                              organization?.features?.includes('issue-list-trend-sort')
-                            )}
+                            options={
+                              state.dataSet === DataSet.EVENTS
+                                ? generateOrderOptions({
+                                    widgetType,
+                                    ...getColumnsAndAggregates(state.queries[0].fields),
+                                  })
+                                : generateIssueWidgetOrderOptions(
+                                    organization.features.includes(
+                                      'issue-list-trend-sort'
+                                    )
+                                  )
+                            }
                             onChange={(option: SelectValue<string>) => {
                               const newQuery: WidgetQuery = {
                                 ...state.queries[0],

@@ -185,7 +185,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       title: widget.title,
       displayType: widget.displayType,
       interval: widget.interval,
-      queries: normalizeQueries(widget.displayType, widget.queries),
+      queries: normalizeQueries({
+        displayType: widget.displayType,
+        queries: widget.queries,
+      }),
       errors: undefined,
       loading: false,
       dashboards: [],
@@ -376,7 +379,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const {displayType, defaultWidgetQuery, defaultTableColumns, widget} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      const normalized = normalizeQueries(newDisplayType, prevState.queries);
+      const normalized = normalizeQueries({
+        displayType: newDisplayType,
+        queries: prevState.queries,
+      });
+
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
@@ -388,7 +395,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ) {
         // World Map display type only supports Discover Dataset
         // so set state to default discover query.
-        set(newState, 'queries', normalizeQueries(newDisplayType, [newDiscoverQuery]));
+        set(
+          newState,
+          'queries',
+          normalizeQueries({
+            displayType: newDisplayType,
+            queries: [newDiscoverQuery],
+          })
+        );
         set(newState, 'widgetType', WidgetType.DISCOVER);
         return {...newState, errors: undefined};
       }

@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
 import withMetricsMeta, {InjectedMetricsMetaProps} from 'sentry/utils/withMetricsMeta';
@@ -32,18 +32,20 @@ describe('withMetricsMeta HoC', function () {
     // Should forward props.
     expect(screen.getByText('value')).toBeInTheDocument();
 
-    MetricsMetaStore.onLoadSuccess([
-      {
-        name: 'sentry.sessions.session',
-        type: 'counter',
-        operations: ['sum'],
-      },
-      {
-        name: 'sentry.sessions.session.error',
-        type: 'set',
-        operations: ['count_unique'],
-      },
-    ]);
+    act(() => {
+      MetricsMetaStore.onLoadSuccess([
+        {
+          name: 'sentry.sessions.session',
+          type: 'counter',
+          operations: ['sum'],
+        },
+        {
+          name: 'sentry.sessions.session.error',
+          type: 'set',
+          operations: ['count_unique'],
+        },
+      ]);
+    });
 
     // Should forward prop
     expect(screen.getByText('value')).toBeInTheDocument();
