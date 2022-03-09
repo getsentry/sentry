@@ -22,7 +22,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             ("errored_preaggr", errored_preaggr_sessions),
         ]:
             assert func(self.metric_ids, alias=status) == Function(
-                "sumMergeIf",
+                "sumIf",
                 [
                     Column("value"),
                     Function(
@@ -45,7 +45,7 @@ class DerivedMetricSnQLTestCase(TestCase):
     def test_set_sum_aggregation_for_errored_sessions(self):
         alias = "whatever"
         assert sessions_errored_set(self.metric_ids, alias) == Function(
-            "uniqCombined64MergeIf",
+            "uniqIf",
             [
                 Column("value"),
                 Function(

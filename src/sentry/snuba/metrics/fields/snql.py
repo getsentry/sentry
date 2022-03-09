@@ -5,7 +5,7 @@ from sentry.sentry_metrics.utils import resolve_weak
 
 def __counter_sum_aggregation_on_session_status_factory(session_status, metric_ids, alias=None):
     return Function(
-        "sumMergeIf",
+        "sumIf",
         [
             Column("value"),
             Function(
@@ -46,7 +46,7 @@ def errored_preaggr_sessions(metric_ids, alias=None):
 
 def sessions_errored_set(metric_ids, alias=None):
     return Function(
-        "uniqCombined64MergeIf",
+        "uniqIf",
         [
             Column("value"),
             Function(
