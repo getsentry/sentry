@@ -8,10 +8,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import WidgetBuilder from './widgetBuilder';
 
-type WidgetBuilderProps = Omit<
-  React.ComponentProps<typeof WidgetBuilder>,
-  'organization'
->;
+interface WidgetBuilderProps
+  extends Omit<React.ComponentProps<typeof WidgetBuilder>, 'organization'> {}
 
 function WidgetBuilderContainer(props: WidgetBuilderProps) {
   const organization = useOrganization();
