@@ -26,7 +26,7 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         request: Request,
         organization_slug: str,
         project_slug: str,
-        codeowners_id: int,
+        codeowners_id: str,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[Any, Any]:
