@@ -24,8 +24,10 @@ from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
 class QueryBuilderTest(TestCase):
     def setUp(self):
-        self.start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        # self.start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        # self.end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        self.start = datetime.datetime.now() - datetime.timedelta(days=1)
+        self.end = datetime.datetime.now()
         self.projects = [1, 2, 3]
         self.params = {
             "project_id": self.projects,
@@ -617,8 +619,14 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
     def setUp(self):
         super().setUp()
-        self.start = datetime.datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 1, 19, 10, 15, 0, tzinfo=timezone.utc)
+        # self.start = datetime.datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
+        # self.end = datetime.datetime(2015, 1, 19, 10, 15, 0, tzinfo=timezone.utc)
+        self.start = datetime.datetime.now(tz=timezone.utc).replace(
+            hour=10, minute=15, second=0, microsecond=0
+        ) - datetime.timedelta(days=18)
+        self.end = datetime.datetime.now(tz=timezone.utc).replace(
+            hour=10, minute=15, second=0, microsecond=0
+        )
         self.projects = [self.project.id]
         self.params = {
             "organization_id": self.organization.id,
@@ -1421,11 +1429,23 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert result["data"] == [
-            {"time": "2015-01-01T10:15:00+00:00", "p50_transaction_duration": 100.0},
-            {"time": "2015-01-01T10:30:00+00:00", "p50_transaction_duration": 100.0},
-            {"time": "2015-01-01T10:45:00+00:00", "p50_transaction_duration": 100.0},
-            {"time": "2015-01-01T11:00:00+00:00", "p50_transaction_duration": 100.0},
-            {"time": "2015-01-01T11:15:00+00:00", "p50_transaction_duration": 100.0},
+            {"time": self.start.isoformat(), "p50_transaction_duration": 100.0},
+            {
+                "time": (self.start + datetime.timedelta(minutes=15)).isoformat(),
+                "p50_transaction_duration": 100.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(minutes=30)).isoformat(),
+                "p50_transaction_duration": 100.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(minutes=45)).isoformat(),
+                "p50_transaction_duration": 100.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(minutes=60)).isoformat(),
+                "p50_transaction_duration": 100.0,
+            },
         ]
         self.assertCountEqual(
             result["meta"],
