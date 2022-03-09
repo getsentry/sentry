@@ -3,7 +3,6 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-import pytz
 from django.urls import reverse
 from freezegun import freeze_time
 
@@ -23,13 +22,17 @@ def result_sorted(result):
     return result
 
 
+ONE_DAY_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
+CONST_DATE = ONE_DAY_AGO.replace(hour=12, minute=27, second=28, microsecond=0)
+
+
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.setup_fixture()
 
     def setup_fixture(self):
-        self.timestamp = to_timestamp(datetime.datetime(2021, 1, 14, 12, 27, 28, tzinfo=pytz.utc))
+        self.timestamp = to_timestamp(CONST_DATE)
         self.received = self.timestamp
         self.session_started = self.timestamp // 3600 * 3600  # round to the hour
 
@@ -175,7 +178,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             "Use a larger interval, or a smaller date range."
         }
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_timeseries_interval(self):
         response = self.do_request(
             {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]}
@@ -210,7 +213,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             ],
         }
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_user_all_accessible(self):
         response = self.do_request(
             {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]},
@@ -235,7 +238,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "No projects available"}
 
-    @freeze_time("2021-01-14T12:37:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_minute_resolution(self):
         with self.feature("organizations:minute-resolution-sessions"):
             response = self.do_request(
@@ -266,7 +269,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 ],
             }
 
-    @freeze_time("2021-01-14T12:37:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_10s_resolution(self):
         with self.feature("organizations:minute-resolution-sessions"):
             response = self.do_request(
@@ -291,7 +294,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 # to one hour, and the resolution will still be one minute:
                 assert len(response.data["intervals"]) == 38
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_filter_projects(self):
         response = self.do_request(
             {
@@ -307,7 +310,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"by": {}, "series": {"sum(session)": [5]}, "totals": {"sum(session)": 5}}
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_filter_environment(self):
         response = self.do_request(
             {
@@ -339,7 +342,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_filter_release(self):
         response = self.do_request(
             {
@@ -396,7 +399,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_filter_unknown_release(self):
         response = self.do_request(
             {
@@ -411,7 +414,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_groupby_project(self):
         response = self.do_request(
             {
@@ -442,7 +445,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_groupby_environment(self):
         response = self.do_request(
             {
@@ -468,7 +471,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_groupby_release(self):
         response = self.do_request(
             {
@@ -499,7 +502,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_groupby_status(self):
         response = self.do_request(
             {
@@ -535,7 +538,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_groupby_cross(self):
         response = self.do_request(
             {
@@ -571,7 +574,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_users_groupby(self):
         response = self.do_request(
             {
@@ -631,7 +634,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         "p99(session.duration)": 79159.99999999999,
     }
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_duration_percentiles(self):
         response = self.do_request(
             {
@@ -662,7 +665,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         for key, series in group["series"].items():
             assert series == pytest.approx([expected[key]])
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_duration_percentiles_groupby(self):
         response = self.do_request(
             {
@@ -700,7 +703,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert seen == {"abnormal", "crashed", "errored", "healthy"}
 
-    @freeze_time("2021-01-14T12:37:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_snuba_limit_exceeded(self):
         # 2 * 3 => only show two groups
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
@@ -739,7 +742,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 },
             ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(CONST_DATE)
     def test_environment_filter_not_present_in_query(self):
         self.create_environment(name="abc")
         response = self.do_request(
