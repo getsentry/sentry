@@ -325,6 +325,7 @@ export const modalCss = css`
 
 const headerCss = css`
   margin: -${space(4)} -${space(4)} 0px -${space(4)};
+  line-height: normal;
 `;
 const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
@@ -336,16 +337,16 @@ const Container = styled('div')`
   position: relative;
 
   & > div {
-    padding: 10px 0px;
+    padding: ${space(1.5)} 0px;
   }
 `;
 
 const TextContainer = styled('div')`
-  padding-top: 10px;
+  padding-top: ${space(1.5)};
 `;
 
 const StyledSelectControl = styled(SelectControl)`
-  padding-top: 10px;
+  padding-top: 10px ${space(1.5)};
 `;
 
 // Table Container allows Table display to work around parent padding and fill full modal width
