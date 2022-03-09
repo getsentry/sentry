@@ -19,6 +19,7 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 type GroupHistory = {
   count: number;
   group: Group;
+  lastTriggered: string;
 };
 
 type Props = AsyncComponent['props'] &
@@ -100,7 +101,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
             t('Last Triggered'),
           ]}
         >
-          {groupHistory?.map(({group: issue, count}) => {
+          {groupHistory?.map(({group: issue, count, lastTriggered}) => {
             const message = getMessage(issue);
             const {title} = getTitle(issue);
 
@@ -124,7 +125,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                   <Count value={issue.count} />
                 </AlignRight>
                 <div>
-                  <StyledDateTime date={issue.lastSeen} />
+                  <StyledDateTime date={lastTriggered} />
                 </div>
               </Fragment>
             );

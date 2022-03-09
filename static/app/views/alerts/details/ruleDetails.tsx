@@ -80,7 +80,13 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, ruleId, projectId} = this.props.params;
-    return [['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]];
+    return [
+      [
+        'rule',
+        `/projects/${orgId}/${projectId}/rules/${ruleId}/`,
+        {query: {expand: 'lastTriggered'}},
+      ],
+    ];
   }
 
   getDataDatetime(): DateTimeObject {
