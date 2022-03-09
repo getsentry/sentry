@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import datetime
 from typing import Any, Dict, MutableMapping, Optional, Sequence
 
 import msgpack
@@ -85,7 +84,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
             {
                 "organization_id": message["organization_id"],
                 "project_id": message["project_id"],
-                "received": datetime.utcnow().isoformat(),
+                "received": message["received"],
             }
         )
 
