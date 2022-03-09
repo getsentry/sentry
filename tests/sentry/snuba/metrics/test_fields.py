@@ -28,6 +28,12 @@ def get_single_metric_info_mocked(_, metric_name):
     }
 
 
+def clear_derived_metrics_entity_state():
+    """Clears Derived Metrics state"""
+    for _, derived_metric_obj in DERIVED_METRICS.items():
+        derived_metric_obj._entity = None
+
+
 class SingleEntityDerivedMetricTestCase(TestCase):
     def setUp(self):
         self.crash_free_fake = SingularEntityDerivedMetric(
@@ -39,6 +45,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             ),
         )
         DERIVED_METRICS.update({"crash_free_fake": self.crash_free_fake})
+
+    def tearDown(self):
+        clear_derived_metrics_entity_state()
 
     def __call_get_entity_on_supported_derived_metrics(self):
         for derived_metric_name in DERIVED_METRICS.keys():
@@ -141,11 +150,12 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         assert DERIVED_METRICS["session.errored_set"].generate_metric_ids() == {
             session_error_metric_id
         }
+        clear_derived_metrics_entity_state()
 
     @mock.patch(
         "sentry.snuba.metrics.fields.base.get_single_metric_info", get_single_metric_info_mocked
     )
-    def test_genarate_order_by_clause(self):
+    def test_generate_order_by_clause(self):
         self.__call_get_entity_on_supported_derived_metrics()
         for derived_metric_name in DERIVED_METRICS.keys():
             if derived_metric_name == self.crash_free_fake.metric_name:

@@ -3,7 +3,7 @@ __all__ = (
     "run_metrics_query",
     "get_single_metric_info",
     "RawMetric",
-    "MetricsFieldBase",
+    "MetricFieldBase",
     "RawMetric",
     "DerivedMetric",
     "SingularEntityDerivedMetric",
@@ -120,10 +120,14 @@ class MetricFieldBaseDefinition:
     metric_name: str
 
 
-class MetricsFieldBase(MetricFieldBaseDefinition, ABC):
+class MetricFieldBase(MetricFieldBaseDefinition, ABC):
     @abstractmethod
     def get_entity(self, **kwargs: Any) -> Optional[MetricEntity]:
-        """Method that generates the entity of an instance of MetricsFieldBase"""
+        """
+        Method that generates the entity of an instance of MetricsFieldBase.
+        `entity` property will always be None for instances of DerivedMetric that rely on
+        constituent metrics that span multiple entities.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -158,7 +162,7 @@ class MetricsFieldBase(MetricFieldBaseDefinition, ABC):
         raise NotImplementedError
 
 
-class RawMetric(MetricsFieldBase):
+class RawMetric(MetricFieldBase):
     def get_entity(self, **kwargs: Any) -> MetricEntity:
         return OPERATIONS_TO_ENTITY[self.op]
 
@@ -205,7 +209,7 @@ class DerivedMetricDefinition:
     is_private: bool = False
 
 
-class DerivedMetric(DerivedMetricDefinition, MetricsFieldBase, ABC):
+class DerivedMetric(DerivedMetricDefinition, MetricFieldBase, ABC):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)  # type: ignore
         self._entity = None
@@ -381,7 +385,7 @@ DERIVED_METRICS = {
 }
 
 
-def metric_object_factory(op: Optional[str], metric_name: str) -> MetricsFieldBase:
+def metric_object_factory(op: Optional[str], metric_name: str) -> MetricFieldBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
     if metric_name in DERIVED_METRICS:
         instance = DERIVED_METRICS[metric_name]

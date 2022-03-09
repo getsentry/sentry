@@ -1259,6 +1259,7 @@ class DerivedMetricsDataTest(SessionMetricsTestCase, APITestCase):
         assert group["totals"]["session.crash_free_rate"] == 50
         assert group["series"]["session.crash_free_rate"] == [None, None, 50, 50, 50, 50]
 
+    @with_feature(FEATURE_FLAG)
     def test_crash_free_rate_when_no_session_metrics_data_exist(self):
         response = self.get_success_response(
             self.organization.slug,
