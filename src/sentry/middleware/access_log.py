@@ -39,6 +39,7 @@ def _get_token_name(auth: RequestAuth) -> str | None:
 
 
 def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
+    # TODO:: plumb the rate limit group up here as well for better future analysis
     default = {
         "rate_limit_type": "ERROR",
         "concurrent_limit": str(None),
