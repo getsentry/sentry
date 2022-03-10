@@ -550,10 +550,12 @@ def _fetch_data_for_field(
                         MetricKey.USER,
                         metric_id,
                         [
+                            # The order of these columns is important, because
+                            # the first column might get used in order by
+                            get_column_for_status("uniq", "users", "init"),
                             get_column_for_status("uniq", "users", "abnormal"),
                             get_column_for_status("uniq", "users", "crashed"),
                             get_column_for_status("uniq", "users", "errored"),
-                            get_column_for_status("uniq", "users", "init"),
                         ],
                         limit_state,
                     )
@@ -623,10 +625,12 @@ def _fetch_data_for_field(
                         MetricKey.SESSION,
                         metric_id,
                         [
+                            # The order of these columns is important, because
+                            # the first column might get used in order by
+                            get_column_for_status("sum", "sessions", "init"),
                             get_column_for_status("sum", "sessions", "abnormal"),
                             get_column_for_status("sum", "sessions", "crashed"),
                             get_column_for_status("sum", "sessions", "errored_preaggr"),
-                            get_column_for_status("sum", "sessions", "init"),
                         ],
                         limit_state,
                     )
