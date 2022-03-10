@@ -6,6 +6,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.lang.native.processing import process_payload
+from sentry.profiles.device import classify_device
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker, BatchingKafkaConsumer
 from sentry.utils.kafka import create_batching_kafka_consumer
@@ -37,7 +38,6 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         "project_id": profile["project_id"],
         "transaction_id": profile["transaction_id"],
         "received": profile["received"],
-        "device_classification": profile["device_classification"],
         "device_locale": profile["device_locale"],
         "device_manufacturer": profile["device_manufacturer"],
         "device_model": profile["device_model"],
@@ -53,12 +53,24 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         "retention_days": 30,
     }
 
+    classification_options = {
+        "model": profile["device_model"],
+        "os_name": profile["device_os_name"],
+        "is_emulator": profile["device_is_emulator"],
+    }
+
     if profile["platform"] == "android":
         normalized_profile.update(
             {
                 "android_api_level": profile["android_api_level"],
                 "profile": profile["stacktrace"],
-                "symbols": profile["android_trace"],
+                "symbols": json.dumps(profile["android_trace"]),
+            }
+        )
+        classification_options.update(
+            {
+                "cpu_frequencies": profile["device_cpu_frequencies"],
+                "physical_memory_bytes": profile["device_physical_memory_bytes"],
             }
         )
     elif profile["platform"] == "ios":
@@ -69,6 +81,8 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
                 "symbols": profile["debug_meta"],
             }
         )
+
+    normalized_profile["device_classification"] = str(classify_device(**classification_options))
 
     return normalized_profile
 
