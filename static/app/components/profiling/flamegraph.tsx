@@ -67,8 +67,8 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
   useEffect(() => {
     setFlamegraph(
       new FlamegraphModel(
-        props.profiles.profiles[flamegraph.profileIndex],
-        flamegraph.profileIndex,
+        props.profiles.profiles[props.profiles.activeProfileIndex],
+        props.profiles.activeProfileIndex,
         {
           inverted: view === 'bottom up',
           leftHeavy: sorting === 'left heavy',

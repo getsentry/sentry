@@ -1,5 +1,6 @@
 import datetime
 import re
+from typing import List
 
 import pytest
 from django.utils import timezone
@@ -23,8 +24,10 @@ from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
 class QueryBuilderTest(TestCase):
     def setUp(self):
-        self.start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        self.start = datetime.datetime.now(tz=timezone.utc).replace(
+            hour=10, minute=15, second=0, microsecond=0
+        ) - datetime.timedelta(days=2)
+        self.end = self.start + datetime.timedelta(days=1)
         self.projects = [1, 2, 3]
         self.params = {
             "project_id": self.projects,
@@ -370,11 +373,14 @@ class QueryBuilderTest(TestCase):
         self.assertCountEqual(query.groupby, [array_join_column])
 
     def test_retention(self):
+        old_start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        old_end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        old_params = {**self.params, "start": old_start, "end": old_end}
         with self.options({"system.event-retention-days": 10}):
             with self.assertRaises(QueryOutsideRetentionError):
                 QueryBuilder(
                     Dataset.Discover,
-                    self.params,
+                    old_params,
                     "",
                     selected_columns=[],
                 )
@@ -579,9 +585,9 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
         "arrayElement",
         [
             Function(
-                f"quantilesMergeIf(0.{quantile.rstrip('0')})",
+                f"quantilesIf(0.{quantile.rstrip('0')})",
                 [
-                    Column("percentiles"),
+                    Column("value"),
                     Function(
                         "equals",
                         [Column("metric_id"), indexer.resolve(constants.METRICS_MAP[field])],
@@ -592,6 +598,16 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
         ],
         f"p{quantile}_{field.replace('.', '_')}",
     )
+
+
+def _metric_conditions(metrics) -> List[Condition]:
+    return [
+        Condition(
+            Column("metric_id"),
+            Op.IN,
+            sorted(indexer.resolve(constants.METRICS_MAP[metric]) for metric in metrics),
+        )
+    ]
 
 
 class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
@@ -606,8 +622,12 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
     def setUp(self):
         super().setUp()
-        self.start = datetime.datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 1, 19, 10, 15, 0, tzinfo=timezone.utc)
+        self.start = datetime.datetime.now(tz=timezone.utc).replace(
+            hour=10, minute=15, second=0, microsecond=0
+        ) - datetime.timedelta(days=18)
+        self.end = datetime.datetime.now(tz=timezone.utc).replace(
+            hour=10, minute=15, second=0, microsecond=0
+        )
         self.projects = [self.project.id]
         self.params = {
             "organization_id": self.organization.id,
@@ -624,22 +644,33 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         ]
 
     def setup_orderby_data(self):
-        self.store_metric(100, tags={"transaction": "foo_transaction"})
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         self.store_metric(
             1,
             metric="user",
             tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(50, tags={"transaction": "bar_transaction"})
+        self.store_metric(
+            50,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         self.store_metric(
             1,
             metric="user",
             tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
         )
         self.store_metric(
             2,
             metric="user",
             tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
         )
 
 
@@ -660,7 +691,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "p99(measurements.fid)",
             ],
         )
-        self.assertCountEqual(query.where, self.default_conditions)
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(
+                    [
+                        "transaction.duration",
+                        "measurements.lcp",
+                        "measurements.fcp",
+                        "measurements.cls",
+                        "measurements.fid",
+                    ]
+                ),
+            ],
+        )
         self.assertCountEqual(
             query.distributions,
             [
@@ -678,7 +723,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "",
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
-        self.assertCountEqual(query.where, self.default_conditions)
+        self.assertCountEqual(
+            query.where, [*self.default_conditions, *_metric_conditions(["transaction.duration"])]
+        )
         transaction_index = indexer.resolve("transaction")
         transaction = AliasedExpression(
             Column(f"tags[{transaction_index}]"),
@@ -713,7 +760,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         transaction_name = indexer.resolve("foo_transaction")
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
-            query.where, [*self.default_conditions, Condition(transaction, Op.EQ, transaction_name)]
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
+                Condition(transaction, Op.EQ, transaction_name),
+            ],
         )
 
     def test_transaction_in_filter(self):
@@ -730,6 +782,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.where,
             [
                 *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
                 Condition(transaction, Op.IN, [transaction_name1, transaction_name2]),
             ],
         )
@@ -764,7 +817,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         self.assertCountEqual(
             query.where,
-            [*self.default_conditions, Condition(Column("project_id"), Op.EQ, self.project.id)],
+            [
+                *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
+                Condition(Column("project_id"), Op.EQ, self.project.id),
+            ],
         )
 
     def test_limit_validation(self):
@@ -811,7 +868,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert get_granularity(start, end) == 60, "less than a minute"
 
     def test_run_query(self):
-        self.store_metric(100, tags={"transaction": "foo_transaction"})
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
@@ -835,11 +896,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_run_query_multiple_tables(self):
-        self.store_metric(100, tags={"transaction": "foo_transaction"})
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         self.store_metric(
             1,
             metric="user",
             tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
         )
         query = MetricsQueryBuilder(
             self.params,
@@ -966,8 +1032,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_failure_rate(self):
         for _ in range(3):
-            self.store_metric(100, tags={"transaction.status": "internal_error"})
-            self.store_metric(100, tags={"transaction.status": "ok"})
+            self.store_metric(
+                100,
+                tags={"transaction.status": "internal_error"},
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                100,
+                tags={"transaction.status": "ok"},
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
         query = MetricsQueryBuilder(
             self.params,
             "",
@@ -985,7 +1059,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions
         first which will have it, and then just not find a unique count in the second"""
         self.setup_orderby_data()
-        self.store_metric(200, tags={"transaction": "baz_transaction"})
+        self.store_metric(
+            200,
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
@@ -1088,6 +1166,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
+        assert snql_query[0].where == [
+            *self.default_conditions,
+            *_metric_conditions(["transaction.duration"]),
+        ]
         assert snql_query[0].select == [_metric_percentile_definition("50")]
         assert snql_query[0].match.name == "metrics_distributions"
         assert snql_query[0].granularity.granularity == 60
@@ -1164,6 +1246,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query.where,
             [
                 *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
                 Condition(transaction, Op.IN, [transaction_name1, transaction_name2]),
             ],
         )
@@ -1201,7 +1284,11 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         self.assertCountEqual(
             query.where,
-            [*self.default_conditions, Condition(Column("project_id"), Op.EQ, self.project.id)],
+            [
+                *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
+                Condition(Column("project_id"), Op.EQ, self.project.id),
+            ],
         )
 
     def test_meta(self):
@@ -1247,27 +1334,27 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert result["data"] == [
             {
-                "time": "2015-01-01T10:15:00+00:00",
+                "time": self.start.isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
             {
-                "time": "2015-01-01T10:30:00+00:00",
+                "time": (self.start + datetime.timedelta(minutes=15)).isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
             {
-                "time": "2015-01-01T10:45:00+00:00",
+                "time": (self.start + datetime.timedelta(minutes=30)).isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
             {
-                "time": "2015-01-01T11:00:00+00:00",
+                "time": (self.start + datetime.timedelta(minutes=45)).isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
             {
-                "time": "2015-01-01T11:15:00+00:00",
+                "time": (self.start + datetime.timedelta(minutes=60)).isoformat(),
                 "p50_transaction_duration": 100.0,
                 "count_unique_user": 1,
             },
@@ -1375,11 +1462,23 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert result["data"] == [
-            {"time": "2015-01-01T10:15:00+00:00", "p50_transaction_duration": 100.0},
-            {"time": "2015-01-01T10:30:00+00:00", "p50_transaction_duration": 100.0},
-            {"time": "2015-01-01T10:45:00+00:00", "p50_transaction_duration": 100.0},
-            {"time": "2015-01-01T11:00:00+00:00", "p50_transaction_duration": 100.0},
-            {"time": "2015-01-01T11:15:00+00:00", "p50_transaction_duration": 100.0},
+            {"time": self.start.isoformat(), "p50_transaction_duration": 100.0},
+            {
+                "time": (self.start + datetime.timedelta(minutes=15)).isoformat(),
+                "p50_transaction_duration": 100.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(minutes=30)).isoformat(),
+                "p50_transaction_duration": 100.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(minutes=45)).isoformat(),
+                "p50_transaction_duration": 100.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(minutes=60)).isoformat(),
+                "p50_transaction_duration": 100.0,
+            },
         ]
         self.assertCountEqual(
             result["meta"],

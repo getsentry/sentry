@@ -35,6 +35,9 @@ from sentry.models import (
     TeamAvatar,
     User,
 )
+from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
+from sentry.utils.compat import zip
+from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
     from sentry.api.serializers import (
@@ -43,10 +46,6 @@ if TYPE_CHECKING:
         ProjectSerializerResponse,
         SCIMMeta,
     )
-
-from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
-from sentry.utils.compat import zip
-from sentry.utils.query import RangeQuerySetWrapper
 
 
 def get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:

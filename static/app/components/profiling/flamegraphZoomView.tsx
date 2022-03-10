@@ -40,6 +40,8 @@ function FlamegraphZoomView({
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
   const [searchResults, setSearchResults] = useState<Record<string, FlamegraphFrame>>({});
 
+  const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
+
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
       if (flamegraphCanvasRef) {
@@ -121,6 +123,19 @@ function FlamegraphZoomView({
     }
     return flamegraphRenderer.getHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
+
+  /**
+   * Whenever the flamegraph changes, the reference to the selected node
+   * may no longer be valid/correct. So clear it when that happens.
+   *
+   * The flamegraph may for reasons like
+   * - inverted/leftHeavy changed
+   * - thread changed
+   * - import happened
+   */
+  useEffect(() => {
+    setSelectedNode(null);
+  }, [flamegraph]);
 
   useEffect(() => {
     if (!flamegraphRenderer) {
@@ -223,6 +238,7 @@ function FlamegraphZoomView({
     };
   }, [
     scheduler,
+    flamegraph,
     flamegraphRenderer,
     textRenderer,
     gridRenderer,
@@ -351,6 +367,79 @@ function FlamegraphZoomView({
     [flamegraphRenderer, configSpaceCursor, selectedNode, hoveredNode, canvasPoolManager]
   );
 
+  const onCanvasMouseDown = useCallback((evt: React.MouseEvent<HTMLCanvasElement>) => {
+    const logicalMousePos = vec2.fromValues(
+      evt.nativeEvent.offsetX,
+      evt.nativeEvent.offsetY
+    );
+
+    const physicalMousePos = vec2.scale(
+      vec2.create(),
+      logicalMousePos,
+      window.devicePixelRatio
+    );
+
+    setStartPanVector(physicalMousePos);
+  }, []);
+
+  const onCanvasMouseUp = useCallback(() => {
+    setStartPanVector(null);
+  }, []);
+
+  const onMouseDrag = useCallback(
+    (evt: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!startPanVector || !flamegraphRenderer) {
+        return;
+      }
+
+      const logicalMousePos = vec2.fromValues(
+        evt.nativeEvent.offsetX,
+        evt.nativeEvent.offsetY
+      );
+
+      const physicalMousePos = vec2.scale(
+        vec2.create(),
+        logicalMousePos,
+        window.devicePixelRatio
+      );
+
+      const physicalDelta = vec2.subtract(
+        vec2.create(),
+        startPanVector,
+        physicalMousePos
+      );
+
+      if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
+        return;
+      }
+
+      const physicalToConfig = mat3.invert(
+        mat3.create(),
+        flamegraphRenderer.configToPhysicalSpace
+      );
+      const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+
+      const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+        m00,
+        m01,
+        m02,
+        m10,
+        m11,
+        m12,
+        0,
+        0,
+        0,
+      ]);
+
+      canvasPoolManager.dispatch('transformConfigView', [
+        mat3.fromTranslation(mat3.create(), configDelta),
+      ]);
+
+      setStartPanVector(physicalMousePos);
+    },
+    [flamegraphRenderer, startPanVector]
+  );
+
   const onCanvasMouseMove = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       if (!flamegraphRenderer?.frames.length) {
@@ -362,12 +451,15 @@ function FlamegraphZoomView({
       );
 
       setConfigSpaceCursor([configSpaceMouse[0], configSpaceMouse[1]]);
+
+      onMouseDrag(evt);
     },
-    [flamegraphRenderer, setConfigSpaceCursor]
+    [flamegraphRenderer, setConfigSpaceCursor, onMouseDrag]
   );
 
   const onCanvasMouseLeave = useCallback(() => {
     setConfigSpaceCursor(null);
+    setStartPanVector(null);
   }, []);
 
   const zoom = useCallback(
@@ -466,6 +558,8 @@ function FlamegraphZoomView({
       <Canvas
         ref={canvas => setFlamegraphCanvasRef(canvas)}
         onClick={onCanvasClick}
+        onMouseDown={onCanvasMouseDown}
+        onMouseUp={onCanvasMouseUp}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
       />
