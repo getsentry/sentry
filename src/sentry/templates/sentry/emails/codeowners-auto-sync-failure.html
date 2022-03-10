@@ -1,0 +1,9 @@
+{% extends "sentry/emails/base.html" %}
+
+{% block main %}
+  <h3>Action Required</h3>
+  <p>We failed to fetch the latest CODEOWNERS file from your source code provider. Your Code Owners are out of sync with your CODEOWNERS for {{project_name}}. You can still manually sync the Code Owners in the project.</p>
+  <p><a href="{{ url }}" class="btn">Go to the Ownership Rules</a></p>
+{% endblock %}
+
+{% block footer %}{% endblock %}
