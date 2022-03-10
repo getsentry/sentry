@@ -447,6 +447,7 @@ function generateGenericPerformanceEventView(location: Location): EventView {
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   if (query.trendParameter) {
     // projects and projectIds are not necessary here since trendParameter will always
@@ -520,6 +521,8 @@ function generateBackendPerformanceEventView(location: Location): EventView {
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
@@ -605,6 +608,8 @@ function generateMobilePerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+
   return eventView;
 }
 
@@ -667,6 +672,9 @@ function generateFrontendPageloadPerformanceEventView(location: Location): Event
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
+
   return eventView;
 }
 
@@ -728,6 +736,8 @@ function generateFrontendOtherPerformanceEventView(location: Location): EventVie
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
@@ -806,6 +816,9 @@ export function generatePerformanceVitalDetailView(location: Location): EventVie
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('has', [vitalName]);
 
   return eventView;
 }
