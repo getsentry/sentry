@@ -316,12 +316,15 @@ class WidgetQueries extends React.Component<Props, State> {
           includePrevious: false,
           referrer: `api.dashboards.widget.${displayType}-chart`,
           partial: true,
-
-          // Mocking topEvents value
-          topEvents: query.columns?.length ? TOP_N : undefined,
-          field: query.columns,
-          orderby: query.columns?.[0] ?? query.orderby,
         };
+
+        // Mocking topEvents value
+        if (query.columns?.length !== 0) {
+          requestData.topEvents = TOP_N;
+          // Aggregates need to be in fields as well
+          requestData.field = [...(query?.columns ?? []), ...(query?.aggregates ?? [])];
+          requestData.orderby = query.columns?.[0];
+        }
       }
       return doEventsRequest(api, requestData);
     });
