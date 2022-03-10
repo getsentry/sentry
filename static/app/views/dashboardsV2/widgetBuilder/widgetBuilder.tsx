@@ -496,9 +496,9 @@ function WidgetBuilder({
   }
 
   function handleYAxisOrColumnFieldChange(newFields: QueryFieldValue[]) {
+    const {aggregates, columns} = getColumnsAndAggregatesAsStrings(newFields);
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
-    const {aggregates, columns} = getColumnsAndAggregatesAsStrings(newFields);
 
     for (const index in state.queries) {
       const queryIndex = Number(index);
