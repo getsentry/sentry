@@ -580,7 +580,11 @@ describe('SpanTreeModel', () => {
 
     expect(spans.length).toEqual(2);
     expect(spans[1].type).toEqual('span_group_sibling');
-    expect(spans[1].spanGrouping.length).toEqual(5);
+
+    // If statement here is required to avoid TS linting issues
+    if (spans[1].type === 'span_group_sibling') {
+      expect(spans[1].spanGrouping!.length).toEqual(5);
+    }
   });
 
   it('does not autogroup similar siblings if there are less than 5 in a row', () => {
