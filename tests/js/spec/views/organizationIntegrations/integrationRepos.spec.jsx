@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import RepositoryActions from 'sentry/actions/repositoryActions';
 import {Client} from 'sentry/api';
@@ -30,7 +30,7 @@ describe('IntegrationRepos', function () {
         body: [],
       });
 
-      const wrapper = enzymeRender(<IntegrationRepos integration={integration} />);
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       expect(wrapper.find('PanelBody')).toHaveLength(0);
       expect(wrapper.find('Alert')).toHaveLength(1);
     });
@@ -55,7 +55,7 @@ describe('IntegrationRepos', function () {
         body: [],
       });
 
-      const wrapper = enzymeRender(<IntegrationRepos integration={integration} />);
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
 
@@ -103,7 +103,7 @@ describe('IntegrationRepos', function () {
         body: [],
       });
 
-      const wrapper = enzymeRender(<IntegrationRepos integration={integration} />);
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
       wrapper.update();
@@ -138,7 +138,7 @@ describe('IntegrationRepos', function () {
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = enzymeRender(<IntegrationRepos integration={integration} />);
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
 
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
@@ -171,7 +171,7 @@ describe('IntegrationRepos', function () {
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = enzymeRender(<IntegrationRepos integration={integration} />);
+      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
 

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectExpectCtReports from 'sentry/views/settings/projectSecurityHeaders/expectCt';
 
@@ -17,7 +17,7 @@ describe('ProjectExpectCtReports', function () {
   });
 
   it('renders', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectExpectCtReports
         organization={org}
         project={project}

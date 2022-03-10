@@ -1,10 +1,10 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {EventsTableRow} from 'sentry/components/eventsTable/eventsTableRow';
 
 describe('EventsTableRow', function () {
   it('renders', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <table>
         <tbody>
           <EventsTableRow

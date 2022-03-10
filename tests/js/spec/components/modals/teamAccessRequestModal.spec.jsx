@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
 
@@ -22,7 +22,7 @@ describe('TeamAccessRequestModal', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <TeamAccessRequestModal
         orgId={orgId}
         teamId={teamId}

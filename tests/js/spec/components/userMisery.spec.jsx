@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ScoreBar from 'sentry/components/scoreBar';
 import UserMisery from 'sentry/components/userMisery';
@@ -9,7 +9,7 @@ describe('UserMisery', function () {
   afterEach(function () {});
 
   it('renders no bars when user misery is less than 0.05', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <UserMisery
         bars={10}
         barHeight={20}
@@ -23,7 +23,7 @@ describe('UserMisery', function () {
   });
 
   it('renders no bars when user misery is equal to 0.05', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <UserMisery
         bars={10}
         barHeight={20}
@@ -37,7 +37,7 @@ describe('UserMisery', function () {
   });
 
   it('renders one bar when user misery is greater than 0.05', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <UserMisery
         bars={10}
         barHeight={20}

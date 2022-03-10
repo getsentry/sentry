@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {RenderField} from 'sentry/components/forms/projectMapperField';
@@ -38,7 +38,7 @@ describe('ProjectMapperField', () => {
   });
 
   it('clicking add updates values with current dropdown values', () => {
-    wrapper = enzymeRender(<RenderField {...props} />);
+    wrapper = mountWithTheme(<RenderField {...props} />);
     selectByValue(wrapper, '24', {control: true, name: 'project'});
     selectByValue(wrapper, '1', {control: true, name: 'mappedDropdown'});
 
@@ -65,7 +65,7 @@ describe('ProjectMapperField', () => {
       ['23', '2'],
       ['24', '1'],
     ];
-    wrapper = enzymeRender(<RenderField {...props} value={existingValues} />);
+    wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />);
     wrapper.find('Button[aria-label="Delete"]').first().simulate('click');
 
     expect(onBlur).toHaveBeenCalledWith([['24', '1']], []);

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 
@@ -31,7 +31,7 @@ describe('ProcessingIssueList', function () {
   describe('componentDidMount', function () {
     let instance;
     beforeEach(async function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <ProcessingIssueList organization={organization} projects={projects} />
       );
       instance = wrapper.instance();
@@ -46,7 +46,7 @@ describe('ProcessingIssueList', function () {
 
   describe('render', function () {
     beforeEach(async function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <ProcessingIssueList
           organization={organization}
           projects={projects}

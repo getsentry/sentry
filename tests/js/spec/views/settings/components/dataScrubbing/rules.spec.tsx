@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import convertRelayPiiConfig from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Rules from 'sentry/views/settings/components/dataScrubbing/rules';
@@ -12,12 +12,12 @@ const handleDelete = jest.fn();
 
 describe('Rules', () => {
   it('default render', () => {
-    const wrapper = enzymeRender(<Rules rules={rules} />);
+    const wrapper = mountWithTheme(<Rules rules={rules} />);
     expect(wrapper.find('ListItem')).toHaveLength(3);
   });
 
   it('render correct description', () => {
-    const wrapper = enzymeRender(<Rules rules={rules} />);
+    const wrapper = mountWithTheme(<Rules rules={rules} />);
     const listItems = wrapper.find('ListItem');
     expect(listItems.at(1).text()).toEqual(
       '[Mask] [Credit card numbers] from [$message]'
@@ -28,12 +28,12 @@ describe('Rules', () => {
   });
 
   it('render disabled list', () => {
-    const wrapper = enzymeRender(<Rules rules={rules} disabled />);
+    const wrapper = mountWithTheme(<Rules rules={rules} disabled />);
     expect(wrapper.find('List').prop('isDisabled')).toEqual(true);
   });
 
   it('render edit and delete buttons', () => {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <Rules rules={rules} onEditRule={handleShowEditRule} onDeleteRule={handleDelete} />
     );
     expect(wrapper.find('[aria-label="Edit Rule"]').hostNodes()).toHaveLength(3);
@@ -41,7 +41,7 @@ describe('Rules', () => {
   });
 
   it('render disabled edit and delete buttons', () => {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <Rules
         rules={rules}
         onEditRule={handleShowEditRule}
@@ -59,13 +59,15 @@ describe('Rules', () => {
   });
 
   it('render edit button only', () => {
-    const wrapper = enzymeRender(<Rules rules={rules} onEditRule={handleShowEditRule} />);
+    const wrapper = mountWithTheme(
+      <Rules rules={rules} onEditRule={handleShowEditRule} />
+    );
     expect(wrapper.find('[aria-label="Edit Rule"]').hostNodes()).toHaveLength(3);
     expect(wrapper.find('[aria-label="Delete Rule"]')).toHaveLength(0);
   });
 
   it('render delete button only', () => {
-    const wrapper = enzymeRender(<Rules rules={rules} onDeleteRule={handleDelete} />);
+    const wrapper = mountWithTheme(<Rules rules={rules} onDeleteRule={handleDelete} />);
     expect(wrapper.find('[aria-label="Edit Rule"]')).toHaveLength(0);
     expect(wrapper.find('[aria-label="Delete Rule"]').hostNodes()).toHaveLength(3);
   });

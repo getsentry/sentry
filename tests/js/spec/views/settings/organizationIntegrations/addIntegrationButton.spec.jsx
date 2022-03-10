@@ -1,5 +1,5 @@
 /* global global */
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AddIntegrationButton from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
@@ -13,7 +13,7 @@ describe('AddIntegrationButton', function () {
     const open = jest.fn().mockReturnValue({focus});
     global.open = open;
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <AddIntegrationButton provider={provider} onAddIntegration={onAdd} />
     );
 

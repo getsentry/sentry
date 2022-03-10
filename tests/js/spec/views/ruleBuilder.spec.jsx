@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 import {findOption, openMenu, selectByValueAsync} from 'sentry-test/select-new';
 
@@ -69,7 +69,7 @@ describe('RuleBuilder', function () {
   afterEach(function () {});
 
   it('renders', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />
     );
 
@@ -102,7 +102,7 @@ describe('RuleBuilder', function () {
   });
 
   it('renders with suggestions', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <RuleBuilder
         project={project}
         organization={organization}

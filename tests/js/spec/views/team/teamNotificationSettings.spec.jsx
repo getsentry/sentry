@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -41,7 +41,7 @@ describe('TeamNotificationSettings', () => {
       body: [],
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <TeamNotificationSettings team={team} organization={organization} />,
       routerContext
     );
@@ -68,7 +68,7 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <TeamNotificationSettings team={team} organization={organization} />,
       routerContext
     );
@@ -95,7 +95,7 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <TeamNotificationSettings team={team} organization={organization} />,
       routerContext
     );
@@ -127,7 +127,7 @@ describe('TeamNotificationSettings', () => {
       method: 'DELETE',
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <TeamNotificationSettings team={team} organization={organization} />,
       routerContext
     );

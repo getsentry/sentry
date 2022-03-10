@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {openMenu, selectByValue} from 'sentry-test/select-new';
 
 import Form from 'sentry/components/forms/form';
@@ -10,7 +10,7 @@ describe('PermissionSelection', () => {
 
   beforeEach(() => {
     onChange = jest.fn();
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <Form>
         <PermissionSelection
           permissions={{

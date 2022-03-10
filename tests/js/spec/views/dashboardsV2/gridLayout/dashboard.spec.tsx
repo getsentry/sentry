@@ -1,7 +1,7 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  enzymeRender as rtlMountWithTheme,
+  mountWithTheme as rtlMountWithTheme,
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
@@ -114,7 +114,7 @@ describe('Dashboards > Dashboard', () => {
 
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
@@ -138,7 +138,7 @@ describe('Dashboards > Dashboard', () => {
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}

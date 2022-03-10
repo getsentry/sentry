@@ -1,6 +1,6 @@
 import MockDate from 'mockdate';
 
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import ConfigStore from 'sentry/stores/configStore';
@@ -46,7 +46,7 @@ describe('DateRange', function () {
       onChange.mockReset();
     });
     beforeEach(async function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <DateRange
           start={start}
           end={end}
@@ -195,7 +195,7 @@ describe('DateRange', function () {
   describe('UTC', function () {
     beforeEach(function () {
       onChange.mockReset();
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <DateRange
           start={start}
           end={end}

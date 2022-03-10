@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {t} from 'sentry/locale';
@@ -30,7 +30,7 @@ describe('EventsV2 > ChartFooter', function () {
       projects: [],
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ChartFooter
         organization={organization}
         total={100}
@@ -68,7 +68,7 @@ describe('EventsV2 > ChartFooter', function () {
       projects: [],
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ChartFooter
         organization={organization}
         total={100}

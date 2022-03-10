@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {changeInputValue, selectByValue} from 'sentry-test/select-new';
 
 import {Client} from 'sentry/api';
@@ -35,7 +35,7 @@ describe('SentryAppExternalIssueForm', () => {
 
   describe('create', () => {
     beforeEach(() => {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueForm
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -97,7 +97,7 @@ describe('SentryAppExternalIssueForm', () => {
 
   describe('link', () => {
     beforeEach(() => {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueForm
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -171,7 +171,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
         },
       });
 
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueForm
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -210,7 +210,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
     sentryApp = TestStubs.SentryApp();
     sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
 
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <SentryAppExternalIssueForm
         group={group}
         sentryAppInstallation={sentryAppInstallation}

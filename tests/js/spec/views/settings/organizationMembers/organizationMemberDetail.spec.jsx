@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {updateMember} from 'sentry/actionCreators/members';
@@ -75,7 +75,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('changes role to owner', function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -101,7 +101,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('leaves a team', async function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -127,7 +127,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('joins a team', async function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -165,7 +165,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('can not change roles, teams, or save', async function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -188,7 +188,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('display pending status', function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
         routerContext
       );
@@ -199,7 +199,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('display expired status', function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
         routerContext
       );
@@ -217,7 +217,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows for pending', function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
         routerContext
       );
@@ -227,7 +227,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('does not show for expired', function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
         routerContext
       );
@@ -330,7 +330,7 @@ describe('OrganizationMemberDetail', function () {
     };
 
     it('does not show for pending member', function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
         routerContext
       );
@@ -338,7 +338,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows tooltip for joined member without permission to edit', function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: noAccess.id}} />,
         routerContext
       );
@@ -346,7 +346,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows tooltip for member without 2fa', function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: no2fa.id}} />,
         routerContext
       );
@@ -361,7 +361,7 @@ describe('OrganizationMemberDetail', function () {
         })
       );
 
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: has2fa.id}} />,
         routerContext
       );
@@ -378,7 +378,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows tooltip for member in multiple orgs', function () {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: multipleOrgs.id}} />,
         routerContext
       );
@@ -392,7 +392,7 @@ describe('OrganizationMemberDetail', function () {
         body: has2fa,
       });
 
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: has2fa.id}} />,
         routerContext
       );

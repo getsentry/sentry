@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
@@ -26,7 +26,7 @@ describe('ProjectKeys', function () {
       method: 'DELETE',
     });
 
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />,
       {
         context: {
@@ -47,7 +47,7 @@ describe('ProjectKeys', function () {
       body: [],
     });
 
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />
     );
 

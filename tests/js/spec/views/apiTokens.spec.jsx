@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
@@ -16,7 +16,7 @@ describe('ApiTokens', function () {
       body: null,
     });
 
-    const wrapper = enzymeRender(<ApiTokens organization={organization} />);
+    const wrapper = mountWithTheme(<ApiTokens organization={organization} />);
 
     // Should be loading
     expect(wrapper).toSnapshot();
@@ -28,7 +28,7 @@ describe('ApiTokens', function () {
       body: [TestStubs.ApiToken()],
     });
 
-    const wrapper = enzymeRender(<ApiTokens organization={organization} />);
+    const wrapper = mountWithTheme(<ApiTokens organization={organization} />);
 
     // Should be loading
     expect(wrapper).toSnapshot();
@@ -47,7 +47,7 @@ describe('ApiTokens', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    const wrapper = enzymeRender(<ApiTokens organization={organization} />);
+    const wrapper = mountWithTheme(<ApiTokens organization={organization} />);
 
     wrapper.find('button[aria-label="Remove"]').simulate('click');
 

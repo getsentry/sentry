@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
 import ConfigStore from 'sentry/stores/configStore';
@@ -9,7 +9,7 @@ describe('TimeRangeSelector', function () {
   const routerContext = TestStubs.routerContext();
 
   const createWrapper = (props = {}) =>
-    enzymeRender(
+    mountWithTheme(
       <TimeRangeSelector
         showAbsolute
         showRelative
@@ -28,7 +28,7 @@ describe('TimeRangeSelector', function () {
   });
 
   it('renders when given relative period not in dropdown', function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <TimeRangeSelector showAbsolute={false} showRelative={false} relative="9d" />,
       routerContext
     );
@@ -36,7 +36,7 @@ describe('TimeRangeSelector', function () {
   });
 
   it('renders when given an invalid relative period', function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <TimeRangeSelector showAbsolute={false} showRelative={false} relative="1w" />,
       routerContext
     );
@@ -44,7 +44,7 @@ describe('TimeRangeSelector', function () {
   });
 
   it('hides relative and absolute selectors', async function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <TimeRangeSelector showAbsolute={false} showRelative={false} />,
       routerContext
     );

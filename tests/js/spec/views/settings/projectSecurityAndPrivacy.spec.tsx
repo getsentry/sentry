@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Organization} from 'sentry/types';
 import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndPrivacy';
@@ -15,7 +15,7 @@ function renderComponent(providedOrg?: Organization) {
     body: project,
   });
 
-  return enzymeRender(
+  return mountWithTheme(
     <ProjectSecurityAndPrivacy
       {...TestStubs.routerContext().context}
       project={project}

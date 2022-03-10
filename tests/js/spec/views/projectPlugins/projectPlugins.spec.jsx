@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectPlugins from 'sentry/views/settings/projectPlugins/projectPlugins';
 
@@ -13,19 +13,19 @@ describe('ProjectPlugins', function () {
   };
 
   it('renders', function () {
-    wrapper = enzymeRender(<ProjectPlugins params={params} plugins={plugins} />);
+    wrapper = mountWithTheme(<ProjectPlugins params={params} plugins={plugins} />);
 
     expect(wrapper).toSnapshot();
   });
 
   it('has loading state', function () {
-    wrapper = enzymeRender(<ProjectPlugins params={params} loading plugins={[]} />);
+    wrapper = mountWithTheme(<ProjectPlugins params={params} loading plugins={[]} />);
 
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
   it('has error state when plugins=null and loading is true', function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <ProjectPlugins
         params={params}
         plugins={null}
@@ -38,7 +38,7 @@ describe('ProjectPlugins', function () {
   });
 
   it('has error state when plugins=[]', function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <ProjectPlugins
         params={params}
         plugins={[]}

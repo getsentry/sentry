@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import AdminSettings from 'sentry/views/admin/adminSettings';
@@ -115,7 +115,7 @@ describe('AdminSettings', function () {
     });
 
     it('renders', function () {
-      const wrapper = enzymeRender(<AdminSettings params={{}} />, {
+      const wrapper = mountWithTheme(<AdminSettings params={{}} />, {
         context: {
           router: TestStubs.router(),
         },

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as navigation from 'sentry/actionCreators/navigation';
 import CreateAlertButton, {
@@ -12,7 +12,7 @@ const onCloseMock = jest.fn();
 const onSuccessMock = jest.fn();
 
 function generateWrappedComponent(organization, eventView) {
-  return enzymeRender(
+  return mountWithTheme(
     <CreateAlertFromViewButton
       location={location}
       organization={organization}
@@ -25,7 +25,9 @@ function generateWrappedComponent(organization, eventView) {
 }
 
 function generateWrappedComponentButton(organization, extraProps) {
-  return enzymeRender(<CreateAlertButton organization={organization} {...extraProps} />);
+  return mountWithTheme(
+    <CreateAlertButton organization={organization} {...extraProps} />
+  );
 }
 
 describe('CreateAlertFromViewButton', () => {
@@ -49,7 +51,7 @@ describe('CreateAlertFromViewButton', () => {
     const wrapper = generateWrappedComponent(organization, eventView);
     wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = enzymeRender(
+    const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
     expect(errorsAlert.text()).toBe(
@@ -66,7 +68,7 @@ describe('CreateAlertFromViewButton', () => {
     const wrapper = generateWrappedComponent(organization, eventView);
     wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = enzymeRender(
+    const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
     expect(errorsAlert.text()).toBe(
@@ -83,7 +85,7 @@ describe('CreateAlertFromViewButton', () => {
     const wrapper = generateWrappedComponent(organization, eventView);
     wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = enzymeRender(
+    const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
     expect(errorsAlert.text()).toContain('An alert needs a filter of event.type:error');
@@ -100,7 +102,7 @@ describe('CreateAlertFromViewButton', () => {
     const wrapper = generateWrappedComponent(organization, eventView);
     wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = enzymeRender(
+    const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
     expect(errorsAlert.text()).toBe(
@@ -146,7 +148,7 @@ describe('CreateAlertFromViewButton', () => {
     const wrapper = generateWrappedComponent(organization, eventView);
     wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = enzymeRender(
+    const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
     expect(errorsAlert.text()).toContain('Yikes! That button didn’t work.');
@@ -171,7 +173,7 @@ describe('CreateAlertFromViewButton', () => {
     const wrapper = generateWrappedComponent(organization, eventView);
     wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = enzymeRender(
+    const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
     errorsAlert.find('[aria-label="Close"]').at(0).simulate('click');

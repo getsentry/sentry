@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -22,7 +22,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
   });
 
   it('shows require2fa switch', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationSecurityAndPrivacy
         params={{orgId: organization.slug}}
         organization={organization}
@@ -41,7 +41,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
       statusCode: 500,
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationSecurityAndPrivacy
         params={{orgId: organization.slug}}
         organization={organization}
@@ -67,7 +67,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
   });
 
   it('renders join request switch', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationSecurityAndPrivacy params={{orgId: organization.slug}} />,
       TestStubs.routerContext([{organization}])
     );
@@ -82,7 +82,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
       url: '/organizations/org-slug/',
       method: 'PUT',
     });
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationSecurityAndPrivacy
         params={{orgId: organization.slug}}
         organization={organization}
@@ -112,7 +112,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
       method: 'PUT',
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationSecurityAndPrivacy
         params={{orgId: organization.slug}}
         organization={organization}

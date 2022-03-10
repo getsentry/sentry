@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GroupEventDetails from 'sentry/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
@@ -139,7 +139,7 @@ describe('groupEventDetails', () => {
   });
 
   it('redirects on switching to an invalid environment selection for event', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
@@ -160,7 +160,7 @@ describe('groupEventDetails', () => {
   });
 
   it('does not redirect when switching to a valid environment selection for event', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
@@ -197,7 +197,7 @@ describe('groupEventDetails', () => {
       body: event,
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
@@ -236,7 +236,7 @@ describe('groupEventDetails', () => {
   });
 
   it('displays error on event error', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
@@ -269,7 +269,7 @@ describe('groupEventDetails', () => {
         ],
       });
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -300,7 +300,7 @@ describe('groupEventDetails', () => {
         ],
       });
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -326,7 +326,7 @@ describe('groupEventDetails', () => {
         body: [],
       });
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -353,7 +353,7 @@ describe('groupEventDetails', () => {
         body: null,
       });
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -378,8 +378,8 @@ describe('groupEventDetails', () => {
     let wrapper; // eslint-disable-line
     let componentsRequest;
 
-    const enzymeRenderWrapper = () =>
-      enzymeRender(
+    const mountWithThemeWrapper = () =>
+      mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -432,7 +432,7 @@ describe('groupEventDetails', () => {
         body: [unpublishedInstall, internalInstall],
       });
 
-      enzymeRenderWrapper();
+      mountWithThemeWrapper();
     });
 
     it('loads Integration UI components', () => {

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {openSudo} from 'sentry/actionCreators/modal';
 import * as OrganizationActionCreator from 'sentry/actionCreators/organization';
@@ -27,7 +27,7 @@ describe('OrganizationContextContainer', function () {
   let getTeamsMock;
 
   const createWrapper = props => {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <OrganizationLegacyContext
         api={api}
         params={{orgId: 'org-slug'}}

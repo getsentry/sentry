@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
@@ -11,7 +11,7 @@ describe('EventSdkUpdates', function () {
       event: TestStubs.UpdateSdkAndEnableIntegrationSuggestion(),
     };
 
-    const wrapper = enzymeRender(<EventSdkUpdates {...props} />, routerContext);
+    const wrapper = mountWithTheme(<EventSdkUpdates {...props} />, routerContext);
     expect(wrapper).toSnapshot();
   });
 });

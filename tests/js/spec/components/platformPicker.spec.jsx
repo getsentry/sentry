@@ -1,4 +1,4 @@
-import {enzymeRender, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import PlatformPicker from 'sentry/components/platformPicker';
@@ -82,7 +82,7 @@ describe('PlatformPicker', function () {
         ...baseProps,
       };
 
-      const wrapper = enzymeRender(<PlatformPicker {...props} />);
+      const wrapper = mountWithTheme(<PlatformPicker {...props} />);
 
       const testListLink = wrapper.find('ListLink').last().find('a');
       expect(wrapper.state().category).toBe('popular');
@@ -98,7 +98,7 @@ describe('PlatformPicker', function () {
         setPlatform: jest.fn(),
       };
 
-      const wrapper = enzymeRender(<PlatformPicker {...props} />);
+      const wrapper = mountWithTheme(<PlatformPicker {...props} />);
 
       wrapper.find('ClearButton').simulate('click');
       expect(props.setPlatform).toHaveBeenCalledWith(null);

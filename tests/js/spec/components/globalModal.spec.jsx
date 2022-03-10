@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
@@ -6,12 +6,12 @@ import GlobalModal from 'sentry/components/globalModal';
 
 describe('GlobalModal', function () {
   it('renders', function () {
-    const wrapper = enzymeRender(<GlobalModal />);
+    const wrapper = mountWithTheme(<GlobalModal />);
     wrapper.unmount();
   });
 
   it('uses actionCreators to open and close Modal', async function () {
-    const wrapper = enzymeRender(<GlobalModal />);
+    const wrapper = mountWithTheme(<GlobalModal />);
 
     openModal(() => <div id="modal-test">Hi</div>);
 
@@ -29,7 +29,7 @@ describe('GlobalModal', function () {
   });
 
   it('calls onClose handler when modal is clicked out of', async function () {
-    const wrapper = enzymeRender(<GlobalModal />);
+    const wrapper = mountWithTheme(<GlobalModal />);
     const closeSpy = jest.fn();
 
     openModal(
@@ -51,7 +51,7 @@ describe('GlobalModal', function () {
   });
 
   it('calls onClose handler when closeModal prop is called', async function () {
-    const wrapper = enzymeRender(<GlobalModal />);
+    const wrapper = mountWithTheme(<GlobalModal />);
     const closeSpy = jest.fn();
 
     openModal(({closeModal: cm}) => <button onClick={cm} />, {onClose: closeSpy});
@@ -68,7 +68,7 @@ describe('GlobalModal', function () {
   });
 
   it('calls ignores click out when the allowClickClose option is false', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <div id="outside-test">
         <GlobalModal />
       </div>

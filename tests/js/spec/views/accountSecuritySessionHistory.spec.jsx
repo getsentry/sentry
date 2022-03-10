@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import SessionHistory from 'sentry/views/settings/account/accountSecurity/sessionHistory';
@@ -38,7 +38,7 @@ describe('AccountSecuritySessionHistory', function () {
       ],
     });
 
-    const wrapper = enzymeRender(<SessionHistory />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<SessionHistory />, TestStubs.routerContext());
 
     wrapper.update();
     await tick();

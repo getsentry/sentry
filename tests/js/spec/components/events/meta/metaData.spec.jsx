@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import MetaData from 'sentry/components/events/meta/metaData';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
@@ -10,7 +10,7 @@ describe('MetaData', function () {
 
   it('can get meta data', function () {
     const renderProp = jest.fn(() => null);
-    enzymeRender(
+    mountWithTheme(
       <MetaData object={proxiedExc.exception.values[0]} prop="value">
         {renderProp}
       </MetaData>

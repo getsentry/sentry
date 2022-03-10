@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import StreamGroup from 'sentry/components/stream/group';
@@ -38,7 +38,7 @@ describe('StreamGroup', function () {
 
   it('renders with anchors', async function () {
     const {routerContext} = initializeOrg();
-    const component = enzymeRender(
+    const component = mountWithTheme(
       <StreamGroup
         id="1L"
         orgId="orgId"
@@ -60,7 +60,7 @@ describe('StreamGroup', function () {
 
   it('marks as reviewed', function () {
     const {routerContext, organization} = initializeOrg();
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <StreamGroup
         id="1337"
         orgId="orgId"
@@ -83,7 +83,7 @@ describe('StreamGroup', function () {
 
   it('tracks clicks from issues stream', function () {
     const {routerContext, organization} = initializeOrg();
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <StreamGroup
         id="1337"
         orgId="orgId"

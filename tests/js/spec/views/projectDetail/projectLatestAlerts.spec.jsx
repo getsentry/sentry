@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectLatestAlerts from 'sentry/views/projectDetail/projectLatestAlerts';
@@ -27,7 +27,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
   });
 
   it('renders a list', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -80,7 +80,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       body: [],
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -112,7 +112,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       body: [],
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -139,7 +139,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
   });
 
   it('calls API with the right params', function () {
-    enzymeRender(
+    mountWithTheme(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -169,7 +169,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       ],
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -182,7 +182,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
   });
 
   it('does not call API if project is not stabilized yet', function () {
-    enzymeRender(
+    mountWithTheme(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {Client} from 'sentry/api';
@@ -33,7 +33,7 @@ describe('RepositoryRow', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays provider information', function () {
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <RepositoryRow
           repository={repository}
           api={api}
@@ -53,7 +53,7 @@ describe('RepositoryRow', function () {
     });
 
     it('displays cancel pending button', function () {
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <RepositoryRow
           repository={pendingRepo}
           api={api}
@@ -81,7 +81,7 @@ describe('RepositoryRow', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays disabled trash', function () {
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <RepositoryRow
           repository={repository}
           api={api}
@@ -97,7 +97,7 @@ describe('RepositoryRow', function () {
     });
 
     it('displays disabled cancel', function () {
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <RepositoryRow
           repository={pendingRepo}
           api={api}
@@ -128,7 +128,7 @@ describe('RepositoryRow', function () {
         body: {},
       });
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <RepositoryRow
           repository={repository}
           api={api}
@@ -162,7 +162,7 @@ describe('RepositoryRow', function () {
         body: {},
       });
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <RepositoryRow
           repository={pendingRepo}
           api={api}
@@ -186,7 +186,7 @@ describe('RepositoryRow', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays edit button', function () {
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <RepositoryRow
           repository={customRepo}
           api={api}
@@ -206,7 +206,7 @@ describe('RepositoryRow', function () {
     });
 
     it('disables edit button when cancel pending', function () {
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <RepositoryRow
           repository={customPendingRepo}
           api={api}

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
 import ProjectPlugins from 'sentry/views/settings/projectPlugins';
@@ -48,7 +48,7 @@ describe('ProjectPluginsContainer', function () {
       url: `/projects/${org.slug}/${project.slug}/plugins/github/`,
       method: 'DELETE',
     });
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <ProjectPlugins params={params} organization={organization} />
     );
   });

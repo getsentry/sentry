@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import FrameRegisters from 'sentry/components/events/interfaces/frame/frameRegisters';
 import FrameRegistersValue from 'sentry/components/events/interfaces/frame/frameRegisters/value';
@@ -11,7 +11,7 @@ describe('FrameRegisters', () => {
       r12: '0x0000000000000000',
     };
 
-    const wrapper = enzymeRender(<FrameRegisters registers={registers} />);
+    const wrapper = mountWithTheme(<FrameRegisters registers={registers} />);
     expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
   });
 
@@ -22,7 +22,7 @@ describe('FrameRegisters', () => {
       r12: '0x0000000000000000',
     };
 
-    const wrapper = enzymeRender(<FrameRegisters registers={registers} />);
+    const wrapper = mountWithTheme(<FrameRegisters registers={registers} />);
     expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
   });
 });
@@ -31,7 +31,7 @@ describe('RegisterValue', () => {
   let wrapper;
   describe('with string value', () => {
     beforeEach(() => {
-      wrapper = enzymeRender(<FrameRegistersValue value="0x000000000000000a" />);
+      wrapper = mountWithTheme(<FrameRegistersValue value="0x000000000000000a" />);
     });
 
     it('should display the hexadecimal value', () => {
@@ -46,7 +46,7 @@ describe('RegisterValue', () => {
 
   describe('with numeric value', () => {
     beforeEach(() => {
-      wrapper = enzymeRender(<FrameRegistersValue value={10} />);
+      wrapper = mountWithTheme(<FrameRegistersValue value={10} />);
     });
 
     it('should display the hexadecimal value', () => {
@@ -61,7 +61,7 @@ describe('RegisterValue', () => {
 
   describe('with unknown value', () => {
     beforeEach(() => {
-      wrapper = enzymeRender(<FrameRegistersValue value="xyz" />);
+      wrapper = mountWithTheme(<FrameRegistersValue value="xyz" />);
     });
 
     it('should display the hexadecimal value', () => {

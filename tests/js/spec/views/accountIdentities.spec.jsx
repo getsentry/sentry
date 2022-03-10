@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {Client} from 'sentry/api';
@@ -18,7 +18,7 @@ describe('AccountIdentities', function () {
       body: [],
     });
 
-    const wrapper = enzymeRender(<AccountIdentities />);
+    const wrapper = mountWithTheme(<AccountIdentities />);
 
     expect(wrapper).toSnapshot();
   });
@@ -41,7 +41,7 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    const wrapper = enzymeRender(<AccountIdentities />);
+    const wrapper = mountWithTheme(<AccountIdentities />);
     expect(wrapper).toSnapshot();
   });
 
@@ -63,7 +63,7 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    const wrapper = enzymeRender(<AccountIdentities />);
+    const wrapper = mountWithTheme(<AccountIdentities />);
 
     const disconnectRequest = {
       url: `${ENDPOINT}social-identity/1/`,

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import OrganizationActivity from 'sentry/views/organizationActivity';
@@ -28,7 +28,7 @@ describe('OrganizationActivity', function () {
   });
 
   it('renders', function () {
-    const wrapper = enzymeRender(<OrganizationActivity {...params} />, routerContext);
+    const wrapper = mountWithTheme(<OrganizationActivity {...params} />, routerContext);
 
     expect(wrapper.find('ActivityItem')).toHaveLength(2);
   });
@@ -38,7 +38,7 @@ describe('OrganizationActivity', function () {
       url: '/organizations/org-slug/activity/',
       body: [],
     });
-    const wrapper = enzymeRender(<OrganizationActivity {...params} />, routerContext);
+    const wrapper = mountWithTheme(<OrganizationActivity {...params} />, routerContext);
 
     expect(wrapper.find('ActivityItem')).toHaveLength(0);
     expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
@@ -50,7 +50,7 @@ describe('OrganizationActivity', function () {
       body: [],
       statusCode: 404,
     });
-    const wrapper = enzymeRender(<OrganizationActivity {...params} />, routerContext);
+    const wrapper = mountWithTheme(<OrganizationActivity {...params} />, routerContext);
 
     expect(wrapper.find('ActivityItem')).toHaveLength(0);
     expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);

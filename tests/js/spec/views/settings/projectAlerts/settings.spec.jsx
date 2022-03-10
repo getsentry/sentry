@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
@@ -26,7 +26,7 @@ describe('ProjectAlertSettings', function () {
   });
 
   it('renders', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <Settings
         canEditRule
         params={{orgId: organization.slug, projectId: project.slug}}

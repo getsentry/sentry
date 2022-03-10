@@ -1,6 +1,6 @@
 import pick from 'lodash/pick';
 
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
@@ -36,7 +36,9 @@ describe('IntegrationOrganizationLink', () => {
     });
 
     getMountedComponent = () =>
-      enzymeRender(<IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />);
+      mountWithTheme(
+        <IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />
+      );
   });
 
   it('selecting org from dropdown loads the org through the API', async () => {

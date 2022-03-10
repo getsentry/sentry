@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -157,7 +157,7 @@ describe('Performance > Table', function () {
       query: 'event.type:transaction transaction:/api*',
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <Table
         eventView={eventView}
         organization={data.organization}

@@ -1,5 +1,5 @@
 import {chart, doZoom, mockZoomRange} from 'sentry-test/charts';
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import * as globalSelection from 'sentry/actionCreators/pageFilters';
@@ -29,7 +29,7 @@ describe('EventsChart', function () {
   beforeEach(function () {
     globalSelection.updateDateTime.mockClear();
     mockZoomRange(1543449600000, 1543708800000);
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <EventsChart
         api={new MockApiClient()}
         location={{query: {}}}

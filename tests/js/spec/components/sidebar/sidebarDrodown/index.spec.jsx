@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import ConfigStore from 'sentry/stores/configStore';
@@ -7,7 +7,7 @@ function renderDropdown(props) {
   const user = ConfigStore.get('user');
   const config = ConfigStore.get('config');
   const organization = TestStubs.Organization();
-  return enzymeRender(
+  return mountWithTheme(
     <SidebarDropdown
       orientation="left"
       collapsed={false}

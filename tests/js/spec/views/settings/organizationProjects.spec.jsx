@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
@@ -36,7 +36,7 @@ describe('OrganizationProjects', function () {
   });
 
   it('should render the projects in the store', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />
     );
     expect(wrapper).toSnapshot();
@@ -59,7 +59,7 @@ describe('OrganizationProjects', function () {
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationProjectsContainer location={{query: {}}} params={{orgId: org.slug}} />,
       routerContext
     );

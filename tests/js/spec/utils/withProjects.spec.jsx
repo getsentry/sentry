@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -12,7 +12,7 @@ describe('withProjects HoC', function () {
   it('works', function () {
     const MyComponent = () => null;
     const Container = withProjects(MyComponent);
-    const wrapper = enzymeRender(<Container />);
+    const wrapper = mountWithTheme(<Container />);
 
     expect(wrapper.find('MyComponent').prop('projects')).toEqual([]);
     expect(wrapper.find('MyComponent').prop('loadingProjects')).toEqual(true);

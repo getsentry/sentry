@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SuggestProjectModal from 'sentry/components/modals/suggestProjectModal';
 
@@ -12,7 +12,7 @@ describe('SuggestProjectModal', function () {
       Footer: p => p.children,
     };
 
-    const wrapper = enzymeRender(<SuggestProjectModal {...props} />);
+    const wrapper = mountWithTheme(<SuggestProjectModal {...props} />);
     expect(wrapper).toSnapshot();
   });
 });

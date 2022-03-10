@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectPerformance from 'sentry/views/settings/projectPerformance/projectPerformance';
 
@@ -38,7 +38,7 @@ describe('projectPerformance', function () {
   });
 
   it('renders the fields', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectPerformance
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -52,7 +52,7 @@ describe('projectPerformance', function () {
   });
 
   it('updates the field', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectPerformance
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -77,7 +77,7 @@ describe('projectPerformance', function () {
   });
 
   it('clears the data', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectPerformance
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}

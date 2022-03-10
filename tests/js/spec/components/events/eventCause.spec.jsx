@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import EventCause from 'sentry/components/events/eventCause';
@@ -66,7 +66,7 @@ describe('EventCause', function () {
   });
 
   it('renders', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <EventCause
         organization={organization}
         project={project}
@@ -87,7 +87,7 @@ describe('EventCause', function () {
   });
 
   it('expands', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <EventCause
         organization={organization}
         project={project}
@@ -134,7 +134,7 @@ describe('EventCause', function () {
       },
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <EventCause
         organization={organization}
         project={project}

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
@@ -30,7 +30,7 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
       projects: [],
     });
     selected = [...yAxisValue];
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <OptionCheckboxSelector
         title={t('Y-Axis')}
         selected={selected}

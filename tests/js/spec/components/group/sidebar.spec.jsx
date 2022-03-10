@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GroupSidebar from 'sentry/components/group/sidebar';
@@ -68,7 +68,7 @@ describe('GroupSidebar', function () {
       body: TestStubs.Tags(),
     });
 
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <GroupSidebar
         group={group}
         project={project}
@@ -114,7 +114,7 @@ describe('GroupSidebar', function () {
         body: [],
       });
 
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <GroupSidebar
           api={new MockApiClient()}
           group={group}

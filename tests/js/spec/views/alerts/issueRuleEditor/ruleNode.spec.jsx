@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {getSelector, openMenu, selectByValue} from 'sentry-test/select-new';
 
 import ModalActions from 'sentry/actions/modalActions';
@@ -88,7 +88,7 @@ describe('RuleNode', function () {
   const createWrapper = node => {
     project = TestStubs.Project();
     organization = TestStubs.Organization({projects: [project]});
-    return enzymeRender(
+    return mountWithTheme(
       <RuleNode
         index={index}
         node={node}

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import StacktraceLinkModal from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
 
@@ -45,7 +45,7 @@ describe('StacktraceLinkModal', function () {
       body: {config, sourceUrl, integrations: [integration]},
     });
 
-    return enzymeRender(
+    return mountWithTheme(
       <StacktraceLinkModal
         {...modalElements}
         closeModal={closeModal}

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import CongratsRobotsVideo from 'sentry/views/issueList/noGroupsHandler/congratsRobots';
 import NoUnresolvedIssues from 'sentry/views/issueList/noGroupsHandler/noUnresolvedIssues';
@@ -10,7 +10,7 @@ jest.mock('sentry/views/issueList/noGroupsHandler/congratsRobots', () =>
 
 describe('NoUnresolvedIssues', function () {
   it('renders', async function () {
-    const wrapper = enzymeRender(<NoUnresolvedIssues />);
+    const wrapper = mountWithTheme(<NoUnresolvedIssues />);
 
     // Need this because of suspense
     await tick();

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
@@ -20,7 +20,7 @@ describe('ProjectFilters', function () {
     if (custom) {
       wrapper = custom();
     } else {
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <ProjectFilters
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
@@ -196,7 +196,7 @@ describe('ProjectFilters', function () {
 
   it('has custom inbound filters with flag + can change', function () {
     wrapper = creator(() =>
-      enzymeRender(
+      mountWithTheme(
         <ProjectFilters
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
@@ -243,7 +243,7 @@ describe('ProjectFilters', function () {
   });
 
   it('disables configuration for non project:write users', function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <ProjectFilters
         params={{projectId: project.slug, orgId: org.slug}}
         location={{}}
@@ -257,7 +257,7 @@ describe('ProjectFilters', function () {
   });
 
   it('shows disclaimer if error message filter is populated', function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <ProjectFilters
         params={{projectId: project.slug, orgId: org.slug}}
         project={{

@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -31,7 +31,7 @@ describe('ReleaseActions', function () {
   });
 
   it('archives a release', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ReleaseActions
         organization={organization}
         projectSlug={release.projects[0].slug}
@@ -80,7 +80,7 @@ describe('ReleaseActions', function () {
   it('restores a release', async function () {
     const refetchDataMock = jest.fn();
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ReleaseActions
         organization={organization}
         projectSlug={release.projects[0].slug}
@@ -125,7 +125,7 @@ describe('ReleaseActions', function () {
   });
 
   it('navigates to a next/prev release', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ReleaseActions
         organization={organization}
         projectSlug={release.projects[0].slug}
@@ -173,7 +173,7 @@ describe('ReleaseActions', function () {
       },
     });
 
-    const wrapper2 = enzymeRender(
+    const wrapper2 = mountWithTheme(
       <ReleaseActions
         organization={organization}
         projectSlug={release.projects[0].slug}

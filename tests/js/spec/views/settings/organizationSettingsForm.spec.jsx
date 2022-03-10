@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
@@ -28,7 +28,7 @@ describe('OrganizationSettingsForm', function () {
       },
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationSettingsForm
         location={TestStubs.location()}
         orgId={organization.slug}
@@ -92,7 +92,7 @@ describe('OrganizationSettingsForm', function () {
       method: 'PUT',
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationSettingsForm
         location={TestStubs.location()}
         orgId={organization.slug}

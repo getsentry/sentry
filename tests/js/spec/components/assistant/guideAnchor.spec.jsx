@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GuideActions from 'sentry/actions/guideActions';
 import GuideAnchorWrapper, {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
@@ -22,8 +22,8 @@ describe('GuideAnchor', function () {
       },
     };
 
-    wrapper = enzymeRender(<GuideAnchor target="issue_title" />);
-    wrapper2 = enzymeRender(<GuideAnchor target="exception" />);
+    wrapper = mountWithTheme(<GuideAnchor target="issue_title" />);
+    wrapper2 = mountWithTheme(<GuideAnchor target="exception" />);
   });
 
   afterEach(function () {
@@ -100,7 +100,7 @@ describe('GuideAnchor', function () {
   });
 
   it('renders no container when inactive', function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <GuideAnchor target="target 1">
         <span>A child</span>
       </GuideAnchor>
@@ -113,7 +113,7 @@ describe('GuideAnchor', function () {
   });
 
   it('renders children when disabled', async function () {
-    const wrapper3 = enzymeRender(
+    const wrapper3 = mountWithTheme(
       <GuideAnchorWrapper disabled target="exception">
         <div data-test-id="child-div" />
       </GuideAnchorWrapper>

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Indicator} from 'sentry/views/onboarding/components/firstEventIndicator';
 
@@ -6,7 +6,7 @@ describe('FirstEventIndicator', function () {
   it('renders waiting status', async function () {
     const org = TestStubs.Organization();
 
-    const wrapper = enzymeRender(<Indicator organization={org} firstIssue={null} />);
+    const wrapper = mountWithTheme(<Indicator organization={org} firstIssue={null} />);
 
     expect(wrapper.find('WaitingIndicator').exists()).toBe(true);
   });
@@ -15,7 +15,9 @@ describe('FirstEventIndicator', function () {
     it('renders', function () {
       const org = TestStubs.Organization();
 
-      const wrapper = enzymeRender(<Indicator organization={org} firstIssue={{id: 1}} />);
+      const wrapper = mountWithTheme(
+        <Indicator organization={org} firstIssue={{id: 1}} />
+      );
 
       expect(wrapper.find('ReceivedIndicator').exists()).toBe(true);
     });
@@ -24,7 +26,7 @@ describe('FirstEventIndicator', function () {
       const org = TestStubs.Organization();
       const project = TestStubs.ProjectDetails({});
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <Indicator organization={org} project={project} firstIssue />
       );
 

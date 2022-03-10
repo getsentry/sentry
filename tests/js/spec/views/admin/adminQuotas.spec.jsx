@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import AdminQuotas from 'sentry/views/admin/adminQuotas';
@@ -20,7 +20,7 @@ describe('AdminQuotas', function () {
     });
 
     it('renders', function () {
-      const wrapper = enzymeRender(<AdminQuotas params={{}} />, {
+      const wrapper = mountWithTheme(<AdminQuotas params={{}} />, {
         context: {
           router: TestStubs.router(),
         },

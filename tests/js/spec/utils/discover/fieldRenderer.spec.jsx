@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -67,21 +67,21 @@ describe('getFieldRenderer', function () {
 
   it('can render string fields', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
-    const wrapper = enzymeRender(renderer(data, {location, organization}));
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
     expect(text.text()).toEqual(data.url);
   });
 
   it('can render boolean fields', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
-    const wrapper = enzymeRender(renderer(data, {location, organization}));
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
     expect(text.text()).toEqual('true');
   });
 
   it('can render integer fields', function () {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
-    const wrapper = enzymeRender(renderer(data, {location, organization}));
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
     const value = wrapper.find('Count');
     expect(value).toHaveLength(1);
@@ -91,7 +91,7 @@ describe('getFieldRenderer', function () {
   it('can render date fields', function () {
     const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
     expect(renderer).toBeInstanceOf(Function);
-    const wrapper = enzymeRender(renderer(data, {location, organization}));
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
     const value = wrapper.find('FieldDateTime');
     expect(value).toHaveLength(1);
@@ -100,7 +100,7 @@ describe('getFieldRenderer', function () {
 
   it('can render null date fields', function () {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
-    const wrapper = enzymeRender(renderer(data, {location, organization}));
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
     const value = wrapper.find('FieldDateTime');
     expect(value).toHaveLength(0);
@@ -117,7 +117,7 @@ describe('getFieldRenderer', function () {
       },
     });
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
-    const wrapper = enzymeRender(renderer(data, {location, organization}));
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
     expect(text.text()).toEqual('September 5, 2021');
   });
@@ -126,31 +126,35 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
 
     // Should render the last value.
-    let wrapper = enzymeRender(
+    let wrapper = mountWithTheme(
       renderer({'error.handled': [0, 1]}, {location, organization})
     );
     expect(wrapper.text()).toEqual('true');
 
-    wrapper = enzymeRender(renderer({'error.handled': [0, 0]}, {location, organization}));
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [0, 0]}, {location, organization})
+    );
     expect(wrapper.text()).toEqual('false');
 
     // null = true for error.handled data.
-    wrapper = enzymeRender(renderer({'error.handled': [null]}, {location, organization}));
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [null]}, {location, organization})
+    );
     expect(wrapper.text()).toEqual('true');
 
     // Default events won't have error.handled and will return an empty list.
-    wrapper = enzymeRender(renderer({'error.handled': []}, {location, organization}));
+    wrapper = mountWithTheme(renderer({'error.handled': []}, {location, organization}));
     expect(wrapper.text()).toEqual('n/a');
 
     // Transactions will have null for error.handled as the 'tag' won't be set.
-    wrapper = enzymeRender(renderer({'error.handled': null}, {location, organization}));
+    wrapper = mountWithTheme(renderer({'error.handled': null}, {location, organization}));
     expect(wrapper.text()).toEqual('n/a');
   });
 
   it('can render user fields with aliased user', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
-    const wrapper = enzymeRender(renderer(data, {location, organization}));
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
     const badge = wrapper.find('UserBadge');
     expect(badge).toHaveLength(1);
@@ -164,7 +168,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     delete data.user;
-    const wrapper = enzymeRender(renderer(data, {location, organization}));
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
     const badge = wrapper.find('UserBadge');
     expect(badge).toHaveLength(0);
@@ -178,7 +182,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     delete data.release;
-    const wrapper = enzymeRender(renderer(data, {location, organization}));
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
     const value = wrapper.find('EmptyValueContainer');
     expect(value).toHaveLength(1);
@@ -188,7 +192,7 @@ describe('getFieldRenderer', function () {
   it('can render project as an avatar', function () {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       renderer(data, {location, organization}),
       context.routerContext
     );
@@ -203,7 +207,7 @@ describe('getFieldRenderer', function () {
       team_key_transaction: 'boolean',
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       renderer(data, {location, organization}),
       context.routerContext
     );
@@ -221,7 +225,7 @@ describe('getFieldRenderer', function () {
     });
     delete data.project;
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       renderer(data, {location, organization}),
       context.routerContext
     );
@@ -243,7 +247,7 @@ describe('getFieldRenderer', function () {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         renderer(data, {location, organization}),
         context.routerContext
       );
@@ -261,7 +265,7 @@ describe('getFieldRenderer', function () {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         renderer(data, {
           location,
           organization,

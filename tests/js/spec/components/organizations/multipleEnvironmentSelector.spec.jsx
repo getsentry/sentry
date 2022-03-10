@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -39,7 +39,7 @@ describe('MultipleEnvironmentSelector', function () {
   beforeEach(function () {
     onChange.mockReset();
     onUpdate.mockReset();
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <MultipleEnvironmentSelector
         organization={organization}
         projects={projects}

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import AccountSettingsLayout from 'sentry/views/settings/account/accountSettingsLayout';
@@ -19,7 +19,7 @@ describe('AccountSettingsLayout', function () {
     api = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
     });
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <AccountSettingsLayout router={TestStubs.router()} params={{}} />
     );
   });

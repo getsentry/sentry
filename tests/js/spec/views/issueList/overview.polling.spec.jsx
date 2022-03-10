@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -63,7 +63,7 @@ describe('IssueList -> Polling', function () {
       },
     };
 
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <IssueList {...newRouter} {...defaultProps} {...p} />,
       routerContext
     );

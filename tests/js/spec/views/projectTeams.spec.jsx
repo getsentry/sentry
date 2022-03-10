@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -51,7 +51,7 @@ describe('ProjectTeams', function () {
   });
 
   it('renders', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -84,7 +84,7 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -156,7 +156,7 @@ describe('ProjectTeams', function () {
       ],
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -203,7 +203,7 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -252,7 +252,7 @@ describe('ProjectTeams', function () {
       body: {slug: 'new-team'},
     });
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <App params={{orgId: org.slug}}>
         <ProjectTeams
           params={{orgId: org.slug, projectId: project.slug}}

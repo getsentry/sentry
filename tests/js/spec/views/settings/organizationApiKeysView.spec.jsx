@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import OrganizationApiKeys from 'sentry/views/settings/organizationApiKeys';
@@ -32,7 +32,7 @@ describe('OrganizationApiKeys', function () {
   });
 
   it('fetches api keys', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
@@ -45,7 +45,7 @@ describe('OrganizationApiKeys', function () {
   });
 
   it('can delete a key', async function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}

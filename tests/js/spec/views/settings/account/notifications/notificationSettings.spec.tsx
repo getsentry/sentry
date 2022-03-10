@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
@@ -25,7 +25,7 @@ const createWrapper = (
     },
   });
 
-  return enzymeRender(
+  return mountWithTheme(
     <NotificationSettings organizations={[organization]} />,
     routerContext
   );

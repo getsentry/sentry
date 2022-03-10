@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectApdexScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectApdexScoreCard';
@@ -35,7 +35,7 @@ describe('ProjectDetail > ProjectApdex', function () {
 
   it('calls api with apdex', function () {
     organization.features = ['discover-basic', 'performance-view'];
-    enzymeRender(
+    mountWithTheme(
       <ProjectApdexScoreCard
         organization={organization}
         selection={selection}

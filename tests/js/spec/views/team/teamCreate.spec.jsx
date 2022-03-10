@@ -1,4 +1,4 @@
-import {enzymeRender, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {TeamCreate} from 'sentry/views/teamCreate';
@@ -7,7 +7,7 @@ describe('TeamCreate', function () {
   describe('render()', function () {
     it('renders correctly', function () {
       const {organization, routerContext} = initializeOrg();
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <TeamCreate
           organization={organization}
           params={{

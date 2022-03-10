@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
@@ -76,7 +76,7 @@ describe('IntegrationCodeMappings', function () {
       [`/organizations/${org.slug}/repos/`, repos],
     ]);
 
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <IntegrationCodeMappings organization={org} integration={integration} />
     );
   });
@@ -106,7 +106,7 @@ describe('IntegrationCodeMappings', function () {
 
   it('requires permissions to click', async () => {
     const invalidContext = TestStubs.routerContext([{organization: invalidOrg}]);
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <IntegrationCodeMappings organization={invalidOrg} integration={integration} />,
       invalidContext
     );

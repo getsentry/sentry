@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
@@ -54,7 +54,7 @@ describe('Docs Search Modal', function () {
   it('can open help search modal', async function () {
     const {routerContext} = initializeOrg();
 
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
       routerContext
     );

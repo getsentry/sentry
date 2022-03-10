@@ -1,6 +1,6 @@
 import fetchMock from 'jest-fetch-mock';
 
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {selectByQuery, selectByValue} from 'sentry-test/select-new';
 
@@ -107,7 +107,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       type: 'select',
       name: 'reporter',
     });
-    return enzymeRender(
+    return mountWithTheme(
       <TicketRuleModal
         {...modalElements}
         closeModal={closeModal}

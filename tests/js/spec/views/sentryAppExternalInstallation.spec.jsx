@@ -1,6 +1,6 @@
 import pick from 'lodash/pick';
 
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
@@ -54,7 +54,7 @@ describe('SentryAppExternalInstallation', () => {
     });
 
     getMountedComponent = () =>
-      enzymeRender(
+      mountWithTheme(
         <SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />
       );
   });

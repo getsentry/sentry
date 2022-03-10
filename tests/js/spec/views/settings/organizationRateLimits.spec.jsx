@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import OrganizationRateLimits from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
@@ -23,7 +23,7 @@ describe('Organization Rate Limits', function () {
   });
 
   it('renders with initialData', function () {
-    const wrapper = enzymeRender(creator());
+    const wrapper = mountWithTheme(creator());
 
     expect(wrapper.find("RangeSlider[name='accountRateLimit']").prop('value')).toBe(
       70000
@@ -39,7 +39,7 @@ describe('Organization Rate Limits', function () {
         maxRateInterval: 60,
       },
     };
-    const wrapper = enzymeRender(creator({organization: org}));
+    const wrapper = mountWithTheme(creator({organization: org}));
 
     expect(wrapper.find('RangeSlider')).toHaveLength(1);
 
@@ -53,7 +53,7 @@ describe('Organization Rate Limits', function () {
       statusCode: 200,
     });
 
-    const wrapper = enzymeRender(creator());
+    const wrapper = mountWithTheme(creator());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -83,7 +83,7 @@ describe('Organization Rate Limits', function () {
       statusCode: 200,
     });
 
-    const wrapper = enzymeRender(creator());
+    const wrapper = mountWithTheme(creator());
 
     expect(mock).not.toHaveBeenCalled();
 

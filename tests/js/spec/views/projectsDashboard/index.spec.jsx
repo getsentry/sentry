@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as projectsActions from 'sentry/actionCreators/projects';
@@ -50,7 +50,7 @@ describe('ProjectsDashboard', function () {
     it('renders with no projects', function () {
       const noProjectTeams = [TestStubs.Team({projects: []})];
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={noProjectTeams}
           organization={org}
@@ -68,7 +68,7 @@ describe('ProjectsDashboard', function () {
 
       const teamsWithOneProject = [TestStubs.Team({projects})];
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teamsWithOneProject}
           organization={org}
@@ -101,7 +101,7 @@ describe('ProjectsDashboard', function () {
 
       const teamsWithTwoProjects = [TestStubs.Team({projects})];
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teamsWithTwoProjects}
           organization={org}
@@ -178,7 +178,7 @@ describe('ProjectsDashboard', function () {
       });
 
       jest.useFakeTimers();
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teamsWithFavProjects}
           organization={org}
@@ -257,7 +257,7 @@ describe('ProjectsDashboard', function () {
         })),
       });
 
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teamsWithStatTestProjects}
           organization={org}
@@ -300,7 +300,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders an error from withTeamsForUser', function () {
-      const wrapper = enzymeRender(
+      const wrapper = mountWithTheme(
         <Dashboard error={Error('uhoh')} organization={org} params={{orgId: org.slug}} />,
         routerContext
       );

@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -29,7 +29,7 @@ describe('EventDataSection', function () {
     culprit: undefined,
   };
   it('renders formatted', function () {
-    const component = enzymeRender(
+    const component = mountWithTheme(
       <EventDataSection
         group={groupData}
         event={eventData}
@@ -43,7 +43,7 @@ describe('EventDataSection', function () {
   });
 
   it('renders raw', function () {
-    const component = enzymeRender(
+    const component = mountWithTheme(
       <EventDataSection
         group={groupData}
         event={eventData}
@@ -70,7 +70,7 @@ describe('KeyValueList', function () {
   }));
 
   it('renders formatted', function () {
-    const component = enzymeRender(
+    const component = mountWithTheme(
       <KeyValueList data={extraDataArray} isContextData raw={false} />
     );
 
@@ -78,7 +78,7 @@ describe('KeyValueList', function () {
   });
 
   it('renders raw', function () {
-    const component = enzymeRender(
+    const component = mountWithTheme(
       <KeyValueList data={extraDataArray} isContextData raw />
     );
 

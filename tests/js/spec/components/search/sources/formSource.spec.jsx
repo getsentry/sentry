@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as ActionCreators from 'sentry/actionCreators/formSearch';
 import FormSearchActions from 'sentry/actions/formSearchActions';
@@ -41,7 +41,7 @@ describe('FormSource', function () {
 
   it('can find a form field', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = enzymeRender(<FormSource query="te">{mock}</FormSource>);
+    wrapper = mountWithTheme(<FormSource query="te">{mock}</FormSource>);
 
     await tick();
     await tick();
@@ -71,7 +71,7 @@ describe('FormSource', function () {
 
   it('does not find any form field ', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = enzymeRender(<FormSource query="invalid">{mock}</FormSource>);
+    wrapper = mountWithTheme(<FormSource query="invalid">{mock}</FormSource>);
 
     await tick();
     wrapper.update();

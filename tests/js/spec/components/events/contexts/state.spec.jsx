@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import StateContextType from 'sentry/components/events/contexts/state';
 
@@ -19,7 +19,9 @@ const STATE_CONTEXT = {
 
 describe('StateContext', function () {
   it('renders', () => {
-    const wrapper = enzymeRender(<StateContextType alias="state" data={STATE_CONTEXT} />);
+    const wrapper = mountWithTheme(
+      <StateContextType alias="state" data={STATE_CONTEXT} />
+    );
 
     const keys = wrapper.find('TableSubject.key');
     const values = wrapper.find('.val');

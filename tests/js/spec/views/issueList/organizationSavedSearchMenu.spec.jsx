@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import IssueListSavedSearchMenu from 'sentry/views/issueList/savedSearchMenu';
@@ -28,7 +28,7 @@ describe('IssueListSavedSearchMenu', () => {
   const onDelete = jest.fn();
   beforeEach(() => {
     organization = TestStubs.Organization({access: ['org:write']});
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <IssueListSavedSearchMenu
         organization={organization}
         savedSearchList={savedSearchList}

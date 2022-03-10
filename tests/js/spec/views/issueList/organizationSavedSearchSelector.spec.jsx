@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import IssueListSavedSearchSelector from 'sentry/views/issueList/savedSearchSelector';
 
@@ -24,7 +24,7 @@ describe('IssueListSavedSearchSelector', function () {
         isGlobal: false,
       },
     ];
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <IssueListSavedSearchSelector
         organization={organization}
         savedSearchList={savedSearchList}

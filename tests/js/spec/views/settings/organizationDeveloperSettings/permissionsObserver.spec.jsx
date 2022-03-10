@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Form from 'sentry/components/forms/form';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
@@ -7,7 +7,7 @@ describe('PermissionsObserver', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <Form>
         <PermissionsObserver
           scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}

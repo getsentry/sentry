@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
@@ -13,7 +13,7 @@ describe('Settings Breadcrumb Dropdown', function () {
   ];
 
   beforeEach(function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <BreadcrumbDropdown items={items} name="Test" hasMenu onSelect={selectMock} />
     );
   });

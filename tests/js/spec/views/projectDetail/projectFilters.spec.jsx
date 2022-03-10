@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectFilters from 'sentry/views/projectDetail/projectFilters';
 
@@ -23,7 +23,7 @@ describe('ProjectDetail > ProjectFilters', () => {
         },
       ])
     );
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectFilters query="" onSearch={onSearch} tagValueLoader={tagValueLoader} />,
       TestStubs.routerContext()
     );

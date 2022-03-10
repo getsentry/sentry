@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'sentry/utils/discover/eventView';
@@ -82,7 +82,7 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render web vitals tab when yes', async function () {
-    wrapper = enzymeRender(<WrappedComponent hasWebVitals="yes" />);
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="yes" />);
 
     await tick();
     wrapper.update();
@@ -91,7 +91,7 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should not render web vitals tab when no', async function () {
-    wrapper = enzymeRender(<WrappedComponent hasWebVitals="no" />);
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="no" />);
 
     await tick();
     wrapper.update();
@@ -100,7 +100,7 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render web vitals tab when maybe and is frontend platform', async function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <WrappedComponent hasWebVitals="maybe" platform="javascript" />
     );
 
@@ -116,7 +116,7 @@ describe('Performance > Transaction Summary Header', function () {
       body: {measurements: true},
     });
 
-    wrapper = enzymeRender(<WrappedComponent hasWebVitals="maybe" />);
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
 
     await tick();
     wrapper.update();
@@ -130,7 +130,7 @@ describe('Performance > Transaction Summary Header', function () {
       body: {measurements: false},
     });
 
-    wrapper = enzymeRender(<WrappedComponent hasWebVitals="maybe" />);
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
 
     await tick();
     wrapper.update();
@@ -139,7 +139,7 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render spans tab with feature', async function () {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <WrappedComponent
         hasWebVitals="yes"
         features={['performance-suspect-spans-view']}

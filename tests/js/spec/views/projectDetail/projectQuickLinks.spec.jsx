@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectQuickLinks from 'sentry/views/projectDetail/projectQuickLinks';
@@ -9,7 +9,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
   });
 
   it('renders a list', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectQuickLinks
         organization={organization}
         location={router.location}
@@ -48,7 +48,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
   });
 
   it('disables link if feature is missing', function () {
-    const wrapper = enzymeRender(
+    const wrapper = mountWithTheme(
       <ProjectQuickLinks
         organization={{...organization, features: []}}
         location={router.location}

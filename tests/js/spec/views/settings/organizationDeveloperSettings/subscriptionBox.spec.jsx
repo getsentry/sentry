@@ -1,4 +1,4 @@
-import {enzymeRender} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {SubscriptionBox} from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
 
@@ -9,7 +9,7 @@ describe('SubscriptionBox', () => {
 
   beforeEach(() => {
     onChange = jest.fn();
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <SubscriptionBox
         resource="issue"
         checked={false}
@@ -37,7 +37,7 @@ describe('SubscriptionBox', () => {
   describe('error.created resource subscription', () => {
     beforeEach(() => {
       onChange = jest.fn();
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <SubscriptionBox
           resource="error"
           checked={false}
@@ -58,7 +58,7 @@ describe('SubscriptionBox', () => {
 
     it('checkbox visible with integrations-event-hooks flag', () => {
       org = TestStubs.Organization({features: ['integrations-event-hooks']});
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <SubscriptionBox
           resource="error"
           checked={false}
@@ -72,7 +72,7 @@ describe('SubscriptionBox', () => {
 
     it('Tooltip disabled with integrations-event-hooks flag', () => {
       org = TestStubs.Organization({features: ['integrations-event-hooks']});
-      wrapper = enzymeRender(
+      wrapper = mountWithTheme(
         <SubscriptionBox
           resource="error"
           checked={false}
@@ -86,7 +86,7 @@ describe('SubscriptionBox', () => {
   });
 
   it('disables checkbox when webhookDisabled=true', () => {
-    wrapper = enzymeRender(
+    wrapper = mountWithTheme(
       <SubscriptionBox
         resource="issue"
         checked={false}
