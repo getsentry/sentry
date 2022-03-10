@@ -101,7 +101,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
             }
         )
 
-        if profile["platform"] == "ios":
+        if profile["platform"] == "cocoa":
             if not _validate_ios_profile(profile):
                 return None
             profile = self.symbolicate(profile)
@@ -109,18 +109,20 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         return _normalize(profile)
 
     def symbolicate(self, profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-        samples = profile["sampled_profiles"]["samples"]
+        samples = profile["sampled_profile"]["samples"]
 
         # collect all unsymbolicated frames
         frames_by_address = {}
         indexes_by_address = defaultdict(list)
         for i, s in enumerate(samples):
             for j, f in enumerate(s["frames"]):
+                f["instruction_addr"] = hex(int(f["instruction_addr"], 16))
+                f["addr_mode"] = "rel:0"
                 indexes_by_address[f["instruction_addr"]].append((i, j))
                 frames_by_address[f["instruction_addr"]] = f
 
         # set proper keys for process_payload to do its job
-        profile["stacktraces"] = {"frames": frames_by_address.values()}
+        profile["stacktrace"] = {"frames": frames_by_address.values()}
         profile["event_id"] = profile["transaction_id"]
         profile["project"] = profile["project_id"]
 
@@ -128,7 +130,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         profile = process_payload(profile)
 
         # replace  unsymbolicated frames by symbolicated ones
-        frames_by_address = {f["instruction_addr"]: f for f in profile["stacktraces"]["frames"]}
+        frames_by_address = {f["instruction_addr"]: f for f in profile["stacktrace"]["frames"]}
         for address, indexes in indexes_by_address.items():
             for i, j in indexes:
                 samples[i][j] = frames_by_address[address]
@@ -147,7 +149,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         self.__producer.flush()
 
     def shutdown(self) -> None:
-        self.__producer.close()
+        pass
 
     def callback(self, error: Any, message: Any) -> None:
         if error is not None:
