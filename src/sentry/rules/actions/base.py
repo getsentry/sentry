@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import logging
 
@@ -52,9 +54,19 @@ class EventAction(RuleBase, abc.ABC):
 
 
 class IntegrationEventAction(EventAction, abc.ABC):
-    """
-    Intermediate abstract class to help DRY some event actions code.
-    """
+    """Intermediate abstract class to help DRY some event actions code."""
+
+    @property
+    def prompt(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def provider(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def integration_key(self) -> str:
+        raise NotImplementedError
 
     def is_enabled(self):
         return self.get_integrations().exists()
@@ -211,6 +223,14 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
     def render_label(self):
         return self.label.format(integration=self.get_integration_name())
 
+    @property
+    def ticket_type(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def prompt(self) -> str:
+        return f"Create {self.ticket_type}"
+
     def get_dynamic_form_fields(self):
         """
         Either get the dynamic form fields cached on the DB return `None`.
@@ -232,10 +252,6 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
 
     def translate_integration(self, integration):
         return integration.name
-
-    @property
-    def prompt(self):
-        return f"Create {self.ticket_type}"
 
     def generate_footer(self, rule_url):
         raise NotImplementedError
