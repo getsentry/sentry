@@ -35,3 +35,19 @@ export const JSSelfProfiling = () => {
     </FlamegraphStateProvider>
   );
 };
+
+const typescriptProfile = importProfile(
+  require('./../../../../tests/js/spec/utils/profiling/profile/samples/chrometrace/typescript/trace.json')
+);
+
+export const TypescriptProfile = () => {
+  return (
+    <FlamegraphPreferencesProvider>
+      <FlamegraphThemeProvider>
+        <FullScreenFlamegraphContainer>
+          {typescriptProfile ? <Flamegraph profiles={typescriptProfile} /> : null}
+        </FullScreenFlamegraphContainer>
+      </FlamegraphThemeProvider>
+    </FlamegraphPreferencesProvider>
+  );
+};

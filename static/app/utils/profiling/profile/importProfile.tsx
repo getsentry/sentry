@@ -72,6 +72,10 @@ export function importProfile(
     return importJSSelfProfile(input, traceID);
   }
 
+  if (isChromeTraceFormat(input)) {
+    return importChromeTrace(input);
+  }
+
   if (isSchema(input)) {
     const frameIndex = createFrameIndex(input.shared.frames);
 
