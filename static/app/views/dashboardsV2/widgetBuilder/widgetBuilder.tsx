@@ -1191,12 +1191,27 @@ const Body = styled(Layout.Body)`
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: 1fr;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    /* 325px + 16px + 16px to match Side component width, padding-left and padding-right */
+    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(2)});
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    /* 325px + 16px + 30px to match Side component width, padding-left and padding-right */
+    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(4)});
+  }
 `;
 
 const Main = styled(Layout.Main)`
   max-width: 1000px;
-  padding: ${space(4)};
   flex: 1;
+
+  padding: ${space(4)} ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    padding: ${space(4)};
+  }
 `;
 
 const Side = styled(Layout.Side)`
@@ -1204,6 +1219,9 @@ const Side = styled(Layout.Side)`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     border-left: 1px solid ${p => p.theme.gray200};
+
+    /* to be consistent with Layout.Body in other verticals */
+    padding-right: ${space(4)};
   }
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {

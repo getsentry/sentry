@@ -17,7 +17,7 @@ class AutoSyncNotification(ProjectNotification):
     notification_setting_type = NotificationSettingTypes.DEPLOY
 
     def determine_recipients(self) -> Iterable[Team | User]:
-        return self.organization.get_owners()
+        return self.organization.get_owners()  # type: ignore
 
     def get_reference(self) -> None | Model:
         return None

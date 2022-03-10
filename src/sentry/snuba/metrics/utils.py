@@ -45,7 +45,7 @@ TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 MetricOperation = Literal["avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99"]
 MetricUnit = Literal["seconds"]
 #: The type of metric, which determines the snuba entity to query
-MetricType = Literal["counter", "set", "distribution"]
+MetricType = Literal["counter", "set", "distribution", "numeric"]
 
 MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distribution"]
 

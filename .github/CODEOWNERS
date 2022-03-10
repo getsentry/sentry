@@ -52,12 +52,12 @@ Makefile                    @getsentry/owners-sentry-dev
 mypy.ini @getsentry/python-typing
 
 # Build & Releases
-/.github/workflows/release.yml  @getsentry/releases
-/scripts/bump-version.sh        @getsentry/releases
-/scripts/post-release.sh        @getsentry/releases
-/docker                         @getsentry/releases
-setup.py                        @getsentry/releases
-setup.cfg                       @getsentry/releases
+/.github/workflows/release.yml  @getsentry/release-approvers
+/scripts/bump-version.sh        @getsentry/release-approvers
+/scripts/post-release.sh        @getsentry/release-approvers
+/docker                         @getsentry/release-approvers
+setup.py                        @getsentry/release-approvers
+setup.cfg                       @getsentry/release-approvers
 requirements*.txt   @getsentry/owners-python-build
 pyproject.toml      @getsentry/owners-python-build
 tsconfig.*          @getsentry/owners-js-build
