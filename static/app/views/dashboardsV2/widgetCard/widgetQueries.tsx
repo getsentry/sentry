@@ -318,8 +318,10 @@ class WidgetQueries extends React.Component<Props, State> {
           partial: true,
         };
 
-        // Mocking topEvents value
-        if (query.columns?.length !== 0) {
+        if (
+          organization.features.includes('new-widget-builder-experience-design') &&
+          query.columns?.length !== 0
+        ) {
           requestData.topEvents = TOP_N;
           // Aggregates need to be in fields as well
           requestData.field = [...(query?.columns ?? []), ...(query?.aggregates ?? [])];
