@@ -1,9 +1,5 @@
-import logging
-
 from sentry import features
 from sentry.tasks.base import instrumented_task
-
-logger = logging.getLogger("sentry.tasks.code_owners")
 
 
 @instrumented_task(

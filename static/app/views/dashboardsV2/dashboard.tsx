@@ -549,9 +549,6 @@ class Dashboard extends Component<Props, State> {
     let {widgets} = dashboard;
     // Filter out any issue/metrics widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.ISSUE) {
-        return organization.features.includes('issues-in-dashboards');
-      }
       if (widgetType === WidgetType.METRICS) {
         return organization.features.includes('dashboards-metrics');
       }
@@ -604,9 +601,6 @@ class Dashboard extends Component<Props, State> {
     let {widgets} = dashboard;
     // Filter out any issue/metrics widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.ISSUE) {
-        return organization.features.includes('issues-in-dashboards');
-      }
       if (widgetType === WidgetType.METRICS) {
         return organization.features.includes('dashboards-metrics');
       }

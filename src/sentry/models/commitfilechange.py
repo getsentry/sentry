@@ -1,6 +1,7 @@
 from typing import Any, Iterable
 
 from django.db import models
+from django.db.models.signals import post_save
 
 from sentry.db.models import (
     BaseManager,
@@ -40,3 +41,24 @@ class CommitFileChange(Model):
     @staticmethod
     def is_valid_type(value: str) -> bool:
         return value in COMMIT_FILE_CHANGE_TYPES
+
+
+def process_resource_change(instance, **kwargs):
+    from sentry.integrations.github.integration import GitHubIntegration
+    from sentry.integrations.gitlab.integration import GitlabIntegration
+    from sentry.tasks.codeowners import code_owners_auto_sync
+
+    filepaths = set(GitHubIntegration.codeowners_locations) | set(
+        GitlabIntegration.codeowners_locations
+    )
+
+    # CODEOWNERS file added or modified, trigger auto-sync
+    if instance.filename in filepaths and instance.type in ["A", "M"]:
+        code_owners_auto_sync.delay(instance.commit_id)
+
+
+post_save.connect(
+    lambda instance, **kwargs: process_resource_change(instance, **kwargs),
+    sender=CommitFileChange,
+    weak=False,
+)
