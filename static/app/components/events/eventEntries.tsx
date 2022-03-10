@@ -437,9 +437,9 @@ const EventEntries = memo(
           />
         )}
         {!isShare && hasEventAttachmentsFeature && (
-          <StyledEventDataSection type="context-replay" title={t('Replay')}>
+          <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
             <RRWebIntegration event={event} orgId={orgSlug} projectId={projectSlug} />
-          </StyledEventDataSection>
+          </StyledReplayEventDataSection>
         )}
       </div>
     );
@@ -488,6 +488,11 @@ const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbac
 
 const StyledEventDataSection = styled(EventDataSection)`
   margin-bottom: ${space(2)};
+`;
+
+const StyledReplayEventDataSection = styled(EventDataSection)`
+  overflow: hidden;
+  margin-bottom: ${space(3)};
 `;
 
 // TODO(ts): any required due to our use of SharedViewOrganization
