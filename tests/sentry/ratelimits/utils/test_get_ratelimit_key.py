@@ -1,5 +1,7 @@
 from django.test import RequestFactory
+from rest_framework.permissions import AllowAny
 
+from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.auth.system import SystemToken
 from sentry.mediators.token_exchange import GrantExchanger
@@ -67,3 +69,19 @@ class GetRateLimitKeyTest(TestCase):
             get_rate_limit_key(self.view, self.request)
             == f"org:default:OrganizationGroupIndexEndpoint:GET:{install.organization_id}"
         )
+
+
+class DummyEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+
+class TestDefaultToGroup(TestCase):
+    def setUp(self) -> None:
+        self.view = DummyEndpoint.as_view()
+        self.request = RequestFactory().get("/")
+
+    def test_group_key(self):
+        user = User(id=1)
+        self.request.session = {}
+        self.request.user = user
+        assert get_rate_limit_key(self.view, self.request) == f"user:default:GET:{user.id}"

@@ -180,6 +180,10 @@ function WidgetQueryFields({
 
   const canDelete = fields.length > 1;
 
+  const noFieldsMessage = isMetricWidget
+    ? t('There are no metrics for this project.')
+    : undefined;
+
   if (displayType === 'table') {
     return (
       <Field
@@ -199,6 +203,7 @@ function WidgetQueryFields({
           organization={organization}
           filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
           source={widgetType}
+          noFieldsMessage={noFieldsMessage}
         />
       </Field>
     );
@@ -227,6 +232,7 @@ function WidgetQueryFields({
             organization={organization}
             filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
             source={widgetType}
+            noFieldsMessage={noFieldsMessage}
           />
         </Field>
         <Field
@@ -250,6 +256,7 @@ function WidgetQueryFields({
                 isMetricWidget ? filterMetricsOptions : filterPrimaryOptions
               }
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
+              noFieldsMessage={noFieldsMessage}
             />
           </QueryFieldWrapper>
         </Field>
@@ -278,6 +285,7 @@ function WidgetQueryFields({
               filterPrimaryOptions={filterPrimaryOptions}
               filterAggregateParameters={filterAggregateParameters(field)}
               otherColumns={fields}
+              noFieldsMessage={noFieldsMessage}
             />
             {(canDelete || field.kind === 'equation') && (
               <Button
@@ -297,14 +305,16 @@ function WidgetQueryFields({
           <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
             {t('Add Overlay')}
           </Button>
-          <Button
-            size="small"
-            aria-label={t('Add an Equation')}
-            onClick={handleAddEquation}
-            icon={<IconAdd isCircled />}
-          >
-            {t('Add an Equation')}
-          </Button>
+          {!isMetricWidget && (
+            <Button
+              size="small"
+              aria-label={t('Add an Equation')}
+              onClick={handleAddEquation}
+              icon={<IconAdd isCircled />}
+            >
+              {t('Add an Equation')}
+            </Button>
+          )}
         </Actions>
       )}
     </Field>

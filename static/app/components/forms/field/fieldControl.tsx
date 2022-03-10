@@ -5,11 +5,7 @@ import FieldControlState from 'sentry/components/forms/field/fieldControlState';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import space from 'sentry/styles/space';
 
-const defaultProps = {
-  flexibleControlStateSize: false,
-};
-
-type Props = Partial<typeof defaultProps> & {
+export interface FieldControlProps {
   children: React.ReactNode;
   /**
    * Align the control towards the right
@@ -47,7 +43,7 @@ type Props = Partial<typeof defaultProps> & {
    * aligned to the right.
    */
   inline?: boolean;
-};
+}
 
 const FieldControl = ({
   inline,
@@ -59,7 +55,7 @@ const FieldControl = ({
   children,
   hideControlState,
   flexibleControlStateSize = false,
-}: Props) => (
+}: FieldControlProps) => (
   <FieldControlErrorWrapper inline={inline}>
     <FieldControlWrapper>
       <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>

@@ -33,7 +33,6 @@ export type Organization = OrganizationSummary & {
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
-  apdexThreshold: number;
   attachmentsRole: string;
   availableRoles: {id: string; name: string}[];
   dataScrubber: boolean;

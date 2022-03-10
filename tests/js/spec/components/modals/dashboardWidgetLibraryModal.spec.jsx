@@ -77,7 +77,16 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     const closeModal = jest.fn();
     container = mountModal({initialData}, mockApply, closeModal, [
       TestStubs.Widget(
-        [{name: '', orderby: '', conditions: 'event.type:error', fields: ['count()']}],
+        [
+          {
+            name: '',
+            orderby: '',
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
+          },
+        ],
         {
           title: 'Errors',
           interval: '1d',
@@ -104,6 +113,8 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
           {
             conditions: 'event.type:error',
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             name: '',
             orderby: '',
           },
@@ -119,6 +130,8 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
           {
             conditions: 'event.type:transaction',
             fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             name: '',
             orderby: '-count',
           },

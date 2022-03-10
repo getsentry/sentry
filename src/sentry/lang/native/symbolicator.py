@@ -532,7 +532,7 @@ class SymbolicatorSession:
             raise RuntimeError("Session not opened")
 
     def _process_response(self, json):
-        """Post-processes the JSON repsonse.
+        """Post-processes the JSON response.
 
         This modifies the candidates list from Symbolicator responses to undo aliased
         sources, hide information about unknown sources and add names to sources rather then

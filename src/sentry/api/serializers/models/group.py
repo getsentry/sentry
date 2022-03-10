@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import functools
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Optional, Tuple
+from typing import Iterable, Mapping, Optional, Sequence, Tuple, TypedDict
 
 import pytz
 import sentry_sdk
@@ -14,6 +16,7 @@ from sentry import release_health, tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
+from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
@@ -58,6 +61,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
 from sentry.utils.hashlib import hash_values
+from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import Dataset, aliased_query, raw_query
 
@@ -71,6 +75,81 @@ logger = logging.getLogger(__name__)
 def merge_list_dictionaries(dict1, dict2):
     for key, val in dict2.items():
         dict1.setdefault(key, []).extend(val)
+
+
+class GroupStatusDetailsResponseOptional(TypedDict, total=False):
+    autoResolved: bool
+    ignoreCount: int
+    ignoreUntil: datetime
+    ignoreUserCount: int
+    ignoreUserWindow: int
+    ignoreWindow: int
+    actor: UserSerializerResponse
+    inNextRelease: bool
+    inRelease: str
+    inCommit: str
+    pendingEvents: int
+    info: JSONData
+
+
+class GroupStatusDetailsResponse(GroupStatusDetailsResponseOptional):
+    pass
+
+
+class GroupProjectResponse(TypedDict):
+    id: str
+    name: str
+    slug: str
+    platform: str
+
+
+class GroupMetadataResponseOptional(TypedDict, total=False):
+    type: str
+    filename: str
+    function: str
+
+
+class GroupMetadataResponse(GroupMetadataResponseOptional):
+    value: str
+    display_title_with_tree_label: bool
+
+
+class GroupSubscriptionResponseOptional(TypedDict, total=False):
+    disabled: bool
+    reason: str
+
+
+class BaseGroupResponseOptional(TypedDict, total=False):
+    isUnhandled: bool
+    count: int
+    userCount: int
+    firstSeen: datetime
+    lastSeen: datetime
+
+
+class BaseGroupSerializerResponse(BaseGroupResponseOptional):
+    id: str
+    shareId: str
+    shortId: str
+    title: str
+    culprit: str
+    permalink: str
+    logger: Optional[str]
+    level: str
+    status: str
+    statusDetails: GroupStatusDetailsResponseOptional
+    isPublic: bool
+    platform: str
+    project: GroupProjectResponse
+    type: str
+    metadata: GroupMetadataResponse
+    numComments: int
+    assignedTo: UserSerializerResponse
+    isBookmarked: bool
+    isSubscribed: bool
+    subscriptionDetails: Optional[GroupSubscriptionResponseOptional]
+    hasSeen: bool
+    annotations: Sequence[str]
 
 
 class GroupSerializerBase(Serializer):
@@ -479,7 +558,7 @@ class GroupSerializerBase(Serializer):
         else:
             return None
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user) -> BaseGroupSerializerResponse:
         status_details, status_label = self._get_status(attrs, obj)
         permalink = self._get_permalink(attrs, obj)
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)

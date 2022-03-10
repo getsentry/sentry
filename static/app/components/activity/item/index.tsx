@@ -10,13 +10,13 @@ import {AvatarUser} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 import ActivityAvatar from './avatar';
-import ActivityBubble from './bubble';
+import ActivityBubble, {ActivityBubbleProps} from './bubble';
 
 export type ActivityAuthorType = 'user' | 'system';
 
 type ChildFunction = () => React.ReactNode;
 
-type Props = {
+interface ActivityItemProps {
   /**
    * Used to render an avatar for the author. Currently can be a user, otherwise
    * defaults as a "system" avatar (i.e. sentry)
@@ -29,7 +29,7 @@ type Props = {
   };
   // Size of the avatar.
   avatarSize?: number;
-  bubbleProps?: React.ComponentProps<typeof ActivityBubble>;
+  bubbleProps?: ActivityBubbleProps;
 
   children?: React.ReactChild | ChildFunction;
 
@@ -65,7 +65,7 @@ type Props = {
 
   // Instead of showing a relative time/date, show the time
   showTime?: boolean;
-};
+}
 
 function ActivityItem({
   author,
@@ -80,7 +80,7 @@ function ActivityItem({
   header,
   hideDate = false,
   showTime = false,
-}: Props) {
+}: ActivityItemProps) {
   const showDate = !hideDate && date && !interval;
   const showRange = !hideDate && date && interval;
   const dateEnded = showRange

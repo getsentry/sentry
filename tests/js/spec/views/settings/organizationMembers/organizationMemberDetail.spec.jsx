@@ -132,7 +132,7 @@ describe('OrganizationMemberDetail', function () {
         routerContext
       );
       // Wait for team list to fetch.
-      await wrapper.update();
+      wrapper.update();
 
       // Should have one team enabled
       expect(wrapper.find('TeamPanelItem')).toHaveLength(1);
@@ -169,7 +169,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
-      await wrapper.update();
+      wrapper.update();
 
       // Should have 4 roles
       expect(wrapper.find('RoleSelect').prop('disabled')).toBe(true);

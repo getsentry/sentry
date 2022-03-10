@@ -7,7 +7,7 @@ import space from 'sentry/styles/space';
  * Using Parameters<typeof FieldWrapper> in the Field component somehow
  * causes an infinite recursive depth so exporting the props is best workaround
  */
-type Props = {
+export interface FieldWrapperProps {
   /**
    * When false adds padding to the right of the element to ensure visual
    * consistency with other fields that aren't using flexible control states.
@@ -28,9 +28,9 @@ type Props = {
    * for form elements to be stacked on each other.
    */
   stacked?: boolean;
-};
+}
 
-const inlineStyle = (p: Props) =>
+const inlineStyle = (p: FieldWrapperProps) =>
   p.inline
     ? css`
         align-items: center;
@@ -40,7 +40,7 @@ const inlineStyle = (p: Props) =>
         align-items: stretch;
       `;
 
-const getPadding = (p: Props) =>
+const getPadding = (p: FieldWrapperProps) =>
   p.stacked && !p.inline
     ? css`
         padding: 0 ${p.hasControlState ? 0 : space(2)} ${space(2)} 0;
@@ -49,7 +49,7 @@ const getPadding = (p: Props) =>
         padding: ${space(2)} ${p.hasControlState ? 0 : space(2)} ${space(2)} ${space(2)};
       `;
 
-const FieldWrapper = styled('div')<Props>`
+const FieldWrapper = styled('div')<FieldWrapperProps>`
   ${getPadding}
   ${inlineStyle}
   display: flex;

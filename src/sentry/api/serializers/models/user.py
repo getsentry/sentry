@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, Callable, Dict, List, MutableMapping, Optional, Sequence, Union, cast
 
 from django.conf import settings
@@ -56,8 +57,8 @@ class _Identity(TypedDict):
     name: str
     organization: _Organization
     provider: _Provider
-    dateVerified: str
-    dateSynced: str
+    dateVerified: datetime
+    dateSynced: datetime
 
 
 class _UserOptions(TypedDict):
@@ -82,10 +83,10 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     isActive: bool
     hasPasswordAuth: bool
     isManaged: bool
-    dateJoined: str
-    lastLogin: str
+    dateJoined: datetime
+    lastLogin: datetime
     has2fa: bool
-    lastActive: str
+    lastActive: datetime
     isSuperuser: bool
     isStaff: bool
     experiments: Dict[str, Any]  # TODO

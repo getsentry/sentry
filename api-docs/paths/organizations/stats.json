@@ -1,8 +1,8 @@
 {
   "get": {
     "tags": ["Organizations"],
-    "summary": "Caution\nThis endpoint may change in the future without  notice.",
-    "description": "Return a set of points representing a normalized timestamp and the number of events seen in the period.",
+    "deprecated": true,
+    "description": "This endpoint is deprecated in favor of [Organization Stats V2](/api/organizations/retrieve-event-counts-for-an-organization-v2/).",
     "operationId": "Retrieve Event Counts for an Organization",
     "parameters": [
       {

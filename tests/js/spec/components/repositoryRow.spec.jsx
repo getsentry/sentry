@@ -142,7 +142,7 @@ describe('RepositoryRow', function () {
       // Confirm modal
       const modal = await mountGlobalModal();
       modal.find('Button[priority="primary"]').simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       expect(deleteRepo).toHaveBeenCalled();
     });
@@ -172,7 +172,7 @@ describe('RepositoryRow', function () {
         routerContext
       );
       wrapper.find('Button[data-test-id="repo-cancel"]').simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       expect(cancel).toHaveBeenCalled();
     });

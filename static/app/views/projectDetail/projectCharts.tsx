@@ -292,7 +292,7 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.APDEX && (
                 <ProjectBaseEventsChart
                   title={t('Apdex')}
-                  help={getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)}
+                  help={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
                   query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',

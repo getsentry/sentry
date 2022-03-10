@@ -23,6 +23,7 @@ import withApi from 'sentry/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
+import SampleEventAlert from './sampleEventAlert';
 import {Tab} from './types';
 import {
   fetchGroupEvent,
@@ -544,22 +545,29 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   render() {
-    const {project} = this.state;
+    const {project, group} = this.state;
+    const {organization} = this.props;
+    const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
 
     return (
-      <SentryDocumentTitle noSuffix title={this.getTitle()}>
-        <PageFiltersContainer
-          skipLoadLastUsed
-          forceProject={project}
-          showDateSelector={false}
-          shouldForceProject
-          lockedMessageSubject={t('issue')}
-          showIssueStreamLink
-          showProjectSettingsLink
-        >
-          <PageContent>{this.renderPageContent()}</PageContent>
-        </PageFiltersContainer>
-      </SentryDocumentTitle>
+      <React.Fragment>
+        {isSampleError && project && (
+          <SampleEventAlert project={project} organization={organization} />
+        )}
+        <SentryDocumentTitle noSuffix title={this.getTitle()}>
+          <PageFiltersContainer
+            skipLoadLastUsed
+            forceProject={project}
+            showDateSelector={false}
+            shouldForceProject
+            lockedMessageSubject={t('issue')}
+            showIssueStreamLink
+            showProjectSettingsLink
+          >
+            <PageContent>{this.renderPageContent()}</PageContent>
+          </PageFiltersContainer>
+        </SentryDocumentTitle>
+      </React.Fragment>
     );
   }
 }

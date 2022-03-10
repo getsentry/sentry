@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 
 import {alertDetailsLink, fetchIncident} from './utils';
@@ -20,10 +20,8 @@ function IncidentDetails({organization, params}: Props) {
   const [hasError, setHasError] = useState(false);
 
   const track = () => {
-    trackAnalyticsEvent({
-      eventKey: 'alert_details.viewed',
-      eventName: 'Alert Details: Viewed',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('alert_details.viewed', {
+      organization,
       alert_id: parseInt(params.alertId, 10),
     });
   };

@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -40,6 +40,7 @@ from sentry.models import (
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.utils import get_rules
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -266,7 +267,7 @@ def alert(request):
     group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
-    rule = Rule(label="An example rule")
+    rule = Rule(id=1, label="An example rule")
 
     # XXX: this interface_list code needs to be the same as in
     #      src/sentry/mail/adapter.py
@@ -283,6 +284,7 @@ def alert(request):
         text_template="sentry/emails/error.txt",
         context={
             "rule": rule,
+            "rules": get_rules([rule], org, project),
             "group": group,
             "event": event,
             "timezone": pytz.timezone("Europe/Vienna"),
@@ -290,6 +292,7 @@ def alert(request):
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,
+            "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
             "commits": [
                 {
                     # TODO(dcramer): change to use serializer
@@ -402,6 +405,8 @@ def digest(request):
         "start": start,
         "end": end,
         "referrer": "digest_email",
+        "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
+        "rules_details": {rule.id: rule for rule in get_rules(rules.values(), org, project)},
     }
     add_unsubscribe_link(context)
 

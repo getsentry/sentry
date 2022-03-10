@@ -100,7 +100,7 @@ function SidebarCharts({
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)}
+            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
             size="sm"
           />
         </ChartTitle>
@@ -366,9 +366,7 @@ function SidebarChartsContainer({
   };
 
   if (isMetricsData) {
-    const fields = [
-      `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`,
-    ];
+    const fields = [`count(${TransactionMetric.TRANSACTION_DURATION})`];
 
     chartOptions.tooltip.nameFormatter = (name: string) => {
       return name === 'failure_rate()' ? fields[0] : name;

@@ -22,6 +22,7 @@ import {
 } from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   DateString,
   Environment,
@@ -462,13 +463,13 @@ async function updateDesyncedUrlState(router?: Router) {
     currentQuery.utc !== null ||
     currentQuery.period !== null;
 
-  // Is the datetime filter differning?
+  // Is the datetime filter different?
   if (
     pinnedFilters.has('datetime') &&
     dateTimeInQuery &&
     (currentQuery.period !== storedState.period ||
-      currentQuery.start !== storedState.start ||
-      currentQuery.end !== storedState.end ||
+      currentQuery.start?.getTime() !== storedState.start?.getTime() ||
+      currentQuery.end?.getTime() !== storedState.end?.getTime() ||
       currentQuery.utc !== storedState.utc)
   ) {
     differingFilters.add('datetime');
@@ -481,7 +482,7 @@ async function updateDesyncedUrlState(router?: Router) {
  * Merges an UpdateParams object into a Location['query'] object. Results in a
  * PageFilterQuery
  *
- * Preserves the old query params, except for `cursor` (can be overriden with
+ * Preserves the old query params, except for `cursor` (can be overridden with
  * keepCursor option)
  *
  * @param obj New query params
@@ -533,4 +534,30 @@ function getNewQueryParams(
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
 
   return Object.fromEntries(paramEntries) as PageFilterQuery;
+}
+
+export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {
+  const {selection, desyncedFilters} = PageFiltersStore.getState();
+  const storedFilterState = getPageFilterStorage(orgSlug)?.state;
+
+  if (!storedFilterState) {
+    return;
+  }
+
+  const newParams = {
+    project: desyncedFilters.has('projects')
+      ? storedFilterState.project
+      : selection.projects,
+    environment: desyncedFilters.has('environments')
+      ? storedFilterState.environment
+      : selection.environments,
+    ...(desyncedFilters.has('datetime')
+      ? pick(storedFilterState, DATE_TIME_KEYS)
+      : selection.datetime),
+  };
+
+  updateParams(newParams, router, {
+    keepCursor: true,
+  });
+  updateDesyncedUrlState(router);
 }

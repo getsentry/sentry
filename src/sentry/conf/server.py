@@ -454,9 +454,6 @@ SESSION_COOKIE_SAMESITE = None
 
 SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
-GOOGLE_OAUTH2_CLIENT_ID = ""
-GOOGLE_OAUTH2_CLIENT_SECRET = ""
-
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
 
@@ -560,6 +557,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.check_auth",
     "sentry.tasks.check_monitors",
     "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.codeowners.code_owners_auto_sync",
+    "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
     "sentry.tasks.deletion",
@@ -914,6 +913,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "SERVERS": [{"url": "https://sentry.io/"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
+        "SORT_OPERATION_PARAMETERS": False,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
@@ -990,6 +990,8 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable the new widget builder experience on Dashboards
     "organizations:new-widget-builder-experience": False,
+    # Enable the new widget builder experience "design" on Dashboards
+    "organizations:new-widget-builder-experience-design": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1039,8 +1041,6 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics in dashboards
     "organizations:dashboards-metrics": False,
-    # Enable issue widgets in dashboards
-    "organizations:issues-in-dashboards": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable experimental performance improvements.
@@ -1094,10 +1094,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable workaround for migrating IdP instances
-    "organizations:sso-migration": False,
-    # Enable percent-based conditions on issue rules
-    "organizations:issue-percent-filters": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
@@ -2479,7 +2475,7 @@ DEMO_MODE = False
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
 
-# paramters that determine how demo events are generated
+# parameters that determine how demo events are generated
 DEMO_DATA_GEN_PARAMS = {}
 
 # parameters for an org when quickly generating them synchronously
@@ -2510,5 +2506,5 @@ ANOMALY_DETECTION_TIMEOUT = 30
 # This is the URL to the profiling service
 SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 
-SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.base.RuleHistoryBackend"
+SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}

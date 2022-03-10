@@ -58,7 +58,7 @@ describe('ProjectTeams', function () {
       />
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper).toSnapshot();
   });
@@ -91,7 +91,7 @@ describe('ProjectTeams', function () {
       />
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -163,7 +163,7 @@ describe('ProjectTeams', function () {
       />
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -210,7 +210,7 @@ describe('ProjectTeams', function () {
       />
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -262,7 +262,7 @@ describe('ProjectTeams', function () {
       </App>
     );
     // Wait for team list to fetch.
-    await wrapper.update();
+    wrapper.update();
 
     // Open the dropdown
     wrapper.find('TeamSelect DropdownButton').simulate('click');

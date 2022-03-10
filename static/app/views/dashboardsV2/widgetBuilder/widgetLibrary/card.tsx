@@ -4,18 +4,17 @@ import space from 'sentry/styles/space';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboardsV2/widgetLibrary/widgetCard';
 
-type CardProps = {
+interface CardProps {
   iconColor: string;
-  onClick: () => void;
   widget: WidgetTemplate;
-};
+}
 
-export function Card({widget, iconColor, onClick}: CardProps) {
+export function Card({widget, iconColor}: CardProps) {
   const {title, description, displayType} = widget;
   const Icon = getWidgetIcon(displayType);
 
   return (
-    <Container onClick={onClick}>
+    <Container>
       <IconWrapper backgroundColor={iconColor}>
         <Icon color="white" />
       </IconWrapper>
@@ -31,7 +30,6 @@ const Container = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  cursor: pointer;
 `;
 
 const Information = styled('div')`

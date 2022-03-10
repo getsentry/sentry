@@ -46,7 +46,7 @@ function WidgetCardContextMenu({
   if (isPreview) {
     return (
       <ContextWrapper>
-        <DropdownMenuControlV2
+        <StyledDropdownMenuControlV2
           items={[
             {
               key: 'preview',
@@ -141,7 +141,7 @@ function WidgetCardContextMenu({
 
   return (
     <ContextWrapper>
-      <DropdownMenuControlV2
+      <StyledDropdownMenuControlV2
         items={menuOptions}
         triggerProps={{
           'aria-label': t('Widget actions'),
@@ -164,4 +164,10 @@ const ContextWrapper = styled('div')`
   align-items: center;
   height: ${space(3)};
   margin-left: ${space(1)};
+`;
+
+const StyledDropdownMenuControlV2 = styled(DropdownMenuControlV2)`
+  & > button {
+    z-index: auto;
+  }
 `;

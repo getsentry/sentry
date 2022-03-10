@@ -98,7 +98,7 @@ class MetricsBatchBuilder:
     def __init__(self, max_batch_size: int, max_batch_time: float) -> None:
         self.__messages: MessageBatch = []
         self.__max_batch_size = max_batch_size
-        self.__deadline = time.time() + max_batch_time
+        self.__deadline = time.time() + max_batch_time / 1000.0
         self.__offsets: Set[int] = set()
 
     def __len__(self) -> int:
@@ -626,7 +626,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
             self.__started = time.time()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        position = Position(message.offset, message.timestamp)
+        position = Position(message.next_offset, message.timestamp)
         self.__producer.produce(
             topic=self.__producer_topic,
             key=None,

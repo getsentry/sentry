@@ -109,12 +109,15 @@ class RuleNode extends React.Component<Props> {
 
   getTextField = (name: string, fieldConfig: FormField) => {
     const {data, index, onPropertyChange, disabled} = this.props;
-
+    const value =
+      data && data[name] && typeof data[name] !== 'boolean'
+        ? (data[name] as string | number)
+        : '';
     return (
       <InlineInput
         type="text"
         name={name}
-        value={(data && data[name]) ?? ''}
+        value={value}
         placeholder={`${fieldConfig.placeholder}`}
         disabled={disabled}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -126,12 +129,15 @@ class RuleNode extends React.Component<Props> {
 
   getNumberField = (name: string, fieldConfig: FormField) => {
     const {data, index, onPropertyChange, disabled} = this.props;
-
+    const value =
+      data && data[name] && typeof data[name] !== 'boolean'
+        ? (data[name] as string | number)
+        : '';
     return (
       <InlineNumberInput
         type="number"
         name={name}
-        value={(data && data[name]) ?? ''}
+        value={value}
         placeholder={`${fieldConfig.placeholder}`}
         disabled={disabled}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -425,6 +431,7 @@ class RuleNode extends React.Component<Props> {
                 size="small"
                 icon={<IconSettings size="xs" />}
                 type="button"
+                disabled={Boolean(data?.disabled) || disabled}
                 onClick={() => {
                   openModal(
                     deps => (

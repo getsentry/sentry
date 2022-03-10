@@ -618,7 +618,7 @@ describe('Dashboards > Detail', function () {
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
-          location={initialData.router.location}
+          location={{...initialData.router.location, pathname: '/mockpath'}}
         />,
         initialData.routerContext
       );

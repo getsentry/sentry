@@ -30,7 +30,7 @@ _DEFAULT_DAEMONS = {
         "--force-offset-reset",
         "latest",
     ],
-    "metrics": ["sentry", "run", "ingest-metrics-consumer"],
+    "metrics": ["sentry", "run", "ingest-metrics-consumer-2"],
 }
 
 

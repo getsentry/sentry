@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
+import importlib
+import os
+import typing
+from contextlib import contextmanager
+from typing import Any, Generator
 
 from drf_spectacular.plumbing import UnableToProceedError
 
@@ -53,3 +57,23 @@ class SentryApiBuildError(UnableToProceedError):  # type: ignore
 
 
 # TODO: extend schema wrapper method here?
+
+# below inspired by https://stackoverflow.com/a/54766405
+
+
+def reload_module_with_type_checking_enabled(module_name: str) -> None:
+    @contextmanager
+    def _patch_type_checking_const() -> Generator[None, None, None]:
+        try:
+            setattr(typing, "TYPE_CHECKING", True)
+            yield
+        finally:
+            setattr(typing, "TYPE_CHECKING", False)
+
+    if not os.environ.get("OPENAPIGENERATE", False):
+        raise RuntimeError("This function can only be ran when generating API docs.")
+
+    module = importlib.import_module(module_name)
+
+    with _patch_type_checking_const():
+        importlib.reload(module)

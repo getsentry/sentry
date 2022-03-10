@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytz
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
 from sentry.spans.grouping.utils import hash_values
 from sentry.utils import json
@@ -278,6 +278,7 @@ def create_sample_event(
     trace=None,
     span_id=None,
     spans=None,
+    tagged=False,
     **kwargs,
 ):
     if not platform and not default:
@@ -301,10 +302,14 @@ def create_sample_event(
             data["contexts"]["trace"][key] = kwargs.pop(key)
 
     data.update(kwargs)
-    return create_sample_event_basic(data, project.id, raw=raw)
+    return create_sample_event_basic(data, project.id, raw=raw, tagged=tagged)
 
 
-def create_sample_event_basic(data, project_id, raw=True, skip_send_first_transaction=False):
+def create_sample_event_basic(
+    data, project_id, raw=True, skip_send_first_transaction=False, tagged=False
+):
+    if tagged:
+        set_tag(data, "sample_event", "yes")
     manager = EventManager(data)
     manager.normalize()
     return manager.save(

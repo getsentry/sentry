@@ -69,7 +69,7 @@ describe('IssueListSavedSearchMenu', () => {
       // Second item should have a delete button as it is not a global search
       const button = wrapper.find('MenuItem').at(0).find('button[aria-label="delete"]');
       button.simulate('click');
-      await wrapper.update();
+      wrapper.update();
 
       const modal = await mountGlobalModal();
       modal.find('Modal Button[priority="primary"] button').simulate('click');

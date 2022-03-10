@@ -39,6 +39,8 @@ function fetchProfiles(
     query: {
       cursor,
       project: selection.projects,
+      environment: selection.environments,
+      ...normalizeDateTimeParams(selection.datetime),
     },
   });
 }
@@ -53,7 +55,6 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
   const [traces, setTraces] = useState<Trace[]>([]);
   const [pageLinks, setPageLinks] = useState<string | null>(null);
   const organization = useOrganization();
-  const dateSelection = normalizeDateTimeParams(location.query);
   const cursor = decodeScalar(location.query.cursor);
 
   const api = useApi();
@@ -93,7 +94,14 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                   </Alert>
                 )}
                 <ProfilingScatterChart
-                  {...dateSelection}
+                  datetime={
+                    selection?.datetime ?? {
+                      start: null,
+                      end: null,
+                      period: null,
+                      utc: null,
+                    }
+                  }
                   traces={traces}
                   isLoading={requestState === 'loading'}
                 />

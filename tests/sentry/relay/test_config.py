@@ -1,6 +1,7 @@
 import pytest
 
 from sentry.models import ProjectKey
+from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
 from sentry.utils.safe import get_path
@@ -116,6 +117,45 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
             "transactionMetrics": cfg["config"].get("transactionMetrics"),
         }
     )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("has_project_transaction_threshold", (False, True))
+@pytest.mark.parametrize("has_project_transaction_threshold_overrides", (False, True))
+def test_project_config_satisfaction_thresholds(
+    default_project,
+    insta_snapshot,
+    has_project_transaction_threshold_overrides,
+    has_project_transaction_threshold,
+):
+    if has_project_transaction_threshold:
+        default_project.projecttransactionthreshold_set.create(
+            organization=default_project.organization,
+            threshold=500,
+            metric=TransactionMetric.LCP.value,
+        )
+    if has_project_transaction_threshold_overrides:
+        default_project.projecttransactionthresholdoverride_set.create(
+            organization=default_project.organization,
+            transaction="foo",
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+        default_project.projecttransactionthresholdoverride_set.create(
+            organization=default_project.organization,
+            transaction="bar",
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+    with Feature(
+        {
+            "organizations:transaction-metrics-extraction": True,
+        }
+    ):
+        cfg = get_project_config(default_project, full_config=True)
+
+    cfg = cfg.to_dict()
+    insta_snapshot(cfg["config"]["transactionMetrics"]["satisfactionThresholds"])
 
 
 @pytest.mark.django_db

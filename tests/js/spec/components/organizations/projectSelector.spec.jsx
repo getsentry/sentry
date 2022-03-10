@@ -159,7 +159,7 @@ describe('ProjectSelector', function () {
     openMenu(wrapper);
 
     // Select first project
-    wrapper.find('CheckboxHitbox').first().simulate('click');
+    wrapper.find('MultiselectCheckbox').first().simulate('click');
 
     // onSelect callback should NOT be called
     expect(mock).not.toHaveBeenCalled();

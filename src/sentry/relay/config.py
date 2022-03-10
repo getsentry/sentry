@@ -1,11 +1,13 @@
+import logging
 import uuid
 from datetime import datetime
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
 from sentry import features, quotas, utils
+from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -17,6 +19,7 @@ from sentry.ingest.inbound_filters import (
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project
+from sentry.models.transaction_threshold import TRANSACTION_METRICS as TRANSACTION_THRESHOLD_KEYS
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -27,6 +30,8 @@ EXPOSABLE_FEATURES = [
     "organizations:metrics-extraction",
     "organizations:profiling",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def get_exposed_features(project: Project) -> List[str]:
@@ -397,6 +402,50 @@ ALL_MEASUREMENT_METRICS = frozenset(
 )
 
 
+class _TransactionThreshold(TypedDict):
+    metric: Optional[str]  # Either 'duration' or 'lcp'
+    threshold: float
+
+
+class _TransactionThresholdConfig(TypedDict):
+    #: The project-wide threshold to apply (see `ProjectTransactionThreshold`)
+    projectThreshold: _TransactionThreshold
+    #: Transaction-specific overrides of the project-wide threshold
+    #: (see `ProjectTransactionThresholdOverride`)
+    transactionThresholds: Mapping[str, _TransactionThreshold]
+
+
+def _get_satisfaction_thresholds(project: Project) -> _TransactionThresholdConfig:
+    # Always start with the default threshold, so we do not have to maintain
+    # A separate default in Relay
+    project_threshold: _TransactionThreshold = {
+        "metric": DEFAULT_THRESHOLD["metric"],
+        "threshold": float(DEFAULT_THRESHOLD["threshold"]),
+    }
+
+    # Apply custom project threshold
+    for i, threshold in enumerate(project.projecttransactionthreshold_set.all()):
+        if i > 0:
+            logger.error("More than one transaction threshold exists for project")
+            break
+        project_threshold = {
+            "metric": TRANSACTION_THRESHOLD_KEYS[threshold.metric],
+            "threshold": threshold.threshold,
+        }
+
+    # Apply transaction-specific override
+    return {
+        "projectThreshold": project_threshold,
+        "transactionThresholds": {
+            threshold.transaction: {
+                "metric": TRANSACTION_THRESHOLD_KEYS[threshold.metric],
+                "threshold": threshold.threshold,
+            }
+            for threshold in project.projecttransactionthresholdoverride_set.all()
+        },
+    }
+
+
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
 ):
@@ -436,4 +485,5 @@ def get_transaction_metrics_settings(
     return {
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
+        "satisfactionThresholds": _get_satisfaction_thresholds(project),
     }

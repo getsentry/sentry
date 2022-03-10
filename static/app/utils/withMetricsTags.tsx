@@ -1,49 +1,29 @@
 import * as React from 'react';
 
 import MetricsTagStore from 'sentry/stores/metricsTagStore';
-import {MetricTagCollection} from 'sentry/types';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {MetricsTagCollection} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 export type InjectedMetricsTagsProps = {
-  metricsTags: MetricTagCollection;
-};
-
-type State = {
-  metricsTags: MetricTagCollection;
+  metricsTags: MetricsTagCollection;
 };
 
 function withMetricsTags<P extends InjectedMetricsTagsProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithMetricTags extends React.Component<
-    Omit<P, keyof InjectedMetricsTagsProps>,
-    State
-  > {
-    static displayName = `withMetricsTags(${getDisplayName(WrappedComponent)})`;
+  type Props = Omit<P, keyof InjectedMetricsTagsProps> &
+    Partial<InjectedMetricsTagsProps>;
 
-    state: State = {
-      metricsTags: MetricsTagStore.getAllTags(),
-    };
+  const WithMetricsTags: React.FC<Props> = props => {
+    const {metricsTags} = useLegacyStore(MetricsTagStore);
 
-    componentWillUnmount() {
-      this.unsubscribe();
-    }
-    unsubscribe = MetricsTagStore.listen(
-      (metricsTags: MetricTagCollection) => this.setState({metricsTags}),
-      undefined
-    );
+    return <WrappedComponent {...(props as P)} metricsTags={metricsTags} />;
+  };
 
-    render() {
-      const {metricsTags, ...props} = this.props as P;
-      return (
-        <WrappedComponent
-          {...({metricsTags: metricsTags ?? this.state.metricsTags, ...props} as P)}
-        />
-      );
-    }
-  }
+  WithMetricsTags.displayName = `withMetricsTags(${getDisplayName(WrappedComponent)})`;
 
-  return WithMetricTags;
+  return WithMetricsTags;
 }
 
 export default withMetricsTags;

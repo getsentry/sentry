@@ -62,6 +62,27 @@ class JiraWebhooksTest(APITestCase):
             assert mock_sync_group_assignee_inbound.called
             assert len(responses.calls) == 1
 
+    @override_settings(JIRA_USE_EMAIL_SCOPE=True)
+    @responses.activate
+    def test_assign_use_email_api_error(self):
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/3/user/email",
+            status=500,
+            match_querystring=False,
+        )
+
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
+            data["issue"]["fields"]["assignee"]["emailAddress"] = ""
+            response = self.get_success_response(
+                **data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN)
+            )
+            assert "error_message" in response.data
+
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     def test_assign_missing_email(self, mock_sync_group_assignee_inbound):
         with patch(
