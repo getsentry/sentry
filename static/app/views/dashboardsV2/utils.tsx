@@ -47,8 +47,8 @@ export function eventViewFromWidget(
   const fields =
     widgetDisplayType === DisplayType.WORLD_MAP &&
     !query.columns.includes('geo.country_code')
-      ? ['geo.country_code', ...query.columns]
-      : query.columns;
+      ? ['geo.country_code', ...query.columns, ...query.aggregates]
+      : [...query.columns, ...query.aggregates];
   const conditions =
     widgetDisplayType === DisplayType.WORLD_MAP &&
     !query.conditions.includes('has:geo.country_code')

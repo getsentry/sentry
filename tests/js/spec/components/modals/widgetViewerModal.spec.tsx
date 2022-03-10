@@ -310,6 +310,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['p75(measurements.lcp)'],
+      aggregates: ['p75(measurements.lcp)'],
+      columns: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -375,6 +377,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
+      columns: ['events', 'status', 'title'],
+      aggregates: [],
       id: '1',
       name: 'Query Name',
       orderby: '',

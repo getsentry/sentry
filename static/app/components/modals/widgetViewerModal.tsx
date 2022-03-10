@@ -16,6 +16,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -89,17 +90,20 @@ function WidgetViewerModal(props: Props) {
       ...cloneDeep({...widget, queries: sortedQueries}),
       displayType: DisplayType.TABLE,
     };
-    const query = tableWidget.queries[0];
-    const fields = defined(query.fields)
-      ? query.fields
-      : [...query.columns, ...query.aggregates];
+    const fields = defined(tableWidget.queries[0].fields)
+      ? tableWidget.queries[0].fields
+      : [...tableWidget.queries[0].columns, ...tableWidget.queries[0].aggregates];
+
+    const columns = tableWidget.queries[0].columns;
+    const aggregates = tableWidget.queries[0].aggregates;
 
     // World Map view should always have geo.country in the table chart
     if (
       widget.displayType === DisplayType.WORLD_MAP &&
-      !fields.includes(GEO_COUNTRY_CODE)
+      !columns.includes(GEO_COUNTRY_CODE)
     ) {
       fields.unshift(GEO_COUNTRY_CODE);
+      columns.unshift(GEO_COUNTRY_CODE);
     }
     if (!isTableWidget) {
       // Updates fields by adding any individual terms from equation fields as a column
@@ -107,6 +111,12 @@ function WidgetViewerModal(props: Props) {
       equationFields.forEach(term => {
         if (Array.isArray(fields) && !fields.includes(term)) {
           fields.unshift(term);
+        }
+        if (isAggregateField(term) && !aggregates.includes(term)) {
+          aggregates.unshift(term);
+        }
+        if (!isAggregateField(term) && !columns.includes(term)) {
+          columns.unshift(term);
         }
       });
     }
