@@ -222,6 +222,7 @@ describe('WaterfallModel', () => {
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
       toggleSpanGroup: undefined,
+      toggleSiblingSpanGroup: undefined,
     },
     {
       type: 'gap',
@@ -262,6 +263,7 @@ describe('WaterfallModel', () => {
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
       toggleSpanGroup: undefined,
+      toggleSiblingSpanGroup: undefined,
     },
     {
       type: 'span',
@@ -287,6 +289,7 @@ describe('WaterfallModel', () => {
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
       toggleSpanGroup: undefined,
+      toggleSiblingSpanGroup: undefined,
     },
     {
       type: 'span',
@@ -312,6 +315,7 @@ describe('WaterfallModel', () => {
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
       toggleSpanGroup: undefined,
+      toggleSiblingSpanGroup: undefined,
     },
     {
       type: 'span',
@@ -337,6 +341,7 @@ describe('WaterfallModel', () => {
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
       toggleSpanGroup: undefined,
+      toggleSiblingSpanGroup: undefined,
     },
     {
       type: 'span',
@@ -362,6 +367,7 @@ describe('WaterfallModel', () => {
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
       toggleSpanGroup: undefined,
+      toggleSiblingSpanGroup: undefined,
     },
     {
       type: 'gap',
@@ -404,6 +410,7 @@ describe('WaterfallModel', () => {
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
       toggleSpanGroup: undefined,
+      toggleSiblingSpanGroup: undefined,
     },
     {
       type: 'span_group_chain',
@@ -448,6 +455,7 @@ describe('WaterfallModel', () => {
           toggleEmbeddedChildren: expect.any(Function),
           fetchEmbeddedChildrenState: 'idle',
           toggleSpanGroup: undefined,
+          toggleSiblingSpanGroup: undefined,
         },
         {
           type: 'span',
@@ -473,10 +481,12 @@ describe('WaterfallModel', () => {
           toggleEmbeddedChildren: expect.any(Function),
           fetchEmbeddedChildrenState: 'idle',
           toggleSpanGroup: undefined,
+          toggleSiblingSpanGroup: undefined,
         },
       ],
       showSpanGroup: false,
       toggleSpanGroup: expect.any(Function),
+      toggleSiblingSpanGroup: undefined,
     },
     {
       type: 'span',
@@ -502,6 +512,7 @@ describe('WaterfallModel', () => {
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
       toggleSpanGroup: undefined,
+      toggleSiblingSpanGroup: undefined,
     },
   ];
 
