@@ -212,8 +212,6 @@ function WidgetBuilder({
 
   const api = useApi();
 
-  // Mocking state for group by field
-  const [groupByColumns, setGroupByColumns] = useState<QueryFieldValue[]>([]);
   const [state, setState] = useState<State>(() => {
     if (!widgetToBeUpdated) {
       return {
@@ -431,6 +429,8 @@ function WidgetBuilder({
       const newQuery = cloneDeep(query);
 
       newQuery.fields = fieldStrings;
+      // TODO: Adding an equation sets columns: ['equation|'], is this incorrect
+      // output from getColumnsAndAggregates or should the widget builder handle this?
       const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
       newQuery.aggregates = aggregates;
       newQuery.columns = columns;
@@ -449,6 +449,18 @@ function WidgetBuilder({
           newQuery.orderby = '';
         }
       }
+
+      handleQueryChange(index, newQuery);
+    });
+  }
+
+  function handleGroupByChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+
+    state.queries.forEach((query, index) => {
+      const newQuery = cloneDeep(query);
+      const {columns} = getColumnsAndAggregates(fieldStrings);
+      newQuery.columns = columns;
 
       handleQueryChange(index, newQuery);
     });
@@ -678,10 +690,6 @@ function WidgetBuilder({
   ].includes(state.displayType);
 
   const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
-
-  function handleGroupByChange(newGroups: QueryFieldValue[]) {
-    setGroupByColumns([...newGroups]);
-  }
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -980,10 +988,12 @@ function WidgetBuilder({
                             });
                           return (
                             <GroupBy
-                              // columns={state.queries[0].columns?.map(field =>
-                              //   explodeField({field})
-                              // )}
-                              columns={groupByColumns}
+                              columns={
+                                state.queries[0].columns
+                                  // See TODO in handleYAxisOrColumnFieldChange
+                                  ?.filter(field => !field.startsWith('equation|'))
+                                  .map(field => explodeField({field})) ?? []
+                              }
                               fields={explodedFields}
                               fieldOptions={groupByOptions}
                               onChange={handleGroupByChange}
