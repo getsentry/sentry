@@ -115,6 +115,7 @@ class DashboardWidget(Model):
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
     widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices(), null=True)
+    limit = models.IntegerField(null=True)
     detail = JSONField(null=True)
 
     class Meta:
