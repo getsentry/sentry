@@ -226,10 +226,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "count_web_vitals",
                     required_args=[
-                        SnQLStringArg(
-                            "quality", unquote=True, unescape_quotes=True, optional_unquote=True
-                        ),
                         NumericColumn("column"),
+                        SnQLStringArg("quality"),
                     ],
                     snql_aggregate=self._resolve_web_vital_function,
                     default_result_type="integer",

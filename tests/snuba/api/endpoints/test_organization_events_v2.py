@@ -4898,24 +4898,24 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
         self.store_event(self.transaction_data, self.project.id)
         query = {
             "field": [
-                "count_web_vitals(poor, measurements.lcp)",
-                "count_web_vitals(meh, measurements.lcp)",
-                "count_web_vitals(good, measurements.lcp)",
+                "count_web_vitals(measurements.lcp, poor)",
+                "count_web_vitals(measurements.lcp, meh)",
+                "count_web_vitals(measurements.lcp, good)",
             ]
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0] == {
-            "count_web_vitals_poor_measurements_lcp": 0,
-            "count_web_vitals_meh_measurements_lcp": 2,
-            "count_web_vitals_good_measurements_lcp": 1,
+            "count_web_vitals_measurements_lcp_poor": 0,
+            "count_web_vitals_measurements_lcp_meh": 2,
+            "count_web_vitals_measurements_lcp_good": 1,
         }
 
     def test_count_web_vitals_invalid_vital(self):
         query = {
             "field": [
-                "count_web_vitals(poor, measurements.foo)",
+                "count_web_vitals(measurements.foo, poor)",
             ],
             "project": [self.project.id],
         }
@@ -4924,7 +4924,7 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
 
         query = {
             "field": [
-                "count_web_vitals(poor, tags[lcp])",
+                "count_web_vitals(tags[lcp], poor)",
             ],
             "project": [self.project.id],
         }
@@ -4933,12 +4933,21 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
 
         query = {
             "field": [
-                "count_web_vitals(poor, transaction.duration)",
+                "count_web_vitals(transaction.duration, poor)",
             ],
             "project": [self.project.id],
         }
         response = self.do_request(query)
-        assert response.status_code == 200, response.content
+        assert response.status_code == 400, response.content
+
+        query = {
+            "field": [
+                "count_web_vitals(measurements.lcp, bad)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
