@@ -237,6 +237,7 @@ class SpanTree extends React.Component<PropType> {
               toggleSpanGroup={payload.toggleSiblingSpanGroup as () => void}
               toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
               groupType={GroupType.SIBLINGS}
+              isLastSibling={payload.isLastSibling!}
             />
           );
           acc.spanNumber = spanNumber + 1;

@@ -63,6 +63,7 @@ export type SpanGroupProps = {
   spanGrouping: EnhancedSpan[] | undefined;
   toggleSiblingSpanGroup: ((operation: string, description: string) => void) | undefined;
   toggleSpanGroup: (() => void) | undefined;
+  isLastSibling?: boolean;
 };
 
 export type SpanSiblingGroupProps = {

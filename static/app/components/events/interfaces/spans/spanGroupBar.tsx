@@ -65,6 +65,7 @@ type Props = {
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   groupType: GroupType;
+  isLastSibling: boolean;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
@@ -235,7 +236,13 @@ class SpanGroupBar extends React.Component<Props> {
   }
 
   renderSpanTreeConnector() {
-    const {treeDepth: spanTreeDepth, continuingTreeDepths, span} = this.props;
+    const {
+      treeDepth: spanTreeDepth,
+      continuingTreeDepths,
+      span,
+      groupType,
+      isLastSibling,
+    } = this.props;
 
     const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
       const depth: number = unwrapTreeDepth(treeDepth);
@@ -257,21 +264,39 @@ class SpanGroupBar extends React.Component<Props> {
       );
     });
 
-    connectorBars.push(
-      <ConnectorBar
-        style={{
-          right: '15px',
-          height: `${ROW_HEIGHT / 2}px`,
-          bottom: `-${ROW_HEIGHT / 2 + 1}px`,
-          top: 'auto',
-        }}
-        key="collapsed-span-group-row-bottom"
-        orphanBranch={false}
-      />
-    );
+    if (groupType === GroupType.DESCENDANTS) {
+      connectorBars.push(
+        <ConnectorBar
+          style={{
+            right: '15px',
+            height: `${ROW_HEIGHT / 2}px`,
+            bottom: `-${ROW_HEIGHT / 2 + 1}px`,
+            top: 'auto',
+          }}
+          key="collapsed-span-group-row-bottom"
+          orphanBranch={false}
+        />
+      );
+    } else if (groupType === GroupType.SIBLINGS && !isLastSibling) {
+      const depth: number = unwrapTreeDepth(spanTreeDepth - 1);
+      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
+      connectorBars.push(
+        <ConnectorBar
+          style={{
+            left,
+          }}
+          key="test"
+          orphanBranch={false}
+        />
+      );
+    }
 
     return (
-      <TreeConnector isLast hasToggler orphanBranch={isOrphanSpan(span)}>
+      <TreeConnector
+        isLast={groupType === GroupType.DESCENDANTS || isLastSibling}
+        hasToggler
+        orphanBranch={isOrphanSpan(span)}
+      >
         {connectorBars}
       </TreeConnector>
     );

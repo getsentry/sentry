@@ -429,6 +429,7 @@ class SpanTreeModel {
           spanGrouping: wrappedSiblings,
           toggleSpanGroup: undefined,
           showSpanGroup,
+          isLastSibling: groupIndex === groupedDescendants.length - 1,
           toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
         };
 
