@@ -117,7 +117,6 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     columns = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
-    limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     orderby = serializers.CharField(required=False, allow_blank=True)
 
     required_for_create = {"fields", "conditions"}
