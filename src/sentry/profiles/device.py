@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import Dict, Optional, Tuple
 
 GIB = 1024 * 1024 * 1024
 UNKNOWN_DEVICE = "Unknown Device"
@@ -11,7 +11,7 @@ class DeviceClass(Enum):
     MID_END = 2
     HIGH_END = 3
 
-    def __str__(self):
+    def __str__(self) -> str:
         return {0: "unclassified", 1: "low", 2: "mid", 3: "high"}[self.value]
 
 
@@ -28,8 +28,8 @@ def classify_device(
     model: str,
     os_name: str,
     is_emulator: bool,
-    cpu_frequencies: List[int] = None,
-    physical_memory_bytes: int = None,
+    cpu_frequencies: Optional[Tuple[int]] = None,
+    physical_memory_bytes: Optional[int] = None,
 ) -> DeviceClass:
     platform = get_platform(os_name, is_emulator)
     if platform in (Platform.IOS_SIMULATOR, Platform.ANDROID_EMULATOR):
@@ -58,15 +58,15 @@ def classify_device(
     return DeviceClass.UNCLASSIFIED
 
 
-def number_of_cores(frequencies: List[int]) -> int:
-    return len(frequencies)
+def number_of_cores(frequencies: Optional[Tuple[int, ...]]) -> int:
+    return len(frequencies) if frequencies is not None else 0
 
 
-def core_frequency(frequencies: List[int]) -> int:
-    return max(frequencies)
+def core_frequency(frequencies: Optional[Tuple[int, ...]]) -> int:
+    return max(frequencies) if frequencies is not None else 0
 
 
-def get_platform(device_os_name: str, is_emulator: bool) -> str:
+def get_platform(device_os_name: str, is_emulator: bool) -> Platform:
     if device_os_name == "android":
         if is_emulator:
             return Platform.ANDROID_EMULATOR
@@ -134,7 +134,7 @@ APPLETVGEN2 = "Apple TV (2nd gen)"
 APPLETVGEN3 = "Apple TV (3rd gen)"
 
 # https:#www.theiphonewiki.com/wiki/Models
-IOS_MODELS = {
+IOS_MODELS: Dict[str, str] = {
     "iPhone1,1": "iPhone (1st gen)",
     "iPhone1,2": "iPhone 3G",
     "iPhone2,1": "iPhone 3GS",
@@ -332,25 +332,25 @@ CPU20 = (2900, 2900, 1800, 1800, 1800, 1800)
 CPU21 = (3200, 3200, 3200, 3200, 2060, 2060, 2060, 2060)
 
 
-IOS_CPU_FREQUENCIES = {
-    "iPhone1,1": 412,
-    "iPhone1,2": 412,
-    "iPod1,1": 412,
-    "Watch1,1": 520,
-    "Watch1,2": 520,
-    "iPod1,2": 533,
-    "iPhone2,1": 600,
-    "iPod3,1": 600,
-    "iPhone3,1": 800,
-    "iPhone3,2": 800,
-    "iPhone3,3": 800,
-    "iPod4,1": 800,
-    "iPhone4,1": 800,
-    "iPad1,1": 1000,
-    "AppleTV1,1": 1000,
-    "AppleTV2,1": 1000,
-    "AppleTV3,1": 1000,
-    "AppleTV3,2": 1000,
+IOS_CPU_FREQUENCIES: Dict[str, Tuple[int, ...]] = {
+    "iPhone1,1": (412,),
+    "iPhone1,2": (412,),
+    "iPod1,1": (412,),
+    "Watch1,1": (520,),
+    "Watch1,2": (520,),
+    "iPod1,2": (533,),
+    "iPhone2,1": (600,),
+    "iPod3,1": (600,),
+    "iPhone3,1": (800,),
+    "iPhone3,2": (800,),
+    "iPhone3,3": (800,),
+    "iPod4,1": (800,),
+    "iPhone4,1": (800,),
+    "iPad1,1": (1000,),
+    "AppleTV1,1": (1000,),
+    "AppleTV2,1": (1000,),
+    "AppleTV3,1": (1000,),
+    "AppleTV3,2": (1000,),
     "Watch2,6": CPU1,
     "Watch2,7": CPU1,
     "Watch2,3": CPU1,
@@ -495,7 +495,7 @@ IOS_CPU_FREQUENCIES = {
 }
 
 
-def ios_cpu_core_max_frequencies_mhz(model: str) -> List[int]:
+def ios_cpu_core_max_frequencies_mhz(model: str) -> Optional[Tuple[int, ...]]:
     if model in IOS_CPU_FREQUENCIES:
         return IOS_CPU_FREQUENCIES[model]
     # New unreleased device, assume device is best of class */

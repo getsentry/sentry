@@ -19,12 +19,6 @@ def get_profiles_consumer(
     producer = Producer(
         kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
     )
-    options = {
-        "max_batch_size": 10,
-        "max_batch_time": 1,
-        "group_id": "profiles",
-        "auto_offset_reset": "latest",
-    }
     return create_batching_kafka_consumer(
         {settings.KAFKA_PROFILES},
         worker=ProfilesWorker(producer=producer),
@@ -95,7 +89,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         self.__producer = producer
         self.__producer_topic = "processed-profiles"
 
-    def process_message(self, message: Message) -> MutableMapping[str, Any]:
+    def process_message(self, message: Message) -> Optional[MutableMapping[str, Any]]:
         message = msgpack.unpackb(message.value(), use_list=False)
         profile = json.loads(message["payload"])
 

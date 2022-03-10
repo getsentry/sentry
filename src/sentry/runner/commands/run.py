@@ -566,6 +566,7 @@ def metrics_streaming_consumer(**options):
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
+@batching_kafka_options("ingest-profiles")
 @configuration
 def profiles_consumer(**options):
     from sentry.profiles.consumer import get_profiles_consumer
