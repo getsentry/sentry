@@ -135,15 +135,52 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         Note that this test will fail once we have a metrics meta store,
         because the setUp bypasses it.
         """
-
-        response = self.get_success_response(
-            self.organization.slug,
-        )
+        response = self.get_success_response(self.organization.slug, project=[self.project.id])
 
         assert response.data == [
             {"name": "metric1", "type": "counter", "operations": ["sum"], "unit": None},
             {"name": "metric2", "type": "set", "operations": ["count_unique"], "unit": None},
             {"name": "metric3", "type": "set", "operations": ["count_unique"], "unit": None},
+        ]
+
+        proj2 = self.create_project(organization=self.organization)
+        self.store_session(
+            self.build_session(
+                project_id=proj2.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@1.0",
+            )
+        )
+
+        response = self.get_success_response(self.organization.slug, project=[proj2.id])
+        assert response.data == [
+            {
+                "name": "sentry.sessions.session",
+                "type": "counter",
+                "operations": ["sum"],
+                "unit": None,
+            },
+            {
+                "name": "sentry.sessions.user",
+                "type": "set",
+                "operations": ["count_unique"],
+                "unit": None,
+            },
+            {
+                "name": "session.crash_free_rate",
+                "type": "numeric",
+                "operations": [],
+                "unit": "percentage",
+            },
+            {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
+            {
+                "name": "session.errored_preaggregated",
+                "type": "numeric",
+                "operations": [],
+                "unit": "sessions",
+            },
+            {"name": "session.init", "type": "numeric", "operations": [], "unit": "sessions"},
         ]
 
 
