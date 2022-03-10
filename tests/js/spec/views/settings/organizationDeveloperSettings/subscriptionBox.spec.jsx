@@ -16,8 +16,7 @@ describe('SubscriptionBox', () => {
         disabledFromPermissions={false}
         onChange={onChange}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
   });
 
@@ -45,8 +44,7 @@ describe('SubscriptionBox', () => {
           disabledFromPermissions={false}
           onChange={onChange}
           organization={org}
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -67,8 +65,7 @@ describe('SubscriptionBox', () => {
           disabledFromPermissions={false}
           onChange={onChange}
           organization={org}
-        />,
-        TestStubs.routerContext()
+        />
       );
       expect(wrapper.find('Checkbox').prop('disabled')).toBe(false);
     });
@@ -82,8 +79,7 @@ describe('SubscriptionBox', () => {
           disabledFromPermissions={false}
           onChange={onChange}
           organization={org}
-        />,
-        TestStubs.routerContext()
+        />
       );
       expect(wrapper.find('Tooltip').prop('disabled')).toBe(true);
     });
@@ -98,8 +94,7 @@ describe('SubscriptionBox', () => {
         webhookDisabled
         onChange={onChange}
         organization={org}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const tooltip = wrapper.find('Tooltip');
     expect(tooltip.prop('disabled')).toBe(false);

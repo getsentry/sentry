@@ -19,8 +19,7 @@ describe('OrganizationApiKeysList', function () {
         params={{orgId: 'org-slug'}}
         routes={routes}
         keys={[TestStubs.ApiKey()]}
-      />,
-      {context: TestStubs.routerContext()}
+      />
     );
 
     // Click remove button

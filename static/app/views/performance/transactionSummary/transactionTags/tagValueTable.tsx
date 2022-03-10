@@ -10,6 +10,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -26,8 +27,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
-import {PerformanceDuration} from '../../utils';
 import {TagValue} from '../transactionOverview/tagExplorer';
+import {normalizeSearchConditions} from '../utils';
 
 import {
   TAGS_TABLE_COLUMN_ORDER,
@@ -132,9 +133,7 @@ export class TagValueTable extends Component<Props, State> {
       const {eventView, location, organization} = this.props;
       trackTagPageInteraction(organization);
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 

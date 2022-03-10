@@ -126,7 +126,7 @@ class SpansInterface extends PureComponent<Props, State> {
               <List symbol="bullet">
                 {Object.entries(errorsMap).map(([spanId, {operation, errorsCount}]) => (
                   <ListItem key={spanId}>
-                    {tct('[errors] in [link]', {
+                    {tct('[errors] [link]', {
                       errors: tn('%s error in ', '%s errors in ', errorsCount),
                       link: (
                         <ErrorLink

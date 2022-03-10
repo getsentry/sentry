@@ -1,7 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
-import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -33,11 +32,23 @@ class Sidebar extends PureComponent<Props> {
           </ConditionsBadge>
         ))
       : '';
-    const actions = rule.actions.length
-      ? rule.actions.map(action => (
-          <ConditionsBadge key={action.id}>{action.name}</ConditionsBadge>
-        ))
-      : '';
+    const actions = rule.actions.length ? (
+      rule.actions.map(action => {
+        let name = action.name;
+        if (
+          action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction'
+        ) {
+          // Remove (optionally, an ID: XXX) from slack action
+          name = name.replace(/\(optionally.*\)/, '');
+          // Remove tags if they aren't used
+          name = name.replace(' and show tags [] in notification', '');
+        }
+
+        return <ConditionsBadge key={action.id}>{name}</ConditionsBadge>;
+      })
+    ) : (
+      <ConditionsBadge>{t('Do nothing')}</ConditionsBadge>
+    );
 
     return (
       <PanelBody>
@@ -97,8 +108,6 @@ class Sidebar extends PureComponent<Props> {
 
   render() {
     const {rule} = this.props;
-    const dateTriggered = new Date(0);
-    const dateModified = new Date(0);
 
     const ownerId = rule.owner?.split(':')[1];
     const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
@@ -107,32 +116,26 @@ class Sidebar extends PureComponent<Props> {
       <Fragment>
         <StatusContainer>
           <HeaderItem>
-            <Heading noMargin>{t('Alert Status')}</Heading>
-            <Status>
-              <AlertBadge status={undefined} />
-            </Status>
-          </HeaderItem>
-          <HeaderItem>
             <Heading noMargin>{t('Last Triggered')}</Heading>
             <Status>
-              {dateTriggered ? (
-                <TimeSince date={dateTriggered} />
+              {rule.lastTriggered ? (
+                <TimeSince date={rule.lastTriggered} />
               ) : (
                 t('No alerts triggered')
               )}
             </Status>
           </HeaderItem>
         </StatusContainer>
-        <ConditionsSidebarGroup>
-          <Heading>{t('Alert Conditions')}</Heading>
+        <SidebarGroup>
+          <Heading noMargin>{t('Alert Conditions')}</Heading>
           {this.renderConditions()}
-        </ConditionsSidebarGroup>
+        </SidebarGroup>
         <SidebarGroup>
           <Heading>{t('Alert Rule Details')}</Heading>
           <KeyValueTable>
             {rule.dateCreated && (
               <KeyValueTableRow
-                keyName={t('Alert Rule Created')}
+                keyName={t('Date Created')}
                 value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
               />
             )}
@@ -140,12 +143,6 @@ class Sidebar extends PureComponent<Props> {
               <KeyValueTableRow
                 keyName={t('Created By')}
                 value={<CreatedBy>{rule.createdBy.name ?? '-'}</CreatedBy>}
-              />
-            )}
-            {dateModified && (
-              <KeyValueTableRow
-                keyName={t('Last Modified')}
-                value={<TimeSince date={dateModified} suffix={t('ago')} />}
               />
             )}
             <KeyValueTableRow
@@ -165,10 +162,6 @@ export default Sidebar;
 
 const SidebarGroup = styled('div')`
   margin-bottom: ${space(3)};
-`;
-
-const ConditionsSidebarGroup = styled(SidebarGroup)`
-  display: inline-block;
 `;
 
 const HeaderItem = styled('div')`
@@ -202,7 +195,7 @@ const Step = styled('div')`
   margin-top: ${space(4)};
 
   :first-child {
-    margin-top: ${space(3)};
+    margin-top: ${space(1)};
   }
 `;
 
@@ -218,7 +211,7 @@ const StepContent = styled('div')`
     position: absolute;
     height: 100%;
     top: 28px;
-    left: 19px;
+    left: ${space(1)};
     border-right: 1px ${p => p.theme.gray200} dashed;
   }
 `;
@@ -226,13 +219,13 @@ const StepContent = styled('div')`
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
+  font-weight: 400;
 `;
 
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${space(0.5)} ${space(1)} ${space(0.5)} 0;
 `;
 
 const Badge = styled('span')`
@@ -244,7 +237,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.5;
 `;
 
@@ -254,19 +247,15 @@ const ConditionsBadge = styled('span')`
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: ${space(1)};
   width: fit-content;
+  font-weight: 400;
 `;
 
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
-  display: grid;
-  grid-template-columns: auto auto;
-  justify-content: flex-start;
   margin-top: ${p => (p.noMargin ? 0 : space(2))};
-  margin-bottom: ${space(0.5)};
-  line-height: 1;
-  gap: ${space(1)};
+  margin-bottom: ${p => (p.noMargin ? 0 : space(1))};
 `;
 
 const CreatedBy = styled('div')`

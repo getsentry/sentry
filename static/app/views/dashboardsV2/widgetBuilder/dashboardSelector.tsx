@@ -17,10 +17,11 @@ interface Props {
 
 export function DashboardSelector({dashboards, disabled, onChange, error}: Props) {
   return (
-    <Field inline={false} flexibleControlStateSize stacked error={error} required>
+    <Field inline={false} flexibleControlStateSize stacked error={error}>
       <SelectControl
         menuPlacement="auto"
         name="dashboard"
+        placeholder={t('Select a dashboard')}
         options={[
           {label: t('+ Create New Dashboard'), value: 'new'},
           ...dashboards.map(({title, id, widgetDisplay}) => ({
@@ -30,6 +31,9 @@ export function DashboardSelector({dashboards, disabled, onChange, error}: Props
           })),
         ]}
         onChange={(option: SelectValue<string>) => {
+          if (option.disabled) {
+            return;
+          }
           onChange(option);
         }}
         disabled={disabled}

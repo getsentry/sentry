@@ -15,12 +15,7 @@ describe('Dashboards > Dashboard', () => {
     features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
   });
   const organizationWithFlag = TestStubs.Organization({
-    features: [
-      'dashboards-basic',
-      'dashboards-edit',
-      'dashboard-grid-layout',
-      'issues-in-dashboards',
-    ],
+    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
   });
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
@@ -78,6 +73,7 @@ describe('Dashboards > Dashboard', () => {
       method: 'GET',
       body: [
         {
+          annotations: [],
           id: '1',
           title: 'Error: Failed',
           project: {
@@ -188,16 +184,6 @@ describe('Dashboards > Dashboard', () => {
       );
     };
 
-    it('dashboard does not display issue widgets if the user does not have issue widgets feature flag', async () => {
-      const mockDashboardWithIssueWidget = {
-        ...mockDashboard,
-        widgets: [newWidget, issueWidget],
-      };
-      mount(mockDashboardWithIssueWidget);
-      expect(screen.getByText('Test Discover Widget')).toBeInTheDocument();
-      expect(screen.queryByText('Test Issue Widget')).not.toBeInTheDocument();
-    });
-
     it('dashboard displays issue widgets if the user has issue widgets feature flag', async () => {
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
@@ -214,12 +200,11 @@ describe('Dashboards > Dashboard', () => {
         widgets: [{...issueWidget}],
       };
       mount(mockDashboardWithIssueWidget, organizationWithFlag);
-      await tick();
-      expect(screen.getByText('T')).toBeInTheDocument();
+      expect(await screen.findByText('T')).toBeInTheDocument();
       userEvent.hover(screen.getByText('T'));
       expect(await screen.findByText('Suggestion:')).toBeInTheDocument();
-      expect(await screen.findByText('test@sentry.io')).toBeInTheDocument();
-      expect(await screen.findByText('Matching Issue Owners Rule')).toBeInTheDocument();
+      expect(screen.getByText('test@sentry.io')).toBeInTheDocument();
+      expect(screen.getByText('Matching Issue Owners Rule')).toBeInTheDocument();
     });
   });
 

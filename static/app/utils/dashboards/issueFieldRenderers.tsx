@@ -14,6 +14,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 
 import {Container, FieldShortId, OverflowLink} from '../discover/styles';
 
@@ -50,6 +51,7 @@ type SpecialFields = {
   lifetimeEvents: SpecialField;
   lifetimeUserCount: SpecialField;
   lifetimeUsers: SpecialField;
+  links: SpecialField;
   userCount: SpecialField;
   users: SpecialField;
 };
@@ -86,7 +88,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     },
   },
   assignee: {
-    sortField: 'assignee.name',
+    sortField: null,
     renderFunc: data => {
       const memberList = MemberListStore.getAll();
       return (
@@ -107,12 +109,12 @@ const SPECIAL_FIELDS: SpecialFields = {
       issuesCountRenderer(data, organization, 'lifetimeUsers'),
   },
   events: {
-    sortField: null,
+    sortField: 'freq',
     renderFunc: (data, {organization}) =>
       issuesCountRenderer(data, organization, 'events'),
   },
   users: {
-    sortField: null,
+    sortField: 'user',
     renderFunc: (data, {organization}) =>
       issuesCountRenderer(data, organization, 'users'),
   },
@@ -135,6 +137,10 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: null,
     renderFunc: (data, {organization}) =>
       issuesCountRenderer(data, organization, 'users'),
+  },
+  links: {
+    sortField: null,
+    renderFunc: ({links}) => <LinksContainer dangerouslySetInnerHTML={{__html: links}} />,
   },
 };
 
@@ -220,6 +226,20 @@ const getDiscoverUrl = (
   return discoverView.getResultsViewUrlTarget(organization.slug);
 };
 
+export function getSortField(field: string): string | null {
+  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+    return SPECIAL_FIELDS[field as keyof typeof SPECIAL_FIELDS].sortField;
+  }
+  switch (field) {
+    case FieldKey.LAST_SEEN:
+      return 'date';
+    case FieldKey.FIRST_SEEN:
+      return 'new';
+    default:
+      return null;
+  }
+}
+
 const contentStyle = css`
   width: 100%;
   justify-content: space-between;
@@ -273,6 +293,10 @@ const ActorContainer = styled('div')`
   :hover {
     cursor: default;
   }
+`;
+
+const LinksContainer = styled('span')`
+  white-space: nowrap;
 `;
 
 /**

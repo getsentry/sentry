@@ -1,9 +1,6 @@
-import * as React from 'react';
+import {Fuse} from 'sentry/utils/fuzzySearch';
 
-type Match = {
-  indices: [number, number][];
-  value: string;
-};
+type Match = Fuse.FuseResultMatch;
 
 type HighlightResult = {
   highlight: boolean;
@@ -35,6 +32,10 @@ type MatchResult = HighlightResult[];
  * @param match.indices Array of indices that represent matches
  */
 const getFuseMatches = ({value, indices}: Match): MatchResult => {
+  if (value === undefined) {
+    return [];
+  }
+
   if (indices.length === 0) {
     return [{highlight: false, text: value}];
   }

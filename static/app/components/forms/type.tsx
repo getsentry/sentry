@@ -15,6 +15,7 @@ export const FieldType = [
   'boolean',
   'choice_mapper',
   'email',
+  'file',
   'hidden',
   'multichoice',
   'number',
@@ -101,9 +102,10 @@ type BaseField = {
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
 
-type CustomType = {type: 'custom'} & {
-  Component: (arg: BaseField) => React.ReactNode;
-};
+export interface CustomType {
+  Component: (arg: BaseField) => React.ReactElement;
+  type: 'custom';
+}
 
 type InputType = {type: 'string' | 'secret'} & {
   autoComplete?: string;
@@ -130,7 +132,11 @@ type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
     value?: Pick<RangeSliderProps, 'value'>;
   };
 
-export type TableType = {
+type FileType = {type: 'file'} & {
+  accept?: string[];
+};
+
+export interface TableType {
   /**
    * A list of column keys for the table, in the order that you want
    * the columns to appear - order doesn't matter in columnLabels
@@ -146,7 +152,7 @@ export type TableType = {
    */
   confirmDeleteMessage?: string;
   // TODO(TS): Should we have addButtonText and allowEmpty here as well?
-};
+}
 
 // maps a sentry project to another field
 export type ProjectMapperType = {
@@ -192,6 +198,7 @@ export type Field = (
   | SelectAsyncType
   | ChoiceMapperType
   | {type: typeof FieldType[number]}
+  | FileType
 ) &
   BaseField;
 

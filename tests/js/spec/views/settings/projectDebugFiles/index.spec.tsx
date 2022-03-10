@@ -5,7 +5,7 @@ import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary
 import ProjectDebugFiles from 'sentry/views/settings/projectDebugFiles';
 
 describe('ProjectDebugFiles', function () {
-  const {organization, project, routerContext, router} = initializeOrg();
+  const {organization, project, router} = initializeOrg();
 
   const props = {
     organization,
@@ -33,7 +33,7 @@ describe('ProjectDebugFiles', function () {
   });
 
   it('renders', function () {
-    mountWithTheme(<ProjectDebugFiles {...props} />, {context: routerContext});
+    mountWithTheme(<ProjectDebugFiles {...props} />);
 
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
 
@@ -48,7 +48,7 @@ describe('ProjectDebugFiles', function () {
       body: [],
     });
 
-    mountWithTheme(<ProjectDebugFiles {...props} />, {context: routerContext});
+    mountWithTheme(<ProjectDebugFiles {...props} />);
 
     // Uploaded debug files content
     expect(
@@ -64,7 +64,7 @@ describe('ProjectDebugFiles', function () {
       }`,
     });
 
-    mountWithTheme(<ProjectDebugFiles {...props} />, {context: routerContext});
+    mountWithTheme(<ProjectDebugFiles {...props} />);
 
     // Delete button
     userEvent.click(screen.getByTestId('delete-dif'));

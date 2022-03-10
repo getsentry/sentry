@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import {MetricsApiResponse, OrganizationSummary, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {getAggregateFields} from 'sentry/utils/discover/fields';
+import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
 import {transformMetricsResponseToTable} from 'sentry/utils/metrics/transformMetricsResponseToTable';
@@ -64,7 +64,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       'tempId',
       'widgetType',
     ];
-    const ignoredQueryProps = ['name', 'fields'];
+    const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
     const widgetQueryNames = widget.queries.map(q => q.name);
     const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
 
@@ -86,6 +86,16 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       !isEqual(
         widget.queries.flatMap(q => q.fields.filter(field => !!field)),
         prevProps.widget.queries.flatMap(q => q.fields.filter(field => !!field))
+      ) ||
+      !isEqual(
+        widget.queries.flatMap(q => q.aggregates?.filter(aggregate => !!aggregate)),
+        prevProps.widget.queries.flatMap(q =>
+          q.aggregates?.filter(aggregate => !!aggregate)
+        )
+      ) ||
+      !isEqual(
+        widget.queries.flatMap(q => q.columns?.filter(column => !!column)),
+        prevProps.widget.queries.flatMap(q => q.columns?.filter(column => !!column))
       )
     ) {
       this.fetchData();
@@ -152,20 +162,19 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
     const {environments, projects, datetime} = selection;
     const {start, end, period} = datetime;
     const interval = getWidgetInterval(widget, {start, end, period});
-    const widgetQuery = widget.queries[0];
-    const fields = getAggregateFields(widgetQuery.fields);
-    const groupingColumns = widgetQuery.fields.filter(field => !!!fields.includes(field));
+
+    const {aggregates, columns} = getColumnsAndAggregates(widget.queries[0].fields); // all queries have the same fields, filters differ
 
     const promises = widget.queries.map(query => {
       const requestData = {
-        field: fields,
+        field: aggregates,
         orgSlug: organization.slug,
         end,
         environment: environments,
-        groupBy: groupingColumns.length ? groupingColumns : undefined, // TODO(dam): add backend groupBy support
+        groupBy: columns.length ? columns : undefined,
         interval,
         limit: this.limit,
-        orderBy: query.orderby || this.limit ? query.fields[0] : undefined,
+        orderBy: query.orderby || (this.limit ? aggregates[0] : undefined),
         project: projects,
         query: query.conditions,
         start,

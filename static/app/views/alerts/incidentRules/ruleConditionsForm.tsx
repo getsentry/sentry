@@ -7,7 +7,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import SearchBar from 'sentry/components/events/searchBar';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import FormField from 'sentry/components/forms/formField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
@@ -56,7 +55,6 @@ type Props = {
   disabled: boolean;
   hasAlertWizardV3: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
   onFilterSearch: (query: string) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
@@ -145,14 +143,12 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   renderInterval() {
     const {
       organization,
-      dataset,
       disabled,
       alertType,
       hasAlertWizardV3,
       timeWindow,
       comparisonDelta,
       comparisonType,
-      onComparisonTypeChange,
       onTimeWindowChange,
       onComparisonDeltaChange,
     } = this.props;
@@ -167,24 +163,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
     return (
       <Fragment>
-        {dataset !== Dataset.SESSIONS && (
-          <Feature features={['organizations:change-alerts']} organization={organization}>
-            <StyledListItem>{t('Select threshold type')}</StyledListItem>
-            <FormRow>
-              <RadioGroup
-                style={{flex: 1}}
-                disabled={disabled}
-                choices={[
-                  [AlertRuleComparisonType.COUNT, 'Count'],
-                  [AlertRuleComparisonType.CHANGE, 'Percent Change'],
-                ]}
-                value={comparisonType}
-                label={t('Threshold Type')}
-                onChange={onComparisonTypeChange}
-              />
-            </FormRow>
-          </Feature>
-        )}
         <StyledListItem>
           <StyledListTitle>
             <div>{intervalLabelText}</div>
@@ -232,31 +210,38 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             inline={false}
             flexibleControlStateSize
           />
-          <Feature features={['organizations:change-alerts']} organization={organization}>
-            {comparisonType === AlertRuleComparisonType.CHANGE && (
-              <ComparisonContainer>
-                {t(' compared to ')}
-                <SelectControl
-                  name="comparisonDelta"
-                  styles={{
-                    container: (provided: {[x: string]: string | number | boolean}) => ({
-                      ...provided,
-                      marginLeft: space(1),
-                    }),
-                    control: (provided: {[x: string]: string | number | boolean}) => ({
-                      ...provided,
-                      minWidth: 500,
-                      maxWidth: 1000,
-                    }),
-                  }}
-                  value={comparisonDelta}
-                  onChange={({value}) => onComparisonDeltaChange(value)}
-                  options={COMPARISON_DELTA_OPTIONS}
-                  required={comparisonType === AlertRuleComparisonType.CHANGE}
-                />
-              </ComparisonContainer>
-            )}
-          </Feature>
+          {!hasAlertWizardV3 && (
+            <Feature
+              features={['organizations:change-alerts']}
+              organization={organization}
+            >
+              {comparisonType === AlertRuleComparisonType.CHANGE && (
+                <ComparisonContainer>
+                  {t(' compared to ')}
+                  <SelectControl
+                    name="comparisonDelta"
+                    styles={{
+                      container: (provided: {
+                        [x: string]: string | number | boolean;
+                      }) => ({
+                        ...provided,
+                        marginLeft: space(1),
+                      }),
+                      control: (provided: {[x: string]: string | number | boolean}) => ({
+                        ...provided,
+                        minWidth: 500,
+                        maxWidth: 1000,
+                      }),
+                    }}
+                    value={comparisonDelta}
+                    onChange={({value}) => onComparisonDeltaChange(value)}
+                    options={COMPARISON_DELTA_OPTIONS}
+                    required={comparisonType === AlertRuleComparisonType.CHANGE}
+                  />
+                </ComparisonContainer>
+              )}
+            </Feature>
+          )}
         </FormRow>
       </Fragment>
     );
@@ -327,8 +312,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       });
     }
 
-    const measurements = {...WebVital, ...MobileVital};
-    const eventOmitTags = dataset === 'events' ? Object.values(measurements) : [];
+    const transactionTags = [
+      'transaction',
+      'transaction.duration',
+      'transaction.op',
+      'transaction.status',
+    ];
+    const measurementTags = Object.values({...WebVital, ...MobileVital});
+    const eventOmitTags =
+      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
     const formElemBaseStyle = {
       padding: `${space(0.5)}`,

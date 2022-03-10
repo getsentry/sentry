@@ -24,8 +24,7 @@ describe('TableField', function () {
             columnLabels={columnLabels}
             addButtonText="Add Thing"
           />
-        </Form>,
-        TestStubs.routerContext()
+        </Form>
       );
     });
     it('renders without form context', function () {
@@ -34,8 +33,7 @@ describe('TableField', function () {
           name="fieldName"
           columnKeys={columnKeys}
           columnLabels={columnLabels}
-        />,
-        TestStubs.routerContext()
+        />
       );
       expect(wrapper).toSnapshot();
     });

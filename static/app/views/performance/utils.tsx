@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import Duration from 'sentry/components/duration';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {
@@ -11,7 +10,6 @@ import {
   Project,
   ReleaseProject,
 } from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -262,28 +260,6 @@ export function getTransactionName(location: Location): string | undefined {
   const {transaction} = location.query;
 
   return decodeScalar(transaction);
-}
-
-type DurationProps = {abbreviation?: boolean};
-type SecondsProps = {seconds: number} & DurationProps;
-type MillisecondsProps = {milliseconds: number} & DurationProps;
-type PerformanceDurationProps = SecondsProps | MillisecondsProps;
-const hasMilliseconds = (props: PerformanceDurationProps): props is MillisecondsProps => {
-  return defined((props as MillisecondsProps).milliseconds);
-};
-export function PerformanceDuration(props: SecondsProps);
-export function PerformanceDuration(props: MillisecondsProps);
-export function PerformanceDuration(props: PerformanceDurationProps) {
-  const normalizedSeconds = hasMilliseconds(props)
-    ? props.milliseconds / 1000
-    : props.seconds;
-  return (
-    <Duration
-      abbreviation={props.abbreviation}
-      seconds={normalizedSeconds}
-      fixedDigits={2}
-    />
-  );
 }
 
 export function getPerformanceDuration(milliseconds: number) {

@@ -5,15 +5,15 @@ import PageAlertBar from 'sentry/components/pageAlertBar';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 export default function FinishSetupAlert({
   organization,
-  project,
+  projectId,
 }: {
   organization: Organization;
-  project: Project;
+  projectId: string;
 }) {
   return (
     <PageAlertBar>
@@ -31,7 +31,7 @@ export default function FinishSetupAlert({
         href="https://docs.sentry.io/performance-monitoring/getting-started/"
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.sample_transaction_docs_link_clicked', {
-            project_id: project.id,
+            project_id: projectId,
             organization,
           })
         }

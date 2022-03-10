@@ -9,6 +9,8 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from . import is_frontend_request
+
 api_access_logger = logging.getLogger("sentry.access.api")
 
 
@@ -63,6 +65,7 @@ def _create_api_access_log(
             user_id=str(user_id),
             is_app=str(is_app),
             token_type=str(_get_token_name(request_auth)),
+            is_frontend_request=str(is_frontend_request(request)),
             organization_id=str(org_id),
             auth_id=str(auth_id),
             path=str(request.path),

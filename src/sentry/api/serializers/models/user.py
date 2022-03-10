@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, Callable, Dict, List, MutableMapping, Optional, Sequence, Union, cast
 
 from django.conf import settings
@@ -7,6 +8,7 @@ from typing_extensions import TypedDict
 
 from sentry import experiments
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -55,13 +57,8 @@ class _Identity(TypedDict):
     name: str
     organization: _Organization
     provider: _Provider
-    dateVerified: str
-    dateSynced: str
-
-
-class _UserSerializerAvatar(TypedDict):
-    avatarType: str
-    avatarUuid: Optional[str]
+    dateVerified: datetime
+    dateSynced: datetime
 
 
 class _UserOptions(TypedDict):
@@ -74,7 +71,7 @@ class _UserOptions(TypedDict):
 
 class UserSerializerResponseOptional(TypedDict, total=False):
     identities: List[_Identity]
-    avatar: _UserSerializerAvatar
+    avatar: SerializedAvatarFields
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
@@ -86,10 +83,10 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     isActive: bool
     hasPasswordAuth: bool
     isManaged: bool
-    dateJoined: str
-    lastLogin: str
+    dateJoined: datetime
+    lastLogin: datetime
     has2fa: bool
-    lastActive: str
+    lastActive: datetime
     isSuperuser: bool
     isStaff: bool
     experiments: Dict[str, Any]  # TODO
@@ -180,7 +177,7 @@ class UserSerializer(Serializer):  # type: ignore
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
 
         if attrs.get("avatar"):
-            avatar: _UserSerializerAvatar = {
+            avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
             }

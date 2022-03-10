@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
-import OrganizationContextContainer from 'sentry/views/organizationContext';
+import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 
 import Body from './body';
 

@@ -5,7 +5,7 @@ import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 
 describe('IssueWidgetQueries', function () {
-  const {organization, routerContext} = initializeOrg({
+  const {organization} = initializeOrg({
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
   const api = new MockApiClient();
@@ -72,8 +72,7 @@ describe('IssueWidgetQueries', function () {
         }}
       >
         {mockFunction}
-      </IssueWidgetQueries>,
-      {context: routerContext}
+      </IssueWidgetQueries>
     );
   });
 

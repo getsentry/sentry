@@ -82,10 +82,7 @@ describe('PlatformPicker', function () {
         ...baseProps,
       };
 
-      const wrapper = mountWithTheme(
-        <PlatformPicker {...props} />,
-        TestStubs.routerContext()
-      );
+      const wrapper = mountWithTheme(<PlatformPicker {...props} />);
 
       const testListLink = wrapper.find('ListLink').last().find('a');
       expect(wrapper.state().category).toBe('popular');
@@ -101,10 +98,7 @@ describe('PlatformPicker', function () {
         setPlatform: jest.fn(),
       };
 
-      const wrapper = mountWithTheme(
-        <PlatformPicker {...props} />,
-        TestStubs.routerContext()
-      );
+      const wrapper = mountWithTheme(<PlatformPicker {...props} />);
 
       wrapper.find('ClearButton').simulate('click');
       expect(props.setPlatform).toHaveBeenCalledWith(null);

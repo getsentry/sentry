@@ -190,7 +190,7 @@ class TableView extends React.Component<TableViewProps> {
     const tableMeta = tableData?.meta;
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
-    const field = {field: column.name, width: column.width};
+    const field = {field: column.key as string, width: column.width};
     function generateSortLink(): LocationDescriptorObject | undefined {
       if (!tableMeta) {
         return undefined;

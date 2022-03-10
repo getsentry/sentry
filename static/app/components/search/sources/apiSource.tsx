@@ -19,11 +19,12 @@ import {
   Team,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
 import withLatestContext from 'sentry/utils/withLatestContext';
 
 import {ChildProps, Result, ResultItem} from './types';
+import {strGetFn} from './utils';
 
 // event ids must have string length of 32
 const shouldSearchEventIds = (query?: string) =>
@@ -234,6 +235,7 @@ async function createShortIdLookupResult(
       to: `/${shortIdLookup.organizationSlug}/${shortIdLookup.projectSlug}/issues/${shortIdLookup.groupId}/`,
     },
     score: 1,
+    refIndex: 0,
   };
 }
 
@@ -255,6 +257,7 @@ async function createEventIdLookupResult(
       to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${eventIdLookup.groupId}/events/${eventIdLookup.eventId}/`,
     },
     score: 1,
+    refIndex: 0,
   };
 }
 
@@ -268,12 +271,12 @@ type Props = WithRouterProps<{orgId: string}> & {
   /**
    * fuse.js options
    */
-  searchOptions?: Fuse.FuseOptions<ResultItem>;
+  searchOptions?: Fuse.IFuseOptions<ResultItem>;
 };
 
 type State = {
   directResults: null | Result[];
-  fuzzy: null | Fuse<ResultItem, Fuse.FuseOptions<ResultItem>>;
+  fuzzy: null | Fuse<ResultItem>;
   loading: boolean;
   searchResults: null | Result[];
 };
@@ -428,15 +431,17 @@ class ApiSource extends React.Component<Props, State> {
       this.getDirectResults([shortIdLookup, eventIdLookup]),
     ]);
 
-    // TODO(XXX): Might consider adding logic to maintain consistent ordering of results so things don't switch positions
-    const fuzzy = createFuzzySearch<ResultItem>(searchResults, {
+    // TODO(XXX): Might consider adding logic to maintain consistent ordering
+    // of results so things don't switch positions
+    const fuzzy = await createFuzzySearch(searchResults, {
       ...searchOptions,
       keys: ['title', 'description'],
+      getFn: strGetFn,
     });
 
     this.setState({
       loading: false,
-      fuzzy: await fuzzy,
+      fuzzy,
       directResults,
     });
   }
@@ -493,10 +498,7 @@ class ApiSource extends React.Component<Props, State> {
   render() {
     const {children, query} = this.props;
     const {fuzzy, directResults} = this.state;
-    let results: Result[] = [];
-    if (fuzzy) {
-      results = fuzzy.search<ResultItem, true, true>(query);
-    }
+    const results = fuzzy?.search(query) ?? [];
 
     return children({
       isLoading: this.state.loading,

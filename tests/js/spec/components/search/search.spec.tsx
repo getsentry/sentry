@@ -43,6 +43,7 @@ function makeSearchResultsMock(items?: ResultItem[], threshold?: number) {
           item: item.item,
           score: item.score,
           matches: item.matches,
+          refIndex: 0,
         };
         return result;
       });

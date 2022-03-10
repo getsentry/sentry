@@ -18,10 +18,7 @@ describe('rerender', () => {
   };
 
   test('calling render with the same component on the same container does not remount', () => {
-    const {rerender} = mountWithTheme(<NumberDisplay number={1} />, {
-      // Passing a context caused rerender to re-mount if the wrapper is not setup correctly
-      context: TestStubs.routerContext(),
-    });
+    const {rerender} = mountWithTheme(<NumberDisplay number={1} />);
     expect(screen.getByTestId('number-display')).toHaveTextContent('1');
 
     // re-render the same component with different props

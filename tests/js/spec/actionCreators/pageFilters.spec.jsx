@@ -1,5 +1,6 @@
 import {
   initializeUrlState,
+  revertToPinnedFilters,
   updateDateTime,
   updateEnvironments,
   updateProjects,
@@ -481,6 +482,60 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
         },
       });
+    });
+  });
+
+  describe('revertToPinnedFilters()', function () {
+    it('reverts all filters that are desynced from localStorage', async function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {},
+        },
+      });
+      // Mock storage to have a saved value
+      const pageFilterStorageMock = jest
+        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
+        .mockReturnValueOnce({
+          state: {
+            project: ['1'],
+            environment: [],
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          pinnedFilters: new Set(['projects', 'environments', 'datetime']),
+        });
+
+      PageFiltersActions.initializeUrlState({
+        projects: ['2'],
+        environments: ['prod'],
+        datetime: {
+          start: null,
+          end: null,
+          period: '1d',
+          utc: null,
+        },
+      });
+      PageFiltersActions.updateDesyncedFilters(
+        new Set(['projects', 'environments', 'datetime'])
+      );
+      // Tick for PageFiltersActions
+      await tick();
+
+      revertToPinnedFilters('org-slug', router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          environment: [],
+          project: ['1'],
+          statsPeriod: '14d',
+        },
+      });
+
+      pageFilterStorageMock.mockRestore();
     });
   });
 });

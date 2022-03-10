@@ -1,7 +1,10 @@
-import React from 'react';
+import {useCallback, useMemo} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
+import type {TooltipComponentFormatterCallback} from 'echarts';
 import {Location} from 'history';
+import moment from 'moment';
+import momentTimezone from 'moment-timezone';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -16,65 +19,80 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import ConfigStore from 'sentry/stores/configStore';
+import {Organization, PageFilters, Project} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {Trace} from 'sentry/types/profiling/core';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {defined} from 'sentry/utils';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import {getDuration} from 'sentry/utils/formatters';
 import {Theme} from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
+import {generateFlamegraphRoute} from '../routes';
 import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
 
 interface ProfilingScatterChartProps extends WithRouterProps {
-  loading: boolean;
-  location: Location;
-  reloading: boolean;
+  datetime: PageFilters['datetime'];
+  isLoading: boolean;
   traces: Trace[];
-  end?: string;
-  start?: string;
-  statsPeriod?: string | null;
-  utc?: string;
 }
 
 function ProfilingScatterChart({
   router,
   location,
+  datetime,
+  isLoading,
   traces,
-  loading,
-  reloading,
-  start,
-  end,
-  statsPeriod,
-  utc,
 }: ProfilingScatterChartProps) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
   const theme = useTheme();
 
-  const colorEncoding = React.useMemo(
-    () => getColorEncodingFromLocation(location),
-    [location]
-  );
+  const colorEncoding = useMemo(() => getColorEncodingFromLocation(location), [location]);
 
-  const series: Series[] = React.useMemo(() => {
-    const seriesMap: Record<string, SeriesDataUnit[]> = {};
-
+  const data: Record<string, Trace[]> = useMemo(() => {
+    const dataMap = {};
     for (const row of traces) {
-      const seriesName = row[colorEncoding];
-      if (!seriesMap[seriesName]) {
-        seriesMap[seriesName] = [];
+      const seriesName =
+        colorEncoding === 'version'
+          ? `${row.app_version_name} (build ${row.app_version})`
+          : row[colorEncoding];
+      if (!dataMap[seriesName]) {
+        dataMap[seriesName] = [];
       }
-      seriesMap[seriesName].push({
-        name: row.start_time_unix * 1000,
-        value: row.trace_duration_ms,
-      });
+      dataMap[seriesName].push(row);
     }
+    return dataMap;
+  }, [colorEncoding, traces]);
 
-    return Object.entries(seriesMap).map(([seriesName, data]) => ({seriesName, data}));
-  }, [colorEncoding]);
+  const series: Series[] = useMemo(() => {
+    return Object.entries(data).map(([seriesName, seriesData]) => {
+      return {
+        seriesName,
+        data: seriesData.map(row => ({
+          name: row.start_time_unix * 1000,
+          value: row.trace_duration_ms,
+        })),
+      };
+    });
+  }, [data]);
 
-  const chartOptions = React.useMemo(
-    () => makeScatterChartOptions({location, theme}),
-    [location, theme]
+  const chartOptions = useMemo(
+    () =>
+      makeScatterChartOptions({
+        data,
+        datetime,
+        location,
+        organization,
+        projects,
+        theme,
+      }),
+    [location, datetime, theme, data]
   );
 
-  const handleColorEncodingChange = React.useCallback(
+  const handleColorEncodingChange = useCallback(
     value => {
       browserHistory.push({
         ...location,
@@ -92,15 +110,15 @@ function ProfilingScatterChart({
       <ChartContainer>
         <ChartZoom
           router={router}
-          period={statsPeriod}
-          start={start}
-          end={end}
-          utc={utc === 'true'}
+          period={datetime.period}
+          start={datetime.start}
+          end={datetime.end}
+          utc={datetime.utc}
         >
           {zoomRenderProps => {
             return (
-              <TransitionChart loading={loading} reloading={reloading}>
-                <TransparentLoadingMask visible={reloading} />
+              <TransitionChart loading={isLoading} reloading={isLoading}>
+                <TransparentLoadingMask visible={isLoading} />
                 <ScatterChart series={series} {...chartOptions} {...zoomRenderProps} />
               </TransitionChart>
             );
@@ -121,7 +139,78 @@ function ProfilingScatterChart({
   );
 }
 
-function makeScatterChartOptions({location, theme}: {location: Location; theme: Theme}) {
+function makeScatterChartOptions({
+  data,
+  datetime,
+  location,
+  organization,
+  projects,
+  theme,
+}: {
+  /**
+   * The data is a mapping from the series name to a list of traces in the series. In particular,
+   * the order of the traces must match the order of the data in the series in the scatter plot.
+   */
+  data: Record<string, Trace[]>;
+  datetime: PageFilters['datetime'];
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  theme: Theme;
+}) {
+  const user = ConfigStore.get('user');
+  const options = user?.options;
+
+  const _tooltipFormatter: TooltipComponentFormatterCallback<any> = seriesParams => {
+    const dataPoint = data[seriesParams.seriesName]?.[seriesParams.dataIndex];
+    const project = dataPoint && projects.find(proj => proj.id === dataPoint.app_id);
+
+    const entries = [
+      {label: t('Project'), value: project?.slug},
+      {label: t('App Version'), value: dataPoint?.app_version},
+      {
+        label: t('Duration'),
+        value: defined(dataPoint?.trace_duration_ms)
+          ? getDuration(dataPoint?.trace_duration_ms, 2, true)
+          : null,
+      },
+      {label: t('Interaction'), value: dataPoint?.interaction_name},
+      {label: t('Device Model'), value: dataPoint?.device_model},
+      {label: t('Device Class'), value: dataPoint?.device_class},
+      {label: t('Device Manufacturer'), value: dataPoint?.device_manufacturer},
+    ].map(
+      ({label, value}) =>
+        `<div><span class="tooltip-label"><strong>${label}</strong></span> ${
+          value ?? t('Unknown')
+        }</div>`
+    );
+
+    const date = defined(dataPoint?.start_time_unix)
+      ? momentTimezone
+          .tz(dataPoint?.start_time_unix * 1000, options?.timezone ?? '')
+          .format('lll')
+      : null;
+
+    return [
+      '<div class="tooltip-series">',
+      ...entries,
+      '</div>',
+      `<div class="tooltip-date">${date}</div>`,
+      '<div class="tooltip-arrow"></div>',
+    ].join('');
+  };
+
+  const now = moment.utc();
+  const end = (defined(datetime.end) ? moment.utc(datetime.end) : now).valueOf();
+  const start = (
+    defined(datetime.start)
+      ? moment.utc(datetime.start)
+      : now.subtract(
+          parseInt(datetime.period ?? '14', 10),
+          datetime.period?.charAt(datetime.period.length - 1) === 'h' ? 'hours' : 'days'
+        )
+  ).valueOf();
+
   return {
     grid: {
       left: '10px',
@@ -131,7 +220,13 @@ function makeScatterChartOptions({location, theme}: {location: Location; theme: 
     },
     tooltip: {
       trigger: 'item' as const,
-      valueFormatter: (value: number) => tooltipFormatter(value, 'p50()'),
+      formatter: _tooltipFormatter,
+    },
+    xAxis: {
+      // need to specify a min/max on the date range here
+      // or echarts will use the min/max from the series
+      min: start,
+      max: end,
     },
     yAxis: {
       axisLabel: {
@@ -144,7 +239,23 @@ function makeScatterChartOptions({location, theme}: {location: Location; theme: 
       top: 5,
       selected: getSeriesSelection(location),
     },
-    onClick: _params => {}, // TODO
+    onClick: params => {
+      const dataPoint = data[params.seriesName]?.[params.dataIndex];
+      if (!defined(dataPoint)) {
+        return;
+      }
+      const project = projects.find(proj => proj.id === dataPoint.app_id);
+      if (!defined(project)) {
+        return;
+      }
+      browserHistory.push(
+        generateFlamegraphRoute({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          profileId: dataPoint.id,
+        })
+      );
+    },
   };
 }
 

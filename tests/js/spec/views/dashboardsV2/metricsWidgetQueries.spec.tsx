@@ -7,7 +7,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
 
 describe('Dashboards > MetricsWidgetQueries', function () {
-  const {organization, routerContext} = initializeOrg();
+  const {organization} = initializeOrg();
 
   const badMessage = 'Bad request data';
 
@@ -18,13 +18,13 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     queries: [
       {
         conditions: '',
-        fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+        fields: [`sum(${SessionMetric.SESSION})`],
         name: 'sessions',
         orderby: '',
       },
       {
         conditions: 'environment:prod',
-        fields: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+        fields: [`sum(${SessionMetric.SESSION})`],
         name: 'users',
         orderby: '',
       },
@@ -38,7 +38,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     queries: [
       {
         conditions: '',
-        fields: [`count_unique(${SessionMetric.SENTRY_SESSIONS_USER})`],
+        fields: [`count_unique(${SessionMetric.USER})`],
         name: 'sessions',
         orderby: '',
       },
@@ -66,7 +66,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`,
+        field: `sum(${SessionMetric.SESSION})`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -79,10 +79,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>,
-      {
-        context: routerContext,
-      }
+      </MetricsWidgetQueries>
     );
 
     expect(mock).toHaveBeenCalledTimes(1);
@@ -124,12 +121,8 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>,
-      {
-        context: routerContext,
-      }
+      </MetricsWidgetQueries>
     );
-
     expect(mock).toHaveBeenCalledTimes(1);
 
     await waitFor(() =>
@@ -216,7 +209,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `count_unique(${SessionMetric.SENTRY_SESSIONS_USER})`,
+        field: `count_unique(${SessionMetric.USER})`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -229,10 +222,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>,
-      {
-        context: routerContext,
-      }
+      </MetricsWidgetQueries>
     );
 
     expect(mock).toHaveBeenCalledTimes(1);
@@ -241,7 +231,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           per_page: 1,
-          orderBy: `count_unique(${SessionMetric.SENTRY_SESSIONS_USER})`,
+          orderBy: `count_unique(${SessionMetric.USER})`,
         }),
       })
     );
@@ -266,11 +256,11 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const sessionMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`,
+        field: `sum(${SessionMetric.SESSION})`,
       }),
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+          field: [`sum(${SessionMetric.SESSION})`],
         }),
       ],
     });
@@ -282,12 +272,8 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         selection={selection}
       >
         {() => <div data-test-id="child" />}
-      </MetricsWidgetQueries>,
-      {
-        context: routerContext,
-      }
+      </MetricsWidgetQueries>
     );
-
     // Child should be rendered and 2 requests should be sent.
     expect(screen.getByTestId('child')).toBeInTheDocument();
     expect(sessionMock).toHaveBeenCalledTimes(2);
@@ -327,7 +313,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       body: {detail: badMessage},
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`],
+          field: [`sum(${SessionMetric.SESSION})`],
         }),
       ],
     });
@@ -341,8 +327,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>,
-      {context: routerContext}
+      </MetricsWidgetQueries>
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -359,7 +344,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`,
+        field: `sum(${SessionMetric.SESSION})`,
       }),
     });
 
@@ -371,8 +356,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         selection={{...selection, datetime: {...selection.datetime, period: '90d'}}}
       >
         {() => <div data-test-id="child" />}
-      </MetricsWidgetQueries>,
-      {context: routerContext}
+      </MetricsWidgetQueries>
     );
 
     expect(screen.getByTestId('child')).toBeInTheDocument();
@@ -394,7 +378,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({
-        field: `sum(${SessionMetric.SENTRY_SESSIONS_SESSION})`,
+        field: `sum(${SessionMetric.SESSION})`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -407,8 +391,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         selection={selection}
       >
         {children}
-      </MetricsWidgetQueries>,
-      {context: routerContext}
+      </MetricsWidgetQueries>
     );
 
     expect(mock).toHaveBeenCalledTimes(1);

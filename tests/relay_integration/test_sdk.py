@@ -7,6 +7,7 @@ from django.conf import settings
 from sentry_sdk import Hub, push_scope
 
 from sentry import eventstore
+from sentry.eventstore.models import Event
 from sentry.testutils import assert_mock_called_once_with_partial
 from sentry.utils.pytest.relay import adjust_settings_for_relay_tests
 from sentry.utils.sdk import bind_organization_context, configure_sdk
@@ -48,7 +49,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
     settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1.0
     event_id = uuid.uuid4().hex
     with mock.patch(
-        "sentry.event_manager.EventManager.save", side_effect=ValueError("oh no!")
+        "sentry.event_manager.EventManager.save", spec=Event, side_effect=ValueError("oh no!")
     ) as save:
         with pytest.raises(ValueError):
             post_event_with_sdk({"message": "internal client test", "event_id": event_id})

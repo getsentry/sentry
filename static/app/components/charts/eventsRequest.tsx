@@ -137,7 +137,7 @@ type EventsRequestPartialProps = {
    */
   generatePathname?: (org: OrganizationSummary) => string;
   /**
-   * Hide error toast (used for pages which also query eventsV2)
+   * Hide error toast (used for pages which also query eventsV2). Stops error appearing as a toast.
    */
   hideError?: boolean;
   /**
@@ -148,6 +148,10 @@ type EventsRequestPartialProps = {
    * Query name used for displaying error toast if it is out of retention
    */
   name?: string;
+  /**
+   * A way to control error if error handling is not owned by the toast.
+   */
+  onError?: (error: string) => void;
   /**
    * How to order results when getting top events.
    */
@@ -258,7 +262,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, confirmedQuery, expired, name, hideError, ...props} = this.props;
+    const {api, confirmedQuery, onError, expired, name, hideError, ...props} = this.props;
     let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
 
     if (confirmedQuery === false) {
@@ -295,6 +299,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         }
         if (!hideError) {
           addErrorMessage(errorMessage);
+        }
+        if (onError) {
+          onError(errorMessage);
         }
         this.setState({
           errored: true,

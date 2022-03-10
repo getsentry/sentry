@@ -39,8 +39,7 @@ describe('ProjectReleaseTracking', function () {
         project={project}
         plugins={{loading: false, plugins: TestStubs.Plugins()}}
         params={{orgId: org.slug, projectId: project.slug}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     expect(wrapper.find('TextCopyInput').prop('children')).toBe('token token token');
@@ -53,8 +52,7 @@ describe('ProjectReleaseTracking', function () {
         project={project}
         plugins={{loading: false, plugins: TestStubs.Plugins()}}
         params={{orgId: org.slug, projectId: project.slug}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const mock = MockApiClient.addMockResponse({
@@ -94,8 +92,7 @@ describe('ProjectReleaseTracking', function () {
         organization={org}
         project={project}
         params={{orgId: org.slug, projectId: project.slug}}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(fetchPlugins).toHaveBeenCalled();
 

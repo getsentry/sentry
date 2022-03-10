@@ -99,42 +99,6 @@ class ProjectRuleConfigurationTest(APITestCase):
             assert EMAIL_ACTION in action_ids
             assert JIRA_ACTION not in action_ids
 
-    def test_percent_condition_flag(self):
-        with self.feature(
-            {
-                "projects:alert-filters": False,
-                "organizations:integrations-ticket-rules": False,
-                "organizations:issue-percent-filters": False,
-            }
-        ):
-            # We should not get back the condition.
-            response = self.get_valid_response(self.organization.slug, self.project.slug)
-            assert len(response.data["conditions"]) == 9
-            for condition in response.data["conditions"]:
-                assert (
-                    condition["id"]
-                    != "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
-                )
-
-        with self.feature(
-            {
-                "projects:alert-filters": False,
-                "organizations:integrations-ticket-rules": False,
-                "organizations:issue-percent-filters": True,
-            }
-        ):
-            # We should get back the condition.
-            response = self.get_valid_response(self.organization.slug, self.project.slug)
-            assert len(response.data["conditions"]) == 10
-            found = False
-            for condition in response.data["conditions"]:
-                if (
-                    condition["id"]
-                    != "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
-                ):
-                    found = True
-            assert found is True
-
     def test_sentry_app_alertable_webhook(self):
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")

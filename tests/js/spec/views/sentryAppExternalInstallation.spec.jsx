@@ -55,8 +55,7 @@ describe('SentryAppExternalInstallation', () => {
 
     getMountedComponent = () =>
       mountWithTheme(
-        <SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />,
-        TestStubs.routerContext()
+        <SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />
       );
   });
 

@@ -26,7 +26,7 @@ describe('SmartSearchBar', function () {
       key: 'firstRelease',
       name: 'firstRelease',
     };
-    organization = TestStubs.Organization({id: '123', features: ['improved-search']});
+    organization = TestStubs.Organization({id: '123'});
 
     location = {
       pathname: '/organizations/org-slug/recent-searches/',

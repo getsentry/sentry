@@ -26,8 +26,7 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const joinButton = wrapper.find('Button[aria-label="join-organization"]');
@@ -61,8 +60,7 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const joinButton = wrapper.find('Button[aria-label="join-organization"]');
@@ -87,8 +85,7 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const joinButton = wrapper.find('Button[aria-label="join-organization"]');
@@ -113,8 +110,7 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const joinButton = wrapper.find('Button[aria-label="join-organization"]');
@@ -139,8 +135,7 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const joinButton = wrapper.find('Button[aria-label="join-organization"]');
@@ -165,8 +160,7 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const existingMember = wrapper.find('[data-test-id="existing-member"]');
@@ -197,8 +191,7 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const ssoLink = wrapper.find('[data-test-id="action-info-sso"]');
@@ -219,8 +212,7 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     const existingMember = wrapper.find('[data-test-id="existing-member"]');
@@ -251,8 +243,7 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
-      TestStubs.routerContext()
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
     );
 
     expect(wrapper.find('[data-test-id="2fa-warning"]').exists()).toBe(true);

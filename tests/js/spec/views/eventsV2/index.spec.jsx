@@ -76,8 +76,7 @@ describe('EventsV2 > Landing', function () {
         organization={TestStubs.Organization({features})}
         location={{query: {}}}
         router={{}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const content = wrapper.find('SentryDocumentTitle');
@@ -90,8 +89,7 @@ describe('EventsV2 > Landing', function () {
         organization={TestStubs.Organization()}
         location={{query: {}}}
         router={{}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const content = wrapper.find('PageContent');
@@ -102,8 +100,7 @@ describe('EventsV2 > Landing', function () {
     const org = TestStubs.Organization({features});
 
     const wrapper = mountWithTheme(
-      <DiscoverLanding organization={org} location={{query: {}}} router={{}} />,
-      TestStubs.routerContext()
+      <DiscoverLanding organization={org} location={{query: {}}} router={{}} />
     );
 
     const dropdownItems = wrapper.find('DropdownItem span');

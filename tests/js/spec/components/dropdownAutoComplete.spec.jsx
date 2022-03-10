@@ -3,7 +3,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 
 describe('DropdownAutoComplete', function () {
-  const routerContext = TestStubs.routerContext();
   const items = [
     {
       value: 'apple',
@@ -21,8 +20,7 @@ describe('DropdownAutoComplete', function () {
 
   it('has actor wrapper', function () {
     const wrapper = mountWithTheme(
-      <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>,
-      routerContext
+      <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
     expect(wrapper.find('div[role="button"]')).toHaveLength(1);
     expect(wrapper.find('div[role="button"]').text()).toBe('Click Me!');
@@ -30,8 +28,7 @@ describe('DropdownAutoComplete', function () {
 
   it('opens dropdown menu when actor is clicked', function () {
     const wrapper = mountWithTheme(
-      <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>,
-      routerContext
+      <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
     wrapper.find('Actor[role="button"]').simulate('click');
     expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
@@ -44,8 +41,7 @@ describe('DropdownAutoComplete', function () {
     const wrapper = mountWithTheme(
       <DropdownAutoComplete allowActorToggle items={items}>
         {() => 'Click Me!'}
-      </DropdownAutoComplete>,
-      routerContext
+      </DropdownAutoComplete>
     );
     wrapper.find('Actor[role="button"]').simulate('click');
     expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);

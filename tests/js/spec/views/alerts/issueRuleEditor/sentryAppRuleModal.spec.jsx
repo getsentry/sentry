@@ -79,8 +79,7 @@ describe('SentryAppRuleModal', function () {
         action="create"
         onSubmitSuccess={() => {}}
         {...props}
-      />,
-      {context: TestStubs.routerContext()}
+      />
     );
   };
 

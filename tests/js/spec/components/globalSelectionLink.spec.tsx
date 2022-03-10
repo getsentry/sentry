@@ -36,10 +36,8 @@ describe('GlobalSelectionLink', function () {
   });
 
   it('does not have global selection values in query', function () {
-    const context = TestStubs.routerContext();
     const {container} = mountWithTheme(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
-      {context}
+      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>
     );
 
     expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);

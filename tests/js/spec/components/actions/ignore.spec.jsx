@@ -4,17 +4,12 @@ import {mountGlobalModal} from 'sentry-test/modal';
 import IgnoreActions from 'sentry/components/actions/ignore';
 
 describe('IgnoreActions', function () {
-  const routerContext = TestStubs.routerContext();
-
   describe('disabled', function () {
     let component, button;
     const spy = jest.fn();
 
     beforeEach(function () {
-      component = mountWithTheme(
-        <IgnoreActions onUpdate={spy} disabled />,
-        routerContext
-      );
+      component = mountWithTheme(<IgnoreActions onUpdate={spy} disabled />);
       button = component.find('IgnoreButton');
     });
 
@@ -32,10 +27,7 @@ describe('IgnoreActions', function () {
     let component;
     const spy = jest.fn();
     beforeEach(function () {
-      component = mountWithTheme(
-        <IgnoreActions onUpdate={spy} isIgnored />,
-        routerContext
-      );
+      component = mountWithTheme(<IgnoreActions onUpdate={spy} isIgnored />);
     });
 
     it('displays ignored view', function () {
@@ -56,7 +48,7 @@ describe('IgnoreActions', function () {
     const spy = jest.fn();
 
     beforeEach(function () {
-      component = mountWithTheme(<IgnoreActions onUpdate={spy} />, routerContext);
+      component = mountWithTheme(<IgnoreActions onUpdate={spy} />);
     });
 
     it('calls spy with ignore details when clicked', function () {
@@ -73,8 +65,7 @@ describe('IgnoreActions', function () {
 
     beforeEach(function () {
       component = mountWithTheme(
-        <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="confirm me" />,
-        routerContext
+        <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="confirm me" />
       );
       button = component.find('IgnoreButton');
     });

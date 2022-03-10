@@ -72,6 +72,7 @@ TIMESTAMP_FIELDS = {
     "timestamp.to_hour",
     "timestamp.to_day",
 }
+NON_FAILURE_STATUS = {"ok", "cancelled", "unknown"}
 
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
@@ -134,3 +135,4 @@ METRICS_MAP = {
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 51
+METRICS_GRANULARITIES = [86400, 3600, 60, 10]

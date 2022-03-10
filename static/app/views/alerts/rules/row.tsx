@@ -21,7 +21,10 @@ import space from 'sentry/styles/space';
 import {Actor, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Color} from 'sentry/utils/theme';
-import {AlertRuleThresholdType} from 'sentry/views/alerts/incidentRules/types';
+import {
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+} from 'sentry/views/alerts/incidentRules/types';
 
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
@@ -90,8 +93,12 @@ function RuleListRow({
       return null;
     }
 
-    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+    const criticalTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.CRITICAL
+    );
+    const warningTrigger = rule.triggers.find(
+      ({label}) => label === AlertRuleTriggerType.WARNING
+    );
     const resolvedTrigger = rule.resolveThreshold;
     const trigger =
       activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
@@ -107,9 +114,9 @@ function RuleListRow({
 
     if (activeIncident) {
       iconColor =
-        trigger?.label === 'critical'
+        trigger?.label === AlertRuleTriggerType.CRITICAL
           ? 'red300'
-          : trigger?.label === 'warning'
+          : trigger?.label === AlertRuleTriggerType.WARNING
           ? 'yellow300'
           : 'green300';
       iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';

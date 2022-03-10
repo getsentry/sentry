@@ -83,9 +83,13 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
     # If IP address doesn't exist, skip ratelimiting for now
     else:
         return None
-    # TODO: remove view from this key, it's not necessary
     group = rate_limit_config.group if rate_limit_config else "default"
-    return f"{category}:{group}:{view}:{http_method}:{id}"
+    if rate_limit_config and rate_limit_config.has_custom_limit():
+        # if there is a custom rate limit on the endpoint, we add view to the key
+        # otherwise we just use what's default for the group
+        return f"{category}:{group}:{view}:{http_method}:{id}"
+    else:
+        return f"{category}:{group}:{http_method}:{id}"
 
 
 def get_organization_id_from_token(token_id: str) -> int | None:
