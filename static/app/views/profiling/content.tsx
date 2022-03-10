@@ -12,7 +12,7 @@ import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {PageFilters} from 'sentry/types';
-import {useTraces} from 'sentry/utils/profiling/hooks/useTraces';
+import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -28,7 +28,7 @@ interface ProfilingContentProps {
 function ProfilingContent({location, selection}: ProfilingContentProps) {
   const organization = useOrganization();
   const cursor = decodeScalar(location.query.cursor);
-  const [requestState, traces, pageLinks] = useTraces({cursor, selection});
+  const [requestState, traces, pageLinks] = useProfiles({cursor, selection});
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>

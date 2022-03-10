@@ -27,15 +27,15 @@ function fetchTraces(
   });
 }
 
-interface UseTraceOptions {
+interface UseProfilesOptions {
   cursor: string | undefined;
   selection: PageFilters | undefined;
 }
 
-function useTraces({
+function useProfiles({
   cursor,
   selection,
-}: UseTraceOptions): [RequestState, Trace[], string | null] {
+}: UseProfilesOptions): [RequestState, Trace[], string | null] {
   const api = useApi();
   const organization = useOrganization();
 
@@ -63,4 +63,4 @@ function useTraces({
   return [requestState, traces, pageLinks];
 }
 
-export {useTraces};
+export {useProfiles};
