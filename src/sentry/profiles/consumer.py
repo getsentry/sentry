@@ -71,7 +71,7 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         classification_options.update(
             {
                 "cpu_frequencies": profile["device_cpu_frequencies"],
-                "physical_memory_bytes": profile["device_physical_memory_bytes"],
+                "physical_memory_bytes": int(profile["device_physical_memory_bytes"]),
             }
         )
     elif profile["platform"] == "ios":
