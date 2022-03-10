@@ -759,10 +759,12 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
-  const {columns, aggregates} = state.queries[0];
+  const {columns, aggregates, fields} = state.queries[0];
   const explodedColumns = columns.map(field => explodeField({field}));
   const explodedAggregates = aggregates.map(field => explodeField({field}));
-  const explodedFields = [...explodedColumns, ...explodedAggregates];
+  const explodedFields = defined(fields)
+    ? fields.map(field => explodeField({field}))
+    : [...explodedColumns, ...explodedAggregates];
   const orderBy = state.queries[0].orderby;
 
   return (

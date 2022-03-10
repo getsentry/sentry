@@ -146,7 +146,14 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
         }}
         selection={selection}
         isEditing={false}
@@ -183,6 +190,10 @@ describe('Dashboards > WidgetCard', function () {
               fields: [
                 'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
               ],
+              columns: [],
+              aggregates: [
+                'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
+              ],
             },
           ],
         }}
@@ -217,7 +228,12 @@ describe('Dashboards > WidgetCard', function () {
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
           queries: [
-            {...multipleQueryWidget.queries[0], fields: ['transaction', 'count()']},
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: ['transaction', 'count()'],
+              columns: ['transaction'],
+              aggregates: ['count()'],
+            },
           ],
         }}
         selection={selection}
