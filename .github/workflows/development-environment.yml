@@ -37,6 +37,9 @@ jobs:
 
       - name: Install prerequisites
         run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker
+          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
+          open -a /Applications/Docker.app --args --unattended --accept-license
           make prerequisites
 
       - name: Setup Python
@@ -66,7 +69,7 @@ jobs:
           [[ $(python -V) == "Python $(cat .python-version)" ]]
           python -m venv .venv
           source .venv/bin/activate
-          make develop init-config
+          make bootstrap
           pre-commit
 
   bootstrap-script:
