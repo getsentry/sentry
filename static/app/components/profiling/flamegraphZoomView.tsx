@@ -332,27 +332,6 @@ function FlamegraphZoomView({
     return () => canvasPoolManager.unregisterScheduler(scheduler);
   }, [canvasPoolManager, scheduler]);
 
-  const onCanvasClick = useCallback(
-    (evt: React.MouseEvent<HTMLCanvasElement>) => {
-      evt.preventDefault();
-      evt.stopPropagation();
-
-      if (!flamegraphRenderer || !configSpaceCursor) {
-        return;
-      }
-
-      // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
-      // This essentialy tracks double click action on a rectangle
-      if (hoveredNode && selectedNode && hoveredNode === selectedNode) {
-        canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
-      }
-
-      setSelectedNode(hoveredNode);
-      canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
-    },
-    [flamegraphRenderer, configSpaceCursor, selectedNode, hoveredNode, canvasPoolManager]
-  );
-
   const onCanvasMouseDown = useCallback((evt: React.MouseEvent<HTMLCanvasElement>) => {
     const logicalMousePos = vec2.fromValues(
       evt.nativeEvent.offsetX,
@@ -368,9 +347,29 @@ function FlamegraphZoomView({
     setStartPanVector(physicalMousePos);
   }, []);
 
-  const onCanvasMouseUp = useCallback(() => {
-    setStartPanVector(null);
-  }, []);
+  const onCanvasMouseUp = useCallback(
+    (evt: React.MouseEvent<HTMLCanvasElement>) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+
+      if (!flamegraphRenderer || !configSpaceCursor) {
+        return;
+      }
+
+      // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
+      // This essentialy tracks double click action on a rectangle
+      if (!startPanVector) {
+        if (hoveredNode && selectedNode && hoveredNode === selectedNode) {
+          canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
+        }
+      }
+
+      canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
+      setSelectedNode(hoveredNode);
+      setStartPanVector(null);
+    },
+    [flamegraphRenderer, configSpaceCursor, selectedNode, hoveredNode, canvasPoolManager]
+  );
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
@@ -543,7 +542,6 @@ function FlamegraphZoomView({
     <React.Fragment>
       <Canvas
         ref={canvas => setFlamegraphCanvasRef(canvas)}
-        onClick={onCanvasClick}
         onMouseDown={onCanvasMouseDown}
         onMouseUp={onCanvasMouseUp}
         onMouseMove={onCanvasMouseMove}
