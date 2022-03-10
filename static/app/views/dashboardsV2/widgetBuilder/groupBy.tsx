@@ -6,6 +6,7 @@ import Field from 'sentry/components/forms/field';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -23,21 +24,18 @@ type Props = {
 
 export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
   function handleAdd() {
-    let newColumns: QueryFieldValue[] = [];
-    if (columns.length === 0) {
-      newColumns = [{...EMPTY_FIELD}, {...EMPTY_FIELD}];
-    } else {
-      newColumns = [...columns, {...EMPTY_FIELD}];
-    }
+    const newColumns =
+      columns.length === 0
+        ? [{...EMPTY_FIELD}, {...EMPTY_FIELD}]
+        : [...columns, {...EMPTY_FIELD}];
     onChange(newColumns);
   }
 
-  function handleSelect(value: QueryFieldValue, index: number) {
-    let newColumns: QueryFieldValue[] = [];
+  function handleSelect(value: QueryFieldValue, index?: number) {
+    const newColumns = [...columns];
     if (columns.length === 0) {
-      newColumns = [value];
-    } else {
-      newColumns = [...columns];
+      newColumns.push(value);
+    } else if (defined(index)) {
       newColumns[index] = value;
     }
     onChange(newColumns);
@@ -63,11 +61,9 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
           </QueryFieldWrapper>
         </StyledField>
 
-        {(columns?.length ?? 0) < GROUP_BY_LIMIT && (
-          <AddGroupButton size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
-            {t('Add Group')}
-          </AddGroupButton>
-        )}
+        <AddGroupButton size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
+          {t('Add Group')}
+        </AddGroupButton>
       </React.Fragment>
     );
   }
@@ -82,9 +78,7 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
     <React.Fragment>
       <StyledField inline={false} flexibleControlStateSize stacked>
         {columns?.map((column, index) => (
-          // TODO(nar): Find a better key. Should be able to use column.field
-          // because we're filtering out functions
-          <QueryFieldWrapper key={`${column.kind}-${index}`}>
+          <QueryFieldWrapper key={`groupby-${index}`}>
             <QueryField
               placeholder={t('Select group')}
               fieldValue={column}
@@ -105,7 +99,7 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
         ))}
       </StyledField>
 
-      {(columns?.length ?? 0) < GROUP_BY_LIMIT && (
+      {columns.length < GROUP_BY_LIMIT && (
         <AddGroupButton size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
           {t('Add Group')}
         </AddGroupButton>
