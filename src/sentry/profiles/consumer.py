@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, Dict, MutableMapping, Optional, Sequence
 
 import msgpack
@@ -21,7 +22,7 @@ def get_profiles_consumer(
     )
     options = {
         "max_batch_size": 10,
-        "max_batch_time": 5,
+        "max_batch_time": 1,
         "group_id": "profiles",
         "auto_offset_reset": "latest",
     }
@@ -37,7 +38,7 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         "organization_id": profile["organization_id"],
         "project_id": profile["project_id"],
         "transaction_id": profile["transaction_id"],
-        "received": profile["received"],
+        "received": datetime.utcfromtimestamp(profile["received"]).isoformat(),
         "device_locale": profile["device_locale"],
         "device_manufacturer": profile["device_manufacturer"],
         "device_model": profile["device_model"],
