@@ -43,6 +43,7 @@ from sentry.snuba.metrics.utils import (
     MetricDoesNotExistException,
     MetricEntity,
     MetricMetaWithTagKeys,
+    MetricType,
 )
 from sentry.utils.snuba import raw_snql_query
 
@@ -203,7 +204,7 @@ class DerivedMetricDefinition:
     metrics: List[str]
     unit: str
     op: Optional[str] = None
-    result_type: Optional[str] = None
+    result_type: Optional[MetricType] = None
     snql: Optional[Function] = None
     post_query_func: Any = lambda *args: args
     is_private: bool = False
@@ -214,16 +215,17 @@ class DerivedMetric(DerivedMetricDefinition, MetricFieldBase, ABC):
         super().__init__(*args, **kwargs)  # type: ignore
         self._entity = None
 
-    def get_entity(
-        self, projects: Optional[Sequence[Project]] = None, **kwargs: Any
-    ) -> Optional[MetricEntity]:
-        # Added this base function shadowing CompositeEntityDerivedMetric
-        return self._entity
+    @abstractmethod
+    def generate_available_operations(self):
+        """
+        Method that generate the available operations for an instance of DerivedMetric
+        """
+        raise NotImplementedError
 
 
 class SingularEntityDerivedMetric(DerivedMetric):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)  # type: ignore
         self.result_type = "numeric"
 
     def __raise_entity_validation_exception(self, func_name: str):
@@ -245,8 +247,18 @@ class SingularEntityDerivedMetric(DerivedMetric):
         if derived_metric_name not in DERIVED_METRICS:
             metric_type = get_single_metric_info(projects, derived_metric_name)["type"]
             return {METRIC_TYPE_TO_ENTITY[metric_type].value}
+
         entities = set()
         derived_metric = DERIVED_METRICS[derived_metric_name]
+
+        try:
+            # Stop the recursion if the entity for this derived metric was computed previously
+            entity = derived_metric.get_entity()
+            if derived_metric.get_entity() is not None:
+                return {entity}
+        except DerivedMetricParseException:
+            pass
+
         for metric_name in derived_metric.metrics:
             entities |= cls.__recursively_get_all_entities_in_derived_metric_dependency_tree(
                 metric_name, projects
@@ -339,8 +351,11 @@ class SingularEntityDerivedMetric(DerivedMetric):
         try:
             default_null_value = DEFAULT_AGGREGATES[UNIT_TO_TYPE[self.unit]]
         except KeyError:
-            ...
+            pass
         return default_null_value
+
+    def generate_available_operations(self):
+        return []
 
 
 # ToDo(ahmed): Replace the metric_names with Enums

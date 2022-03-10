@@ -10,7 +10,10 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
-import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_MINIMUM,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -39,6 +42,7 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
+  renderPrependColumns,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -90,59 +94,85 @@ function WidgetViewerModal(props: Props) {
     widget.displayType === DisplayType.TOP_N
       ? {...widget, queries: sortedQueries}
       : widget;
+  const api = useApi();
 
-  const renderWidgetViewer = () => {
-    const api = useApi();
+  // Create Table widget
+  const tableWidget = {
+    ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
+    displayType: DisplayType.TABLE,
+  };
+  const fields = defined(tableWidget.queries[0].fields)
+    ? tableWidget.queries[0].fields
+    : [...tableWidget.queries[0].columns, ...tableWidget.queries[0].aggregates];
 
-    // Create Table widget
-    const tableWidget = {
-      ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
-      displayType: DisplayType.TABLE,
-    };
-    const fields = defined(tableWidget.queries[0].fields)
-      ? tableWidget.queries[0].fields
-      : [...tableWidget.queries[0].columns, ...tableWidget.queries[0].aggregates];
+  const columns = tableWidget.queries[0].columns;
+  const aggregates = tableWidget.queries[0].aggregates;
 
-    const columns = tableWidget.queries[0].columns;
-    const aggregates = tableWidget.queries[0].aggregates;
+  // World Map view should always have geo.country in the table chart
+  if (
+    widget.displayType === DisplayType.WORLD_MAP &&
+    !columns.includes(GEO_COUNTRY_CODE)
+  ) {
+    fields.unshift(GEO_COUNTRY_CODE);
+    columns.unshift(GEO_COUNTRY_CODE);
+  }
+  // Default table columns for visualizations that don't have a column setting
+  const shouldReplaceTableColumns = [
+    DisplayType.AREA,
+    DisplayType.LINE,
+    DisplayType.BIG_NUMBER,
+    DisplayType.BAR,
+  ].includes(widget.displayType);
 
-    // World Map view should always have geo.country in the table chart
-    if (
-      widget.displayType === DisplayType.WORLD_MAP &&
-      !columns.includes(GEO_COUNTRY_CODE)
-    ) {
-      fields.unshift(GEO_COUNTRY_CODE);
-      columns.unshift(GEO_COUNTRY_CODE);
-    }
-    if (!isTableWidget) {
-      // Updates fields by adding any individual terms from equation fields as a column
-      const equationFields = getFieldsFromEquations(fields);
-      equationFields.forEach(term => {
-        if (Array.isArray(fields) && !fields.includes(term)) {
-          fields.unshift(term);
-        }
-        if (isAggregateField(term) && !aggregates.includes(term)) {
-          aggregates.unshift(term);
-        }
-        if (!isAggregateField(term) && !columns.includes(term)) {
-          columns.unshift(term);
-        }
-      });
-    }
-    const eventView = eventViewFromWidget(
-      tableWidget.title,
-      tableWidget.queries[0],
-      modalSelection,
-      tableWidget.displayType
+  if (shouldReplaceTableColumns) {
+    tableWidget.queries[0].orderby = tableWidget.queries[0].orderby || '-timestamp';
+    fields.splice(
+      0,
+      fields.length,
+      ...['title', 'event.type', 'project', 'user.display', 'timestamp']
     );
-    const columnOrder = eventView.getColumns();
-    const columnSortBy = eventView.getSorts();
+    columns.splice(
+      0,
+      fields.length,
+      ...['title', 'event.type', 'project', 'user.display', 'timestamp']
+    );
+  }
 
-    const queryOptions = sortedQueries.map(({name, conditions}, index) => ({
-      label: truncate(name || conditions, 120),
-      value: index,
-    }));
+  const prependColumnWidths = shouldReplaceTableColumns
+    ? [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`]
+    : [];
 
+  if (!isTableWidget) {
+    // Updates fields by adding any individual terms from equation fields as a column
+    const equationFields = getFieldsFromEquations(fields);
+    equationFields.forEach(term => {
+      if (Array.isArray(fields) && !fields.includes(term)) {
+        fields.unshift(term);
+      }
+      if (isAggregateField(term) && !aggregates.includes(term)) {
+        aggregates.unshift(term);
+      }
+      if (!isAggregateField(term) && !columns.includes(term)) {
+        columns.unshift(term);
+      }
+    });
+  }
+
+  const eventView = eventViewFromWidget(
+    tableWidget.title,
+    tableWidget.queries[0],
+    modalSelection,
+    tableWidget.displayType
+  );
+  const columnOrder = eventView.getColumns();
+  const columnSortBy = eventView.getSorts();
+
+  const queryOptions = sortedQueries.map(({name, conditions}, index) => ({
+    label: truncate(name || conditions, 120),
+    value: index,
+  }));
+
+  function renderWidgetViewer() {
     return (
       <React.Fragment>
         {widget.queries.length > 1 && (
@@ -280,10 +310,17 @@ function WidgetViewerModal(props: Props) {
                         ) => React.ReactNode,
                         renderBodyCell: renderGridBodyCell({
                           ...props,
-                          widget: tableWidget,
                           tableData: tableResults?.[0],
                           isFirstPage,
                         }),
+                        renderPrependColumns: shouldReplaceTableColumns
+                          ? renderPrependColumns({
+                              ...props,
+                              eventView,
+                              tableData: tableResults?.[0],
+                            })
+                          : undefined,
+                        prependColumnWidths,
                       }}
                       location={location}
                     />
@@ -301,7 +338,7 @@ function WidgetViewerModal(props: Props) {
         </TableContainer>
       </React.Fragment>
     );
-  };
+  }
 
   const StyledHeader = styled(Header)`
     ${headerCss}
@@ -321,10 +358,9 @@ function WidgetViewerModal(props: Props) {
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
-        primaryWidget,
+        {...primaryWidget, queries: tableWidget.queries},
         modalSelection,
-        organization,
-        selectedQueryIndex
+        organization
       );
       break;
   }
