@@ -3,28 +3,36 @@ import Reflux from 'reflux';
 import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
 import {MetricsMeta, MetricsMetaCollection} from 'sentry/types';
 
-type MetricsMetaStoreInterface = {
-  getAllFields(): MetricsMetaCollection;
-  onLoadSuccess(data: MetricsMeta[]): void;
-  reset(): void;
-  state: MetricsMetaCollection;
+import {CommonStoreInterface} from './types';
+
+type State = {
+  metricsMeta: MetricsMetaCollection;
 };
 
-const storeConfig: Reflux.StoreDefinition & MetricsMetaStoreInterface = {
-  state: {},
+type Internals = {
+  metricsMeta: MetricsMetaCollection;
+};
+
+type MetricsMetaStoreInterface = CommonStoreInterface<State> & {
+  onLoadSuccess(data: MetricsMeta[]): void;
+  reset(): void;
+};
+
+const storeConfig: Reflux.StoreDefinition & Internals & MetricsMetaStoreInterface = {
+  metricsMeta: {},
 
   init() {
-    this.state = {};
     this.listenTo(MetricsMetaActions.loadMetricsMetaSuccess, this.onLoadSuccess);
   },
 
   reset() {
-    this.state = {};
-    this.trigger(this.state);
+    this.metricsMeta = {};
+    this.trigger(this.metricsMeta);
   },
 
-  getAllFields() {
-    return this.state;
+  getState() {
+    const {metricsMeta} = this;
+    return {metricsMeta};
   },
 
   onLoadSuccess(data) {
@@ -36,8 +44,8 @@ const storeConfig: Reflux.StoreDefinition & MetricsMetaStoreInterface = {
       return acc;
     }, {});
 
-    this.state = {...this.state, ...newFields};
-    this.trigger(this.state);
+    this.metricsMeta = {...this.metricsMeta, ...newFields};
+    this.trigger(this.metricsMeta);
   },
 };
 

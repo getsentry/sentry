@@ -382,6 +382,13 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
+function shouldAddDefaultConditions(location: Location) {
+  const {query} = location;
+  const searchQuery = decodeScalar(query.query, '');
+  const isDefaultQuery = decodeScalar(query.isDefaultQuery);
+  return !searchQuery && isDefaultQuery !== 'false';
+}
+
 function generateGenericPerformanceEventView(
   location: Location,
   isMetricsData: boolean
@@ -425,7 +432,7 @@ function generateGenericPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location) && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -506,7 +513,7 @@ function generateBackendPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location) && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -597,7 +604,7 @@ function generateMobilePerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location) && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -668,7 +675,7 @@ function generateFrontendPageloadPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location) && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -740,7 +747,7 @@ function generateFrontendOtherPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location) && !isMetricsData) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
