@@ -18,8 +18,14 @@ def get_profiles_consumer(
     producer = Producer(
         kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
     )
+    options = {
+        "max_batch_size": 10,
+        "max_batch_time": 5,
+        "group_id": "profiles",
+        "auto_offset_reset": "latest",
+    }
     return create_batching_kafka_consumer(
-        {topic},
+        {settings.KAFKA_PROFILES},
         worker=ProfilesWorker(producer=producer),
         **options,
     )

@@ -31,6 +31,7 @@ _DEFAULT_DAEMONS = {
         "latest",
     ],
     "metrics": ["sentry", "run", "ingest-metrics-consumer-2"],
+    "profiles": ["sentry", "run", "ingest-profiles"],
 }
 
 
