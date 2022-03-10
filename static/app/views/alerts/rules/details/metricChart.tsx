@@ -881,6 +881,7 @@ const ValueItem = styled('div')`
   grid-template-columns: repeat(2, auto);
   gap: ${space(0.5)};
   align-items: center;
+  font-variant-numeric: tabular-nums;
 `;
 
 /* Override padding to make chart appear centered */
