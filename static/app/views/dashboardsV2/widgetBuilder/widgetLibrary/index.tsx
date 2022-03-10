@@ -8,12 +8,14 @@ import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
-import {WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   DEFAULT_WIDGETS,
   WidgetTemplate,
 } from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {DEFAULT_RESULTS_LIMIT} from '../utils';
 
 import {Card} from './card';
 
@@ -59,18 +61,25 @@ export function WidgetLibrary({
             index
           ];
 
-          if (widgetBuilderNewDesign && !widget.queries[0].orderby) {
-            const orderBy = (
-              widgetType === WidgetType.DISCOVER
-                ? generateOrderOptions({
-                    widgetType,
-                    widgetBuilderNewDesign,
-                    ...getColumnsAndAggregates(widget.queries[0].fields),
-                  })[0].value
-                : IssueSortOptions.DATE
-            ) as string;
+          if (widgetBuilderNewDesign) {
+            if (!widget.queries[0].orderby) {
+              const orderBy = (
+                widgetType === WidgetType.DISCOVER
+                  ? generateOrderOptions({
+                      widgetType,
+                      widgetBuilderNewDesign,
+                      ...getColumnsAndAggregates(widget.queries[0].fields),
+                    })[0].value
+                  : IssueSortOptions.DATE
+              ) as string;
 
-            widget.queries[0].orderby = orderBy;
+              widget.queries[0].orderby = orderBy;
+            }
+
+            if (widget.displayType === DisplayType.TOP_N) {
+              widget.displayType = DisplayType.TABLE;
+              widget.queries[0].limit = widget.queries[0].limit ?? DEFAULT_RESULTS_LIMIT;
+            }
           }
 
           return (

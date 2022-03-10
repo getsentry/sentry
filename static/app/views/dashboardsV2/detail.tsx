@@ -360,13 +360,16 @@ class DashboardDetail extends Component<Props, State> {
       ...cloneDashboard(modifiedDashboard || dashboard),
       widgets: assignDefaultLayout(widgets, layoutColumnDepths),
     };
+
     this.setState({
       modifiedDashboard: newModifiedDashboard,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
     });
+
     if (this.isEditing || this.isPreview) {
       return;
     }
+
     updateDashboard(api, organization.slug, newModifiedDashboard).then(
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
@@ -462,6 +465,7 @@ class DashboardDetail extends Component<Props, State> {
             });
             return;
           }
+
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
