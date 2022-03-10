@@ -33,8 +33,8 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/alerts/`,
-          title: t('Alerts'),
-          description: t('Manage alert rules for a project'),
+          title: t('Alert Settings'),
+          description: t('Alert Settings'),
         },
         {
           path: `${pathPrefix}/tags/`,
