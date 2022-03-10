@@ -1013,10 +1013,10 @@ class DiscoverDatasetConfig(DatasetConfig):
         column = args["column"]
         quality = args["quality"].lower()
 
-        if column.subscriptable != "measurements" or column.key not in VITAL_THRESHOLDS:
+        if column.subscriptable != "measurements":
+            raise InvalidSearchQuery("count_web_vitals only supports measurements")
+        elif column.key not in VITAL_THRESHOLDS:
             raise InvalidSearchQuery(f"count_web_vitals doesn't support {column.key}")
-        if quality not in ["good", "meh", "poor"]:
-            raise InvalidSearchQuery("Quality for count_web_vitals must be good, meh or poor")
 
         if quality == "good":
             return Function(
@@ -1040,7 +1040,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ],
                 alias,
             )
-        else:
+        elif quality == "poor":
             return Function(
                 "countIf",
                 [
@@ -1054,6 +1054,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ],
                 alias,
             )
+        else:
+            raise InvalidSearchQuery("Quality for count_web_vitals must be good, meh or poor")
 
     def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:

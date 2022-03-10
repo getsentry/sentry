@@ -4938,7 +4938,7 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
             "project": [self.project.id],
         }
         response = self.do_request(query)
-        assert response.status_code == 400, response.content
+        assert response.status_code == 200, response.content
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
