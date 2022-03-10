@@ -316,8 +316,8 @@ class MetricChart extends React.PureComponent<Props, State> {
     const warningPercent = 100 * Math.min(warningDuration / totalDuration, 1);
 
     return (
-      <ChartControls>
-        <InlineContainer>
+      <StyledChartControls>
+        <StyledInlineContainer>
           <SectionHeading>{t('Summary')}</SectionHeading>
           <StyledSectionValue>
             <ValueItem>
@@ -333,7 +333,7 @@ class MetricChart extends React.PureComponent<Props, State> {
               {criticalPercent ? criticalPercent.toFixed(2) : 0}%
             </ValueItem>
           </StyledSectionValue>
-        </InlineContainer>
+        </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
             <Button size="small" {...props}>
@@ -341,7 +341,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             </Button>
           </Feature>
         )}
-      </ChartControls>
+      </StyledChartControls>
     );
   }
 
@@ -848,6 +848,17 @@ const ChartPanel = styled(Panel)`
 
 const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
+`;
+
+const StyledChartControls = styled(ChartControls)`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+`;
+
+const StyledInlineContainer = styled(InlineContainer)`
+  grid-auto-flow: column;
+  grid-column-gap: ${space(1)};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
