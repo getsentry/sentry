@@ -127,6 +127,16 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "count_web_vitals",
+                    required_args=[
+                        fields.FunctionArg("column"),
+                        fields.SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_web_vital_function,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "epm",
                     snql_distribution=lambda args, alias: Function(
                         "divide",
@@ -223,6 +233,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
 
+    # Query Functions
     def _resolve_failure_count(
         self,
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
@@ -273,6 +284,47 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 1,
+            ],
+            alias,
+        )
+
+    def _resolve_web_vital_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        metric_id = args["metric_id"]
+        quality = args["quality"].lower()
+
+        if column not in [
+            "measurements.lcp",
+            "measurements.fcp",
+            "measurements.fp",
+            "measurements.fid",
+            "measurements.cls",
+        ]:
+            raise InvalidSearchQuery("count_web_vitals only supports measurements")
+
+        measurement_rating = Column(f"tags[{indexer.resolve('measurement_rating')}]")
+
+        quality_id = indexer.resolve(quality)
+        if quality_id is None:
+            # Choose an invalid id so the result is 0
+            # TODO: Should be able to just not return a function at all in these cases
+            quality_id = 0
+
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function("equals", [measurement_rating, quality_id]),
+                        Function("equals", [Column("metric_id"), metric_id]),
+                    ],
+                ),
             ],
             alias,
         )

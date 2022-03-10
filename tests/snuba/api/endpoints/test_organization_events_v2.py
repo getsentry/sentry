@@ -4951,7 +4951,15 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
-    METRIC_STRINGS = ["foo_transaction", "bar_transaction", "staging"]
+    # Poor intentionally omitted for test_measurement_rating_that_does_not_exist
+    METRIC_STRINGS = [
+        "foo_transaction",
+        "bar_transaction",
+        "staging",
+        "measurement_rating",
+        "good",
+        "meh",
+    ]
 
     def setUp(self):
         super().setUp()
@@ -5171,3 +5179,45 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data["p75_measurements_fid"] == 3.0
         assert data["p75_measurements_cls"] == 4.0
         assert response.data["meta"]["isMetricsData"]
+
+    def test_measurement_rating(self):
+        self.store_metric(
+            5000,
+            metric="measurements.lcp",
+            tags={"measurement_rating": "good", "transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["transaction", "count_web_vitals(measurements.lcp, good)"],
+                "query": "event.type:transaction",
+                "metricsEnhanced": "1",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["isMetricsData"]
+        assert response.data["data"][0]["count_web_vitals_measurements_lcp_good"] == 1
+
+    def test_measurement_rating_that_does_not_exist(self):
+        self.store_metric(
+            1,
+            metric="measurements.lcp",
+            tags={"measurement_rating": "good", "transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["transaction", "count_web_vitals(measurements.lcp, poor)"],
+                "query": "event.type:transaction",
+                "metricsEnhanced": "1",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["isMetricsData"]
+        assert response.data["data"][0]["count_web_vitals_measurements_lcp_poor"] == 0
