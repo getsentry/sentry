@@ -27,6 +27,9 @@ function FlamegraphZoomView({
   flamegraph,
   canvasPoolManager,
 }: FlamegraphZoomViewProps): React.ReactElement {
+  const [lastInteraction, setLastInteraction] = useState<'pan' | 'click' | 'zoom' | null>(
+    null
+  );
   const flamegraphPreferences = useFlamegraphPreferencesValue();
   const flamegraphTheme = useFlamegraphTheme();
 
@@ -39,7 +42,6 @@ function FlamegraphZoomView({
 
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
   const [searchResults, setSearchResults] = useState<Record<string, FlamegraphFrame>>({});
-
   const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
 
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
@@ -344,6 +346,7 @@ function FlamegraphZoomView({
       window.devicePixelRatio
     );
 
+    setLastInteraction('click');
     setStartPanVector(physicalMousePos);
   }, []);
 
@@ -353,22 +356,33 @@ function FlamegraphZoomView({
       evt.stopPropagation();
 
       if (!flamegraphRenderer || !configSpaceCursor) {
+        setLastInteraction(null);
+        setStartPanVector(null);
         return;
       }
 
       // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
       // This essentialy tracks double click action on a rectangle
-      if (!startPanVector) {
+      if (lastInteraction === 'click') {
         if (hoveredNode && selectedNode && hoveredNode === selectedNode) {
           canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
         }
+        canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
+        setSelectedNode(hoveredNode);
       }
 
-      canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
-      setSelectedNode(hoveredNode);
+      setLastInteraction(null);
       setStartPanVector(null);
     },
-    [flamegraphRenderer, configSpaceCursor, selectedNode, hoveredNode, canvasPoolManager]
+    [
+      flamegraphRenderer,
+      configSpaceCursor,
+      selectedNode,
+      hoveredNode,
+      canvasPoolManager,
+      startPanVector,
+      lastInteraction,
+    ]
   );
 
   const onMouseDrag = useCallback(
@@ -420,6 +434,7 @@ function FlamegraphZoomView({
         mat3.fromTranslation(mat3.create(), configDelta),
       ]);
 
+      setLastInteraction('pan');
       setStartPanVector(physicalMousePos);
     },
     [flamegraphRenderer, startPanVector]
@@ -437,14 +452,17 @@ function FlamegraphZoomView({
 
       setConfigSpaceCursor([configSpaceMouse[0], configSpaceMouse[1]]);
 
-      onMouseDrag(evt);
+      if (lastInteraction) {
+        onMouseDrag(evt);
+      }
     },
-    [flamegraphRenderer, setConfigSpaceCursor, onMouseDrag]
+    [flamegraphRenderer, setConfigSpaceCursor, onMouseDrag, lastInteraction]
   );
 
   const onCanvasMouseLeave = useCallback(() => {
     setConfigSpaceCursor(null);
     setStartPanVector(null);
+    setLastInteraction(null);
   }, []);
 
   const zoom = useCallback(
@@ -476,6 +494,7 @@ function FlamegraphZoomView({
       const translatedBack = mat3.translate(mat3.create(), scaled, invertedConfigCenter);
 
       canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
+      setLastInteraction('zoom');
     },
     [flamegraphRenderer, canvasPoolManager]
   );
@@ -546,6 +565,7 @@ function FlamegraphZoomView({
         onMouseUp={onCanvasMouseUp}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
+        style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
       />
       <Canvas
         ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}
