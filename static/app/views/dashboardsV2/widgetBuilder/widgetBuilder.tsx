@@ -300,6 +300,9 @@ function WidgetBuilder({
       : `/organizations/${orgId}/dashboards/new/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
+  const isTimeSeries = [DisplayType.LINE, DisplayType.BAR, DisplayType.AREA].includes(
+    state.displayType
+  );
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
@@ -477,7 +480,12 @@ function WidgetBuilder({
       // output from getColumnsAndAggregates or should the widget builder handle this?
       const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
       newQuery.aggregates = aggregates;
-      newQuery.columns = columns;
+
+      if (!(widgetBuilderNewDesign && isTimeSeries)) {
+        // Prevent overwriting columns when setting y-axis for time series
+        newQuery.columns = columns;
+      }
+
       if (
         !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
         query.orderby !== ''
@@ -1011,43 +1019,42 @@ function WidgetBuilder({
                       )}
                     </div>
                   </BuildStep>
-                  {/* TODO: Add feature flag{organization.features.includes('new-widget-builder-design') && ( */}
-                  {[DisplayType.BAR, DisplayType.LINE, DisplayType.AREA].includes(
-                    state.displayType
-                  ) && (
-                    <BuildStep
-                      title={t('Group your results')}
-                      description={t(
-                        'This is how you can group your data result by tag or field. For a full list, read the docs.'
-                      )}
-                    >
-                      <Measurements>
-                        {({measurements}) => {
-                          const groupByOptions = {};
-                          const fieldOptions = getAmendedFieldOptions(measurements);
-                          Object.keys(fieldOptions)
-                            .filter(key => !key.startsWith('function'))
-                            .forEach(nonAggregateKey => {
-                              groupByOptions[nonAggregateKey] =
-                                fieldOptions[nonAggregateKey];
-                            });
-                          return (
-                            <GroupBy
-                              columns={
-                                state.queries[0].columns
-                                  // See TODO in handleYAxisOrColumnFieldChange
-                                  ?.filter(field => !(field === 'equation|'))
-                                  .map(field => explodeField({field})) ?? []
-                              }
-                              fields={explodedFields}
-                              fieldOptions={groupByOptions}
-                              onChange={handleGroupByChange}
-                            />
-                          );
-                        }}
-                      </Measurements>
-                    </BuildStep>
-                  )}
+                  {organization.features.includes(
+                    'new-widget-builder-experience-design'
+                  ) &&
+                    isTimeSeries && (
+                      <BuildStep
+                        title={t('Group your results')}
+                        description={t(
+                          'This is how you can group your data result by tag or field. For a full list, read the docs.'
+                        )}
+                      >
+                        <Measurements>
+                          {({measurements}) => {
+                            const groupByOptions = {};
+                            const fieldOptions = getAmendedFieldOptions(measurements);
+                            Object.keys(fieldOptions)
+                              .filter(key => !key.startsWith('function'))
+                              .forEach(nonAggregateKey => {
+                                groupByOptions[nonAggregateKey] =
+                                  fieldOptions[nonAggregateKey];
+                              });
+                            return (
+                              <GroupBy
+                                columns={
+                                  state.queries[0].columns
+                                    ?.filter(field => !(field === 'equation|'))
+                                    .map(field => explodeField({field})) ?? []
+                                }
+                                fields={explodedFields}
+                                fieldOptions={groupByOptions}
+                                onChange={handleGroupByChange}
+                              />
+                            );
+                          }}
+                        </Measurements>
+                      </BuildStep>
+                    )}
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <BuildStep
                       title={t('Sort by a column')}
