@@ -1,9 +1,9 @@
-import {useRef} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import space from 'sentry/styles/space';
-import {domId} from 'sentry/utils/domId';
+import domId from 'sentry/utils/domId';
 
 const defaultRenderCheckbox = ({checkbox}) => checkbox;
 
@@ -33,20 +33,20 @@ function PageFilterRow({
   renderCheckbox = defaultRenderCheckbox,
   ...props
 }: Props) {
-  const rowId = useRef(domId('page_filter_row'));
+  const rowId = useMemo(() => domId('page_filter_row'), []);
 
   const checkbox = (
     <MultiselectCheckbox
       isDisabled={!multi}
       isChecked={checked}
       onClick={multi ? onCheckClick : undefined}
-      aria-labelledby={rowId.current}
+      aria-labelledby={rowId}
     />
   );
 
   return (
     <Container aria-checked={checked} isChecked={checked} {...props}>
-      <Label id={rowId.current} multi={multi}>
+      <Label id={rowId} multi={multi}>
         {children}
       </Label>
       {renderCheckbox({checkbox, checked})}
