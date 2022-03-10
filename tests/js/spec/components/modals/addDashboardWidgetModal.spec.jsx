@@ -110,7 +110,7 @@ async function setSearchConditions(el, query) {
 describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'discover-query', 'issues-in-dashboards'],
+      features: ['performance-view', 'discover-query'],
       apdexThreshold: 400,
     },
   });
@@ -1242,11 +1242,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const onAdd = jest.fn(() => {});
       const wrapper = mountModalWithRtl({
         initialData,
@@ -1279,11 +1275,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('does not render the dataset selector', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1298,11 +1290,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('renders the dataset selector', function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1325,11 +1313,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('disables moving and deleting issue column', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1378,8 +1362,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         screen.getByText('All Events (Errors and Transactions)')
       ).toBeInTheDocument();
       expect(
-        screen.queryByText('Issues (States, Assignment, Time, etc.)')
-      ).not.toBeInTheDocument();
+        screen.getByText('Issues (States, Assignment, Time, etc.)')
+      ).toBeInTheDocument();
       expect(screen.getByText('Metrics (Release Health)')).toBeInTheDocument();
       wrapper.unmount();
     });

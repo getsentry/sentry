@@ -15,12 +15,7 @@ describe('Dashboards > Dashboard', () => {
     features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
   });
   const organizationWithFlag = TestStubs.Organization({
-    features: [
-      'dashboards-basic',
-      'dashboards-edit',
-      'dashboard-grid-layout',
-      'issues-in-dashboards',
-    ],
+    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
   });
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
@@ -192,16 +187,6 @@ describe('Dashboards > Dashboard', () => {
         />
       );
     };
-
-    it('dashboard does not display issue widgets if the user does not have issue widgets feature flag', async () => {
-      const mockDashboardWithIssueWidget = {
-        ...mockDashboard,
-        widgets: [newWidget, issueWidget],
-      };
-      mount(mockDashboardWithIssueWidget);
-      expect(screen.getByText('Test Discover Widget')).toBeInTheDocument();
-      expect(screen.queryByText('Test Issue Widget')).not.toBeInTheDocument();
-    });
 
     it('dashboard displays issue widgets if the user has issue widgets feature flag', async () => {
       const mockDashboardWithIssueWidget = {
