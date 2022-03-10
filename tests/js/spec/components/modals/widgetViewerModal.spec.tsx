@@ -78,6 +78,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const additionalMockQuery = {
       conditions: '',
       fields: ['count()'],
+      aggregates: ['count()'],
+      columns: [],
       id: '2',
       name: 'Another Query Name',
       orderby: '',
