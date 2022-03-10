@@ -17,13 +17,19 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
+import {
+  ChartControls,
+  HeaderTitleLegend,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
 } from 'sentry/components/organizations/pageFilters/parse';
-import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -310,24 +316,24 @@ class MetricChart extends React.PureComponent<Props, State> {
     const warningPercent = 100 * Math.min(warningDuration / totalDuration, 1);
 
     return (
-      <ChartActions>
-        <ChartSummary>
-          <SummaryText>{t('SUMMARY')}</SummaryText>
-          <SummaryStats>
-            <StatItem>
+      <StyledChartControls>
+        <StyledInlineContainer>
+          <SectionHeading>{t('Summary')}</SectionHeading>
+          <StyledSectionValue>
+            <ValueItem>
               <IconCheckmark color="green300" isCircled />
-              <StatCount>{resolvedPercent ? resolvedPercent.toFixed(2) : 0}%</StatCount>
-            </StatItem>
-            <StatItem>
+              {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
+            </ValueItem>
+            <ValueItem>
               <IconWarning color="yellow300" />
-              <StatCount>{warningPercent ? warningPercent.toFixed(2) : 0}%</StatCount>
-            </StatItem>
-            <StatItem>
+              {warningPercent ? warningPercent.toFixed(2) : 0}%
+            </ValueItem>
+            <ValueItem>
               <IconFire color="red300" />
-              <StatCount>{criticalPercent ? criticalPercent.toFixed(2) : 0}%</StatCount>
-            </StatItem>
-          </SummaryStats>
-        </ChartSummary>
+              {criticalPercent ? criticalPercent.toFixed(2) : 0}%
+            </ValueItem>
+          </StyledSectionValue>
+        </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
             <Button size="small" {...props}>
@@ -335,7 +341,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             </Button>
           </Feature>
         )}
-      </ChartActions>
+      </StyledChartControls>
     );
   }
 
@@ -844,6 +850,17 @@ const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
+const StyledChartControls = styled(ChartControls)`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+`;
+
+const StyledInlineContainer = styled(InlineContainer)`
+  grid-auto-flow: column;
+  grid-column-gap: ${space(1)};
+`;
+
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.formText};
   height: ${space(1)};
@@ -863,47 +880,22 @@ const Filters = styled('span')`
   margin-right: ${space(1)};
 `;
 
-const ChartActions = styled(PanelFooter)`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: ${space(1)} 20px;
+const StyledSectionValue = styled(SectionValue)`
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: ${space(1.5)};
+  margin: 0 0 0 ${space(1.5)};
 `;
 
-const ChartSummary = styled('div')`
-  display: flex;
-  margin-right: auto;
-`;
-
-const SummaryText = styled(SectionHeading)`
-  flex: 1;
-  display: flex;
+const ValueItem = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: ${space(0.5)};
   align-items: center;
-  margin: 0;
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
-`;
-
-const SummaryStats = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(2)};
-`;
-
-const StatItem = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(2)} 0 0;
+  font-variant-numeric: tabular-nums;
 `;
 
 /* Override padding to make chart appear centered */
 const StyledPanelBody = styled(PanelBody)`
   padding-right: 6px;
-`;
-
-const StatCount = styled('span')`
-  margin-left: ${space(0.5)};
-  margin-top: ${space(0.25)};
-  color: ${p => p.theme.textColor};
 `;
