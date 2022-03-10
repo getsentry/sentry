@@ -16,6 +16,7 @@ import {
   Widget,
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
+import * as groupBy from 'sentry/views/dashboardsV2/widgetBuilder/groupBy';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
 // Mock World Map because setState inside componentDidMount is
@@ -731,7 +732,7 @@ describe('WidgetBuilder', function () {
     expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
 
     // Restricting to a single query
-    expect(screen.queryByLabelText('Add query')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add Query')).not.toBeInTheDocument();
 
     // Restricting to a single y-axis
     expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
@@ -816,8 +817,8 @@ describe('WidgetBuilder', function () {
 
     userEvent.click(await screen.findByText('Table'));
     userEvent.click(screen.getByText('Bar Chart'));
-    userEvent.click(screen.getByLabelText('Add query'));
-    userEvent.click(screen.getByLabelText('Add query'));
+    userEvent.click(screen.getByLabelText('Add Query'));
+    userEvent.click(screen.getByLabelText('Add Query'));
     expect(
       screen.getAllByPlaceholderText('Search for events, users, tags, and more')
     ).toHaveLength(3);
@@ -1398,12 +1399,36 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('f(x)')).toBeInTheDocument();
     });
 
-    it.only('adds more fields when Add Group is clicked', async function () {
+    it('adds more fields when Add Group is clicked', async function () {
       renderTestComponent({query: {displayType: 'line'}});
 
       await screen.findByText('Group your results');
       userEvent.click(screen.getByText('Add Group'));
-      expect(screen.getAllByText('Select group')).toHaveLength(2);
+      expect(await screen.findAllByText('Select group')).toHaveLength(2);
+    });
+
+    it('allows adding up to GROUP_BY_LIMIT fields', async function () {
+      renderTestComponent({query: {displayType: 'line'}});
+
+      await screen.findByText('Group your results');
+
+      for (let i = 0; i < 19; i++) {
+        userEvent.click(screen.getByText('Add Group'));
+      }
+
+      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
+      expect(await screen.findAllByText('Select group')).toHaveLength(20);
+    });
+
+    it('allows deleting groups until there is one left', async function () {
+      renderTestComponent({query: {displayType: 'line'}});
+
+      await screen.findByText('Group your results');
+      userEvent.click(screen.getByText('Add Group'));
+      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
+
+      userEvent.click(screen.getAllByLabelText('Remove group')[1]);
+      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
     });
   });
 });
