@@ -27,6 +27,12 @@ import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widge
 // throwing UnhandledPromiseRejection
 jest.mock('sentry/components/charts/worldMapChart');
 
+const defaultOrgFeatures = [
+  'new-widget-builder-experience',
+  'dashboards-edit',
+  'global-views',
+];
+
 function renderTestComponent({
   widget,
   dashboard,
@@ -45,11 +51,7 @@ function renderTestComponent({
   const {organization, router, routerContext} = initializeOrg({
     ...initializeOrg(),
     organization: {
-      features: orgFeatures ?? [
-        'new-widget-builder-experience',
-        'dashboards-edit',
-        'global-views',
-      ],
+      features: orgFeatures ?? defaultOrgFeatures,
     },
     router: {
       location: {
@@ -273,7 +275,7 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       orgFeatures: [
         'new-widget-builder-experience',
-        'new-widget-builder-design',
+        'new-widget-builder-experience-design',
         'dashboards-edit',
         'global-views',
       ],
@@ -1391,7 +1393,10 @@ describe('WidgetBuilder', function () {
 
   describe('group by field', function () {
     it('does not contain functions as options', async function () {
-      renderTestComponent({query: {displayType: 'line'}});
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
 
       await screen.findByText('Group your results');
 
@@ -1404,7 +1409,10 @@ describe('WidgetBuilder', function () {
     });
 
     it('adds more fields when Add Group is clicked', async function () {
-      renderTestComponent({query: {displayType: 'line'}});
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
 
       await screen.findByText('Group your results');
       userEvent.click(screen.getByText('Add Group'));
@@ -1412,7 +1420,10 @@ describe('WidgetBuilder', function () {
     });
 
     it('allows adding up to GROUP_BY_LIMIT fields', async function () {
-      renderTestComponent({query: {displayType: 'line'}});
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
 
       await screen.findByText('Group your results');
 
@@ -1425,7 +1436,10 @@ describe('WidgetBuilder', function () {
     });
 
     it('allows deleting groups until there is one left', async function () {
-      renderTestComponent({query: {displayType: 'line'}});
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
 
       await screen.findByText('Group your results');
       userEvent.click(screen.getByText('Add Group'));
@@ -1433,6 +1447,20 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getAllByLabelText('Remove group')[1]);
       expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
+    });
+
+    it("doesn't reset group by when changing y-axis", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      userEvent.click(screen.getByText('count()'));
+      userEvent.click(screen.getByText(/count_unique/));
+
+      expect(screen.getByText('project')).toBeInTheDocument();
     });
   });
 });
