@@ -194,6 +194,16 @@ export function getSeriesSelection(
   }, {});
 }
 
+function isSingleSeriesStats(
+  data: MultiSeriesEventsStats | EventsStats
+): data is EventsStats {
+  return (
+    (defined(data.data) || defined(data.totals)) &&
+    defined(data.start) &&
+    defined(data.end)
+  );
+}
+
 export function isMultiSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | null | undefined,
   isTopN?: boolean
@@ -201,7 +211,7 @@ export function isMultiSeriesStats(
   return (
     defined(data) &&
     ((data.data === undefined && data.totals === undefined) ||
-      (defined(isTopN) && isTopN))
+      (defined(isTopN) && isTopN && defined(data) && !!!isSingleSeriesStats(data))) // the isSingleSeriesStats check is for topN queries returning null data
   );
 }
 
