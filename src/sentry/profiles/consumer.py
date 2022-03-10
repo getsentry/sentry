@@ -35,10 +35,6 @@ def get_profiles_consumer(
 
 def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     normalized_profile = {
-        "organization_id": profile["organization_id"],
-        "project_id": profile["project_id"],
-        "transaction_id": profile["transaction_id"],
-        "received": datetime.utcfromtimestamp(profile["received"]).isoformat(),
         "device_locale": profile["device_locale"],
         "device_manufacturer": profile["device_manufacturer"],
         "device_model": profile["device_model"],
@@ -46,12 +42,18 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         "device_os_version": profile["device_os_version"],
         "duration_ns": int(profile["duration_ns"]),
         "environment": profile.get("environment"),
+        "organization_id": profile["organization_id"],
         "platform": profile["platform"],
-        "trace_id": profile["trace_id"],
-        "transaction_name": profile["transaction_name"],
-        "version_name": profile["version_name"],
-        "version_code": profile["version_code"],
+        "profile": json.dumps(profile["profile"]),
+        "project_id": profile["project_id"],
+        "received": datetime.utcfromtimestamp(profile["received"]).isoformat(),
         "retention_days": 30,
+        "trace_id": profile["trace_id"],
+        "transaction_id": profile["transaction_id"],
+        "transaction_name": profile["transaction_name"],
+        "version_code": profile["version_code"],
+        "version_name": profile["version_name"],
+        "symbols": "",  # we don't need this value stored
     }
 
     classification_options = {
@@ -64,8 +66,6 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         normalized_profile.update(
             {
                 "android_api_level": profile["android_api_level"],
-                "profile": profile["stacktrace"],
-                "symbols": json.dumps(profile["android_trace"]),
             }
         )
         classification_options.update(
@@ -78,8 +78,6 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         normalized_profile.update(
             {
                 "device_os_build_number": profile["device_os_build_number"],
-                "profile": profile["sampled_profile"],
-                "symbols": profile["debug_meta"],
             }
         )
 
@@ -114,10 +112,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
                 return None
             profile = self.symbolicate(profile)
 
-        try:
-            return _normalize(profile)
-        except KeyError:
-            return None
+        return _normalize(profile)
 
     def symbolicate(self, profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         samples = profile["sampled_profiles"]["samples"]
@@ -144,9 +139,8 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
             for i, j in indexes:
                 samples[i][j] = frames_by_address[address]
 
-        # remove unneeded keys
-        for k in ("event_id", "project", "stacktraces", "debug_meta"):
-            profile.pop(k, None)
+        # save the symbolicated frames on the profile
+        profile["profile"] = samples
 
         return profile
 
