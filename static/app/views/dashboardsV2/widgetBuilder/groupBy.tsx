@@ -23,11 +23,6 @@ type Props = {
 
 export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
   function handleAdd() {
-    // const newFields = [
-    //   ...fields,
-    //   {kind: FieldValueKind.FIELD, field: ''} as QueryFieldValue,
-    // ];
-    // onChange(newFields);
     let newColumns: QueryFieldValue[] = [];
     if (columns.length === 0) {
       newColumns = [{...EMPTY_FIELD}, {...EMPTY_FIELD}];
@@ -78,6 +73,9 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
   }
 
   const canDelete =
+    // TODO: This should only show delete options if there are no columns
+    // or if we've initialized a blank one and it's the only one left
+    // @ts-ignore
     columns.length > 1 || (columns.length === 1 && columns[0]?.field !== '');
 
   return (
