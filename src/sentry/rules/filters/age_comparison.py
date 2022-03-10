@@ -39,7 +39,7 @@ class AgeComparisonForm(forms.Form):
     time = forms.ChoiceField(choices=get_timerange_choices)
 
 
-class AgeComparisonFilter(EventFilter):
+class CompareAgeFilter(EventFilter):
     form_cls = AgeComparisonForm
     form_fields = {
         "comparison_type": {"type": "choice", "choices": age_comparison_choices},

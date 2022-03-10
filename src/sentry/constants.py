@@ -230,7 +230,7 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
     "sentry.rules.conditions.event_attribute.EventAttributeCondition",
     "sentry.rules.conditions.level.LevelCondition",
-    "sentry.rules.filters.age_comparison.AgeComparisonFilter",
+    "sentry.rules.filters.age_comparison.CompareAgeFilter",
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
     "sentry.rules.filters.assigned_to.AssignedToFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",

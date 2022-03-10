@@ -4,12 +4,12 @@ from unittest import mock
 import pytz
 from django.utils import timezone
 
-from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.age_comparison import CompareAgeFilter
 from sentry.testutils.cases import RuleTestCase
 
 
 class AgeComparisonFilterTest(RuleTestCase):
-    rule_cls = AgeComparisonFilter
+    rule_cls = CompareAgeFilter
 
     @mock.patch("django.utils.timezone.now")
     def test_older_applies_correctly(self, now):
