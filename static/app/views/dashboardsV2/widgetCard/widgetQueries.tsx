@@ -318,7 +318,7 @@ class WidgetQueries extends React.Component<Props, State> {
           partial: true,
 
           // Mocking topEvents value
-          topEvents: query.columns?.length ? 5 : undefined,
+          topEvents: query.columns?.length ? TOP_N : undefined,
           field: query.columns,
           orderby: query.columns?.[0] ?? query.orderby,
         };

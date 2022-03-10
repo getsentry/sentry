@@ -16,7 +16,6 @@ import {
   Widget,
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
-import * as groupBy from 'sentry/views/dashboardsV2/widgetBuilder/groupBy';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
 // Mock World Map because setState inside componentDidMount is
