@@ -1036,7 +1036,7 @@ function WidgetBuilder({
                               columns={
                                 state.queries[0].columns
                                   // See TODO in handleYAxisOrColumnFieldChange
-                                  ?.filter(field => !field.startsWith('equation|'))
+                                  ?.filter(field => !(field === 'equation|'))
                                   .map(field => explodeField({field})) ?? []
                               }
                               fields={explodedFields}
