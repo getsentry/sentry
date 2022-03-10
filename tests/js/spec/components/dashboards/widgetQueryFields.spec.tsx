@@ -1,10 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  mountWithTheme as reactMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WidgetQueryFields from 'sentry/components/dashboards/widgetQueryFields';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -101,7 +97,7 @@ describe('WidgetQueryFields', function () {
     let fields: QueryFieldValue[];
 
     const mountComponent = () =>
-      reactMountWithTheme(
+      render(
         <WidgetQueryFields
           widgetType={WidgetType.ISSUE}
           displayType={DisplayType.TABLE}
@@ -146,18 +142,23 @@ describe('WidgetQueryFields', function () {
           field: 'assignee',
         },
       ];
-      mountComponent();
     });
     it('renders issue and assignee columns', function () {
+      mountComponent();
+
       expect(screen.getByText('issue')).toBeInTheDocument();
       expect(screen.getByText('assignee')).toBeInTheDocument();
     });
     it('renders only issue column', function () {
+      mountComponent();
+
       expect(screen.getByText('issue')).toBeInTheDocument();
       userEvent.click(screen.getByTestId('remove-column-1'));
       expect(screen.queryByText('assignee')).not.toBeInTheDocument();
     });
     it('renders issue column and then assignee column after adding', function () {
+      mountComponent();
+
       userEvent.click(screen.getByTestId('remove-column-1'));
       expect(screen.queryByText('assignee')).not.toBeInTheDocument();
       expect(screen.getByText('Add a Column')).toBeInTheDocument();

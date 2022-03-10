@@ -1,4 +1,4 @@
-import {fireEvent, render, render, screen} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';

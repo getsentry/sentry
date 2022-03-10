@@ -108,6 +108,8 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
       const modal = renderModal({initialData, widget: mockWidget});
       container = modal.container;
       rerender = modal.rerender;
@@ -311,6 +313,8 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
       const modal = renderModal({initialData, widget: mockWidget});
       container = modal.container;
       rerender = modal.rerender;
@@ -414,6 +418,8 @@ describe('Modals -> WidgetViewerModal', function () {
         url: '/organizations/org-slug/events-geo/',
         body: eventsBody,
       });
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
       container = renderModal({initialData, widget: mockWidget}).container;
     });
 
@@ -506,6 +512,8 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         ],
       });
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
       const modal = renderModal({initialData, widget: mockWidget});
       container = modal.container;
       rerender = modal.rerender;
