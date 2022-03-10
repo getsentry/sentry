@@ -14,9 +14,9 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 
 import SavedSearchTab from './savedSearchTab';
 import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
@@ -44,7 +44,6 @@ type Props = {
   displayReprocessingTab: boolean;
   onRealtimeChange: (realtime: boolean) => void;
   organization: Organization;
-  projects: Project[];
   query: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
@@ -68,8 +67,8 @@ function IssueListHeader({
   router,
   displayReprocessingTab,
   selectedProjectIds,
-  projects,
 }: Props) {
+  const {projects} = useProjects();
   const tabs = getTabs(organization);
   const visibleTabs = displayReprocessingTab
     ? tabs
@@ -178,7 +177,7 @@ function IssueListHeader({
   );
 }
 
-export default withProjects(IssueListHeader);
+export default IssueListHeader;
 
 const StyledLayoutTitle = styled(Layout.Title)`
   margin-top: ${space(0.5)};
