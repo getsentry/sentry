@@ -227,7 +227,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "count_web_vitals",
                     required_args=[
                         NumericColumn("column"),
-                        SnQLStringArg("quality"),
+                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
                     ],
                     snql_aggregate=self._resolve_web_vital_function,
                     default_result_type="integer",
@@ -1038,7 +1038,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ],
                 alias,
             )
-        elif quality == "poor":
+        else:
             return Function(
                 "countIf",
                 [
@@ -1052,8 +1052,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ],
                 alias,
             )
-        else:
-            raise InvalidSearchQuery("Quality for count_web_vitals must be good, meh or poor")
 
     def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
