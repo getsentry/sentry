@@ -23,16 +23,14 @@ class Migration(CheckedMigration):
     # back-fills this results in us locking an increasing number of rows until we finally commit.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0278_backfill_codeowners_auto_sync_setting'),
+        ("sentry", "0278_backfill_codeowners_auto_sync_setting"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='dashboardwidget',
-            name='limit',
+            model_name="dashboardwidget",
+            name="limit",
             field=models.IntegerField(null=True),
         ),
     ]
-
