@@ -45,6 +45,7 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         "organization_id": profile["organization_id"],
         "platform": profile["platform"],
         "profile": json.dumps(profile["profile"]),
+        "profile_id": profile["profile_id"],
         "project_id": profile["project_id"],
         "received": datetime.utcfromtimestamp(profile["received"]).isoformat(),
         "retention_days": 30,
