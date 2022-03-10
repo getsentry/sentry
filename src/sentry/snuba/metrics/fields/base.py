@@ -257,7 +257,7 @@ class SingularEntityDerivedMetric(DerivedMetric):
             if derived_metric.get_entity() is not None:
                 return {entity}
         except DerivedMetricParseException:
-            ...
+            pass
 
         for metric_name in derived_metric.metrics:
             entities |= cls.__recursively_get_all_entities_in_derived_metric_dependency_tree(
@@ -351,7 +351,7 @@ class SingularEntityDerivedMetric(DerivedMetric):
         try:
             default_null_value = DEFAULT_AGGREGATES[UNIT_TO_TYPE[self.unit]]
         except KeyError:
-            ...
+            pass
         return default_null_value
 
     def generate_available_operations(self):
