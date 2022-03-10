@@ -15,6 +15,7 @@ __all__ = (
 
 from collections import defaultdict
 from copy import copy
+from itertools import chain
 from operator import itemgetter
 from typing import Any, List, Mapping, Optional, Sequence
 
@@ -25,7 +26,7 @@ from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics.fields import run_metrics_query
+from sentry.snuba.metrics.fields import DERIVED_METRICS, run_metrics_query
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     QueryDefinition,
@@ -37,6 +38,7 @@ from sentry.snuba.metrics.query_builder import (
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
     METRIC_TYPE_TO_ENTITY,
+    MetricDoesNotExistException,
     MetricMeta,
     Tag,
     TagValue,
@@ -56,9 +58,29 @@ def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[
     )
 
 
+def get_derived_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
+    """
+    Function that generates meta information for all derived metrics respecting the projects filter
+    """
+    for metric_name, metric_obj in DERIVED_METRICS.items():
+        try:
+            # The call to `get_entity` will validate that the derived metric constituents
+            # actually exist before adding them to the response
+            metric_obj.get_entity(projects)
+            yield MetricMeta(
+                name=metric_name,
+                type=metric_obj.result_type,
+                operations=metric_obj.generate_available_operations(),
+                unit=metric_obj.unit,
+            )
+        except MetricDoesNotExistException:
+            continue
+
+
 def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     assert projects
 
+    # Generate meta information for all available raw metrics respecting the projects filter
     metric_names = (
         (metric_type, row)
         for metric_type in ("counter", "set", "distribution")
@@ -68,17 +90,21 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             org_id=projects[0].organization_id,
         )
     )
+    metric_names_meta_gen = (
+        MetricMeta(
+            name=reverse_resolve(row["metric_id"]),
+            type=metric_type,
+            operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
+            unit=None,  # snuba does not know the unit
+        )
+        for metric_type, row in metric_names
+    )
+
+    # Generate meta information for all available derived metrics respecting the projects filter
+    derived_metrics_meta_gen = get_derived_metrics(projects)
 
     return sorted(
-        (
-            MetricMeta(
-                name=reverse_resolve(row["metric_id"]),
-                type=metric_type,
-                operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
-                unit=None,  # snuba does not know the unit
-            )
-            for metric_type, row in metric_names
-        ),
+        chain(metric_names_meta_gen, derived_metrics_meta_gen),
         key=itemgetter("name"),
     )
 
