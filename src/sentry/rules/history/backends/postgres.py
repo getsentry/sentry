@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import TYPE_CHECKING, Sequence, TypedDict
 
 import pytz
-from django.db.models import Count
+from django.db.models import Count, Max
 from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
@@ -16,9 +16,17 @@ if TYPE_CHECKING:
     from sentry.utils.cursors import Cursor, CursorResult
 
 
-def convert_results(results: Sequence[Mapping[str, int]]) -> Sequence[RuleGroupHistory]:
+class _Result(TypedDict):
+    group: int
+    count: int
+    last_triggered: datetime
+
+
+def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
     group_lookup = {g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])}
-    return [RuleGroupHistory(group_lookup[r["group"]], r["count"]) for r in results]
+    return [
+        RuleGroupHistory(group_lookup[r["group"]], r["count"], r["last_triggered"]) for r in results
+    ]
 
 
 class PostgresRuleHistoryBackend(RuleHistoryBackend):
@@ -41,10 +49,10 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
             )
             .select_related("group")
             .values("group")
-            .annotate(count=Count("id"))
+            .annotate(count=Count("id"), last_triggered=Max("date_added"))
         )
         return OffsetPaginator(
-            qs, order_by=("-count", "group"), on_results=convert_results
+            qs, order_by=("-count", "-last_triggered"), on_results=convert_results
         ).get_result(per_page, cursor)
 
     def fetch_rule_hourly_stats(
@@ -66,8 +74,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         existing_data = {row["bucket"]: TimeSeriesValue(row["bucket"], row["count"]) for row in qs}
 
         results = []
-        current = start.replace(minute=0, second=0, microsecond=0)
-        while current < end.replace(minute=0, second=0, microsecond=0):
+        current = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        while current <= end.replace(minute=0, second=0, microsecond=0):
             results.append(existing_data.get(current, TimeSeriesValue(current, 0)))
             current += timedelta(hours=1)
         return results

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.db import models
@@ -150,13 +152,20 @@ class ProjectCodeOwners(DefaultFieldsModel):
 
         return merged_code_owners
 
-    def update_schema(self):
+    def update_schema(self, raw: str | None = None) -> None:
         """
         Updating the schema goes through the following steps:
         1. parsing the original codeowner file to get the associations
         2. convert the codeowner file to the ownership syntax
         3. convert the ownership syntax to the schema
         """
+
+        if raw and self.raw != raw:
+            self.raw = raw
+
+        if not self.raw:
+            return
+
         associations, _ = self.validate_codeowners_associations(self.raw, self.project)
 
         issue_owner_rules = convert_codeowners_syntax(
