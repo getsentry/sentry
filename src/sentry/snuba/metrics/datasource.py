@@ -8,7 +8,6 @@ efficient, we only look at the past 24 hours.
 
 __all__ = (
     "get_metrics",
-    "get_single_metric",
     "get_tags",
     "get_tag_values",
     "get_series",
@@ -16,71 +15,39 @@ __all__ = (
 
 from collections import defaultdict
 from copy import copy
-from datetime import datetime, timedelta
+from itertools import chain
 from operator import itemgetter
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence, Set
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.utils.snuba import raw_snql_query
-
-from .helpers import (
+from sentry.snuba.dataset import EntityKey
+from sentry.snuba.metrics.fields import DERIVED_METRICS, DerivedMetric, run_metrics_query
+from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
-    AVAILABLE_OPERATIONS,
-    METRIC_TYPE_TO_ENTITY,
-    TS_COL_QUERY,
-    MetricMeta,
-    MetricMetaWithTagKeys,
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
-    Tag,
-    TagValue,
     get_intervals,
     parse_field,
 )
-
-_GRANULARITY = 24 * 60 * 60  # coarsest granularity
-
-
-def _get_data(
-    *,
-    entity_key: EntityKey,
-    select: List[Column],
-    where: List[Condition],
-    groupby: List[Column],
-    projects,
-    org_id,
-    referrer: str,
-) -> Mapping[str, Any]:
-    # Round timestamp to minute to get cache efficiency:
-    now = datetime.now().replace(second=0, microsecond=0)
-
-    query = Query(
-        dataset=Dataset.Metrics.value,
-        match=Entity(entity_key.value),
-        select=select,
-        groupby=groupby,
-        where=[
-            Condition(Column("org_id"), Op.EQ, org_id),
-            Condition(Column("project_id"), Op.IN, [p.id for p in projects]),
-            Condition(Column(TS_COL_QUERY), Op.GTE, now - timedelta(hours=24)),
-            Condition(Column(TS_COL_QUERY), Op.LT, now),
-        ]
-        + where,
-        granularity=Granularity(_GRANULARITY),
-    )
-    result = raw_snql_query(query, referrer, use_cache=True)
-    return result["data"]
+from sentry.snuba.metrics.utils import (
+    AVAILABLE_OPERATIONS,
+    METRIC_TYPE_TO_ENTITY,
+    MetricDoesNotExistException,
+    MetricMeta,
+    Tag,
+    TagValue,
+)
+from sentry.utils.snuba import raw_snql_query
 
 
 def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[str, Any]:
-    return _get_data(
+    return run_metrics_query(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
@@ -91,9 +58,32 @@ def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[
     )
 
 
+def get_derived_metrics_in_projects(
+    projects: Sequence[Project], derived_metric_names: Optional[Set[str]] = None
+) -> Sequence[DerivedMetric]:
+    """
+    Function that generates meta information for all derived metrics respecting the projects filter
+    """
+    derived_metrics = (
+        [DERIVED_METRICS[derived_metric_name] for derived_metric_name in derived_metric_names]
+        if derived_metric_names
+        else DERIVED_METRICS.values()
+    )
+
+    for metric_obj in derived_metrics:
+        try:
+            # The call to `get_entity` will validate that the derived metric constituents
+            # actually exist before adding them to the response
+            metric_obj.get_entity(projects)
+            yield metric_obj
+        except MetricDoesNotExistException:
+            continue
+
+
 def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     assert projects
 
+    # Generate meta information for all available raw metrics respecting the projects filter
     metric_names = (
         (metric_type, row)
         for metric_type in ("counter", "set", "distribution")
@@ -103,72 +93,58 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             org_id=projects[0].organization_id,
         )
     )
+    metric_names_meta_gen = (
+        MetricMeta(
+            name=reverse_resolve(row["metric_id"]),
+            type=metric_type,
+            operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
+            unit=None,  # snuba does not know the unit
+        )
+        for metric_type, row in metric_names
+    )
+
+    # Generate meta information for all available derived metrics respecting the projects filter
+    derived_metrics = get_derived_metrics_in_projects(projects)
+    derived_metrics_meta_gen = (
+        MetricMeta(
+            name=metric_obj.metric_name,
+            type=metric_obj.result_type,
+            operations=metric_obj.generate_available_operations(),
+            unit=metric_obj.unit,
+        )
+        for metric_obj in derived_metrics
+    )
 
     return sorted(
-        (
-            MetricMeta(
-                name=reverse_resolve(row["metric_id"]),
-                type=metric_type,
-                operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
-                unit=None,  # snuba does not know the unit
-            )
-            for metric_type, row in metric_names
-        ),
+        chain(metric_names_meta_gen, derived_metrics_meta_gen),
         key=itemgetter("name"),
     )
 
 
-def get_single_metric(projects: Sequence[Project], metric_name: str) -> MetricMetaWithTagKeys:
-    """Get metadata for a single metric, without tag values"""
-    assert projects
-
-    metric_id = indexer.resolve(metric_name)
-
-    if metric_id is None:
-        raise InvalidParams
-
-    for metric_type in ("counter", "set", "distribution"):
-        # TODO: What if metric_id exists for multiple types / units?
-        entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-        data = _get_data(
-            entity_key=entity_key,
-            select=[Column("metric_id"), Column("tags.key")],
-            where=[Condition(Column("metric_id"), Op.EQ, metric_id)],
-            groupby=[Column("metric_id"), Column("tags.key")],
-            referrer="snuba.metrics.meta.get_single_metric",
-            projects=projects,
-            org_id=projects[0].organization_id,
-        )
-        if data:
-            tag_ids = {tag_id for row in data for tag_id in row["tags.key"]}
-            return {
-                "name": metric_name,
-                "type": metric_type,
-                "operations": AVAILABLE_OPERATIONS[entity_key.value],
-                "tags": sorted(
-                    ({"key": reverse_resolve(tag_id)} for tag_id in tag_ids),
-                    key=itemgetter("key"),
-                ),
-                "unit": None,
-            }
-
-    raise InvalidParams
-
-
-def _get_metrics_filter(metric_names: Optional[Sequence[str]]) -> Optional[List[Condition]]:
+def _get_metrics_filter(
+    projects: Sequence[Project], metric_names: Optional[Sequence[str]]
+) -> Optional[List[Condition]]:
     """Add a condition to filter by metrics. Return None if a name cannot be resolved."""
     where = []
     if metric_names is not None:
-        metric_ids = []
+        metric_ids = set()
+        derived_metric_names = set()
         for name in metric_names:
-            resolved = indexer.resolve(name)
-            if resolved is None:
-                # We are looking for tags that appear in all given metrics.
-                # A tag cannot appear in a metric if the metric is not even indexed.
-                return None
-            metric_ids.append(resolved)
-        where.append(Condition(Column("metric_id"), Op.IN, metric_ids))
+            if name in DERIVED_METRICS:
+                derived_metric_names.add(name)
+            else:
+                resolved = indexer.resolve(name)
+                metric_ids.add(resolved)
 
+        derived_metrics = get_derived_metrics_in_projects(projects, derived_metric_names)
+        for metric_obj in derived_metrics:
+            metric_ids |= metric_obj.generate_metric_ids()
+
+        # We are looking for tags that appear in all given metrics.
+        # A tag cannot appear in a metric if the metric is not even indexed.
+        if None in metric_ids:
+            return None
+        where.append(Condition(Column("metric_id"), Op.IN, list(metric_ids)))
     return where
 
 
@@ -176,7 +152,7 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
     """Get all metric tags for the given projects and metric_names"""
     assert projects
 
-    where = _get_metrics_filter(metric_names)
+    where = _get_metrics_filter(projects, metric_names)
     if where is None:
         return []
 
@@ -185,7 +161,7 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
     for metric_type in ("counter", "set", "distribution"):
         # TODO: What if metric_id exists for multiple types / units?
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-        rows = _get_data(
+        rows = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id"), Column("tags.key")],
             where=where,
@@ -220,7 +196,7 @@ def get_tag_values(
     if tag_id is None:
         raise InvalidParams
 
-    where = _get_metrics_filter(metric_names)
+    where = _get_metrics_filter(projects=projects, metric_names=metric_names)
     if where is None:
         return []
 
@@ -230,7 +206,7 @@ def get_tag_values(
     for metric_type in ("counter", "set", "distribution"):
         # TODO: What if metric_id exists for multiple types / units?
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-        rows = _get_data(
+        rows = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id"), Column(column_name)],
             where=where,

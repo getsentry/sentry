@@ -454,9 +454,6 @@ SESSION_COOKIE_SAMESITE = None
 
 SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
-GOOGLE_OAUTH2_CLIENT_ID = ""
-GOOGLE_OAUTH2_CLIENT_SECRET = ""
-
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
 
@@ -560,6 +557,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.check_auth",
     "sentry.tasks.check_monitors",
     "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.codeowners.code_owners_auto_sync",
+    "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
     "sentry.tasks.deletion",
@@ -1042,8 +1041,6 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics in dashboards
     "organizations:dashboards-metrics": False,
-    # Enable issue widgets in dashboards
-    "organizations:issues-in-dashboards": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable experimental performance improvements.

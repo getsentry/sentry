@@ -1015,6 +1015,7 @@ class StringArg(FunctionArg):
         unquote: Optional[bool] = False,
         unescape_quotes: Optional[bool] = False,
         optional_unquote: Optional[bool] = False,
+        allowed_strings: Optional[List[str]] = None,
     ):
         """
         :param str name: The name of the function, this refers to the name to invoke.
@@ -1026,6 +1027,7 @@ class StringArg(FunctionArg):
         self.unquote = unquote
         self.unescape_quotes = unescape_quotes
         self.optional_unquote = optional_unquote
+        self.allowed_strings = allowed_strings
 
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if self.unquote:
@@ -1036,6 +1038,9 @@ class StringArg(FunctionArg):
                 value = value[1:-1]
         if self.unescape_quotes:
             value = re.sub(r'\\"', '"', value)
+        if self.allowed_strings:
+            if value not in self.allowed_strings:
+                raise InvalidFunctionArgument(f"string must be one of {self.allowed_strings}")
         return f"'{value}'"
 
 

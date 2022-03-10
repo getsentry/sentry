@@ -371,7 +371,7 @@ describe('Performance > Content', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           transaction: '/apple/cart',
-          query: 'sentry:yes transaction.duration:<15m',
+          query: 'sentry:yes',
         }),
       })
     );
