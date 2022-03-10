@@ -113,7 +113,11 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
             if not _validate_ios_profile(profile):
                 return None
             profile = self.symbolicate(profile)
-        return _normalize(profile)
+
+        try:
+            return _normalize(profile)
+        except KeyError:
+            return None
 
     def symbolicate(self, profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         samples = profile["sampled_profiles"]["samples"]
