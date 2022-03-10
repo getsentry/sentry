@@ -116,6 +116,7 @@ function WidgetViewerModal(props: Props) {
     DisplayType.BIG_NUMBER,
     DisplayType.BAR,
   ].includes(widget.displayType);
+
   if (shouldReplaceTableColumns) {
     tableWidget.queries[0].orderby = tableWidget.queries[0].orderby || '-timestamp';
     fields.splice(
@@ -152,7 +153,7 @@ function WidgetViewerModal(props: Props) {
     value: index,
   }));
 
-  const renderWidgetViewer = () => {
+  function renderWidgetViewer() {
     return (
       <React.Fragment>
         {widget.queries.length > 1 && (
@@ -318,7 +319,7 @@ function WidgetViewerModal(props: Props) {
         </TableContainer>
       </React.Fragment>
     );
-  };
+  }
 
   const StyledHeader = styled(Header)`
     ${headerCss}

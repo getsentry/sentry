@@ -198,9 +198,9 @@ export const renderPrependColumns =
 
     return [
       <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-        <StyledLink data-test-id="view-event" to={target}>
+        <Link data-test-id="view-event" to={target}>
           {value}
-        </StyledLink>
+        </Link>
       </Tooltip>,
     ];
   };
@@ -211,10 +211,4 @@ const StyledTooltip = styled(Tooltip)`
 
 const PrependHeader = styled('span')`
   color: ${p => p.theme.subText};
-`;
-
-const StyledLink = styled(Link)`
-  > div {
-    display: inline;
-  }
 `;
