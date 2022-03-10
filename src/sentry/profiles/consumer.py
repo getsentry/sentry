@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, MutableMapping, Optional, Sequence
 
 import msgpack
-from confluent_kafka import Producer
+from confluent_kafka import Message, Producer
 from django.conf import settings
 
 from sentry.lang.native.processing import process_payload
@@ -89,7 +89,7 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
 
 
 def _validate_ios_profile(profile: MutableMapping[str, Any]) -> bool:
-    return "sampled_profile" in profile and "samples" in profile["sampled_profile"]
+    return "samples" in profile.get("sampled_profile", {})
 
 
 class ProfilesWorker(AbstractBatchWorker):  # type: ignore
@@ -97,7 +97,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         self.__producer = producer
         self.__producer_topic = "processed-profiles"
 
-    def process_message(self, message: Any) -> MutableMapping[str, Any]:
+    def process_message(self, message: Message) -> MutableMapping[str, Any]:
         message = msgpack.unpackb(message.value(), use_list=False)
         profile = json.loads(message["payload"])
 
@@ -127,7 +127,6 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
                 frames_by_address[f["instruction_addr"]] = f
 
         # set proper keys for process_payload to do its job
-        profile["platform"] = "native"
         profile["stacktraces"] = {"frames": frames_by_address.values()}
         profile["event_id"] = profile["transaction_id"]
         profile["project"] = profile["project_id"]
@@ -137,14 +136,13 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
 
         # replace  unsymbolicated frames by symbolicated ones
         frames_by_address = {f["instruction_addr"]: f for f in profile["stacktraces"]["frames"]}
-        for address, indexes in indexes_by_address:
-            samples[indexes[0]][indexes[1]] = frames_by_address[address]
+        for address, indexes in indexes_by_address.items():
+            for i, j in indexes:
+                samples[i][j] = frames_by_address[address]
 
         # remove unneeded keys
         for k in ("event_id", "project", "stacktraces", "debug_meta"):
             profile.pop(k, None)
-
-        profile["platform"] = "ios"
 
         return profile
 
@@ -157,7 +155,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
         self.__producer.flush()
 
     def shutdown(self) -> None:
-        pass
+        self.__producer.close()
 
     def callback(self, error: Any, message: Any) -> None:
         if error is not None:
