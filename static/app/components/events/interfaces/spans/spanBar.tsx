@@ -441,7 +441,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           onClick={event => {
             event.stopPropagation();
             event.preventDefault();
-            if (groupType === GroupType.SIBLINGS) {
+            if (groupType === GroupType.SIBLINGS && span.type !== 'gap') {
               toggleSiblingSpanGroup &&
                 toggleSiblingSpanGroup(span.op!, span.description!);
             } else {
