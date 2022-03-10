@@ -212,6 +212,8 @@ function WidgetBuilder({
 
   const api = useApi();
 
+  // Mocking state for group by field
+  const [groupByColumns, setGroupByColumns] = useState<QueryFieldValue[]>([]);
   const [state, setState] = useState<State>(() => {
     if (!widgetToBeUpdated) {
       return {
@@ -677,6 +679,10 @@ function WidgetBuilder({
 
   const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
 
+  function handleGroupByChange(newGroups: QueryFieldValue[]) {
+    setGroupByColumns([...newGroups]);
+  }
+
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
       <PageFiltersContainer
@@ -947,7 +953,7 @@ function WidgetBuilder({
                           icon={<IconAdd isCircled />}
                           onClick={handleAddSearchConditions}
                         >
-                          {t('Add query')}
+                          {t('Add Query')}
                         </Button>
                       )}
                     </div>
@@ -974,12 +980,13 @@ function WidgetBuilder({
                             });
                           return (
                             <GroupBy
-                              columns={state.queries[0].columns?.map(field =>
-                                explodeField({field})
-                              )}
+                              // columns={state.queries[0].columns?.map(field =>
+                              //   explodeField({field})
+                              // )}
+                              columns={groupByColumns}
                               fields={explodedFields}
                               fieldOptions={groupByOptions}
-                              onChange={handleYAxisOrColumnFieldChange}
+                              onChange={handleGroupByChange}
                             />
                           );
                         }}
