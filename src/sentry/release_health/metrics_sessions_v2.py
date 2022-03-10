@@ -228,9 +228,9 @@ class _UserField(_OutputField):
             # sessions_v2 always shows all session statuses (even if they have a count of 0),
             # So let's hardcode them here
             started = int(data_points[key])
-            abnormal = int(data_points.get(replace(key, raw_session_status="abnormal")) or 0)
-            crashed = int(data_points.get(replace(key, raw_session_status="crashed")) or 0)
-            all_errored = int(data_points.get(replace(key, raw_session_status="errored")) or 0)
+            abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
+            crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
+            all_errored = int(data_points.get(replace(key, raw_session_status="errored"), 0))
 
             healthy = max(0, started - all_errored)
             errored = max(0, all_errored - abnormal - crashed)
@@ -261,12 +261,12 @@ class _SumSessionField(_OutputField):
             # sessions_v2 always shows all session statuses (even if they have a count of 0),
             # So let's hardcode them here
             started = int(data_points[key])
-            abnormal = int(data_points.get(replace(key, raw_session_status="abnormal")) or 0)
-            crashed = int(data_points.get(replace(key, raw_session_status="crashed")) or 0)
+            abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
+            crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
             errored_key = replace(key, metric_key=MetricKey.SESSION_ERROR, raw_session_status=None)
             individual_errors = int(data_points.get(errored_key, 0))
             aggregated_errors = int(
-                data_points.get(replace(key, raw_session_status="errored_preaggr")) or 0
+                data_points.get(replace(key, raw_session_status="errored_preaggr"), 0)
             )
             all_errored = individual_errors + aggregated_errors
 
@@ -714,13 +714,13 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
                     new_key = replace(
                         flat_key, metric_key=MetricKey.SESSION, raw_session_status=col[9:]
                     )
-                    data_points[new_key] = row.pop(col)
+                    data_points[new_key] = row.pop(col) or 0
                 elif col.startswith("users_"):
                     # Map column back to metric key
                     new_key = replace(
                         flat_key, metric_key=MetricKey.USER, raw_session_status=col[6:]
                     )
-                    data_points[new_key] = row.pop(col)
+                    data_points[new_key] = row.pop(col) or 0
 
             # Remaining data are simple columns:
             for col in list(row.keys()):
