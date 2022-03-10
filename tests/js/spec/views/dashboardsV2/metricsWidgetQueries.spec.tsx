@@ -293,6 +293,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
           interval: '30m',
           project: [1],
           statsPeriod: '14d',
+          groupBy: [],
         },
       })
     );
@@ -307,6 +308,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
           project: [1],
           statsPeriod: '14d',
           query: 'environment:prod',
+          groupBy: [],
         },
       })
     );
