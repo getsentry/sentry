@@ -226,7 +226,7 @@ const getColors = ({
     color: ${color};
     background-color: ${background};
 
-    border: 1px solid ${borderless ? 'transparent' : border};
+    border: 1px solid ${borderless || priority === 'link' ? 'transparent' : border};
 
     ${translucentBorder && `border-width: 0;`}
 
@@ -241,7 +241,7 @@ const getColors = ({
     &:active {
       color: ${colorActive || color};
       background: ${backgroundActive};
-      border-color: ${borderless ? 'transparent' : borderActive};
+      border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
     }`}
 
     &.focus-visible {
