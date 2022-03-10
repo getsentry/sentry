@@ -1,4 +1,7 @@
 import re
+from typing import Dict
+
+from typing_extensions import TypedDict
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
@@ -31,7 +34,13 @@ MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
 MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
 
-VITAL_THRESHOLDS = {
+
+class ThresholdDict(TypedDict):
+    poor: float
+    meh: float
+
+
+VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
     "lcp": {
         "poor": 4000,
         "meh": 2500,
