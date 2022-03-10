@@ -525,7 +525,7 @@ def _fetch_data_for_field(
     # We limit the number of groups returned, but because session status
     # groups in the response are actually composed of multiple groups in storage,
     # we need to make sure we get them all. For this, use conditional aggregates:
-    def get_column_for_status(function_name: str, status: str) -> Function:
+    def get_column_for_status(function_name: str, prefix: str, status: str) -> Function:
         return Function(
             f"{function_name}If",
             [
@@ -535,7 +535,7 @@ def _fetch_data_for_field(
                     [Column(tag_key_session_status), indexer.resolve(status)],
                 ),
             ],
-            alias=f"sessions_{status}",
+            alias=f"{prefix}_{status}",
         )
 
     if "count_unique(user)" == raw_field:
@@ -550,10 +550,10 @@ def _fetch_data_for_field(
                         MetricKey.USER,
                         metric_id,
                         [
-                            get_column_for_status("uniq", "abnormal"),
-                            get_column_for_status("uniq", "crashed"),
-                            get_column_for_status("uniq", "errored"),
-                            get_column_for_status("uniq", "init"),
+                            get_column_for_status("uniq", "users", "abnormal"),
+                            get_column_for_status("uniq", "users", "crashed"),
+                            get_column_for_status("uniq", "users", "errored"),
+                            get_column_for_status("uniq", "users", "init"),
                         ],
                         limit_state,
                     )
@@ -623,10 +623,10 @@ def _fetch_data_for_field(
                         MetricKey.SESSION,
                         metric_id,
                         [
-                            get_column_for_status("uniq", "abnormal"),
-                            get_column_for_status("uniq", "crashed"),
-                            get_column_for_status("uniq", "errored_preaggr"),
-                            get_column_for_status("uniq", "init"),
+                            get_column_for_status("sum", "sessions", "abnormal"),
+                            get_column_for_status("sum", "sessions", "crashed"),
+                            get_column_for_status("sum", "sessions", "errored_preaggr"),
+                            get_column_for_status("sum", "sessions", "init"),
                         ],
                         limit_state,
                     )
