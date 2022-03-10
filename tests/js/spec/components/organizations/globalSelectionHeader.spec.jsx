@@ -781,7 +781,7 @@ describe('GlobalSelectionHeader', function () {
       wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
       wrapper.update();
 
-      const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
+      const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
       expect(items.length).toEqual(1);
       expect(items.at(0).text()).toBe('staging');
     });
