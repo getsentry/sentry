@@ -522,6 +522,22 @@ def _fetch_data_for_field(
 
     group_by_status = "session.status" in query.raw_groupby
 
+    # We limit the number of groups returned, but because session status
+    # groups in the response are actually composed of multiple groups in storage,
+    # we need to make sure we get them all. For this, use conditional aggregates:
+    def get_column_for_status(function_name: str, status: str) -> Function:
+        return Function(
+            f"{function_name}If",
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [Column(tag_key_session_status), indexer.resolve(status)],
+                ),
+            ],
+            alias=f"sessions_{status}",
+        )
+
     if "count_unique(user)" == raw_field:
         metric_id = indexer.resolve(MetricKey.USER.value)
         if metric_id is not None:
@@ -534,59 +550,10 @@ def _fetch_data_for_field(
                         MetricKey.USER,
                         metric_id,
                         [
-                            Function(
-                                "uniqIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [Column(tag_key_session_status), indexer.resolve("init")],
-                                    ),
-                                ],
-                                alias="users_init",
-                            ),
-                            Function(
-                                "uniqIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column(tag_key_session_status),
-                                            indexer.resolve("abnormal"),
-                                        ],
-                                    ),
-                                ],
-                                alias="users_abnormal",
-                            ),
-                            Function(
-                                "uniqIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column(tag_key_session_status),
-                                            indexer.resolve("crashed"),
-                                        ],
-                                    ),
-                                ],
-                                alias="users_crashed",
-                            ),
-                            Function(
-                                "uniqIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column(tag_key_session_status),
-                                            indexer.resolve("errored"),
-                                        ],
-                                    ),
-                                ],
-                                alias="users_errored",
-                            ),
+                            get_column_for_status("uniq", "abnormal"),
+                            get_column_for_status("uniq", "crashed"),
+                            get_column_for_status("uniq", "errored"),
+                            get_column_for_status("uniq", "init"),
                         ],
                         limit_state,
                     )
@@ -656,59 +623,10 @@ def _fetch_data_for_field(
                         MetricKey.SESSION,
                         metric_id,
                         [
-                            Function(
-                                "sumIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [Column(tag_key_session_status), indexer.resolve("init")],
-                                    ),
-                                ],
-                                alias="sessions_init",
-                            ),
-                            Function(
-                                "sumIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column(tag_key_session_status),
-                                            indexer.resolve("abnormal"),
-                                        ],
-                                    ),
-                                ],
-                                alias="sessions_abnormal",
-                            ),
-                            Function(
-                                "sumIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column(tag_key_session_status),
-                                            indexer.resolve("crashed"),
-                                        ],
-                                    ),
-                                ],
-                                alias="sessions_crashed",
-                            ),
-                            Function(
-                                "sumIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column(tag_key_session_status),
-                                            indexer.resolve("errored_preaggr"),
-                                        ],
-                                    ),
-                                ],
-                                alias="sessions_errored_preaggr",
-                            ),
+                            get_column_for_status("uniq", "abnormal"),
+                            get_column_for_status("uniq", "crashed"),
+                            get_column_for_status("uniq", "errored_preaggr"),
+                            get_column_for_status("uniq", "init"),
                         ],
                         limit_state,
                     )
