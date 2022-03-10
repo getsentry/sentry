@@ -23,8 +23,7 @@ class Platform(Enum):
     ANDROID_EMULATOR = 4
 
 
-# classify_device classifies a device as being low, mid, or high end based on the
-# criteria documented in https://www.notion.so/sentry/Mobile-Device-Classification-ed77abceaaa946e0808b266c8d86bbad
+# classify_device classifies a device as being low, mid, or high end
 def classify_device(
     model: str,
     os_name: str,
