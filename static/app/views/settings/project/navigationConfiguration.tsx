@@ -34,7 +34,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/alerts/`,
           title: t('Alert Settings'),
-          description: t('Alert Settings'),
+          description: t('Project alert settings'),
         },
         {
           path: `${pathPrefix}/tags/`,
