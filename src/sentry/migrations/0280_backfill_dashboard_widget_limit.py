@@ -41,6 +41,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_dashboard_widget_limit,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_dashboardwidgetquery"]},
+            hints={"tables": ["sentry_dashboardwidget"]},
         )
     ]
