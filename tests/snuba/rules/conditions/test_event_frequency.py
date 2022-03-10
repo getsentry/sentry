@@ -28,34 +28,33 @@ class FrequencyConditionMixin:
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
 
-        with freeze_time(before_now(minutes=0)):
-            event = self.store_event(
-                data={
-                    "fingerprint": ["something_random"],
-                    "timestamp": iso_format(before_now(minutes=minutes)),
-                    "user": {"id": uuid4().hex},
-                },
-                project_id=self.project.id,
+        event = self.store_event(
+            data={
+                "fingerprint": ["something_random"],
+                "timestamp": iso_format(before_now(minutes=minutes)),
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+        if add_events:
+            self.increment(
+                event,
+                data["value"] + 1,
+                environment=self.environment.name,
+                timestamp=now() - timedelta(minutes=minutes),
             )
-            if add_events:
-                self.increment(
-                    event,
-                    data["value"] + 1,
-                    environment=self.environment.name,
-                    timestamp=now() - timedelta(minutes=minutes),
-                )
-                self.increment(
-                    event,
-                    data["value"] + 1,
-                    timestamp=now() - timedelta(minutes=minutes),
-                )
+            self.increment(
+                event,
+                data["value"] + 1,
+                timestamp=now() - timedelta(minutes=minutes),
+            )
 
-            if passes:
-                self.assertPasses(rule, event)
-                self.assertPasses(environment_rule, event)
-            else:
-                self.assertDoesNotPass(rule, event)
-                self.assertDoesNotPass(environment_rule, event)
+        if passes:
+            self.assertPasses(rule, event)
+            self.assertPasses(environment_rule, event)
+        else:
+            self.assertDoesNotPass(rule, event)
+            self.assertDoesNotPass(environment_rule, event)
 
 
 class StandardIntervalMixin:
@@ -204,6 +203,7 @@ class EventFrequencyConditionTestCase(
             )
 
 
+@freeze_time()
 class EventUniqueUserFrequencyConditionTestCase(
     FrequencyConditionMixin,
     StandardIntervalMixin,
@@ -229,6 +229,7 @@ class EventUniqueUserFrequencyConditionTestCase(
             )
 
 
+@freeze_time()
 class EventFrequencyPercentConditionTestCase(
     RuleTestCase,
     SnubaTestCase,
