@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import datetime
 from typing import Any, Dict, MutableMapping, Optional, Sequence
 
 import msgpack
@@ -47,7 +46,7 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         "profile": json.dumps(profile["profile"]),
         "profile_id": profile["profile_id"],
         "project_id": profile["project_id"],
-        "received": datetime.utcfromtimestamp(profile["received"]).isoformat(),
+        "received": profile["received"],
         "retention_days": 30,
         "trace_id": profile["trace_id"],
         "transaction_id": profile["transaction_id"],
