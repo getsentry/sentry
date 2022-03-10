@@ -173,12 +173,7 @@ export function YAxisSelector({
   const hideAddYAxisButtons =
     ([DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(displayType) &&
       fields.length === 1) ||
-    ([
-      DisplayType.LINE,
-      DisplayType.AREA,
-      DisplayType.STACKED_AREA,
-      DisplayType.BAR,
-    ].includes(displayType) &&
+    ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
       fields.length === 3);
 
   return (

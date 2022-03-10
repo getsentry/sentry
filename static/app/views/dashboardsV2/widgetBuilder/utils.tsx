@@ -11,7 +11,8 @@ import {
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export const SORT_LIMIT = 10;
+export const DEFAULT_RESULTS_LIMIT = 5;
+export const RESULTS_LIMIT = 10;
 
 export enum DisplayType {
   AREA = 'area',
@@ -20,7 +21,6 @@ export enum DisplayType {
   TABLE = 'table',
   WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
-  STACKED_AREA = 'stacked_area',
   TOP_N = 'top_n',
 }
 
@@ -97,7 +97,6 @@ export function normalizeQueries({
   const isTimeseriesChart = [
     DisplayType.LINE,
     DisplayType.AREA,
-    DisplayType.STACKED_AREA,
     DisplayType.BAR,
   ].includes(displayType);
 
@@ -114,17 +113,23 @@ export function normalizeQueries({
   }
 
   if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    if (!queries[0].orderby && widgetBuilderNewDesign) {
-      const orderBy = (
-        widgetType === WidgetType.DISCOVER
-          ? generateOrderOptions({
-              widgetType,
-              widgetBuilderNewDesign,
-              ...getColumnsAndAggregates(queries[0].fields),
-            })[0].value
-          : IssueSortOptions.DATE
-      ) as string;
-      queries[0].orderby = orderBy;
+    if (widgetBuilderNewDesign) {
+      if (!queries[0].orderby) {
+        const orderBy = (
+          widgetType === WidgetType.DISCOVER
+            ? generateOrderOptions({
+                widgetType,
+                widgetBuilderNewDesign,
+                ...getColumnsAndAggregates(queries[0].fields),
+              })[0].value
+            : IssueSortOptions.DATE
+        ) as string;
+        queries[0].orderby = orderBy;
+      }
+
+      if (!queries[0].limit) {
+        queries[0].limit = DEFAULT_RESULTS_LIMIT;
+      }
     }
 
     return queries;
@@ -180,12 +185,18 @@ export function normalizeQueries({
     const {columns, aggregates} = getColumnsAndAggregates(referenceFields);
 
     queries = queries.map(query => {
-      return {
+      const queryData = {
         ...query,
         columns,
         aggregates,
         fields: referenceFields,
       };
+
+      if (widgetBuilderNewDesign) {
+        queryData.limit = queryData.limit ?? DEFAULT_RESULTS_LIMIT;
+      }
+
+      return queryData;
     });
   }
 

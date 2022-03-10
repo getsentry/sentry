@@ -85,6 +85,7 @@ import {Header} from './header';
 import {SortBySelectors} from './sortBySelectors';
 import {
   DataSet,
+  DEFAULT_RESULTS_LIMIT,
   DisplayType,
   getParsedDefaultWidgetQuery,
   mapErrors,
@@ -111,6 +112,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       aggregates: ['count()'],
       conditions: '',
       orderby: widgetBuilderNewDesign ? 'count' : '',
+      limit: widgetBuilderNewDesign ? DEFAULT_RESULTS_LIMIT : undefined,
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -119,6 +121,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       aggregates: [],
       conditions: '',
       orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
+      limit: widgetBuilderNewDesign ? DEFAULT_RESULTS_LIMIT : undefined,
     },
     [DataSet.METRICS]: {
       name: '',
@@ -198,9 +201,8 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
-  const widgetBuilderNewDesign = organization.features.includes(
-    'new-widget-builder-experience-design'
-  );
+  const widgetBuilderNewDesign = true;
+
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
   const pageFilters: PageFilters = statsPeriod
@@ -221,7 +223,10 @@ function WidgetBuilder({
     if (!widgetToBeUpdated) {
       return {
         title: defaultTitle ?? t('Custom Widget'),
-        displayType: displayType ?? DisplayType.TABLE,
+        displayType:
+          widgetBuilderNewDesign && displayType === DisplayType.TOP_N
+            ? DisplayType.TABLE
+            : displayType ?? DisplayType.TABLE,
         interval: '5m',
         queries: [
           defaultWidgetQuery
@@ -247,12 +252,17 @@ function WidgetBuilder({
       };
     }
 
+    const visualization =
+      widgetBuilderNewDesign && widgetToBeUpdated.displayType === DisplayType.TOP_N
+        ? DisplayType.TABLE
+        : widgetToBeUpdated.displayType;
+
     return {
       title: widgetToBeUpdated.title,
-      displayType: widgetToBeUpdated.displayType,
+      displayType: visualization,
       interval: widgetToBeUpdated.interval,
       queries: normalizeQueries({
-        displayType: widgetToBeUpdated.displayType,
+        displayType: visualization,
         queries: widgetToBeUpdated.queries,
         widgetType: widgetToBeUpdated.widgetType ?? WidgetType.DISCOVER,
         widgetBuilderNewDesign,
@@ -710,12 +720,8 @@ function WidgetBuilder({
   }
 
   const canAddSearchConditions =
-    [
-      DisplayType.LINE,
-      DisplayType.AREA,
-      DisplayType.STACKED_AREA,
-      DisplayType.BAR,
-    ].includes(state.displayType) && state.queries.length < 3;
+    [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
+    state.queries.length < 3;
 
   const hideLegendAlias = [
     DisplayType.TABLE,
@@ -723,6 +729,7 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
+  const isGroupedData = (state.queries[0].columns ?? []).length > 0;
   const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
   const orderBy = state.queries[0].orderby;
 
@@ -760,6 +767,7 @@ function WidgetBuilder({
                         handleDisplayTypeOrTitleChange('displayType', option.value);
                       }}
                       error={state.errors?.displayType}
+                      widgetBuilderNewDesign={widgetBuilderNewDesign}
                     />
                     <VisualizationWrapper displayType={state.displayType}>
                       <WidgetCard
@@ -1001,89 +1009,119 @@ function WidgetBuilder({
                       )}
                     </div>
                   </BuildStep>
-                  {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
-                    <BuildStep
-                      title={t('Sort by a column')}
-                      description={t(
-                        "Choose one of the columns you've created to sort by."
+                  {widgetBuilderNewDesign
+                    ? [
+                        DisplayType.AREA,
+                        DisplayType.BAR,
+                        DisplayType.LINE,
+                        DisplayType.TABLE,
+                      ].includes(state.displayType) && (
+                        <BuildStep
+                          title={
+                            state.displayType === DisplayType.TABLE
+                              ? t('Sort by a column')
+                              : t('Sort by a y-axis')
+                          }
+                          description={
+                            state.displayType === DisplayType.TABLE
+                              ? t("Choose one of the columns you've created to sort by.")
+                              : t("Choose one of the y-axis you've created to sort by.")
+                          }
+                        >
+                          <Field
+                            inline={false}
+                            error={state.errors?.orderby}
+                            flexibleControlStateSize
+                            stacked
+                          >
+                            <SortBySelectors
+                              sortByOptions={
+                                state.dataSet === DataSet.EVENTS
+                                  ? generateOrderOptions({
+                                      widgetType,
+                                      widgetBuilderNewDesign: true,
+                                      ...getColumnsAndAggregates(state.queries[0].fields),
+                                    })
+                                  : generateIssueWidgetOrderOptions(
+                                      organization.features.includes(
+                                        'issue-list-trend-sort'
+                                      )
+                                    )
+                              }
+                              values={{
+                                resultsLimit: isGroupedData
+                                  ? state.queries[0].limit
+                                  : undefined,
+                                sortDirection:
+                                  orderBy[0] === '-'
+                                    ? SortDirection.HIGH_TO_LOW
+                                    : SortDirection.LOW_TO_HIGH,
+                                sortBy:
+                                  orderBy[0] === '-'
+                                    ? orderBy.substring(1, orderBy.length)
+                                    : orderBy,
+                              }}
+                              onChange={({sortDirection, sortBy, resultsLimit}) => {
+                                const newQuery: WidgetQuery = {
+                                  ...state.queries[0],
+                                  orderby:
+                                    sortDirection === SortDirection.HIGH_TO_LOW
+                                      ? `-${sortBy}`
+                                      : sortBy,
+                                  limit: resultsLimit,
+                                };
+                                handleQueryChange(0, newQuery);
+                              }}
+                            />
+                          </Field>
+                        </BuildStep>
+                      )
+                    : [DisplayType.TABLE, DisplayType.TOP_N].includes(
+                        state.displayType
+                      ) && (
+                        <BuildStep
+                          title={t('Sort by a column')}
+                          description={t(
+                            "Choose one of the columns you've created to sort by."
+                          )}
+                        >
+                          <Field
+                            inline={false}
+                            error={state.errors?.orderby}
+                            flexibleControlStateSize
+                            stacked
+                          >
+                            <SelectControl
+                              menuPlacement="auto"
+                              value={
+                                state.dataSet === DataSet.EVENTS
+                                  ? state.queries[0].orderby
+                                  : state.queries[0].orderby || IssueSortOptions.DATE
+                              }
+                              name="orderby"
+                              options={
+                                state.dataSet === DataSet.EVENTS
+                                  ? generateOrderOptions({
+                                      widgetType,
+                                      ...getColumnsAndAggregates(state.queries[0].fields),
+                                    })
+                                  : generateIssueWidgetOrderOptions(
+                                      organization.features.includes(
+                                        'issue-list-trend-sort'
+                                      )
+                                    )
+                              }
+                              onChange={(option: SelectValue<string>) => {
+                                const newQuery: WidgetQuery = {
+                                  ...state.queries[0],
+                                  orderby: option.value,
+                                };
+                                handleQueryChange(0, newQuery);
+                              }}
+                            />
+                          </Field>
+                        </BuildStep>
                       )}
-                    >
-                      <Field
-                        inline={false}
-                        error={state.errors?.orderby}
-                        flexibleControlStateSize
-                        stacked
-                      >
-                        {widgetBuilderNewDesign ? (
-                          <SortBySelectors
-                            sortByOptions={
-                              state.dataSet === DataSet.EVENTS
-                                ? generateOrderOptions({
-                                    widgetType,
-                                    widgetBuilderNewDesign: true,
-                                    ...getColumnsAndAggregates(state.queries[0].fields),
-                                  })
-                                : generateIssueWidgetOrderOptions(
-                                    organization.features.includes(
-                                      'issue-list-trend-sort'
-                                    )
-                                  )
-                            }
-                            values={{
-                              sortLimit: 5, // TODO: make this dynamic as soon as we have the groupby field
-                              sortDirection:
-                                orderBy[0] === '-'
-                                  ? SortDirection.HIGH_TO_LOW
-                                  : SortDirection.LOW_TO_HIGH,
-                              sortBy:
-                                orderBy[0] === '-'
-                                  ? orderBy.substring(1, orderBy.length)
-                                  : orderBy,
-                            }}
-                            onChange={({sortDirection, sortBy}) => {
-                              const newQuery: WidgetQuery = {
-                                ...state.queries[0],
-                                orderby:
-                                  sortDirection === SortDirection.HIGH_TO_LOW
-                                    ? `-${sortBy}`
-                                    : sortBy,
-                              };
-                              handleQueryChange(0, newQuery);
-                            }}
-                          />
-                        ) : (
-                          <SelectControl
-                            menuPlacement="auto"
-                            value={
-                              state.dataSet === DataSet.EVENTS
-                                ? state.queries[0].orderby
-                                : state.queries[0].orderby || IssueSortOptions.DATE
-                            }
-                            name="orderby"
-                            options={
-                              state.dataSet === DataSet.EVENTS
-                                ? generateOrderOptions({
-                                    widgetType,
-                                    ...getColumnsAndAggregates(state.queries[0].fields),
-                                  })
-                                : generateIssueWidgetOrderOptions(
-                                    organization.features.includes(
-                                      'issue-list-trend-sort'
-                                    )
-                                  )
-                            }
-                            onChange={(option: SelectValue<string>) => {
-                              const newQuery: WidgetQuery = {
-                                ...state.queries[0],
-                                orderby: option.value,
-                              };
-                              handleQueryChange(0, newQuery);
-                            }}
-                          />
-                        )}
-                      </Field>
-                    </BuildStep>
-                  )}
                   {notDashboardsOrigin && (
                     <BuildStep
                       title={t('Choose your dashboard')}
@@ -1118,7 +1156,9 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
-                onWidgetSelect={prebuiltWidget =>
+                widgetType={widgetType}
+                widgetBuilderNewDesign={widgetBuilderNewDesign}
+                onWidgetSelect={prebuiltWidget => {
                   setState({
                     ...state,
                     ...prebuiltWidget,
@@ -1126,8 +1166,8 @@ function WidgetBuilder({
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
                     userHasModified: false,
-                  })
-                }
+                  });
+                }}
                 bypassOverwriteModal={!state.userHasModified}
               />
             </Side>

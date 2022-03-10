@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 
-import {SORT_LIMIT, SortDirection, sortDirections} from './utils';
+import {RESULTS_LIMIT, SortDirection, sortDirections} from './utils';
 
 interface Values {
   sortBy: string;
   sortDirection: SortDirection;
-  sortLimit?: number;
+  resultsLimit?: number;
 }
 
 interface Props {
@@ -23,23 +24,23 @@ interface Props {
 export function SortBySelectors({values, sortByOptions, onChange}: Props) {
   return (
     <Fragment>
-      {values.sortLimit !== undefined && (
-        <SortLimitSelector
-          name="sortLimit"
+      {values.resultsLimit !== undefined && (
+        <ResultsLimitSelector
+          name="resultsLimit"
           menuPlacement="auto"
-          options={[...Array(SORT_LIMIT).keys()].map(limit => {
+          options={[...Array(RESULTS_LIMIT).keys()].map(limit => {
             const value = limit + 1;
             return {
               label: tn('Limit to %s result', 'Limit to %s results', value),
               value,
             };
           })}
-          value={values.sortLimit}
+          value={values.resultsLimit}
           onChange={(option: SelectValue<number>) => {
             onChange({
               sortBy: values.sortBy,
               sortDirection: values.sortDirection,
-              sortLimit: option.value,
+              resultsLimit: option.value,
             });
           }}
         />
@@ -54,7 +55,11 @@ export function SortBySelectors({values, sortByOptions, onChange}: Props) {
           }))}
           value={values.sortDirection}
           onChange={(option: SelectValue<SortDirection>) => {
-            onChange({sortBy: values.sortBy, sortDirection: option.value});
+            onChange({
+              sortBy: values.sortBy,
+              resultsLimit: values.resultsLimit,
+              sortDirection: option.value,
+            });
           }}
         />
         <SelectControl
@@ -62,9 +67,13 @@ export function SortBySelectors({values, sortByOptions, onChange}: Props) {
           menuPlacement="auto"
           placeholder={`${t('Select a column')}\u{2026}`}
           value={values.sortBy}
-          options={sortByOptions}
+          options={uniqBy(sortByOptions, ({value}) => value)}
           onChange={(option: SelectValue<string>) => {
-            onChange({sortBy: option.value, sortDirection: values.sortDirection});
+            onChange({
+              sortBy: option.value,
+              resultsLimit: values.resultsLimit,
+              sortDirection: values.sortDirection,
+            });
           }}
         />
       </SortBySelectorsWrapper>
@@ -81,6 +90,6 @@ const SortBySelectorsWrapper = styled('div')`
   }
 `;
 
-const SortLimitSelector = styled(SelectControl)`
+const ResultsLimitSelector = styled(SelectControl)`
   margin-bottom: ${space(1)};
 `;
