@@ -398,9 +398,10 @@ class SpanTreeModel {
             span: spanModel.span,
             numOfSpanChildren: 0,
             treeDepth: treeDepth + 1,
-            isLastSibling: index === group.length - 1,
+            isLastSibling:
+              index === group.length - 1 && groupIndex === groupedDescendants.length - 1,
             isFirstSiblingOfGroup: index === 0,
-            continuingTreeDepths,
+            continuingTreeDepths: descendantContinuingTreeDepths,
             fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
             showEmbeddedChildren: spanModel.showEmbeddedChildren,
             toggleEmbeddedChildren: spanModel.toggleEmbeddedChildren({
