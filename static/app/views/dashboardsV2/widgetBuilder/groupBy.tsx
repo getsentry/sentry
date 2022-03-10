@@ -77,6 +77,9 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
     );
   }
 
+  const canDelete =
+    columns.length > 1 || (columns.length === 1 && columns[0]?.field !== '');
+
   return (
     <React.Fragment>
       <StyledField inline={false} flexibleControlStateSize stacked>
@@ -90,8 +93,7 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
               fieldOptions={fieldOptions}
               onChange={value => handleSelect(value, index)}
             />
-            {(columns.length > 1 ||
-              (columns.length === 1 && columns[0].field !== '')) && (
+            {canDelete && (
               <Button
                 size="zero"
                 borderless

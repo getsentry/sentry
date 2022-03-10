@@ -313,10 +313,14 @@ class WidgetQueries extends React.Component<Props, State> {
           period: statsPeriod,
           query: query.conditions,
           yAxis: query.fields,
-          orderby: query.orderby,
           includePrevious: false,
           referrer: `api.dashboards.widget.${displayType}-chart`,
           partial: true,
+
+          // Mocking topEvents value
+          topEvents: query.columns?.length ? 5 : undefined,
+          field: query.columns,
+          orderby: query.columns?.[0] ?? query.orderby,
         };
       }
       return doEventsRequest(api, requestData);
