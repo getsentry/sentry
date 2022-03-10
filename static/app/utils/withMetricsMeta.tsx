@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {MetricsMetaCollection} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
@@ -8,42 +9,21 @@ export type InjectedMetricsMetaProps = {
   metricsMeta: MetricsMetaCollection;
 };
 
-type State = {
-  metricsMeta: MetricsMetaCollection;
-};
-
 function withMetricsMeta<P extends InjectedMetricsMetaProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithMetricMeta extends React.Component<
-    Omit<P, keyof InjectedMetricsMetaProps>,
-    State
-  > {
-    static displayName = `withMetricsMeta(${getDisplayName(WrappedComponent)})`;
+  type Props = Omit<P, keyof InjectedMetricsMetaProps> &
+    Partial<InjectedMetricsMetaProps>;
 
-    state: State = {
-      metricsMeta: MetricsMetaStore.getAllFields(),
-    };
+  const WithMetricsMeta: React.FC<Props> = props => {
+    const {metricsMeta} = useLegacyStore(MetricsMetaStore);
 
-    componentWillUnmount() {
-      this.unsubscribe();
-    }
-    unsubscribe = MetricsMetaStore.listen(
-      (metricsMeta: MetricsMetaCollection) => this.setState({metricsMeta}),
-      undefined
-    );
+    return <WrappedComponent {...(props as P)} metricsMeta={metricsMeta} />;
+  };
 
-    render() {
-      const {metricsMeta, ...props} = this.props as P;
-      return (
-        <WrappedComponent
-          {...({metricsMeta: metricsMeta ?? this.state.metricsMeta, ...props} as P)}
-        />
-      );
-    }
-  }
+  WithMetricsMeta.displayName = `withMetricsMeta(${getDisplayName(WrappedComponent)})`;
 
-  return WithMetricMeta;
+  return WithMetricsMeta;
 }
 
 export default withMetricsMeta;
