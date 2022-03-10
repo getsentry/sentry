@@ -1,4 +1,5 @@
 import re
+from typing import Dict, TypedDict
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
@@ -30,6 +31,35 @@ TRANSACTION_STATUS_ALIAS = "transaction.status"
 MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
 MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
+
+
+class ThresholdDict(TypedDict):
+    poor: float
+    meh: float
+
+
+VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
+    "lcp": {
+        "poor": 4000,
+        "meh": 2500,
+    },
+    "fp": {
+        "poor": 3000,
+        "meh": 1000,
+    },
+    "fcp": {
+        "poor": 3000,
+        "meh": 1000,
+    },
+    "fid": {
+        "poor": 300,
+        "meh": 100,
+    },
+    "cls": {
+        "poor": 0.25,
+        "meh": 0.1,
+    },
+}
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
