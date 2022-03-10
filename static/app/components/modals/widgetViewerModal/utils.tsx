@@ -2,6 +2,7 @@
 export enum WidgetViewerQueryField {
   SORT = 'modalSort',
   QUERY = 'query',
+  LEGEND = 'legend',
 }
 
 export function isWidgetViewerPath(pathname: string) {

@@ -21,7 +21,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
+import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -32,7 +32,7 @@ import {
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
-import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
+import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
@@ -60,7 +60,23 @@ const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 
-function WidgetViewerModal(props: Props) {
+// The WidgetCardChartContainer doesn't need to be rerendered
+// This is required because we want to prevent ECharts interactions from causing unnecessary rerenders which can break persistent legends functionality
+const MemoizedWidgetCardChartContainer = React.memo(WidgetCardChartContainer, () => true);
+
+const shouldRerender = ({location: {query}}, {location: {query: prevQuery}}) => {
+  // Only rerender this container if the query or sort has changed
+  // This is required because we want to prevent ECharts interactions from causing unnecessary rerenders which can break persistent legends functionality
+  if (
+    query[WidgetViewerQueryField.QUERY] !== prevQuery[WidgetViewerQueryField.QUERY] ||
+    query[WidgetViewerQueryField.SORT] !== prevQuery[WidgetViewerQueryField.SORT]
+  ) {
+    return false;
+  }
+  return true;
+};
+
+const WidgetViewerModal = React.memo(function WidgetViewerModal(props: Props) {
   const {
     organization,
     widget,
@@ -81,6 +97,12 @@ function WidgetViewerModal(props: Props) {
     cursor: undefined,
     page: 0,
   });
+  const disabledLegends = decodeList(
+    location.query[WidgetViewerQueryField.LEGEND]
+  ).reduce((acc, legend) => {
+    acc[legend] = false;
+    return acc;
+  }, {});
 
   // Use sort if provided by location query to sort table
   const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
@@ -165,7 +187,8 @@ function WidgetViewerModal(props: Props) {
         )}
         {widget.displayType !== DisplayType.TABLE && (
           <Container>
-            <WidgetCardChartContainer
+            <MemoizedWidgetCardChartContainer
+              {...props}
               api={api}
               organization={organization}
               selection={modalSelection}
@@ -182,6 +205,18 @@ function WidgetViewerModal(props: Props) {
                   datetime: {...modalSelection.datetime, start, end, period: null},
                 });
               }}
+              onLegendSelectChanged={({selected}) => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
+                      key => !selected[key]
+                    ),
+                  },
+                });
+              }}
+              legendOptions={{selected: disabledLegends}}
             />
           </Container>
         )}
@@ -192,7 +227,10 @@ function WidgetViewerModal(props: Props) {
             onChange={(option: SelectValue<number>) =>
               router.replace({
                 pathname: location.pathname,
-                query: {...location.query, [WidgetViewerQueryField.QUERY]: option.value},
+                query: {
+                  ...location.query,
+                  [WidgetViewerQueryField.QUERY]: option.value,
+                },
               })
             }
           />
@@ -373,7 +411,7 @@ function WidgetViewerModal(props: Props) {
       </StyledFooter>
     </React.Fragment>
   );
-}
+}, shouldRerender);
 
 export const modalCss = css`
   width: 100%;
