@@ -32,7 +32,7 @@ export default function getConfiguration({
           description: t('Manage team access for a project'),
         },
         {
-          path: `/organizations/:orgId/alerts/rules/`,
+          path: `${pathPrefix}/alerts/`,
           title: t('Alerts'),
           description: t('Manage alert rules for a project'),
         },
