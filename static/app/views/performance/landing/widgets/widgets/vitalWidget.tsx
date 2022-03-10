@@ -56,14 +56,9 @@ export function transformFieldsWithStops(props: {
     };
   }
 
-  const poorCountField = `count_if(${field},greaterOrEquals,${poorStop})`;
-  const mehCountField = `equation|count_if(${field},greaterOrEquals,${mehStop}) - count_if(${field},greaterOrEquals,${poorStop})`;
-  const goodCountField = `equation|count_if(${field},greaterOrEquals,0) - count_if(${field},greaterOrEquals,${mehStop})`;
-
-  const otherRequiredFieldsForQuery = [
-    `count_if(${field},greaterOrEquals,${mehStop})`,
-    `count_if(${field},greaterOrEquals,0)`,
-  ];
+  const poorCountField = `count_web_vitals(${field}, poor)`;
+  const mehCountField = `count_web_vitals(${field}, meh)`;
+  const goodCountField = `count_web_vitals(${field}, good)`;
 
   const vitalFields = {
     poorCountField,
@@ -71,12 +66,7 @@ export function transformFieldsWithStops(props: {
     goodCountField,
   };
 
-  const fieldsList = [
-    poorCountField,
-    ...otherRequiredFieldsForQuery,
-    mehCountField,
-    goodCountField,
-  ];
+  const fieldsList = [poorCountField, mehCountField, goodCountField];
 
   return {
     sortField: poorCountField,
@@ -195,8 +185,10 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           return <Subtitle />;
         }
 
+        const vital = settingToVital[props.chartSetting];
+
         const data = {
-          [settingToVital[props.chartSetting]]: getVitalDataForListItem(listItem),
+          [settingToVital[props.chartSetting]]: getVitalDataForListItem(listItem, vital),
         };
 
         return (
@@ -276,7 +268,10 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 });
 
                 const data = {
-                  [settingToVital[props.chartSetting]]: getVitalDataForListItem(listItem),
+                  [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+                    listItem,
+                    vital
+                  ),
                 };
 
                 return (
@@ -313,11 +308,13 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   );
 }
 
-function getVitalDataForListItem(listItem: TableDataRow) {
+function getVitalDataForListItem(listItem: TableDataRow, vital: WebVital) {
   const poorData: number =
-    (listItem.count_if_measurements_lcp_greaterOrEquals_4000 as number) || 0;
-  const mehData: number = (listItem['equation[0]'] as number) || 0;
-  const goodData: number = (listItem['equation[1]'] as number) || 0;
+    (listItem[`count_web_vitals_${vital.replace('.', '_')}_poor`] as number) || 0;
+  const mehData =
+    (listItem[`count_web_vitals_${vital.replace('.', '_')}_meh`] as number) || 0;
+  const goodData =
+    (listItem[`count_web_vitals_${vital.replace('.', '_')}_good`] as number) || 0;
   const _vitalData = {
     poor: poorData,
     meh: mehData,
