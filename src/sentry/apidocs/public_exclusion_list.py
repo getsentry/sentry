@@ -27,6 +27,15 @@ from sentry.api.endpoints.broadcast_details import BroadcastDetailsEndpoint
 from sentry.api.endpoints.broadcast_index import BroadcastIndexEndpoint
 from sentry.api.endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from sentry.api.endpoints.chunk import ChunkUploadEndpoint
+from sentry.api.endpoints.codeowners import (
+    ExternalTeamDetailsEndpoint,
+    ExternalTeamEndpoint,
+    ExternalUserDetailsEndpoint,
+    ExternalUserEndpoint,
+    ProjectCodeOwnersDetailsEndpoint,
+    ProjectCodeOwnersEndpoint,
+    ProjectCodeOwnersRequestEndpoint,
+)
 from sentry.api.endpoints.data_scrubbing_selector_suggestions import (
     DataScrubbingSelectorSuggestionsEndpoint,
 )
@@ -46,10 +55,6 @@ from sentry.api.endpoints.event_file_committers import EventFileCommittersEndpoi
 from sentry.api.endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from sentry.api.endpoints.event_owners import EventOwnersEndpoint
 from sentry.api.endpoints.event_reprocessable import EventReprocessableEndpoint
-from sentry.api.endpoints.external_team import ExternalTeamEndpoint
-from sentry.api.endpoints.external_team_details import ExternalTeamDetailsEndpoint
-from sentry.api.endpoints.external_user import ExternalUserEndpoint
-from sentry.api.endpoints.external_user_details import ExternalUserDetailsEndpoint
 from sentry.api.endpoints.filechange import CommitFileChangeEndpoint
 from sentry.api.endpoints.group_activities import GroupActivitiesEndpoint
 from sentry.api.endpoints.group_attachments import GroupAttachmentsEndpoint
@@ -298,9 +303,6 @@ from sentry.api.endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
-from sentry.api.endpoints.project_codeowners import ProjectCodeOwnersEndpoint
-from sentry.api.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
-from sentry.api.endpoints.project_codeowners_request import ProjectCodeOwnersRequestEndpoint
 from sentry.api.endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from sentry.api.endpoints.project_create_sample_transaction import (
     ProjectCreateSampleTransactionEndpoint,

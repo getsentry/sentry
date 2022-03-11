@@ -33,16 +33,16 @@ class ProjectCodeOwnersSerializer(Serializer):
         }
 
     def serialize(self, obj, attrs, user):
+        from sentry.api.validators.project_codeowners import validate_codeowners_associations
+
         data = {
             "id": str(obj.id),
             "raw": obj.raw,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "codeMappingId": str(obj.repository_project_path_config_id),
-            "provider": "unknown",
+            "provider": attrs.get("provider", "unknown"),
         }
-
-        data["provider"] = attrs.get("provider", "unknown")
 
         if "codeMapping" in self.expand:
             config = attrs.get("codeMapping", {})
@@ -53,7 +53,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             data["ownershipSyntax"] = convert_schema_to_rules_text(obj.schema)
 
         if "errors" in self.expand:
-            _, errors = ProjectCodeOwners.validate_codeowners_associations(obj.raw, obj.project)
+            _, errors = validate_codeowners_associations(obj.raw, obj.project)
             data["errors"] = errors
 
         return data

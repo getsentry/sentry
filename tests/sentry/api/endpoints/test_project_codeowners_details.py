@@ -113,7 +113,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
 
     def test_codeowners_max_raw_length(self):
         with mock.patch(
-            "sentry.api.endpoints.project_codeowners.MAX_RAW_LENGTH", len(self.data["raw"]) + 1
+            "sentry.api.endpoints.codeowners.MAX_RAW_LENGTH", len(self.data["raw"]) + 1
         ):
             data = {
                 "raw": f"#                cool stuff     comment\n*.js {self.user.email}\n# good comment"

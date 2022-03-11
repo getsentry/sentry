@@ -2,7 +2,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.endpoints.project_codeowners_request import get_codeowners_request_builder_args
+from sentry.api.endpoints.codeowners.request import get_codeowners_request_builder_args
 from sentry.models import Organization, OrganizationMember, Project, User
 from sentry.web.frontend.debug.mail import MailPreviewAdapter
 from sentry.web.helpers import render_to_response
