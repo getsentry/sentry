@@ -23,6 +23,8 @@ export type Permissions = {
   Team: PermissionValue;
 };
 
+export type PermissionResource = keyof Permissions;
+
 export type ExternalActorMapping = {
   externalName: string;
   id: string;
