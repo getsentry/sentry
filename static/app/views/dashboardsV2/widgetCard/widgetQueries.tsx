@@ -313,6 +313,7 @@ class WidgetQueries extends React.Component<Props, State> {
           period: statsPeriod,
           query: query.conditions,
           yAxis: query.fields,
+          orderby: query.orderby,
           includePrevious: false,
           referrer: `api.dashboards.widget.${displayType}-chart`,
           partial: true,

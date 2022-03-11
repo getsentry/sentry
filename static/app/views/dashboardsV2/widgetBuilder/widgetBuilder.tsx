@@ -511,8 +511,7 @@ function WidgetBuilder({
 
     state.queries.forEach((query, index) => {
       const newQuery = cloneDeep(query);
-      const {columns} = getColumnsAndAggregates(fieldStrings);
-      newQuery.columns = columns;
+      newQuery.columns = fieldStrings;
 
       handleQueryChange(index, newQuery);
     });
