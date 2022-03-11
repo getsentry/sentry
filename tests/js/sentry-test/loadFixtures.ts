@@ -16,34 +16,52 @@ type Options = {
 /**
  * Loads a directory of fixtures. Supports js and json fixtures.
  */
-export function loadFixtures(dir: string, opts: Options = {}) {
+export function loadFixtures(dir: string, opts: Options = {}): Record<string, any> {
   const from = path.join(FIXTURES_ROOT, dir);
   const files = fs.readdirSync(from);
+  const fixtures: Record<string, any> = {};
 
-  const fixturesPairs = files.map(file => {
+  for (const file of files) {
     const filePath = path.join(from, file);
 
     if (/[jt]sx?$/.test(file)) {
       const module = require(filePath);
 
-      if (Object.keys(module).includes('default')) {
+      if (module.default) {
         throw new Error('Javascript fixtures cannot use default export');
       }
 
-      return [file, module] as const;
+      fixtures[file] = module;
+      continue;
     }
-
     if (/json$/.test(file)) {
-      return [file, JSON.parse(fs.readFileSync(filePath).toString())] as const;
+      fixtures[file] = JSON.parse(fs.readFileSync(filePath).toString());
+      continue;
     }
 
     throw new Error(`Invalid fixture type found: ${file}`);
-  });
-
-  const fixtures = Object.fromEntries(fixturesPairs);
+  }
 
   if (opts.flatten) {
-    return Object.values(fixtures).reduce((acc, val) => ({...acc, ...val}), {});
+    const flattenedFixtures: Record<string, any> = {};
+
+    // Iterate over all fixture files
+    for (const moduleKey in fixtures) {
+      // Iterate over all exports of a file
+      for (const moduleExport in fixtures[moduleKey]) {
+        // Check if our flattenedFixtures already contains a key with the same export.
+        // If it does, we want to throw and make sure that we dont silently override the fixtures.
+        if (flattenedFixtures?.[moduleKey]?.[moduleExport]) {
+          throw new Error(
+            `Flatten will override module ${flattenedFixtures[moduleKey]} with ${fixtures[moduleKey][moduleExport]}`
+          );
+        }
+
+        flattenedFixtures[moduleExport] = fixtures[moduleKey][moduleExport];
+      }
+    }
+
+    return flattenedFixtures;
   }
 
   return fixtures;
