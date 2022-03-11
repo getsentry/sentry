@@ -176,7 +176,7 @@ describe('WidgetQueryFields', function () {
     const organization = TestStubs.Organization();
 
     it('top N shows the right options for y-axis and columns', function () {
-      reactMountWithTheme(
+      render(
         <WidgetQueryFields
           widgetType={WidgetType.METRICS}
           displayType={DisplayType.TOP_N}
