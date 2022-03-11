@@ -136,12 +136,6 @@ if (
 
 const config: Config.InitialOptions = {
   verbose: false,
-  collectCoverageFrom: [
-    'tests/js/spec/**/*.{js,jsx,tsx}',
-    'static/app/**/*.{js,jsx,ts,tsx}',
-  ],
-  coverageReporters: ['html', 'cobertura'],
-  coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
