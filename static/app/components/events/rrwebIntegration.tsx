@@ -9,7 +9,7 @@ type Props = {
   event: Event;
   orgId: Organization['id'];
   projectId: Project['id'];
-  renderer: Function | undefined;
+  renderer?: Function;
 } & AsyncComponent['props'];
 
 type State = {
