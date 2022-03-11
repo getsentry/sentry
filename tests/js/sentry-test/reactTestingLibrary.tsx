@@ -76,9 +76,9 @@ function render(ui: React.ReactElement, options?: Options) {
  */
 const fireEvent = reactRtlFireEvent;
 
-function mountGlobalModal(options?: Options) {
+function renderGlobalModal(options?: Options) {
   return render(<GlobalModal />, options);
 }
 
 export * from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-export {render, mountGlobalModal, userEvent, reactHooks, fireEvent};
+export {render, renderGlobalModal, userEvent, reactHooks, fireEvent};
