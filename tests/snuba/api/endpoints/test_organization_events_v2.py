@@ -5182,15 +5182,46 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
     def test_measurement_rating(self):
         self.store_metric(
-            5000,
+            50,
             metric="measurements.lcp",
+            tags={"measurement_rating": "good", "transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            15,
+            metric="measurements.fp",
+            tags={"measurement_rating": "good", "transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            1500,
+            metric="measurements.fcp",
+            tags={"measurement_rating": "meh", "transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            125,
+            metric="measurements.fid",
+            tags={"measurement_rating": "meh", "transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            0.15,
+            metric="measurements.cls",
             tags={"measurement_rating": "good", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
 
         response = self.do_request(
             {
-                "field": ["transaction", "count_web_vitals(measurements.lcp, good)"],
+                "field": [
+                    "transaction",
+                    "count_web_vitals(measurements.lcp, good)",
+                    "count_web_vitals(measurements.fp, good)",
+                    "count_web_vitals(measurements.fcp, meh)",
+                    "count_web_vitals(measurements.fid, meh)",
+                    "count_web_vitals(measurements.cls, good)",
+                ],
                 "query": "event.type:transaction",
                 "metricsEnhanced": "1",
                 "per_page": 50,
@@ -5200,6 +5231,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["isMetricsData"]
         assert response.data["data"][0]["count_web_vitals_measurements_lcp_good"] == 1
+        assert response.data["data"][0]["count_web_vitals_measurements_fp_good"] == 1
+        assert response.data["data"][0]["count_web_vitals_measurements_fcp_meh"] == 1
+        assert response.data["data"][0]["count_web_vitals_measurements_fid_meh"] == 1
+        assert response.data["data"][0]["count_web_vitals_measurements_cls_good"] == 1
 
     def test_measurement_rating_that_does_not_exist(self):
         self.store_metric(
@@ -5221,3 +5256,44 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["isMetricsData"]
         assert response.data["data"][0]["count_web_vitals_measurements_lcp_poor"] == 0
+
+    def test_count_web_vitals_invalid_vital(self):
+        query = {
+            "field": [
+                "count_web_vitals(measurements.foo, poor)",
+            ],
+            "project": [self.project.id],
+            "metricsEnhanced": "1",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+        query = {
+            "field": [
+                "count_web_vitals(tags[lcp], poor)",
+            ],
+            "project": [self.project.id],
+            "metricsEnhanced": "1",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+        query = {
+            "field": [
+                "count_web_vitals(transaction.duration, poor)",
+            ],
+            "project": [self.project.id],
+            "metricsEnhanced": "1",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+        query = {
+            "field": [
+                "count_web_vitals(measurements.lcp, bad)",
+            ],
+            "project": [self.project.id],
+            "metricsEnhanced": "1",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content

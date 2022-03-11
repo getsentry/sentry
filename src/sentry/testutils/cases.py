@@ -1101,6 +1101,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
+        "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",

@@ -310,9 +310,12 @@ class MetricsDatasetConfig(DatasetConfig):
 
         quality_id = indexer.resolve(quality)
         if quality_id is None:
-            # Choose an invalid id so the result is 0
-            # TODO: Should be able to just not return a function at all in these cases
-            quality_id = 0
+            return Function(
+                # This matches the type from doing `select toTypeName(count()) ...` from clickhouse
+                "toUInt64",
+                [0],
+                alias,
+            )
 
         return Function(
             "countIf",
