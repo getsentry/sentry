@@ -11,7 +11,8 @@ interface Props {
 }
 
 /**
- * Downloads a list of replay JSONs, merges the resulting events within the JSON and passes it to the replayer.
+ * Downloads a list of replay JSONs, merges the resulting events within the
+ * JSON and passes it to the replayer.
  */
 function RRWebReplayer({urls}: Props) {
   const [events, setEvents] = useState<RRWebEvents>();
@@ -28,8 +29,8 @@ function RRWebReplayer({urls}: Props) {
       // incremental updates in separate JSON files.
       //
       // Below we download all of the JSON files and merge them into a large
-      // list of events for the replayer. The replayer *should* support a large
-      // list that has multiple checkouts.
+      // list of events for the replayer. The replayer supports having a
+      // list that has multiple "checkouts".
       const data: RRWebEvents[] = await Promise.all(
         urls.map(async url => {
           const resp = await fetch(url);
