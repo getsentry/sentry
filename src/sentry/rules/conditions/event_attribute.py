@@ -49,8 +49,6 @@ class EventAttributeCondition(EventCondition):
     - extra.{FIELD}
     """
 
-    # TODO(dcramer): add support for stacktrace.vars.[name]
-
     id = "sentry.rules.conditions.event_attribute.EventAttributeCondition"
     form_cls = EventAttributeForm
     label = "The event's {attribute} value {match} {value}"
