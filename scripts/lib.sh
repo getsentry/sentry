@@ -203,7 +203,7 @@ apply-migrations() {
 
 create-user() {
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
-        sentry createuser --superuser --email foo@tbd.com --no-password
+        sentry createuser --superuser --email foo@tbd.com --no-password  --no-input
     else
         sentry createuser --superuser
     fi
