@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import IssueListHeader from 'sentry/views/issueList/header';
@@ -53,7 +53,7 @@ describe('IssueListHeader', () => {
   });
 
   it('renders active tab with count when query matches inbox', () => {
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
@@ -69,7 +69,7 @@ describe('IssueListHeader', () => {
 
   it('renders reprocessing tab', () => {
     organization.features = ['reprocessing-v2'];
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query=""
@@ -90,7 +90,7 @@ describe('IssueListHeader', () => {
   });
 
   it("renders all tabs inactive when query doesn't match", () => {
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query=""
@@ -103,7 +103,7 @@ describe('IssueListHeader', () => {
   });
 
   it('renders all tabs with counts', () => {
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query=""
@@ -120,7 +120,7 @@ describe('IssueListHeader', () => {
   });
 
   it('renders limited counts for tabs and exact for selected', () => {
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query=""
@@ -139,7 +139,7 @@ describe('IssueListHeader', () => {
   it('transitions to new query on tab click', () => {
     const routerContext = TestStubs.routerContext();
 
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -167,7 +167,7 @@ describe('IssueListHeader', () => {
 
   it('removes inbox sort for non-inbox tabs', () => {
     const routerContext = TestStubs.routerContext();
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -201,7 +201,7 @@ describe('IssueListHeader', () => {
 
   it('changes sort for inbox tab', () => {
     const routerContext = TestStubs.routerContext();
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -228,7 +228,7 @@ describe('IssueListHeader', () => {
   });
 
   it('tracks clicks on inbox tab', () => {
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query={Query.UNRESOLVED}
@@ -243,7 +243,7 @@ describe('IssueListHeader', () => {
   });
 
   it('ignores clicks on inbox tab when already on inbox tab', () => {
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query={Query.FOR_REVIEW}
@@ -258,7 +258,7 @@ describe('IssueListHeader', () => {
   });
 
   it('should indicate when query is a custom search and display count', () => {
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -273,7 +273,7 @@ describe('IssueListHeader', () => {
 
   it('should display saved search name and count', () => {
     const query = 'saved search query';
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -295,7 +295,7 @@ describe('IssueListHeader', () => {
   });
 
   it('lists saved searches in dropdown', () => {
-    mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
