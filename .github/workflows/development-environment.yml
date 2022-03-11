@@ -35,6 +35,8 @@ jobs:
         run: |
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
+      # Trick for unattended Docker installations
+      # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
       - name: Install prerequisites
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker
