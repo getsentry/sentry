@@ -23,7 +23,7 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
       [
         'attachmentList',
         `/projects/${orgId}/${projectId}/events/${event.id}/attachments/`,
-        {query: {query: 'rrweb.json'}},
+        {query: {query: 'rrweb'}},
       ],
     ];
   }
@@ -41,13 +41,16 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
       return null;
     }
 
-    const attachment = attachmentList[0];
     const {orgId, projectId, event} = this.props;
+
+    function createAttachmentUrl(attachment: IssueAttachment) {
+      return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`;
+    }
 
     return renderer(
       <LazyLoad
         component={() => import('./rrwebReplayer')}
-        url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
+        urls={attachmentList.map(createAttachmentUrl)}
       />
     );
   }
