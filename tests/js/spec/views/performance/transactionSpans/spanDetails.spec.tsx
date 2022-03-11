@@ -78,7 +78,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
     });
 
-    it('renders empty when missing project param', async function () {
+    it('renders empty when missing project param', function () {
       const data = initializeData({query: {transaction: 'transaction'}});
 
       const {container} = render(
@@ -89,7 +89,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('renders empty when missing transaction param', async function () {
+    it('renders empty when missing transaction param', function () {
       const data = initializeData({query: {project: '1'}});
 
       const {container} = render(

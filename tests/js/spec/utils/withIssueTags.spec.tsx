@@ -52,7 +52,7 @@ describe('withIssueTags HoC', function () {
     expect(screen.getByText(/stack filename: stack.filename/)).toBeInTheDocument();
   });
 
-  it('updates the assigned tags with users and teams, and bookmark tags with users', async function () {
+  it('updates the assigned tags with users and teams, and bookmark tags with users', function () {
     const Container = withIssueTags(MyComponent);
     render(<Container forwardedValue="value" />);
 

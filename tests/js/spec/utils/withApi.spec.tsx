@@ -28,7 +28,7 @@ describe('withApi', function () {
     );
   });
 
-  it('cancels pending API requests when component is unmounted', async function () {
+  it('cancels pending API requests when component is unmounted', function () {
     const MyComponentWithApi = withApi(MyComponent);
     const wrapper = render(<MyComponentWithApi />);
 
