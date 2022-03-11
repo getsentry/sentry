@@ -109,14 +109,17 @@ class SpanTreeModel {
     );
   }
 
-  isSpanFilteredOut = (props: {
-    filterSpans: FilterSpans | undefined;
-    operationNameFilters: ActiveOperationFilter;
-  }): boolean => {
+  isSpanFilteredOut = (
+    props: {
+      filterSpans: FilterSpans | undefined;
+      operationNameFilters: ActiveOperationFilter;
+    },
+    spanModel: SpanTreeModel
+  ): boolean => {
     const {operationNameFilters, filterSpans} = props;
 
     if (operationNameFilters.type === 'active_filter') {
-      const operationName = getSpanOperation(this.span);
+      const operationName = getSpanOperation(spanModel.span);
 
       if (
         typeof operationName === 'string' &&
@@ -130,7 +133,7 @@ class SpanTreeModel {
       return false;
     }
 
-    return !filterSpans.spanIDs.has(getSpanID(this.span));
+    return !filterSpans.spanIDs.has(getSpanID(spanModel.span));
   };
 
   generateSpanGap(
@@ -415,10 +418,11 @@ class SpanTreeModel {
           return enhancedSibling;
         });
 
-        // Check if the group is currently expanded or not
-        const key = `${group[0].span.op}.${group[0].span.description}`;
-        if (this.ungroupedSiblings.has(key)) {
-          acc.descendants.push(...wrappedSiblings);
+        if (this.isSpanFilteredOut(props, group[0])) {
+          acc.descendants.push({
+            type: 'filtered_out',
+            span: group[0].span,
+          });
           return acc;
         }
 
@@ -434,6 +438,13 @@ class SpanTreeModel {
           toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
         };
 
+        // Check if the group is currently expanded or not
+        const key = `${group[0].span.op}.${group[0].span.description}`;
+        if (this.ungroupedSiblings.has(key)) {
+          acc.descendants.push(...wrappedSiblings);
+          return acc;
+        }
+
         acc.descendants.push(groupedSiblingsSpan);
 
         return acc;
@@ -444,7 +455,7 @@ class SpanTreeModel {
       }
     );
 
-    if (this.isSpanFilteredOut(props)) {
+    if (this.isSpanFilteredOut(props, this)) {
       return [
         {
           type: 'filtered_out',
