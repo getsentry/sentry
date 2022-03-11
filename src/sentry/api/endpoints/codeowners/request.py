@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Mapping
 
 from django.utils.translation import ugettext as _
 from rest_framework.request import Request
@@ -6,14 +7,16 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.bases.project_request_change import ProjectRequestChangeEndpoint
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationMember, Project, User
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
 
-def get_codeowners_request_builder_args(project, recipient, requester_name):
+def get_codeowners_request_builder_args(
+    project: Project, recipient: User, requester_name: str
+) -> Mapping[str, Any]:
     return {
         "subject": _("A team member is asking to set up Sentry's Code Owners"),
         "type": "organization.codeowners-request",
@@ -31,8 +34,8 @@ def get_codeowners_request_builder_args(project, recipient, requester_name):
     }
 
 
-class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):
-    def post(self, request: Request, project) -> Response:
+class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):  # type: ignore
+    def post(self, request: Request, project: Project) -> Response:
         """
         Request to Add CODEOWNERS to a Project
         ````````````````````````````````````

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Mapping, MutableMapping
 
 from rest_framework import serializers
@@ -64,7 +66,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
                 "schema": validated_data,
             }
         except ValidationError as e:
-            raise serializers.ValidationError(e)
+            raise serializers.ValidationError(str(e))
 
     def validate_code_mapping_id(self, code_mapping_id: int) -> RepositoryProjectPathConfig:
         if ProjectCodeOwners.objects.filter(
@@ -111,7 +113,7 @@ class ProjectCodeOwnersMixin:
             )
         )
 
-    def track_response_code(self, type: str, status: str) -> None:
+    def track_response_code(self, type: str, status: int | str) -> None:
         if type in ["create", "update"]:
             metrics.incr(
                 f"codeowners.{type}.http_response",
