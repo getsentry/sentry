@@ -55,7 +55,7 @@ describe('useTeams', function () {
     expect(result.current.teams).toEqual([...mockTeams, newTeam2, newTeam3]);
   });
 
-  it('provides only the users teams', async function () {
+  it('provides only the users teams', function () {
     const userTeams = [TestStubs.Team({isMember: true})];
     const nonUserTeams = [TestStubs.Team({isMember: false})];
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
@@ -91,7 +91,7 @@ describe('useTeams', function () {
     expect(teams).toEqual(expect.arrayContaining([teamFoo]));
   });
 
-  it('only loads slugs when needed', async function () {
+  it('only loads slugs when needed', function () {
     TeamStore.loadInitialData(mockTeams);
 
     const {result} = reactHooks.renderHook(props => useTeams(props), {
@@ -126,7 +126,7 @@ describe('useTeams', function () {
     expect(teams).toEqual(expect.arrayContaining(requestedTeams));
   });
 
-  it('only loads ids when needed', async function () {
+  it('only loads ids when needed', function () {
     TeamStore.loadInitialData(mockTeams);
 
     const {result} = reactHooks.renderHook(props => useTeams(props), {

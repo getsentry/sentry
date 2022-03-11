@@ -29,7 +29,7 @@ describe('ProjectDetail', function () {
   });
 
   describe('project low priority queue alert', function () {
-    it('does not render alert', async function () {
+    it('does not render alert', function () {
       const projects = [
         {
           ...project,

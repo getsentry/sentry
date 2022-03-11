@@ -273,7 +273,7 @@ describe('Custom Repositories', function () {
     expect(await screen.findByText('App Store Connect credentials')).toBeInTheDocument();
   });
 
-  it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', async function () {
+  it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', function () {
     const newOrganization = {
       ...organization,
       features: ['custom-symbol-sources', 'app-store-connect-multiple'],

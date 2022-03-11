@@ -24,7 +24,7 @@ describe('SuspectSpansQuery', function () {
     };
   });
 
-  it('fetches data on mount', async function () {
+  it('fetches data on mount', function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here

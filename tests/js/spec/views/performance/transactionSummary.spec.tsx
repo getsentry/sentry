@@ -633,7 +633,7 @@ describe('Performance > TransactionSummary', function () {
     expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
   });
 
-  it('triggers a navigation on search', async function () {
+  it('triggers a navigation on search', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(<TestComponent location={router.location} />, {

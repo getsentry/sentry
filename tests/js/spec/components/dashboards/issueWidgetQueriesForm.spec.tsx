@@ -127,18 +127,18 @@ describe('IssueWidgetQueriesForm', function () {
     expect(onChangeHandler).toHaveBeenCalledTimes(1);
   });
 
-  it('renders Widget Query Fields selector', async function () {
+  it('renders Widget Query Fields selector', function () {
     expect(screen.getByText('Columns')).toBeInTheDocument();
     expect(screen.getByText('issue')).toBeInTheDocument();
     expect(screen.getByText('assignee')).toBeInTheDocument();
   });
 
-  it('renders Widget Query Sort selector', async function () {
+  it('renders Widget Query Sort selector', function () {
     expect(screen.getByText('Sort by')).toBeInTheDocument();
     expect(screen.getByText('Last Seen')).toBeInTheDocument();
   });
 
-  it('calls on change handler when changing sort', async function () {
+  it('calls on change handler when changing sort', function () {
     userEvent.click(screen.getByText('Last Seen'));
     userEvent.click(screen.getByText('First Seen'));
     expect(onChangeHandler).toHaveBeenCalledTimes(1);

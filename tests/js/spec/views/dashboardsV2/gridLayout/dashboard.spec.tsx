@@ -184,7 +184,7 @@ describe('Dashboards > Dashboard', () => {
       );
     };
 
-    it('dashboard displays issue widgets if the user has issue widgets feature flag', async () => {
+    it('dashboard displays issue widgets if the user has issue widgets feature flag', () => {
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [newWidget, issueWidget],
@@ -242,7 +242,7 @@ describe('Dashboards > Dashboard', () => {
       expect(screen.getByLabelText('Duplicate Widget')).toBeInTheDocument();
     });
 
-    it('duplicates the widget', async () => {
+    it('duplicates the widget', () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
       const {rerender} = mount(dashboardWithOneWidget);
       userEvent.click(screen.getByLabelText('Duplicate Widget'));
