@@ -157,7 +157,6 @@ function PageLayout(props: Props) {
             </StyledPageContent>
           </PageFiltersContainer>
         </PerformanceEventViewProvider>
-        );
       </Feature>
     </SentryDocumentTitle>
   );
