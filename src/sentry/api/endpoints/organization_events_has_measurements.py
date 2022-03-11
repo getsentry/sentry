@@ -7,7 +7,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
@@ -106,9 +105,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
                     auto_fields=True,
                     auto_aggregations=False,
                     use_aggregate_conditions=False,
-                    use_snql=features.has(
-                        "organizations:performance-use-snql", organization, actor=request.user
-                    ),
+                    use_snql=True,
                 )
             has_measurements = len(results["data"]) > 0
 

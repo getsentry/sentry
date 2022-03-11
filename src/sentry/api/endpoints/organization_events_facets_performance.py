@@ -74,10 +74,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
         if tag_key in TAG_ALIASES:
             tag_key = TAG_ALIASES.get(tag_key)
 
-        use_snql = features.has(
-            "organizations:performance-use-snql", organization, actor=request.user
-        )
-
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
                 referrer = "api.organization-events-facets-performance.top-tags"
@@ -85,7 +81,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
                     filter_query=filter_query,
                     aggregate_column=aggregate_column,
                     referrer=referrer,
-                    use_snql=use_snql,
                     params=params,
                 )
 
@@ -162,10 +157,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         if tag_key in TAG_ALIASES:
             tag_key = TAG_ALIASES.get(tag_key)
 
-        use_snql = features.has(
-            "organizations:performance-use-snql", organization, actor=request.user
-        )
-
         def data_fn(offset, limit, raw_limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
                 referrer = "api.organization-events-facets-performance-histogram"
@@ -178,7 +169,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     orderby=self.get_orderby(request),
                     offset=offset,
                     referrer=referrer,
-                    use_snql=use_snql,
                 )
 
                 if not top_tags:
@@ -193,7 +183,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     filter_query=filter_query,
                     aggregate_column=aggregate_column,
                     referrer=referrer,
-                    use_snql=use_snql,
                     params=params,
                     limit=raw_limit,
                     num_buckets_per_key=num_buckets_per_key,
@@ -252,7 +241,6 @@ class HistogramPaginator(GenericOffsetPaginator):
 def query_tag_data(
     params: Mapping[str, str],
     referrer: str,
-    use_snql: bool,
     filter_query: Optional[str] = None,
     aggregate_column: Optional[str] = None,
 ) -> Optional[Dict]:
@@ -287,7 +275,7 @@ def query_tag_data(
             query=filter_query,
             params=params,
             referrer=f"{referrer}.all_transactions",
-            use_snql=use_snql,
+            use_snql=True,
             limit=1,
         )
 
@@ -310,7 +298,6 @@ def query_top_tags(
     tag_key: str,
     limit: int,
     referrer: str,
-    use_snql: bool,
     orderby: Optional[List[str]],
     offset: Optional[int] = None,
     aggregate_column: Optional[str] = None,
@@ -365,7 +352,7 @@ def query_top_tags(
             ],
             functions_acl=["array_join"],
             referrer=f"{referrer}.top_tags",
-            use_snql=use_snql,
+            use_snql=True,
             limit=limit,
             offset=offset,
         )
@@ -499,7 +486,6 @@ def query_facet_performance_key_histogram(
     num_buckets_per_key: int,
     limit: int,
     referrer: str,
-    use_snql: bool,
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
 ) -> Dict:
@@ -526,7 +512,7 @@ def query_facet_performance_key_histogram(
         ],
         histogram_rows=limit,
         referrer="api.organization-events-facets-performance-histogram",
-        use_snql=use_snql,
+        use_snql=True,
         normalize_results=False,
     )
     return results

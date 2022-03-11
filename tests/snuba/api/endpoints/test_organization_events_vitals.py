@@ -256,9 +256,3 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
             "total": 0,
             "p75": None,
         }
-
-
-class OrganizationEventsVitalsEndpointTestWithSnql(OrganizationEventsVitalsEndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.features = {"organizations:performance-use-snql": True}

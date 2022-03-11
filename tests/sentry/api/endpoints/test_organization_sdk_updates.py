@@ -127,9 +127,3 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         update_suggestions = response.data
         assert len(update_suggestions) == 0
-
-
-class OrganizationSdkUpdatesWithSnql(OrganizationSdkUpdates):
-    def setUp(self):
-        super().setUp()
-        self.features = {"organizations:performance-use-snql"}

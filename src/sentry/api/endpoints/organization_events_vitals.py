@@ -3,7 +3,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
@@ -58,9 +57,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                 auto_fields=True,
                 auto_aggregations=False,
                 use_aggregate_conditions=False,
-                use_snql=features.has(
-                    "organizations:performance-use-snql", organization, actor=request.user
-                ),
+                use_snql=True,
             )
 
         results = {}
