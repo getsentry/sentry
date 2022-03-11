@@ -5,6 +5,7 @@ import {
 import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionAnomalies from 'sentry/views/performance/transactionSummary/transactionAnomalies';
 
 const initializeData = (settings: initializeDataSettings) => {
@@ -46,10 +47,15 @@ describe('AnomaliesTab', function () {
       query: {project: '1', transaction: 'transaction'},
     });
 
-    render(<TransactionAnomalies location={initialData.router.location} />, {
-      context: initialData.routerContext,
-      organization: initialData.organization,
-    });
+    render(
+      <MEPSettingProvider>
+        <TransactionAnomalies location={initialData.router.location} />
+      </MEPSettingProvider>,
+      {
+        context: initialData.routerContext,
+        organization: initialData.organization,
+      }
+    );
 
     expect(await screen.findByText('Transaction Count')).toBeInTheDocument();
 

@@ -4,6 +4,7 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
@@ -26,21 +27,23 @@ const BASIC_QUERY_PARAMS = {
   statsPeriod: '14d',
 };
 
-const WrappedComponent = ({data, ...rest}) => {
+const WrappedComponent = ({data, isMEPEnabled, ...rest}) => {
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
-      <WidgetContainer
-        allowedCharts={[
-          PerformanceWidgetSetting.TPM_AREA,
-          PerformanceWidgetSetting.FAILURE_RATE_AREA,
-          PerformanceWidgetSetting.USER_MISERY_AREA,
-        ]}
-        rowChartSettings={[]}
-        forceDefaultChartSetting
-        {...data}
-        {...rest}
-      />
-    </PerformanceDisplayProvider>
+    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+      <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+        <WidgetContainer
+          allowedCharts={[
+            PerformanceWidgetSetting.TPM_AREA,
+            PerformanceWidgetSetting.FAILURE_RATE_AREA,
+            PerformanceWidgetSetting.USER_MISERY_AREA,
+          ]}
+          rowChartSettings={[]}
+          forceDefaultChartSetting
+          {...data}
+          {...rest}
+        />
+      </PerformanceDisplayProvider>
+    </MEPSettingProvider>
   );
 };
 
