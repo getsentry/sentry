@@ -300,9 +300,11 @@ function WidgetBuilder({
       : `/organizations/${orgId}/dashboards/new/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
-  const isTimeSeries = [DisplayType.LINE, DisplayType.BAR, DisplayType.AREA].includes(
-    state.displayType
-  );
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(state.displayType);
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
@@ -481,7 +483,7 @@ function WidgetBuilder({
       const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
       newQuery.aggregates = aggregates;
 
-      if (!(widgetBuilderNewDesign && isTimeSeries)) {
+      if (!(widgetBuilderNewDesign && isTimeseriesChart)) {
         // Prevent overwriting columns when setting y-axis for time series
         newQuery.columns = columns;
       }
@@ -1018,7 +1020,7 @@ function WidgetBuilder({
                       )}
                     </div>
                   </BuildStep>
-                  {widgetBuilderNewDesign && isTimeSeries && (
+                  {widgetBuilderNewDesign && isTimeseriesChart && (
                     <BuildStep
                       title={t('Group your results')}
                       description={t(
