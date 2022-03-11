@@ -306,7 +306,7 @@ class MetricsDatasetConfig(DatasetConfig):
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
-        measurement_rating = Column(f"tags[{indexer.resolve('measurement_rating')}]")
+        measurement_rating = self.builder.resolve_column("measurement_rating")
 
         quality_id = indexer.resolve(quality)
         if quality_id is None:
