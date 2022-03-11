@@ -31,6 +31,7 @@ _DEFAULT_DAEMONS = {
         "latest",
     ],
     "metrics": ["sentry", "run", "ingest-metrics-consumer-2"],
+    "profiles": ["sentry", "run", "ingest-profiles"],
 }
 
 
@@ -182,9 +183,6 @@ def devserver(
                 fg="yellow",
             )
 
-    if ingest_profiles:
-        daemons += [("profiles", ["sentry", "run", "ingest-profiles"])]
-
     # We proxy all requests through webpacks devserver on the configured port.
     # The backend is served on port+1 and is proxied via the webpack
     # configuration.
@@ -259,6 +257,9 @@ def devserver(
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
+
+        if ingest_profiles:
+            daemons += [_get_daemon("profiles")]
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
