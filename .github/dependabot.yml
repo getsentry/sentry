@@ -2,14 +2,14 @@ version: 2
 updates:
   - package-ecosystem: npm
     open-pull-requests-limit: 10
-    directory: '/'
+    directory: "/"
     schedule:
       # Going to start with a high interval, and then tone it back
       interval: daily
       timezone: America/Los_Angeles
-      time: '15:30'
+      time: "15:30"
     reviewers:
-      - '@getsentry/owners-js-build'
+      - "@getsentry/owners-js-build"
     ignore:
       # Babel updates all really should happen in unison, so let's keep these
       # ignored for now and manually handle it
@@ -18,84 +18,84 @@ updates:
       # upgrade all of them.
       #
       # - dependency-name: "@babel/core"
-      - dependency-name: '@babel/plugin-proposal-decorators'
-      - dependency-name: '@babel/plugin-transform-react-jsx'
-      - dependency-name: '@babel/plugin-transform-react-jsx-source'
-      - dependency-name: '@babel/plugin-transform-runtime'
-      - dependency-name: '@babel/preset-env'
-      - dependency-name: '@babel/preset-react'
-      - dependency-name: '@babel/preset-typescript'
-      - dependency-name: '@babel/runtime'
+      - dependency-name: "@babel/plugin-proposal-decorators"
+      - dependency-name: "@babel/plugin-transform-react-jsx"
+      - dependency-name: "@babel/plugin-transform-react-jsx-source"
+      - dependency-name: "@babel/plugin-transform-runtime"
+      - dependency-name: "@babel/preset-env"
+      - dependency-name: "@babel/preset-react"
+      - dependency-name: "@babel/preset-typescript"
+      - dependency-name: "@babel/runtime"
 
       # Storybook updates should all happen in unison, same as above we ignore
       # all but one as a reminder.
       #
       # - dependency-name: "@storybook/react"
-      - dependency-name: '@storybook/addon-a11y'
-      - dependency-name: '@storybook/addon-actions'
-      - dependency-name: '@storybook/addon-essentials'
-      - dependency-name: '@storybook/addon-storysource'
-      - dependency-name: '@storybook/addons'
-      - dependency-name: '@storybook/builder-webpack5'
-      - dependency-name: '@storybook/manager-webpack5'
-      - dependency-name: '@storybook/theming'
+      - dependency-name: "@storybook/addon-a11y"
+      - dependency-name: "@storybook/addon-actions"
+      - dependency-name: "@storybook/addon-essentials"
+      - dependency-name: "@storybook/addon-storysource"
+      - dependency-name: "@storybook/addons"
+      - dependency-name: "@storybook/builder-webpack5"
+      - dependency-name: "@storybook/manager-webpack5"
+      - dependency-name: "@storybook/theming"
 
       # Sentry updates should all happen in unison, same as above we ignore
       # all but one as a reminder.
       # - dependency-name: "@sentry/react"
-      - dependency-name: '@sentry/node'
-      - dependency-name: '@sentry/utils'
-      - dependency-name: '@sentry/tracing'
-      - dependency-name: '@sentry/integrations'
-      - dependency-name: '@sentry/rrweb'
+      - dependency-name: "@sentry/node"
+      - dependency-name: "@sentry/utils"
+      - dependency-name: "@sentry/tracing"
+      - dependency-name: "@sentry/integrations"
+      - dependency-name: "@sentry/rrweb"
 
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading
-      - dependency-name: '@sentry/release-parser'
-      - dependency-name: '@types/echarts'
-      - dependency-name: '@types/marked'
-      - dependency-name: '@types/react-router'
-      - dependency-name: '@types/react-select'
-      - dependency-name: '@types/reflux'
-      - dependency-name: '@visual-snapshot/jest'
-      - dependency-name: '@wojtekmaj/enzyme-adapter-react-17'
-      - dependency-name: 'babel-jest'
-      - dependency-name: 'bootstrap'
-      - dependency-name: 'clean-webpack-plugin'
-      - dependency-name: 'compression-webpack-plugin'
-      - dependency-name: 'copy-text-to-clipboard'
-      - dependency-name: 'create-react-class'
-      - dependency-name: 'dotenv-webpack'
-      - dependency-name: 'echarts'
-      - dependency-name: 'echarts-for-react'
-      - dependency-name: 'eslint'
-      - dependency-name: 'eslint-plugin-simple-import-sort'
-      - dependency-name: 'fuse.js'
-      - dependency-name: 'gettext-parser'
-      - dependency-name: 'jest'
-      - dependency-name: 'jest-junit'
-      - dependency-name: 'less'
-      - dependency-name: 'marked'
-      - dependency-name: 'mini-css-extract-plugin'
-      - dependency-name: 'react-lazyload'
-      - dependency-name: 'react-popper'
-      - dependency-name: 'react-refresh'
-      - dependency-name: 'react-router'
-      - dependency-name: 'react-select'
-      - dependency-name: 'reflux'
-      - dependency-name: 'rrweb'
-      - dependency-name: 'rrweb-player'
-      - dependency-name: 'sprintf-js'
-      - dependency-name: 'u2f-api'
+      - dependency-name: "@sentry/release-parser"
+      - dependency-name: "@types/echarts"
+      - dependency-name: "@types/marked"
+      - dependency-name: "@types/react-router"
+      - dependency-name: "@types/react-select"
+      - dependency-name: "@types/reflux"
+      - dependency-name: "@visual-snapshot/jest"
+      - dependency-name: "@wojtekmaj/enzyme-adapter-react-17"
+      - dependency-name: "babel-jest"
+      - dependency-name: "bootstrap"
+      - dependency-name: "clean-webpack-plugin"
+      - dependency-name: "compression-webpack-plugin"
+      - dependency-name: "copy-text-to-clipboard"
+      - dependency-name: "create-react-class"
+      - dependency-name: "dotenv-webpack"
+      - dependency-name: "echarts"
+      - dependency-name: "echarts-for-react"
+      - dependency-name: "eslint"
+      - dependency-name: "eslint-plugin-simple-import-sort"
+      - dependency-name: "fuse.js"
+      - dependency-name: "gettext-parser"
+      - dependency-name: "jest"
+      - dependency-name: "jest-junit"
+      - dependency-name: "less"
+      - dependency-name: "marked"
+      - dependency-name: "mini-css-extract-plugin"
+      - dependency-name: "react-lazyload"
+      - dependency-name: "react-popper"
+      - dependency-name: "react-refresh"
+      - dependency-name: "react-router"
+      - dependency-name: "react-select"
+      - dependency-name: "reflux"
+      - dependency-name: "rrweb"
+      - dependency-name: "rrweb-player"
+      - dependency-name: "sprintf-js"
+      - dependency-name: "u2f-api"
   - package-ecosystem: pip
     open-pull-requests-limit: 10
-    directory: '/'
+    directory: "/"
     schedule:
       # Going to start with a high interval, and then tone it back
       interval: daily
       timezone: America/Los_Angeles
-      time: '09:00'
+      time: "09:00"
     reviewers:
-      - '@getsentry/team-web-backend'
+      - "@getsentry/team-web-backend"
     allow:
-      - dependency-name: 'sentry-sdk'
+      - dependency-name: "sentry-sdk"
