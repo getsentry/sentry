@@ -31,6 +31,7 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.auth import make_login_link_with_redirect
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
@@ -377,8 +378,10 @@ class OrganizationView(BaseView):
                 "access.must-sso",
                 extra={"organization_id": organization.id, "user_id": request.user.id},
             )
-            auth.initiate_login(request, next_url=request.get_full_path())
-            redirect_uri = reverse("sentry-auth-organization", args=[organization.slug])
+            auth.initiate_login(request)
+            path = reverse("sentry-auth-organization", args=[organization.slug])
+            redirect_uri = make_login_link_with_redirect(path, request.get_full_path())
+
         else:
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)

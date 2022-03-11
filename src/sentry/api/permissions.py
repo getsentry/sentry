@@ -1,3 +1,4 @@
+from django.utils.http import is_safe_url
 from rest_framework import permissions
 from rest_framework.request import Request
 
@@ -105,7 +106,11 @@ class SentryPermission(ScopedPermission):
                         extra=extra,
                     )
 
-                    raise SsoRequired(organization)
+                    after_login_redirect = request.META.get("HTTP_REFERER", "")
+                    if not is_safe_url(after_login_redirect, allowed_hosts=(request.get_host(),)):
+                        after_login_redirect = None
+
+                    raise SsoRequired(organization, after_login_redirect=after_login_redirect)
 
                 if self.is_not_2fa_compliant(request, organization):
                     logger.info(
