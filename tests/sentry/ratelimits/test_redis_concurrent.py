@@ -14,8 +14,14 @@ class ConcurrentLimiterTest(TestCase):
         limit = 8
         with freeze_time("2000-01-01"):
             for i in range(1, limit + 1):
-                assert self.backend.start_request("foo", limit, f"request_id{i}") == i
-            assert self.backend.start_request("foo", limit, "request_id_12") == limit
+                assert (
+                    self.backend.start_request("foo", limit, f"request_id{i}").current_executions
+                    == i
+                )
+            assert (
+                self.backend.start_request("foo", limit, "request_id_12").current_executions
+                == limit
+            )
 
             for i in range(10):
                 # limit exceeded
@@ -50,9 +56,14 @@ class ConcurrentLimiterTest(TestCase):
         request_date = datetime(2000, 1, 1)
         with freeze_time(request_date):
             for i in range(1, num_stale + 1):
-                assert self.backend.start_request("foo", limit, f"request_id{i}") == i
+                assert (
+                    self.backend.start_request("foo", limit, f"request_id{i}").current_executions
+                    == i
+                )
             assert self.backend.get_concurrent_requests("foo") == num_stale
         with freeze_time(request_date + timedelta(seconds=DEFAULT_MAX_TTL_SECONDS + 1)):
             # the old requests did not finish however they are past their TTL and therefore
             # are irrelevant
-            assert self.backend.start_request("foo", limit, "updated_request") == 1
+            assert (
+                self.backend.start_request("foo", limit, "updated_request").current_executions == 1
+            )

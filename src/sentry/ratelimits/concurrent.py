@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from time import time
 
 from django.conf import settings
@@ -13,6 +14,13 @@ logger = logging.getLogger(__name__)
 
 ErrorLimit = float("inf")
 DEFAULT_MAX_TTL_SECONDS = 30
+
+
+@dataclass
+class ConcurrentLimitInfo:
+    limit: int
+    current_executions: int
+    limit_exceeded: bool
 
 
 class ConcurrentRateLimiter:
@@ -29,7 +37,7 @@ class ConcurrentRateLimiter:
 
     # TODO: returning the amoutn of concurrent requests is not that nice of an interface, should
     #   use a struct of some sort instead
-    def start_request(self, key: str, limit: int, request_uid: str) -> int:
+    def start_request(self, key: str, limit: int, request_uid: str) -> ConcurrentLimitInfo:
         # TODO: This should fail open
         try:
             cur_time = time()
@@ -41,19 +49,20 @@ class ConcurrentRateLimiter:
             currently_executing_calls = p.execute()[1]
 
             if currently_executing_calls >= limit:
-                return limit
+                return ConcurrentLimitInfo(limit, currently_executing_calls, True)
             else:
                 p = self.client.pipeline()
                 p.zadd(key, {request_uid: cur_time})
                 p.zcard(key)
-                return p.execute()[1]
+                current_executions = p.execute()[1]
+                return ConcurrentLimitInfo(limit, current_executions, False)
         except Exception:
             logger.exception(
                 "Could not start request", dict(key=key, limit=limit, request_uid=request_uid)
             )
-            return 20000
+            return ConcurrentLimitInfo(limit, -1, False)
 
-    def get_concurrent_requests(self, key: str):
+    def get_concurrent_requests(self, key: str) -> int:
         # this can fail loudly as it is only meant for observability
         return self.client.zcard(key)
 
