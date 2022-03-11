@@ -24,7 +24,6 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
     def process_message(self, message: Message) -> Optional[MutableMapping[str, Any]]:
         message = msgpack.unpackb(message.value(), use_list=False)
         profile = json.loads(message["payload"])
-
         profile.update(
             {
                 "organization_id": message["organization_id"],
@@ -32,10 +31,11 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
                 "received": message["received"],
             }
         )
-        process_profile.delay(profile=profile)
+        return profile
 
     def flush_batch(self, profiles: Sequence[MutableMapping[str, Any]]) -> None:
-        pass
+        for profile in profiles:
+            process_profile.delay(profile=profile)
 
     def shutdown(self) -> None:
         pass
