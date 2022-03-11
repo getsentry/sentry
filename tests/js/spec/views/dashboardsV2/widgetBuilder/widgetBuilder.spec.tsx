@@ -268,12 +268,7 @@ describe('WidgetBuilder', function () {
 
   it('renders new design', async function () {
     renderTestComponent({
-      orgFeatures: [
-        'new-widget-builder-experience',
-        'new-widget-builder-experience-design',
-        'dashboards-edit',
-        'global-views',
-      ],
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
     });
 
     // Switch to line chart for time series
@@ -963,12 +958,7 @@ describe('WidgetBuilder', function () {
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
-        orgFeatures: [
-          'dashboards-edit',
-          'global-views',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
@@ -1017,12 +1007,7 @@ describe('WidgetBuilder', function () {
       };
 
       renderTestComponent({
-        orgFeatures: [
-          'dashboards-edit',
-          'global-views',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
         widget,
       });
@@ -1079,12 +1064,7 @@ describe('WidgetBuilder', function () {
       };
 
       renderTestComponent({
-        orgFeatures: [
-          'dashboards-edit',
-          'global-views',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
         widget,
         onSave: handleSave,
@@ -1142,12 +1122,7 @@ describe('WidgetBuilder', function () {
       };
 
       const {router} = renderTestComponent({
-        orgFeatures: [
-          'dashboards-edit',
-          'global-views',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
@@ -1426,8 +1401,8 @@ describe('WidgetBuilder', function () {
         userEvent.click(screen.getByText('Add Group'));
       }
 
-      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
       expect(await screen.findAllByText('Select group')).toHaveLength(20);
+      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
 
     it('allows deleting groups until there is one left', async function () {
