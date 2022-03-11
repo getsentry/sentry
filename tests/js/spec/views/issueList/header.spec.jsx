@@ -268,9 +268,7 @@ describe('IssueListHeader', () => {
         queryCount={13}
       />
     );
-    expect(screen.getByText('Custom Search').parentElement).toHaveTextContent(
-      'Custom Search 13'
-    );
+    expect(screen.getByTestId('saved-search-tab')).toHaveTextContent('Custom Search 13');
   });
 
   it('should display saved search name and count', () => {
@@ -293,9 +291,7 @@ describe('IssueListHeader', () => {
         queryCount={13}
       />
     );
-    expect(screen.getByText('Saved Search').parentElement).toHaveTextContent(
-      'Saved Search 13'
-    );
+    expect(screen.getByTestId('saved-search-tab')).toHaveTextContent('Saved Search 13');
   });
 
   it('lists saved searches in dropdown', () => {
@@ -316,6 +312,7 @@ describe('IssueListHeader', () => {
         query="is:unresolved"
       />
     );
+    expect(screen.queryByText('Unresolved TypeError')).not.toBeInTheDocument();
     userEvent.click(screen.getByText('Saved Searches'));
     expect(screen.getByText('Unresolved TypeError')).toBeInTheDocument();
   });
