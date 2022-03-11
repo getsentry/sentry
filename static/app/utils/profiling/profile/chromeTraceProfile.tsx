@@ -7,7 +7,6 @@
  * in order to detect if this is a tsc trace and mark the different compiler phases and give users the preference
  * to color encode by the program/bind/check/emit phases.
  */
-
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 
@@ -23,6 +22,7 @@ function isChromeTraceObjectFormat(input: any): input is ChromeTrace.ObjectForma
 }
 
 function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ArrayFormat {
+  // @TODO we need to check if the profile actually includes the v8 profile nodes.
   return Array.isArray(input);
 }
 
@@ -46,14 +46,14 @@ export function splitEventsByProcessAndTraceId(
   const collections: Record<ProcessId, Record<ThreadId, ChromeTrace.Event[]>> = {};
 
   for (let i = 0; i < trace.length; i++) {
-    if (typeof trace[i].pid !== 'number') {
-      continue;
-    }
-    if (typeof trace[i].tid !== 'number') {
-      continue;
-    }
-
     const event = trace[i];
+
+    if (typeof event.pid !== 'number') {
+      continue;
+    }
+    if (typeof event.tid !== 'number') {
+      continue;
+    }
 
     if (!collections[event.pid]) {
       collections[event.pid] = {};
@@ -68,14 +68,8 @@ export function splitEventsByProcessAndTraceId(
   return collections;
 }
 
-function chronologicalSort(a: ChromeTrace.Event, b: ChromeTrace.Event): number {
-  if (a.ts < b.ts) {
-    return -1;
-  }
-  if (a.ts > b.ts) {
-    return 1;
-  }
-  return 0;
+function reverseChronologicalSort(a: ChromeTrace.Event, b: ChromeTrace.Event): number {
+  return b.ts - a.ts;
 }
 
 function getNextQueue(
@@ -86,8 +80,8 @@ function getNextQueue(
     throw new Error('Profile contains no events');
   }
 
-  const nextBegin = beginQueue[0];
-  const nextEnd = endQueue[0];
+  const nextBegin = beginQueue[beginQueue.length - 1];
+  const nextEnd = endQueue[endQueue.length - 1];
 
   if (!nextEnd) {
     return 'B';
@@ -158,14 +152,14 @@ function buildProfile(
     }
   }
 
-  beginQueue.sort(chronologicalSort);
-  endQueue.sort(chronologicalSort);
+  beginQueue.sort(reverseChronologicalSort);
+  endQueue.sort(reverseChronologicalSort);
 
   if (!beginQueue.length) {
     throw new Error('Profile does not contain any frame events');
   }
 
-  const firstTimestamp = beginQueue[0].ts;
+  const firstTimestamp = beginQueue[beginQueue.length - 1].ts;
 
   if (typeof firstTimestamp !== 'number') {
     throw new Error('First begin event contains no timestamp');
@@ -186,7 +180,7 @@ function buildProfile(
     const next = getNextQueue(beginQueue, endQueue);
 
     if (next === 'B') {
-      const item = beginQueue.shift();
+      const item = beginQueue.pop();
       if (!item) {
         throw new Error('Nothing to take from begin queue');
       }
@@ -204,19 +198,19 @@ function buildProfile(
     }
 
     if (next === 'E') {
-      const item = endQueue.shift()!;
+      const item = endQueue.pop()!;
       let frameInfo = createFrameInfoFromEvent(item);
-      const topFrameInfro = createFrameInfoFromEvent(stack[stack.length - 1]);
+      const topFrameInfo = createFrameInfoFromEvent(stack[stack.length - 1]);
 
-      for (let i = 1; i < endQueue.length; i++) {
-        if (endQueue[i].ts > endQueue[0].ts) {
+      for (let i = endQueue.length - 2; i > 0; i--) {
+        if (endQueue[i].ts > endQueue[endQueue.length - 1].ts) {
           break;
         }
 
         const nextEndInfo = createFrameInfoFromEvent(endQueue[i]);
-        if (topFrameInfro.key === nextEndInfo.key) {
-          const tmp = endQueue[0];
-          endQueue[0] = endQueue[i];
+        if (topFrameInfo.key === nextEndInfo.key) {
+          const tmp = endQueue[endQueue.length - 1];
+          endQueue[endQueue.length - 1] = endQueue[i];
           endQueue[i] = tmp;
 
           frameInfo = nextEndInfo;
