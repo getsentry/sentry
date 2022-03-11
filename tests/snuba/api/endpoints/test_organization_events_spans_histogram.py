@@ -15,7 +15,11 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.org = self.create_organization(owner=user)
 
     def test_no_feature(self):
-        response = self.client.get(self.URL, format="json")
+        url = reverse(
+            self.URL,
+            kwargs={"organization_slug": self.org.slug},
+        )
+        response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
     def test_endpoint(self):
