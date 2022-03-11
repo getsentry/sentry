@@ -82,6 +82,7 @@ urlpatterns = [
 
 
 @override_settings(ROOT_URLCONF="tests.sentry.middleware.test_access_log_middleware")
+@override_settings(LOG_API_ACCESS=True)
 class LogCaptureAPITestCase(APITestCase):
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
