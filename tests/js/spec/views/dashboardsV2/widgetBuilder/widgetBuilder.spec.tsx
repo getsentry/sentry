@@ -8,6 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -1456,6 +1457,46 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText(/count_unique/));
 
       expect(screen.getByText('project')).toBeInTheDocument();
+    });
+
+    it("doesn't erase the selection when switching to another time series", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Area Chart'));
+
+      expect(screen.getByText('project')).toBeInTheDocument();
+    });
+
+    it('sends a top N request when a grouping is selected', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      // TODO: This should change after adding a limit and sorting field
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        3,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: ['count()'],
+            field: ['project', 'count()'],
+            topEvents: TOP_N,
+            orderby: 'project',
+          }),
+        })
+      );
     });
   });
 });
