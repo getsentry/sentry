@@ -81,6 +81,7 @@ import {ColumnFields} from './columnFields';
 import {DashboardSelector} from './dashboardSelector';
 import {DisplayTypeSelector} from './displayTypeSelector';
 import {Footer} from './footer';
+import {GroupBySelector} from './groupBySelector';
 import {Header} from './header';
 import {SortBySelectors} from './sortBySelectors';
 import {
@@ -299,6 +300,11 @@ function WidgetBuilder({
       : `/organizations/${orgId}/dashboards/new/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(state.displayType);
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
@@ -465,18 +471,21 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
-    for (const index in state.queries) {
-      const queryIndex = Number(index);
-      const query = state.queries[queryIndex];
-
+    state.queries.forEach((query, index) => {
       const descending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.fields.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
+
       newQuery.fields = fieldStrings;
       const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
       newQuery.aggregates = aggregates;
-      newQuery.columns = columns;
+
+      if (!(widgetBuilderNewDesign && isTimeseriesChart)) {
+        // Prevent overwriting columns when setting y-axis for time series
+        newQuery.columns = columns;
+      }
+
       if (
         !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
         query.orderby !== ''
@@ -493,12 +502,23 @@ function WidgetBuilder({
         }
       }
 
-      if (widgetBuilderNewDesign && queryIndex === 0) {
+      if (widgetBuilderNewDesign && index === 0) {
         newQuery.orderby = aggregateAliasFieldStrings[0];
       }
 
-      handleQueryChange(queryIndex, newQuery);
-    }
+      handleQueryChange(index, newQuery);
+    });
+  }
+
+  function handleGroupByChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+
+    state.queries.forEach((query, index) => {
+      const newQuery = cloneDeep(query);
+      newQuery.columns = fieldStrings;
+
+      handleQueryChange(index, newQuery);
+    });
   }
 
   function handleDelete() {
@@ -997,11 +1017,33 @@ function WidgetBuilder({
                           icon={<IconAdd isCircled />}
                           onClick={handleAddSearchConditions}
                         >
-                          {t('Add query')}
+                          {t('Add Query')}
                         </Button>
                       )}
                     </div>
                   </BuildStep>
+                  {widgetBuilderNewDesign && isTimeseriesChart && (
+                    <BuildStep
+                      title={t('Group your results')}
+                      description={t(
+                        'This is how you can group your data result by tag or field. For a full list, read the docs.'
+                      )}
+                    >
+                      <Measurements>
+                        {({measurements}) => (
+                          <GroupBySelector
+                            columns={
+                              state.queries[0].columns
+                                ?.filter(field => !(field === 'equation|'))
+                                .map(field => explodeField({field})) ?? []
+                            }
+                            fieldOptions={getAmendedFieldOptions(measurements)}
+                            onChange={handleGroupByChange}
+                          />
+                        )}
+                      </Measurements>
+                    </BuildStep>
+                  )}
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <BuildStep
                       title={t('Sort by a column')}
