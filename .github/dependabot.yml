@@ -73,7 +73,6 @@ updates:
       - dependency-name: "fuse.js"
       - dependency-name: "gettext-parser"
       - dependency-name: "jest"
-      - dependency-name: "jest-circus"
       - dependency-name: "jest-junit"
       - dependency-name: "less"
       - dependency-name: "marked"
