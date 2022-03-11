@@ -11,22 +11,8 @@ interface Props {
   events?: RRWebEvents;
 }
 
-const RRWebReplayerComponent = ({events, className}: Props) => {
+const BaseRRWebReplayerComponent = ({events, className}: Props) => {
   const [playerEl, setPlayerEl] = useState<HTMLDivElement | null>(null);
-  // const [events, setEvents] = useState<RRWebEvents>();
-
-  // const loadEvents = async () => {
-  // try {
-  // const resp = await fetch(url);
-  // const data = await resp.json();
-
-  // setEvents(data.events);
-  // } catch (err) {
-  // Sentry.captureException(err);
-  // }
-  // };
-
-  // useEffect(() => void loadEvents(), [url]);
 
   const initPlayer = () => {
     if (events === undefined) {
@@ -49,7 +35,7 @@ const RRWebReplayerComponent = ({events, className}: Props) => {
   return <div ref={el => setPlayerEl(el)} className={className} />;
 };
 
-const BaseRRWebReplayer = styled(RRWebReplayerComponent)`
+const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   .replayer-mouse {
     position: absolute;
     width: 32px;

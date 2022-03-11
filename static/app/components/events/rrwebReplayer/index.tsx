@@ -10,12 +10,15 @@ interface Props {
   className?: string;
 }
 
+/**
+ * Downloads a list of replay JSONs, merges the resulting events within the JSON and passes it to the replayer.
+ */
 function RRWebReplayer({urls}: Props) {
   const [events, setEvents] = useState<RRWebEvents>();
 
   const loadEvents = async () => {
     try {
-      const data = await Promise.all(
+      const data: RRWebEvents[] = await Promise.all(
         urls.map(async url => {
           const resp = await fetch(url);
           const json = await resp.json();
@@ -24,7 +27,6 @@ function RRWebReplayer({urls}: Props) {
         })
       );
 
-      // `data` is Array<Array<RRWebEvent>> that we will want to flatten
       setEvents(data.flat());
     } catch (err) {
       Sentry.captureException(err);
