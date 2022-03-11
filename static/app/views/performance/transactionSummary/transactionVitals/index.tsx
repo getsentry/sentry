@@ -59,6 +59,7 @@ function generateEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
+  conditions.setFilterValues('event.type', ['transaction']);
   conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
