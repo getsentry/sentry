@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import RRWebPlayer from 'rrweb-player';
 
@@ -12,27 +12,27 @@ interface Props {
 }
 
 const BaseRRWebReplayerComponent = ({events, className}: Props) => {
-  const [playerEl, setPlayerEl] = useState<HTMLDivElement | null>(null);
+  const playerEl = useRef<HTMLDivElement>(null);
 
   const initPlayer = () => {
     if (events === undefined) {
       return;
     }
 
-    if (playerEl === null) {
+    if (playerEl.current === null) {
       return;
     }
 
     // eslint-disable-next-line no-new
     new RRWebPlayer({
-      target: playerEl,
+      target: playerEl.current,
       props: {events, autoPlay: false},
     });
   };
 
-  useEffect(() => void initPlayer(), [events, playerEl]);
+  useEffect(() => void initPlayer(), [events]);
 
-  return <div ref={el => setPlayerEl(el)} className={className} />;
+  return <div ref={playerEl} className={className} />;
 };
 
 const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
