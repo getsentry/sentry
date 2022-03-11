@@ -162,7 +162,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
 
 
 class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
-    id = "sentry.integrations.slack.SlackNotifyServiceAction"
+    id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
     form_cls = SlackNotifyServiceForm
     label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
     prompt = "Send a Slack notification"
