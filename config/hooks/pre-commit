@@ -7,9 +7,9 @@ from glob import glob
 # If we're using Python 2, that means that direnv has not been activated
 if sys.version_info.major < 3:
     sys.stderr.write(
-        "ERROR: You're executing an invalid Python version. This is likely due that you have pulled\n"
-        "new changes that modify .envrc, thus, the system is waiting for you to execute: direnv allow\n"
-        "After that command, your Python version will be correct and this script will execute.\n"
+        "ERROR: You're running an invalid Python version. This is likely because you have pulled\n"
+        "new changes that modify .envrc, and you must execute: `direnv allow`\n"
+        "To re-enter the sentry Python virtual environment\n"
     )
     sys.exit(1)
 
