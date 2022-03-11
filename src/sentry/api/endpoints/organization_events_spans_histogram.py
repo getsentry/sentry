@@ -33,6 +33,8 @@ class SpansHistogramSerializer(serializers.Serializer):
 
 
 class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase):
+    private = True
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-span-histogram-view", organization, actor=request.user
