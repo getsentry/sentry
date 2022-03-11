@@ -4,12 +4,13 @@ from django.db import migrations
 
 from sentry.models import DashboardWidgetDisplayTypes
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def backfill_dashboard_widget_limit(apps, schema_editor):
     DashboardWidget = apps.get_model("sentry", "DashboardWidget")
 
-    for widget in DashboardWidget.objects.all():
+    for widget in RangeQuerySetWrapperWithProgressBar(DashboardWidget.objects.all()):
         if widget.display_type == DashboardWidgetDisplayTypes.get_id_for_type_name("top_n"):
             widget.limit = 5
             widget.save()
