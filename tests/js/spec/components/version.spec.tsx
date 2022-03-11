@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Version from 'sentry/components/version';
 
@@ -11,19 +11,19 @@ describe('Version', () => {
   });
 
   it('renders', () => {
-    const {container} = mountWithTheme(<Version version={VERSION} />);
+    const {container} = render(<Version version={VERSION} />);
     expect(container).toSnapshot();
   });
 
   it('shows correct parsed version', () => {
     // component uses @sentry/release-parser package for parsing versions
-    mountWithTheme(<Version version={VERSION} />);
+    render(<Version version={VERSION} />);
 
     expect(screen.getByText('1.0.0 (20200101)')).toBeInTheDocument();
   });
 
   it('links to release page', () => {
-    mountWithTheme(<Version version={VERSION} projectId="1" />, {
+    render(<Version version={VERSION} projectId="1" />, {
       context,
     });
 
@@ -36,7 +36,7 @@ describe('Version', () => {
 
   it('shows raw version in tooltip', () => {
     jest.useFakeTimers();
-    mountWithTheme(<Version version={VERSION} tooltipRawVersion />, {
+    render(<Version version={VERSION} tooltipRawVersion />, {
       context,
     });
     expect(screen.queryByText(VERSION)).not.toBeInTheDocument();

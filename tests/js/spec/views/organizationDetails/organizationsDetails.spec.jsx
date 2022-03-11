@@ -1,4 +1,4 @@
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -41,7 +41,7 @@ describe('OrganizationDetails', function () {
       }),
     });
 
-    mountWithTheme(
+    render(
       <OrganizationDetails
         params={{orgId: 'org-slug'}}
         location={{}}
@@ -69,7 +69,7 @@ describe('OrganizationDetails', function () {
         }),
       });
 
-      mountWithTheme(
+      render(
         <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
           <div />
         </OrganizationDetails>
@@ -97,7 +97,7 @@ describe('OrganizationDetails', function () {
         }),
       });
 
-      mountWithTheme(
+      render(
         <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
           <div />
         </OrganizationDetails>
@@ -126,7 +126,7 @@ describe('OrganizationDetails', function () {
       }),
     });
 
-    mountWithTheme(
+    render(
       <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
         <div />
       </OrganizationDetails>
