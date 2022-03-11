@@ -109,9 +109,7 @@ class StandardIntervalMixin:
         self._run_test(data=data, minutes=43200 - 1, passes=False)
 
     def test_comparison(self):
-        with freeze_time(
-            before_now(minutes=0).replace(hour=12, minute=30, second=0, microsecond=0)
-        ):
+        with freeze_time(before_now(days=1).replace(hour=12, minute=30, second=0, microsecond=0)):
             # Test data is 4 events in the current period and 2 events in the comparison period, so
             # a 100% increase.
             event = self.store_event(
@@ -151,9 +149,7 @@ class StandardIntervalMixin:
             self.assertDoesNotPass(rule, event)
 
     def test_comparison_empty_comparison_period(self):
-        with freeze_time(
-            before_now(minutes=0).replace(hour=12, minute=30, second=0, microsecond=0)
-        ):
+        with freeze_time(before_now(days=1).replace(hour=12, minute=30, second=0, microsecond=0)):
             # Test data is 1 event in the current period and 0 events in the comparison period. This
             # should always result in 0 and never fire.
             event = self.store_event(
