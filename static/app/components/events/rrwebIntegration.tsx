@@ -1,3 +1,5 @@
+import React from 'react';
+
 import AsyncComponent from 'sentry/components/asyncComponent';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
@@ -7,6 +9,7 @@ type Props = {
   event: Event;
   orgId: Organization['id'];
   projectId: Project['id'];
+  renderer: Function | undefined;
 } & AsyncComponent['props'];
 
 type State = {
@@ -32,6 +35,7 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {attachmentList} = this.state;
+    const renderer = this.props.renderer || (children => children);
 
     if (!attachmentList?.length) {
       return null;
@@ -40,7 +44,7 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
     const attachment = attachmentList[0];
     const {orgId, projectId, event} = this.props;
 
-    return (
+    return renderer(
       <LazyLoad
         component={() => import('./rrwebReplayer')}
         url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
