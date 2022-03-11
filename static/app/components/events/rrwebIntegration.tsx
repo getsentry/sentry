@@ -1,10 +1,7 @@
-import styled from '@emotion/styled';
+import React from 'react';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import EventDataSection from 'sentry/components/events/eventDataSection';
 import LazyLoad from 'sentry/components/lazyLoad';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
@@ -12,6 +9,7 @@ type Props = {
   event: Event;
   orgId: Organization['id'];
   projectId: Project['id'];
+  renderer?: Function;
 } & AsyncComponent['props'];
 
 type State = {
@@ -37,6 +35,7 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {attachmentList} = this.state;
+    const renderer = this.props.renderer || (children => children);
 
     if (!attachmentList?.length) {
       return null;
@@ -45,20 +44,13 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
     const attachment = attachmentList[0];
     const {orgId, projectId, event} = this.props;
 
-    return (
-      <StyledEventDataSection type="context-replay" title={t('Replay')}>
-        <LazyLoad
-          component={() => import('./rrwebReplayer')}
-          url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
-        />
-      </StyledEventDataSection>
+    return renderer(
+      <LazyLoad
+        component={() => import('./rrwebReplayer')}
+        url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
+      />
     );
   }
 }
-
-const StyledEventDataSection = styled(EventDataSection)`
-  overflow: hidden;
-  margin-bottom: ${space(3)};
-`;
 
 export default RRWebIntegration;
