@@ -15,13 +15,13 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 const GROUP_BY_LIMIT = 20;
 const EMPTY_FIELD: QueryFieldValue = {kind: FieldValueKind.FIELD, field: ''};
 
-type Props = {
+interface Props {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   onChange: (fields: QueryFieldValue[]) => void;
   columns?: QueryFieldValue[];
-};
+}
 
-export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
+export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
   function filterPrimaryOptions(option: FieldValueOption) {
     return option.value.kind !== FieldValueKind.FUNCTION;
   }
@@ -82,7 +82,7 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
   return (
     <React.Fragment>
       <StyledField inline={false} flexibleControlStateSize stacked>
-        {columns?.map((column, index) => (
+        {columns.map((column, index) => (
           <QueryFieldWrapper key={`groupby-${index}`}>
             <QueryField
               placeholder={t('Select group')}

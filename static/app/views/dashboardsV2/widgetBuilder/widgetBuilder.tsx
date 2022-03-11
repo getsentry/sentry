@@ -81,7 +81,7 @@ import {ColumnFields} from './columnFields';
 import {DashboardSelector} from './dashboardSelector';
 import {DisplayTypeSelector} from './displayTypeSelector';
 import {Footer} from './footer';
-import {GroupBy} from './groupBy';
+import {GroupBySelector} from './groupBySelector';
 import {Header} from './header';
 import {SortBySelectors} from './sortBySelectors';
 import {
@@ -1020,31 +1020,28 @@ function WidgetBuilder({
                       )}
                     </div>
                   </BuildStep>
-                  {organization.features.includes(
-                    'new-widget-builder-experience-design'
-                  ) &&
-                    isTimeSeries && (
-                      <BuildStep
-                        title={t('Group your results')}
-                        description={t(
-                          'This is how you can group your data result by tag or field. For a full list, read the docs.'
+                  {widgetBuilderNewDesign && isTimeSeries && (
+                    <BuildStep
+                      title={t('Group your results')}
+                      description={t(
+                        'This is how you can group your data result by tag or field. For a full list, read the docs.'
+                      )}
+                    >
+                      <Measurements>
+                        {({measurements}) => (
+                          <GroupBySelector
+                            columns={
+                              state.queries[0].columns
+                                ?.filter(field => !(field === 'equation|'))
+                                .map(field => explodeField({field})) ?? []
+                            }
+                            fieldOptions={getAmendedFieldOptions(measurements)}
+                            onChange={handleGroupByChange}
+                          />
                         )}
-                      >
-                        <Measurements>
-                          {({measurements}) => (
-                            <GroupBy
-                              columns={
-                                state.queries[0].columns
-                                  ?.filter(field => !(field === 'equation|'))
-                                  .map(field => explodeField({field})) ?? []
-                              }
-                              fieldOptions={getAmendedFieldOptions(measurements)}
-                              onChange={handleGroupByChange}
-                            />
-                          )}
-                        </Measurements>
-                      </BuildStep>
-                    )}
+                      </Measurements>
+                    </BuildStep>
+                  )}
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <BuildStep
                       title={t('Sort by a column')}
