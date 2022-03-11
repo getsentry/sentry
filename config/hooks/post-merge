@@ -24,7 +24,7 @@ update_command="make ${pc}${py}${js}${migrations}"
 
     ${red}${bold}${update_command}${reset}
 
-${yellow}If you want these commands to automatically be executed after pullig code you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}
+${yellow}If you want these commands to automatically be executed after pulling code you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}
 
 EOF
 
