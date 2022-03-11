@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
@@ -17,12 +17,15 @@ const EMPTY_FIELD: QueryFieldValue = {kind: FieldValueKind.FIELD, field: ''};
 
 type Props = {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
-  fields: QueryFieldValue[];
   onChange: (fields: QueryFieldValue[]) => void;
   columns?: QueryFieldValue[];
 };
 
 export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
+  function filterPrimaryOptions(option: FieldValueOption) {
+    return option.value.kind !== FieldValueKind.FUNCTION;
+  }
+
   function handleAdd() {
     const newColumns =
       columns.length === 0
@@ -57,6 +60,7 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
               fieldValue={EMPTY_FIELD}
               fieldOptions={fieldOptions}
               onChange={value => handleSelect(value, 0)}
+              filterPrimaryOptions={filterPrimaryOptions}
             />
           </QueryFieldWrapper>
         </StyledField>
@@ -84,6 +88,7 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
               fieldValue={column}
               fieldOptions={fieldOptions}
               onChange={value => handleSelect(value, index)}
+              filterPrimaryOptions={filterPrimaryOptions}
             />
             {canDelete && (
               <Button
