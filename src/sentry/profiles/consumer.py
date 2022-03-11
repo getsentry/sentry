@@ -1,13 +1,11 @@
-from collections import defaultdict
 from typing import Any, Dict, MutableMapping, Optional, Sequence
 
 import msgpack
-from confluent_kafka import Message, Producer
+from confluent_kafka import Message
 from django.conf import settings
 
-from sentry.lang.native.processing import process_payload
-from sentry.profiles.device import classify_device
-from sentry.utils import json, kafka_config
+from sentry.profiles.tasks import process_profile
+from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker, BatchingKafkaConsumer
 from sentry.utils.kafka import create_batching_kafka_consumer
 
@@ -15,80 +13,14 @@ from sentry.utils.kafka import create_batching_kafka_consumer
 def get_profiles_consumer(
     topic: Optional[str] = None, **options: Dict[str, str]
 ) -> BatchingKafkaConsumer:
-    config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
-    producer = Producer(
-        kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
-    )
     return create_batching_kafka_consumer(
         {settings.KAFKA_PROFILES},
-        worker=ProfilesWorker(producer=producer),
+        worker=ProfilesWorker(),
         **options,
     )
 
 
-def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-    normalized_profile = {
-        "device_locale": profile["device_locale"],
-        "device_manufacturer": profile["device_manufacturer"],
-        "device_model": profile["device_model"],
-        "device_os_name": profile["device_os_name"],
-        "device_os_version": profile["device_os_version"],
-        "duration_ns": int(profile["duration_ns"]),
-        "environment": profile.get("environment"),
-        "organization_id": profile["organization_id"],
-        "platform": profile["platform"],
-        "profile": json.dumps(profile["profile"]),
-        "profile_id": profile["profile_id"],
-        "project_id": profile["project_id"],
-        "received": profile["received"],
-        "retention_days": 30,
-        "trace_id": profile["trace_id"],
-        "transaction_id": profile["transaction_id"],
-        "transaction_name": profile["transaction_name"],
-        "version_code": profile["version_code"],
-        "version_name": profile["version_name"],
-        "symbols": "",  # we don't need this value stored
-    }
-
-    classification_options = {
-        "model": profile["device_model"],
-        "os_name": profile["device_os_name"],
-        "is_emulator": profile["device_is_emulator"],
-    }
-
-    if profile["platform"] == "android":
-        normalized_profile.update(
-            {
-                "android_api_level": profile["android_api_level"],
-            }
-        )
-        classification_options.update(
-            {
-                "cpu_frequencies": profile["device_cpu_frequencies"],
-                "physical_memory_bytes": int(profile["device_physical_memory_bytes"]),
-            }
-        )
-    elif profile["platform"] == "ios":
-        normalized_profile.update(
-            {
-                "device_os_build_number": profile["device_os_build_number"],
-            }
-        )
-
-    normalized_profile["device_classification"] = str(classify_device(**classification_options))
-
-    return normalized_profile
-
-
-def _validate_ios_profile(profile: MutableMapping[str, Any]) -> bool:
-    return "samples" in profile.get("sampled_profile", {})
-
-
 class ProfilesWorker(AbstractBatchWorker):  # type: ignore
-    def __init__(self, producer: Producer) -> None:
-        self.__producer = producer
-        self.__producer_topic = "processed-profiles"
-
     def process_message(self, message: Message) -> Optional[MutableMapping[str, Any]]:
         message = msgpack.unpackb(message.value(), use_list=False)
         profile = json.loads(message["payload"])
@@ -100,57 +32,10 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
                 "received": message["received"],
             }
         )
-
-        if profile["platform"] == "cocoa":
-            if not _validate_ios_profile(profile):
-                return None
-            profile = self.symbolicate(profile)
-
-        return _normalize(profile)
-
-    def symbolicate(self, profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-        samples = profile["sampled_profile"]["samples"]
-
-        # collect all unsymbolicated frames
-        frames_by_address = {}
-        indexes_by_address = defaultdict(list)
-        for i, s in enumerate(samples):
-            for j, f in enumerate(s["frames"]):
-                f["instruction_addr"] = hex(int(f["instruction_addr"], 16))
-                f["addr_mode"] = "rel:0"
-                indexes_by_address[f["instruction_addr"]].append((i, j))
-                frames_by_address[f["instruction_addr"]] = f
-
-        # set proper keys for process_payload to do its job
-        profile["stacktrace"] = {"frames": frames_by_address.values()}
-        profile["event_id"] = profile["transaction_id"]
-        profile["project"] = profile["project_id"]
-
-        # symbolicate
-        profile = process_payload(profile)
-
-        # replace  unsymbolicated frames by symbolicated ones
-        frames_by_address = {f["instruction_addr"]: f for f in profile["stacktrace"]["frames"]}
-        for address, indexes in indexes_by_address.items():
-            for i, j in indexes:
-                samples[i][j] = frames_by_address[address]
-
-        # save the symbolicated frames on the profile
-        profile["profile"] = samples
-
-        return profile
+        process_profile.delay(profile=profile)
 
     def flush_batch(self, profiles: Sequence[MutableMapping[str, Any]]) -> None:
-        self.__producer.poll(0)
-        for profile in profiles:
-            self.__producer.produce(
-                topic=self.__producer_topic, value=json.dumps(profile), callback=self.callback
-            )
-        self.__producer.flush()
+        pass
 
     def shutdown(self) -> None:
         pass
-
-    def callback(self, error: Any, message: Any) -> None:
-        if error is not None:
-            raise Exception(str(error))
