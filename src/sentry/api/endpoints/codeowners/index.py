@@ -9,7 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.models import Project, ProjectCodeOwners
 
-from . import ProjectCodeOwnerSerializer
+from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
 
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # type: ignore

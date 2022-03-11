@@ -6,16 +6,10 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.models import Project, ProjectCodeOwners, RepositoryProjectPathConfig
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
-from .details import ProjectCodeOwnersDetailsEndpoint
-from .external_actor.team_details import ExternalTeamDetailsEndpoint
-from .external_actor.team_index import ExternalTeamEndpoint
-from .external_actor.user_details import ExternalUserDetailsEndpoint
-from .external_actor.user_index import ExternalUserEndpoint
-from .index import ProjectCodeOwnersEndpoint
-from .request import ProjectCodeOwnersRequestEndpoint
 
 # Max accepted string length of the CODEOWNERS file
 MAX_RAW_LENGTH = 100_000
@@ -54,9 +48,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
 
         # Ignore association errors and continue parsing CODEOWNERS for valid lines.
         # Allow users to incrementally fix association errors; for CODEOWNERS with many external mappings.
-        associations, _ = ProjectCodeOwners.validate_codeowners_associations(
-            attrs["raw"], self.context["project"]
-        )
+        associations, _ = validate_codeowners_associations(attrs["raw"], self.context["project"])
 
         issue_owner_rules = convert_codeowners_syntax(
             attrs["raw"], associations, attrs["code_mapping_id"]
@@ -127,6 +119,14 @@ class ProjectCodeOwnersMixin:
                 tags={"status": status},
             )
 
+
+from .details import ProjectCodeOwnersDetailsEndpoint
+from .external_actor.team_details import ExternalTeamDetailsEndpoint
+from .external_actor.team_index import ExternalTeamEndpoint
+from .external_actor.user_details import ExternalUserDetailsEndpoint
+from .external_actor.user_index import ExternalUserEndpoint
+from .index import ProjectCodeOwnersEndpoint
+from .request import ProjectCodeOwnersRequestEndpoint
 
 __all__ = (
     "ExternalTeamEndpoint",

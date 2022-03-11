@@ -4,7 +4,6 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
 )
-from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.models import ProjectCodeOwners
 from sentry.ownership.grammar import convert_schema_to_rules_text
 
@@ -34,6 +33,8 @@ class ProjectCodeOwnersSerializer(Serializer):
         }
 
     def serialize(self, obj, attrs, user):
+        from sentry.api.validators.project_codeowners import validate_codeowners_associations
+
         data = {
             "id": str(obj.id),
             "raw": obj.raw,
