@@ -60,8 +60,9 @@ const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 
-// WidgetCardChartContainer rerenders if selection was changed
-// This is required because we want to prevent ECharts interactions from causing unnecessary rerenders which can break persistent legends functionality
+// WidgetCardChartContainer rerenders if selection was changed.
+// This is required because we want to prevent ECharts interactions from
+// causing unnecessary rerenders which can break persistent legends functionality.
 const MemoizedWidgetCardChartContainer = React.memo(
   WidgetCardChartContainer,
   (props, prevProps) => {
