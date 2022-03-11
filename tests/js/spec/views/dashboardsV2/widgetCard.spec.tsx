@@ -511,7 +511,7 @@ describe('Dashboards > WidgetCard', function () {
       widgetType: WidgetType.DISCOVER,
       queries: [],
     };
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
