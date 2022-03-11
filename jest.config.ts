@@ -136,6 +136,7 @@ if (
 
 const config: Config.InitialOptions = {
   verbose: false,
+  collectCoverageFrom: ['static/app/**/*.{js,jsx,ts,tsx}'],
   moduleNameMapper: {
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
