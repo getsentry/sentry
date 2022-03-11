@@ -1030,27 +1030,17 @@ function WidgetBuilder({
                         )}
                       >
                         <Measurements>
-                          {({measurements}) => {
-                            const groupByOptions = {};
-                            const fieldOptions = getAmendedFieldOptions(measurements);
-                            Object.keys(fieldOptions)
-                              .filter(key => !key.startsWith('function'))
-                              .forEach(nonAggregateKey => {
-                                groupByOptions[nonAggregateKey] =
-                                  fieldOptions[nonAggregateKey];
-                              });
-                            return (
-                              <GroupBy
-                                columns={
-                                  state.queries[0].columns
-                                    ?.filter(field => !(field === 'equation|'))
-                                    .map(field => explodeField({field})) ?? []
-                                }
-                                fieldOptions={getAmendedFieldOptions(measurements)}
-                                onChange={handleGroupByChange}
-                              />
-                            );
-                          }}
+                          {({measurements}) => (
+                            <GroupBy
+                              columns={
+                                state.queries[0].columns
+                                  ?.filter(field => !(field === 'equation|'))
+                                  .map(field => explodeField({field})) ?? []
+                              }
+                              fieldOptions={getAmendedFieldOptions(measurements)}
+                              onChange={handleGroupByChange}
+                            />
+                          )}
                         </Measurements>
                       </BuildStep>
                     )}
