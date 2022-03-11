@@ -161,6 +161,9 @@ from sentry.api.endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from sentry.api.endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
+from sentry.api.endpoints.organization_events_spans_histogram import (
+    OrganizationEventsSpansHistogramEndpoint,
+)
 from sentry.api.endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
@@ -733,6 +736,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationEventsSpanOpsEndpoint,
     OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
+    OrganizationEventsSpansHistogramEndpoint,
     OrganizationEventsSpansStatsEndpoint,
     OrganizationEventsMetaEndpoint,
     OrganizationEventsHistogramEndpoint,
