@@ -6,7 +6,6 @@ import random from 'lodash/random';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
-// Using framer motion for this loop for the nice physics
 const Light = styled(motion.g)`
   transform-box: fill-box;
 `;

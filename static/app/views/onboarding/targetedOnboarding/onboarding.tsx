@@ -12,27 +12,16 @@ import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import TargetedOnboardingWelcome from './welcome';
 
 export default function Onboarding() {
-  const Contents = () => {
-    const cornerVariantControl = useAnimation();
-    const updateCornerVariant = () => {
-      cornerVariantControl.start('top-right');
-    };
-
-    // XXX(epurkhiser): We're using a react hook here becuase there's no other
-    // way to create framer-motion controls than by using the `useAnimation`
-    // hook.
-
-    React.useEffect(updateCornerVariant, []);
-
-    return (
-      <Container>
-        <AnimatePresence exitBeforeEnter onExitComplete={updateCornerVariant}>
-          <TargetedOnboardingWelcome />
-        </AnimatePresence>
-        <PageCorners animateVariant={cornerVariantControl} />
-      </Container>
-    );
+  const cornerVariantControl = useAnimation();
+  const updateCornerVariant = () => {
+    cornerVariantControl.start('top-right');
   };
+
+  // XXX(epurkhiser): We're using a react hook here becuase there's no other
+  // way to create framer-motion controls than by using the `useAnimation`
+  // hook.
+
+  React.useEffect(updateCornerVariant, []);
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={t('Welcome')} />
@@ -42,7 +31,12 @@ export default function Onboarding() {
           <Hook name="onboarding:targeted-onboarding-header" />
         </HeaderRight>
       </Header>
-      <Contents />
+      <Container>
+        <AnimatePresence exitBeforeEnter onExitComplete={updateCornerVariant}>
+          <TargetedOnboardingWelcome />
+        </AnimatePresence>
+        <PageCorners animateVariant={cornerVariantControl} />
+      </Container>
     </OnboardingWrapper>
   );
 }
