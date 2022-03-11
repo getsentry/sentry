@@ -768,7 +768,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="number",
-                    private=False,
+                    private=True,
                 ),
             ]
         }
