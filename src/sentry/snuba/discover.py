@@ -1325,54 +1325,8 @@ def get_facets(
     return results
 
 
-def find_spans_histogram_min_max(
-    min_value, max_value, user_query, params, data_filter=None, use_snql=False
-):
-    if min_value is not None and max_value is not None:
-        return min_value, max_value
-
-    # min_columns = []
-    # max_columns = []
-    # quartiles = []
-
-    # TODO reviewe this
-    # for field in fields:
-    #     if min_value is None:
-    #         min_columns.append(f"min({field})")
-    #     if max_value is None:
-    #         max_columns.append(f"max({field})")
-    #     if data_filter == "exclude_outliers":
-    #         quartiles.append(f"percentile({field}, 0.25)")
-    #         quartiles.append(f"percentile({field}, 0.75)")
-
-    results = query(
-        selected_columns=[],
-        query=user_query,
-        params=params,
-        limit=1,
-        referrer="api.organizations-spans-events-histogram-min-max",
-        use_snql=use_snql,
-    )
-
-    data = results.get("data")
-
-    if data is None or len(data) != 1:
-        return None, None
-
-    # row = data[0]
-
-    # if min_value is None:
-    #     # do stuff
-    #     # min_values =
-
-    # if max_value is None:
-    #     # do stuff
-
-    # return min_value, max_value
-
-
 def spans_histogram_query(
-    fields,
+    span,
     user_query,
     params,
     num_buckets,
@@ -1388,19 +1342,46 @@ def spans_histogram_query(
     extra_conditions=None,
     extra_snql_condition=None,
     normalize_results=True,
-    # TODO can use_snql option be omitted here?
-    use_snql=False,
 ):
     multiplier = int(10 ** precision)
     if max_value is not None:
         max_value -= 0.1 / multiplier
-    min_value, max_value = find_histogram_min_max()
 
-    # key_column = None
-    # array_column = None
-    # field_names = None
+    # TODO add min max calculation after
+    # min_value, max_value = find_histogram_min_max(
+    #     fields, min_value, max_value, user_query, params, data_filter, use_snql
+    # )
 
-    #  what is fields in this case?
+    key_column = None
+
+    histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
+    field_names = []
+    histogram_column = get_span_histogram_column(span, histogram_params)
+
+    builder = HistogramQueryBuilder(
+        num_buckets,
+        histogram_column,
+        histogram_rows,
+        histogram_params,
+        key_column,
+        field_names,
+        group_by,
+        # Arguments for QueryBuilder
+        Dataset.Discover,
+        params,
+        query=user_query,
+        # TODO figure out what should be passed to selected_columns
+        selected_columns=["spans.exclusive_time_32", "spans.op", "spans.group"],
+        orderby=order_by,
+        limitby=limit_by,
+    )
+    results = builder.run_query(referrer)
+
+    if not normalize_results:
+        return results
+
+    return results
+    # return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
 
 
 def histogram_query(
@@ -1568,6 +1549,18 @@ def histogram_query(
         return results
 
     return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
+
+
+def get_span_histogram_column(span, histogram_params):
+    """
+    Generate the histogram column string for spans.
+
+    :param [Span] span: The span for which you want to generate the histograms for.
+    :param HistogramParams histogram_params: The histogram parameters used.
+    """
+    span_op = span.op
+    span_group = span.group
+    return f"spans_histogram({span_op}, {span_group}, 5, 0, 100)"
 
 
 def get_histogram_column(fields, key_column, histogram_params, array_column):

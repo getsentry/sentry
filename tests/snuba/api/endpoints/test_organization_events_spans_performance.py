@@ -406,7 +406,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 
 
 class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndpointTestBase):
-    URL = "sentry-api-0-organization-events-spans-performance"
+    URL = "sentry-api-0-organization-events-spans-histogram"
 
     def test_no_feature(self):
         response = self.client.get(self.url, format="json")
@@ -425,6 +425,36 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         with self.feature(self.FEATURES):
             response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
+
+    def test_spans_histogram(self):
+        # TODO: remove this and the @pytest.skip once the config
+        # is no longer necessary as this can add ~10s to the test
+        self.update_snuba_config_ensure({"write_span_columns_projects": f"[{self.project.id}]"})
+
+        # event = self.create_event()
+
+        hash = "cd" * 8
+        op = "django.middleware"
+        span = f'"{op}:{hash}"'
+
+        numBuckets = 100
+
+        # "span_id": x * 16,
+        # "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
+        # "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+        # "op": "django.middleware",
+        # "description": "middleware span",
+        # "hash": "cd" * 8,
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": [self.project.id], "span": span, "numBuckets": numBuckets},
+            )
+
+        # print(response.content)
+        assert response.content
 
     def test_multiple_projects(self):
         project = self.create_project(organization=self.organization)
