@@ -94,9 +94,9 @@ def update_or_create(
     if affected:
         return affected, False
 
-    create_kwargs = kwargs.copy()
     instance = objects.model()
 
+    create_kwargs = kwargs.copy()
     create_kwargs.update(
         {_handle_key(model, k, v): _handle_value(instance, v) for k, v in defaults.items()}
     )
@@ -107,7 +107,8 @@ def update_or_create(
     except IntegrityError:
         pass
 
-    return affected, False
+    # Retrying the update() here to preserve behavior in a race condition with a concurrent create().
+    return objects.filter(**kwargs).update(**defaults), False
 
 
 def create_or_update(
