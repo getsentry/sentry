@@ -27,7 +27,7 @@ by the rule's logic. Each rule condition may be associated with a form.
 - [ACTION:I want to get notified when] [RULE:an event is first seen]
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
 """
-
+import abc
 import logging
 from collections import namedtuple
 
@@ -37,14 +37,7 @@ from collections import namedtuple
 CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 
-class RuleDescriptor(type):
-    def __new__(cls, *args, **kwargs):
-        new_cls = super().__new__(cls, *args, **kwargs)
-        new_cls.id = f"{new_cls.__module__}.{new_cls.__name__}"
-        return new_cls
-
-
-class RuleBase(metaclass=RuleDescriptor):
+class RuleBase(abc.ABC):
     label = None
     form_cls = None
 
