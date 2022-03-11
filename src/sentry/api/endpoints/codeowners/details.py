@@ -7,20 +7,17 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.models import ProjectCodeOwners
 
-from .project_codeowners import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
+from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
 logger = logging.getLogger(__name__)
 
 
-class ProjectCodeOwnersDetailsEndpoint(
-    ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin
-):
+class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
     def convert_args(
         self, request: Request, organization_slug, project_slug, codeowners_id, *args, **kwargs
     ):
@@ -54,7 +51,7 @@ class ProjectCodeOwnersDetailsEndpoint(
 
         serializer = ProjectCodeOwnerSerializer(
             instance=codeowners,
-            context={"ownership": self.get_ownership(project), "project": project},
+            context={"project": project},
             partial=True,
             data={**request.data},
         )

@@ -15,10 +15,12 @@ import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 type GroupHistory = {
   count: number;
   group: Group;
+  lastTriggered: string;
 };
 
 type Props = AsyncComponent['props'] &
@@ -84,7 +86,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, rule} = this.props;
     const {loading, groupHistory, groupHistoryPageLinks} = this.state;
 
     return (
@@ -100,14 +102,19 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
             t('Last Triggered'),
           ]}
         >
-          {groupHistory?.map(({group: issue, count}) => {
+          {groupHistory?.map(({group: issue, count, lastTriggered}) => {
             const message = getMessage(issue);
             const {title} = getTitle(issue);
 
             return (
               <Fragment key={issue.id}>
                 <TitleWrapper>
-                  <Link to={`/organizations/${organization.slug}/issues/${issue.id}/`}>
+                  <Link
+                    to={{
+                      pathname: `/organizations/${organization.slug}/issues/${issue.id}/`,
+                      query: rule.environment ? {environment: rule.environment} : {},
+                    }}
+                  >
                     {title}:
                   </Link>
                   <MessageWrapper>{message}</MessageWrapper>
@@ -119,7 +126,12 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                   <Count value={issue.count} />
                 </AlignRight>
                 <div>
-                  <StyledDateTime date={issue.lastSeen} />
+                  <StyledDateTime
+                    date={getDynamicText({
+                      value: lastTriggered,
+                      fixed: 'Mar 16, 2020 9:10:13 AM UTC',
+                    })}
+                  />
                 </div>
               </Fragment>
             );
@@ -163,6 +175,7 @@ const TitleWrapper = styled('div')`
   ${overflowEllipsis};
   display: flex;
   gap: ${space(0.5)};
+  min-width: 200px;
 `;
 
 const MessageWrapper = styled('span')`

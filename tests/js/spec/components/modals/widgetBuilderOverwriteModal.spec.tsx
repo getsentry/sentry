@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import OverwriteWidgetModal from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
@@ -15,7 +15,7 @@ describe('widget builder overwrite modal', () => {
       interval: '5m',
       queries: [],
     };
-    mountWithTheme(
+    render(
       <OverwriteWidgetModal
         Header={stubEl}
         Footer={stubEl as ModalRenderProps['Footer']}
@@ -43,7 +43,7 @@ describe('widget builder overwrite modal', () => {
     };
     const mockOnConfirm = jest.fn();
     const mockCloseModal = jest.fn();
-    mountWithTheme(
+    render(
       <OverwriteWidgetModal
         Header={stubEl}
         Footer={stubEl as ModalRenderProps['Footer']}

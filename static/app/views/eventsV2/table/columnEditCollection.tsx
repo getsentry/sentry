@@ -40,6 +40,7 @@ type Props = {
   organization: Organization;
   className?: string;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
+  noFieldsMessage?: string;
   source?: Sources;
 };
 
@@ -402,7 +403,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       isGhost?: boolean;
     }
   ) {
-    const {columns, fieldOptions, filterPrimaryOptions} = this.props;
+    const {columns, fieldOptions, filterPrimaryOptions, noFieldsMessage} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -454,6 +455,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             shouldRenderTag
             disabled={disabled}
             filterPrimaryOptions={filterPrimaryOptions}
+            noFieldsMessage={noFieldsMessage}
           />
           {canDelete || col.kind === 'equation' ? (
             <Button

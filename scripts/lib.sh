@@ -1,4 +1,7 @@
 #!/bin/bash
+# NOTE: This file is sourced in CI across different repos (e.g. snuba),
+# thus, renaming this file or any functions can break CI!
+#
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 # shellcheck disable=SC2034 # Unused variables
@@ -15,19 +18,13 @@ fi
 
 venv_name=".venv"
 
-# NOTE: This file is sourced in CI across different repos (e.g. snuba),
-# so renaming this file or any functions can break CI!
-
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
 }
 
 configure-sentry-cli() {
-    # XXX: For version 1.70.1 there's a bug hitting SENTRY_CLI_NO_EXIT_TRAP: unbound variable
-    # We can remove this after it's fixed
-    # https://github.com/getsentry/sentry-cli/pull/1059
-    export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
+    # SENTRY_DSN is currently exported in .envrc
     if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
             curl -sL https://sentry.io/get-cli/ | bash
@@ -162,6 +159,8 @@ node-version-check() {
     node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" ||
         (
             echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
+            echo 'Run `volta install node` and `volta install yarn` to update your toolchain.'
+            echo 'If you do not have volta installed run `curl https://get.volta.sh | bash` or visit https://volta.sh'
             exit 1
         )
 }

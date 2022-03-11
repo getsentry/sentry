@@ -86,7 +86,12 @@ type Props = {
    * used for the metric alert builder.
    */
   inFieldLabels?: boolean;
+  /**
+   * This will be displayed in the select if there are no fields
+   */
+  noFieldsMessage?: string;
   otherColumns?: Column[];
+  placeholder?: string;
   /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
@@ -552,6 +557,8 @@ class QueryField extends React.Component<Props> {
       hidePrimarySelector,
       gridColumns,
       otherColumns,
+      placeholder,
+      noFieldsMessage,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -562,11 +569,12 @@ class QueryField extends React.Component<Props> {
     const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
       options: Object.values(allFieldOptions),
-      placeholder: t('(Required)'),
+      placeholder: placeholder ?? t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
+      noOptionsMessage: () => noFieldsMessage,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;

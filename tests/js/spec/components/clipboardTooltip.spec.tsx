@@ -1,6 +1,6 @@
 import copy from 'copy-text-to-clipboard';
 
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ClipboardTooltip from 'sentry/components/clipboardTooltip';
 
@@ -10,7 +10,7 @@ describe('ClipboardTooltip', function () {
   it('renders', async function () {
     const title = 'tooltip content';
     const content = 'This text displays a tooltip when hovering';
-    mountWithTheme(
+    render(
       <ClipboardTooltip title={title}>
         <span>{content}</span>
       </ClipboardTooltip>
