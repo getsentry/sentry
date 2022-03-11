@@ -95,6 +95,12 @@ function SidebarCharts({
             size="sm"
           />
         </ChartTitle>
+        <ChartSummaryValue
+          data-test-id="apdex-summary-value"
+          isLoading={isLoading}
+          error={error}
+          value={totals ? formatFloat(totals.apdex, 4) : null}
+        />
       </ChartLabel>
 
       <ChartLabel top="160px">
