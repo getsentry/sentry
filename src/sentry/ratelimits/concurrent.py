@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 ErrorLimit = float("inf")
 DEFAULT_MAX_TTL_SECONDS = 30
 
+rate_limit_info = redis.load_script("ratelimits/api_limiter.lua")
+
 
 @dataclass
 class ConcurrentLimitInfo:
@@ -41,22 +43,11 @@ class ConcurrentRateLimiter:
     def start_request(self, key: str, limit: int, request_uid: str) -> ConcurrentLimitInfo:
         redis_key = self.namespaced_key(key)
         try:
-            cur_time = time()
-            p = self.client.pipeline()
-            p.zremrangebyscore(redis_key, "-inf", cur_time - self.max_ttl_seconds)
-
-            # TODO: do this using a redis lua script to keep things atomic
-            p.zcard(redis_key)
-            currently_executing_calls = p.execute()[1]
-
-            if currently_executing_calls >= limit:
-                return ConcurrentLimitInfo(limit, currently_executing_calls, True)
-            else:
-                p = self.client.pipeline()
-                p.zadd(redis_key, {request_uid: cur_time})
-                p.zcard(redis_key)
-                current_executions = p.execute()[1]
-                return ConcurrentLimitInfo(limit, current_executions, False)
+            res = rate_limit_info(
+                self.client, [redis_key], [limit, request_uid, time(), self.max_ttl_seconds]
+            )
+            current_executions, limit_exceeded = res
+            return ConcurrentLimitInfo(limit, current_executions, bool(limit_exceeded))
         except Exception:
             logger.exception(
                 "Could not start request", dict(key=redis_key, limit=limit, request_uid=request_uid)
