@@ -148,9 +148,6 @@ def above_rate_limit_check(key: str, rate_limit: RateLimit, request_uid: str) ->
         concurrent_limit_info = concurrent_limiter().start_request(
             key, rate_limit.concurrent_limit, request_uid
         )
-        # TODO: This is a little clunky. I do this comparison here and in
-        # the rate limit class. Maybe make the rate limit class return a
-        # a payload with metadata?
         if concurrent_limit_info.limit_exceeded:
             rate_limit_type = RateLimitType.CONCURRENT
         concurrent_requests = concurrent_limit_info.current_executions

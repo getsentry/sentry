@@ -34,3 +34,18 @@ class RatelimitMiddlewareTest(TestCase):
                 concurrent_limit=None,
                 concurrent_requests=None,
             )
+
+            for i in range(10):
+                return_val = above_rate_limit_check(
+                    "bar", RateLimit(120, 100, 9), f"request_uid{i}"
+                )
+            assert return_val == RateLimitMeta(
+                rate_limit_type=RateLimitType.CONCURRENT,
+                current=10,
+                limit=120,
+                window=100,
+                reset_time=expected_reset_time,
+                remaining=110,
+                concurrent_limit=9,
+                concurrent_requests=9,
+            )
