@@ -126,6 +126,19 @@ function FlamegraphZoomView({
     return flamegraphRenderer.getHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
 
+  /**
+   * Whenever the flamegraph changes, the reference to the selected node
+   * may no longer be valid/correct. So clear it when that happens.
+   *
+   * The flamegraph may for reasons like
+   * - inverted/leftHeavy changed
+   * - thread changed
+   * - import happened
+   */
+  useEffect(() => {
+    setSelectedNode(null);
+  }, [flamegraph]);
+
   useEffect(() => {
     if (!flamegraphRenderer) {
       return undefined;
@@ -227,6 +240,7 @@ function FlamegraphZoomView({
     };
   }, [
     scheduler,
+    flamegraph,
     flamegraphRenderer,
     textRenderer,
     gridRenderer,
