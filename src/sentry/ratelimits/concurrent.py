@@ -47,7 +47,7 @@ class ConcurrentRateLimiter:
                 self.client, [redis_key], [limit, request_uid, time(), self.max_ttl_seconds]
             )
             current_executions, limit_exceeded = res
-            return ConcurrentLimitInfo(limit, current_executions, bool(limit_exceeded))
+            return ConcurrentLimitInfo(limit, int(current_executions), bool(limit_exceeded))
         except Exception:
             logger.exception(
                 "Could not start request", dict(key=redis_key, limit=limit, request_uid=request_uid)
@@ -57,7 +57,8 @@ class ConcurrentRateLimiter:
     def get_concurrent_requests(self, key: str) -> int:
         redis_key = self.namespaced_key(key)
         # this can fail loudly as it is only meant for observability
-        return self.client.zcard(redis_key)
+        num_elements = self.client.zcard(redis_key)
+        return int(num_elements) if num_elements is not None else -1
 
     def finish_request(self, key: str, request_uid: str) -> None:
         try:
