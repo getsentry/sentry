@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GroupTags from 'sentry/views/organizationGroupDetails/groupTags';
 
@@ -15,7 +15,7 @@ describe('GroupTags', function () {
   });
 
   it('navigates to issue details events tab with correct query params', function () {
-    mountWithTheme(
+    render(
       <GroupTags
         group={group}
         environments={['dev']}

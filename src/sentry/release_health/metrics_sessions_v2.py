@@ -23,6 +23,7 @@ from typing import (
     TypedDict,
     Union,
     cast,
+    get_args,
 )
 
 from snuba_sdk import (
@@ -709,39 +710,48 @@ def run_sessions_query(
         }
     )
 
-    for key in data_points.keys():
-        try:
-            output_field = metric_to_output_field[key.metric_key, key.column]
-        except KeyError:
-            continue  # secondary metric, like session.error
+    if len(data_points) == 0:
+        # We're only interested in `session.status` group-byes. The rest of the
+        # conditions require work (e.g. getting all environments) that we can't
+        # get without querying the DB.
+        if "session.status" in query_clone.raw_groupby:
+            for status in get_args(_SessionStatus):
+                gkey: GroupKey = (("session.status", status),)
+                groups[gkey]
+    else:
+        for key in data_points.keys():
+            try:
+                output_field = metric_to_output_field[key.metric_key, key.column]
+            except KeyError:
+                continue  # secondary metric, like session.error
 
-        by: MutableMapping[GroupByFieldName, Union[str, int]] = {}
-        if key.release is not None:
-            # Every session has a release, so this should not throw
-            by["release"] = reverse_resolve(key.release)
-        if key.environment is not None:
-            # To match behavior of the old sessions backend, session data
-            # without environment is grouped under the empty string.
-            by["environment"] = reverse_resolve_weak(key.environment) or ""
-        if key.project_id is not None:
-            by["project"] = key.project_id
+            by: MutableMapping[GroupByFieldName, Union[str, int]] = {}
+            if key.release is not None:
+                # Every session has a release, so this should not throw
+                by["release"] = reverse_resolve(key.release)
+            if key.environment is not None:
+                # To match behavior of the old sessions backend, session data
+                # without environment is grouped under the empty string.
+                by["environment"] = reverse_resolve_weak(key.environment) or ""
+            if key.project_id is not None:
+                by["project"] = key.project_id
 
-        for status_value in output_field.get_values(data_points, key):
-            if status_value.session_status is not None:
-                by["session.status"] = status_value.session_status
+            for status_value in output_field.get_values(data_points, key):
+                if status_value.session_status is not None:
+                    by["session.status"] = status_value.session_status  # !
 
-            group_key: GroupKey = tuple(sorted(by.items()))
-            group = groups[group_key]
+                group_key: GroupKey = tuple(sorted(by.items()))
+                group: Group = groups[group_key]
 
-            value = status_value.value
-            if value is not None:
-                value = finite_or_none(value)
+                value = status_value.value
+                if value is not None:
+                    value = finite_or_none(value)
 
-            if key.bucketed_time is None:
-                group["totals"][output_field.get_name()] = value
-            else:
-                index = timestamp_index[key.bucketed_time]
-                group["series"][output_field.get_name()][index] = value
+                if key.bucketed_time is None:
+                    group["totals"][output_field.get_name()] = value
+                else:
+                    index = timestamp_index[key.bucketed_time]
+                    group["series"][output_field.get_name()][index] = value
 
     groups_as_list: List[SessionsQueryGroup] = [
         {

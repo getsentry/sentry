@@ -2,7 +2,7 @@ import React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
 import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -13,24 +13,24 @@ import {
 
 import {Card} from './card';
 
-type Props = {
+interface Props {
+  bypassOverwriteModal: boolean;
   onWidgetSelect: (widget: WidgetTemplate) => void;
-};
-
-export async function openWidgetBuilderOverwriteModal(
-  options: OverwriteWidgetModalProps
-) {
-  const mod = await import('sentry/components/modals/widgetBuilder/overwriteWidgetModal');
-  const {default: Modal, modalCss} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
-export function WidgetLibrary({onWidgetSelect}: Props) {
+export function WidgetLibrary({bypassOverwriteModal, onWidgetSelect}: Props) {
   const theme = useTheme();
 
-  function getLibrarySelectionHandler(widget, iconColor) {
+  function getLibrarySelectionHandler(
+    widget: OverwriteWidgetModalProps['widget'],
+    iconColor: OverwriteWidgetModalProps['iconColor']
+  ) {
     return function handleWidgetSelect() {
+      if (bypassOverwriteModal) {
+        onWidgetSelect(widget);
+        return;
+      }
+
       openWidgetBuilderOverwriteModal({
         onConfirm: () => onWidgetSelect(widget),
         widget,
@@ -67,11 +67,13 @@ const WidgetLibraryWrapper = styled('div')`
 `;
 
 const Header = styled('h5')`
-  margin-left: ${space(2)};
+  /* to be aligned with the 30px of Layout.main padding */
+  padding-left: calc(${space(2)} - ${space(0.25)});
 `;
 
 const CardHoverWrapper = styled('div')`
-  padding: calc(${space(2)} - 1px);
+  /* to be aligned with the 30px of Layout.main padding - 1px of the widget item border */
+  padding: calc(${space(2)} - 3px);
   border: 1px solid transparent;
   border-radius: ${p => p.theme.borderRadius};
   transition: border-color 0.3s ease;

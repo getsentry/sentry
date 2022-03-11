@@ -20,6 +20,7 @@ import {
   OrganizationSummary,
 } from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
@@ -137,7 +138,7 @@ type EventsRequestPartialProps = {
    */
   generatePathname?: (org: OrganizationSummary) => string;
   /**
-   * Hide error toast (used for pages which also query eventsV2)
+   * Hide error toast (used for pages which also query eventsV2). Stops error appearing as a toast.
    */
   hideError?: boolean;
   /**
@@ -148,6 +149,10 @@ type EventsRequestPartialProps = {
    * Query name used for displaying error toast if it is out of retention
    */
   name?: string;
+  /**
+   * A way to control error if error handling is not owned by the toast.
+   */
+  onError?: (error: string) => void;
   /**
    * How to order results when getting top events.
    */
@@ -258,7 +263,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, confirmedQuery, expired, name, hideError, ...props} = this.props;
+    const {api, confirmedQuery, onError, expired, name, hideError, ...props} = this.props;
     let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
 
     if (confirmedQuery === false) {
@@ -295,6 +300,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         }
         if (!hideError) {
           addErrorMessage(errorMessage);
+        }
+        if (onError) {
+          onError(errorMessage);
         }
         this.setState({
           errored: true,
@@ -480,6 +488,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   render() {
     const {children, showLoading, ...props} = this.props;
+    const {topEvents} = this.props;
     const {timeseriesData, reloading, errored, errorMessage} = this.state;
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
@@ -487,7 +496,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     if (showLoading && loading) {
       return <LoadingPanel data-test-id="events-request-loading" />;
     }
-    if (isMultiSeriesStats(timeseriesData)) {
+    if (isMultiSeriesStats(timeseriesData, defined(topEvents))) {
       // Convert multi-series results into chartable series. Multi series results
       // are created when multiple yAxis are used or a topEvents request is made.
       // Convert the timeseries data into a multi-series result set.

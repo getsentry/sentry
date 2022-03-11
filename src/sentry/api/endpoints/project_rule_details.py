@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import trigger_alert_rule_action_creators
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.rule import RuleSerializer
+from sentry.api.serializers.models.rule import RuleSerializer
+from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import (
@@ -35,27 +36,34 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         # Serialize Rule object
         serialized_rule = serialize(
-            rule,
-            request.user,
+            rule, request.user, RuleSerializer(request.GET.getlist("expand", []))
         )
 
+        errors = []
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-
-                component = SentryAppInstallation(
-                    **action.get("_sentry_app_installation", {})
-                ).prepare_ui_component(
+                installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
+                component = installation.prepare_ui_component(
                     SentryAppComponent(**action.get("_sentry_app_component")),
                     project,
                     action.get("settings"),
                 )
+                if component is None:
+                    errors.append(
+                        {"detail": f"Could not fetch details from {installation.sentry_app.name}"}
+                    )
+                    action["disabled"] = True
+                    continue
 
                 action["formFields"] = component.schema.get("settings", {})
 
                 # Delete meta fields
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
+
+        if len(errors):
+            serialized_rule["errors"] = errors
 
         return Response(serialized_rule)
 
@@ -77,7 +85,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             }}
 
         """
-        serializer = RuleSerializer(
+        serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
             data=request.data,
             partial=True,

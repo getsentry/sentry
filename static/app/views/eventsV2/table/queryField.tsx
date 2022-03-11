@@ -4,7 +4,7 @@ import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Input from 'sentry/components/forms/controls/input';
+import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
@@ -86,7 +86,12 @@ type Props = {
    * used for the metric alert builder.
    */
   inFieldLabels?: boolean;
+  /**
+   * This will be displayed in the select if there are no fields
+   */
+  noFieldsMessage?: string;
   otherColumns?: Column[];
+  placeholder?: string;
   /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
@@ -552,6 +557,8 @@ class QueryField extends React.Component<Props> {
       hidePrimarySelector,
       gridColumns,
       otherColumns,
+      placeholder,
+      noFieldsMessage,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -562,11 +569,12 @@ class QueryField extends React.Component<Props> {
     const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
       options: Object.values(allFieldOptions),
-      placeholder: t('(Required)'),
+      placeholder: placeholder ?? t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
+      noOptionsMessage: () => noFieldsMessage,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -650,10 +658,10 @@ const Container = styled('div')<{
   flex-grow: 1;
 `;
 
-type InputProps = React.HTMLProps<HTMLInputElement> & {
+interface BufferedInputProps extends React.HTMLProps<HTMLInputElement> {
   onUpdate: (value: string) => void;
   value: string;
-};
+}
 type InputState = {value: string};
 
 /**
@@ -664,8 +672,8 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends React.Component<InputProps, InputState> {
-  constructor(props: InputProps) {
+class BufferedInput extends React.Component<BufferedInputProps, InputState> {
+  constructor(props: BufferedInputProps) {
     super(props);
     this.input = React.createRef();
   }
@@ -702,7 +710,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
   };
 
   render() {
-    const {onUpdate: _, ...props} = this.props;
+    const {onUpdate: _, as: _as, ...props} = this.props;
     return (
       <StyledInput
         {...props}
@@ -717,7 +725,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 }
 
 // Set a min-width to allow shrinkage in grid.
-const StyledInput = styled(Input)`
+const StyledInput = styled(Input)<InputProps>`
   /* Match the height of the select boxes */
   height: 41px;
   min-width: 50px;

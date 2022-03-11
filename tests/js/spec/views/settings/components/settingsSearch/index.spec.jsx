@@ -1,4 +1,5 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import FormSearchStore from 'sentry/stores/formSearchStore';
@@ -64,27 +65,24 @@ describe('SettingsSearch', function () {
   });
 
   it('renders', async function () {
-    mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />);
+    render(<SettingsSearch params={{orgId: 'org-slug'}} />);
 
     // renders input
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
   it('can focus when hotkey is pressed', function () {
-    mountWithTheme(<SettingsSearch />);
+    render(<SettingsSearch />);
     userEvent.keyboard('/', {keyboardMap: [{code: 'Slash', key: '/', keyCode: 191}]});
     expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
   it('can search', async function () {
-    mountWithTheme(<SettingsSearch />, {
+    render(<SettingsSearch />, {
       context: routerContext,
     });
 
-    const input = screen.getByPlaceholderText('Search');
-    userEvent.type(input, 'bil');
-
-    await tick();
+    userEvent.type(screen.getByPlaceholderText('Search'), 'bil{enter}');
 
     expect(orgsMock.mock.calls).toEqual([
       [
@@ -103,17 +101,9 @@ describe('SettingsSearch', function () {
       ],
     ]);
 
-    const results = screen.getAllByTestId('badge-display-name');
-
-    const firstResult = results
-      .filter(e => e.textContent === 'billy-org Dashboard')
-      .pop();
-
-    expect(firstResult).toBeDefined();
-
-    if (firstResult) {
-      userEvent.click(firstResult);
-    }
+    userEvent.click(
+      await screen.findByText(textWithMarkupMatcher('billy-org Dashboard'))
+    );
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });

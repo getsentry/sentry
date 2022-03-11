@@ -4,13 +4,17 @@ import {Location, LocationDescriptorObject} from 'history';
 
 import {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
-import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
+import {
+  getIssueFieldRenderer,
+  getSortField,
+} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
@@ -18,12 +22,17 @@ import {
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {
+  eventDetailsRouteWithEventView,
+  generateEventSlug,
+} from 'sentry/utils/discover/urls';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
+import {WidgetViewerQueryField} from './utils';
 // Dashboards only supports top 5 for now
 const DEFAULT_NUM_TOP_EVENTS = 5;
 
@@ -32,11 +41,33 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  isFirstPage?: boolean;
   tableData?: TableDataWithTitle;
 };
 
-export const renderGridHeaderCell =
-  ({selection, widget, tableData}: Props) =>
+export const renderIssueGridHeaderCell =
+  ({location, widget, tableData}: Props) =>
+  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+    const tableMeta = tableData?.meta;
+    const align = fieldAlignment(column.name, column.type, tableMeta);
+    const sortField = getSortField(String(column.key));
+
+    return (
+      <SortLink
+        align={align}
+        title={<StyledTooltip title={column.name}>{column.name}</StyledTooltip>}
+        direction={widget.queries[0].orderby === sortField ? 'desc' : undefined}
+        canSort={!!sortField}
+        generateSortLink={() => ({
+          ...location,
+          query: {...location.query, [WidgetViewerQueryField.SORT]: sortField},
+        })}
+      />
+    );
+  };
+
+export const renderDiscoverGridHeaderCell =
+  ({location, selection, widget, tableData}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const eventView = eventViewFromWidget(
       widget.title,
@@ -46,11 +77,21 @@ export const renderGridHeaderCell =
     );
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
-    const field = {field: column.name, width: column.width};
+    const field = {field: String(column.key), width: column.width};
     function generateSortLink(): LocationDescriptorObject | undefined {
-      // TODO: need write sort link generation for widget viewer
-      return undefined;
+      if (!tableMeta) {
+        return undefined;
+      }
+
+      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const queryStringObject = nextEventView.generateQueryStringObject();
+
+      return {
+        ...location,
+        query: {...location.query, [WidgetViewerQueryField.SORT]: queryStringObject.sort},
+      };
     }
+
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
     const titleText = isEquationAlias(column.name)
@@ -60,11 +101,7 @@ export const renderGridHeaderCell =
     return (
       <SortLink
         align={align}
-        title={
-          <StyledTooltip title={titleText}>
-            <Truncate value={titleText} maxLength={60} expandable={false} />
-          </StyledTooltip>
-        }
+        title={<StyledTooltip title={titleText}>{titleText}</StyledTooltip>}
         direction={currentSort ? currentSort.kind : undefined}
         canSort={canSort}
         generateSortLink={generateSortLink}
@@ -73,7 +110,7 @@ export const renderGridHeaderCell =
   };
 
 export const renderGridBodyCell =
-  ({location, organization, widget, tableData}: Props) =>
+  ({location, organization, widget, tableData, isFirstPage}: Props) =>
   (
     column: GridColumnOrder,
     dataRow: Record<string, any>,
@@ -117,7 +154,10 @@ export const renderGridBodyCell =
 
     return (
       <React.Fragment>
-        {isTopEvents && rowIndex < DEFAULT_NUM_TOP_EVENTS && columnIndex === 0 ? (
+        {isTopEvents &&
+        isFirstPage &&
+        rowIndex < DEFAULT_NUM_TOP_EVENTS &&
+        columnIndex === 0 ? (
           <TopResultsIndicator count={DEFAULT_NUM_TOP_EVENTS} index={rowIndex} />
         ) : null}
         {cell}
@@ -125,6 +165,50 @@ export const renderGridBodyCell =
     );
   };
 
+export const renderPrependColumns =
+  ({location, organization, tableData, eventView}: Props & {eventView: EventView}) =>
+  (isHeader: boolean, dataRow?: any, rowIndex?: number): React.ReactNode[] => {
+    if (isHeader) {
+      return [
+        <PrependHeader key="header-event-id">
+          <SortLink
+            align="left"
+            title={t('event id')}
+            direction={undefined}
+            canSort={false}
+            generateSortLink={() => undefined}
+          />
+        </PrependHeader>,
+      ];
+    }
+    let value = dataRow.id;
+
+    if (tableData?.meta) {
+      const fieldRenderer = getFieldRenderer('id', tableData?.meta);
+      value = fieldRenderer(dataRow, {organization, location});
+    }
+
+    const eventSlug = generateEventSlug(dataRow);
+
+    const target = eventDetailsRouteWithEventView({
+      orgSlug: organization.slug,
+      eventSlug,
+      eventView,
+    });
+
+    return [
+      <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+        <Link data-test-id="view-event" to={target}>
+          {value}
+        </Link>
+      </Tooltip>,
+    ];
+  };
+
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+`;
+
+const PrependHeader = styled('span')`
+  color: ${p => p.theme.subText};
 `;

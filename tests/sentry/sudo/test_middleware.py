@@ -42,7 +42,7 @@ class SudoMiddlewareTestCase(BaseTestCase):
         self.assertTrue(sudo["httponly"])
 
         # Asserting that these are insecure together explicitly
-        # since it's a big deal to not fuck up
+        # since it's a big deal to not bungle.
         self.assertFalse(self.request.is_secure())
         self.assertFalse(sudo["secure"])  # insecure request
 

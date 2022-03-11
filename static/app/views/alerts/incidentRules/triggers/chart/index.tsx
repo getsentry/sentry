@@ -21,7 +21,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -72,56 +72,40 @@ const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
 };
 
 /**
- * If TimeWindow is small we want to limit the stats period
- * If the time window is one day we want to use a larger stats period
+ * Just to avoid repeating it
  */
-const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
+const MOST_TIME_PERIODS: readonly TimePeriod[] = [
+  TimePeriod.ONE_DAY,
+  TimePeriod.THREE_DAYS,
+  TimePeriod.SEVEN_DAYS,
+  TimePeriod.FOURTEEN_DAYS,
+  TimePeriod.THIRTY_DAYS,
+];
+
+/**
+ * TimeWindow determines data available in TimePeriod
+ * If TimeWindow is small, lower TimePeriod to limit data points
+ */
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
   ],
-  [TimeWindow.FIVE_MINUTES]: [
-    TimePeriod.ONE_DAY,
+  [TimeWindow.FIVE_MINUTES]: MOST_TIME_PERIODS,
+  [TimeWindow.TEN_MINUTES]: MOST_TIME_PERIODS,
+  [TimeWindow.FIFTEEN_MINUTES]: MOST_TIME_PERIODS,
+  [TimeWindow.THIRTY_MINUTES]: MOST_TIME_PERIODS,
+  [TimeWindow.ONE_HOUR]: MOST_TIME_PERIODS,
+  [TimeWindow.TWO_HOURS]: MOST_TIME_PERIODS,
+  [TimeWindow.FOUR_HOURS]: [
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
     TimePeriod.FOURTEEN_DAYS,
     TimePeriod.THIRTY_DAYS,
   ],
-  [TimeWindow.TEN_MINUTES]: [
-    TimePeriod.ONE_DAY,
-    TimePeriod.THREE_DAYS,
-    TimePeriod.SEVEN_DAYS,
-    TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
-  ],
-  [TimeWindow.FIFTEEN_MINUTES]: [
-    TimePeriod.THREE_DAYS,
-    TimePeriod.SEVEN_DAYS,
-    TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
-  ],
-  [TimeWindow.THIRTY_MINUTES]: [
-    TimePeriod.SEVEN_DAYS,
-    TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
-  ],
-  [TimeWindow.ONE_HOUR]: [TimePeriod.FOURTEEN_DAYS, TimePeriod.THIRTY_DAYS],
-  [TimeWindow.TWO_HOURS]: [TimePeriod.THIRTY_DAYS],
-  [TimeWindow.FOUR_HOURS]: [TimePeriod.THIRTY_DAYS],
   [TimeWindow.ONE_DAY]: [TimePeriod.THIRTY_DAYS],
-};
-
-const AGGREGATE_FUNCTIONS = {
-  avg: (seriesChunk: SeriesDataUnit[]) =>
-    AGGREGATE_FUNCTIONS.sum(seriesChunk) / seriesChunk.length,
-  sum: (seriesChunk: SeriesDataUnit[]) =>
-    seriesChunk.reduce((acc, series) => acc + series.value, 0),
-  max: (seriesChunk: SeriesDataUnit[]) =>
-    Math.max(...seriesChunk.map(series => series.value)),
-  min: (seriesChunk: SeriesDataUnit[]) =>
-    Math.min(...seriesChunk.map(series => series.value)),
 };
 
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
@@ -148,7 +132,7 @@ type State = {
  */
 class TriggersChart extends React.PureComponent<Props, State> {
   state: State = {
-    statsPeriod: TimePeriod.ONE_DAY,
+    statsPeriod: TimePeriod.SEVEN_DAYS,
     totalCount: null,
   };
 
@@ -196,7 +180,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = statsPeriodOptions.includes(statsPeriod)
       ? statsPeriod
-      : statsPeriodOptions[0];
+      : statsPeriodOptions[statsPeriodOptions.length - 1];
     return period;
   };
 

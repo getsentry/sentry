@@ -80,6 +80,11 @@ type Props = {
   defaultSelection?: Partial<PageFilters>;
 
   /**
+   * If a forced environment is passed, selection is disabled
+   */
+  forceEnvironment?: string;
+
+  /**
    * If a forced project is passed, selection is disabled
    */
   forceProject?: MinimalProject | null;
@@ -100,8 +105,6 @@ type Props = {
    */
   maxPickableDays?: number;
 
-  onChangeEnvironments?: (environments: string[]) => void;
-  // Callbacks //
   onChangeProjects?: (val: number[]) => void;
 
   onChangeTime?: (datetime: any) => void;
@@ -162,7 +165,6 @@ type Props = {
   };
 
 type State = {
-  environments: string[] | null;
   projects: number[] | null;
   searchQuery: string;
 };
@@ -172,7 +174,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
 
   state: State = {
     projects: null,
-    environments: null,
     searchQuery: '',
   };
 
@@ -187,13 +188,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       projects,
     });
     callIfFunction(this.props.onChangeProjects, projects);
-  };
-
-  handleChangeEnvironments = (environments: State['environments']) => {
-    this.setState({
-      environments,
-    });
-    callIfFunction(this.props.onChangeEnvironments, environments);
   };
 
   handleChangeTime = ({start, end, relative: period, utc}: ChangeData) => {
@@ -217,10 +211,8 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     callIfFunction(this.props.onUpdateTime, newValueObj);
   };
 
-  handleUpdateEnvironmments = () => {
-    const {environments} = this.state;
+  handleUpdateEnvironments = (environments: string[]) => {
     updateEnvironments(environments, this.props.router, this.getUpdateOptions());
-    this.setState({environments: null});
     callIfFunction(this.props.onUpdateEnvironments, environments);
   };
 
@@ -232,7 +224,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       ...this.getUpdateOptions(),
       environments: [],
     });
-    this.setState({projects: null, environments: null});
+    this.setState({projects: null});
     callIfFunction(this.props.onUpdateProjects, projects);
   };
 
@@ -278,6 +270,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     const {
       className,
       shouldForceProject,
+      forceEnvironment,
       forceProject,
       isGlobalSelectionReady,
       loadingProjects,
@@ -369,9 +362,9 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                 projects={this.props.projects}
                 loadingProjects={loadingProjects}
                 selectedProjects={selectedProjects}
+                forceEnvironment={forceEnvironment}
                 value={this.props.selection.environments}
-                onChange={this.handleChangeEnvironments}
-                onUpdate={this.handleUpdateEnvironmments}
+                onUpdate={this.handleUpdateEnvironments}
               />
             </HeaderItemPosition>
           </React.Fragment>

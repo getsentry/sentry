@@ -1,34 +1,42 @@
 import Reflux from 'reflux';
 
 import MetricsTagActions from 'sentry/actions/metricTagActions';
-import {MetricTag, MetricTagCollection} from 'sentry/types';
+import {MetricsTag, MetricsTagCollection} from 'sentry/types';
 
-type MetricsTagStoreInterface = {
-  getAllTags(): MetricTagCollection;
-  onLoadTagsSuccess(data: MetricTag[]): void;
-  reset(): void;
-  state: MetricTagCollection;
+import {CommonStoreInterface} from './types';
+
+type State = {
+  metricsTags: MetricsTagCollection;
 };
 
-const storeConfig: Reflux.StoreDefinition & MetricsTagStoreInterface = {
-  state: {},
+type Internals = {
+  metricsTags: MetricsTagCollection;
+};
+
+type MetricsTagStoreInterface = CommonStoreInterface<State> & {
+  onLoadSuccess(data: MetricsTag[]): void;
+  reset(): void;
+};
+
+const storeConfig: Reflux.StoreDefinition & Internals & MetricsTagStoreInterface = {
+  metricsTags: {},
 
   init() {
-    this.state = {};
-    this.listenTo(MetricsTagActions.loadMetricsTagsSuccess, this.onLoadTagsSuccess);
+    this.listenTo(MetricsTagActions.loadMetricsTagsSuccess, this.onLoadSuccess);
   },
 
   reset() {
-    this.state = {};
-    this.trigger(this.state);
+    this.metricsTags = {};
+    this.trigger(this.metricsTags);
   },
 
-  getAllTags() {
-    return this.state;
+  getState() {
+    const {metricsTags} = this;
+    return {metricsTags};
   },
 
-  onLoadTagsSuccess(data) {
-    const newTags = data.reduce<MetricTagCollection>((acc, tag) => {
+  onLoadSuccess(data) {
+    const newTags = data.reduce<MetricsTagCollection>((acc, tag) => {
       acc[tag.key] = {
         ...tag,
       };
@@ -36,8 +44,8 @@ const storeConfig: Reflux.StoreDefinition & MetricsTagStoreInterface = {
       return acc;
     }, {});
 
-    this.state = {...this.state, ...newTags};
-    this.trigger(this.state);
+    this.metricsTags = {...this.metricsTags, ...newTags};
+    this.trigger(this.metricsTags);
   },
 };
 

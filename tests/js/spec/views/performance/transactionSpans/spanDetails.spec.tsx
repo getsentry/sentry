@@ -2,7 +2,7 @@ import {
   generateSuspectSpansResponse,
   initializeData as _initializeData,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
@@ -14,7 +14,7 @@ function initializeData(settings) {
   return data;
 }
 
-describe('Performance > Transaction Spans > Span Details', function () {
+describe('Performance > Transaction Spans > Span Summary', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -78,10 +78,10 @@ describe('Performance > Transaction Spans > Span Details', function () {
       });
     });
 
-    it('renders empty when missing project param', async function () {
+    it('renders empty when missing project param', function () {
       const data = initializeData({query: {transaction: 'transaction'}});
 
-      const {container} = mountWithTheme(
+      const {container} = render(
         <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
         {organization: data.organization}
       );
@@ -89,10 +89,10 @@ describe('Performance > Transaction Spans > Span Details', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('renders empty when missing transaction param', async function () {
+    it('renders empty when missing transaction param', function () {
       const data = initializeData({query: {project: '1'}});
 
-      const {container} = mountWithTheme(
+      const {container} = render(
         <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
         {organization: data.organization}
       );
@@ -106,7 +106,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });
@@ -115,7 +115,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         await screen.findByText('No results found for your query')
       ).toBeInTheDocument();
 
-      expect(await screen.findByText('Exclusive Time Breakdown')).toBeInTheDocument();
+      expect(await screen.findByText('Self Time Breakdown')).toBeInTheDocument();
     });
   });
 
@@ -176,7 +176,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });
@@ -241,10 +241,12 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });
+
+      expect(await screen.findByText('Span Summary')).toBeInTheDocument();
 
       const operationNameHeader = await screen.findByTestId('header-operation-name');
       expect(
@@ -257,7 +259,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
 
       const percentilesHeader = await screen.findByTestId('header-percentiles');
       expect(
-        await within(percentilesHeader).findByText('Exclusive Time Percentiles')
+        await within(percentilesHeader).findByText('Self Time Percentiles')
       ).toBeInTheDocument();
       const p75Section = await within(percentilesHeader).findByTestId('section-p75');
       expect(await within(p75Section).findByText('2.00ms')).toBeInTheDocument();
@@ -302,12 +304,12 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });
 
-      expect(await screen.findByText('Exclusive Time Breakdown')).toBeInTheDocument();
+      expect(await screen.findByText('Self Time Breakdown')).toBeInTheDocument();
     });
 
     it('renders table headers', async function () {
@@ -316,7 +318,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
         query: {project: '1', transaction: 'transaction'},
       });
 
-      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
         context: data.routerContext,
         organization: data.organization,
       });

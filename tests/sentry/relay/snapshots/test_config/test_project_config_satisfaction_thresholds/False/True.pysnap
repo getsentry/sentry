@@ -1,0 +1,9 @@
+---
+created: '2022-02-28T13:20:49.410307Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+projectThreshold:
+  metric: lcp
+  threshold: 500
+transactionThresholds: {}

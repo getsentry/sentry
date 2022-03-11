@@ -146,7 +146,7 @@ describe('EventsV2 > EventDetails', function () {
 
     // loading state
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
@@ -190,7 +190,7 @@ describe('EventsV2 > EventDetails', function () {
       routerContext
     );
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     // Get the first link as we wrap react-router's link
     const browserTagLink = wrapper
@@ -256,7 +256,7 @@ describe('EventsV2 > EventDetails', function () {
       routerContext
     );
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     // Get the first link as we wrap react-router's link
     const browserTagLink = wrapper

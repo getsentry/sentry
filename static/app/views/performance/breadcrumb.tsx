@@ -131,7 +131,7 @@ class Breadcrumb extends Component<Props> {
     if (transaction && spanSlug) {
       crumbs.push({
         to: '',
-        label: t('Span Details'),
+        label: t('Span Summary'),
       });
     } else if (transaction && eventSlug) {
       crumbs.push({

@@ -7,6 +7,7 @@ import {DashboardWidgetLibraryModalOptions} from 'sentry/components/modals/dashb
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
+import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {
   Group,
@@ -236,6 +237,15 @@ export async function openInviteMembersModal({
 
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
   const mod = await import('sentry/components/modals/addDashboardWidgetModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
+export async function openWidgetBuilderOverwriteModal(
+  options: OverwriteWidgetModalProps
+) {
+  const mod = await import('sentry/components/modals/widgetBuilder/overwriteWidgetModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});

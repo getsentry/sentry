@@ -1,10 +1,9 @@
-import {useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
-import DropdownButton from 'sentry/components/dropdownButton';
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
+import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -24,16 +23,10 @@ type Props = {
 function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, pinnedFilters, isReady} = useLegacyStore(PageFiltersStore);
+  const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
 
-  const [selectedEnvironments, setSelectedEnvironments] = useState<string[] | null>(null);
-
-  const handleChangeEnvironments = (environments: string[] | null) => {
-    setSelectedEnvironments(environments);
-  };
-
-  const handleUpdateEnvironments = (quickSelectedEnvs?: string[]) => {
-    updateEnvironments(quickSelectedEnvs ?? selectedEnvironments, router, {
+  const handleUpdateEnvironments = (environments: string[]) => {
+    updateEnvironments(environments, router, {
       save: true,
       resetParams: resetParamsOnChange,
     });
@@ -41,22 +34,26 @@ function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
 
   const customDropdownButton = ({isOpen, getActorProps, summary}) => {
     return (
-      <StyledDropdownButton isOpen={isOpen} {...getActorProps()}>
+      <PageFilterDropdownButton
+        isOpen={isOpen}
+        {...getActorProps()}
+        highlighted={desyncedFilters.has('environments')}
+      >
         <DropdownTitle>
           <IconWindow />
           <TitleContainer>{summary}</TitleContainer>
         </DropdownTitle>
-      </StyledDropdownButton>
+      </PageFilterDropdownButton>
     );
   };
 
   const customLoadingIndicator = (
-    <StyledDropdownButton showChevron={false} disabled>
+    <PageFilterDropdownButton showChevron={false} disabled>
       <DropdownTitle>
         <IconWindow />
         {t('Loading\u2026')}
       </DropdownTitle>
-    </StyledDropdownButton>
+    </PageFilterDropdownButton>
   );
 
   return (
@@ -66,19 +63,13 @@ function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
       loadingProjects={!projectsLoaded || !isReady}
       selectedProjects={selection.projects}
       value={selection.environments}
-      onChange={handleChangeEnvironments}
       onUpdate={handleUpdateEnvironments}
       customDropdownButton={customDropdownButton}
       customLoadingIndicator={customLoadingIndicator}
-      pinned={pinnedFilters.has('environments')}
+      detached
     />
   );
 }
-
-const StyledDropdownButton = styled(DropdownButton)`
-  width: 100%;
-  height: 40px;
-`;
 
 const TitleContainer = styled('div')`
   overflow: hidden;

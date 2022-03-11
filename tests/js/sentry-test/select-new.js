@@ -69,7 +69,7 @@ export async function selectByValueAsync(wrapper, value, options = {}) {
   openMenu(wrapper, options);
 
   await tick();
-  await wrapper.update();
+  wrapper.update();
 
   findOption(wrapper, {value}, options).at(0).simulate('click');
 }

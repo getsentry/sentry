@@ -1,7 +1,7 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricsColumnType, Organization, SelectValue} from 'sentry/types';
+import {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 
 import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
@@ -38,7 +38,7 @@ type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boo
 
 export type ValidateColumnTypes =
   | ColumnType[]
-  | MetricsColumnType[]
+  | MetricsType[]
   | ValidateColumnValueFunction;
 
 export type AggregateParameter =
@@ -998,6 +998,15 @@ export function isAggregateFieldOrEquation(field: string): boolean {
 
 export function getAggregateFields(fields: string[]): string[] {
   return fields.filter(field => isAggregateField(field) || isAggregateEquation(field));
+}
+
+export function getColumnsAndAggregates(fields: string[]): {
+  aggregates: string[];
+  columns: string[];
+} {
+  const aggregates = getAggregateFields(fields);
+  const columns = fields.filter(field => !!!aggregates.includes(field));
+  return {columns, aggregates};
 }
 
 /**

@@ -611,6 +611,18 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:relay_pii_config") == value
         assert response.data["relayPiiConfig"] == value
 
+    def test_store_crash_reports_exceeded(self):
+        # Uses a hard-coded number of MAX + 1 for regression testing.
+        #
+        # DO NOT INCREASE this number without checking the logic in event
+        # manager's ``get_stored_crashreports`` function. Increasing this number
+        # causes more load on postgres during ingestion.
+        data = {"storeCrashReports": 101}
+
+        resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert self.organization.get_option("sentry:store_crash_reports") is None
+        assert b"storeCrashReports" in resp.content
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
