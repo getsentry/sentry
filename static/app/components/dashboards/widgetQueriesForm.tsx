@@ -255,16 +255,18 @@ class WidgetQueriesForm extends React.Component<Props> {
           onChange={fields => {
             const {aggregates, columns} = getColumnsAndAggregatesAsStrings(fields);
             const fieldStrings = fields.map(field => generateFieldAsString(field));
-            const aggregateAliasFieldStrings = fieldStrings.map(field =>
+            const aggregateAliasFieldStrings = aggregates.map(field =>
               getAggregateAlias(field)
             );
             queries.forEach((widgetQuery, queryIndex) => {
               const descending = widgetQuery.orderby.startsWith('-');
               const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
-              const prevAggregateAliasFieldStrings = [
-                ...widgetQuery.columns,
-                ...widgetQuery.aggregates,
-              ].map(field => getAggregateAlias(field));
+              const prevAggregateAliasFields = defined(widgetQuery.fields)
+                ? widgetQuery.fields
+                : [...widgetQuery.columns, ...widgetQuery.aggregates];
+              const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(field =>
+                getAggregateAlias(field)
+              );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
               newQuery.aggregates = aggregates;
