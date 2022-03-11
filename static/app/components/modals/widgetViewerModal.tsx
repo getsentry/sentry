@@ -190,7 +190,12 @@ function WidgetViewerModal(props: Props) {
             onChange={(option: SelectValue<number>) =>
               router.replace({
                 pathname: location.pathname,
-                query: {...location.query, [WidgetViewerQueryField.QUERY]: option.value},
+                query: {
+                  ...location.query,
+                  [WidgetViewerQueryField.QUERY]: option.value,
+                  [WidgetViewerQueryField.PAGE]: undefined,
+                  [WidgetViewerQueryField.CURSOR]: undefined,
+                },
               })
             }
           />
