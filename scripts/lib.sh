@@ -24,7 +24,10 @@ require() {
 }
 
 configure-sentry-cli() {
-    # SENTRY_DSN is currently exported in .envrc
+    # XXX: For version 1.70.1 there's a bug hitting SENTRY_CLI_NO_EXIT_TRAP: unbound variable
+    # We can remove this after it's fixed
+    # https://github.com/getsentry/sentry-cli/pull/1059
+    export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
     if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
             curl -sL https://sentry.io/get-cli/ | bash
