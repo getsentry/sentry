@@ -46,6 +46,7 @@ export const MEPTag = () => {
       tooltipText={t(
         'These search conditions are only applicable to sampled transaction data. To edit sampling rates, go to Filters & Sampling in settings.'
       )}
+      data-test-id="has-metrics-data-tag"
     >
       {'Sampled'}
     </Tag>

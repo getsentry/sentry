@@ -15,9 +15,10 @@ import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets
 import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
-const initializeData = (query = {}) => {
+const initializeData = (query = {}, rest = {}) => {
   const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
+    ...rest,
   });
 
   data.eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
@@ -330,6 +331,59 @@ describe('Performance > Widgets > WidgetContainer', function () {
           yAxis: 'failure_rate()',
         }),
       })
+    );
+  });
+
+  it('Failure Rate Widget with MEP', async function () {
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
+
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      body: {
+        data: [],
+        meta: {
+          isMetricsData: true,
+        },
+      },
+    });
+
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        isMEPEnabled
+        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Failure RateSampled'
+    );
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          interval: '1h',
+          partial: '1',
+          query: 'transaction.op:pageload',
+          statsPeriod: '14d',
+          yAxis: 'failure_rate()',
+        }),
+      })
+    );
+
+    expect(wrapper.find('div[data-test-id="has-metrics-data-tag"]').text()).toEqual(
+      'Sampled'
     );
   });
 

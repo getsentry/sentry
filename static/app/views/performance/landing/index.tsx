@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -149,12 +150,14 @@ export function PerformanceLanding(props: Props) {
                 >
                   {t('View Trends')}
                 </Button>
-                <Button
-                  onClick={() => fnOpenModal()}
-                  icon={<IconSettings />}
-                  aria-label={t('Settings')}
-                  data-test-id="set-transaction-threshold"
-                />
+                <Feature features={['organizations:performance-use-metrics']}>
+                  <Button
+                    onClick={() => fnOpenModal()}
+                    icon={<IconSettings />}
+                    aria-label={t('Settings')}
+                    data-test-id="open-meps-settings"
+                  />
+                </Feature>
               </ButtonBar>
             )}
           </Layout.HeaderActions>
