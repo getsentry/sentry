@@ -19,10 +19,7 @@ function OnboardingController({experimentAssignment, ...rest}: Props) {
       organization: rest.organization,
     });
   }, []);
-  const {
-    params: {step},
-  } = rest;
-  if (step === 'welcome' && experimentAssignment) {
+  if (rest.params.step === 'welcome' && experimentAssignment) {
     return <TargetedOnboarding />;
   }
   return <Onboarding {...rest} />;
