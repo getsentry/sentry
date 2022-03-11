@@ -60,15 +60,8 @@ const Detail = styled(Title)`
 
 const ButtonContainer = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${space(1)};
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    flex-direction: column;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    flex-direction: row;
-  }
 `;
 
 const StyledButton = styled(Button)`
