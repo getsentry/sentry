@@ -174,6 +174,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
+    id = "sentry.rules.conditions.event_frequency.EventFrequencyCondition"
     label = "The issue is seen more than {value} times in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
@@ -189,6 +190,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
+    id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition"
     label = "The issue is seen by more than {value} users in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
@@ -249,6 +251,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
+    id = "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
     label = "The issue affects more than {value} percent of sessions in {interval}"
     logger = logging.getLogger("rules.event_frequency")
 

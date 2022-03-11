@@ -10,6 +10,7 @@ logger = logging.getLogger("sentry.rules")
 
 
 class AzureDevopsCreateTicketAction(TicketEventAction):  # type: ignore
+    id = "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction"
     label = "Create an Azure DevOps work item in {integration} with these "
     ticket_type = "an Azure DevOps work item"
     link = "https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync"
