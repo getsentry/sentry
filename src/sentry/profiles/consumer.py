@@ -35,7 +35,7 @@ class ProfilesWorker(AbstractBatchWorker):  # type: ignore
 
     def flush_batch(self, profiles: Sequence[MutableMapping[str, Any]]) -> None:
         for profile in profiles:
-            process_profile.delay(profile=profile)
+            process_profile.s(profile=profile).apply_async()
 
     def shutdown(self) -> None:
         pass
