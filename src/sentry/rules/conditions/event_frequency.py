@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import logging
 import re
 from datetime import datetime, timedelta
@@ -80,7 +81,7 @@ class EventFrequencyForm(forms.Form):  # type: ignore
         return cleaned_data
 
 
-class BaseEventFrequencyCondition(EventCondition):
+class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     intervals = standard_intervals
     form_cls = EventFrequencyForm
     label: str
