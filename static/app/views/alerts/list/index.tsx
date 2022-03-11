@@ -15,7 +15,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -269,7 +268,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <StyledAlert icon={<IconInfo />}>
+                  <StyledAlert showIcon>
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
                   <FilterBar

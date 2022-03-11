@@ -17,7 +17,7 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconAnchor, IconWarning} from 'sentry/icons';
+import {IconAnchor} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -49,8 +49,8 @@ class TransactionDetail extends Component<Props> {
     return (
       <Alert
         system
+        showIcon
         type="error"
-        icon={<IconWarning size="md" />}
         expand={errors.map(error => (
           <ErrorMessageContent key={error.event_id}>
             <ErrorDot level={error.level} />

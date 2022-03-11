@@ -8,8 +8,8 @@ import {Theme} from 'sentry/utils/theme';
 
 export interface AlertProps extends React.HTMLProps<HTMLDivElement> {
   expand?: React.ReactNode[];
-  showIcon?: boolean;
   opaque?: boolean;
+  showIcon?: boolean;
   system?: boolean;
   type?: keyof Theme['alert'];
 }

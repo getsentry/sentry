@@ -10,7 +10,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -72,7 +71,7 @@ function VitalsContent(props: Props) {
               return (
                 <React.Fragment>
                   {isMissingVitalsData && (
-                    <Alert type="info" icon={<IconInfo size="md" />}>
+                    <Alert type="info" showIcon>
                       {tct(
                         'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
                         {

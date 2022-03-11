@@ -5,7 +5,6 @@ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Alert, {AlertProps} from 'sentry/components/alert';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
@@ -90,7 +89,7 @@ function InnerGlobalSdkUpdateAlert(
   }
 
   return (
-    <Alert type="info" icon={<IconUpgrade />}>
+    <Alert type="info" showIcon>
       <Content>
         {t(
           `You have outdated SDKs in your projects. Update them for important fixes and features.`

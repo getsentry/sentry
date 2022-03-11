@@ -31,7 +31,6 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import TimeSince from 'sentry/components/timeSince';
-import {IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -131,7 +130,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
             if (error) {
               return (
-                <Alert type="error" icon={<IconInfo size="md" />}>
+                <Alert type="error" showIcon>
                   <ErrorLabel>
                     {tct(
                       'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: [error]',
@@ -143,7 +142,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             }
 
             return (
-              <Alert type="error" icon={<IconInfo size="md" />}>
+              <Alert type="error" showIcon>
                 <ErrorLabel>
                   {t('The trace cannot be shown when all events are errors.')}
                 </ErrorLabel>
@@ -329,7 +328,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     if (roots === 0 && orphans > 0) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="sm" />}>
+        <Alert type="info" showIcon>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -339,7 +338,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       );
     } else if (roots === 1 && orphans > 0) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="sm" />}>
+        <Alert type="info" showIcon>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -349,7 +348,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       );
     } else if (roots > 1) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="sm" />}>
+        <Alert type="info" showIcon>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>
