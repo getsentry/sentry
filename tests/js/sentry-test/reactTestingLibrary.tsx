@@ -82,6 +82,15 @@ function renderGlobalModal(options?: Options) {
 
 // @deprecated - temporary bridge for getsentry. Will be dropped in the next PR
 const mountWithTheme = render;
+const mountGlobalModal = renderGlobalModal;
 
 export * from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-export {render, renderGlobalModal, mountWithTheme, userEvent, reactHooks, fireEvent};
+export {
+  render,
+  renderGlobalModal,
+  mountWithTheme,
+  mountGlobalModal,
+  userEvent,
+  reactHooks,
+  fireEvent,
+};
