@@ -4,6 +4,8 @@
 import fs from 'fs';
 import path from 'path';
 
+import TestStubFixtures from '../../fixtures/js-stubs/types';
+
 const FIXTURES_ROOT = path.join(__dirname, '../../fixtures');
 
 type Options = {
@@ -16,10 +18,12 @@ type Options = {
 /**
  * Loads a directory of fixtures. Supports js and json fixtures.
  */
-export function loadFixtures(dir: string, opts: Options = {}): Record<string, any> {
+export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures {
   const from = path.join(FIXTURES_ROOT, dir);
   const files = fs.readdirSync(from);
-  const fixtures: Record<string, any> = {};
+
+  // @ts-ignore, this is a partial definition
+  const fixtures: TestStubFixtures = {};
 
   for (const file of files) {
     const filePath = path.join(from, file);
@@ -43,7 +47,8 @@ export function loadFixtures(dir: string, opts: Options = {}): Record<string, an
   }
 
   if (opts.flatten) {
-    const flattenedFixtures: Record<string, any> = {};
+    // @ts-ignore, this is a partial definition
+    const flattenedFixtures: TestStubFixtures = {};
 
     for (const moduleKey in fixtures) {
       for (const moduleExport in fixtures[moduleKey]) {
