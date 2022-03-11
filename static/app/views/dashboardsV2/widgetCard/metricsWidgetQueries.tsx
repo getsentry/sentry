@@ -137,7 +137,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       case DisplayType.BIG_NUMBER:
         return 1;
       default:
-        return undefined;
+        return 20; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
     }
   }
 

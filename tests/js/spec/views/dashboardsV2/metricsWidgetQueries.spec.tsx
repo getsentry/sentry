@@ -287,6 +287,8 @@ describe('Dashboards > MetricsWidgetQueries', function () {
           interval: '30m',
           project: [1],
           statsPeriod: '14d',
+          per_page: 20,
+          orderBy: 'sum(sentry.sessions.session)',
         },
       })
     );
@@ -301,6 +303,8 @@ describe('Dashboards > MetricsWidgetQueries', function () {
           project: [1],
           statsPeriod: '14d',
           query: 'environment:prod',
+          per_page: 20,
+          orderBy: 'sum(sentry.sessions.session)',
         },
       })
     );
