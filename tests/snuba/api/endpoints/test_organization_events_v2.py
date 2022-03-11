@@ -4701,12 +4701,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["environment"] == "staging"
         assert response.data["data"][0]["project.name"] == project.slug
 
-
-class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:discover-use-snql"] = True
-
     def test_timestamp_different_from_params(self):
         project = self.create_project()
         fifteen_days_ago = iso_format(before_now(days=15))
@@ -4960,7 +4954,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
         self.features = {
             "organizations:performance-use-metrics": True,
-            "organizations:discover-use-snql": True,
         }
 
     def do_request(self, query, features=None):

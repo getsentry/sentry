@@ -75,7 +75,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",
-            "organizations:discover-use-snql",
             "organizations:performance-use-metrics",
         ]
         batch_features = features.batch_has(
@@ -132,7 +131,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 else "api.organization-event-stats"
             )
             batch_features = self.get_features(organization, request)
-            discover_snql = batch_features.get("organizations:discover-use-snql", False)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
             )
@@ -166,7 +164,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     allow_empty=False,
                     zerofill_results=zerofill_results,
                     include_other=True,
-                    use_snql=discover_snql,
+                    use_snql=True,
                 )
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
             return dataset.timeseries_query(
@@ -177,7 +175,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 referrer=referrer,
                 zerofill_results=zerofill_results,
                 comparison_delta=comparison_delta,
-                use_snql=discover_snql,
+                use_snql=True,
             )
 
         try:

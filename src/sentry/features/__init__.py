@@ -64,7 +64,6 @@ default_manager.add("organizations:dashboards-metrics", OrganizationFeature, Tru
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
 default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
-default_manager.add("organizations:discover-use-snql", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
 default_manager.add("organizations:filters-and-sampling-error-rules", OrganizationFeature, True)
