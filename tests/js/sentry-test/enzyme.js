@@ -9,7 +9,7 @@ import {lightTheme} from 'sentry/utils/theme';
 /**
  * @deprecated
  * As we are migrating our tests to React Testing Library,
- * please avoid using `sentry-test/enzyme/mountWithTheme` and use `sentry-test/reactTestingLibrary/mountWithTheme` instead.
+ * please avoid using `sentry-test/enzyme/mountWithTheme` and use `sentry-test/reactTestingLibrary/render` instead.
  */
 export function mountWithTheme(tree, opts) {
   const WrappingThemeProvider = props => (
@@ -24,7 +24,7 @@ export function mountWithTheme(tree, opts) {
 /**
  * @deprecated
  * As we are migrating our tests to React Testing Library,
- * please avoid using `sentry-test/enzyme/shallow` and use `sentry-test/reactTestingLibrary/mountWithTheme` instead.
+ * please avoid using `sentry-test/enzyme/shallow` and use `sentry-test/reactTestingLibrary/render` instead.
  */
 export const shallow = enzymeShallow;
 
