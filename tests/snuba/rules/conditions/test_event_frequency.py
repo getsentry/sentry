@@ -82,12 +82,6 @@ class StandardIntervalMixin:
         data = {"interval": "1w", "value": 16}
         self._run_test(data=data, minutes=10080, passes=False)
 
-    def test_thirty_days_with_events(self):
-        data = {"interval": "30d", "value": 6}
-        self._run_test(data=data, minutes=43200 - 1, passes=True, add_events=True)
-        data = {"interval": "30d", "value": 16}
-        self._run_test(data=data, minutes=43200 - 1, passes=False)
-
     def test_one_minute_no_events(self):
         data = {"interval": "1m", "value": 6}
         self._run_test(data=data, minutes=1, passes=False)
@@ -103,10 +97,6 @@ class StandardIntervalMixin:
     def test_one_week_no_events(self):
         data = {"interval": "1w", "value": 6}
         self._run_test(data=data, minutes=10080, passes=False)
-
-    def test_thirty_days_no_events(self):
-        data = {"interval": "30d", "value": 6}
-        self._run_test(data=data, minutes=43200 - 1, passes=False)
 
     def test_comparison(self):
         with freeze_time(before_now(days=1).replace(hour=12, minute=30, second=0, microsecond=0)):
