@@ -75,6 +75,14 @@ async function createProjectResults(
           resultType: 'settings',
           to: `/settings/${orgId}/projects/${project.slug}/`,
         },
+        {
+          title: t('%s Alerts', project.slug),
+          description: t('List of project alert rules'),
+          model: project,
+          sourceType: 'project',
+          resultType: 'route',
+          to: `/organizations/${orgId}/alerts/rules/?project=${project.id}`,
+        },
       ];
 
       projectResults.unshift({

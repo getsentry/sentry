@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
 import {
   act,
-  mountWithTheme,
+  render,
   screen,
   // waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
@@ -50,7 +50,7 @@ describe('SuspectSpans', function () {
 
     it('renders basic UI elements', async function () {
       const initialData = initializeData();
-      mountWithTheme(
+      render(
         <SuspectSpans
           organization={initialData.organization}
           location={initialData.router.location}
@@ -79,7 +79,7 @@ describe('SuspectSpans', function () {
     //
     // it('allows sorting by some columns', async function () {
     //   const initialData = initializeData();
-    //   mountWithTheme(
+    //   render(
     //     <SuspectSpans
     //       organization={initialData.organization}
     //       location={initialData.router.location}

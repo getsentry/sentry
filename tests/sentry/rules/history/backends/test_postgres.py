@@ -169,8 +169,8 @@ class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
 
         results = self.backend.fetch_rule_hourly_stats(rule, before_now(hours=24), before_now())
         assert len(results) == 24
-        assert [r.count for r in results[-5:]] == [0, 0, 3, 2, 1]
+        assert [r.count for r in results[-5:]] == [0, 3, 2, 1, 0]
 
         results = self.backend.fetch_rule_hourly_stats(rule_2, before_now(hours=24), before_now())
         assert len(results) == 24
-        assert [r.count for r in results[-5:]] == [0, 0, 0, 1, 1]
+        assert [r.count for r in results[-5:]] == [0, 0, 1, 1, 0]

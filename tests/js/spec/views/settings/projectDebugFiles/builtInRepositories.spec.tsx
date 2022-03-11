@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import BuiltInRepositories from 'sentry/views/settings/projectDebugFiles/sources/builtInRepositories';
 
@@ -11,7 +11,7 @@ describe('Built-in Repositories', function () {
   const builtinSymbolSources = ['ios', 'microsoft', 'android'];
 
   it('renders', function () {
-    mountWithTheme(
+    render(
       <BuiltInRepositories
         api={api}
         organization={organization}

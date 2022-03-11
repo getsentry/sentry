@@ -1,4 +1,4 @@
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
 import withMetricsMeta, {InjectedMetricsMetaProps} from 'sentry/utils/withMetricsMeta';
@@ -27,7 +27,7 @@ describe('withMetricsMeta HoC', function () {
     };
 
     const Container = withMetricsMeta(MyComponent);
-    mountWithTheme(<Container other="value" />);
+    render(<Container other="value" />);
 
     // Should forward props.
     expect(screen.getByText('value')).toBeInTheDocument();
