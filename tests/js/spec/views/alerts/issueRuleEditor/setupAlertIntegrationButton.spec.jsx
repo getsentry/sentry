@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import SetupAlertIntegrationButton from 'sentry/views/alerts/issueRuleEditor/setupAlertIntegrationButton';
 
@@ -13,7 +13,7 @@ describe('SetupAlertIntegrationButton', function () {
         hasAlertIntegrationInstalled: false,
       },
     });
-    const {container} = mountWithTheme(
+    const {container} = render(
       <SetupAlertIntegrationButton
         projectSlug={project.slug}
         organization={organization}
@@ -29,7 +29,7 @@ describe('SetupAlertIntegrationButton', function () {
         hasAlertIntegrationInstalled: true,
       },
     });
-    const {container} = mountWithTheme(
+    const {container} = render(
       <SetupAlertIntegrationButton
         projectSlug={project.slug}
         organization={organization}

@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
@@ -98,7 +98,7 @@ describe('WidgetQueriesForm', function () {
   });
 
   it('only calls onChange once when selecting a value from the autocomplete dropdown', async function () {
-    mountWithTheme(<TestComponent />);
+    render(<TestComponent />);
     userEvent.click(screen.getByRole('textbox', {name: 'Search events'}));
     expect(await screen.findByText('Recent Searches')).toBeInTheDocument();
     userEvent.click(screen.getByText(':transaction'));
@@ -107,7 +107,7 @@ describe('WidgetQueriesForm', function () {
   });
 
   it('changes orderby to the new field', function () {
-    const {rerender} = mountWithTheme(<TestComponent />);
+    const {rerender} = render(<TestComponent />);
     userEvent.click(screen.getByText('count()'));
     userEvent.click(screen.getByText('count_unique()'));
     rerender(<TestComponent />);
@@ -116,7 +116,7 @@ describe('WidgetQueriesForm', function () {
 
   it('does not show metrics tags in orderby', function () {
     const field = `sum(${SessionMetric.SESSION})`;
-    mountWithTheme(
+    render(
       <TestComponent
         widgetType={WidgetType.METRICS}
         queries={[

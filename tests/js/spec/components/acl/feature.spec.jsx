@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Feature from 'sentry/components/acl/feature';
 import ConfigStore from 'sentry/stores/configStore';
@@ -27,7 +27,7 @@ describe('Feature', function () {
     it('has features', function () {
       const features = ['org-foo', 'project-foo'];
 
-      mountWithTheme(<Feature features={features}>{childrenMock}</Feature>, {
+      render(<Feature features={features}>{childrenMock}</Feature>, {
         context: routerContext,
       });
 
@@ -43,7 +43,7 @@ describe('Feature', function () {
     it('has features when requireAll is false', function () {
       const features = ['org-foo', 'project-foo', 'apple'];
 
-      mountWithTheme(
+      render(
         <Feature features={features} requireAll={false}>
           {childrenMock}
         </Feature>,
@@ -60,7 +60,7 @@ describe('Feature', function () {
     });
 
     it('has no features', function () {
-      mountWithTheme(<Feature features={['org-baz']}>{childrenMock}</Feature>, {
+      render(<Feature features={['org-baz']}>{childrenMock}</Feature>, {
         context: routerContext,
       });
 
@@ -75,7 +75,7 @@ describe('Feature', function () {
 
     it('calls render function when no features', function () {
       const noFeatureRenderer = jest.fn(() => null);
-      mountWithTheme(
+      render(
         <Feature features={['org-baz']} renderDisabled={noFeatureRenderer}>
           {childrenMock}
         </Feature>,
@@ -94,7 +94,7 @@ describe('Feature', function () {
 
     it('can specify org from props', function () {
       const customOrg = TestStubs.Organization({features: ['org-bazar']});
-      mountWithTheme(
+      render(
         <Feature organization={customOrg} features={['org-bazar']}>
           {childrenMock}
         </Feature>,
@@ -112,7 +112,7 @@ describe('Feature', function () {
 
     it('can specify project from props', function () {
       const customProject = TestStubs.Project({features: ['project-baz']});
-      mountWithTheme(
+      render(
         <Feature project={customProject} features={['project-baz']}>
           {childrenMock}
         </Feature>,
@@ -130,7 +130,7 @@ describe('Feature', function () {
 
     it('handles no org/project', function () {
       const features = ['org-foo', 'project-foo'];
-      mountWithTheme(<Feature features={features}>{childrenMock}</Feature>, {
+      render(<Feature features={features}>{childrenMock}</Feature>, {
         context: routerContext,
       });
 
@@ -146,10 +146,9 @@ describe('Feature', function () {
     });
 
     it('handles features prefixed with org/project', function () {
-      mountWithTheme(
-        <Feature features={['organizations:org-bar']}>{childrenMock}</Feature>,
-        {context: routerContext}
-      );
+      render(<Feature features={['organizations:org-bar']}>{childrenMock}</Feature>, {
+        context: routerContext,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
@@ -159,7 +158,7 @@ describe('Feature', function () {
         renderDisabled: false,
       });
 
-      mountWithTheme(<Feature features={['projects:bar']}>{childrenMock}</Feature>, {
+      render(<Feature features={['projects:bar']}>{childrenMock}</Feature>, {
         context: routerContext,
       });
 
@@ -176,10 +175,9 @@ describe('Feature', function () {
       ConfigStore.config = {
         features: new Set(['organizations:create']),
       };
-      mountWithTheme(
-        <Feature features={['organizations:create']}>{childrenMock}</Feature>,
-        {context: routerContext}
-      );
+      render(<Feature features={['organizations:create']}>{childrenMock}</Feature>, {
+        context: routerContext,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
@@ -193,7 +191,7 @@ describe('Feature', function () {
 
   describe('no children', function () {
     it('should display renderDisabled with no feature', function () {
-      mountWithTheme(
+      render(
         <Feature features={['nope']} renderDisabled={() => <span>disabled</span>} />,
         {context: routerContext}
       );
@@ -201,7 +199,7 @@ describe('Feature', function () {
     });
 
     it('should display be empty when on', function () {
-      mountWithTheme(
+      render(
         <Feature features={['org-bar']} renderDisabled={() => <span>disabled</span>} />,
         {context: routerContext}
       );
@@ -211,7 +209,7 @@ describe('Feature', function () {
 
   describe('as React node', function () {
     it('has features', function () {
-      mountWithTheme(
+      render(
         <Feature features={['org-bar']}>
           <div>The Child</div>
         </Feature>,
@@ -222,7 +220,7 @@ describe('Feature', function () {
     });
 
     it('has no features', function () {
-      mountWithTheme(
+      render(
         <Feature features={['org-baz']}>
           <div>The Child</div>
         </Feature>,
@@ -233,7 +231,7 @@ describe('Feature', function () {
     });
 
     it('renders a default disabled component', function () {
-      mountWithTheme(
+      render(
         <Feature features={['org-baz']} renderDisabled>
           <div>The Child</div>
         </Feature>,
@@ -247,7 +245,7 @@ describe('Feature', function () {
     it('calls renderDisabled function when no features', function () {
       const noFeatureRenderer = jest.fn(() => null);
       const children = <div>The Child</div>;
-      mountWithTheme(
+      render(
         <Feature features={['org-baz']} renderDisabled={noFeatureRenderer}>
           {children}
         </Feature>,
@@ -281,7 +279,7 @@ describe('Feature', function () {
 
     it('uses hookName if provided', function () {
       const children = <div>The Child</div>;
-      mountWithTheme(
+      render(
         <Feature features={['org-bazar']} hookName="feature-disabled:test-hook">
           {children}
         </Feature>,

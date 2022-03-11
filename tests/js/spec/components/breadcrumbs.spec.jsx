@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 
@@ -9,7 +9,7 @@ describe('Breadcrumbs', () => {
   });
 
   function createWrapper() {
-    return mountWithTheme(
+    return render(
       <Breadcrumbs
         crumbs={[
           {
@@ -31,7 +31,7 @@ describe('Breadcrumbs', () => {
   }
 
   it('returns null when 0 crumbs', () => {
-    const empty = mountWithTheme(<Breadcrumbs crumbs={[]} />);
+    const empty = render(<Breadcrumbs crumbs={[]} />);
 
     expect(empty.container).toBeEmptyDOMElement();
   });
@@ -57,7 +57,7 @@ describe('Breadcrumbs', () => {
 
   it('renders a crumb dropdown', async () => {
     const onSelect = jest.fn();
-    mountWithTheme(
+    render(
       <Breadcrumbs
         crumbs={[
           {

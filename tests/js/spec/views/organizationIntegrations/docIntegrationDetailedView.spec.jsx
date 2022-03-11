@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DocIntegrationDetailedView from 'sentry/views/organizationIntegrations/docIntegrationDetailedView';
 
@@ -13,7 +13,7 @@ describe('DocIntegrationDetailedView', function () {
       url: `/doc-integrations/${doc.slug}/`,
       body: doc,
     });
-    mountWithTheme(
+    render(
       <DocIntegrationDetailedView
         organization={organization}
         params={{integrationSlug: doc.slug, orgId: organization.slug}}

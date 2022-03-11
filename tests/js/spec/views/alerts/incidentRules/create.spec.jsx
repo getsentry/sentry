@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import IncidentRulesCreate from 'sentry/views/alerts/incidentRules/create';
 
@@ -39,7 +39,7 @@ describe('Incident Rules Create', function () {
 
   it('renders', function () {
     const {organization, project} = initializeOrg();
-    mountWithTheme(
+    render(
       <IncidentRulesCreate
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}

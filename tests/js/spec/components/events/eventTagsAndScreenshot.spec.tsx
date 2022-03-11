@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import EventTagsAndScreenshot from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventAttachment} from 'sentry/types';
@@ -144,7 +144,7 @@ describe('EventTagsAndScreenshot ', function () {
 
   describe('renders tags only', function () {
     it('not shared event - without attachments', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -193,7 +193,7 @@ describe('EventTagsAndScreenshot ', function () {
     });
 
     it('shared event - without attachments', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -216,7 +216,7 @@ describe('EventTagsAndScreenshot ', function () {
     });
 
     it('shared event - with attachments', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -241,7 +241,7 @@ describe('EventTagsAndScreenshot ', function () {
 
   describe('renders screenshot only', function () {
     it('no context and no tags', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={event}
           organization={organization}
@@ -270,7 +270,7 @@ describe('EventTagsAndScreenshot ', function () {
 
   describe('renders screenshot and tags', function () {
     it('has context, tags and attachments', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -303,7 +303,7 @@ describe('EventTagsAndScreenshot ', function () {
     });
 
     it('has context and attachments only', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, contexts}}
           organization={organization}
@@ -336,7 +336,7 @@ describe('EventTagsAndScreenshot ', function () {
     });
 
     it('has tags and attachments only', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags}}
           organization={organization}

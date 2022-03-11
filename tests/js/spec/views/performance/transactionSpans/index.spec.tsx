@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
-import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
@@ -80,7 +80,7 @@ describe('Performance > Transaction Spans', function () {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
-      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+      render(<TransactionSpans location={initialData.router.location} />, {
         context: initialData.routerContext,
         organization: initialData.organization,
       });
@@ -103,7 +103,7 @@ describe('Performance > Transaction Spans', function () {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
-      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+      render(<TransactionSpans location={initialData.router.location} />, {
         context: initialData.routerContext,
         organization: initialData.organization,
       });
@@ -134,7 +134,7 @@ describe('Performance > Transaction Spans', function () {
     ].forEach(({sort, label}) => {
       it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
-        mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+        render(<TransactionSpans location={initialData.router.location} />, {
           context: initialData.routerContext,
           organization: initialData.organization,
         });
@@ -151,7 +151,7 @@ describe('Performance > Transaction Spans', function () {
 
     it('renders the right count header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.COUNT}});
-      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+      render(<TransactionSpans location={initialData.router.location} />, {
         context: initialData.routerContext,
         organization: initialData.organization,
       });
@@ -167,7 +167,7 @@ describe('Performance > Transaction Spans', function () {
 
     it('renders the right avg occurrence header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
-      mountWithTheme(<TransactionSpans location={initialData.router.location} />, {
+      render(<TransactionSpans location={initialData.router.location} />, {
         context: initialData.routerContext,
         organization: initialData.organization,
       });

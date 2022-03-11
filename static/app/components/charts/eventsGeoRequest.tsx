@@ -7,12 +7,27 @@ import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
-type ChildrenArgs = {
+interface ChildrenRenderProps {
   errored: boolean;
   loading: boolean;
   reloading: boolean;
   tableData?: TableDataWithTitle[];
-};
+}
+
+export interface EventsGeoRequestProps {
+  api: Client;
+  children: (props: ChildrenRenderProps) => React.ReactElement;
+  end: DateString;
+  environments: string[];
+  organization: OrganizationSummary;
+  projects: number[];
+  query: string;
+  start: DateString;
+  yAxis: string | string[];
+  orderby?: string;
+  period?: string | null;
+  referrer?: string;
+}
 
 const EventsGeoRequest = ({
   api,
@@ -27,20 +42,7 @@ const EventsGeoRequest = ({
   environments,
   referrer,
   children,
-}: {
-  api: Client;
-  children: (args: ChildrenArgs) => React.ReactElement;
-  end: DateString;
-  environments: string[];
-  organization: OrganizationSummary;
-  projects: number[];
-  query: string;
-  start: DateString;
-  yAxis: string | string[];
-  orderby?: string;
-  period?: string | null;
-  referrer?: string;
-}) => {
+}: EventsGeoRequestProps) => {
   const eventView = EventView.fromSavedQuery({
     id: undefined,
     name: '',
@@ -54,27 +56,41 @@ const EventsGeoRequest = ({
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,
   });
-  const [results, setResults] = useState(undefined as ChildrenArgs['tableData']);
+  const [results, setResults] = useState(undefined as ChildrenRenderProps['tableData']);
   const [reloading, setReloading] = useState(false);
   const [errored, setErrored] = useState(false);
+
   useEffect(() => {
+    let mounted = true;
     setErrored(false);
+
     if (results) {
       setReloading(true);
     }
+
     doDiscoverQuery<TableData>(api, `/organizations/${organization.slug}/events-geo/`, {
       ...eventView.generateQueryStringObject(),
       referrer,
     })
       .then(discoverQueryResults => {
-        setResults([discoverQueryResults[0]] as TableDataWithTitle[]);
-        setReloading(false);
+        if (mounted) {
+          setResults([discoverQueryResults[0]] as TableDataWithTitle[]);
+          setReloading(false);
+        }
       })
       .catch(() => {
-        setErrored(true);
-        setReloading(false);
+        if (mounted) {
+          setErrored(true);
+          setReloading(false);
+        }
       });
+
+    return () => {
+      // Prevent setState leaking on unmounted component
+      mounted = false;
+    };
   }, [query, yAxis, start, end, period, environments, projects]);
+
   return children({
     errored,
     loading: !results && !errored,

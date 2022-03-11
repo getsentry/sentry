@@ -1,7 +1,7 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
@@ -23,8 +23,8 @@ jest.mock('sentry/components/tooltip', () => {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-function mountModal({initialData: {organization, routerContext}, widget}) {
-  return mountWithTheme(
+function renderModal({initialData: {organization, routerContext}, widget}) {
+  return render(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
         Header={stubEl}
@@ -124,7 +124,9 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      const modal = mountModal({initialData, widget: mockWidget});
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
+      const modal = renderModal({initialData, widget: mockWidget});
       container = modal.container;
       rerender = modal.rerender;
     });
@@ -339,7 +341,9 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      const modal = mountModal({initialData, widget: mockWidget});
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
+      const modal = renderModal({initialData, widget: mockWidget});
       container = modal.container;
       rerender = modal.rerender;
     });
@@ -442,7 +446,9 @@ describe('Modals -> WidgetViewerModal', function () {
         url: '/organizations/org-slug/events-geo/',
         body: eventsBody,
       });
-      container = mountModal({initialData, widget: mockWidget}).container;
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
+      container = renderModal({initialData, widget: mockWidget}).container;
     });
 
     it('always queries geo.country_code in the table chart', async function () {
@@ -534,7 +540,9 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         ],
       });
-      const modal = mountModal({initialData, widget: mockWidget});
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
+      const modal = renderModal({initialData, widget: mockWidget});
       container = modal.container;
       rerender = modal.rerender;
     });

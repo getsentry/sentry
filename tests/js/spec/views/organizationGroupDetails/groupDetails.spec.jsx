@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -64,7 +64,7 @@ describe('groupDetails', () => {
   }
 
   const createWrapper = (props = {selection}) => {
-    return mountWithTheme(
+    return render(
       <GroupDetails organization={organization} {...router} selection={props.selection}>
         <MockComponent />
       </GroupDetails>,

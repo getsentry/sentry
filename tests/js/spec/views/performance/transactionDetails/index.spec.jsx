@@ -1,4 +1,4 @@
-import {cleanup, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -29,7 +29,7 @@ describe('EventDetails', () => {
       },
     });
 
-    mountWithTheme(
+    render(
       <OrganizationContext.Provider value={organization}>
         <EventDetails
           organization={organization}
@@ -59,7 +59,7 @@ describe('EventDetails', () => {
       },
     });
 
-    mountWithTheme(
+    render(
       <OrganizationContext.Provider value={organization}>
         <EventDetails
           organization={organization}

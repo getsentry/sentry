@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamIssuesAge from 'sentry/views/organizationStats/teamInsights/teamIssuesAge';
 
@@ -24,7 +24,7 @@ describe('TeamIssuesAge', () => {
       url: `/teams/${organization.slug}/${team.slug}/issues/old/`,
       body: [TestStubs.Group()],
     });
-    mountWithTheme(<TeamIssuesAge organization={organization} teamSlug={team.slug} />);
+    render(<TeamIssuesAge organization={organization} teamSlug={team.slug} />);
 
     // Title
     expect(screen.getByText('RequestError')).toBeInTheDocument();

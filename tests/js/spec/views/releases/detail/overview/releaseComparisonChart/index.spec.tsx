@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ReleaseComparisonChart from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 
@@ -13,7 +13,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const allSessions = TestStubs.SessionUserCountByStatus2();
 
   it('displays correct all/release/change data', () => {
-    mountWithTheme(
+    render(
       <ReleaseComparisonChart
         release={release}
         releaseSessions={releaseSessions}
@@ -48,7 +48,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   });
 
   it('can change chart by clicking on a row', () => {
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <ReleaseComparisonChart
         release={release}
         releaseSessions={releaseSessions}
@@ -94,7 +94,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   });
 
   it('can expand row to show more charts', () => {
-    mountWithTheme(
+    render(
       <ReleaseComparisonChart
         release={release}
         releaseSessions={releaseSessions}
@@ -136,7 +136,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   });
 
   it('does not show expanders if there is no health data', () => {
-    mountWithTheme(
+    render(
       <ReleaseComparisonChart
         release={release}
         releaseSessions={null}

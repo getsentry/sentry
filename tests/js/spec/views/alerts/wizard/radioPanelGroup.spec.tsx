@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import RadioGroupPanel from 'sentry/views/alerts/wizard/radioPanelGroup';
 
@@ -6,7 +6,7 @@ describe('RadioGroupPanel', function () {
   it('calls onChange when clicked', function () {
     const mock = jest.fn();
 
-    mountWithTheme(
+    render(
       <RadioGroupPanel
         label="test"
         value="choice_one"
@@ -27,7 +27,7 @@ describe('RadioGroupPanel', function () {
   it('Renders extra content', function () {
     const mock = jest.fn();
 
-    mountWithTheme(
+    render(
       <RadioGroupPanel
         label="test"
         value="choice_one"

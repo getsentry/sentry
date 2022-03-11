@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -65,20 +65,20 @@ describe('SettingsSearch', function () {
   });
 
   it('renders', async function () {
-    mountWithTheme(<SettingsSearch params={{orgId: 'org-slug'}} />);
+    render(<SettingsSearch params={{orgId: 'org-slug'}} />);
 
     // renders input
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
   it('can focus when hotkey is pressed', function () {
-    mountWithTheme(<SettingsSearch />);
+    render(<SettingsSearch />);
     userEvent.keyboard('/', {keyboardMap: [{code: 'Slash', key: '/', keyCode: 191}]});
     expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
   it('can search', async function () {
-    mountWithTheme(<SettingsSearch />, {
+    render(<SettingsSearch />, {
       context: routerContext,
     });
 

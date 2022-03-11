@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AreaChart from 'sentry/components/charts/areaChart';
@@ -32,7 +32,7 @@ describe('Incident Rules Create', () => {
 
   it('renders a metric', async () => {
     const {organization, project} = initializeOrg();
-    mountWithTheme(
+    render(
       <TriggersChart
         api={api}
         organization={organization}

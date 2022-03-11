@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
@@ -78,7 +78,7 @@ describe('Dashboards > Create', function () {
 
       const widgetTitle = 'Widget Title';
 
-      mountWithTheme(
+      render(
         <CreateDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug'}}

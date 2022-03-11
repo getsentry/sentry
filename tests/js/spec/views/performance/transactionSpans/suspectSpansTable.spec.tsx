@@ -3,7 +3,7 @@ import {
   makeSuspectSpan,
   SAMPLE_SPANS,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SuspectSpansTable from 'sentry/views/performance/transactionSummary/transactionSpans/suspectSpansTable';
@@ -24,7 +24,7 @@ describe('SuspectSpansTable', () => {
     const suspectSpan = makeSuspectSpan(SAMPLE_SPANS[0]);
     suspectSpan.frequency = 120;
 
-    mountWithTheme(
+    render(
       <SuspectSpansTable
         location={initialData.router.location}
         organization={initialData.organization}

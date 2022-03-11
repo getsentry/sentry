@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
 
@@ -9,7 +9,7 @@ describe('TeamStability', () => {
       body: TestStubs.SessionStatusCountByProjectInPeriod(),
     });
     const project = TestStubs.Project({hasSessions: true, id: 123});
-    mountWithTheme(
+    render(
       <TeamStability
         projects={[project]}
         organization={TestStubs.Organization()}
@@ -25,7 +25,7 @@ describe('TeamStability', () => {
 
   it('should render no sessions', async () => {
     const noSessionProject = TestStubs.Project({hasSessions: false, id: 123});
-    mountWithTheme(
+    render(
       <TeamStability
         projects={[noSessionProject]}
         organization={TestStubs.Organization()}
@@ -37,7 +37,7 @@ describe('TeamStability', () => {
   });
 
   it('should render no projects', async () => {
-    mountWithTheme(
+    render(
       <TeamStability projects={[]} organization={TestStubs.Organization()} period="7d" />
     );
 

@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 
@@ -7,7 +7,7 @@ describe('EventOrGroupExtraDetails', function () {
   const {routerContext} = initializeOrg();
 
   it('renders last and first seen', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -24,7 +24,7 @@ describe('EventOrGroupExtraDetails', function () {
   });
 
   it('renders only first seen', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -40,7 +40,7 @@ describe('EventOrGroupExtraDetails', function () {
   });
 
   it('renders only last seen', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -56,7 +56,7 @@ describe('EventOrGroupExtraDetails', function () {
   });
 
   it('renders all details', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -81,7 +81,7 @@ describe('EventOrGroupExtraDetails', function () {
   });
 
   it('renders assignee and status', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -108,7 +108,7 @@ describe('EventOrGroupExtraDetails', function () {
   });
 
   it('details when mentioned', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',

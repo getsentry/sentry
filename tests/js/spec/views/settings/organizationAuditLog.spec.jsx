@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
@@ -54,7 +54,7 @@ describe('OrganizationAuditLog', () => {
         params: {orgId: 'org-slug'},
       },
     });
-    mountWithTheme(
+    render(
       <OrganizationAuditLog
         organization={organization}
         params={{orgId: organization.slug}}

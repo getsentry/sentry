@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -39,7 +39,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can pick project', function () {
-    mountWithTheme(<ProjectPageFilter />, {
+    render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
     });
@@ -65,7 +65,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can pin selection', async function () {
-    mountWithTheme(<ProjectPageFilter />, {
+    render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
     });
@@ -88,7 +88,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can quick select', async function () {
-    mountWithTheme(<ProjectPageFilter />, {
+    render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
     });
@@ -126,7 +126,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('will change projects when page filter selection changes, e.g. from back button nav', async function () {
-    mountWithTheme(<ProjectPageFilter />, {
+    render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
     });

@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {RouteError} from 'sentry/views/routeError';
 
@@ -22,7 +22,7 @@ describe('RouteError', function () {
   const {location, params, routes} = router;
 
   it('captures errors with sentry', async function () {
-    mountWithTheme(
+    render(
       <RouteError
         router={router}
         routes={routes}

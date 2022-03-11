@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import DashboardWidgetLibraryModal from 'sentry/components/modals/dashboardWidgetLibraryModal';
@@ -14,7 +14,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 function mountModal({initialData}, onApply, closeModal, widgets = []) {
-  return mountWithTheme(
+  return render(
     <DashboardWidgetLibraryModal
       Header={stubEl}
       Footer={stubEl}

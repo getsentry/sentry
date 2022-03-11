@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRuleModal';
 
@@ -70,7 +70,7 @@ describe('SentryAppRuleModal', function () {
   };
 
   const createWrapper = (props = {}) => {
-    return mountWithTheme(
+    return render(
       <SentryAppRuleModal
         {...modalElements}
         sentryAppInstallationUuid={sentryAppInstallation.uuid}

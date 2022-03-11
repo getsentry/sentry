@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -79,7 +79,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async function () {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -107,7 +107,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('renders with Open in Discover button and opens in Discover when clicked', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -135,7 +135,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('Opens in Discover with World Map', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -167,7 +167,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('Opens in Discover with prepended fields pulled from equations', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -205,7 +205,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('Opens in Discover with Top N', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -240,7 +240,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -270,7 +270,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('does not add duplicate widgets if max widget is reached', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -300,7 +300,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls onEdit when Edit Widget is clicked', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -330,7 +330,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('renders delete widget option', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -366,7 +366,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls eventsV2 with a limit of 20 items', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -401,7 +401,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls eventsV2 with a default limit of 5 items', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -448,7 +448,7 @@ describe('Dashboards > WidgetCard', function () {
         },
       ],
     };
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -481,7 +481,7 @@ describe('Dashboards > WidgetCard', function () {
       widgetType: WidgetType.METRICS,
       queries: [],
     };
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -511,7 +511,7 @@ describe('Dashboards > WidgetCard', function () {
       widgetType: WidgetType.DISCOVER,
       queries: [],
     };
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}

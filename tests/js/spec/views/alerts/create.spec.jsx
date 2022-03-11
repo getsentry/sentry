@@ -2,12 +2,7 @@ import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -65,7 +60,7 @@ describe('ProjectAlertsCreate', function () {
     const {organization, project, router} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
-    const wrapper = mountWithTheme(
+    const wrapper = render(
       <AlertsContainer>
         <AlertBuilderProjectProvider params={params}>
           <ProjectAlertsCreate

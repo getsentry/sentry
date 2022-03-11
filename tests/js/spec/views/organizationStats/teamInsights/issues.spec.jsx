@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -130,7 +130,7 @@ describe('TeamStatsIssues', () => {
     const context = TestStubs.routerContext([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
-    return mountWithTheme(<TeamStatsIssues router={mockRouter} location={{}} />, {
+    return render(<TeamStatsIssues router={mockRouter} location={{}} />, {
       context,
       organization,
     });

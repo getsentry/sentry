@@ -1,10 +1,10 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 
 describe('MultipleCheckbox', function () {
   it('renders', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <MultipleCheckbox
         choices={[
           [0, 'Choice A'],
@@ -20,7 +20,7 @@ describe('MultipleCheckbox', function () {
 
   it('unselects a checked input', function () {
     const onChange = jest.fn();
-    mountWithTheme(
+    render(
       <MultipleCheckbox
         choices={[
           [0, 'Choice A'],
@@ -38,7 +38,7 @@ describe('MultipleCheckbox', function () {
 
   it('selects an unchecked input', function () {
     const onChange = jest.fn();
-    mountWithTheme(
+    render(
       <MultipleCheckbox
         choices={[
           [0, 'Choice A'],

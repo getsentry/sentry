@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagValues from 'sentry/views/organizationGroupDetails/groupTagValues';
 
@@ -24,7 +24,7 @@ describe('GroupTagValues', () => {
       url: '/issues/1/tags/user/values/',
       body: TestStubs.TagValues(),
     });
-    mountWithTheme(
+    render(
       <GroupTagValues
         group={group}
         project={project}
@@ -49,7 +49,7 @@ describe('GroupTagValues', () => {
       url: '/issues/1/tags/user/values/',
       body: [],
     });
-    const {container} = mountWithTheme(
+    const {container} = render(
       <GroupTagValues
         group={group}
         project={project}

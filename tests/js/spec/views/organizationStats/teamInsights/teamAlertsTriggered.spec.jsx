@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import TeamAlertsTriggered from 'sentry/views/organizationStats/teamInsights/teamAlertsTriggered';
 
@@ -10,7 +10,7 @@ describe('TeamAlertsTriggered', () => {
       url: `/teams/${organization.slug}/${team.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
     });
-    mountWithTheme(
+    render(
       <TeamAlertsTriggered organization={organization} teamSlug={team.slug} period="8w" />
     );
 

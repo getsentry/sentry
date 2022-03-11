@@ -1,4 +1,4 @@
-import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import Teams from 'sentry/utils/teams';
@@ -6,7 +6,7 @@ import Teams from 'sentry/utils/teams';
 describe('utils.teams', function () {
   const renderer = jest.fn(() => null);
 
-  const createWrapper = props => mountWithTheme(<Teams {...props}>{renderer}</Teams>);
+  const createWrapper = props => render(<Teams {...props}>{renderer}</Teams>);
 
   beforeEach(function () {
     TeamStore.loadInitialData([

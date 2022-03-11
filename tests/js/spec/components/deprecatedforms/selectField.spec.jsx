@@ -1,13 +1,13 @@
 import selectEvent from 'react-select-event';
 
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form, SelectField} from 'sentry/components/deprecatedforms';
 import FormModel from 'sentry/components/forms/model';
 
 describe('SelectField', function () {
   it('renders without form context', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <SelectField
         options={[
           {label: 'a', value: 'a'},
@@ -21,7 +21,7 @@ describe('SelectField', function () {
   });
 
   it('renders with flat choices', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <Form
         value={
           new FormModel({
@@ -38,7 +38,7 @@ describe('SelectField', function () {
   });
 
   it('renders with paired choices', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <Form
         value={
           new FormModel({
@@ -63,7 +63,7 @@ describe('SelectField', function () {
 
   it('can change value and submit', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <Form onSubmit={mock}>
         <SelectField
           options={[
@@ -86,7 +86,7 @@ describe('SelectField', function () {
 
   it('can set the value to empty string via props with no options', async function () {
     const mock = jest.fn();
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <SelectField
         options={[
           {label: 'a', value: 'a'},
@@ -112,7 +112,7 @@ describe('SelectField', function () {
   describe('Multiple', function () {
     it('selects multiple values and submits', async function () {
       const mock = jest.fn();
-      mountWithTheme(
+      render(
         <Form onSubmit={mock}>
           <SelectField
             multiple

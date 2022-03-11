@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
@@ -71,7 +71,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div />);
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={singleQueryWidget}
@@ -113,7 +113,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div />);
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}
@@ -214,7 +214,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div />);
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.BIG_NUMBER}}
@@ -264,7 +264,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         }),
       ],
     });
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -323,7 +323,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div data-test-id="child" />);
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -352,7 +352,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       }),
     });
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={{...singleQueryWidget, interval: '1m'}}
@@ -387,7 +387,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div />);
 
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <MetricsWidgetQueries
         api={api}
         widget={singleQueryWidget}

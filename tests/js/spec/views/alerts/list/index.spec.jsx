@@ -1,11 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -21,7 +15,7 @@ describe('IncidentsList', function () {
   const projects2 = ['c', 'd'];
 
   const createWrapper = (props = {}) => {
-    return mountWithTheme(
+    return render(
       <IncidentsList
         params={{orgId: organization.slug}}
         location={{query: {}, search: ''}}

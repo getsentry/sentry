@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -128,7 +128,7 @@ describe('Performance > Widgets > Query Batching', function () {
   it('EventsRequest based component fires query without provider', async function () {
     const data = initializeData();
 
-    mountWithTheme(
+    render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
@@ -156,7 +156,7 @@ describe('Performance > Widgets > Query Batching', function () {
   it('Multiple EventsRequest based components fire individual queries without provider', async function () {
     const data = initializeData();
 
-    mountWithTheme(
+    render(
       <Fragment>
         <WrappedComponent
           data={data}
@@ -195,7 +195,7 @@ describe('Performance > Widgets > Query Batching', function () {
   it('Multiple EventsRequest based component merge queries with provider ', async function () {
     const data = initializeData();
 
-    mountWithTheme(
+    render(
       <GenericQueryBatcher>
         <WrappedComponent
           data={data}
@@ -242,7 +242,7 @@ describe('Performance > Widgets > Query Batching', function () {
 
     const data = initializeData();
 
-    mountWithTheme(
+    render(
       <GenericQueryBatcher>
         <WrappedComponent
           data={data}
