@@ -18,6 +18,18 @@ function RRWebReplayer({urls}: Props) {
 
   const loadEvents = async () => {
     try {
+      // rrweb's recordings consist of:
+      // 1) "checkout" phase that essentially records the entire DOM
+      // 2) incremental updates (DOM changes/events)
+      //
+      // The "checkout" phase can be configured to happen at a time interval or
+      // an event interval. We want to support SDK clients that record a
+      // single, large JSON, but also clients that record the checkout and
+      // incremental updates in separate JSON files.
+      //
+      // Below we download all of the JSON files and merge them into a large
+      // list of events for the replayer. The replayer *should* support a large
+      // list that has multiple checkouts.
       const data: RRWebEvents[] = await Promise.all(
         urls.map(async url => {
           const resp = await fetch(url);
