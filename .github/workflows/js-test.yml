@@ -1,0 +1,13 @@
+name: js test
+
+on: push
+
+jobs:
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: yarn
+      - name: Run tests
+        run: yarn test-ci
