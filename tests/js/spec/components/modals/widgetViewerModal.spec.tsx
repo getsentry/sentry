@@ -397,6 +397,29 @@ describe('Modals -> WidgetViewerModal', function () {
     it('paginates to the next page', async function () {
       expect(screen.getByText('Test Error 1c')).toBeInTheDocument();
       userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {cursor: '0:10:0'},
+        })
+      );
+      // Need to manually set the new router location and rerender to simulate the next page click
+      initialData.router.location.query = {cursor: ['0:10:0']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
       expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
     });
   });
@@ -626,6 +649,29 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
       userEvent.click(await screen.findByRole('button', {name: 'Next'}));
       expect(issuesMock).toHaveBeenCalledTimes(1);
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {cursor: '0:10:0', page: 1},
+        })
+      );
+      // Need to manually set the new router location and rerender to simulate the next page click
+      initialData.router.location.query = {cursor: ['0:10:0']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
     });
   });
