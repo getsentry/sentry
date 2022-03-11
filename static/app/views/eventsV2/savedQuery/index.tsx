@@ -237,7 +237,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   };
 
   handleAddDashboardWidget = () => {
-    const {organization, router, location, eventView, savedQuery} = this.props;
+    const {organization, router, location, eventView, savedQuery, yAxis} = this.props;
 
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
     const defaultTableFields = eventView.fields.map(({field}) => field);
@@ -248,9 +248,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       name: '',
       aggregates: [
         ...(displayType === DisplayType.TOP_N ? aggregates : []),
-        ...(typeof savedQuery?.yAxis === 'string'
-          ? [savedQuery?.yAxis]
-          : savedQuery?.yAxis ?? ['count()']),
+        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
       ],
       columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       conditions: eventView.query,
@@ -272,8 +270,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           ...location.query,
           source: DashboardWidgetSource.DISCOVERV2,
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          defaultTableColumns: columns,
-          defaultTableAggregates: aggregates,
+          defaultTableColumns: defaultWidgetQuery.columns,
+          defaultTableAggregates: defaultWidgetQuery.aggregates,
           defaultTitle,
           displayType,
         },
@@ -285,8 +283,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       organization,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns: columns,
-      defaultTableAggregates: aggregates,
+      defaultTableColumns: defaultWidgetQuery.columns,
+      defaultTableAggregates: defaultWidgetQuery.aggregates,
       defaultTitle,
       displayType,
     });
