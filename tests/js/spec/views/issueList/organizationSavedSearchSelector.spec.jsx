@@ -1,66 +1,55 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IssueListSavedSearchSelector from 'sentry/views/issueList/savedSearchSelector';
 
 describe('IssueListSavedSearchSelector', function () {
-  let wrapper, onSelect, onDelete, organization, savedSearchList;
-  beforeEach(function () {
-    organization = TestStubs.Organization({access: ['org:write']});
-    onSelect = jest.fn();
-    onDelete = jest.fn();
-    savedSearchList = [
-      {
-        id: '789',
-        query: 'is:unresolved',
-        name: 'Unresolved',
-        isPinned: false,
-        isGlobal: true,
-      },
-      {
-        id: '122',
-        query: 'is:unresolved assigned:me',
-        name: 'Assigned to me',
-        isPinned: false,
-        isGlobal: false,
-      },
-    ];
-    wrapper = mountWithTheme(
+  const onSelect = jest.fn();
+  const savedSearchList = [
+    {
+      id: '789',
+      query: 'is:unresolved',
+      name: 'Unresolved',
+      isPinned: false,
+      isGlobal: true,
+    },
+    {
+      id: '122',
+      query: 'is:unresolved assigned:me',
+      name: 'Assigned to me',
+      isPinned: false,
+      isGlobal: false,
+    },
+  ];
+
+  function mountSavedSearchSelector({query} = {}) {
+    return mountWithTheme(
       <IssueListSavedSearchSelector
-        organization={organization}
+        organization={TestStubs.Organization({access: ['org:write']})}
         savedSearchList={savedSearchList}
         onSavedSearchSelect={onSelect}
-        onSavedSearchDelete={onDelete}
-        query="is:unresolved assigned:lyn@sentry.io"
+        onSavedSearchDelete={jest.fn()}
+        query={query ?? 'is:unresolved assigned:lyn@sentry.io'}
       />
     );
-  });
-
-  afterEach(function () {
-    MockApiClient.clearMockResponses();
-  });
+  }
 
   describe('button title', function () {
     it('defaults to custom search', function () {
-      expect(wrapper.find('ButtonTitle').text()).toBe('Custom Search');
+      mountSavedSearchSelector();
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
     });
 
     it('uses query to match', function () {
-      wrapper.setProps({query: 'is:unresolved assigned:me'});
-      wrapper.update();
-
-      expect(wrapper.find('ButtonTitle').text()).toBe('Assigned to me');
+      mountSavedSearchSelector({query: 'is:unresolved assigned:me'});
+      expect(screen.getByRole('button', {name: 'Assigned to me'})).toBeInTheDocument();
     });
   });
 
   describe('selecting an option', function () {
-    it('calls onSelect when clicked', async function () {
-      wrapper.find('DropdownButton').simulate('click');
-      wrapper.update();
-
-      const item = wrapper.find('MenuItem a').first();
-      expect(item).toHaveLength(1);
-
-      item.simulate('click');
+    it('calls onSelect when clicked', function () {
+      mountSavedSearchSelector();
+      userEvent.click(screen.getByText('Custom Search'));
+      userEvent.click(screen.getByText('Assigned to me'));
       expect(onSelect).toHaveBeenCalled();
     });
   });
