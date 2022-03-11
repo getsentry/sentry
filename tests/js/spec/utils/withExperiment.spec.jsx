@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {logExperiment} from 'sentry/utils/analytics';
@@ -44,7 +44,7 @@ describe('withConfig HoC', function () {
 
   it('injects org experiment assignment', function () {
     const Container = withExperiment(MyComponent, {experiment: 'orgExperiment'});
-    mountWithTheme(<Container organization={organization} />);
+    render(<Container organization={organization} />);
 
     expect(screen.getByText('1')).toBeInTheDocument();
   });
@@ -53,14 +53,14 @@ describe('withConfig HoC', function () {
     ConfigStore.set('user', {id: 123, experiments: {userExperiment: 2}});
 
     const Container = withExperiment(MyComponent, {experiment: 'userExperiment'});
-    mountWithTheme(<Container />);
+    render(<Container />);
 
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
   it('logs experiment assignment', function () {
     const Container = withExperiment(MyComponent, {experiment: 'orgExperiment'});
-    mountWithTheme(<Container organization={organization} />);
+    render(<Container organization={organization} />);
 
     expect(logExperiment).toHaveBeenCalledWith({key: 'orgExperiment', organization});
   });
@@ -70,7 +70,7 @@ describe('withConfig HoC', function () {
       experiment: 'orgExperiment',
       injectLogExperiment: true,
     });
-    mountWithTheme(<Container organization={organization} />);
+    render(<Container organization={organization} />);
     expect(logExperiment).not.toHaveBeenCalled();
 
     // Call log experiment and verify it was called

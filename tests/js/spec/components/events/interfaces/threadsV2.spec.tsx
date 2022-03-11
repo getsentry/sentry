@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {EventOrGroupType} from 'sentry/types';
@@ -203,7 +203,7 @@ describe('ThreadsV2', function () {
       };
 
       it('renders', function () {
-        const {container} = mountWithTheme(<ThreadsV2 {...props} />, {
+        const {container} = render(<ThreadsV2 {...props} />, {
           organization: org,
         });
 
@@ -234,7 +234,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle raw button', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
         userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
@@ -254,7 +254,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
@@ -294,7 +294,7 @@ describe('ThreadsV2', function () {
       });
 
       it('check options', async function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
           screen.getByRole('button', {name: 'Options 0 Active'})
@@ -861,7 +861,7 @@ describe('ThreadsV2', function () {
       };
 
       it('renders', function () {
-        const {container} = mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        const {container} = render(<ThreadsV2 {...props} />, {organization: org});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
@@ -891,7 +891,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle raw button', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
         userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
@@ -911,7 +911,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
@@ -949,7 +949,7 @@ describe('ThreadsV2', function () {
       });
 
       it('check options', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
           screen.getByRole('button', {name: 'Options 0 Active'})

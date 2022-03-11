@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
@@ -31,7 +31,7 @@ describe('SuspectSpansQuery', function () {
       body: [],
     });
 
-    mountWithTheme(
+    render(
       <SuspectSpansQuery
         location={location}
         orgSlug="test-org"
@@ -53,7 +53,7 @@ describe('SuspectSpansQuery', function () {
       match: [MockApiClient.matchQuery({spanOp: ['op1']})],
     });
 
-    mountWithTheme(
+    render(
       <SuspectSpansQuery
         location={location}
         orgSlug="test-org"
@@ -75,7 +75,7 @@ describe('SuspectSpansQuery', function () {
       match: [MockApiClient.matchQuery({spanGroup: ['aaaaaaaaaaaaaaaa']})],
     });
 
-    mountWithTheme(
+    render(
       <SuspectSpansQuery
         location={location}
         orgSlug="test-org"
@@ -97,7 +97,7 @@ describe('SuspectSpansQuery', function () {
       match: [MockApiClient.matchQuery({perSuspect: 1})],
     });
 
-    mountWithTheme(
+    render(
       <SuspectSpansQuery
         location={location}
         orgSlug="test-org"

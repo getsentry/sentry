@@ -1,10 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  mountWithTheme as rtlMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
@@ -167,7 +163,7 @@ describe('Dashboards > Dashboard', () => {
       MemberListStore.init();
     });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
-      rtlMountWithTheme(
+      render(
         <Dashboard
           paramDashboardId="1"
           dashboard={dashboard}
@@ -228,7 +224,7 @@ describe('Dashboards > Dashboard', () => {
           widgetLimitReached={false}
         />
       );
-      const {rerender} = rtlMountWithTheme(getDashboardComponent());
+      const {rerender} = render(getDashboardComponent());
       return {rerender: () => rerender(getDashboardComponent())};
     };
 

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import SpanOpsQuery from 'sentry/utils/performance/suspectSpans/spanOpsQuery';
@@ -31,7 +31,7 @@ describe('SuspectSpansQuery', function () {
       body: [],
     });
 
-    mountWithTheme(
+    render(
       <SpanOpsQuery location={location} orgSlug="test-org" eventView={eventView}>
         {() => null}
       </SpanOpsQuery>
