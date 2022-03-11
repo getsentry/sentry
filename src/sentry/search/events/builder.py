@@ -1419,11 +1419,11 @@ class HistogramQueryBuilder(QueryBuilder):
             key_values: List[str] = [field for field in field_names if isinstance(field, str)]
             self.where.append(Condition(self.resolve_column(key_column), Op.IN, key_values))
 
-        # # make sure to bound the bins to get the desired range of results
-        # min_bin = histogram_params.start_offset
-        # self.where.append(Condition(resolved_histogram, Op.GTE, min_bin))
-        # max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
-        # self.where.append(Condition(resolved_histogram, Op.LTE, max_bin))
+        # make sure to bound the bins to get the desired range of results
+        min_bin = histogram_params.start_offset
+        self.where.append(Condition(resolved_histogram, Op.GTE, min_bin))
+        max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
+        self.where.append(Condition(resolved_histogram, Op.LTE, max_bin))
 
         if key_column is not None:
             self.columns.append(self.resolve_column(key_column))

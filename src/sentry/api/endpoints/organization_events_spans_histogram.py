@@ -53,7 +53,7 @@ class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase)
                 data = serializer.validated_data
 
                 with self.handle_query_errors():
-                    results = discover.spans_histowgram_query(
+                    results = discover.spans_histogram_query(
                         data["span"],
                         data.get("query"),
                         params,

@@ -1338,8 +1338,6 @@ def spans_histogram_query(
     group_by=None,
     order_by=None,
     limit_by=None,
-    histogram_rows=None,
-    extra_conditions=None,
     extra_snql_condition=None,
     normalize_results=True,
 ):
@@ -1353,9 +1351,12 @@ def spans_histogram_query(
     # )
 
     key_column = None
-
-    histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
     field_names = []
+    histogram_rows = None
+
+    # TODO calculate histogram_params
+    # histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
+    histogram_params = HistogramParams(num_buckets=100, bucket_size=1, start_offset=0, multiplier=1)
     histogram_column = get_span_histogram_column(span, histogram_params)
 
     builder = HistogramQueryBuilder(
@@ -1371,17 +1372,20 @@ def spans_histogram_query(
         params,
         query=user_query,
         # TODO figure out what should be passed to selected_columns
-        selected_columns=["spans.exclusive_time_32", "spans.op", "spans.group"],
+        selected_columns=["spans.exclusive_time_32"],
         orderby=order_by,
         limitby=limit_by,
     )
+    if extra_snql_condition is not None:
+        builder.add_conditions(extra_snql_condition)
     results = builder.run_query(referrer)
 
     if not normalize_results:
         return results
 
-    return results
+    # TODO refactor normalize_histogram_results so that it can operate with span data
     # return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
+    return results
 
 
 def histogram_query(
@@ -1560,7 +1564,7 @@ def get_span_histogram_column(span, histogram_params):
     """
     span_op = span.op
     span_group = span.group
-    return f"spans_histogram({span_op}, {span_group}, 5, 0, 100)"
+    return f"spans_histogram({span_op}, {span_group}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
 
 
 def get_histogram_column(fields, key_column, histogram_params, array_column):
