@@ -44,7 +44,7 @@ class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):  # type: i
         :auth: required
         """
 
-        requester_name = request.user.get_display_name()  # type: ignore
+        requester_name = request.user.get_display_name()
         integrations_roles = [r.id for r in roles.get_all() if r.has_scope("org:integrations")]
         recipients = OrganizationMember.objects.get_contactable_members_for_org(
             project.organization.id
@@ -60,4 +60,4 @@ class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):  # type: i
             )
             msg.send_async([email])
 
-        return self.respond(status=202)  # type: ignore
+        return self.respond(status=202)
