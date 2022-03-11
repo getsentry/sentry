@@ -64,21 +64,18 @@ const GEO_COUNTRY_CODE = 'geo.country_code';
 // This is required because we want to prevent ECharts interactions from causing unnecessary rerenders which can break persistent legends functionality
 const MemoizedWidgetCardChartContainer = React.memo(
   WidgetCardChartContainer,
-  ({selection}, {selection: previousSelection}) => {
-    return selection === previousSelection;
+  (props, prevProps) => {
+    return (
+      props.selection === prevProps.selection &&
+      props.location.query[WidgetViewerQueryField.QUERY] ===
+        prevProps.location.query[WidgetViewerQueryField.QUERY] &&
+      props.location.query[WidgetViewerQueryField.SORT] ===
+        prevProps.location.query[WidgetViewerQueryField.SORT]
+    );
   }
 );
 
-const shouldRerender = ({location: {query}}, {location: {query: prevQuery}}) => {
-  // Only rerender this container if the query or sort has changed
-  // This is required because we want to prevent ECharts interactions from causing unnecessary rerenders which can break persistent legends functionality
-  return (
-    query[WidgetViewerQueryField.QUERY] === prevQuery[WidgetViewerQueryField.QUERY] &&
-    query[WidgetViewerQueryField.SORT] === prevQuery[WidgetViewerQueryField.SORT]
-  );
-};
-
-const WidgetViewerModal = React.memo(function WidgetViewerModal(props: Props) {
+function WidgetViewerModal(props: Props) {
   const {
     organization,
     widget,
@@ -180,13 +177,6 @@ const WidgetViewerModal = React.memo(function WidgetViewerModal(props: Props) {
   function renderWidgetViewer() {
     return (
       <React.Fragment>
-        {widget.queries.length > 1 && (
-          <TextContainer>
-            {t(
-              'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
-            )}
-          </TextContainer>
-        )}
         {widget.displayType !== DisplayType.TABLE && (
           <Container>
             <MemoizedWidgetCardChartContainer
@@ -223,19 +213,26 @@ const WidgetViewerModal = React.memo(function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <StyledSelectControl
-            value={selectedQueryIndex}
-            options={queryOptions}
-            onChange={(option: SelectValue<number>) =>
-              router.replace({
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  [WidgetViewerQueryField.QUERY]: option.value,
-                },
-              })
-            }
-          />
+          <React.Fragment>
+            <TextContainer>
+              {t(
+                'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+              )}
+            </TextContainer>
+            <StyledSelectControl
+              value={selectedQueryIndex}
+              options={queryOptions}
+              onChange={(option: SelectValue<number>) => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.QUERY]: option.value,
+                  },
+                });
+              }}
+            />
+          </React.Fragment>
         )}
         <TableContainer>
           {widget.widgetType === WidgetType.ISSUE ? (
@@ -413,7 +410,7 @@ const WidgetViewerModal = React.memo(function WidgetViewerModal(props: Props) {
       </StyledFooter>
     </React.Fragment>
   );
-}, shouldRerender);
+}
 
 export const modalCss = css`
   width: 100%;
@@ -439,7 +436,7 @@ const Container = styled('div')`
 `;
 
 const TextContainer = styled('div')`
-  padding-top: ${space(1.5)};
+  padding-bottom: ${space(1.5)};
 `;
 
 const StyledSelectControl = styled(SelectControl)`
