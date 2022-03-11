@@ -72,11 +72,12 @@ export function GroupBy({fieldOptions, columns = [], onChange}: Props) {
     );
   }
 
-  const canDelete =
-    // TODO: This should only show delete options if there are no columns
-    // or if we've initialized a blank one and it's the only one left
-    // @ts-ignore
-    columns.length > 1 || (columns.length === 1 && columns[0]?.field !== '');
+  const hasOnlySingleColumnWithValue =
+    columns.length === 1 &&
+    columns[0].kind === FieldValueKind.FIELD &&
+    columns[0]?.field !== '';
+
+  const canDelete = columns.length > 1 || hasOnlySingleColumnWithValue;
 
   return (
     <React.Fragment>
