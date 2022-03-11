@@ -114,6 +114,7 @@ class BaseEventFrequencyCondition(EventCondition):
             return False
 
         current_value = self.get_rate(event, interval, self.rule.environment_id)
+        logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
         return current_value > value
 
     def query(self, event, start, end, environment_id):

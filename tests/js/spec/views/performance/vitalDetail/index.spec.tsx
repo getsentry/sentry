@@ -1,7 +1,7 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -256,7 +256,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('renders basic UI elements', async function () {
-    mountWithTheme(<TestComponent />, {
+    render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
@@ -281,7 +281,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('triggers a navigation on search', async function () {
-    mountWithTheme(<TestComponent />, {
+    render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
@@ -324,7 +324,7 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context,
       organization: org,
     });
@@ -377,7 +377,7 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context,
       organization: org,
     });
@@ -431,7 +431,7 @@ describe('Performance > VitalDetail', function () {
       },
     ]);
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context,
       organization: org,
     });
@@ -456,7 +456,7 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('Check LCP vital renders correctly', async function () {
-    mountWithTheme(<TestComponent />, {
+    render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
@@ -470,8 +470,8 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('4.50s').closest('td')).toBeInTheDocument();
   });
 
-  it('correctly renders which browsers support LCP', async function () {
-    mountWithTheme(<TestComponent />, {
+  it('correctly renders which browsers support LCP', function () {
+    render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
@@ -479,7 +479,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.LCP);
   });
 
-  it('correctly renders which browsers support CLS', async function () {
+  it('correctly renders which browsers support CLS', function () {
     const newRouter = {
       ...router,
       location: {
@@ -490,7 +490,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,
     });
@@ -498,7 +498,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.CLS);
   });
 
-  it('correctly renders which browsers support FCP', async function () {
+  it('correctly renders which browsers support FCP', function () {
     const newRouter = {
       ...router,
       location: {
@@ -509,7 +509,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,
     });
@@ -517,7 +517,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.FCP);
   });
 
-  it('correctly renders which browsers support FID', async function () {
+  it('correctly renders which browsers support FID', function () {
     const newRouter = {
       ...router,
       location: {
@@ -528,7 +528,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    mountWithTheme(<TestComponent router={newRouter} />, {
+    render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,
     });

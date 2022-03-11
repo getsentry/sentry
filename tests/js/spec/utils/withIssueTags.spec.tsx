@@ -1,4 +1,4 @@
-import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
@@ -29,7 +29,7 @@ describe('withIssueTags HoC', function () {
 
   it('forwards loaded tags to the wrapped component', async function () {
     const Container = withIssueTags(MyComponent);
-    mountWithTheme(<Container forwardedValue="value" />);
+    render(<Container forwardedValue="value" />);
 
     // Should forward props.
     expect(await screen.findByText(/ForwardedValue: value/)).toBeInTheDocument();
@@ -52,9 +52,9 @@ describe('withIssueTags HoC', function () {
     expect(screen.getByText(/stack filename: stack.filename/)).toBeInTheDocument();
   });
 
-  it('updates the assigned tags with users and teams, and bookmark tags with users', async function () {
+  it('updates the assigned tags with users and teams, and bookmark tags with users', function () {
     const Container = withIssueTags(MyComponent);
-    mountWithTheme(<Container forwardedValue="value" />);
+    render(<Container forwardedValue="value" />);
 
     act(() => {
       TagStore.onLoadTagsSuccess([

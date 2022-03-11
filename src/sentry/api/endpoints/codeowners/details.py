@@ -12,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.models import ProjectCodeOwners
 
-from .project_codeowners import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
+from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
 logger = logging.getLogger(__name__)
 

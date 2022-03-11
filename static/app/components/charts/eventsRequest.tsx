@@ -20,6 +20,7 @@ import {
   OrganizationSummary,
 } from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
@@ -487,6 +488,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   render() {
     const {children, showLoading, ...props} = this.props;
+    const {topEvents} = this.props;
     const {timeseriesData, reloading, errored, errorMessage} = this.state;
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
@@ -494,7 +496,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     if (showLoading && loading) {
       return <LoadingPanel data-test-id="events-request-loading" />;
     }
-    if (isMultiSeriesStats(timeseriesData)) {
+    if (isMultiSeriesStats(timeseriesData, defined(topEvents))) {
       // Convert multi-series results into chartable series. Multi series results
       // are created when multiple yAxis are used or a topEvents request is made.
       // Convert the timeseries data into a multi-series result set.

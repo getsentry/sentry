@@ -110,6 +110,15 @@ function WidgetQueryFields({
   const doNotValidateYAxis = displayType === 'big_number';
 
   const filterPrimaryOptions = option => {
+    if (widgetType === WidgetType.METRICS) {
+      if (displayType === DisplayType.TABLE) {
+        return [FieldValueKind.FUNCTION, FieldValueKind.TAG].includes(option.value.kind);
+      }
+      if (displayType === DisplayType.TOP_N) {
+        return option.value.kind === FieldValueKind.TAG;
+      }
+    }
+
     // Only validate function names for timeseries widgets and
     // world map widgets.
     if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
@@ -121,16 +130,6 @@ function WidgetQueryFields({
         // If a function returns a specific type, then validate it.
         return isLegalYAxisType(primaryOutput);
       }
-    }
-
-    if (
-      widgetType === WidgetType.METRICS &&
-      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
-    ) {
-      return (
-        option.value.kind === FieldValueKind.FUNCTION ||
-        option.value.kind === FieldValueKind.TAG
-      );
     }
 
     return option.value.kind === FieldValueKind.FUNCTION;

@@ -57,7 +57,7 @@ def _get_daemon(name, *args, **kwargs):
     "--watchers/--no-watchers", default=True, help="Watch static files and recompile on changes."
 )
 @click.option("--workers/--no-workers", default=False, help="Run asynchronous workers.")
-@click.option("--ingest/--no-ingest", help="Run ingest services (including Relay).")
+@click.option("--ingest/--no-ingest", default=None, help="Run ingest services (including Relay).")
 @click.option(
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
@@ -210,6 +210,9 @@ def devserver(
             }
         )
 
+    if ingest in (True, False):
+        settings.SENTRY_USE_RELAY = ingest
+
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
             raise click.ClickException(
@@ -245,10 +248,8 @@ def devserver(
                 )
             daemons += [_get_daemon("metrics")]
 
-    if ingest is True or (settings.SENTRY_USE_RELAY and ingest is not False):
+    if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
-    else:
-        settings.SENTRY_USE_RELAY = False
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)

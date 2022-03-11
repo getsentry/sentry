@@ -1,10 +1,10 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {HighlightComponent} from 'sentry/components/highlight';
 
 describe('Highlight', function () {
   it('highlights text', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = render(
       <HighlightComponent text="ILL">billy@sentry.io</HighlightComponent>
     );
     expect(wrapper.container.childNodes).toHaveLength(3);
@@ -14,21 +14,19 @@ describe('Highlight', function () {
   });
 
   it('does not have highlighted text if `text` prop is not found in main text', function () {
-    mountWithTheme(
-      <HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>
-    );
+    render(<HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>);
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });
 
   it('does not have highlighted text if `text` prop is empty', function () {
-    mountWithTheme(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
+    render(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });
 
   it('does not have highlighted text if `disabled` prop is true', function () {
-    mountWithTheme(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
+    render(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });

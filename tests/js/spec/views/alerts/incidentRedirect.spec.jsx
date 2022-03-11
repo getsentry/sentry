@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import IncidentRedirect from 'sentry/views/alerts/incidentRedirect';
@@ -30,7 +30,7 @@ describe('IncidentRedirect', () => {
   });
 
   it('redirects to alert details page', async () => {
-    mountWithTheme(<IncidentRedirect params={params} organization={organization} />, {
+    render(<IncidentRedirect params={params} organization={organization} />, {
       context: routerContext,
     });
 
