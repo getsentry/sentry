@@ -13,6 +13,8 @@ import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {EventedProfile} from './eventedProfile';
 import {ProfileGroup} from './importProfile';
 
+export class ChromeTraceProfile extends EventedProfile {}
+
 export function isChromeTraceFormat(input: any): input is ChromeTrace.ProfileType {
   return isChromeTraceArrayFormat(input) || isChromeTraceObjectFormat(input);
 }
@@ -102,7 +104,7 @@ function buildProfile(
   processId: string,
   threadId: string,
   events: ChromeTrace.Event[]
-): EventedProfile {
+): ChromeTraceProfile {
   let processName: string = `pid (${processId})`;
   let threadName: string = `tid (${threadId})`;
 
@@ -165,7 +167,7 @@ function buildProfile(
     throw new Error('First begin event contains no timestamp');
   }
 
-  const profile = new EventedProfile(
+  const profile = new ChromeTraceProfile(
     0,
     0,
     0,

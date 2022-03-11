@@ -1,4 +1,5 @@
 import {
+  ChromeTraceProfile,
   importChromeTrace,
   parseChromeTraceArrayFormat,
   splitEventsByProcessAndTraceId,
@@ -33,6 +34,30 @@ describe('splitEventsByProcessAndTraceId', () => {
 });
 
 describe('parseChromeTraceArrayFormat', () => {
+  it('returns chrometrace profile', () => {
+    expect(
+      parseChromeTraceArrayFormat([
+        {
+          ph: 'M',
+          ts: 0,
+          cat: '',
+          pid: 0,
+          tid: 0,
+          name: 'process_name',
+          args: {name: 'Process Name'},
+        },
+        {
+          ph: 'B',
+          ts: 0,
+          cat: 'program',
+          pid: 0,
+          tid: 0,
+          name: 'createProgram',
+          args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
+        },
+      ]).profiles[0]
+    ).toBeInstanceOf(ChromeTraceProfile);
+  });
   it('marks process name', () => {
     expect(
       parseChromeTraceArrayFormat([
@@ -291,7 +316,8 @@ import trace from './samples/chrometrace/typescript/trace.json';
 describe.skip('Benchmark', () => {
   it('imports profile', () => {
     const measures: number[] = [];
-    const _avg = (arr: number[]) => arr.reduce((a, b) => a + b) / arr.length;
+    // eslint-disable-next-line
+    const avg = (arr: number[]) => arr.reduce((a, b) => a + b) / arr.length;
 
     for (let i = 0; i < 10; i++) {
       const start = performance.now();
@@ -300,7 +326,7 @@ describe.skip('Benchmark', () => {
       measures.push(performance.now() - start);
     }
 
-    // console.log(avg(measures));
+    avg(measures);
     expect(true).toBe(true);
   });
 });
