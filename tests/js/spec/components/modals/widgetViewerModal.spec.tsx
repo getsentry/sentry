@@ -355,10 +355,10 @@ describe('Modals -> WidgetViewerModal', function () {
     it('sorts table when a sortable column header is clicked', function () {
       userEvent.click(screen.getByText('count()'));
       expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {modalSort: ['-count']},
+        query: {sort: ['-count']},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {modalSort: ['-count']};
+      initialData.router.location.query = {sort: ['-count']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -579,10 +579,10 @@ describe('Modals -> WidgetViewerModal', function () {
     it('sorts table when a sortable column header is clicked', function () {
       userEvent.click(screen.getByText('events'));
       expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {modalSort: 'freq'},
+        query: {sort: 'freq'},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {modalSort: ['freq']};
+      initialData.router.location.query = {sort: ['freq']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
