@@ -220,9 +220,10 @@ def unfurl_discover(
             chart_url=url,
         ).build()
 
+    org_model = integration.organizations.first()
     analytics.record(
         "integrations.slack.chart_unfurl",
-        organization_id=integration.organizations.all()[0].id,
+        organization_id=org_model.id if org_model is not None else None,
         user_id=user.id if user else None,
         unfurls_count=len(unfurls),
     )
