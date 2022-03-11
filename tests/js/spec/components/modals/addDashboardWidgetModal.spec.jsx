@@ -1465,6 +1465,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
             interval: '30m',
             project: [],
             statsPeriod: '14d',
+            per_page: 20,
+            orderBy: 'sum(sentry.sessions.session)',
           },
         })
       );
