@@ -60,20 +60,22 @@ const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 
-// The WidgetCardChartContainer doesn't need to be rerendered
+// WidgetCardChartContainer rerenders if selection was changed
 // This is required because we want to prevent ECharts interactions from causing unnecessary rerenders which can break persistent legends functionality
-const MemoizedWidgetCardChartContainer = React.memo(WidgetCardChartContainer, () => true);
+const MemoizedWidgetCardChartContainer = React.memo(
+  WidgetCardChartContainer,
+  ({selection}, {selection: previousSelection}) => {
+    return selection === previousSelection;
+  }
+);
 
 const shouldRerender = ({location: {query}}, {location: {query: prevQuery}}) => {
   // Only rerender this container if the query or sort has changed
   // This is required because we want to prevent ECharts interactions from causing unnecessary rerenders which can break persistent legends functionality
-  if (
-    query[WidgetViewerQueryField.QUERY] !== prevQuery[WidgetViewerQueryField.QUERY] ||
-    query[WidgetViewerQueryField.SORT] !== prevQuery[WidgetViewerQueryField.SORT]
-  ) {
-    return false;
-  }
-  return true;
+  return (
+    query[WidgetViewerQueryField.QUERY] === prevQuery[WidgetViewerQueryField.QUERY] &&
+    query[WidgetViewerQueryField.SORT] === prevQuery[WidgetViewerQueryField.SORT]
+  );
 };
 
 const WidgetViewerModal = React.memo(function WidgetViewerModal(props: Props) {
