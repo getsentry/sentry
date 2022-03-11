@@ -8,7 +8,7 @@ from pkg_resources import parse_version
 import sentry
 from sentry import features, options
 from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.user import DetailedUserSerializer
+from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import ProjectKey
 from sentry.utils import auth
@@ -183,7 +183,7 @@ def get_client_config(request=None):
     }
     if user and user.is_authenticated:
         context.update(
-            {"isAuthenticated": True, "user": serialize(user, user, DetailedUserSerializer())}
+            {"isAuthenticated": True, "user": serialize(user, user, DetailedSelfUserSerializer())}
         )
 
         if request.user.is_superuser:

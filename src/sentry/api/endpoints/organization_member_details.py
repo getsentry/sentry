@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import Q
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +15,13 @@ from sentry.api.serializers import (
     serialize,
 )
 from sentry.api.serializers.rest_framework import ListField
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOTFOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent,
@@ -36,6 +44,14 @@ ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
+
+MEMBER_ID_PARAM = OpenApiParameter(
+    name="member_id",
+    description="The member ID.",
+    required=True,
+    type=str,
+    location="path",
+)
 
 
 def get_allowed_roles(request, organization, member=None):
@@ -79,8 +95,10 @@ class RelaxedMemberPermission(OrganizationPermission):
         return False
 
 
+@extend_schema(tags=["Organizations"])
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedMemberPermission]
+    public = {"GET", "DELETE"}
 
     def _get_member(self, request: Request, organization, member_id):
         if member_id == "me":
@@ -129,8 +147,25 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return context
 
+    @extend_schema(
+        operation_id="Retrieve an Organization Member",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            MEMBER_ID_PARAM,
+        ],
+        responses={
+            200: OrganizationMemberWithTeamsSerializer,  # The Sentry response serializer
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
     def get(self, request: Request, organization, member_id) -> Response:
-        """Currently only returns allowed invite roles for member invite"""
+        """
+        Retrive an organization member's details.
+
+        Will return a pending invite as long as it's already approved.
+        """
 
         try:
             member = self._get_member(request, organization, member_id)
@@ -143,6 +178,20 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return Response(context)
 
+    # TODO:
+    # @extend_schema(
+    #     operation_id="Update a Organization Member's details",
+    #     parameters=[
+    #         GLOBAL_PARAMS.ORG_SLUG,
+    #         MEMBER_ID_PARAM,
+    #     ],
+    #     responses={
+    #         200: OrganizationMemberWithTeamsSerializer,  # The Sentry response serializer
+    #         401: RESPONSE_UNAUTHORIZED,
+    #         403: RESPONSE_FORBIDDEN,
+    #         404: RESPONSE_NOTFOUND,
+    #     },
+    # )
     def put(self, request: Request, organization, member_id) -> Response:
         try:
             om = self._get_member(request, organization, member_id)
@@ -250,7 +299,23 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return Response(context)
 
+    @extend_schema(
+        operation_id="Delete an Organization Member",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            MEMBER_ID_PARAM,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
     def delete(self, request: Request, organization, member_id) -> Response:
+        """
+        Remove an organization member.
+        """
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:

@@ -7,3 +7,5 @@ RESPONSE_FORBIDDEN = OpenApiResponse(description="Forbidden")
 RESPONSE_NOTFOUND = OpenApiResponse(description="Not Found")
 
 RESPONSE_SUCCESS = OpenApiResponse(description="Success")
+
+RESPONSE_NO_CONTENT = OpenApiResponse(description="No Content")
