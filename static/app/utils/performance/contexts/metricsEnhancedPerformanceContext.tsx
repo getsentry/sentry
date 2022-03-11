@@ -14,7 +14,7 @@ interface MetricsEnhancedPerformanceDataContext {
 
 const [_MEPDataProvider, _useMEPDataContext] =
   createDefinedContext<MetricsEnhancedPerformanceDataContext>({
-    name: 'MetricsEnhancedPerformanceContext',
+    name: 'MetricsEnhancedPerformanceDataContext',
   });
 
 export const MEPDataProvider = ({children}: {children: ReactNode}) => {

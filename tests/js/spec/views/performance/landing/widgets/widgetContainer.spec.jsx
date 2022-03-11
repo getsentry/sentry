@@ -3,6 +3,7 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import {TransactionMetric} from 'sentry/utils/metrics/fields';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -24,26 +25,35 @@ const initializeData = (query = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, isMetricsData = false, ...rest}) => {
+const WrappedComponent = ({
+  data,
+  isMetricsData = false,
+  isMEPEnabled = false,
+  ...rest
+}) => {
   return (
-    <MetricsSwitchContext.Provider value={{isMetricsData}}>
-      <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
-        <OrganizationContext.Provider value={data.organization}>
-          <WidgetContainer
-            allowedCharts={[
-              PerformanceWidgetSetting.TPM_AREA,
-              PerformanceWidgetSetting.FAILURE_RATE_AREA,
-              PerformanceWidgetSetting.USER_MISERY_AREA,
-              PerformanceWidgetSetting.DURATION_HISTOGRAM,
-            ]}
-            rowChartSettings={[]}
-            forceDefaultChartSetting
-            {...data}
-            {...rest}
-          />
-        </OrganizationContext.Provider>
-      </PerformanceDisplayProvider>
-    </MetricsSwitchContext.Provider>
+    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+      <MetricsSwitchContext.Provider value={{isMetricsData}}>
+        <PerformanceDisplayProvider
+          value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}
+        >
+          <OrganizationContext.Provider value={data.organization}>
+            <WidgetContainer
+              allowedCharts={[
+                PerformanceWidgetSetting.TPM_AREA,
+                PerformanceWidgetSetting.FAILURE_RATE_AREA,
+                PerformanceWidgetSetting.USER_MISERY_AREA,
+                PerformanceWidgetSetting.DURATION_HISTOGRAM,
+              ]}
+              rowChartSettings={[]}
+              forceDefaultChartSetting
+              {...data}
+              {...rest}
+            />
+          </OrganizationContext.Provider>
+        </PerformanceDisplayProvider>
+      </MetricsSwitchContext.Provider>
+    </MEPSettingProvider>
   );
 };
 

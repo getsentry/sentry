@@ -13,12 +13,19 @@ interface MetricsEnhancedSettingContext {
 
 const [_MEPSettingProvider, _useMEPSettingContext] =
   createDefinedContext<MetricsEnhancedSettingContext>({
-    name: 'MetricsEnhancedPerformanceContext',
+    name: 'MetricsEnhancedSettingContext',
   });
 
-export const MEPSettingProvider = ({children}: {children: ReactNode}) => {
+export const MEPSettingProvider = ({
+  children,
+  _isMEPEnabled,
+}: {
+  children: ReactNode;
+  _isMEPEnabled?: boolean;
+}) => {
+  const isControlledMEPEnabled = typeof _isMEPEnabled === 'boolean';
   const [isMEPEnabled, _setMEPEnabled] = useState<boolean>(
-    localStorage.getItem(storageKey) !== 'false'
+    isControlledMEPEnabled ? _isMEPEnabled : localStorage.getItem(storageKey) !== 'false'
   );
 
   function setMEPEnabled(value: boolean) {

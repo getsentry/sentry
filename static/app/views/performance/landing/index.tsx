@@ -38,7 +38,7 @@ import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
-import SamplingModal, {modalCss} from './widgets/SamplingModal';
+import SamplingModal, {modalCss} from './samplingModal';
 import {
   getDefaultDisplayForPlatform,
   getLandingDisplayFromParam,
