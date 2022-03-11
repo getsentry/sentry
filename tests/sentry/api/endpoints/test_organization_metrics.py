@@ -1344,6 +1344,20 @@ class DerivedMetricsDataTest(SessionMetricsTestCase, APITestCase):
         assert group["series"]["session.crash_free_rate"] == [None]
 
     @with_feature(FEATURE_FLAG)
+    def test_crash_free_rate_when_no_session_metrics_data_with_orderBy_and_groupBy(self):
+        indexer.record("release")
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            field=["session.crash_free_rate", "sum(sentry.sessions.session)"],
+            statsPeriod="6m",
+            interval="6m",
+            groupBy=["release"],
+            orderBy="-session.crash_free_rate",
+        )
+        assert response.data["groups"] == []
+
+    @with_feature(FEATURE_FLAG)
     def test_incorrect_crash_free_rate(self):
         response = self.get_response(
             self.organization.slug,

@@ -123,7 +123,7 @@ class MetricFieldBaseDefinition:
 
 class MetricFieldBase(MetricFieldBaseDefinition, ABC):
     @abstractmethod
-    def get_entity(self, **kwargs: Any) -> Optional[MetricEntity]:
+    def get_entity(self, projects: Sequence[Project]) -> Optional[MetricEntity]:
         """
         Method that generates the entity of an instance of MetricsFieldBase.
         `entity` property will always be None for instances of DerivedMetric that rely on
@@ -140,7 +140,7 @@ class MetricFieldBase(MetricFieldBaseDefinition, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_select_statements(self, **kwargs: Any) -> List[Function]:
+    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
         """
         Method that generates a list of SnQL functions required to query an instance of
         MetricsFieldBase
@@ -148,7 +148,9 @@ class MetricFieldBase(MetricFieldBaseDefinition, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_orderby_clause(self, **kwargs: Any) -> List[OrderBy]:
+    def generate_orderby_clause(
+        self, projects: Sequence[Project], direction: Direction
+    ) -> List[OrderBy]:
         """
         Method that generates a list of SnQL OrderBy clauses based on an instance of
         MetricsFieldBase
@@ -165,6 +167,8 @@ class MetricFieldBase(MetricFieldBaseDefinition, ABC):
 
 class RawMetric(MetricFieldBase):
     def get_entity(self, **kwargs: Any) -> MetricEntity:
+        # ToDo(ahmed): For raw metrics, we need to step away from determining the entity from the
+        #  op, and should rather do so dynamically with respect to the projects filter
         return OPERATIONS_TO_ENTITY[self.op]
 
     def generate_metric_ids(self) -> Set[int]:
@@ -181,15 +185,13 @@ class RawMetric(MetricFieldBase):
             alias=f"{self.op}({self.metric_name})",
         )
 
-    def generate_select_statements(self, entity: MetricEntity, **kwargs: Any) -> List[Function]:
-        return [self.__build_conditional_aggregate_for_metric(entity=entity)]
+    def generate_select_statements(self, **kwargs: Any) -> List[Function]:
+        return [self.__build_conditional_aggregate_for_metric(entity=self.get_entity())]
 
-    def generate_orderby_clause(
-        self, entity: MetricEntity, direction: Direction, **kwargs: Any
-    ) -> List[OrderBy]:
+    def generate_orderby_clause(self, direction: Direction, **kwargs: Any) -> List[OrderBy]:
         return [
             OrderBy(
-                self.generate_select_statements(entity=entity)[0],
+                self.generate_select_statements(entity=self.get_entity())[0],
                 direction,
             )
         ]
@@ -211,10 +213,6 @@ class DerivedMetricDefinition:
 
 
 class DerivedMetric(DerivedMetricDefinition, MetricFieldBase, ABC):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)  # type: ignore
-        self._entity = None
-
     @abstractmethod
     def generate_available_operations(self):
         """
@@ -230,9 +228,8 @@ class SingularEntityDerivedMetric(DerivedMetric):
 
     def __raise_entity_validation_exception(self, func_name: str):
         raise DerivedMetricParseException(
-            f"Method `{func_name}` can only be called on an instance of "
-            f"SingularEntityDerivedMetric {self.metric_name} after the `entity` attribute "
-            f"is set through calling `get_entity` with projects attribute"
+            f"Method `{func_name}` can only be called on instance of "
+            f"SingularEntityDerivedMetric {self.metric_name} with a `projects attribute."
         )
 
     @classmethod
@@ -251,25 +248,13 @@ class SingularEntityDerivedMetric(DerivedMetric):
         entities = set()
         derived_metric = DERIVED_METRICS[derived_metric_name]
 
-        try:
-            # Stop the recursion if the entity for this derived metric was computed previously
-            entity = derived_metric.get_entity()
-            if derived_metric.get_entity() is not None:
-                return {entity}
-        except DerivedMetricParseException:
-            pass
-
         for metric_name in derived_metric.metrics:
             entities |= cls.__recursively_get_all_entities_in_derived_metric_dependency_tree(
                 metric_name, projects
             )
         return entities
 
-    def get_entity(
-        self, projects: Optional[Sequence[Project]] = None, **kwargs: Any
-    ) -> MetricEntity:
-        if self._entity:
-            return self._entity
+    def get_entity(self, projects: Sequence[Project]) -> MetricEntity:
         if not projects:
             self.__raise_entity_validation_exception("get_entity")
         try:
@@ -282,8 +267,7 @@ class SingularEntityDerivedMetric(DerivedMetric):
             raise DerivedMetricParseException(
                 f"Derived Metric {self.metric_name} cannot be calculated from a single entity"
             )
-        self._entity = entities.pop()
-        return self._entity
+        return entities.pop()
 
     @classmethod
     def __recursively_generate_metric_ids(cls, derived_metric_name: str) -> Set[int]:
@@ -303,8 +287,6 @@ class SingularEntityDerivedMetric(DerivedMetric):
         return ids
 
     def generate_metric_ids(self) -> Set[int]:
-        if not self._entity:
-            self.__raise_entity_validation_exception("generate_metric_ids")
         return self.__recursively_generate_metric_ids(derived_metric_name=self.metric_name)
 
     @classmethod
@@ -326,19 +308,21 @@ class SingularEntityDerivedMetric(DerivedMetric):
             )
         ]
 
-    def generate_select_statements(self, **kwargs: Any) -> List[Function]:
-        # This should not happen because the `get_entity` method is the first thing that the
-        # metrics query builder calls, and so by the time we get to this point, the entity
-        # attribute should already be set
-        if not self._entity:
+    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+        # Before, we are able to generate the relevant SnQL for a derived metric, we need to
+        # validate that this instance of SingularEntityDerivedMetric is built from constituent
+        # metrics that span a single entity
+        if not projects:
             self.__raise_entity_validation_exception("generate_select_statements")
+        self.get_entity(projects=projects)
         return self.__recursively_generate_select_snql(derived_metric_name=self.metric_name)
 
     def generate_orderby_clause(
-        self, projects: Sequence[Project], direction: Direction, **kwargs: Any
+        self, direction: Direction, projects: Sequence[Project]
     ) -> List[OrderBy]:
-        if not self._entity:
+        if not projects:
             self.__raise_entity_validation_exception("generate_orderby_clause")
+        self.get_entity(projects=projects)
         return [
             OrderBy(
                 self.generate_select_statements(projects=projects)[0],

@@ -272,26 +272,29 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                 "multi-field select with order by clause queries"
             )
 
-        # This query contains an order by clause, and so we are only interested in the
-        # "totals" query
-        initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
+        try:
+            # This query contains an order by clause, and so we are only interested in the
+            # "totals" query
+            initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
 
-        initial_query_results = raw_snql_query(
-            initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
-        )
-
-        # We no longer want the order by in the 2nd query because we already have the order of
-        # the group by tags from the first query so we basically remove the order by columns,
-        # and reset the query fields to the original fields because in the second query,
-        # we want to query for all the metrics in the request api call
-        query.orderby = None
-        query.fields = original_query_fields
-
-        snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
+            initial_query_results = raw_snql_query(
+                initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
+            ).get("data")
+        except StopIteration:
+            initial_query_results = {}
 
         # If we do not get any results from the first query, then there is no point in making
         # the second query
-        if len(initial_query_results["data"]) > 0:
+        if initial_query_results and len(initial_query_results) > 0:
+            # We no longer want the order by in the 2nd query because we already have the order of
+            # the group by tags from the first query so we basically remove the order by columns,
+            # and reset the query fields to the original fields because in the second query,
+            # we want to query for all the metrics in the request api call
+            query.orderby = None
+            query.fields = original_query_fields
+
+            snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
+
             # Translate the groupby fields of the query into their tag keys because these fields
             # will be used to filter down and order the results of the 2nd query.
             # For example, (project_id, transaction) is translated to (project_id, tags[3])
@@ -306,12 +309,11 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             # the columns in the group by with their respective values so Clickhouse can
             # filter the results down before checking for the group by column combinations.
             ordered_tag_conditions = {
-                col: list({data_elem[col] for data_elem in initial_query_results["data"]})
+                col: list({data_elem[col] for data_elem in initial_query_results})
                 for col in groupby_tags
             }
             ordered_tag_conditions[groupby_tags] = [
-                tuple(data_elem[col] for col in groupby_tags)
-                for data_elem in initial_query_results["data"]
+                tuple(data_elem[col] for col in groupby_tags) for data_elem in initial_query_results
             ]
 
             for entity, queries in snuba_queries.items():
