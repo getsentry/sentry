@@ -1,7 +1,6 @@
 import logging
 
 from dateutil.parser import parse as parse_date
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.http import Http404, HttpResponse
 from django.utils import timezone
@@ -119,9 +118,6 @@ class MergeEventWebhook(Webhook):
 
         if not author_email:
             raise Http404()
-
-        if len(author_email) > 75:
-            raise ValidationError("Email is too long.")
 
         author = CommitAuthor.objects.get_or_create(
             organization_id=organization.id, email=author_email, defaults={"name": author_name}
