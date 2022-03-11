@@ -45,9 +45,7 @@ export function loadFixtures(dir: string, opts: Options = {}): Record<string, an
   if (opts.flatten) {
     const flattenedFixtures: Record<string, any> = {};
 
-    // Iterate over all fixture files
     for (const moduleKey in fixtures) {
-      // Iterate over all exports of a file
       for (const moduleExport in fixtures[moduleKey]) {
         // Check if our flattenedFixtures already contains a key with the same export.
         // If it does, we want to throw and make sure that we dont silently override the fixtures.
