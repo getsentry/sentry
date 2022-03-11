@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
@@ -68,7 +68,7 @@ describe('Breadcrumbs', () => {
 
   describe('filterCrumbs', function () {
     it('should filter crumbs based on crumb message', async function () {
-      mountWithTheme(<Breadcrumbs {...props} />);
+      render(<Breadcrumbs {...props} />);
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
 
@@ -88,7 +88,7 @@ describe('Breadcrumbs', () => {
     });
 
     it('should filter crumbs based on crumb level', function () {
-      mountWithTheme(<Breadcrumbs {...props} />);
+      render(<Breadcrumbs {...props} />);
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
 
@@ -98,7 +98,7 @@ describe('Breadcrumbs', () => {
     });
 
     it('should filter crumbs based on crumb category', function () {
-      mountWithTheme(<Breadcrumbs {...props} />);
+      render(<Breadcrumbs {...props} />);
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
 
@@ -110,7 +110,7 @@ describe('Breadcrumbs', () => {
     it('should display the correct number of crumbs with no filter', function () {
       props.data.values = props.data.values.slice(0, 4);
 
-      mountWithTheme(<Breadcrumbs {...props} />);
+      render(<Breadcrumbs {...props} />);
 
       // data.values + virtual crumb
       expect(screen.getAllByTestId('crumb')).toHaveLength(4);
@@ -121,7 +121,7 @@ describe('Breadcrumbs', () => {
     it('should display the correct number of crumbs with a filter', function () {
       props.data.values = props.data.values.slice(0, 4);
 
-      mountWithTheme(<Breadcrumbs {...props} />);
+      render(<Breadcrumbs {...props} />);
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
@@ -147,7 +147,7 @@ describe('Breadcrumbs', () => {
         },
       ];
 
-      mountWithTheme(<Breadcrumbs {...props} />);
+      render(<Breadcrumbs {...props} />);
 
       // data.values + virtual crumb
       expect(screen.getByTestId('crumb')).toBeInTheDocument();
