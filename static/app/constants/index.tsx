@@ -1,7 +1,7 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import {DataCategory, Scope} from 'sentry/types';
+import {DataCategory, PermissionResource, Scope} from 'sentry/types';
 
 /**
  * Common constants here
@@ -83,6 +83,7 @@ export type PermissionChoice = {
   label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
   scopes: Scope[];
 };
+
 type PermissionObj = {
   choices: {
     admin: PermissionChoice;
@@ -91,7 +92,7 @@ type PermissionObj = {
     write?: PermissionChoice;
   };
   help: string;
-  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+  resource: PermissionResource;
   label?: string;
 };
 
