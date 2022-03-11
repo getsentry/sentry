@@ -165,6 +165,7 @@ const TitleContainer = styled('div')`
 `;
 
 const DropdownTitle = styled('div')`
+  width: max-content;
   display: flex;
   overflow: hidden;
   align-items: center;
