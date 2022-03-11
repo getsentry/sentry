@@ -1048,8 +1048,7 @@ function WidgetBuilder({
                                     ?.filter(field => !(field === 'equation|'))
                                     .map(field => explodeField({field})) ?? []
                                 }
-                                fields={explodedFields}
-                                fieldOptions={groupByOptions}
+                                fieldOptions={getAmendedFieldOptions(measurements)}
                                 onChange={handleGroupByChange}
                               />
                             );
