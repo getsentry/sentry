@@ -42,7 +42,7 @@ describe('EventsRequest', function () {
       });
     });
 
-    it('renders with loading state', async function () {
+    it('renders with loading state', function () {
       expect(mock).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
@@ -54,7 +54,7 @@ describe('EventsRequest', function () {
       );
     });
 
-    it('makes requests', async function () {
+    it('makes requests', function () {
       expect(mock).toHaveBeenLastCalledWith(
         expect.objectContaining({
           errored: false,

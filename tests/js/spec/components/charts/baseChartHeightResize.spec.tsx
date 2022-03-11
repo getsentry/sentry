@@ -22,7 +22,7 @@ const TestContainer = ({children}) => (
 );
 
 describe('BaseChart', function () {
-  it('can scale to full parent height when given autoHeightResize', async () => {
+  it('can scale to full parent height when given autoHeightResize', () => {
     const {container} = mountWithTheme(
       <TestContainer>
         <BaseChart autoHeightResize />
@@ -32,7 +32,7 @@ describe('BaseChart', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders with default height when autoHeightResize not provided', async () => {
+  it('renders with default height when autoHeightResize not provided', () => {
     const {container} = mountWithTheme(
       <TestContainer>
         <BaseChart />
