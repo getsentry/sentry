@@ -321,6 +321,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
         if (
           organization.features.includes('new-widget-builder-experience-design') &&
+          [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(displayType) &&
           query.columns?.length !== 0
         ) {
           requestData.topEvents = TOP_N;
