@@ -57,6 +57,7 @@ function PageFilterRow({
 const MultiselectCheckbox = styled(CheckboxFancy)`
   position: relative;
   margin: 0 ${space(1)};
+  flex-shrink: 0;
 
   /* Make the hitbox of the checkbox a bit larger */
   &:after {
