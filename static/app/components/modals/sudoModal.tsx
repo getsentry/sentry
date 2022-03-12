@@ -37,6 +37,8 @@ type State = {
   error: boolean;
   errorType: string;
   isFirstStep: boolean;
+  superuserAccessCategory: string;
+  superuserReason: string;
 };
 
 class SudoModal extends React.Component<Props, State> {
@@ -45,6 +47,8 @@ class SudoModal extends React.Component<Props, State> {
     errorType: '',
     busy: false,
     isFirstStep: true,
+    superuserAccessCategory: '',
+    superuserReason: '',
   };
 
   handleSubmit = async data => {
@@ -52,9 +56,10 @@ class SudoModal extends React.Component<Props, State> {
 
     if (this.state.isFirstStep && superuser) {
       this.setState({isFirstStep: false});
+      this.setState({superuserAccessCategory: data.superuserAccessCategory});
+      this.setState({superuserReason: data.superuserReason});
     } else {
       try {
-        data.isSuperuserModal = superuser;
         await api.requestPromise('/auth/', {method: 'PUT', data});
         this.handleSuccess();
       } catch (err) {
@@ -101,9 +106,12 @@ class SudoModal extends React.Component<Props, State> {
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
     this.setState({busy: true});
 
-    const {api} = this.props;
+    const {api, superuser} = this.props;
 
     try {
+      data.isSuperuserModal = superuser;
+      data.superuserAccessCategory = this.state.superuserAccessCategory;
+      data.superuserReason = this.state.superuserReason;
       await api.requestPromise('/auth/', {method: 'PUT', data});
       this.handleSuccess();
     } catch (err) {
@@ -147,6 +155,7 @@ class SudoModal extends React.Component<Props, State> {
             submitLabel={t('Re-authenticate')}
             onSubmitSuccess={this.handleSuccess}
             onSubmitError={this.handleError}
+            initialData={{isSuperuserModal: superuser}}
             resetOnError
           >
             {!isSelfHosted && isFirstStep && superuser && (
@@ -189,6 +198,7 @@ class SudoModal extends React.Component<Props, State> {
           onSubmitSuccess={this.handleSuccess}
           onSubmitError={this.handleError}
           hideFooter={!user.hasPasswordAuth}
+          initialData={{isSuperuserModal: superuser}}
           resetOnError
         >
           {!isSelfHosted && isFirstStep && superuser && (

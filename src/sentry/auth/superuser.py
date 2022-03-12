@@ -320,7 +320,11 @@ class Superuser:
             )
             return
 
-        su_access_json = json.loads(request.body)
+        try:
+            su_access_json = json.loads(request.body)
+        except AttributeError:
+            su_access_json = {}
+
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
         if not su_access_info.is_valid():
