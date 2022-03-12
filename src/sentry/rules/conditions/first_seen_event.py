@@ -8,7 +8,7 @@ class FirstSeenEventCondition(EventCondition):
 
     def passes(self, event: Event, state: EventState) -> bool:
         # TODO(mgaeta): Bug: Rule is optional.
-        if self.rule.environment_id is None:  # type: ignore
-            return state.is_new
+        if self.rule.environment_id is None:
+            return state.is_new  # type: ignore
         else:
-            return state.is_new_group_environment
+            return state.is_new_group_environment  # type: ignore
