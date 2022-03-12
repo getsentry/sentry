@@ -1,9 +1,12 @@
 import operator
 from datetime import timedelta
+from typing import Sequence, Tuple
 
 from django import forms
 from django.utils import timezone
 
+from sentry.eventstore.models import Event
+from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 
 
@@ -24,7 +27,7 @@ age_comparison_choices = [(AgeComparisonType.OLDER, "older"), (AgeComparisonType
 age_comparison_map = {AgeComparisonType.OLDER: operator.lt, AgeComparisonType.NEWER: operator.gt}
 
 
-def get_timerange_choices():
+def get_timerange_choices() -> Sequence[Tuple[str, str]]:
     return [
         (key, label)
         for key, (label, duration) in sorted(
@@ -33,7 +36,7 @@ def get_timerange_choices():
     ]
 
 
-class AgeComparisonForm(forms.Form):
+class AgeComparisonForm(forms.Form):  # type: ignore
     comparison_type = forms.ChoiceField(choices=age_comparison_choices)
     value = forms.IntegerField()
     time = forms.ChoiceField(choices=get_timerange_choices)
@@ -51,7 +54,7 @@ class AgeComparisonFilter(EventFilter):
     label = "The issue is {comparison_type} than {value} {time}"
     prompt = "The issue is older or newer than..."
 
-    def passes(self, event, state):
+    def passes(self, event: Event, state: EventState) -> bool:
         comparison_type = self.get_option("comparison_type")
         time = self.get_option("time")
         try:
@@ -73,6 +76,7 @@ class AgeComparisonFilter(EventFilter):
         _, delta_time = timeranges[time]
 
         first_seen = event.group.first_seen
-        return age_comparison_map[comparison_type](
+        passes_: bool = age_comparison_map[comparison_type](
             first_seen + (value * delta_time), timezone.now()
         )
+        return passes_

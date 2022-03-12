@@ -1,15 +1,19 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from django.db.models.signals import post_delete, post_save, pre_delete
 
 from sentry import tagstore
-from sentry.models import Environment, Event, Release, ReleaseEnvironment, ReleaseProject
+from sentry.eventstore.models import Event
+from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProject
+from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 from sentry.search.utils import get_latest_release
 from sentry.utils.cache import cache
 
 
-def get_project_release_cache_key(project_id: int, environment_id: Optional[int] = None) -> str:
+def get_project_release_cache_key(project_id: int, environment_id: int | None = None) -> str:
     if environment_id is None:
         return f"project:{project_id}:latest_release"
     return f"project:{project_id}:env:{environment_id}:latest_release"
@@ -40,7 +44,7 @@ def clear_release_project_cache(instance: ReleaseProject, **kwargs: Any) -> None
 class LatestReleaseFilter(EventFilter):
     label = "The event is from the latest release"
 
-    def get_latest_release(self, event: Event) -> Optional[Release]:
+    def get_latest_release(self, event: Event) -> Release | None:
         environment_id = None if self.rule is None else self.rule.environment_id
         cache_key = get_project_release_cache_key(event.group.project_id, environment_id)
         latest_release = cache.get(cache_key)
@@ -69,7 +73,7 @@ class LatestReleaseFilter(EventFilter):
                 cache.set(cache_key, False, 600)
         return latest_release
 
-    def passes(self, event: Event, state: Any) -> bool:
+    def passes(self, event: Event, state: EventState) -> bool:
         latest_release = self.get_latest_release(event)
         if not latest_release:
             return False
