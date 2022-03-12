@@ -1208,7 +1208,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_multiple_identical_triggers_at_same_time(self):
+    def test_multiple_triggers_with_identical_actions_at_same_time(self):
         # Check that both triggers fire if an update comes through that exceeds both of
         # their thresholds
         rule = self.rule
