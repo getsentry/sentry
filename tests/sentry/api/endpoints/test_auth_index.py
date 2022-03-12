@@ -76,13 +76,14 @@ class AuthVerifyEndpointTest(APITestCase):
             },
         )
 
+    # case when verifying with sudo, will redirect to sso login page
     def test_sso_not_superuser(self):
         user = self.create_user("foo@example.com")
         org_provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
         AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-        self.login_as(user)
+        self.login_as(user, organization_id=self.organization.id)
         response = self.client.put(self.path, data={})
-        assert response.status_code == 400
+        assert response.status_code == 401
 
     def test_valid_password(self):
         user = self.create_user("foo@example.com")
@@ -128,6 +129,30 @@ class AuthVerifyEndpointTest(APITestCase):
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
 
+    def test_superuser_sso(self):
+        from sentry.auth.superuser import COOKIE_NAME, Superuser
+
+        org_provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+        user = self.create_user("foo@example.com", is_superuser=True)
+
+        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
+
+        with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
+            SUPERUSER_ORG_ID=self.organization.id
+        ):
+            self.login_as(user, organization_id=self.organization.id)
+            response = self.client.put(
+                self.path,
+                data={
+                    "isSuperuserModal": True,
+                    "superuserAccessCategory": "debugging",
+                    "superuserReason": "for testing",
+                },
+            )
+            assert response.status_code == 200
+            assert COOKIE_NAME in response.cookies
+
     def test_superuser_no_sso(self):
         from sentry.auth.superuser import Superuser
 
@@ -141,26 +166,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             self.login_as(user)
             response = self.client.put(
                 self.path,
-                data={"password": "admin"},
-            )
-            assert response.status_code == 401
-
-    def test_superuser_sso(self):
-        from sentry.auth.superuser import Superuser
-
-        org_provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
-
-        user = self.create_user("foo@example.com", is_superuser=True)
-
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-
-        with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-            SUPERUSER_ORG_ID=self.organization.id
-        ):
-            self.login_as(user)
-            response = self.client.put(
-                self.path,
                 data={
+                    "isSuperuserModal": True,
+                    "password": "admin",
                     "superuserAccessCategory": "debugging",
                     "superuserReason": "for testing",
                 },
@@ -179,7 +187,12 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 HTTP_REFERER="http://testserver/bar",
-                data={"password": "admin"},
+                data={
+                    "isSuperuserModal": True,
+                    "password": "admin",
+                    "superuserAccessCategory": "debugging",
+                    "superuserReason": "for testing",
+                },
             )
             assert response.status_code == 401
             assert self.client.session["_next"] == "http://testserver/bar"
@@ -196,10 +209,61 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 HTTP_REFERER="http://hacktheplanet/bar",
-                data={"password": "admin"},
+                data={
+                    "isSuperuserModal": True,
+                    "password": "admin",
+                    "superuserAccessCategory": "debugging",
+                    "superuserReason": "for testing",
+                },
             )
             assert response.status_code == 401
             assert self.client.session.get("_next") is None
+
+    def test_superuser_sso_sudo_modal(self):
+        from sentry.auth.superuser import COOKIE_NAME, Superuser
+
+        org_provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+        user = self.create_user("foo@example.com", is_superuser=True)
+
+        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
+
+        with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
+            SUPERUSER_ORG_ID=self.organization.id
+        ):
+            self.login_as(user, organization_id=self.organization.id)
+            response = self.client.put(
+                self.path,
+                data={
+                    "superuserAccessCategory": "debugging",
+                    "superuserReason": "for testing",
+                },
+            )
+
+            assert response.status_code == 200
+            assert COOKIE_NAME not in response.cookies
+
+    def test_superuser_no_sso_sudo_modal(self):
+        from sentry.auth.superuser import COOKIE_NAME, Superuser
+
+        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+        user = self.create_user("foo@example.com", is_superuser=True)
+
+        with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
+            SUPERUSER_ORG_ID=self.organization.id
+        ):
+            self.login_as(user)
+            response = self.client.put(
+                self.path,
+                data={
+                    "password": "admin",
+                    "superuserAccessCategory": "debugging",
+                    "superuserReason": "for testing",
+                },
+            )
+            assert response.status_code == 200
+            assert COOKIE_NAME not in response.cookies
 
 
 class AuthLogoutEndpointTest(APITestCase):

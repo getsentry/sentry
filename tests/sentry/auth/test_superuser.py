@@ -17,6 +17,7 @@ from sentry.auth.superuser import (
     MAX_AGE,
     SESSION_KEY,
     Superuser,
+    SuperuserAccessSerializer,
     is_active_superuser,
 )
 from sentry.auth.system import SystemToken
@@ -276,3 +277,77 @@ class SuperuserTestCase(TestCase):
         request = self.build_request()
         request.superuser = None
         assert is_active_superuser(request)
+
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_superuser_session_self_hosted(self, logger):
+        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        request = self.make_request(user=user, method="PUT")
+        request._body = json.dumps(
+            {
+                "superuserAccessCategory": "debugging",
+                "superuserReason": "Edit organization settings",
+            }
+        )
+
+        superuser = Superuser(request, org_id=None)
+        with self.settings(SENTRY_SELF_HOSTED=True):
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 1
+            logger.info.assert_any_call(
+                "superuser.logged-in",
+                extra={"ip_address": "127.0.0.1", "user_id": user.id},
+            )
+
+    def test_superuser_invalid_serializer(self):
+        serialized_data = SuperuserAccessSerializer(data={})
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserAccessCategory":["This field is required."],"superuserReason":["This field is required."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserAccessCategory": "debugging",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors) == '{"superuserReason":["This field is required."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserReason": "Edit organization settings",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserAccessCategory":["This field is required."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserAccessCategory": "debugging",
+                "superuserReason": "Eds",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserReason":["Ensure this field has at least 4 characters."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserAccessCategory": "debugging",
+                "superuserReason": "128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars ",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserReason":["Ensure this field has no more than 128 characters."]}'
+        )

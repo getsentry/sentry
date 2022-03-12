@@ -14,7 +14,7 @@ from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.superuser import Superuser, is_active_superuser
-from sentry.models import Authenticator, Organization
+from sentry.models import Authenticator, AuthIdentity, Organization
 from sentry.utils import auth, json
 from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.functional import extract_lazy_object
@@ -38,16 +38,14 @@ class AuthIndexEndpoint(Endpoint):
     @staticmethod
     def _reauthenticate_with_sso(request):
         """
-        If a superuser hitting this endpoint is not active, they are most likely
-        trying to become active, and likely need to re-identify with SSO to do so.
+        If a user without a password is hitting this, it means they need to re-identify with SSO.
         """
-        if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
-            redirect = request.META.get("HTTP_REFERER", "")
-            if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
-                redirect = None
+        redirect = request.META.get("HTTP_REFERER", "")
+        if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
+            redirect = None
 
-            initiate_login(request, redirect)
-            raise SsoRequired(Organization.objects.get_from_cache(id=Superuser.org_id))
+        initiate_login(request, redirect)
+        raise SsoRequired(Organization.objects.get_from_cache(id=Superuser.org_id))
 
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
@@ -115,12 +113,14 @@ class AuthIndexEndpoint(Endpoint):
 
         validator = AuthVerifyValidator(data=request.data)
         has_valid_sso_session = has_completed_sso(request, request.superuser.org_id)
+        from_superuser_modal = request.data.get("isSuperuserModal")
 
-        if not validator.is_valid():
-            if not has_valid_sso_session and request.user.is_superuser:
-                self._reauthenticate_with_sso(request)
-            else:
+        if not validator.is_valid() and not has_valid_sso_session:
+            try:
+                AuthIdentity.objects.get(user=request.user)
+            except AuthIdentity.DoesNotExist:
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            self._reauthenticate_with_sso(request)
 
         authenticated = False
         # See if we have a u2f challenge/response
@@ -166,11 +166,9 @@ class AuthIndexEndpoint(Endpoint):
             auth.login(request._request, request.user)
 
             # only give superuser access when going through superuser modal
-            if request.user.is_superuser and request.data.get("isSuperuserModal"):
+            if request.user.is_superuser and from_superuser_modal:
                 request.superuser.set_logged_in(request.user)
-                request.user = request._request.user
 
-                return self.get(request)
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
@@ -180,7 +178,11 @@ class AuthIndexEndpoint(Endpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        self._reauthenticate_with_sso(request)
+        if from_superuser_modal:
+            # If a superuser hitting this endpoint is not active, they are most likely
+            # trying to become active, and likely need to re-identify with SSO to do so.
+            if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
+                self._reauthenticate_with_sso(request)
 
         request.user = request._request.user
 
