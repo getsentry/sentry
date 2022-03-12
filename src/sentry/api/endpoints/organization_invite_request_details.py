@@ -24,7 +24,7 @@ class ApproveInviteRequestSerializer(serializers.Serializer):
         allowed_roles = self.context["allowed_roles"]
 
         try:
-            member.validate_invitation(request.user, a<<llowed_roles)
+            member.validate_invitation(request.user, allowed_roles)
         except UnableToAcceptMemberInvitationException as err:
             raise serializers.ValidationError(str(err))
 
