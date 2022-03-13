@@ -378,7 +378,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  it.skip('can choose a field', async function () {
+  it('can choose a field', async function () {
     const {router} = renderTestComponent({
       query: {source: DashboardWidgetSource.DISCOVERV2},
     });
@@ -634,7 +634,7 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it.skip('renders column inputs for table widgets', async function () {
+  it('renders column inputs for table widgets', async function () {
     const widget: Widget = {
       id: '0',
       title: 'sdk usage',
@@ -705,7 +705,7 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it.skip('should automatically add columns for top n widget charts according to the URL params', async function () {
+  it('should automatically add columns for top n widget charts according to the URL params', async function () {
     const defaultWidgetQuery = {
       name: '',
       fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
@@ -744,7 +744,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('user')).toBeInTheDocument();
   });
 
-  it.skip('should use defaultWidgetQuery Y-Axis and Conditions if given a defaultWidgetQuery', async function () {
+  it('should use defaultWidgetQuery Y-Axis and Conditions if given a defaultWidgetQuery', async function () {
     const defaultWidgetQuery = {
       name: '',
       fields: ['count()', 'failure_count()', 'count_unique(user)'],
@@ -783,7 +783,7 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Bar Chart')).toBeInTheDocument();
   });
 
-  it.skip('correctly defaults fields and orderby when in Top N display', async function () {
+  it('correctly defaults fields and orderby when in Top N display', async function () {
     const defaultWidgetQuery = {
       fields: ['title', 'count()', 'count_unique(user)'],
       orderby: '-count_unique_user',
@@ -957,7 +957,7 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Sort by selectors', function () {
-    it.skip('renders', async function () {
+    it('renders', async function () {
       renderTestComponent({
         orgFeatures: [
           'dashboards-edit',
@@ -1333,7 +1333,7 @@ describe('WidgetBuilder', function () {
       ).toBeDisabled();
     });
 
-    it.skip('disables moving and deleting issue column', async function () {
+    it('disables moving and deleting issue column', async function () {
       renderTestComponent();
 
       userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));

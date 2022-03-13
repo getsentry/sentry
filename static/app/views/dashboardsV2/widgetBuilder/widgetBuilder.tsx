@@ -173,6 +173,7 @@ function WidgetBuilder({
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, defaultTableColumns} = location.query;
+
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
