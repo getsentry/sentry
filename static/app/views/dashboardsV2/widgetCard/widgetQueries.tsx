@@ -192,7 +192,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
-        per_page: limit ?? DEFAULT_TABLE_LIMIT,
+        per_page: query.limit ?? limit ?? DEFAULT_TABLE_LIMIT,
         ...(!!!pagination ? {noPagination: true} : {cursor}),
       };
       if (widget.displayType === 'table') {
@@ -329,6 +329,11 @@ class WidgetQueries extends React.Component<Props, State> {
           requestData.orderby = query.columns?.[0];
         }
       }
+
+      if ((query.columns ?? []).length > 0 && query.limit) {
+        requestData.topEvents = query.limit;
+      }
+
       return doEventsRequest(api, requestData);
     });
 
@@ -400,9 +405,10 @@ class WidgetQueries extends React.Component<Props, State> {
 
     if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
       this.fetchEventData(queryFetchID);
-    } else {
-      this.fetchTimeseriesData(queryFetchID, widget.displayType);
+      return;
     }
+
+    this.fetchTimeseriesData(queryFetchID, widget.displayType);
   }
 
   render() {

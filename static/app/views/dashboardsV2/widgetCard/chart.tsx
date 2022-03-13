@@ -322,6 +322,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const axisLabel = isEquation(axisField) ? getEquation(axisField) : axisField;
+
     const chartOptions = {
       autoHeightResize,
       grid: {
@@ -427,6 +428,7 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
+
 const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;

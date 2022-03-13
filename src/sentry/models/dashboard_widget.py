@@ -2,6 +2,7 @@ from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.utils import timezone
 
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.db.models import (
     ArrayField,
     BoundedPositiveIntegerField,
@@ -92,6 +93,7 @@ class DashboardWidgetQuery(Model):
     # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    limit = models.IntegerField(null=True)
 
     class Meta:
         app_label = "sentry"

@@ -3,22 +3,35 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
+import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   DEFAULT_WIDGETS,
   WidgetTemplate,
 } from 'sentry/views/dashboardsV2/widgetLibrary/data';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {DEFAULT_RESULTS_LIMIT} from '../utils';
 
 import {Card} from './card';
 
 interface Props {
   bypassOverwriteModal: boolean;
   onWidgetSelect: (widget: WidgetTemplate) => void;
+  widgetBuilderNewDesign: boolean;
+  widgetType: WidgetType;
 }
 
-export function WidgetLibrary({bypassOverwriteModal, onWidgetSelect}: Props) {
+export function WidgetLibrary({
+  bypassOverwriteModal,
+  onWidgetSelect,
+  widgetBuilderNewDesign,
+  widgetType,
+}: Props) {
   const theme = useTheme();
 
   function getLibrarySelectionHandler(
@@ -47,6 +60,28 @@ export function WidgetLibrary({bypassOverwriteModal, onWidgetSelect}: Props) {
           const iconColor = theme.charts.getColorPalette(DEFAULT_WIDGETS.length - 2)[
             index
           ];
+
+          if (widgetBuilderNewDesign) {
+            if (!widget.queries[0].orderby) {
+              const orderBy = (
+                widgetType === WidgetType.DISCOVER
+                  ? generateOrderOptions({
+                      widgetType,
+                      widgetBuilderNewDesign,
+                      ...getColumnsAndAggregates(widget.queries[0].fields),
+                    })[0].value
+                  : IssueSortOptions.DATE
+              ) as string;
+
+              widget.queries[0].orderby = orderBy;
+            }
+
+            if (widget.displayType === DisplayType.TOP_N) {
+              widget.displayType = DisplayType.TABLE;
+              widget.queries[0].limit = widget.queries[0].limit ?? DEFAULT_RESULTS_LIMIT;
+            }
+          }
+
           return (
             <CardHoverWrapper
               key={widget.title}

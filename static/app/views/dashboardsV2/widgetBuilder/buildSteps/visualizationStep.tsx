@@ -19,6 +19,7 @@ interface Props {
   organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
+  widgetBuilderNewDesign: boolean;
   error?: string;
 }
 
@@ -29,7 +30,12 @@ export function VisualizationStep({
   error,
   onChange,
   widget,
+  widgetBuilderNewDesign,
 }: Props) {
+  const options = widgetBuilderNewDesign
+    ? Object.keys(displayTypes).filter(type => type !== DisplayType.TOP_N)
+    : Object.keys(displayTypes);
+
   return (
     <BuildStep
       title={t('Choose your visualization')}
@@ -40,7 +46,7 @@ export function VisualizationStep({
       <Field error={error} inline={false} flexibleControlStateSize stacked>
         <SelectControl
           name="displayType"
-          options={Object.keys(displayTypes).map(value => ({
+          options={options.map(value => ({
             label: displayTypes[value],
             value,
           }))}

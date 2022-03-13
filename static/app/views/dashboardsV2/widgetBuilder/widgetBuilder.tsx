@@ -71,6 +71,7 @@ import {Footer} from './footer';
 import {Header} from './header';
 import {
   DataSet,
+  DEFAULT_RESULTS_LIMIT,
   DisplayType,
   getParsedDefaultWidgetQuery,
   mapErrors,
@@ -89,6 +90,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       aggregates: ['count()'],
       conditions: '',
       orderby: widgetBuilderNewDesign ? 'count' : '',
+      limit: widgetBuilderNewDesign ? DEFAULT_RESULTS_LIMIT : undefined,
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -97,6 +99,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       aggregates: [],
       conditions: '',
       orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
+      limit: widgetBuilderNewDesign ? DEFAULT_RESULTS_LIMIT : undefined,
     },
     [DataSet.METRICS]: {
       name: '',
@@ -176,9 +179,7 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
-  const widgetBuilderNewDesign = organization.features.includes(
-    'new-widget-builder-experience-design'
-  );
+  const widgetBuilderNewDesign = true;
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -200,7 +201,10 @@ function WidgetBuilder({
     if (!widgetToBeUpdated) {
       return {
         title: defaultTitle ?? t('Custom Widget'),
-        displayType: displayType ?? DisplayType.TABLE,
+        displayType:
+          widgetBuilderNewDesign && displayType === DisplayType.TOP_N
+            ? DisplayType.TABLE
+            : displayType ?? DisplayType.TABLE,
         interval: '5m',
         queries: [
           defaultWidgetQuery
@@ -226,12 +230,17 @@ function WidgetBuilder({
       };
     }
 
+    const visualization =
+      widgetBuilderNewDesign && widgetToBeUpdated.displayType === DisplayType.TOP_N
+        ? DisplayType.TABLE
+        : widgetToBeUpdated.displayType;
+
     return {
       title: widgetToBeUpdated.title,
-      displayType: widgetToBeUpdated.displayType,
+      displayType: visualization,
       interval: widgetToBeUpdated.interval,
       queries: normalizeQueries({
-        displayType: widgetToBeUpdated.displayType,
+        displayType: visualization,
         queries: widgetToBeUpdated.queries,
         widgetType: widgetToBeUpdated.widgetType ?? WidgetType.DISCOVER,
         widgetBuilderNewDesign,
@@ -703,12 +712,8 @@ function WidgetBuilder({
   }
 
   const canAddSearchConditions =
-    [
-      DisplayType.LINE,
-      DisplayType.AREA,
-      DisplayType.STACKED_AREA,
-      DisplayType.BAR,
-    ].includes(state.displayType) && state.queries.length < 3;
+    [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
+    state.queries.length < 3;
 
   const hideLegendAlias = [
     DisplayType.TABLE,
@@ -722,6 +727,7 @@ function WidgetBuilder({
     DisplayType.AREA,
   ].includes(state.displayType);
 
+  const isGroupedData = (state.queries[0].columns ?? []).length > 0;
   const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
 
   return (
@@ -747,6 +753,7 @@ function WidgetBuilder({
               <Main>
                 <BuildSteps symbol="colored-numeric">
                   <VisualizationStep
+                    widgetBuilderNewDesign={widgetBuilderNewDesign}
                     widget={currentWidget}
                     organization={organization}
                     pageFilters={pageFilters}
@@ -841,7 +848,9 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
-                onWidgetSelect={prebuiltWidget =>
+                widgetType={widgetType}
+                widgetBuilderNewDesign={widgetBuilderNewDesign}
+                onWidgetSelect={prebuiltWidget => {
                   setState({
                     ...state,
                     ...prebuiltWidget,
@@ -849,8 +858,8 @@ function WidgetBuilder({
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
                     userHasModified: false,
-                  })
-                }
+                  });
+                }}
                 bypassOverwriteModal={!state.userHasModified}
               />
             </Side>
