@@ -179,7 +179,9 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
-  const widgetBuilderNewDesign = true;
+  const widgetBuilderNewDesign = organization.features.includes(
+    'new-widget-builder-experience-design'
+  );
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -810,8 +812,10 @@ function WidgetBuilder({
                       onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
                     />
                   )}
-                  {widgetBuilderNewDesign &&
-                  (isTimeseriesChart || state.displayType === DisplayType.TABLE) ? (
+                  {((widgetBuilderNewDesign && isTimeseriesChart) ||
+                    [DisplayType.TABLE, DisplayType.TOP_N].includes(
+                      state.displayType
+                    )) && (
                     <SortByStep
                       displayType={state.displayType}
                       queries={state.queries}
@@ -822,21 +826,6 @@ function WidgetBuilder({
                       organization={organization}
                       widgetType={widgetType}
                     />
-                  ) : (
-                    [DisplayType.TABLE, DisplayType.TOP_N].includes(
-                      state.displayType
-                    ) && (
-                      <SortByStep
-                        displayType={state.displayType}
-                        queries={state.queries}
-                        dataSet={state.dataSet}
-                        widgetBuilderNewDesign={widgetBuilderNewDesign}
-                        error={state.errors?.orderby}
-                        onQueryChange={handleQueryChange}
-                        organization={organization}
-                        widgetType={widgetType}
-                      />
-                    )
                   )}
                   {notDashboardsOrigin && (
                     <DashboardStep

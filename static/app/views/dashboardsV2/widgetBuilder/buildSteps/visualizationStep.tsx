@@ -77,7 +77,11 @@ export function VisualizationStep({
   );
 }
 
-const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
+const VisualizationWrapper = styled('div', {
+  shouldForwardProp: prop => prop !== 'displayType',
+})<{
+  displayType: DisplayType;
+}>`
   overflow: ${p => (p.displayType === DisplayType.TABLE ? 'hidden' : 'visible')};
   padding-right: ${space(2)};
 `;

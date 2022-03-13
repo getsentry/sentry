@@ -36,25 +36,21 @@ export function ColumnFields({
       flexibleControlStateSize
       stacked
     >
-      {displayType === DisplayType.TABLE ? (
-        <ColumnCollectionEdit
-          columns={columns}
-          onChange={onChange}
-          fieldOptions={fieldOptions}
-          organization={organization}
-          source={widgetType}
-        />
-      ) : (
-        <ColumnCollectionEdit
-          columns={columns.slice(0, columns.length - 1)}
-          onChange={newColumns => {
-            onChange([...newColumns, columns[columns.length - 1]]);
-          }}
-          fieldOptions={fieldOptions}
-          organization={organization}
-          source={widgetType}
-        />
-      )}
+      <ColumnCollectionEdit
+        columns={
+          displayType === DisplayType.TABLE
+            ? columns.slice(0, columns.length - 1)
+            : columns
+        }
+        onChange={newColumns => {
+          displayType === DisplayType.TABLE
+            ? onChange([...newColumns, columns[columns.length - 1]])
+            : onChange(newColumns);
+        }}
+        fieldOptions={fieldOptions}
+        organization={organization}
+        source={widgetType}
+      />
     </Field>
   );
 }
