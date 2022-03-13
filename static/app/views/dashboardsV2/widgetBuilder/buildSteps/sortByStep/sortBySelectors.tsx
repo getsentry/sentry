@@ -7,11 +7,7 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 
-<<<<<<< HEAD:static/app/views/dashboardsV2/widgetBuilder/buildSteps/sortByStep/sortBySelectors.tsx
-import {SortDirection, sortDirections} from '../../utils';
-=======
-import {RESULTS_LIMIT, SortDirection, sortDirections} from './utils';
->>>>>>> feat/new-widget-builder-experience-add-initial-limit-field-work:static/app/views/dashboardsV2/widgetBuilder/sortBySelectors.tsx
+import {RESULTS_LIMIT, SortDirection, sortDirections} from '../../utils';
 
 interface Values {
   sortBy: string;

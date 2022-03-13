@@ -727,7 +727,6 @@ function WidgetBuilder({
     DisplayType.AREA,
   ].includes(state.displayType);
 
-  const isGroupedData = (state.queries[0].columns ?? []).length > 0;
   const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
 
   return (
@@ -811,8 +810,10 @@ function WidgetBuilder({
                       onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
                     />
                   )}
-                  {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
+                  {widgetBuilderNewDesign &&
+                  (isTimeseriesChart || state.displayType === DisplayType.TABLE) ? (
                     <SortByStep
+                      displayType={state.displayType}
                       queries={state.queries}
                       dataSet={state.dataSet}
                       widgetBuilderNewDesign={widgetBuilderNewDesign}
@@ -821,6 +822,21 @@ function WidgetBuilder({
                       organization={organization}
                       widgetType={widgetType}
                     />
+                  ) : (
+                    [DisplayType.TABLE, DisplayType.TOP_N].includes(
+                      state.displayType
+                    ) && (
+                      <SortByStep
+                        displayType={state.displayType}
+                        queries={state.queries}
+                        dataSet={state.dataSet}
+                        widgetBuilderNewDesign={widgetBuilderNewDesign}
+                        error={state.errors?.orderby}
+                        onQueryChange={handleQueryChange}
+                        organization={organization}
+                        widgetType={widgetType}
+                      />
+                    )
                   )}
                   {notDashboardsOrigin && (
                     <DashboardStep
