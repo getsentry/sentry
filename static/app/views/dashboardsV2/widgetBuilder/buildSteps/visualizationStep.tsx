@@ -5,7 +5,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {Widget} from 'sentry/views/dashboardsV2/types';
 
 import WidgetCard from '../../widgetCard';
@@ -45,7 +45,9 @@ export function VisualizationStep({
             value,
           }))}
           value={displayType}
-          onChange={onChange}
+          onChange={(option: SelectValue<DisplayType>) => {
+            onChange(option.value);
+          }}
         />
       </Field>
       <VisualizationWrapper displayType={displayType}>
