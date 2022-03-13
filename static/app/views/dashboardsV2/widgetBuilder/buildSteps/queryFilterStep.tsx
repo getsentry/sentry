@@ -27,7 +27,7 @@ interface Props {
   queryErrors?: Record<string, any>[];
 }
 
-export function FilterResultsStep({
+export function QueryFilterStep({
   canAddSearchConditions,
   organization,
   queries,
@@ -134,7 +134,7 @@ export function FilterResultsStep({
             icon={<IconAdd isCircled />}
             onClick={onAddSearchConditions}
           >
-            {t('Add query')}
+            {t('Add Query')}
           </Button>
         )}
       </div>

@@ -62,7 +62,8 @@ import {DEFAULT_STATS_PERIOD} from '../data';
 import {ColumnsStep} from './buildSteps/columnsStep';
 import {DashboardStep} from './buildSteps/dashboardStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
-import {FilterResultsStep} from './buildSteps/filterResultsStep';
+import {GroupByStep} from './buildSteps/groupByStep';
+import {QueryFilterStep} from './buildSteps/queryFilterStep';
 import {SortByStep} from './buildSteps/sortByStep';
 import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
@@ -442,18 +443,21 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
-    for (const index in state.queries) {
-      const queryIndex = Number(index);
-      const query = state.queries[queryIndex];
-
+    state.queries.forEach((query, index) => {
       const descending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.fields.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
+
       newQuery.fields = fieldStrings;
       const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
       newQuery.aggregates = aggregates;
-      newQuery.columns = columns;
+
+      if (!(widgetBuilderNewDesign && isTimeseriesChart)) {
+        // Prevent overwriting columns when setting y-axis for time series
+        newQuery.columns = columns;
+      }
+
       if (
         !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
         query.orderby !== ''
@@ -470,12 +474,23 @@ function WidgetBuilder({
         }
       }
 
-      if (widgetBuilderNewDesign && queryIndex === 0) {
+      if (widgetBuilderNewDesign && index === 0) {
         newQuery.orderby = aggregateAliasFieldStrings[0];
       }
 
-      handleQueryChange(queryIndex, newQuery);
-    }
+      handleQueryChange(index, newQuery);
+    });
+  }
+
+  function handleGroupByChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+
+    state.queries.forEach((query, index) => {
+      const newQuery = cloneDeep(query);
+      newQuery.columns = fieldStrings;
+
+      handleQueryChange(index, newQuery);
+    });
   }
 
   function handleDelete() {
@@ -701,6 +716,12 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(state.displayType);
+
   const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
 
   return (
@@ -764,7 +785,7 @@ function WidgetBuilder({
                       onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
                     />
                   )}
-                  <FilterResultsStep
+                  <QueryFilterStep
                     queries={state.queries}
                     hideLegendAlias={hideLegendAlias}
                     canAddSearchConditions={canAddSearchConditions}
@@ -776,6 +797,13 @@ function WidgetBuilder({
                     onQueryChange={handleQueryChange}
                     onQueryRemove={handleQueryRemove}
                   />
+                  {widgetBuilderNewDesign && isTimeseriesChart && (
+                    <GroupByStep
+                      queries={state.queries}
+                      onChange={handleGroupByChange}
+                      onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
+                    />
+                  )}
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <SortByStep
                       queries={state.queries}

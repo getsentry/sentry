@@ -318,6 +318,16 @@ class WidgetQueries extends React.Component<Props, State> {
           referrer: `api.dashboards.widget.${displayType}-chart`,
           partial: true,
         };
+
+        if (
+          organization.features.includes('new-widget-builder-experience-design') &&
+          query.columns?.length !== 0
+        ) {
+          requestData.topEvents = TOP_N;
+          // Aggregates need to be in fields as well
+          requestData.field = [...(query?.columns ?? []), ...(query?.aggregates ?? [])];
+          requestData.orderby = query.columns?.[0];
+        }
       }
       return doEventsRequest(api, requestData);
     });
