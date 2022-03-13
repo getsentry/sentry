@@ -7,9 +7,8 @@ import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
-import {WidgetType} from '../types';
-
-import {DisplayType} from './utils';
+import {WidgetType} from '../../../types';
+import {DisplayType} from '../../utils';
 
 interface Props {
   columns: QueryFieldValue[];
