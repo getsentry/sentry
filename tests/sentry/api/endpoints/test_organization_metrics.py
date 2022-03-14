@@ -1,4 +1,5 @@
 import time
+from operator import itemgetter
 from typing import Optional
 from unittest import mock
 
@@ -128,33 +129,10 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
 
     endpoint = "sentry-api-0-organization-metrics-index"
 
-    @with_feature(FEATURE_FLAG)
-    def test_metrics_index(self):
-        """
-
-        Note that this test will fail once we have a metrics meta store,
-        because the setUp bypasses it.
-        """
-        response = self.get_success_response(self.organization.slug, project=[self.project.id])
-
-        assert response.data == [
-            {"name": "metric1", "type": "counter", "operations": ["sum"], "unit": None},
-            {"name": "metric2", "type": "set", "operations": ["count_unique"], "unit": None},
-            {"name": "metric3", "type": "set", "operations": ["count_unique"], "unit": None},
-        ]
-
-        proj2 = self.create_project(organization=self.organization)
-        self.store_session(
-            self.build_session(
-                project_id=proj2.id,
-                started=(time.time() // 60) * 60,
-                status="ok",
-                release="foobar@1.0",
-            )
-        )
-
-        response = self.get_success_response(self.organization.slug, project=[proj2.id])
-        assert response.data == [
+    def setUp(self):
+        super().setUp()
+        self.proj2 = self.create_project(organization=self.organization)
+        self.session_metrics_meta = [
             {
                 "name": "sentry.sessions.session",
                 "type": "counter",
@@ -182,6 +160,78 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             },
             {"name": "session.init", "type": "numeric", "operations": [], "unit": "sessions"},
         ]
+
+    @with_feature(FEATURE_FLAG)
+    def test_metrics_index(self):
+        """
+
+        Note that this test will fail once we have a metrics meta store,
+        because the setUp bypasses it.
+        """
+        response = self.get_success_response(self.organization.slug, project=[self.project.id])
+
+        assert response.data == [
+            {"name": "metric1", "type": "counter", "operations": ["sum"], "unit": None},
+            {"name": "metric2", "type": "set", "operations": ["count_unique"], "unit": None},
+            {"name": "metric3", "type": "set", "operations": ["count_unique"], "unit": None},
+        ]
+
+        self.store_session(
+            self.build_session(
+                project_id=self.proj2.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@1.0",
+            )
+        )
+
+        response = self.get_success_response(self.organization.slug, project=[self.proj2.id])
+        assert response.data == self.session_metrics_meta
+
+    @with_feature(FEATURE_FLAG)
+    def test_metrics_index_invalid_derived_metric(self):
+        for errors, minute in [(0, 0), (2, 1)]:
+            self.store_session(
+                self.build_session(
+                    project_id=self.proj2.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                    release="foobar@2.0",
+                    errors=errors,
+                )
+            )
+
+        DERIVED_METRICS.update(
+            {
+                "crash_free_fake": SingularEntityDerivedMetric(
+                    metric_name="crash_free_fake",
+                    metrics=["session.crashed", "session.errored_set"],
+                    unit="percentage",
+                    snql=lambda *args, entity, metric_ids, alias=None: percentage(
+                        *args, entity, metric_ids, alias="crash_free_fake"
+                    ),
+                )
+            }
+        )
+        response = self.get_success_response(self.organization.slug, project=[self.proj2.id])
+        assert response.data == sorted(
+            self.session_metrics_meta
+            + [
+                {
+                    "name": "sentry.sessions.session.error",
+                    "type": "set",
+                    "operations": ["count_unique"],
+                    "unit": None,
+                },
+                {
+                    "name": "session.errored_set",
+                    "type": "numeric",
+                    "operations": [],
+                    "unit": "sessions",
+                },
+            ],
+            key=itemgetter("name"),
+        )
 
 
 class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegrationTest):
@@ -300,6 +350,45 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             {"key": "release"},
             {"key": "session.status"},
         ]
+
+        DERIVED_METRICS.update(
+            {
+                "crash_free_fake": SingularEntityDerivedMetric(
+                    metric_name="crash_free_fake",
+                    metrics=["session.crashed", "session.errored_set"],
+                    unit="percentage",
+                    snql=lambda *args, entity, metric_ids, alias=None: percentage(
+                        *args, entity, metric_ids, alias="crash_free_fake"
+                    ),
+                )
+            }
+        )
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            metric=["crash_free_fake", "session.init"],
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "The following metrics {'crash_free_fake'} cannot be computed from single entities. "
+            "Please revise the definition of these singular entity derived metrics"
+        )
+
+        assert (
+            self.get_response(
+                self.organization.slug,
+                metric=["foo.bar"],
+            ).data
+            == []
+        )
 
 
 class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegrationTest):

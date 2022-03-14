@@ -145,6 +145,10 @@ class MetricDoesNotExistException(Exception):
     ...
 
 
+class MetricDoesNotExistInIndexer(Exception):
+    ...
+
+
 class TimeRange(Protocol):
     start: datetime
     end: datetime
