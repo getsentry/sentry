@@ -4070,10 +4070,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/css-font-loading-module@0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@types/css-font-loading-module/-/css-font-loading-module-0.0.4.tgz#94a835e27d1af444c65cba88523533c174463d64"
-  integrity sha512-ENdXf7MW4m9HeDojB2Ukbi7lYMIuQNBHVf98dbzaiG4EEJREBd6oleVAjrLRCrp7dm6CK1mmdmU9tcgF61acbw==
+"@types/css-font-loading-module@0.0.7":
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/@types/css-font-loading-module/-/css-font-loading-module-0.0.7.tgz#2f98ede46acc0975de85c0b7b0ebe06041d24601"
+  integrity sha512-nl09VhutdjINdWyXxHWN/w9zlNCfr60JUqJbd24YXUuCwgeL0TpFSdElCwb6cxfB6ybE19Gjj4g0jsgkXxKv1Q==
 
 "@types/diff@5.0.1":
   version "5.0.1"
@@ -5660,6 +5660,11 @@ balanced-match@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-2.0.0.tgz#dc70f920d78db8b858535795867bf48f820633d9"
   integrity sha512-1ugUSr8BHXRnK23KfuYS+gVMC3LB8QGH9W1iGtDPsNWoQbgtXSExkBu2aDR4epiGWZOjZsj6lDl/N/AqqTC3UA==
+
+base64-arraybuffer@^1.0.1:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/base64-arraybuffer/-/base64-arraybuffer-1.0.2.tgz#1c37589a7c4b0746e34bd1feb951da2df01c1bdc"
+  integrity sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ==
 
 base64-js@^1.3.1:
   version "1.5.1"
@@ -10092,7 +10097,7 @@ jest-changed-files@^27.5.1:
     execa "^5.0.0"
     throat "^6.0.1"
 
-jest-circus@27.5.1, jest-circus@^27.5.1:
+jest-circus@^27.5.1:
   version "27.5.1"
   resolved "https://registry.yarnpkg.com/jest-circus/-/jest-circus-27.5.1.tgz#37a5a4459b7bf4406e53d637b49d22c65d125ecc"
   integrity sha512-D95R7x5UtlMA5iBYsOHFFbMD/GVA4R/Kdq15f7xYWUfWHBto9NYRsOvnSauTgdF+ogCpJ4tyKOXhUifxS65gdw==
@@ -13878,29 +13883,30 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
     hash-base "^3.0.0"
     inherits "^2.0.1"
 
-rrweb-player@^0.7.6:
-  version "0.7.6"
-  resolved "https://registry.yarnpkg.com/rrweb-player/-/rrweb-player-0.7.6.tgz#e4dfab8b69a4f7671d68fb31544fdb30fec7338f"
-  integrity sha512-7MeIQpZq6Pv9jBOciMLUS4y93jYHlA+NsZXA2UiXMl5ELGwWHYwrtGl6uaOuItAvGzCUvSBKOH4s6Zn+lnIfYg==
+rrweb-player@^0.7.13:
+  version "0.7.13"
+  resolved "https://registry.yarnpkg.com/rrweb-player/-/rrweb-player-0.7.13.tgz#f78c31568aa2cb673a8e713b86989bda118e25fa"
+  integrity sha512-xdBpUNj0Q4LkYSlhLcOTNbpuCS/7lQon57DVqblZdJyDJl+h3OovvK2D0KWBCVkrnzXibxfWA1cDmRAVU+g3Ww==
   dependencies:
     "@tsconfig/svelte" "^1.0.0"
-    rrweb "^1.0.4"
+    rrweb "^1.1.2"
 
-rrweb-snapshot@^1.1.8:
-  version "1.1.8"
-  resolved "https://registry.yarnpkg.com/rrweb-snapshot/-/rrweb-snapshot-1.1.8.tgz#57c3a8003a6ebbe4a2e2f5be29e30a47a8b1eb03"
-  integrity sha512-wi8T9IVobEwlns7U2m8cbPfoihsNAMpTI+UBe4KUjclU2N+vtowD2U1Rq8PleiFTDvcseHvkQDmEIZoZLXFzwg==
+rrweb-snapshot@^1.1.13:
+  version "1.1.13"
+  resolved "https://registry.yarnpkg.com/rrweb-snapshot/-/rrweb-snapshot-1.1.13.tgz#fc15adb7eb6354c859c8d594f57b09e1f5bccdd8"
+  integrity sha512-lv4vBSJ5orBcRoJnjLvtly6cSsctC+TNm5orVzYRL9SH3LmtSpQ+wI4bw7eh4AcyKoUf0x4pe1Bn632GggmKWQ==
 
-rrweb@^1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/rrweb/-/rrweb-1.0.4.tgz#a63931c4ed5c0dc50c1ee6d1b03abaf18cf529e2"
-  integrity sha512-JMnLF9QWMBwwmtxCUHJ38kjtDALvDfx2JsfiI6nOtj2qWWsSkwPJWfgWk3tSQzy1FD1ZXlFJPERIFjMrSBzn5w==
+rrweb@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/rrweb/-/rrweb-1.1.2.tgz#65279c8528dcfff7158bb31ed21323d3f26a741f"
+  integrity sha512-D1r3MdfYshY7rA8lN3R0cXqeY6fTtgHlkLQM4lxkU+TdKi023/hNQz6tvDJbXGX3HWGa4mRAmQs3S2uGho6Nsw==
   dependencies:
-    "@types/css-font-loading-module" "0.0.4"
+    "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
+    base64-arraybuffer "^1.0.1"
     fflate "^0.4.4"
     mitt "^1.1.3"
-    rrweb-snapshot "^1.1.8"
+    rrweb-snapshot "^1.1.13"
 
 rst-selector-parser@^2.2.3:
   version "2.2.3"

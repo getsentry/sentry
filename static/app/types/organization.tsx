@@ -192,6 +192,7 @@ export type EventsGeoData = {count: number; 'geo.country_code': string}[];
 export type EventsStats = {
   data: EventsStatsData;
   end?: number;
+  isMetricsData?: boolean;
   order?: number;
   start?: number;
   totals?: {count: number};

@@ -3,6 +3,8 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -12,6 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageHeading from 'sentry/components/pageHeading';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -19,14 +22,13 @@ import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import useTeams from 'sentry/utils/useTeams';
 
-import MetricsSearchBar from '../metricsSearchBar';
-import {MetricsSwitch, useMetricsSwitch} from '../metricsSwitch';
 import Onboarding from '../onboarding';
 import {getTransactionSearchQuery} from '../utils';
 
@@ -35,6 +37,7 @@ import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
+import SamplingModal, {modalCss} from './samplingModal';
 import {
   getDefaultDisplayForPlatform,
   getLandingDisplayFromParam,
@@ -101,11 +104,30 @@ export function PerformanceLanding(props: Props) {
   }, []);
 
   const filterString = getTransactionSearchQuery(location, eventView.query);
-  const {isMetricsData} = useMetricsSwitch();
 
   const showOnboarding = shouldShowOnboarding;
 
   const ViewComponent = fieldToViewMap[landingDisplay.field];
+
+  const {isMEPEnabled, setMEPEnabled} = useMEPSettingContext();
+
+  const fnOpenModal = () => {
+    openModal(
+      modalProps => (
+        <SamplingModal
+          {...modalProps}
+          organization={organization}
+          eventView={eventView}
+          projects={projects}
+          isMEPEnabled={isMEPEnabled}
+          onApply={value => {
+            setMEPEnabled(value);
+          }}
+        />
+      ),
+      {modalCss, backdrop: 'static'}
+    );
+  };
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -117,7 +139,6 @@ export function PerformanceLanding(props: Props) {
           <Layout.HeaderActions>
             {!showOnboarding && (
               <ButtonBar gap={3}>
-                <MetricsSwitch onSwitch={() => handleSearch('')} />
                 <Button
                   priority="primary"
                   data-test-id="landing-header-trends"
@@ -125,6 +146,14 @@ export function PerformanceLanding(props: Props) {
                 >
                   {t('View Trends')}
                 </Button>
+                <Feature features={['organizations:performance-use-metrics']}>
+                  <Button
+                    onClick={() => fnOpenModal()}
+                    icon={<IconSettings />}
+                    aria-label={t('Settings')}
+                    data-test-id="open-meps-settings"
+                  />
+                </Feature>
               </ButtonBar>
             )}
           </Layout.HeaderActions>
@@ -171,30 +200,19 @@ export function PerformanceLanding(props: Props) {
             ) : (
               <Fragment>
                 <SearchContainerWithFilter>
-                  {isMetricsData ? (
-                    <MetricsSearchBar
-                      searchSource="performance_landing_metrics"
-                      orgSlug={organization.slug}
-                      query={filterString}
-                      onSearch={handleSearch}
-                      maxQueryLength={MAX_QUERY_LENGTH}
-                      projectIds={eventView.project}
-                    />
-                  ) : (
-                    <SearchBar
-                      searchSource="performance_landing"
-                      organization={organization}
-                      projectIds={eventView.project}
-                      query={filterString}
-                      fields={generateAggregateFields(
-                        organization,
-                        [...eventView.fields, {field: 'tps()'}],
-                        ['epm()', 'eps()']
-                      )}
-                      onSearch={handleSearch}
-                      maxQueryLength={MAX_QUERY_LENGTH}
-                    />
-                  )}
+                  <SearchBar
+                    searchSource="performance_landing"
+                    organization={organization}
+                    projectIds={eventView.project}
+                    query={filterString}
+                    fields={generateAggregateFields(
+                      organization,
+                      [...eventView.fields, {field: 'tps()'}],
+                      ['epm()', 'eps()']
+                    )}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
                 </SearchContainerWithFilter>
                 {initiallyLoaded ? (
                   <TeamKeyTransactionManager.Provider

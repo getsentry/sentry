@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -29,8 +29,7 @@ describe('OrganizationRuleList', () => {
     />
   );
 
-  const createWrapper = props =>
-    mountWithTheme(getComponent(props), {context: routerContext});
+  const createWrapper = props => render(getComponent(props), {context: routerContext});
 
   beforeEach(() => {
     rulesMock = MockApiClient.addMockResponse({
