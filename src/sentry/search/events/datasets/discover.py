@@ -714,9 +714,9 @@ class DiscoverDatasetConfig(DatasetConfig):
                                                                                 [
                                                                                     Lambda(
                                                                                         [
-                                                                                            "z",
                                                                                             "x",
                                                                                             "y",
+                                                                                            "z",
                                                                                         ],
                                                                                         Function(
                                                                                             "and",
@@ -725,7 +725,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                                                                                                     "equals",
                                                                                                     [
                                                                                                         Identifier(
-                                                                                                            "x"
+                                                                                                            "y"
                                                                                                         ),
                                                                                                         args[
                                                                                                             "spans_op"
@@ -736,7 +736,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                                                                                                     "equals",
                                                                                                     [
                                                                                                         Identifier(
-                                                                                                            "y",
+                                                                                                            "z",
                                                                                                         ),
                                                                                                         args[
                                                                                                             "spans_group"
