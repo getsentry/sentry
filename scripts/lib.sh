@@ -1,4 +1,7 @@
 #!/bin/bash
+# NOTE: This file is sourced in CI across different repos (e.g. snuba),
+# thus, renaming this file or any functions can break CI!
+#
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 # shellcheck disable=SC2034 # Unused variables
@@ -14,9 +17,6 @@ if [ -z "${CI+x}" ]; then
 fi
 
 venv_name=".venv"
-
-# NOTE: This file is sourced in CI across different repos (e.g. snuba),
-# so renaming this file or any functions can break CI!
 
 # Check if a command is available
 require() {
