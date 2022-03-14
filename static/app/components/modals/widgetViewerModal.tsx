@@ -101,12 +101,11 @@ function WidgetViewerModal(props: Props) {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
     displayType: DisplayType.TABLE,
   };
+  const {aggregates, columns} = tableWidget.queries[0];
+
   const fields = defined(tableWidget.queries[0].fields)
     ? tableWidget.queries[0].fields
-    : [...tableWidget.queries[0].columns, ...tableWidget.queries[0].aggregates];
-
-  const columns = tableWidget.queries[0].columns;
-  const aggregates = tableWidget.queries[0].aggregates;
+    : [...columns, ...aggregates];
 
   // World Map view should always have geo.country in the table chart
   if (

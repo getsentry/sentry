@@ -172,7 +172,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await screen.findByRole('button', {name: 'Open in Discover'})
       ).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-timestamp&statsPeriod=14d'
+        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-timestamp&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
       );
     });
 
@@ -257,7 +257,7 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=Test%20Widget&query=&sort=-timestamp&statsPeriod=14d'
+        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&field=count%28%29&name=Test%20Widget&query=&sort=-timestamp&statsPeriod=14d&yAxis=count%28%29'
       );
     });
   });
