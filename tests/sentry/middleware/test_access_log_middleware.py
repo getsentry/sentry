@@ -82,6 +82,7 @@ urlpatterns = [
 
 
 @override_settings(ROOT_URLCONF="tests.sentry.middleware.test_access_log_middleware")
+@override_settings(LOG_API_ACCESS=True)
 class LogCaptureAPITestCase(APITestCase):
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
@@ -120,6 +121,18 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
         self.assert_access_log_recorded()
         assert self.captured_logs[0].token_type == "ApiToken"
+
+
+@override_settings(LOG_API_ACCESS=False)
+class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
+
+    endpoint = "dummy-endpoint"
+
+    def test_access_log_success(self):
+        token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        self.login_as(user=self.create_user())
+        self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
+        assert len(self.captured_logs) == 0
 
 
 class TestAccessLogFail(LogCaptureAPITestCase):
