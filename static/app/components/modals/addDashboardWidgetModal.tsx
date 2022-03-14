@@ -72,7 +72,6 @@ export type DashboardWidgetModalOptions = {
   organization: Organization;
   source: DashboardWidgetSource;
   dashboard?: DashboardDetails;
-  defaultTableAggregates?: readonly string[];
   defaultTableColumns?: readonly string[];
   defaultTitle?: string;
   defaultWidgetQuery?: WidgetQuery;
