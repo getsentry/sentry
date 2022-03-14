@@ -9,6 +9,7 @@ class Columns(Enum):
     Value is a tuple of (internal Events name, internal Transaction name, internal
     Discover name, external alias)
     None means the column is not available in that dataset.
+    Always use keyword arguments to declare columns for legibility.
     """
 
     EVENT_ID = Column(
