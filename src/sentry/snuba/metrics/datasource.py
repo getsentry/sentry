@@ -156,7 +156,7 @@ def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
     return metric_ids
 
 
-def __validate_requested_derived_metrics(
+def _validate_requested_derived_metrics(
     metric_names: Sequence[str], supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]]
 ) -> None:
     """
@@ -234,7 +234,7 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
         # At this point, we are sure that every metric_name/metric_id that was requested is
         # present in the dataset, and now we need to check that all derived metrics requested are
         # setup correctly
-        __validate_requested_derived_metrics(
+        _validate_requested_derived_metrics(
             metric_names=metric_names,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
         )
@@ -306,7 +306,7 @@ def get_tag_values(
         # At this point, we are sure that every metric_name/metric_id that was requested is
         # present in the dataset, and now we need to check that all derived metrics requested are
         # setup correctly
-        __validate_requested_derived_metrics(
+        _validate_requested_derived_metrics(
             metric_names=metric_names,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
         )
