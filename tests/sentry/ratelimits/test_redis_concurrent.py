@@ -89,7 +89,6 @@ class ConcurrentLimiterTest(TestCase):
             results = []
             for f in futures:
                 results.append(f.result())
-            print(results)
             assert len([r for r in results if r.limit_exceeded]) == 1
             time.sleep(0.3)
             assert not do_request().limit_exceeded
