@@ -11,7 +11,7 @@ const PermissionAlert = ({access = ['org:write'], ...props}: Props) => (
   <Access access={access}>
     {({hasAccess}) =>
       !hasAccess && (
-        <Alert type="warning" {...props}>
+        <Alert type="warning" showIcon {...props}>
           {t(
             'These settings can only be edited by users with the organization owner or manager role.'
           )}
