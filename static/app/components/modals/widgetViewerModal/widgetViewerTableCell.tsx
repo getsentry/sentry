@@ -60,7 +60,12 @@ export const renderIssueGridHeaderCell =
         canSort={!!sortField}
         generateSortLink={() => ({
           ...location,
-          query: {...location.query, [WidgetViewerQueryField.SORT]: sortField},
+          query: {
+            ...location.query,
+            [WidgetViewerQueryField.SORT]: sortField,
+            [WidgetViewerQueryField.PAGE]: undefined,
+            [WidgetViewerQueryField.CURSOR]: undefined,
+          },
         })}
       />
     );
@@ -88,7 +93,12 @@ export const renderDiscoverGridHeaderCell =
 
       return {
         ...location,
-        query: {...location.query, [WidgetViewerQueryField.SORT]: queryStringObject.sort},
+        query: {
+          ...location.query,
+          [WidgetViewerQueryField.SORT]: queryStringObject.sort,
+          [WidgetViewerQueryField.PAGE]: undefined,
+          [WidgetViewerQueryField.CURSOR]: undefined,
+        },
       };
     }
 
