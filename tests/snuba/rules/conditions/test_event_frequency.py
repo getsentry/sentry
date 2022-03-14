@@ -347,9 +347,7 @@ class EventFrequencyPercentConditionTestCase(
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_comparison(self):
-        self._make_sessions(
-            10,
-        )
+        self._make_sessions(10)
         # Create sessions for previous period
         self._make_sessions(10)
 
