@@ -251,6 +251,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
       ],
       columns,
+      fields: defaultTableFields,
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
@@ -270,8 +271,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           ...location.query,
           source: DashboardWidgetSource.DISCOVERV2,
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          defaultTableColumns: defaultWidgetQuery.columns,
-          defaultTableAggregates: defaultWidgetQuery.aggregates,
+          defaultTableColumns: defaultTableFields,
           defaultTitle,
           displayType,
         },
@@ -283,8 +283,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       organization,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns: defaultWidgetQuery.columns,
-      defaultTableAggregates: defaultWidgetQuery.aggregates,
+      defaultTableColumns: defaultTableFields,
       defaultTitle,
       displayType,
     });

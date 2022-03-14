@@ -193,8 +193,7 @@ function WidgetBuilder({
   router,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
-  const {source, displayType, defaultTitle, defaultTableColumns, defaultTableAggregates} =
-    location.query;
+  const {source, displayType, defaultTitle, defaultTableColumns} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
@@ -353,17 +352,14 @@ function WidgetBuilder({
         }
 
         // Default widget provided by Add to Dashboard from Discover
-        if (defaultWidgetQuery && (defaultTableColumns || defaultTableAggregates)) {
+        if (defaultWidgetQuery && defaultTableColumns) {
           // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
           // This is so the widget can reflect the same columns as the table in Discover without requiring additional user input
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
               query.columns = [...defaultWidgetQuery.columns];
               query.aggregates = [...defaultWidgetQuery.aggregates];
-              query.fields = [
-                ...defaultWidgetQuery.columns,
-                ...defaultWidgetQuery.aggregates,
-              ];
+              query.fields = [...defaultTableColumns];
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query

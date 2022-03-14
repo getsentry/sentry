@@ -161,17 +161,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultTitle, displayType} = props;
+    const {widget, defaultTitle, displayType, defaultWidgetQuery} = props;
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
         displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
-        queries: [
-          this.defaultWidgetQueries
-            ? {...this.defaultWidgetQueries}
-            : {...newDiscoverQuery},
-        ],
+        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newDiscoverQuery}],
         errors: undefined,
         loading: !!this.omitDashboardProp,
         dashboards: [],
@@ -201,17 +197,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (this.omitDashboardProp) {
       this.fetchDashboards();
     }
-  }
-
-  get defaultWidgetQueries() {
-    const {defaultWidgetQuery} = this.props;
-    if (defaultWidgetQuery) {
-      defaultWidgetQuery.fields = [
-        ...defaultWidgetQuery.columns,
-        ...defaultWidgetQuery.aggregates,
-      ];
-    }
-    return defaultWidgetQuery;
   }
 
   get omitDashboardProp() {

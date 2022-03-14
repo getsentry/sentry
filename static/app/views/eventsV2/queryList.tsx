@@ -131,8 +131,7 @@ class QueryList extends React.Component<Props> {
           end: eventView.end,
           statsPeriod: eventView.statsPeriod,
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          defaultTableColumns: columns,
-          defaultTableAggregates: aggregates,
+          defaultTableColumns: defaultTableFields,
           defaultTitle,
           displayType,
         },
@@ -147,8 +146,7 @@ class QueryList extends React.Component<Props> {
       statsPeriod: eventView.statsPeriod,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns: columns,
-      defaultTableAggregates: aggregates,
+      defaultTableColumns: defaultTableFields,
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),
