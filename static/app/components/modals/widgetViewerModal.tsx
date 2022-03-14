@@ -453,7 +453,8 @@ const Container = styled('div')`
 `;
 
 const TextContainer = styled('div')`
-  padding-bottom: ${space(1.5)};
+  padding: ${space(2)} 0 ${space(1.5)} 0;
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledSelectControl = styled(SelectControl)`
